@@ -9,8 +9,11 @@
   },
   "devDependencies": {
     "@adonisjs/assembler": "^5.7.0",
+    "@japa/api-client": "^1.4.0",
+    "@japa/expect": "^1.1.4",
     "@japa/preset-adonis": "^1.1.0",
     "@japa/runner": "^2.0.9",
+    "@japa/spec-reporter": "^1.1.12",
     "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.27.1",
     "@typescript-eslint/parser": "^5.27.1",

@@ -26,12 +26,9 @@ export default class UserService {
     return user;
   }
 
-  public async update(id, data) {
-    const user: User | null = await this.show(id);
+  public async update(id: string, data: any): Promise<User> {
+    const user = await this.show(id);
 
-    if (user) {
-      user.fill(data);
-      return user.save();
-    }
+    return user.merge(data).save();
   }
 }

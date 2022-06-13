@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import UserService from 'App/Services/UserService';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
+import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
 export default class UsersController {
@@ -25,6 +26,8 @@ export default class UsersController {
 
   public async update({ params, request, response }: HttpContextContract) {
     const { id } = params;
-    return response.ok(this.service.update(id, request.all()));
+    const payload = await request.validate(UpdateUserValidator);
+    const updatedUser = await this.service.update(id, payload);
+    return response.ok(updatedUser);
   }
 }

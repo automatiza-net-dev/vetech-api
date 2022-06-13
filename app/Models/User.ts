@@ -1,5 +1,10 @@
 import Hash from '@ioc:Adonis/Core/Hash';
-import { BaseModel, beforeSave, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  beforeCreate,
+  beforeSave,
+  column,
+} from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
@@ -63,7 +68,7 @@ export default class User extends BaseModel {
     }
   }
 
-  @beforeSave()
+  @beforeCreate()
   public static async checkId(user: User) {
     if (!user.id) {
       user.id = v4();

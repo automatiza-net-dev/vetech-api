@@ -48,4 +48,16 @@ test.group('User resource', group => {
 
     assert.equal('0987', response.body().document);
   });
+
+  test('create a new user', async ({ client, assert }) => {
+    const response = await client.post(`/users`).json({
+      name: 'user1',
+      email: 'mail10@mail.com',
+      password: '102030',
+      password_confirmation: '102030',
+      document: '0987',
+    });
+
+    assert.equal('user1', response.body().name);
+  });
 });

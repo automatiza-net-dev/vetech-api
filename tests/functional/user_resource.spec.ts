@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import User from 'App/Models/User';
+import { v4 } from 'uuid';
 
 test.group('User resource', group => {
   group.each.setup(async () => {
@@ -8,7 +9,7 @@ test.group('User resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  test('should a list of all users', async ({ client, assert }) => {
+  test('should return a list of all users', async ({ client, assert }) => {
     const response = await client.get('/users');
 
     const [user] = response.body() as Array<User>;
@@ -16,5 +17,26 @@ test.group('User resource', group => {
     assert.equal('mail@mail.com', user.email);
     assert.equal('123456789', user.document);
     assert.notEqual('102030', user.password);
+  });
+
+  test('should throw not found exception if no user was found', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get(`/users/${v4()}`);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: The user was not found', body.message as string);
+  });
+
+  test('return the found user', async ({ client, assert }) => {
+    const usersRequest = await client.get(`/users`);
+    const [user] = usersRequest.body() as Array<User>;
+
+    const response = await client.get(`/users/${user.id}`);
+
+    assert.equal(user.id, response.body().id);
   });
 });

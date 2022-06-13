@@ -32,8 +32,7 @@ test.group('User resource', group => {
   });
 
   test('return the found user', async ({ client, assert }) => {
-    const usersRequest = await client.get(`/users`);
-    const [user] = usersRequest.body() as Array<User>;
+    const [user] = await User.all();
 
     const response = await client.get(`/users/${user.id}`);
 

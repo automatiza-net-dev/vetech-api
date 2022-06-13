@@ -1,12 +1,13 @@
+import { inject } from '@adonisjs/fold';
 import User from 'App/Models/User';
 
+@inject()
 export default class UserService {
-
-  public async index() {
+  public async index(): Promise<Array<User>> {
     return User.all();
   }
 
-  public async store(data) {
+  public async store(data): Promise<User> {
     return User.create(data);
   }
 
@@ -22,5 +23,4 @@ export default class UserService {
       return user.save();
     }
   }
-
 }

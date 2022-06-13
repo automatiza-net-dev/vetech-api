@@ -19,7 +19,8 @@ export default class UsersController {
 
   public async show({ params, response }: HttpContextContract) {
     const { id } = params;
-    return response.ok(this.service.show(this.service.show(id)));
+    const user = await this.service.show(id);
+    return response.ok(user);
   }
 
   public async update({ params, request, response }: HttpContextContract) {

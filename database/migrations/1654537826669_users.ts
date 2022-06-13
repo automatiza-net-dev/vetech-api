@@ -6,6 +6,7 @@ export default class UsersSchema extends BaseSchema {
   public async up() {
     this.schema.createTable(this.tableName, table => {
       table.uuid('id').primary();
+      table.string('name', 255).notNullable();
       table.string('email', 255).notNullable();
       table.string('password', 180).notNullable();
       table.string('document', 20).notNullable();
@@ -19,6 +20,7 @@ export default class UsersSchema extends BaseSchema {
       table.string('city', 255).nullable();
       table.string('state', 255).nullable();
       table.string('remember_me_token').nullable();
+      table.boolean('active').defaultTo(true);
 
       /**
        * Uses timestampz for PostgreSQL and DATETIME2 for MSSQL

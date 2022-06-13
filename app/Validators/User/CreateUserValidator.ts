@@ -24,6 +24,7 @@ export default class CreateUserValidator {
    *    ```
    */
   public schema = schema.create({
+    name: schema.string({}),
     email: schema.string({}, [
       rules.email(),
       rules.unique({ table: 'users', column: 'email' }),
@@ -40,6 +41,7 @@ export default class CreateUserValidator {
     district: schema.string.optional({}),
     city: schema.string.optional({}),
     state: schema.string.optional({}),
+    active: schema.boolean.optional([]),
   });
 
   /**

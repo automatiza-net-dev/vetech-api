@@ -24,6 +24,7 @@ export default class UpdateUserValidator {
    *    ```
    */
   public schema = schema.create({
+    name: schema.string.optional({}),
     email: schema.string.optional({}, [rules.email()]),
     password: schema.string.optional({}, [rules.confirmed()]),
     document: schema.string.optional({}, []),
@@ -35,6 +36,7 @@ export default class UpdateUserValidator {
     district: schema.string.optional({}),
     city: schema.string.optional({}),
     state: schema.string.optional({}),
+    active: schema.boolean.optional([]),
   });
 
   /**

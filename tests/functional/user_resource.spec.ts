@@ -38,4 +38,14 @@ test.group('User resource', group => {
 
     assert.equal(user.id, response.body().id);
   });
+
+  test('return the found user', async ({ client, assert }) => {
+    const [user] = await User.all();
+
+    const response = await client.put(`/users/${user.id}`).json({
+      document: '0987',
+    });
+
+    assert.equal('0987', response.body().document);
+  });
 });

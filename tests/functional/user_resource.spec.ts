@@ -60,4 +60,15 @@ test.group('User resource', group => {
 
     assert.equal('user1', response.body().name);
   });
+
+  test('soft delete a user', async ({ client, assert }) => {
+    const [user] = await User.all();
+
+    const deleteResponse = await client.delete(`/users/${user.id}`);
+    assert.equal(204, deleteResponse.status());
+
+    const getResponse = await client.get(`/users/${user.id}`);
+    const body = getResponse.body();
+    assert.equal('E_NOT_FOUND: The user was not found', body.message as string);
+  });
 });

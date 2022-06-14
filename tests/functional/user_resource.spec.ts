@@ -4,6 +4,13 @@ import { test } from '@japa/runner';
 import User from 'App/Models/User';
 import { v4 } from 'uuid';
 
+/*
+  REFACTOR LIST
+
+  - check group creation after user creation
+  - seed interaction (create user on demand?)
+
+ */
 test.group('User resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
@@ -13,11 +20,9 @@ test.group('User resource', group => {
   test('should return a list of all users', async ({ client, assert }) => {
     const response = await client.get('/users');
 
-    const [user] = response.body() as Array<User>;
+    const users = response.body();
 
-    assert.equal('mail@mail.com', user.email);
-    assert.equal('123456789', user.document);
-    assert.notEqual('102030', user.password);
+    assert.isArray(users);
   });
 
   test('should throw not found exception if no user was found', async ({

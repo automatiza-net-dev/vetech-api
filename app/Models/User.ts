@@ -38,25 +38,25 @@ export default class User extends BaseModel {
   @column({
     columnName: 'postal_code',
   })
-  public postalCode?: string; // CEP
+  public postalCode?: string;
 
   @column()
-  public address?: string; // Endereço
+  public address?: string;
 
   @column()
-  public number?: string; // Número
+  public number?: string;
 
   @column()
-  public complement?: string; // Complemento
+  public complement?: string;
 
   @column()
-  public district?: string; // Bairro
+  public district?: string;
 
   @column()
-  public city?: string; // Cidade
+  public city?: string;
 
   @column()
-  public state?: string; // Estado
+  public state?: string;
 
   @column()
   public rememberMeToken?: string;

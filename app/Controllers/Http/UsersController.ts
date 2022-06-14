@@ -2,6 +2,8 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import UserService from 'App/Services/UserService';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
+import ForgotPasswordValidator from 'App/Validators/User/ForgotPasswordValidator';
+import ResetPasswordValidator from 'App/Validators/User/ResetPasswordValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
@@ -34,6 +36,20 @@ export default class UsersController {
   public async destroy({ params, response }: HttpContextContract) {
     const { id } = params;
     await this.service.delete(id);
+    return response.noContent();
+  }
+
+  public async forgotPassword({ request, response }: HttpContextContract) {
+    const payload = await request.validate(ForgotPasswordValidator);
+    await this.service.forgotPassword(payload);
+
+    return response.noContent();
+  }
+
+  public async resetPassword({ request, response }: HttpContextContract) {
+    const payload = await request.validate(ResetPasswordValidator);
+    await this.service.resetPassword(payload);
+
     return response.noContent();
   }
 }

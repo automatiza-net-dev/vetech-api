@@ -1,6 +1,12 @@
 import { inject } from '@adonisjs/fold';
+import Encryption from '@ioc:Adonis/Core/Encryption';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import User from 'App/Models/User';
+import {
+  IForgotPassword,
+  IResetPassword,
+} from 'Contracts/interfaces/ResetPassword';
 
 @inject()
 export default class UserService {
@@ -36,5 +42,27 @@ export default class UserService {
     const user = await this.show(id);
 
     await user.softDelete();
+  }
+
+  public async forgotPassword({ email }: IForgotPassword): Promise<void> {
+    const encryptedEmail = Encryption.encrypt(email, '30min');
+    console.log({ encryptedEmail });
+    // TODO send email
+  }
+
+  public async resetPassword({
+    hash,
+    email,
+    password,
+  }: IResetPassword): Promise<void> {
+    const decryptedEmail = Encryption.decrypt(hash);
+
+    if (decryptedEmail !== email) {
+      throw new UnauthorizedException('Token inválido', 400, 'E_UNAUTHORIZED');
+    }
+
+    const user = await User.findByOrFail('email', email);
+    user.password = password;
+    await user.save();
   }
 }

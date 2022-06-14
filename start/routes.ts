@@ -20,4 +20,6 @@
 
 import Route from '@ioc:Adonis/Core/Route';
 
+Route.post('users/forgot-password', 'UsersController.forgotPassword');
+Route.post('users/reset-password', 'UsersController.resetPassword');
 Route.resource('users', 'UsersController').except(['create', 'edit']);

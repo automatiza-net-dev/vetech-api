@@ -8,7 +8,7 @@ import {
   IForgotPassword,
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
-import { IUpdatePassword } from 'Contracts/interfaces/UpdatePassword';
+import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
 
 @inject()
 export default class UserService {

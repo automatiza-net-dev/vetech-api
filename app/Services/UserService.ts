@@ -31,4 +31,10 @@ export default class UserService {
 
     return user.merge(data).save();
   }
+
+  public async delete(id: string): Promise<void> {
+    const user = await this.show(id);
+
+    await user.softDelete();
+  }
 }

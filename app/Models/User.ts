@@ -2,9 +2,12 @@ import Hash from '@ioc:Adonis/Core/Hash';
 import {
   BaseModel,
   beforeCreate,
+  beforeFetch,
+  beforeFind,
   beforeSave,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
@@ -67,6 +70,9 @@ export default class User extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
+
   @beforeSave()
   public static async hashPassword(user: User) {
     if (user.$dirty.password) {
@@ -79,5 +85,15 @@ export default class User extends BaseModel {
     if (!user.id) {
       user.id = v4();
     }
+  }
+
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
+
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
+
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
   }
 }

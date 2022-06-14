@@ -30,4 +30,10 @@ export default class UsersController {
     const updatedUser = await this.service.update(id, payload);
     return response.ok(updatedUser);
   }
+
+  public async destroy({ params, response }: HttpContextContract) {
+    const { id } = params;
+    await this.service.delete(id);
+    return response.noContent();
+  }
 }

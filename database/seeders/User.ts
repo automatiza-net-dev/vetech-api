@@ -1,14 +1,9 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import User from 'App/Models/User';
+import UserFactory from 'Database/factories/UserFactory';
 
 export default class extends BaseSeeder {
   public async run() {
-    await User.create({
-      name: 'user1',
-      email: 'mail@mail.com',
-      password: '102030',
-      document: '123456789',
-    });
+    await UserFactory.create();
     // Write your database queries inside the run method
   }
 }

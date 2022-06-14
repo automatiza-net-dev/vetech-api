@@ -1,4 +1,10 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  column,
+  ManyToMany,
+  manyToMany,
+} from '@ioc:Adonis/Lucid/Orm';
+import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
 export default class EconomicGroup extends BaseModel {
@@ -27,6 +33,12 @@ export default class EconomicGroup extends BaseModel {
     columnName: 'responsible_phone',
   })
   public responsiblePhone: string;
+
+  @manyToMany(() => User, {
+    pivotTable: 'users_economic_groups',
+    pivotTimestamps: true,
+  })
+  public users: ManyToMany<typeof User>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

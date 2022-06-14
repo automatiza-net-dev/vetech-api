@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import User from 'App/Models/User';
 import { IUpdateEconomicGroup } from 'Contracts/interfaces/UpdateEconomicGroup';
 
 @inject()
@@ -30,5 +31,10 @@ export default class EconomicGroupService {
     const group = await this.show(id);
 
     return group.merge(data).save();
+  }
+
+  public async getUsers(id: string): Promise<Array<User>> {
+    const group = await this.show(id);
+    return group.related('users').query();
   }
 }

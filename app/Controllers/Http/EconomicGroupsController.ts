@@ -18,4 +18,10 @@ export default class EconomicGroupsController {
 
     return response.ok(group);
   }
+
+  public async users({ params, response }: HttpContextContract) {
+    const { id } = params;
+    const users = await this.service.getUsers(id);
+    return response.ok(users);
+  }
 }

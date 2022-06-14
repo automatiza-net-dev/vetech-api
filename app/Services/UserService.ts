@@ -3,10 +3,12 @@ import Encryption from '@ioc:Adonis/Core/Encryption';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import User from 'App/Models/User';
+import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IForgotPassword,
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
+import { IUpdatePassword } from 'Contracts/interfaces/UpdatePassword';
 
 @inject()
 export default class UserService {
@@ -14,7 +16,7 @@ export default class UserService {
     return User.all();
   }
 
-  public async store(data): Promise<User> {
+  public async store(data: ICreateUser): Promise<User> {
     return User.create(data);
   }
 
@@ -32,7 +34,7 @@ export default class UserService {
     return user;
   }
 
-  public async update(id: string, data: any): Promise<User> {
+  public async update(id: string, data: IUpdatePassword): Promise<User> {
     const user = await this.show(id);
 
     return user.merge(data).save();

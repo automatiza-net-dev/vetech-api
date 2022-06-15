@@ -9,4 +9,9 @@ export default class PermissionsController {
   public async index({ response }: HttpContextContract) {
     return response.ok(await this.service.index());
   }
+
+  public async show({ params, response }: HttpContextContract) {
+    const { id } = params;
+    return response.ok(await this.service.show(id));
+  }
 }

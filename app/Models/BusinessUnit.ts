@@ -65,6 +65,7 @@ export default class BusinessUnit extends BaseModel {
 
   @column({
     columnName: 'economic_group_id',
+    serializeAs: null,
   })
   public economicGroupId: string;
 

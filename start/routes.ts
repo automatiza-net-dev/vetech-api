@@ -33,3 +33,7 @@ Route.group(() => {
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');
 }).prefix('economic-groups');
+
+Route.group(() => {
+  Route.get('', 'BusinessUnitsController.index');
+}).prefix('business-units');

@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Role from 'App/Models/Role';
-import RoleData from 'Contracts/interfaces/RoleData';
+import IRoleData from 'Contracts/interfaces/IRoleData';
 
 @inject()
 export default class RoleService {
@@ -9,7 +9,7 @@ export default class RoleService {
     return Role.all();
   }
 
-  public async store(data: RoleData): Promise<Role> {
+  public async store(data: IRoleData): Promise<Role> {
     return Role.create(data);
   }
 
@@ -27,7 +27,7 @@ export default class RoleService {
     return role;
   }
 
-  public async update(id: number, data: RoleData): Promise<Role> {
+  public async update(id: number, data: IRoleData): Promise<Role> {
     const role = await this.show(id);
 
     return role.merge(data).save();

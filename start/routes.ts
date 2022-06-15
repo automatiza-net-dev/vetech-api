@@ -20,6 +20,10 @@
 
 import Route from '@ioc:Adonis/Core/Route';
 
+Route.get('/', () => {
+  return 'Vetech API - Desenvolvimento: CreativeCode 2022';
+});
+
 Route.post('users/forgot-password', 'UsersController.forgotPassword');
 Route.post('users/reset-password', 'UsersController.resetPassword');
 Route.resource('users', 'UsersController').except(['create', 'edit']);

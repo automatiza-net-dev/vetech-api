@@ -1,11 +1,16 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Permission from 'App/Models/Permission';
+import IPermissionData from 'Contracts/interfaces/PermissionData';
 
 @inject()
 export default class PermissionService {
   public async index(): Promise<Array<Permission>> {
     return Permission.all();
+  }
+
+  public async store(data: IPermissionData): Promise<Permission> {
+    return Permission.create(data);
   }
 
   public async show(id: number): Promise<Permission> {

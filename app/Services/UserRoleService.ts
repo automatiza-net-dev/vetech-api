@@ -28,4 +28,12 @@ export default class UserRoleService {
       unit_id: unit.id,
     });
   }
+
+  public async getUnitUsers(id: string): Promise<Array<User>> {
+    const entities = await UserUnitRole.query()
+      .where('unit_id', id)
+      .preload('user');
+
+    return entities.map(ent => ent.user);
+  }
 }

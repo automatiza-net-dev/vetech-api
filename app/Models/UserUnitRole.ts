@@ -17,7 +17,10 @@ export default class UserUnitRole extends BaseModel {
   @column()
   public role_id: number;
 
-  @belongsTo(() => User)
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
   public user: BelongsTo<typeof User>;
 
   @belongsTo(() => BusinessUnit)

@@ -15,7 +15,7 @@ export default class extends BaseSeeder {
     const partialRoles = this.BASE_ROLES.map(role => ({
       name: role,
     }));
-    await Role.createMany(partialRoles);
+    await Role.fetchOrCreateMany('name', partialRoles);
     // Write your database queries inside the run method
   }
 }

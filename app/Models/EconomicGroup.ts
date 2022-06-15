@@ -1,9 +1,12 @@
 import {
   BaseModel,
   column,
+  HasMany,
+  hasMany,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
@@ -45,4 +48,7 @@ export default class EconomicGroup extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @hasMany(() => BusinessUnit, {})
+  public businessUnits: HasMany<typeof BusinessUnit>;
 }

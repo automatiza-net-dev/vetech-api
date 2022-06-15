@@ -20,6 +20,10 @@
 
 import Route from '@ioc:Adonis/Core/Route';
 
+Route.get('/', () => {
+  return 'Vetech API - Desenvolvimento: CreativeCode 2022';
+});
+
 Route.post('users/forgot-password', 'UsersController.forgotPassword');
 Route.post('users/reset-password', 'UsersController.resetPassword');
 Route.resource('users', 'UsersController').except(['create', 'edit']);
@@ -29,3 +33,8 @@ Route.group(() => {
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');
 }).prefix('economic-groups');
+
+Route.group(() => {
+  Route.get('', 'BusinessUnitsController.index');
+  Route.put('/:id', 'BusinessUnitsController.update');
+}).prefix('business-units');

@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Encryption from '@ioc:Adonis/Core/Encryption';
+import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import User from 'App/Models/User';
@@ -17,20 +18,41 @@ export default class UserService {
     return User.all();
   }
 
-  public async store(data: ICreateUser): Promise<User> {
-    const user = await User.create(data);
+  public async store(data: ICreateUser): Promise<void> {
+    await Database.transaction(async trx => {
+      const user = await User.create(data, {
+        client: trx,
+      });
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: data.document,
-      responsibleEmail: data.email,
-      responsiblePhone: data.phone,
+      const newGroup = await user.related('economicGroups').create(
+        {
+          id: v4(),
+          document: data.document,
+          responsibleEmail: data.email,
+          responsiblePhone: data.phone,
+        },
+        {
+          client: trx,
+        },
+      );
+      await newGroup.save();
+
+      const newBusinessUnit = await newGroup.related('businessUnits').create(
+        {
+          id: v4(),
+          document: data.document,
+          phone: data.phone,
+          email: data.email,
+          origin: 'CADASTRO SELF-SERVICE',
+        },
+        {
+          client: trx,
+        },
+      );
+      await newBusinessUnit.save();
+
+      // TODO add admin permissions
     });
-    await newGroup.save();
-
-    // TODO add admin permissions
-
-    return user;
   }
 
   public async show(id: string): Promise<User> {

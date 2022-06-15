@@ -49,8 +49,6 @@ export default class EconomicGroup extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
-  @hasMany(() => BusinessUnit, {
-    foreignKey: 'economic_group_id',
-  })
+  @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;
 }

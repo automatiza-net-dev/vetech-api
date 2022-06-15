@@ -28,6 +28,9 @@ export default class BusinessUnit extends BaseModel {
   @column()
   public phone?: string;
 
+  @column()
+  public origin?: string;
+
   @column({
     columnName: 'postal_code',
   })
@@ -71,8 +74,6 @@ export default class BusinessUnit extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
-  @belongsTo(() => EconomicGroup, {
-    localKey: 'economic_group_id',
-  })
+  @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 }

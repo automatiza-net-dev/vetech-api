@@ -38,3 +38,5 @@ Route.group(() => {
   Route.get('', 'BusinessUnitsController.index');
   Route.put('/:id', 'BusinessUnitsController.update');
 }).prefix('business-units');
+
+Route.resource('roles', 'RolesController').apiOnly();

@@ -8,7 +8,8 @@ import {
   IForgotPassword,
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
-import { IUpdatePassword } from 'Contracts/interfaces/UpdatePassword';
+import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
+import { v4 } from 'uuid';
 
 @inject()
 export default class UserService {
@@ -17,7 +18,19 @@ export default class UserService {
   }
 
   public async store(data: ICreateUser): Promise<User> {
-    return User.create(data);
+    const user = await User.create(data);
+
+    const newGroup = await user.related('economicGroups').create({
+      id: v4(),
+      document: data.document,
+      responsibleEmail: data.email,
+      responsiblePhone: data.phone,
+    });
+    await newGroup.save();
+
+    // TODO add admin permissions
+
+    return user;
   }
 
   public async show(id: string): Promise<User> {

@@ -23,3 +23,9 @@ import Route from '@ioc:Adonis/Core/Route';
 Route.post('users/forgot-password', 'UsersController.forgotPassword');
 Route.post('users/reset-password', 'UsersController.resetPassword');
 Route.resource('users', 'UsersController').except(['create', 'edit']);
+
+Route.group(() => {
+  Route.get('', 'EconomicGroupsController.index');
+  Route.get('/:id/users', 'EconomicGroupsController.users');
+  Route.put('/:id', 'EconomicGroupsController.update');
+}).prefix('economic-groups');

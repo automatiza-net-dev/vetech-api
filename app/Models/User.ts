@@ -6,7 +6,10 @@ import {
   beforeFind,
   beforeSave,
   column,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -63,6 +66,12 @@ export default class User extends BaseModel {
 
   @column()
   public active?: boolean;
+
+  @manyToMany(() => EconomicGroup, {
+    pivotTable: 'users_economic_groups',
+    pivotTimestamps: true,
+  })
+  public economicGroups: ManyToMany<typeof EconomicGroup>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

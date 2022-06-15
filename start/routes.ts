@@ -41,3 +41,4 @@ Route.group(() => {
 }).prefix('business-units');
 
 Route.resource('roles', 'RolesController').apiOnly();
+Route.resource('permissions', 'PermissionsController').apiOnly();

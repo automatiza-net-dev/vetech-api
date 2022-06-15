@@ -21,4 +21,10 @@ export default class PermissionService {
 
     return permission;
   }
+
+  public async delete(id: number): Promise<void> {
+    const permission = await this.show(id);
+
+    await permission.softDelete();
+  }
 }

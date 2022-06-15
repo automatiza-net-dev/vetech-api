@@ -14,4 +14,9 @@ export default class PermissionsController {
     const { id } = params;
     return response.ok(await this.service.show(id));
   }
+  public async destroy({ params, response }: HttpContextContract) {
+    const { id } = params;
+    await this.service.delete(id);
+    return response.noContent();
+  }
 }

@@ -61,6 +61,8 @@ test.group('Economic group resource', group => {
     const updatedGroup = response.body();
 
     assert.equal(group.id, updatedGroup.id);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     assert.notEqual(group.fantasy_name, updatedGroup.fantasy_name);
   });
 });

@@ -27,6 +27,11 @@ export default class PermissionService {
     return permission;
   }
 
+  public async update(id: number, data: IPermissionData): Promise<Permission> {
+    const permission = await this.show(id);
+    return permission.merge(data).save();
+  }
+
   public async delete(id: number): Promise<void> {
     const permission = await this.show(id);
 

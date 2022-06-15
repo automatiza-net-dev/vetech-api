@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PermissionService from 'App/Services/PermissionService';
 import CreatePermissionValidator from 'App/Validators/Permission/CreatePermissionValidator';
+import UpdatePermissionValidator from 'App/Validators/Permission/UpdatePermissionValidator';
 
 @inject()
 export default class PermissionsController {
@@ -21,6 +22,13 @@ export default class PermissionsController {
   public async show({ params, response }: HttpContextContract) {
     const { id } = params;
     return response.ok(await this.service.show(id));
+  }
+  public async update({ params, request, response }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdatePermissionValidator);
+    const updatedPermission = await this.service.update(id, payload);
+
+    return response.ok(updatedPermission);
   }
 
   public async destroy({ params, response }: HttpContextContract) {

@@ -26,6 +26,16 @@ export default class UsersController {
     return response.ok(user);
   }
 
+  public async checkEmail({ params, response }: HttpContextContract) {
+    const { email } = params;
+    const existing = await this.service.checkExistingEmail(email);
+
+    return response.ok({
+      success: true,
+      inUse: existing,
+    });
+  }
+
   public async update({ params, request, response }: HttpContextContract) {
     const { id } = params;
     const payload = await request.validate(UpdateUserValidator);

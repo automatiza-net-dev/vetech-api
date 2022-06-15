@@ -36,4 +36,5 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('', 'BusinessUnitsController.index');
+  Route.put('/:id', 'BusinessUnitsController.update');
 }).prefix('business-units');

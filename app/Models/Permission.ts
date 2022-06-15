@@ -3,7 +3,10 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import Role from 'App/Models/Role';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
@@ -22,6 +25,12 @@ export default class Permission extends BaseModel {
 
   @column.dateTime({ serializeAs: null })
   public deletedAt: DateTime;
+
+  @manyToMany(() => Role, {
+    pivotTable: 'role_permissions',
+    pivotTimestamps: true,
+  })
+  public roles: ManyToMany<typeof Role>;
 
   @beforeFind()
   public static softDeletesFind = softDeleteQuery;

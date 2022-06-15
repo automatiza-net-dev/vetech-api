@@ -12,6 +12,10 @@ export default class RolesController {
     response.ok(await this.roleService.index());
   }
 
+  public async show({ params, response }: HttpContextContract) {
+    response.ok(await this.roleService.show(params.id));
+  }
+
   public async store({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateRoleValidator);
     const newRole = await this.roleService.store(payload);

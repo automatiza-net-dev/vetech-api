@@ -1,4 +1,10 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  column,
+} from '@ioc:Adonis/Lucid/Orm';
+import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
 export default class Role extends BaseModel {
@@ -13,4 +19,17 @@ export default class Role extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
+
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
+
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
+
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 }

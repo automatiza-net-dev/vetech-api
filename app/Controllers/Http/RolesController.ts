@@ -30,4 +30,11 @@ export default class RolesController {
 
     return response.created(updatedRole);
   }
+
+  public async destroy({ params, response }: HttpContextContract) {
+    const { id } = params;
+    await this.roleService.delete(id);
+
+    return response.noContent();
+  }
 }

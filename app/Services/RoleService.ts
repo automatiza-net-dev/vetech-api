@@ -32,4 +32,9 @@ export default class RoleService {
 
     return role.merge(data).save();
   }
+
+  public async delete(id: number): Promise<void> {
+    const role = await this.show(id);
+    await role.softDelete();
+  }
 }

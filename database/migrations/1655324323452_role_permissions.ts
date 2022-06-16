@@ -10,6 +10,8 @@ export default class extends BaseSchema {
       table.integer('role_id').unsigned().references('roles.id');
       table.integer('permission_id').unsigned().references('permissions.id');
 
+      table.unique(['role_id', 'permission_id']);
+
       table.timestamp('created_at', { useTz: true });
       table.timestamp('updated_at', { useTz: true });
     });

@@ -18,41 +18,33 @@ export default class UserService {
     return User.all();
   }
 
-  public async store(data: ICreateUser): Promise<void> {
+  public async store(data: ICreateUser): Promise<User> {
     await Database.transaction(async trx => {
       const user = await User.create(data, {
         client: trx,
       });
 
-      const newGroup = await user.related('economicGroups').create(
-        {
-          id: v4(),
-          document: data.document,
-          responsibleEmail: data.email,
-          responsiblePhone: data.phone,
-        },
-        {
-          client: trx,
-        },
-      );
+      const newGroup = await user.related('economicGroups').create({
+        id: v4(),
+        document: data.document,
+        responsibleEmail: data.email,
+        responsiblePhone: data.phone,
+      });
       await newGroup.save();
 
-      const newBusinessUnit = await newGroup.related('businessUnits').create(
-        {
-          id: v4(),
-          document: data.document,
-          phone: data.phone,
-          email: data.email,
-          origin: 'CADASTRO SELF-SERVICE',
-        },
-        {
-          client: trx,
-        },
-      );
+      const newBusinessUnit = await newGroup.related('businessUnits').create({
+        id: v4(),
+        document: data.document,
+        phone: data.phone,
+        email: data.email,
+        origin: 'CADASTRO SELF-SERVICE',
+      });
       await newBusinessUnit.save();
 
       // TODO add admin permissions
     });
+
+    return (await User.findBy('email', data.email))!;
   }
 
   public async show(id: string): Promise<User> {

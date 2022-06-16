@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
@@ -75,8 +76,13 @@ export default class UserService {
 
   public async forgotPassword({ email }: IForgotPassword): Promise<void> {
     const encryptedEmail = Encryption.encrypt(email, '30min');
-    console.log({ encryptedEmail });
-    // TODO send email
+    await Mail.send(message => {
+      message
+        .from('support@vetech.com')
+        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .subject('Recuperação de Senha')
+        .htmlView('emails/reset_password', { hash: encryptedEmail });
+    });
   }
 
   public async resetPassword({

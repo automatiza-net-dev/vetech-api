@@ -3,6 +3,6 @@ import Permission from 'App/Models/Permission';
 
 export default Factory.define(Permission, ({ faker }) => {
   return {
-    name: faker.name.jobArea(),
+    name: faker.datatype.uuid(),
   };
 }).build();

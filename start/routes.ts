@@ -32,7 +32,13 @@ Route.group(() => {
   Route.post('reset-password', 'AuthController.resetPassword');
 }).prefix('auth');
 
-Route.resource('users', 'UsersController').except(['create', 'edit']);
+Route.group(() => {
+  Route.get('', 'UsersController.index');
+  Route.get('/:id', 'UsersController.show');
+
+  Route.put('/', 'UsersController.update').middleware('auth');
+  Route.delete('/', 'UsersController.destroy').middleware('auth');
+}).prefix('users');
 
 Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');

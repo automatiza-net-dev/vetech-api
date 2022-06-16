@@ -17,16 +17,19 @@ export default class UsersController {
     return response.ok(user);
   }
 
-  public async update({ params, request, response }: HttpContextContract) {
-    const { id } = params;
+  public async update({ auth, request, response }: HttpContextContract) {
+    // await auth.use('api').authenticate();
+    const user = auth.use('api').user!;
+
     const payload = await request.validate(UpdateUserValidator);
-    const updatedUser = await this.service.update(id, payload);
+    const updatedUser = await this.service.update(user, payload);
     return response.ok(updatedUser);
   }
 
-  public async destroy({ params, response }: HttpContextContract) {
-    const { id } = params;
-    await this.service.delete(id);
+  public async destroy({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+    await this.service.delete(user);
+
     return response.noContent();
   }
 }

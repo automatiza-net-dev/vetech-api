@@ -62,15 +62,11 @@ export default class UserService {
     return user;
   }
 
-  public async update(id: string, data: IUpdatePassword): Promise<User> {
-    const user = await this.show(id);
-
+  public async update(user: User, data: IUpdatePassword): Promise<User> {
     return user.merge(data).save();
   }
 
-  public async delete(id: string): Promise<void> {
-    const user = await this.show(id);
-
+  public async delete(user: User): Promise<void> {
     await user.softDelete();
   }
 

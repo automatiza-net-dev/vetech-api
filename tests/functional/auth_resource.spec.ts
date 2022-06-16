@@ -40,6 +40,20 @@ test.group('Auth resource', group => {
     assert.equal('bearer', body.type);
   });
 
+  test('should return 400 on bad login credentials', async ({
+    client,
+    assert,
+  }) => {
+    const [user] = await createUser();
+
+    const response = await client.post(`/auth/login`).json({
+      email: user.email,
+      password: 'bad-password',
+    });
+
+    assert.equal(400, response.status());
+  });
+
   test('register a new user', async ({ client, assert }) => {
     const response = await client.post(`/auth/register`).json({
       name: 'user1',

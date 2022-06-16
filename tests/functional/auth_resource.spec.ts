@@ -26,6 +26,20 @@ test.group('Auth resource', group => {
     assert.equal(user.id, loggedUser.id);
   });
 
+  test('login a new user', async ({ client, assert }) => {
+    const [user] = await createUser();
+
+    const response = await client.post(`/auth/login`).json({
+      email: user.email,
+      password: '102030',
+    });
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal('bearer', body.type);
+  });
+
   test('register a new user', async ({ client, assert }) => {
     const response = await client.post(`/auth/register`).json({
       name: 'user1',
@@ -35,7 +49,10 @@ test.group('Auth resource', group => {
       document: '0987',
     });
 
+    const body = response.body();
+
     assert.equal(201, response.status());
+    assert.equal('bearer', body.type);
   });
 
   test('forgot password', async ({ client, assert }) => {

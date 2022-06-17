@@ -41,4 +41,8 @@ Route.group(() => {
   Route.put('/:id', 'BusinessUnitsController.update');
 }).prefix('business-units');
 
+Route.post('roles/add-permission', 'RolesController.addPermission');
+Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
 Route.resource('roles', 'RolesController').apiOnly();
+
+Route.resource('permissions', 'PermissionsController').apiOnly();

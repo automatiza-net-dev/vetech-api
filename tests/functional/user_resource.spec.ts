@@ -64,7 +64,7 @@ test.group('User resource', group => {
       document: '0987',
     });
 
-    assert.equal(200, response.status());
+    assert.equal(201, response.status());
   });
 
   test('soft delete a user', async ({ client, assert }) => {

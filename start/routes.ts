@@ -35,6 +35,7 @@ Route.group(() => {
 Route.group(() => {
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');
+  Route.get('/check-email/:email', 'UsersController.checkEmail');
 
   Route.put('/', 'UsersController.update').middleware('auth');
   Route.delete('/', 'UsersController.destroy').middleware('auth');

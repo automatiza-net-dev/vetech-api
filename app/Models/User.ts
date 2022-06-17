@@ -6,10 +6,13 @@ import {
   beforeFind,
   beforeSave,
   column,
+  HasMany,
+  hasMany,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import UserUnitRole from 'App/Models/UserUnitRole';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -72,6 +75,12 @@ export default class User extends BaseModel {
     pivotTimestamps: true,
   })
   public economicGroups: ManyToMany<typeof EconomicGroup>;
+
+  @hasMany(() => UserUnitRole, {
+    foreignKey: 'user_id',
+    localKey: 'id',
+  })
+  public roles: HasMany<typeof UserUnitRole>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

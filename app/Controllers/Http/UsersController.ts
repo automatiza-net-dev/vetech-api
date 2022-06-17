@@ -17,10 +17,18 @@ export default class UsersController {
     return response.ok(user);
   }
 
-  public async update({ auth, request, response }: HttpContextContract) {
-    // await auth.use('api').authenticate();
-    const user = auth.use('api').user!;
+  public async checkEmail({ params, response }: HttpContextContract) {
+    const { email } = params;
+    const existing = await this.service.checkExistingEmail(email);
 
+    return response.ok({
+      success: true,
+      inUse: existing,
+    });
+  }
+
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
     const payload = await request.validate(UpdateUserValidator);
     const updatedUser = await this.service.update(user, payload);
     return response.ok(updatedUser);

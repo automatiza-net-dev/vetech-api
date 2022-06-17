@@ -2,8 +2,10 @@ import { inject } from '@adonisjs/fold';
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
+import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
@@ -20,6 +22,16 @@ export default class UserService {
   }
 
   public async store(data: ICreateUser): Promise<User> {
+    const adminRole = await Role.findBy('name', 'admin');
+    if (!adminRole) {
+      // should have admin role
+      throw new InternalErrorException(
+        'Erro na criação de usuário',
+        400,
+        'E_INTERNAL_SERVER_ERROR',
+      );
+    }
+
     await Database.transaction(async trx => {
       const user = await User.create(data, {
         client: trx,
@@ -42,7 +54,10 @@ export default class UserService {
       });
       await newBusinessUnit.save();
 
-      // TODO add admin permissions
+      await user.related('roles').create({
+        role_id: adminRole.id,
+        unit_id: newBusinessUnit.id,
+      });
     });
 
     return (await User.findBy('email', data.email))!;
@@ -60,6 +75,11 @@ export default class UserService {
     }
 
     return user;
+  }
+
+  public async checkExistingEmail(email: string): Promise<boolean> {
+    const user = await User.findBy('email', email);
+    return Boolean(user);
   }
 
   public async update(user: User, data: IUpdatePassword): Promise<User> {

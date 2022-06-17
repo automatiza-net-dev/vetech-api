@@ -59,4 +59,17 @@ test.group('Business unit resource', group => {
     assert.equal(unit.id, updatedBusinessUnit.id);
     assert.notEqual(unit.identification, updatedBusinessUnit.identification);
   });
+
+  test('should return a list of users from the business unit', async ({
+    client,
+    assert,
+  }) => {
+    const [unit] = await createBusinessUnit();
+
+    const response = await client.get(`/business-units/${unit.id}/users`);
+
+    const userList = response.body();
+
+    assert.isArray(userList);
+  });
 });

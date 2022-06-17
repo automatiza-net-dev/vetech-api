@@ -1,8 +1,10 @@
 import { inject } from '@adonisjs/fold';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
+import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
@@ -19,39 +21,42 @@ export default class UserService {
   }
 
   public async store(data: ICreateUser): Promise<void> {
+    const adminRole = await Role.findBy('name', 'admin');
+    if (!adminRole) {
+      // should have admin role
+      throw new InternalErrorException(
+        'Erro na criação de usuário',
+        400,
+        'E_INTERNAL_SERVER_ERROR',
+      );
+    }
+
     await Database.transaction(async trx => {
       const user = await User.create(data, {
         client: trx,
       });
 
-      const newGroup = await user.related('economicGroups').create(
-        {
-          id: v4(),
-          document: data.document,
-          responsibleEmail: data.email,
-          responsiblePhone: data.phone,
-        },
-        {
-          client: trx,
-        },
-      );
+      const newGroup = await user.related('economicGroups').create({
+        id: v4(),
+        document: data.document,
+        responsibleEmail: data.email,
+        responsiblePhone: data.phone,
+      });
       await newGroup.save();
 
-      const newBusinessUnit = await newGroup.related('businessUnits').create(
-        {
-          id: v4(),
-          document: data.document,
-          phone: data.phone,
-          email: data.email,
-          origin: 'CADASTRO SELF-SERVICE',
-        },
-        {
-          client: trx,
-        },
-      );
+      const newBusinessUnit = await newGroup.related('businessUnits').create({
+        id: v4(),
+        document: data.document,
+        phone: data.phone,
+        email: data.email,
+        origin: 'CADASTRO SELF-SERVICE',
+      });
       await newBusinessUnit.save();
 
-      // TODO add admin permissions
+      await user.related('roles').create({
+        role_id: adminRole.id,
+        unit_id: newBusinessUnit.id,
+      });
     });
   }
 

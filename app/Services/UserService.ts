@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
@@ -20,7 +21,7 @@ export default class UserService {
     return User.all();
   }
 
-  public async store(data: ICreateUser): Promise<void> {
+  public async store(data: ICreateUser): Promise<User> {
     const adminRole = await Role.findBy('name', 'admin');
     if (!adminRole) {
       // should have admin role
@@ -58,6 +59,8 @@ export default class UserService {
         unit_id: newBusinessUnit.id,
       });
     });
+
+    return (await User.findBy('email', data.email))!;
   }
 
   public async show(id: string): Promise<User> {
@@ -79,22 +82,23 @@ export default class UserService {
     return Boolean(user);
   }
 
-  public async update(id: string, data: IUpdatePassword): Promise<User> {
-    const user = await this.show(id);
-
+  public async update(user: User, data: IUpdatePassword): Promise<User> {
     return user.merge(data).save();
   }
 
-  public async delete(id: string): Promise<void> {
-    const user = await this.show(id);
-
+  public async delete(user: User): Promise<void> {
     await user.softDelete();
   }
 
   public async forgotPassword({ email }: IForgotPassword): Promise<void> {
     const encryptedEmail = Encryption.encrypt(email, '30min');
-    console.log({ encryptedEmail });
-    // TODO send email
+    await Mail.send(message => {
+      message
+        .from('support@vetech.com')
+        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .subject('Recuperação de Senha')
+        .htmlView('emails/reset_password', { hash: encryptedEmail });
+    });
   }
 
   public async resetPassword({

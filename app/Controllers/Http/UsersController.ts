@@ -1,9 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import UserService from 'App/Services/UserService';
-import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
-import ForgotPasswordValidator from 'App/Validators/User/ForgotPasswordValidator';
-import ResetPasswordValidator from 'App/Validators/User/ResetPasswordValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
@@ -12,12 +9,6 @@ export default class UsersController {
 
   public async index({ response }: HttpContextContract) {
     return response.ok(await this.service.index());
-  }
-
-  public async store({ request, response }: HttpContextContract) {
-    const payload = await request.validate(CreateUserValidator);
-    const created = await this.service.store(payload);
-    return response.created(created);
   }
 
   public async show({ params, response }: HttpContextContract) {
@@ -36,29 +27,16 @@ export default class UsersController {
     });
   }
 
-  public async update({ params, request, response }: HttpContextContract) {
-    const { id } = params;
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
     const payload = await request.validate(UpdateUserValidator);
-    const updatedUser = await this.service.update(id, payload);
+    const updatedUser = await this.service.update(user, payload);
     return response.ok(updatedUser);
   }
 
-  public async destroy({ params, response }: HttpContextContract) {
-    const { id } = params;
-    await this.service.delete(id);
-    return response.noContent();
-  }
-
-  public async forgotPassword({ request, response }: HttpContextContract) {
-    const payload = await request.validate(ForgotPasswordValidator);
-    await this.service.forgotPassword(payload);
-
-    return response.noContent();
-  }
-
-  public async resetPassword({ request, response }: HttpContextContract) {
-    const payload = await request.validate(ResetPasswordValidator);
-    await this.service.resetPassword(payload);
+  public async destroy({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+    await this.service.delete(user);
 
     return response.noContent();
   }

@@ -24,10 +24,21 @@ Route.get('/', () => {
   return 'Vetech API - Desenvolvimento: CreativeCode 2022';
 });
 
-Route.get('users/check-email/:email', 'UsersController.checkEmail');
-Route.post('users/forgot-password', 'UsersController.forgotPassword');
-Route.post('users/reset-password', 'UsersController.resetPassword');
-Route.resource('users', 'UsersController').except(['create', 'edit']);
+Route.group(() => {
+  Route.get('me', 'AuthController.whoAmI');
+  Route.post('login', 'AuthController.login');
+  Route.post('register', 'AuthController.register');
+  Route.post('forgot-password', 'AuthController.forgotPassword');
+  Route.post('reset-password', 'AuthController.resetPassword');
+}).prefix('auth');
+
+Route.group(() => {
+  Route.get('', 'UsersController.index');
+  Route.get('/:id', 'UsersController.show');
+
+  Route.put('/', 'UsersController.update').middleware('auth');
+  Route.delete('/', 'UsersController.destroy').middleware('auth');
+}).prefix('users');
 
 Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');

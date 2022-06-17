@@ -74,6 +74,11 @@ export default class UserService {
     return user;
   }
 
+  public async checkExistingEmail(email: string): Promise<boolean> {
+    const user = await User.findBy('email', email);
+    return Boolean(user);
+  }
+
   public async update(id: string, data: IUpdatePassword): Promise<User> {
     const user = await this.show(id);
 

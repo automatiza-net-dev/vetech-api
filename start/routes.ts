@@ -42,6 +42,10 @@ Route.group(() => {
 }).prefix('users');
 
 Route.group(() => {
+  Route.post('', 'PlansController.store');
+}).prefix('plans');
+
+Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');

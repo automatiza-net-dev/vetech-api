@@ -46,6 +46,7 @@ Route.group(() => {
   Route.get('/:id', 'PlansController.show');
   Route.post('', 'PlansController.store');
   Route.put('/:id', 'PlansController.update');
+  Route.delete('/:id', 'PlansController.destroy');
 }).prefix('plans');
 
 Route.group(() => {

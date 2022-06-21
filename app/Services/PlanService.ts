@@ -41,4 +41,10 @@ export default class PlanService {
 
     return plan.merge(data).save();
   }
+
+  public async remove(id: string): Promise<void> {
+    const plan = await this.show(id);
+
+    await plan.softDelete();
+  }
 }

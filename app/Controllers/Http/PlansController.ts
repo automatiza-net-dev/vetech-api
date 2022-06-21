@@ -31,4 +31,10 @@ export default class PlansController {
 
     return response.ok(plan);
   }
+
+  public async destroy({ params, response }: HttpContextContract) {
+    await this.planService.remove(params.id);
+
+    return response.noContent();
+  }
 }

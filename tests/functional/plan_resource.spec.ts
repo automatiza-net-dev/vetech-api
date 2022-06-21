@@ -75,4 +75,12 @@ test.group('Plan resource', group => {
     assert.equal(plan.id, body.id);
     assert.notEqual(plan.description, body.description);
   });
+
+  test('delete plan', async ({ client, assert }) => {
+    const [plan] = await createPlan();
+
+    const response = await client.delete(`/plans/${plan.id}`);
+
+    assert.equal(204, response.status());
+  });
 });

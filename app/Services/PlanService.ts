@@ -5,6 +5,10 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class PlanService {
+  public async index(): Promise<Array<Plan>> {
+    return Plan.all();
+  }
+
   public async store(data: IPlanData): Promise<Plan> {
     if (data.default) {
       await Plan.query().where('default', true).update({ default: false });

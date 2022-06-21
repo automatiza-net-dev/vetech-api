@@ -42,6 +42,7 @@ Route.group(() => {
 }).prefix('users');
 
 Route.group(() => {
+  Route.get('', 'PlansController.index');
   Route.post('', 'PlansController.store');
 }).prefix('plans');
 

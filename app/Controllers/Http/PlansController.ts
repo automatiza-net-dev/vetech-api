@@ -7,6 +7,10 @@ import CreatePlanValidator from 'App/Validators/Plan/CreatePlanValidator';
 export default class PlansController {
   constructor(private readonly planService: PlanService) {}
 
+  public async index({ response }: HttpContextContract) {
+    return response.ok(await this.planService.index());
+  }
+
   public async store({ request, response }: HttpContextContract) {
     const data = await request.validate(CreatePlanValidator);
     const plan = await this.planService.store(data);

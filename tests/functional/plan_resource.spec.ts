@@ -25,4 +25,16 @@ test.group('Plan resource', group => {
 
     assert.equal(201, response.status());
   });
+
+  test('get all plans', async ({ client, assert }) => {
+    const [plan] = await createPlan();
+
+    const response = await client.get('/plans');
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isArray(body);
+    assert.equal(plan.id, body[0].id);
+  });
 });

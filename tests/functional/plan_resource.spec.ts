@@ -2,6 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Plan from 'App/Models/Plan';
 import PlanFactory from 'Database/factories/PlanFactory';
+import { v4 } from 'uuid';
 
 test.group('Plan resource', group => {
   group.each.setup(async () => {
@@ -36,5 +37,25 @@ test.group('Plan resource', group => {
     assert.equal(200, response.status());
     assert.isArray(body);
     assert.equal(plan.id, body[0].id);
+  });
+
+  test('get one plan', async ({ client, assert }) => {
+    const [plan] = await createPlan();
+
+    const response = await client.get(`/plans/${plan.id}`);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(plan.id, body.id);
+  });
+
+  test('throw exception for plan not found', async ({ client, assert }) => {
+    const response = await client.get(`/plans/${v4()}`);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Plano não encontrado', body.message as string);
   });
 });

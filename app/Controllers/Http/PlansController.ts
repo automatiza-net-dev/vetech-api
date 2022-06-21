@@ -17,4 +17,10 @@ export default class PlansController {
 
     return response.created(plan);
   }
+
+  public async show({ params, response }: HttpContextContract) {
+    const plan = await this.planService.show(params.id);
+
+    return response.ok(plan);
+  }
 }

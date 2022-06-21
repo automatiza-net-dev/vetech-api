@@ -31,4 +31,14 @@ export default class PlanService {
 
     return plan;
   }
+
+  public async update(id: string, data: IPlanData): Promise<Plan> {
+    const plan = await this.show(id);
+
+    if (data.default) {
+      await Plan.query().where('default', true).update({ default: false });
+    }
+
+    return plan.merge(data).save();
+  }
 }

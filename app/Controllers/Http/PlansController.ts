@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PlanService from 'App/Services/PlanService';
 import CreatePlanValidator from 'App/Validators/Plan/CreatePlanValidator';
+import UpdatePlanValidator from 'App/Validators/Plan/UpdatePlanValidator';
 
 @inject()
 export default class PlansController {
@@ -20,6 +21,13 @@ export default class PlansController {
 
   public async show({ params, response }: HttpContextContract) {
     const plan = await this.planService.show(params.id);
+
+    return response.ok(plan);
+  }
+
+  public async update({ params, request, response }: HttpContextContract) {
+    const data = await request.validate(UpdatePlanValidator);
+    const plan = await this.planService.update(params.id, data);
 
     return response.ok(plan);
   }

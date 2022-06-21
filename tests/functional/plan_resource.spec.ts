@@ -58,4 +58,21 @@ test.group('Plan resource', group => {
     assert.equal(404, response.status());
     assert.equal('E_NOT_FOUND: Plano não encontrado', body.message as string);
   });
+
+  test('update plan', async ({ client, assert }) => {
+    const [plan] = await createPlan();
+
+    const response = await client.put(`/plans/${plan.id}`).json({
+      description: 'plan 2',
+      trialDays: 15,
+      trialAdditional: 2,
+      default: false,
+    });
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(plan.id, body.id);
+    assert.notEqual(plan.description, body.description);
+  });
 });

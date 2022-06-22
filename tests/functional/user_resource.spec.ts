@@ -59,7 +59,6 @@ test.group('User resource', group => {
       .json({
         document: '0987',
       })
-      .guard('api')
       .loginAs(user);
 
     assert.equal('0987', response.body().document);
@@ -68,10 +67,7 @@ test.group('User resource', group => {
   test('soft delete a user', async ({ client, assert }) => {
     const [user] = await createUser();
 
-    const deleteResponse = await client
-      .delete(`/users`)
-      .guard('api')
-      .loginAs(user);
+    const deleteResponse = await client.delete(`/users`).loginAs(user);
 
     assert.equal(204, deleteResponse.status());
 

@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
 import UserRoleService from 'App/Services/UserRoleService';
+import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
 
 @inject()
@@ -13,6 +14,14 @@ export default class BusinessUnitsController {
 
   public async index({ response }: HttpContextContract) {
     return response.ok(await this.service.index());
+  }
+
+  public async store({ auth, request, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+    const payload = await request.validate(CreateBusinessUnitValidator);
+    const unit = await this.service.store(user, payload);
+
+    return response.created(unit);
   }
 
   public async update({ params, request, response }: HttpContextContract) {

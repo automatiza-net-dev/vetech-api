@@ -72,4 +72,19 @@ test.group('Business unit resource', group => {
 
     assert.isArray(userList);
   });
+
+  test('should create new business unit', async ({ client, assert }) => {
+    const [_, economicGroup, user] = await createBusinessUnit();
+
+    const response = await client
+      .post(`/business-units/`)
+      .json({
+        economic_group_id: economicGroup.id,
+        document: '123',
+        email: 'mail@mail.com',
+      })
+      .loginAs(user);
+
+    assert.equal(201, response.status());
+  });
 });

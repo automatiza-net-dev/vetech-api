@@ -1,12 +1,35 @@
 import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import User from 'App/Models/User';
+import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
+import { v4 } from 'uuid';
 
 @inject()
 export default class BusinessUnitService {
   public async index(): Promise<Array<BusinessUnit>> {
     return BusinessUnit.query().preload('economicGroup');
+  }
+
+  public async store(
+    user: User,
+    data: ICreateBusinessUnit,
+  ): Promise<BusinessUnit> {
+    const economicGroups = await user.related('economicGroups').query();
+    const economicGroup = economicGroups.find(
+      eg => eg.id === data.economic_group_id,
+    );
+
+    if (!economicGroup) {
+      throw new BadRequestException('Grupo econômico inválido');
+    }
+
+    return economicGroup.related('businessUnits').create({
+      id: v4(),
+      ...data,
+    });
   }
 
   public async show(id: string): Promise<BusinessUnit> {

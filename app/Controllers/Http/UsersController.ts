@@ -27,7 +27,7 @@ export default class UsersController {
     });
   }
 
-  public async update({ auth, params, request, response }: HttpContextContract) {
+  public async update({ auth, request, response }: HttpContextContract) {
     const user = auth.use('api').user!;
     const payload = await request.validate(UpdateUserValidator);
     const updatedUser = await this.service.update(user, payload);

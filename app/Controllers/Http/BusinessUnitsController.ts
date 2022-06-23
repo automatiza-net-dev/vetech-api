@@ -41,7 +41,7 @@ export default class BusinessUnitsController {
 
   public async user({ auth, response }: HttpContextContract) {
     const user = auth.use('api').user!;
-    const groups = await this.userRoleService.getUserBusinessUnits(user);
+    const groups = await this.service.getUserBusinessUnits(user);
 
     return response.ok(groups);
   }

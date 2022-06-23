@@ -2,33 +2,39 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
-  HasMany,
-  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import PlanPrice from 'App/Models/PlanPrice';
+import Plan from 'App/Models/Plan';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
-export default class Plan extends BaseModel {
+export enum PlanPriceRecurrence {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  CUSTOM = 'custom',
+}
+
+export default class PlanPrice extends BaseModel {
   @column({ isPrimary: true })
   public id: string;
 
-  @column()
-  public description: string;
-
   @column({
-    columnName: 'trial_days',
+    columnName: 'plan_price',
   })
-  public trialDays: number;
-
-  @column({
-    columnName: 'trial_additional',
-  })
-  public trialAdditional: number;
+  public planPrice: number;
 
   @column()
-  public default = false;
+  public recurrence: PlanPriceRecurrence;
+
+  @column({
+    columnName: 'expiration_days',
+  })
+  public expirationDays: number;
+
+  @belongsTo(() => Plan)
+  public plan: BelongsTo<typeof Plan>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -38,9 +44,6 @@ export default class Plan extends BaseModel {
 
   @column.dateTime({ serializeAs: null })
   public deletedAt: DateTime;
-
-  @hasMany(() => PlanPrice)
-  public planPrices: HasMany<typeof PlanPrice>;
 
   @beforeFind()
   public static softDeletesFind = softDeleteQuery;

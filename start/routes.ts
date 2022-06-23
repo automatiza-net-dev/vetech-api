@@ -59,6 +59,9 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');
+  Route.get('/user', 'EconomicGroupsController.userEconomicGroups').middleware(
+    'auth',
+  );
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');
 }).prefix('economic-groups');

@@ -48,6 +48,19 @@ test.group('Economic group resource', group => {
     assert.equal(user.id, users[0].id);
   });
 
+  test('should return a list of user economic groups"', async ({
+    client,
+    assert,
+  }) => {
+    const [group, user] = await createEconomicGroup();
+    const response = await client.get(`/economic-groups/user`).loginAs(user);
+
+    const groups = response.body();
+
+    assert.isArray(groups);
+    assert.equal(group.id, groups[0].id);
+  });
+
   test('update economic group', async ({ client, assert }) => {
     const [group] = await createEconomicGroup();
     const response = await client.put(`/economic-groups/${group.id}`).json({

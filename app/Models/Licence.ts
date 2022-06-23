@@ -25,6 +25,9 @@ export default class Licence extends BaseModel {
   @column({})
   public type: LicenceType;
 
+  @column()
+  public business_unit_id: string;
+
   @belongsTo(() => PlanPrice, {})
   public planPrice: BelongsTo<typeof PlanPrice>;
 

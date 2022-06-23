@@ -1,10 +1,13 @@
 import { inject } from '@adonisjs/fold';
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
+import { LicenceType } from 'App/Models/Licence';
+import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
@@ -13,6 +16,7 @@ import {
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
 import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
+import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
 @inject()
@@ -24,6 +28,18 @@ export default class UserService {
   public async store(data: ICreateUser): Promise<User> {
     const adminRole = await Role.findBy('name', 'admin');
     if (!adminRole) {
+      Logger.error('No admin role');
+      // should have admin role
+      throw new InternalErrorException(
+        'Erro na criação de usuário',
+        400,
+        'E_INTERNAL_SERVER_ERROR',
+      );
+    }
+
+    const trialPlan = await Plan.findBy('default', true);
+    if (!trialPlan) {
+      Logger.error('No trial plan');
       // should have admin role
       throw new InternalErrorException(
         'Erro na criação de usuário',
@@ -57,6 +73,13 @@ export default class UserService {
       await user.related('roles').create({
         role_id: adminRole.id,
         unit_id: newBusinessUnit.id,
+      });
+
+      await newBusinessUnit.related('licences').create({
+        id: v4(),
+        expirationDate: addDays(new Date(), trialPlan.trialDays),
+        type: LicenceType.TRIAL,
+        active: true,
       });
     });
 

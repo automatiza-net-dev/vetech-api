@@ -17,4 +17,10 @@ export default class PlanPricesController {
 
     return response.created(price);
   }
+
+  public async show({ params, response }: HttpContextContract) {
+    const price = await this.service.show(params.id);
+
+    return response.ok(price);
+  }
 }

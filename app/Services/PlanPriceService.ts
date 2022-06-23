@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import PlanPrice from 'App/Models/PlanPrice';
 import PlanService from 'App/Services/PlanService';
 import IPlanPriceData from 'Contracts/interfaces/IPlanPriceData';
@@ -21,5 +22,19 @@ export default class PlanPriceService {
       expirationDays: data.expirationDays,
       plan_id: data.plan_id,
     });
+  }
+
+  public async show(id: string): Promise<PlanPrice> {
+    const plan = await PlanPrice.find(id);
+
+    if (!plan) {
+      throw new ResourceNotFoundException(
+        'Preço não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return plan;
   }
 }

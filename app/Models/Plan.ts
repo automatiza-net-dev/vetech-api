@@ -39,7 +39,10 @@ export default class Plan extends BaseModel {
   @column.dateTime({ serializeAs: null })
   public deletedAt: DateTime;
 
-  @hasMany(() => PlanPrice)
+  @hasMany(() => PlanPrice, {
+    foreignKey: 'plan_id',
+    localKey: 'id',
+  })
   public planPrices: HasMany<typeof PlanPrice>;
 
   @beforeFind()

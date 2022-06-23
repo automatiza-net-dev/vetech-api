@@ -33,7 +33,12 @@ export default class PlanPrice extends BaseModel {
   })
   public expirationDays: number;
 
-  @belongsTo(() => Plan)
+  @column({
+    columnName: 'plan_id',
+  })
+  public plan_id: string;
+
+  @belongsTo(() => Plan, {})
   public plan: BelongsTo<typeof Plan>;
 
   @column.dateTime({ autoCreate: true })

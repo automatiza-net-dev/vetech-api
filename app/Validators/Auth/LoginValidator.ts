@@ -9,6 +9,13 @@ export default class LoginValidator {
       rules.exists({ table: 'users', column: 'email' }),
     ]),
     password: schema.string({}),
+    business_unit_id: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'business_units',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

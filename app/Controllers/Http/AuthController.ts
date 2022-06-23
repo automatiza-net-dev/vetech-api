@@ -1,5 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import AuthService from 'App/Services/AuthService';
 import UserService from 'App/Services/UserService';
 import LoginValidator from 'App/Validators/Auth/LoginValidator';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
@@ -8,16 +10,17 @@ import ResetPasswordValidator from 'App/Validators/User/ResetPasswordValidator';
 
 @inject()
 export default class AuthController {
-  constructor(private readonly service: UserService) {}
+  constructor(
+    private readonly service: UserService,
+    private readonly authService: AuthService,
+  ) {}
 
   public async login({ auth, request, response }: HttpContextContract) {
-    const { email, password } = await request.validate(LoginValidator);
+    const payload = await request.validate(LoginValidator);
 
-    const token = await auth.use('api').attempt(email, password, {
-      expiresIn: '1h',
-    });
+    const result = await this.authService.login(payload, auth);
 
-    return response.ok(token);
+    return response.ok(result);
   }
 
   public async register({ auth, request, response }: HttpContextContract) {
@@ -32,10 +35,12 @@ export default class AuthController {
   }
 
   public async whoAmI({ auth, response }: HttpContextContract) {
-    await auth.use('api').authenticate();
     const user = auth.use('api').user!;
 
-    return response.ok(user);
+    return response.ok({
+      user,
+      unit: await BusinessUnit.find(auth.use('api').token!.meta.unit_id),
+    });
   }
 
   public async forgotPassword({ request, response }: HttpContextContract) {

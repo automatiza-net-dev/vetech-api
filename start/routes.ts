@@ -25,7 +25,7 @@ Route.get('/', () => {
 });
 
 Route.group(() => {
-  Route.get('me', 'AuthController.whoAmI');
+  Route.get('me', 'AuthController.whoAmI').middleware('auth');
   Route.post('login', 'AuthController.login');
   Route.post('register', 'AuthController.register');
   Route.post('forgot-password', 'AuthController.forgotPassword');

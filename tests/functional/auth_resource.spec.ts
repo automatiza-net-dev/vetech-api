@@ -2,8 +2,10 @@ import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
 import UserFactory from 'Database/factories/UserFactory';
+import { v4 } from 'uuid';
 
 test.group('Auth resource', group => {
   group.each.setup(async () => {
@@ -11,10 +13,27 @@ test.group('Auth resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createUser = async (): Promise<[User]> => {
+  const createUser = async (): Promise<[User, BusinessUnit]> => {
     const user = await UserFactory.create();
 
-    return [user];
+    const newGroup = await user.related('economicGroups').create({
+      id: v4(),
+      document: user.document,
+      responsibleEmail: user.email,
+      responsiblePhone: user.phone,
+    });
+    await newGroup.save();
+
+    const newBusinessUnit = await newGroup.related('businessUnits').create({
+      id: v4(),
+      document: user.document,
+      phone: user.phone,
+      email: user.email,
+      origin: 'TESTING',
+    });
+    await newBusinessUnit.save();
+
+    return [user, newBusinessUnit];
   };
 
   test('should return authenticated user', async ({ client, assert }) => {
@@ -23,11 +42,29 @@ test.group('Auth resource', group => {
 
     const loggedUser = response.body();
 
-    assert.equal(user.id, loggedUser.id);
+    assert.equal(user.id, loggedUser.user.id);
   });
 
   test('login a new user', async ({ client, assert }) => {
-    const [user] = await createUser();
+    const [user, unit] = await createUser();
+
+    const response = await client.post(`/auth/login`).json({
+      email: user.email,
+      password: '102030',
+      business_unit_id: unit.id,
+    });
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal('bearer', body.type);
+  });
+
+  test('should return a list of units if no unit is sent', async ({
+    client,
+    assert,
+  }) => {
+    const [user, unit] = await createUser();
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,
@@ -37,7 +74,8 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal('bearer', body.type);
+    assert.isArray(body);
+    assert.equal(unit.id, body[0].id);
   });
 
   test('should return 400 on bad login credentials', async ({

@@ -8,6 +8,10 @@ import { v4 } from 'uuid';
 export default class PlanPriceService {
   constructor(private readonly planService: PlanService) {}
 
+  public async index(): Promise<Array<PlanPrice>> {
+    return PlanPrice.all();
+  }
+
   public async store(data: IPlanPriceData): Promise<PlanPrice> {
     const plan = await this.planService.show(data.plan_id);
     return plan.related('planPrices').create({

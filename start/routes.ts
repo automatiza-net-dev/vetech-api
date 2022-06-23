@@ -50,6 +50,7 @@ Route.group(() => {
 }).prefix('plans');
 
 Route.group(() => {
+  Route.get('', 'PlanPricesController.index');
   Route.post('', 'PlanPricesController.store');
 }).prefix('plan-prices');
 

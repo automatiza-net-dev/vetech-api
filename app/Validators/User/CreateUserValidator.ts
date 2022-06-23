@@ -13,7 +13,7 @@ export default class CreateUserValidator {
     document: schema.string({}, [
       rules.unique({ table: 'users', column: 'document' }),
     ]),
-    phone: schema.string.optional({}),
+    phone: schema.string.optional({}, [rules.maxLength(14)]),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),
     number: schema.string.optional({}),

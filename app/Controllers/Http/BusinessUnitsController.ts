@@ -38,4 +38,11 @@ export default class BusinessUnitsController {
 
     return response.ok(users);
   }
+
+  public async user({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+    const groups = await this.userRoleService.getUserBusinessUnits(user);
+
+    return response.ok(groups);
+  }
 }

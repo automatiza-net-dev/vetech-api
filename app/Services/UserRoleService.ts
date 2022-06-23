@@ -36,4 +36,13 @@ export default class UserRoleService {
 
     return entities.map(ent => ent.user);
   }
+
+  public async getUserBusinessUnits(user: User): Promise<Array<BusinessUnit>> {
+    const entities = await user
+      .related('economicGroups')
+      .query()
+      .preload('businessUnits');
+
+    return entities.map(ent => ent.businessUnits).flat();
+  }
 }

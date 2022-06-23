@@ -19,7 +19,7 @@ test.group('Auth resource', group => {
 
   test('should return authenticated user', async ({ client, assert }) => {
     const [user] = await createUser();
-    const response = await client.get('/auth/me').guard('api').loginAs(user);
+    const response = await client.get('/auth/me').loginAs(user);
 
     const loggedUser = response.body();
 

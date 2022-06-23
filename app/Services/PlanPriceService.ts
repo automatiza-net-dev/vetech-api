@@ -37,4 +37,9 @@ export default class PlanPriceService {
 
     return plan;
   }
+
+  public async update(id: string, data: IPlanPriceData): Promise<PlanPrice> {
+    const plan = await this.show(id);
+    return plan.merge(data).save();
+  }
 }

@@ -53,6 +53,7 @@ Route.group(() => {
   Route.get('', 'PlanPricesController.index');
   Route.post('', 'PlanPricesController.store');
   Route.get('/:id', 'PlanPricesController.show');
+  Route.put('/:id', 'PlanPricesController.update');
 }).prefix('plan-prices');
 
 Route.group(() => {

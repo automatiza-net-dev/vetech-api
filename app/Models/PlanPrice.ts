@@ -22,6 +22,7 @@ export default class PlanPrice extends BaseModel {
 
   @column({
     columnName: 'plan_price',
+    serialize: (data: string) => parseFloat(data),
   })
   public planPrice: number;
 

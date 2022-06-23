@@ -42,6 +42,22 @@ Route.group(() => {
 }).prefix('users');
 
 Route.group(() => {
+  Route.get('', 'PlansController.index');
+  Route.get('/:id', 'PlansController.show');
+  Route.post('', 'PlansController.store');
+  Route.put('/:id', 'PlansController.update');
+  Route.delete('/:id', 'PlansController.destroy');
+}).prefix('plans');
+
+Route.group(() => {
+  Route.get('', 'PlanPricesController.index');
+  Route.post('', 'PlanPricesController.store');
+  Route.get('/:id', 'PlanPricesController.show');
+  Route.put('/:id', 'PlanPricesController.update');
+  Route.delete('/:id', 'PlanPricesController.destroy');
+}).prefix('plan-prices');
+
+Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');

@@ -6,10 +6,12 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import { LicenceType } from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
+import BusinessUnitService from 'App/Services/BusinessUnitService';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IForgotPassword,
@@ -21,11 +23,13 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class UserService {
+  constructor(private readonly unitService: BusinessUnitService) {}
+
   public async index(): Promise<Array<User>> {
     return User.all();
   }
 
-  public async store(data: ICreateUser): Promise<User> {
+  public async store(data: ICreateUser): Promise<[User, BusinessUnit]> {
     const adminRole = await Role.findBy('name', 'admin');
     if (!adminRole) {
       Logger.error('No admin role');
@@ -83,7 +87,11 @@ export default class UserService {
       });
     });
 
-    return (await User.findBy('email', data.email))!;
+    const createdUser = await User.findByOrFail('email', data.email);
+    const [createdUnit] = await this.unitService.getUserBusinessUnits(
+      createdUser,
+    );
+    return [createdUser, createdUnit];
   }
 
   public async show(id: string): Promise<User> {

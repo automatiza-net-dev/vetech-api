@@ -18,6 +18,13 @@ export default class AuthService {
     const user = await this.getUser(data);
     const units = await this.businessUnitService.getUserBusinessUnits(user);
 
+    if (units.length === 1) {
+      return auth.use('api').generate(user, {
+        expiresIn: '1h',
+        unit_id: units[0].id,
+      });
+    }
+
     if (!data.business_unit_id) {
       return units;
     }

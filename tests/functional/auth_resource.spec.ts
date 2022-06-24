@@ -3,6 +3,7 @@ import Encryption from '@ioc:Adonis/Core/Encryption';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
 import UserFactory from 'Database/factories/UserFactory';
 import { v4 } from 'uuid';
@@ -13,7 +14,7 @@ test.group('Auth resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createUser = async (): Promise<[User, BusinessUnit]> => {
+  const createUser = async (): Promise<[User, BusinessUnit, EconomicGroup]> => {
     const user = await UserFactory.create();
 
     const newGroup = await user.related('economicGroups').create({
@@ -33,7 +34,7 @@ test.group('Auth resource', group => {
     });
     await newBusinessUnit.save();
 
-    return [user, newBusinessUnit];
+    return [user, newBusinessUnit, newGroup];
   };
 
   test('should return authenticated user', async ({ client, assert }) => {
@@ -60,11 +61,18 @@ test.group('Auth resource', group => {
     assert.equal('bearer', body.type);
   });
 
-  test('should return a list of units if no unit is sent', async ({
+  test('should return a list of units if no unit is sent having more than one unit', async ({
     client,
     assert,
   }) => {
-    const [user, unit] = await createUser();
+    const [user, unit, group] = await createUser();
+    await group.related('businessUnits').create({
+      id: v4(),
+      document: user.document,
+      phone: user.phone,
+      email: user.email,
+      origin: 'TESTING',
+    });
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,

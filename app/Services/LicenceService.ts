@@ -4,8 +4,9 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import { LicenceType } from 'App/Models/Licence';
+import Licence, { LicenceType } from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
+import ILicenceData from 'Contracts/interfaces/ILicenceData';
 import { addDays, isBefore } from 'date-fns';
 import { v4 } from 'uuid';
 
@@ -69,5 +70,32 @@ export default class LicenceService {
         },
       );
     });
+  }
+
+  public async custom(
+    data: Pick<ILicenceData, 'business_unit_id' | 'expiration_date'>,
+  ): Promise<void> {
+    const unit = await BusinessUnit.findOrFail(data.business_unit_id);
+
+    const trx = await Database.transaction();
+
+    await Licence.query()
+      .where('business_unit_id', unit.id)
+      .update({ active: false })
+      .useTransaction(trx);
+
+    await unit.related('licences').create(
+      {
+        id: v4(),
+        type: LicenceType.MANUAL,
+        active: true,
+        expirationDate: data.expiration_date.toJSDate(),
+      },
+      {
+        client: trx,
+      },
+    );
+
+    await trx.commit();
   }
 }

@@ -84,4 +84,5 @@ Route.resource('permissions', 'PermissionsController').apiOnly();
 
 Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');
+  Route.post('/custom', 'LicencesController.custom');
 }).prefix('licences');

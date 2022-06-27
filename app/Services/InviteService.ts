@@ -50,6 +50,15 @@ export default class InviteService {
     return invite;
   }
 
+  public async check(id: string) {
+    const invite = await this.show(id);
+
+    return {
+      active: invite.active,
+      user: Boolean(invite.user_id),
+    };
+  }
+
   public async update(
     id: string,
     user: User,

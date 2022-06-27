@@ -23,6 +23,12 @@ export default class InvitesController {
     return response.ok(invite);
   }
 
+  public async check({ params, response }: HttpContextContract) {
+    const data = await this.service.check(params.id);
+
+    return response.ok(data);
+  }
+
   public async update({
     auth,
     params,

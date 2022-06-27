@@ -213,4 +213,35 @@ test.group('Invoice resource', group => {
 
     assert.equal(204, response.status());
   });
+
+  test('should check invite status', async ({ assert, client }) => {
+    const [user, __, ___, invite] = await createData();
+    await invite
+      .merge({
+        user_id: user.id,
+      })
+      .save();
+
+    const response = await client.get(`/invites/check/${invite.id}`);
+
+    const { active, user: hasUser } = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(active);
+    assert.isTrue(hasUser);
+  });
+
+  test('should check invite status with no user', async ({
+    assert,
+    client,
+  }) => {
+    const [_, __, ___, invite] = await createData();
+    const response = await client.get(`/invites/check/${invite.id}`);
+
+    const { active, user: hasUser } = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(active);
+    assert.isFalse(hasUser);
+  });
 });

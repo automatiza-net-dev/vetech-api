@@ -80,6 +80,7 @@ Route.resource('permissions', 'PermissionsController').apiOnly();
 
 Route.group(() => {
   Route.post('', 'InvitesController.store').middleware('auth');
+  Route.get('/check/:id', 'InvitesController.check');
   Route.get('/:id', 'InvitesController.show');
   Route.put('/:id', 'InvitesController.update').middleware('auth');
   Route.delete('/:id', 'InvitesController.destroy').middleware('auth');

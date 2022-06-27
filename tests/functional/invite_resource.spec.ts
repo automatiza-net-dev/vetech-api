@@ -2,6 +2,7 @@ import Mail from '@ioc:Adonis/Addons/Mail';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Invite from 'App/Models/Invite';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import RoleFactory from 'Database/factories/RoleFactory';
@@ -14,7 +15,7 @@ test.group('Invoice resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User, BusinessUnit, Role]> => {
+  const createData = async (): Promise<[User, BusinessUnit, Role, Invite]> => {
     const user = await UserFactory.create();
     const newGroup = await user.related('economicGroups').create({
       id: v4(),
@@ -33,7 +34,13 @@ test.group('Invoice resource', group => {
 
     const role = await RoleFactory.create();
 
-    return [user, newBusinessUnit, role];
+    const invite = await newBusinessUnit.related('invites').create({
+      id: v4(),
+      email: 'mail@mail.com',
+      role_id: role.id,
+    });
+
+    return [user, newBusinessUnit, role, invite];
   };
 
   test('should throw UnauthorizedException if invalid business unit', async ({
@@ -104,6 +111,54 @@ test.group('Invoice resource', group => {
 
     assert.equal(201, response.status());
     assert.equal(user2.id, body.user_id);
+    assert.isTrue(
+      mailer.exists(mail => {
+        return mail.subject === 'Convite - Vetech';
+      }),
+    );
+
+    Mail.restore();
+  });
+
+  test('should throw UnauthorizedException if invite is not active', async ({
+    assert,
+    client,
+  }) => {
+    const [user, businessUnit, role, invite] = await createData();
+    const user2 = await UserFactory.create();
+    await invite.merge({ active: false }).save();
+
+    const response = await client
+      .put(`/invites/${invite.id}`)
+      .json({
+        business_unit_id: businessUnit.id,
+        role_id: role.id,
+        email: user2.email,
+      })
+      .loginAs(user);
+
+    const body = response.body();
+
+    assert.equal(401, response.status());
+    assert.equal('E_NOT_AUTHORIZED: Convite não está mais ativo', body.message);
+  });
+
+  test('should update invite', async ({ assert, client }) => {
+    const mailer = Mail.fake();
+
+    const [user, businessUnit, role, invite] = await createData();
+    const user2 = await UserFactory.create();
+
+    const response = await client
+      .put(`/invites/${invite.id}`)
+      .json({
+        business_unit_id: businessUnit.id,
+        role_id: role.id,
+        email: user2.email,
+      })
+      .loginAs(user);
+
+    assert.equal(200, response.status());
     assert.isTrue(
       mailer.exists(mail => {
         return mail.subject === 'Convite - Vetech';

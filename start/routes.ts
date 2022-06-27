@@ -80,4 +80,5 @@ Route.resource('permissions', 'PermissionsController').apiOnly();
 
 Route.group(() => {
   Route.post('', 'InvitesController.store').middleware('auth');
+  Route.put('/:id', 'InvitesController.update').middleware('auth');
 }).prefix('invites');

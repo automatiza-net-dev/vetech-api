@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Logger from '@ioc:Adonis/Core/Logger';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Invite from 'App/Models/Invite';
@@ -12,21 +13,7 @@ import { v4 } from 'uuid';
 @inject()
 export default class InvoiceService {
   public async store(user: User, data: IInviteData): Promise<Invite> {
-    const userBusinessUnits = await this.userBusinessUnits(user);
-    const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
-
-    const relatedBusinessUnit = userBusinessUnits.find(
-      u => u.id === businessUnit.id,
-    );
-
-    if (!relatedBusinessUnit) {
-      Logger.warn('Usuário não pode enviar convite');
-      throw new UnauthorizedException(
-        'Ação não permitida',
-        401,
-        'E_NOT_AUTHORIZED',
-      );
-    }
+    const businessUnit = await this.getUserValidBusinessUnit(user, data);
 
     const role = await Role.findOrFail(data.role_id);
     const existingUser = await User.findBy('email', data.email);
@@ -47,6 +34,76 @@ export default class InvoiceService {
       active: true,
       user_id: existingUser?.id,
     });
+  }
+
+  public async show(id: string): Promise<Invite> {
+    const invite = await Invite.find(id);
+
+    if (!invite) {
+      throw new ResourceNotFoundException(
+        'Convite não existe',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return invite;
+  }
+
+  public async update(
+    id: string,
+    user: User,
+    data: IInviteData,
+  ): Promise<Invite> {
+    const invite = await this.show(id);
+    if (!invite.active) {
+      throw new UnauthorizedException(
+        'Convite não está mais ativo',
+        401,
+        'E_NOT_AUTHORIZED',
+      );
+    }
+
+    const businessUnit = await this.getUserValidBusinessUnit(user, data);
+
+    const role = await Role.findOrFail(data.role_id);
+    const existingUser = await User.findBy('email', data.email);
+
+    await Mail.send(message => {
+      message
+        .from('support@vetech.com')
+        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .subject('Convite - Vetech')
+        .htmlView('emails/invite', { id });
+    });
+
+    return invite
+      .merge({
+        business_unit_id: businessUnit.id,
+        email: data.email,
+        role_id: role.id,
+        user_id: existingUser?.id,
+      })
+      .save();
+  }
+
+  private async getUserValidBusinessUnit(user: User, data: IInviteData) {
+    const userBusinessUnits = await this.userBusinessUnits(user);
+    const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
+
+    const relatedBusinessUnit = userBusinessUnits.find(
+      u => u.id === businessUnit.id,
+    );
+
+    if (!relatedBusinessUnit) {
+      Logger.warn('Usuário não pode enviar convite');
+      throw new UnauthorizedException(
+        'Ação não permitida',
+        401,
+        'E_NOT_AUTHORIZED',
+      );
+    }
+    return businessUnit;
   }
 
   // TODO refactor to use from BusinessUnitService

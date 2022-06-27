@@ -5,10 +5,20 @@ import AcceptInviteNewUserValidator from 'App/Validators/Invite/AcceptInviteNewU
 import AcceptInviteValidator from 'App/Validators/Invite/AcceptInviteValidator';
 import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
 import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
+import { v4 } from 'uuid';
 
 @inject()
 export default class InvitesController {
   constructor(private readonly service: InviteService) {}
+
+  public async index({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+
+    // TODO logged unit id
+    const invite = await this.service.index(user, v4());
+
+    return response.ok(invite);
+  }
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateInviteValidator);

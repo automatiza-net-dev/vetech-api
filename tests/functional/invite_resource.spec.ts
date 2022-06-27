@@ -43,6 +43,12 @@ test.group('Invite resource', group => {
     return [user, newBusinessUnit, role, invite];
   };
 
+  const createSudo = async (): Promise<[Role]> => {
+    const role = await Role.firstOrCreate({ name: 'super-admin' }, {});
+
+    return [role];
+  };
+
   test('should throw UnauthorizedException if invalid business unit', async ({
     assert,
     client,
@@ -298,5 +304,44 @@ test.group('Invite resource', group => {
 
     assert.equal(204, response.status());
     assert.equal(1, newRoles.length);
+  });
+
+  test('should return all invites for super admin', async ({
+    assert,
+    client,
+  }) => {
+    const [user, businessUnit] = await createData();
+    const [sudoRole] = await createSudo();
+    await user.related('roles').create({
+      role_id: sudoRole.id,
+      unit_id: businessUnit.id,
+    });
+
+    const response = await client.get(`/invites`).loginAs(user);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isArray(body);
+  });
+
+  test('should return all invites for business unit', async ({
+    assert,
+    client,
+  }) => {
+    const [user, businessUnit, role] = await createData();
+    await user.related('roles').create({
+      role_id: role.id,
+      unit_id: businessUnit.id,
+    });
+
+    const response = await client.get(`/invites`).loginAs(user);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+
+    // TODO fix this assertion to match what "should" happen
+    assert.lengthOf(body, 1);
   });
 });

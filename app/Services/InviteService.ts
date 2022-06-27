@@ -17,6 +17,19 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class InviteService {
+  public async index(user: User, unitId: string): Promise<Array<Invite>> {
+    const roles = await user.related('roles').query().preload('role');
+    const isSuperAdmin = Boolean(
+      roles.find(r => r.role.name === 'super-admin'),
+    );
+
+    if (isSuperAdmin) {
+      return Invite.all();
+    }
+
+    return Invite.query().where('business_unit_id', unitId);
+  }
+
   public async store(user: User, data: IInviteData): Promise<Invite> {
     const businessUnit = await this.getUserValidBusinessUnit(user, data);
 

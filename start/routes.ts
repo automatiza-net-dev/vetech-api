@@ -85,6 +85,7 @@ Route.group(() => {
     'InvitesController.acceptInviteNewUser',
   );
   Route.post('', 'InvitesController.store').middleware('auth');
+  Route.get('', 'InvitesController.index').middleware('auth');
   Route.get('/check/:id', 'InvitesController.check');
   Route.get('/:id', 'InvitesController.show');
   Route.put('/:id', 'InvitesController.update').middleware('auth');

@@ -77,3 +77,7 @@ Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
 Route.resource('roles', 'RolesController').apiOnly();
 
 Route.resource('permissions', 'PermissionsController').apiOnly();
+
+Route.group(() => {
+  Route.post('', 'InvitesController.store').middleware('auth');
+}).prefix('invites');

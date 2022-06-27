@@ -190,4 +190,27 @@ test.group('Invoice resource', group => {
     assert.equal(404, response.status());
     assert.equal('E_NOT_FOUND: Convite não existe', body.message);
   });
+
+  test('should throw exception for unauthorized delete request', async ({
+    assert,
+    client,
+  }) => {
+    const [_, __, ___, invite] = await createData();
+    const [user] = await createData();
+
+    const response = await client.delete(`/invites/${invite.id}`).loginAs(user);
+
+    const body = response.body();
+
+    assert.equal(401, response.status());
+    assert.equal('E_NOT_AUTHORIZED: Ação não permitida', body.message);
+  });
+
+  test('should soft delete a invite', async ({ assert, client }) => {
+    const [user, __, ___, invite] = await createData();
+
+    const response = await client.delete(`/invites/${invite.id}`).loginAs(user);
+
+    assert.equal(204, response.status());
+  });
 });

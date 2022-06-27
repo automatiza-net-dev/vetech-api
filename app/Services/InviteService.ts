@@ -87,10 +87,32 @@ export default class InviteService {
       .save();
   }
 
+  public async destroy(id: string, user: User): Promise<void> {
+    const invite = await this.show(id);
+    const inviteBusinessUnit = await invite
+      .related('businessUnit')
+      .query()
+      .firstOrFail();
+    const userBusinessUnits = await this.userBusinessUnits(user);
+
+    this.userIsRelatedToBusinessUnit(userBusinessUnits, inviteBusinessUnit);
+
+    await invite.softDelete();
+  }
+
   private async getUserValidBusinessUnit(user: User, data: IInviteData) {
     const userBusinessUnits = await this.userBusinessUnits(user);
     const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
 
+    this.userIsRelatedToBusinessUnit(userBusinessUnits, businessUnit);
+
+    return businessUnit;
+  }
+
+  private userIsRelatedToBusinessUnit(
+    userBusinessUnits: Array<BusinessUnit>,
+    businessUnit: BusinessUnit,
+  ): void {
     const relatedBusinessUnit = userBusinessUnits.find(
       u => u.id === businessUnit.id,
     );
@@ -103,7 +125,6 @@ export default class InviteService {
         'E_NOT_AUTHORIZED',
       );
     }
-    return businessUnit;
   }
 
   // TODO refactor to use from BusinessUnitService

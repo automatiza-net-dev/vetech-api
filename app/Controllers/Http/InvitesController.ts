@@ -36,4 +36,12 @@ export default class InvitesController {
 
     return response.ok(invite);
   }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+
+    await this.service.destroy(params.id, user);
+
+    return response.noContent();
+  }
 }

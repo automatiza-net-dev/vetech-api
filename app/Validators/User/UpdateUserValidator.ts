@@ -8,7 +8,7 @@ export default class UpdateUserValidator {
     email: schema.string.optional({}, [rules.email()]),
     password: schema.string.optional({}, [rules.confirmed()]),
     document: schema.string.optional({}, []),
-    phone: schema.string.optional({}, [rules.maxLength(14)]),
+    phone: schema.string.optional({}, [rules.maxLength(20)]),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),
     number: schema.string.optional({}),

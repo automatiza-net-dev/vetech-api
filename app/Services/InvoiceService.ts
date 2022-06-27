@@ -6,12 +6,12 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import Invite from 'App/Models/Invite';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
-import ICreateInvite from 'Contracts/interfaces/ICreateInvite';
+import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
 @inject()
 export default class InvoiceService {
-  public async store(user: User, data: ICreateInvite): Promise<Invite> {
+  public async store(user: User, data: IInviteData): Promise<Invite> {
     const userBusinessUnits = await this.userBusinessUnits(user);
     const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
 

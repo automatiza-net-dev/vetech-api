@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import InviteService from 'App/Services/InviteService';
+import AcceptInviteValidator from 'App/Validators/Invite/AcceptInviteValidator';
 import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
 import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
 
@@ -41,6 +42,14 @@ export default class InvitesController {
     const invite = await this.service.update(params.id, user, payload);
 
     return response.ok(invite);
+  }
+
+  public async acceptInvite({ request, response }: HttpContextContract) {
+    const payload = await request.validate(AcceptInviteValidator);
+
+    await this.service.acceptInvite(payload);
+
+    return response.noContent();
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {

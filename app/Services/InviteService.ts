@@ -1,12 +1,16 @@
 import { inject } from '@adonisjs/fold';
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Logger from '@ioc:Adonis/Core/Logger';
+import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Invite from 'App/Models/Invite';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
+import IAcceptInvite from 'Contracts/interfaces/IAcceptInvite';
 import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
@@ -94,6 +98,49 @@ export default class InviteService {
         user_id: existingUser?.id,
       })
       .save();
+  }
+
+  public async acceptInvite(data: IAcceptInvite): Promise<void> {
+    const invite = await this.show(data.id);
+
+    if (!invite.active) {
+      throw new BadRequestException(
+        'Convite não está mais ativo',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    const user = invite.user_id
+      ? await User.findOrFail(invite.user_id)
+      : await User.findByOrFail('email', invite.email);
+
+    const trx = await Database.transaction();
+
+    try {
+      await user.related('roles').create(
+        {
+          role_id: invite.role_id,
+          unit_id: invite.business_unit_id,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await invite.merge({ active: false }).useTransaction(trx).save();
+
+      await trx.commit();
+    } catch (e) {
+      await trx.rollback();
+      Logger.error(e.message);
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 
   public async destroy(id: string, user: User): Promise<void> {

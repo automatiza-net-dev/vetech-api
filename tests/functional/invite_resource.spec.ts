@@ -244,4 +244,37 @@ test.group('Invoice resource', group => {
     assert.isTrue(active);
     assert.isFalse(hasUser);
   });
+
+  test('should throw BadRequestException if invite is not active', async ({
+    assert,
+    client,
+  }) => {
+    const [_, __, ___, invite] = await createData();
+    await invite.merge({ active: false }).save();
+
+    const response = await client.post(`/invites/accept-invite`).json({
+      id: invite.id,
+    });
+
+    const { message } = response.body();
+
+    assert.equal(400, response.status());
+    assert.equal('E_BAD_REQUEST: Convite não está mais ativo', message);
+  });
+
+  test('should use invite', async ({ assert, client }) => {
+    const [_, __, ___, invite] = await createData();
+    const user = await UserFactory.create();
+    await invite.merge({ email: user.email }).save();
+    const oldRoles = await user.related('roles').query();
+
+    const response = await client.post(`/invites/accept-invite`).json({
+      id: invite.id,
+    });
+
+    const newRoles = await user.related('roles').query();
+
+    assert.equal(204, response.status());
+    assert.notEqual(oldRoles.length, newRoles.length);
+  });
 });

@@ -32,7 +32,7 @@ export default class User extends BaseModel {
   public password: string;
 
   @column()
-  public document: string;
+  public document?: string;
 
   @column()
   public phone?: string;

@@ -80,6 +80,10 @@ Route.resource('permissions', 'PermissionsController').apiOnly();
 
 Route.group(() => {
   Route.post('/accept-invite', 'InvitesController.acceptInvite');
+  Route.post(
+    '/accept-invite-new-user',
+    'InvitesController.acceptInviteNewUser',
+  );
   Route.post('', 'InvitesController.store').middleware('auth');
   Route.get('/check/:id', 'InvitesController.check');
   Route.get('/:id', 'InvitesController.show');

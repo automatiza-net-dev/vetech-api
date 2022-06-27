@@ -9,7 +9,7 @@ import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
 import { v4 } from 'uuid';
 
-test.group('Invoice resource', group => {
+test.group('Invite resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -276,5 +276,27 @@ test.group('Invoice resource', group => {
 
     assert.equal(204, response.status());
     assert.notEqual(oldRoles.length, newRoles.length);
+  });
+
+  test('should use invite when creating new user', async ({
+    assert,
+    client,
+  }) => {
+    const [_, __, ___, invite] = await createData();
+    const email = `${v4()}@mail.com`;
+    await invite.merge({ email }).save();
+
+    const response = await client.post(`/invites/accept-invite-new-user`).json({
+      id: invite.id,
+      name: 'user',
+      password: '102030',
+      password_confirmation: '102030',
+    });
+
+    const user = await User.findByOrFail('email', email);
+    const newRoles = await user.related('roles').query();
+
+    assert.equal(204, response.status());
+    assert.equal(1, newRoles.length);
   });
 });

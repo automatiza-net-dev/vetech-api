@@ -11,6 +11,7 @@ import Invite from 'App/Models/Invite';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import IAcceptInvite from 'Contracts/interfaces/IAcceptInvite';
+import IAcceptInviteNewUser from 'Contracts/interfaces/IAcceptInviteNewUser';
 import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
@@ -127,6 +128,53 @@ export default class InviteService {
           client: trx,
         },
       );
+
+      await invite.merge({ active: false }).useTransaction(trx).save();
+
+      await trx.commit();
+    } catch (e) {
+      await trx.rollback();
+      Logger.error(e.message);
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+  }
+
+  public async acceptInviteForNewUser(
+    data: IAcceptInviteNewUser,
+  ): Promise<void> {
+    const invite = await this.show(data.id);
+
+    if (!invite.active) {
+      throw new BadRequestException(
+        'Convite não está mais ativo',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    const trx = await Database.transaction();
+
+    try {
+      const user = await User.create(
+        {
+          name: data.name,
+          email: invite.email,
+          password: data.password,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await user.related('roles').create({
+        role_id: invite.role_id,
+        unit_id: invite.business_unit_id,
+      });
 
       await invite.merge({ active: false }).useTransaction(trx).save();
 

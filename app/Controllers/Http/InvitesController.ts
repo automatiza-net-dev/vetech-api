@@ -1,12 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import InvoiceService from 'App/Services/InvoiceService';
+import InviteService from 'App/Services/InviteService';
 import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
 import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
 
 @inject()
 export default class InvitesController {
-  constructor(private readonly service: InvoiceService) {}
+  constructor(private readonly service: InviteService) {}
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateInviteValidator);

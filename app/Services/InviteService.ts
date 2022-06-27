@@ -11,7 +11,7 @@ import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
 @inject()
-export default class InvoiceService {
+export default class InviteService {
   public async store(user: User, data: IInviteData): Promise<Invite> {
     const businessUnit = await this.getUserValidBusinessUnit(user, data);
 

@@ -17,6 +17,12 @@ export default class InvitesController {
     return response.created(invite);
   }
 
+  public async show({ params, response }: HttpContextContract) {
+    const invite = await this.service.show(params.id);
+
+    return response.ok(invite);
+  }
+
   public async update({
     auth,
     params,

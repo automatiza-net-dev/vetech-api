@@ -167,4 +167,27 @@ test.group('Invoice resource', group => {
 
     Mail.restore();
   });
+
+  test('should return invite for given id', async ({ assert, client }) => {
+    const [_, __, ___, invite] = await createData();
+
+    const response = await client.get(`/invites/${invite.id}`);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(invite.id, body.id);
+  });
+
+  test('should throw NotFoundException if no invite was found', async ({
+    assert,
+    client,
+  }) => {
+    const response = await client.get(`/invites/${v4()}`);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Convite não existe', body.message);
+  });
 });

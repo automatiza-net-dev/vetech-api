@@ -18,7 +18,13 @@ export default class UpdateInviteValidator {
         column: 'id',
       }),
     ]),
-    email: schema.string({}, [rules.email()]),
+    email: schema.string({}, [
+      rules.email(),
+      rules.unique({
+        table: 'users',
+        column: 'email',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

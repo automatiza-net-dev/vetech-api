@@ -18,13 +18,7 @@ export default class CreateInviteValidator {
         column: 'id',
       }),
     ]),
-    email: schema.string({}, [
-      rules.email(),
-      rules.unique({
-        table: 'users',
-        column: 'email',
-      }),
-    ]),
+    email: schema.string({}, [rules.email()]),
   });
 
   public messages: CustomMessages = {};

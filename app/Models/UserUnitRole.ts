@@ -26,7 +26,10 @@ export default class UserUnitRole extends BaseModel {
   @belongsTo(() => BusinessUnit)
   public unit: BelongsTo<typeof BusinessUnit>;
 
-  @belongsTo(() => Role)
+  @belongsTo(() => Role, {
+    localKey: 'id',
+    foreignKey: 'role_id',
+  })
   public role: BelongsTo<typeof Role>;
 
   @column.dateTime({ autoCreate: true })

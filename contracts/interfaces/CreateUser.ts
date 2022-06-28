@@ -2,7 +2,7 @@ export interface ICreateUser {
   name: string;
   email: string;
   password: string;
-  document: string;
+  document?: string;
   phone?: string;
   postalCode?: string;
   address?: string;

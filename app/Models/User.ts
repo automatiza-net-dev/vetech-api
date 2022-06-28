@@ -12,6 +12,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Invite from 'App/Models/Invite';
 import UserUnitRole from 'App/Models/UserUnitRole';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -31,7 +32,7 @@ export default class User extends BaseModel {
   public password: string;
 
   @column()
-  public document: string;
+  public document?: string;
 
   @column()
   public phone?: string;
@@ -81,6 +82,12 @@ export default class User extends BaseModel {
     localKey: 'id',
   })
   public roles: HasMany<typeof UserUnitRole>;
+
+  @hasMany(() => Invite, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public invites: HasMany<typeof Invite>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

@@ -3,6 +3,7 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateUserValidator {
   constructor(protected ctx: HttpContextContract) {}
+
   public schema = schema.create({
     name: schema.string({}),
     email: schema.string({}, [
@@ -10,10 +11,10 @@ export default class CreateUserValidator {
       rules.unique({ table: 'users', column: 'email' }),
     ]),
     password: schema.string({}, [rules.confirmed()]),
-    document: schema.string({}, [
+    document: schema.string.optional({}, [
       rules.unique({ table: 'users', column: 'document' }),
     ]),
-    phone: schema.string.optional({}, [rules.maxLength(14)]),
+    phone: schema.string.optional({}, [rules.maxLength(20)]),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),
     number: schema.string.optional({}),

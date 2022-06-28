@@ -7,6 +7,7 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Invite from 'App/Models/Invite';
 import Licence from 'App/Models/Licence';
 import { DateTime } from 'luxon';
 
@@ -85,6 +86,12 @@ export default class BusinessUnit extends BaseModel {
 
   @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => Invite, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public invites: HasMany<typeof Invite>;
 
   @hasMany(() => Licence, {
     localKey: 'id',

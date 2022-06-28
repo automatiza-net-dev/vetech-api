@@ -53,6 +53,9 @@ export default class EconomicGroup extends BaseModel {
   @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;
 
-  @manyToMany(() => Patient, {})
+  @manyToMany(() => Patient, {
+    pivotTable: 'patient_economic_groups',
+    pivotTimestamps: true,
+  })
   public patients: ManyToMany<typeof Patient>;
 }

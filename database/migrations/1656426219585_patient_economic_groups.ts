@@ -8,9 +8,9 @@ export default class extends BaseSchema {
       table.increments('id');
 
       table.uuid('patient_id').references('patients.id');
-      table.uuid('unit_id').references('business_units.id');
+      table.uuid('economic_group_id').references('economic_groups.id');
 
-      table.unique(['patient_id', 'unit_id']);
+      table.unique(['patient_id', 'economic_group_id']);
 
       table.timestamp('created_at', { useTz: true });
       table.timestamp('updated_at', { useTz: true });

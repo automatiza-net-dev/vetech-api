@@ -3,11 +3,15 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Invite from 'App/Models/Invite';
+import { LicenceType } from 'App/Models/Licence';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
+import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
+
+import { generateJwtToken } from '../utils';
 
 test.group('Invite resource', group => {
   group.each.setup(async () => {
@@ -38,6 +42,13 @@ test.group('Invite resource', group => {
       id: v4(),
       email: 'mail@mail.com',
       role_id: role.id,
+    });
+
+    await newBusinessUnit.related('licences').create({
+      id: v4(),
+      active: true,
+      expirationDate: addDays(new Date(), 1),
+      type: LicenceType.TRIAL,
     });
 
     return [user, newBusinessUnit, role, invite];
@@ -329,19 +340,23 @@ test.group('Invite resource', group => {
     assert,
     client,
   }) => {
-    const [user, businessUnit, role] = await createData();
+    const [user, businessUnit, role, invite] = await createData();
     await user.related('roles').create({
       role_id: role.id,
       unit_id: businessUnit.id,
     });
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.get(`/invites`).loginAs(user);
+    const response = await client.get(`/invites`).bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
 
-    // TODO fix this assertion to match what "should" happen
     assert.lengthOf(body, 1);
+    assert.equal(invite.id, body[0].id);
   });
 });

@@ -5,7 +5,6 @@ import AcceptInviteNewUserValidator from 'App/Validators/Invite/AcceptInviteNewU
 import AcceptInviteValidator from 'App/Validators/Invite/AcceptInviteValidator';
 import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
 import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
-import { v4 } from 'uuid';
 
 @inject()
 export default class InvitesController {
@@ -15,7 +14,10 @@ export default class InvitesController {
     const user = auth.use('api').user!;
 
     // TODO logged unit id
-    const invite = await this.service.index(user, v4());
+    const invite = await this.service.index(
+      user,
+      auth.use('api').token!.meta.unit_id,
+    );
 
     return response.ok(invite);
   }

@@ -56,6 +56,30 @@ export default class PatientService {
     return patient;
   }
 
+  public async update(
+    unitId: string,
+    id: string,
+    data: IPatientData,
+  ): Promise<Patient> {
+    const patient = await this.show(unitId, id);
+
+    const photo = data.photo
+      ? await this.uploadPhoto(data.photo)
+      : patient.photo;
+
+    return patient
+      .merge({
+        name: data.name,
+        type: data.type,
+        photo,
+        gender: data.gender,
+        tags: data.tags,
+        birthDate: data.birthDate.toJSDate(),
+        active: data.active,
+      })
+      .save();
+  }
+
   public async destroy(unitId: string, patientId: string): Promise<void> {
     const group = await this.getEconomicGroup(unitId);
     const patient = await this.show(unitId, patientId);

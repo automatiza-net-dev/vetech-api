@@ -151,4 +151,30 @@ test.group('Patient resource', group => {
     assert.equal(204, response.status());
     assert.equal(0, related.length); // usuário não tem mais grupos relacionados a ele
   });
+
+  test('should update a patient', async ({ client, assert }) => {
+    const [user, patient] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/patients/${patient.id}`)
+      .json({
+        name: 'updated patient',
+        type: PatientType.TUTOR,
+        gender: PatientGender.MALE,
+        tags: 'tag',
+        birthDate: new Date('2000-01-01'),
+        active: true,
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(patient.id, body.id);
+    assert.notEqual(patient.name, body.name);
+  });
 });

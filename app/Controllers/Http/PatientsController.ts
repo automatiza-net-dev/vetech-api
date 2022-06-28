@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PatientService from 'App/Services/PatientService';
 import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidator';
+import UpdatePatientValidator from 'App/Validators/Patient/UpdatePatientValidator';
 
 @inject()
 export default class PatientsController {
@@ -33,6 +34,23 @@ export default class PatientsController {
     );
 
     return response.created(patient);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdatePatientValidator);
+
+    const patient = await this.service.update(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(patient);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {

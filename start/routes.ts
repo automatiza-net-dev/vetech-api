@@ -100,3 +100,7 @@ Route.group(() => {
   );
   Route.delete('/:id', 'InvitesController.destroy').middleware('auth');
 }).prefix('invites');
+
+Route.group(() => {
+  Route.post('/', 'PatientsController.store').middleware('auth');
+}).prefix('patients');

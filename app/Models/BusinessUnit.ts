@@ -1,5 +1,13 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+} from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Licence from 'App/Models/Licence';
 import { DateTime } from 'luxon';
 
 export default class BusinessUnit extends BaseModel {
@@ -77,4 +85,10 @@ export default class BusinessUnit extends BaseModel {
 
   @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => Licence, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public licences: HasMany<typeof Licence>;
 }

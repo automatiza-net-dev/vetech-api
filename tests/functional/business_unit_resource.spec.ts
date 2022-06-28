@@ -73,6 +73,20 @@ test.group('Business unit resource', group => {
     assert.isArray(userList);
   });
 
+  test('should return a list of business units from logged user', async ({
+    client,
+    assert,
+  }) => {
+    const [unit, _, user] = await createBusinessUnit();
+
+    const response = await client.get(`/business-units/user`).loginAs(user);
+
+    const units = response.body();
+
+    assert.isArray(units);
+    assert.equal(unit.id, units[0].id);
+  });
+
   test('should create new business unit', async ({ client, assert }) => {
     const [_, economicGroup, user] = await createBusinessUnit();
 

@@ -24,4 +24,11 @@ export default class EconomicGroupsController {
     const users = await this.service.getUsers(id);
     return response.ok(users);
   }
+
+  public async userEconomicGroups({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+    const groups = await this.service.userEconomicGroups(user);
+
+    return response.ok(groups);
+  }
 }

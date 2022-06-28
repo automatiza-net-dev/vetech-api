@@ -25,7 +25,7 @@ Route.get('/', () => {
 });
 
 Route.group(() => {
-  Route.get('me', 'AuthController.whoAmI');
+  Route.get('me', 'AuthController.whoAmI').middleware('auth');
   Route.post('login', 'AuthController.login');
   Route.post('register', 'AuthController.register');
   Route.post('forgot-password', 'AuthController.forgotPassword');
@@ -59,12 +59,16 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('', 'EconomicGroupsController.index');
+  Route.get('/user', 'EconomicGroupsController.userEconomicGroups').middleware(
+    'auth',
+  );
   Route.get('/:id/users', 'EconomicGroupsController.users');
   Route.put('/:id', 'EconomicGroupsController.update');
 }).prefix('economic-groups');
 
 Route.group(() => {
   Route.get('', 'BusinessUnitsController.index');
+  Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
@@ -77,3 +81,8 @@ Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
 Route.resource('roles', 'RolesController').apiOnly();
 
 Route.resource('permissions', 'PermissionsController').apiOnly();
+
+Route.group(() => {
+  Route.post('/additional', 'LicencesController.additional').middleware('auth');
+  Route.post('/custom', 'LicencesController.custom');
+}).prefix('licences');

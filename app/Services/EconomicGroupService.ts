@@ -37,4 +37,8 @@ export default class EconomicGroupService {
     const group = await this.show(id);
     return group.related('users').query();
   }
+
+  public async userEconomicGroups(user: User): Promise<Array<EconomicGroup>> {
+    return user.related('economicGroups').query();
+  }
 }

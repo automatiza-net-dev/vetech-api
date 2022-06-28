@@ -3,7 +3,10 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
@@ -62,4 +65,7 @@ export default class Patient extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @manyToMany(() => EconomicGroup, {})
+  public economicGroup: ManyToMany<typeof EconomicGroup>;
 }

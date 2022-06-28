@@ -7,6 +7,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
@@ -51,4 +52,7 @@ export default class EconomicGroup extends BaseModel {
 
   @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;
+
+  @manyToMany(() => Patient, {})
+  public patients: ManyToMany<typeof Patient>;
 }

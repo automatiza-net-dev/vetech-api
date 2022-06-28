@@ -5,7 +5,10 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import Licence from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -60,4 +63,10 @@ export default class PlanPrice extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @hasMany(() => Licence, {
+    localKey: 'id',
+    foreignKey: 'plan_price_id',
+  })
+  public licences: HasMany<typeof Licence>;
 }

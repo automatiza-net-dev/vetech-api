@@ -49,6 +49,7 @@ test.group('Patient resource', group => {
     });
 
     const patient = await PatientFactory.create();
+    await newGroup.related('patients').attach([patient.id]);
 
     return [user, patient];
   };
@@ -72,5 +73,25 @@ test.group('Patient resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should return list of patients from clinic', async ({
+    client,
+    assert,
+  }) => {
+    const [user1, patient1] = await createData();
+    const [_, patient2] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user1.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/patients').bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(Boolean(body.find(b => b.id === patient1.id)));
+    assert.isFalse(Boolean(body.find(b => b.id === patient2.id)));
   });
 });

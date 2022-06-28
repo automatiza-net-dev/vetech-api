@@ -102,5 +102,6 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/', 'PatientsController.index').middleware('auth');
   Route.post('/', 'PatientsController.store').middleware('auth');
 }).prefix('patients');

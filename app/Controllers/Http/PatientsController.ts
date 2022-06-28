@@ -7,6 +7,14 @@ import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidato
 export default class PatientsController {
   constructor(private readonly service: PatientService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const patients = await this.service.index(
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(patients);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientValidator);
 

@@ -9,12 +9,17 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class PatientService {
+  public async index(unitId: string): Promise<Array<Patient>> {
+    const group = await this.getEconomicGroup(unitId);
+
+    return group.related('patients').query();
+  }
+
   public async store(
     unitId: string,
     data: Omit<IPatientData, 'active'>,
   ): Promise<Patient> {
-    const businessUnit = await BusinessUnit.findOrFail(unitId);
-    const group = await EconomicGroup.findOrFail(businessUnit.economicGroupId);
+    const group = await this.getEconomicGroup(unitId);
 
     const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
@@ -28,6 +33,11 @@ export default class PatientService {
     await group.related('patients').attach([patient.id]);
 
     return patient;
+  }
+
+  private async getEconomicGroup(unitId: string) {
+    const businessUnit = await BusinessUnit.findOrFail(unitId);
+    return EconomicGroup.findOrFail(businessUnit.economicGroupId);
   }
 
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {

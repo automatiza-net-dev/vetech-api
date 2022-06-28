@@ -132,4 +132,23 @@ test.group('Patient resource', group => {
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
   });
+
+  test('should soft delete a patient with a singled related business unit', async ({
+    client,
+    assert,
+  }) => {
+    const [user, patient] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/patients/${patient.id}`)
+      .bearerToken(token);
+    const related = await patient.related('economicGroup').query();
+
+    assert.equal(204, response.status());
+    assert.equal(0, related.length); // usuário não tem mais grupos relacionados a ele
+  });
 });

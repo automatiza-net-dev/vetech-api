@@ -56,6 +56,20 @@ export default class PatientService {
     return patient;
   }
 
+  public async destroy(unitId: string, patientId: string): Promise<void> {
+    const group = await this.getEconomicGroup(unitId);
+    const patient = await this.show(unitId, patientId);
+    const groups = await patient.related('economicGroup').query();
+
+    await patient.related('economicGroup').detach([group.id]);
+
+    if (groups.length > 1) {
+      return;
+    }
+
+    await patient.softDelete();
+  }
+
   private async getEconomicGroup(unitId: string) {
     const businessUnit = await BusinessUnit.findOrFail(unitId);
     return EconomicGroup.findOrFail(businessUnit.economicGroupId);

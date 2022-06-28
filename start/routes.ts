@@ -86,3 +86,17 @@ Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');
   Route.post('/custom', 'LicencesController.custom');
 }).prefix('licences');
+
+Route.group(() => {
+  Route.get('/', 'InvitesController.index').middleware('auth');
+  Route.post('/', 'InvitesController.store').middleware('auth');
+  Route.get('/check/:id', 'InvitesController.check');
+  Route.get('/:id', 'InvitesController.show');
+  Route.put('/:id', 'InvitesController.update').middleware('auth');
+  Route.post('/accept-invite', 'InvitesController.acceptInvite');
+  Route.post(
+    '/accept-invite-new-user',
+    'InvitesController.acceptInviteNewUser',
+  );
+  Route.delete('/:id', 'InvitesController.destroy').middleware('auth');
+}).prefix('invites');

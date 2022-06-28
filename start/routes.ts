@@ -103,5 +103,6 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/', 'PatientsController.index').middleware('auth');
+  Route.get('/:id', 'PatientsController.show').middleware('auth');
   Route.post('/', 'PatientsController.store').middleware('auth');
 }).prefix('patients');

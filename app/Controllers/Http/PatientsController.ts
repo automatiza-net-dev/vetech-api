@@ -15,6 +15,15 @@ export default class PatientsController {
     return response.ok(patients);
   }
 
+  public async show({ auth, params, response }: HttpContextContract) {
+    const patients = await this.service.show(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+    );
+
+    return response.ok(patients);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientValidator);
 

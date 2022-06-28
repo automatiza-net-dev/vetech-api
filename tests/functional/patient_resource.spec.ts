@@ -94,4 +94,42 @@ test.group('Patient resource', group => {
     assert.isTrue(Boolean(body.find(b => b.id === patient1.id)));
     assert.isFalse(Boolean(body.find(b => b.id === patient2.id)));
   });
+
+  test('should throw NotFoundException if no valid patient is found', async ({
+    client,
+    assert,
+  }) => {
+    const [user1] = await createData();
+    const [_, patient2] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user1.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/${patient2.id}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Paciente não encontrado', body.message);
+  });
+
+  test('should return a valid patient', async ({ client, assert }) => {
+    const [user, patient] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/${patient.id}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(patient.id, body.id);
+  });
 });

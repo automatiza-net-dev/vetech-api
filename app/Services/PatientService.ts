@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient from 'App/Models/Patient';
@@ -13,6 +14,26 @@ export default class PatientService {
     const group = await this.getEconomicGroup(unitId);
 
     return group.related('patients').query();
+  }
+
+  public async show(unitId: string, patientId: string): Promise<Patient> {
+    const group = await this.getEconomicGroup(unitId);
+
+    const patient = await group
+      .related('patients')
+      .query()
+      .where('patient_id', patientId)
+      .first();
+
+    if (!patient) {
+      throw new ResourceNotFoundException(
+        'Paciente não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return patient;
   }
 
   public async store(

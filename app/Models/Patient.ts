@@ -66,6 +66,9 @@ export default class Patient extends BaseModel {
     await softDelete(this, column);
   }
 
-  @manyToMany(() => EconomicGroup, {})
+  @manyToMany(() => EconomicGroup, {
+    pivotTable: 'patient_economic_groups',
+    pivotTimestamps: true,
+  })
   public economicGroup: ManyToMany<typeof EconomicGroup>;
 }

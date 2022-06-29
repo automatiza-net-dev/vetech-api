@@ -154,4 +154,18 @@ test.group('Race resource', group => {
     assert.equal(race.id, body.id);
     assert.equal('updated race', body.description);
   });
+
+  test('should soft delete a race', async ({ assert, client }) => {
+    const [user, _, race] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/races/${race.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
 });

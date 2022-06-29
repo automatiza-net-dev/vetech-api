@@ -35,6 +35,7 @@ export default class RacesController {
 
     return response.created(result);
   }
+
   public async update({
     auth,
     params,
@@ -50,5 +51,11 @@ export default class RacesController {
     );
 
     return response.ok(result);
+  }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroy(auth.use('api').token!.meta.unit_id, params.id);
+
+    return response.noContent();
   }
 }

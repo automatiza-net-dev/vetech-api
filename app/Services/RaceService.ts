@@ -62,4 +62,10 @@ export default class RaceService {
 
     return race.merge(payload).save();
   }
+
+  async destroy(unitId: string, id: string): Promise<void> {
+    const race = await this.show(unitId, id);
+
+    await race.softDelete();
+  }
 }

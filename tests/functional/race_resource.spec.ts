@@ -132,4 +132,26 @@ test.group('Race resource', group => {
     assert.equal(200, response.status());
     assert.equal(race.id, body.id);
   });
+
+  test('should update a race', async ({ assert, client }) => {
+    const [user, specie, race] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/races/${race.id}`)
+      .json({
+        description: 'updated race',
+        specie_id: specie.id,
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(race.id, body.id);
+    assert.equal('updated race', body.description);
+  });
 });

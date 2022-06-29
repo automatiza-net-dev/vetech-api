@@ -56,4 +56,10 @@ export default class RaceService {
       description: payload.description,
     });
   }
+
+  async update(unitId: string, id: string, payload: IRaceData): Promise<Race> {
+    const race = await this.show(unitId, id);
+
+    return race.merge(payload).save();
+  }
 }

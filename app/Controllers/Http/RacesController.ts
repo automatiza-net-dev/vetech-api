@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import RaceService from 'App/Services/RaceService';
 import CreateRaceValidator from 'App/Validators/Race/CreateRaceValidator';
+import UpdateRaceValidator from 'App/Validators/Race/UpdateRaceValidator';
 
 @inject()
 export default class RacesController {
@@ -33,5 +34,21 @@ export default class RacesController {
     );
 
     return response.created(result);
+  }
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateRaceValidator);
+
+    const result = await this.service.update(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(result);
   }
 }

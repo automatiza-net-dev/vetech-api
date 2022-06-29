@@ -113,4 +113,5 @@ Route.group(() => {
   Route.get('/', 'RacesController.index').middleware('auth');
   Route.post('/', 'RacesController.store').middleware('auth');
   Route.get('/:id', 'RacesController.show').middleware('auth');
+  Route.put('/:id', 'RacesController.update').middleware('auth');
 }).prefix('races');

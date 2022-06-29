@@ -243,4 +243,63 @@ test.group('Patient resource', group => {
     assert.equal(patient.id, body.id);
     assert.equal(tutored.id, body.tutor.id);
   });
+
+  test('should update a tutor', async ({ client, assert }) => {
+    const [user, patient] = await createData();
+    const tutored = await patient.related('tutor').create({
+      id: v4(),
+      document: '123',
+      inscription: '123',
+      corporateName: '123',
+      email: '123',
+      cellphone: '123',
+      telephone: '123',
+      messagePersonName: '123',
+      messagePersonPhone: '123',
+      postalCode: '123',
+      street: '123',
+      number: '123',
+      complement: '123',
+      district: '123',
+      city: '123',
+      state: '123',
+    });
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/patient-tutors/${patient.id}`)
+      .json({
+        name: 'updated tutor',
+        gender: PatientGender.MALE,
+        tags: 'tag',
+        birthDate: new Date('2000-01-01'),
+        active: true,
+        document: '123',
+        inscription: '123',
+        corporateName: '123',
+        email: '123@mail.com',
+        cellphone: '123',
+        telephone: '123',
+        messagePersonName: '123',
+        messagePersonPhone: '123',
+        postal_code: '123',
+        street: '123',
+        number: '123',
+        complement: '123',
+        district: '123',
+        city: '123',
+        state: '123',
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(patient.id, body.id);
+    assert.equal(tutored.id, body.tutor.id);
+  });
 });

@@ -152,6 +152,66 @@ export default class PatientService {
       .save();
   }
 
+  public async updateTutor(
+    unitId: string,
+    id: string,
+    data: Omit<IPatientData, 'type'> & IPatientTutorData,
+  ): Promise<Patient> {
+    const patient = await this.show(unitId, id);
+    const tutorData = await patient.related('tutor').query().firstOrFail();
+
+    await patient.load('tutor');
+
+    const trx = await Database.transaction();
+
+    try {
+      const photo = data.photo
+        ? await this.uploadPhoto(data.photo)
+        : patient.photo;
+
+      await tutorData
+        .merge({
+          document: data.document,
+          inscription: data.inscription,
+          corporateName: data.corporate_name,
+          email: data.email,
+          cellphone: data.cellphone,
+          telephone: data.telephone,
+          messagePersonName: data.message_person_name,
+          messagePersonPhone: data.message_person_phone,
+          postalCode: data.postal_code,
+          street: data.street,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+        })
+        .save();
+
+      return patient
+        .merge({
+          name: data.name,
+          photo,
+          gender: data.gender,
+          tags: data.tags,
+          birthDate: data.birthDate.toJSDate(),
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+    } catch (e) {
+      Logger.error(e.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+  }
+
   public async destroy(unitId: string, patientId: string): Promise<void> {
     const group = await this.getEconomicGroup(unitId);
     const patient = await this.show(unitId, patientId);

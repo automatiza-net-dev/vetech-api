@@ -105,7 +105,10 @@ Route.group(() => {
   Route.get('/', 'PatientsController.index').middleware('auth');
   Route.get('/:id', 'PatientsController.show').middleware('auth');
   Route.post('/', 'PatientsController.store').middleware('auth');
-  Route.post('/with-tutor', 'PatientsController.storeTutor').middleware('auth');
   Route.put('/:id', 'PatientsController.update').middleware('auth');
   Route.delete('/:id', 'PatientsController.destroy').middleware('auth');
 }).prefix('patients');
+
+Route.group(() => {
+  Route.post('/', 'PatientTutorsController.store').middleware('auth');
+}).prefix('patient-tutors');

@@ -186,7 +186,7 @@ test.group('Patient resource', group => {
     });
 
     const response = await client
-      .post('/patients/with-tutor')
+      .post('/patient-tutors')
       .json({
         name: 'patient name',
         gender: PatientGender.MALE,

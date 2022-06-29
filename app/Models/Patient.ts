@@ -3,8 +3,8 @@ import {
   beforeFetch,
   beforeFind,
   column,
-  HasMany,
-  hasMany,
+  HasOne,
+  hasOne,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
@@ -75,9 +75,9 @@ export default class Patient extends BaseModel {
   })
   public economicGroup: ManyToMany<typeof EconomicGroup>;
 
-  @hasMany(() => PatientTutor, {
+  @hasOne(() => PatientTutor, {
     localKey: 'id',
     foreignKey: 'patient_id',
   })
-  public tutored: HasMany<typeof PatientTutor>;
+  public tutor: HasOne<typeof PatientTutor>;
 }

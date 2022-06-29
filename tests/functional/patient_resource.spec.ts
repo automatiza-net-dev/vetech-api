@@ -214,7 +214,7 @@ test.group('Patient resource', group => {
       password: '102030',
     });
 
-    const tutored = await patient.related('tutored').create({
+    const tutored = await patient.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',
@@ -241,6 +241,6 @@ test.group('Patient resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
-    assert.equal(tutored.id, body.tutored[0].id);
+    assert.equal(tutored.id, body.tutor.id);
   });
 });

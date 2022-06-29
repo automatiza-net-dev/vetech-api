@@ -42,7 +42,7 @@ export default class PatientService {
     }
 
     if (patient.type === PatientType.TUTOR && withTutored) {
-      await patient.load('tutored');
+      await patient.load('tutor');
     }
 
     return patient;
@@ -92,7 +92,7 @@ export default class PatientService {
         { client: trx },
       );
 
-      await patient.related('tutored').create({
+      await patient.related('tutor').create({
         id: v4(),
         document: data.document,
         inscription: data.inscription,

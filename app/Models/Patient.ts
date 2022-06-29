@@ -3,10 +3,13 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  HasMany,
+  hasMany,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import PatientTutor from 'App/Models/PatientTutor';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
@@ -71,4 +74,7 @@ export default class Patient extends BaseModel {
     pivotTimestamps: true,
   })
   public economicGroup: ManyToMany<typeof EconomicGroup>;
+
+  @hasMany(() => PatientTutor, {})
+  public tutored: HasMany<typeof PatientTutor>;
 }

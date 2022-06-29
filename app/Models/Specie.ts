@@ -17,6 +17,9 @@ export default class Specie extends BaseModel {
   @column()
   public description: string;
 
+  @column()
+  public economic_group_id: string;
+
   @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 

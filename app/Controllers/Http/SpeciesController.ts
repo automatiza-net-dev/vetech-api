@@ -1,9 +1,20 @@
-// import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-
 import { inject } from '@adonisjs/fold';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SpecieService from 'App/Services/SpecieService';
+import CreateSpecieValidator from 'App/Validators/Specie/CreateSpecieValidator';
 
 @inject()
 export default class SpeciesController {
   constructor(private readonly service: SpecieService) {}
+
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateSpecieValidator);
+
+    const result = await this.service.store(
+      auth.use('api').token!.meta.unit_id,
+      payload,
+    );
+
+    return response.created(result);
+  }
 }

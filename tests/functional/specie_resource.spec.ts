@@ -8,6 +8,8 @@ import UserFactory from 'Database/factories/UserFactory';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
+import { generateJwtToken } from '../utils';
+
 test.group('Specie resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
@@ -48,4 +50,24 @@ test.group('Specie resource', group => {
 
     return [user, newGroup];
   };
+
+  test('should create specie', async ({ assert, client }) => {
+    const [user] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/species')
+      .json({
+        description: 'some specie',
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(201, response.status());
+    assert.equal('some specie', body.description);
+  });
 });

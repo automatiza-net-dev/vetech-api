@@ -53,6 +53,9 @@ export default class EconomicGroup extends BaseModel {
   @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;
 
-  @hasMany(() => Specie, {})
+  @hasMany(() => Specie, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
   public species: HasMany<typeof Specie>;
 }

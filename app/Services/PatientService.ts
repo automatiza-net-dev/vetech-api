@@ -70,7 +70,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientTutorData, 'active' | 'type'>,
+    data: Omit<IPatientData, 'active' | 'type'> & IPatientTutorData,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 

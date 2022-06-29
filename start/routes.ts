@@ -106,4 +106,5 @@ Route.group(() => {
   Route.post('/', 'SpeciesController.store').middleware('auth');
   Route.get('/:id', 'SpeciesController.show').middleware('auth');
   Route.put('/:id', 'SpeciesController.update').middleware('auth');
+  Route.delete('/:id', 'SpeciesController.destroy').middleware('auth');
 }).prefix('species');

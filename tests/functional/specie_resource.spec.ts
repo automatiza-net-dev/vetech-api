@@ -153,4 +153,19 @@ test.group('Specie resource', group => {
     assert.equal(species.id, body.id);
     assert.notEqual(species.description, body.description);
   });
+
+  test('should soft delete a  specie', async ({ assert, client }) => {
+    const [user, _, species] = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/species/${species.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
 });

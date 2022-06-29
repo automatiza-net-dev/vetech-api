@@ -51,6 +51,12 @@ export default class SpecieService {
     return specie.merge(payload).save();
   }
 
+  async destroy(unitId: string, id: string): Promise<void> {
+    const specie = await this.show(unitId, id);
+
+    await specie.softDelete();
+  }
+
   // TODO refactor - move to shared service
   private async getUserGroup(unitId: string): Promise<EconomicGroup> {
     const unit = await BusinessUnit.findOrFail(unitId);

@@ -10,4 +10,5 @@ export default interface IPatientData {
   tags: string;
   birthDate: DateTime;
   active: boolean;
+  holderId: string;
 }

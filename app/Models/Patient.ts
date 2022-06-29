@@ -80,4 +80,15 @@ export default class Patient extends BaseModel {
     foreignKey: 'patient_id',
   })
   public tutor: HasOne<typeof PatientTutor>;
+
+  @manyToMany(() => Patient, {
+    pivotTable: 'holder_dependents',
+    pivotTimestamps: true,
+    localKey: 'id',
+    relatedKey: 'id',
+    pivotForeignKey: 'holder_id',
+    pivotRelatedForeignKey: 'dependent_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public dependents: ManyToMany<typeof Patient>;
 }

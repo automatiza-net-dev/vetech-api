@@ -3,6 +3,7 @@ import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
@@ -50,22 +51,47 @@ export default class PatientService {
 
   public async store(
     unitId: string,
-    data: Omit<IPatientData, 'active'>,
+    data: Omit<IPatientData, 'active' | 'type'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
+    const holder = await Patient.findOrFail(data.holderId);
 
-    const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
+    if (holder.type !== PatientType.TUTOR) {
+      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+    }
+    const trx = await Database.transaction();
 
-    const patient = await Patient.create({
-      ...data,
-      id: v4(),
-      birthDate: data.birthDate.toJSDate(),
-      photo,
-    });
+    try {
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-    await group.related('patients').attach([patient.id]);
+      const patient = await Patient.create(
+        {
+          ...data,
+          type: PatientType.ANIMAL,
+          id: v4(),
+          birthDate: data.birthDate.toJSDate(),
+          photo,
+        },
+        {
+          client: trx,
+        },
+      );
 
-    return patient;
+      await holder.related('dependents').attach([patient.id]);
+
+      await group.related('patients').attach([patient.id]);
+
+      return patient;
+    } catch (e) {
+      Logger.error(e.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 
   public async storeTutor(

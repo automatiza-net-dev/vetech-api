@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 
 export default class Specie extends BaseModel {
   @column({ isPrimary: true })
-  public id: number;
+  public id: string;
 
   @column()
   public description: string;

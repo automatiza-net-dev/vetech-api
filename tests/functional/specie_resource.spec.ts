@@ -50,6 +50,7 @@ test.group('Specie resource', group => {
     });
 
     const specie = await newGroup.related('species').create({
+      id: v4(),
       description: 'some specie',
     });
 
@@ -106,7 +107,7 @@ test.group('Specie resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/species/-1`).bearerToken(token);
+    const response = await client.get(`/species/${v4()}`).bearerToken(token);
 
     const body = response.body();
 

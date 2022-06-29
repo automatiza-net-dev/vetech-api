@@ -4,6 +4,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Specie from 'App/Models/Specie';
 import ISpecieData from 'Contracts/interfaces/ISpecieData';
+import { v4 } from 'uuid';
 
 @inject()
 export default class SpecieService {
@@ -37,6 +38,7 @@ export default class SpecieService {
     const group = await this.getUserGroup(unitId);
 
     return group.related('species').create({
+      id: v4(),
       description: payload.description,
     });
   }

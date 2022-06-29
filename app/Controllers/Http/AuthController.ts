@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Env from '@ioc:Adonis/Core/Env';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import AuthService from 'App/Services/AuthService';
@@ -28,7 +29,7 @@ export default class AuthController {
     const [createdUser, createdBusiness] = await this.service.store(payload);
 
     const token = await auth.use('api').generate(createdUser, {
-      expiresIn: '1h',
+      expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
       unit_id: createdBusiness.id,
     });
 

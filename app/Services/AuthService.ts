@@ -47,7 +47,7 @@ export default class AuthService {
     await this.checkLicence(unit);
 
     return auth.use('api').generate(user, {
-      expiresIn: '1h',
+      expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
       unit_id: unit.id,
     });
   }

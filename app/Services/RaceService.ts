@@ -19,6 +19,22 @@ export default class RaceService {
     );
   }
 
+  async show(unitId: string, id: string): Promise<Race> {
+    const races = await this.index(unitId);
+
+    const race = races.find(s => s.id === id);
+
+    if (!race) {
+      throw new ResourceNotFoundException(
+        'Raça não foi encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return race;
+  }
+
   async store(unitId: string, payload: IRaceData): Promise<Race> {
     const group = await this.sharedService.getUserGroup(unitId);
     const specie = await group

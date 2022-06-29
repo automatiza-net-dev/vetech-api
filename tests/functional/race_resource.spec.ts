@@ -98,4 +98,38 @@ test.group('Race resource', group => {
     assert.isArray(body);
     assert.equal(race.id, body[0].id);
   });
+
+  test('should throw ResourceNotFoundException if no race matches', async ({
+    assert,
+    client,
+  }) => {
+    const [user] = await createData();
+    const [__, ___, race2] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/races/${race2.id}`).bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Raça não foi encontrada', body.message);
+  });
+
+  test('should return the race', async ({ assert, client }) => {
+    const [user, _, race] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/races/${race.id}`).bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(race.id, body.id);
+  });
 });

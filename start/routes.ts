@@ -112,4 +112,5 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/', 'RacesController.index').middleware('auth');
   Route.post('/', 'RacesController.store').middleware('auth');
+  Route.get('/:id', 'RacesController.show').middleware('auth');
 }).prefix('races');

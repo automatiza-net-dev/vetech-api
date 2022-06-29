@@ -77,7 +77,7 @@ test.group('Specie resource', group => {
     assert.equal('some specie', body.description);
   });
 
-  test('should create specie', async ({ assert, client }) => {
+  test('should return all species from group', async ({ assert, client }) => {
     const [user, _, specie1] = await createData();
     const [__, ___, specie2] = await createData();
 

@@ -94,4 +94,41 @@ test.group('Specie resource', group => {
     assert.equal(specie1.id, body[0].id);
     assert.isFalse(Boolean(body.find(b => b.id === specie2.id)));
   });
+
+  test('should throw NotFoundException if no specie is found', async ({
+    assert,
+    client,
+  }) => {
+    const [user] = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/species/-1`).bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Espécie não foi encontrada', body.message);
+  });
+
+  test('should return species', async ({ assert, client }) => {
+    const [user, _, species] = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/species/${species.id}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(species.id, body.id);
+  });
 });

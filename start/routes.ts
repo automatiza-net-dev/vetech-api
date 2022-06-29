@@ -104,4 +104,5 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/', 'SpeciesController.index').middleware('auth');
   Route.post('/', 'SpeciesController.store').middleware('auth');
+  Route.get('/:id', 'SpeciesController.show').middleware('auth');
 }).prefix('species');

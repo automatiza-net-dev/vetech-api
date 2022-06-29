@@ -85,8 +85,8 @@ export default class Patient extends BaseModel {
     pivotTable: 'holder_dependents',
     pivotTimestamps: true,
     localKey: 'id',
-    relatedKey: 'id',
     pivotForeignKey: 'holder_id',
+    relatedKey: 'id',
     pivotRelatedForeignKey: 'dependent_id',
   })
   // eslint-disable-next-line no-use-before-define

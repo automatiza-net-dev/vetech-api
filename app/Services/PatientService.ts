@@ -1,5 +1,5 @@
-import { inject } from '@adonisjs/fold';
-import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
+import {inject} from '@adonisjs/fold';
+import {MultipartFileContract} from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
@@ -8,10 +8,10 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, { PatientType } from 'App/Models/Patient';
+import Patient, {PatientType} from 'App/Models/Patient';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
-import { v4 } from 'uuid';
+import {v4} from 'uuid';
 
 @inject()
 export default class PatientService {
@@ -64,9 +64,16 @@ export default class PatientService {
     try {
       const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
+      const patientData = {
+        name: data.name,
+        gender: data.gender,
+        tags: data.tags,
+        birthDate: data.birthDate,
+      };
+
       const patient = await Patient.create(
         {
-          ...data,
+          ...patientData,
           type: PatientType.ANIMAL,
           id: v4(),
           birthDate: data.birthDate.toJSDate(),
@@ -77,9 +84,11 @@ export default class PatientService {
         },
       );
 
-      await holder.related('dependents').attach([patient.id]);
+      await holder.related('dependents').attach([patient.id], trx);
 
-      await group.related('patients').attach([patient.id]);
+      await group.related('patients').attach([patient.id], trx);
+
+      await trx.commit();
 
       return patient;
     } catch (e) {

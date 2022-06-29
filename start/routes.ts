@@ -100,3 +100,11 @@ Route.group(() => {
   );
   Route.delete('/:id', 'InvitesController.destroy').middleware('auth');
 }).prefix('invites');
+
+Route.group(() => {
+  Route.get('/', 'SpeciesController.index').middleware('auth');
+  Route.post('/', 'SpeciesController.store').middleware('auth');
+  Route.get('/:id', 'SpeciesController.show').middleware('auth');
+  Route.put('/:id', 'SpeciesController.update').middleware('auth');
+  Route.delete('/:id', 'SpeciesController.destroy').middleware('auth');
+}).prefix('species');

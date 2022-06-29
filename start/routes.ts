@@ -102,5 +102,6 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/', 'SpeciesController.index').middleware('auth');
   Route.post('/', 'SpeciesController.store').middleware('auth');
 }).prefix('species');

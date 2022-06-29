@@ -7,6 +7,14 @@ import CreateSpecieValidator from 'App/Validators/Specie/CreateSpecieValidator';
 export default class SpeciesController {
   constructor(private readonly service: SpecieService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const result = await this.service.index(
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateSpecieValidator);
 

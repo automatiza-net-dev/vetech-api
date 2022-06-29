@@ -2,6 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
+import Specie from 'App/Models/Specie';
 import User from 'App/Models/User';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
@@ -16,7 +17,7 @@ test.group('Specie resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User, EconomicGroup]> => {
+  const createData = async (): Promise<[User, EconomicGroup, Specie]> => {
     const user = await UserFactory.create();
 
     const newGroup = await user.related('economicGroups').create({
@@ -48,7 +49,11 @@ test.group('Specie resource', group => {
       type: LicenceType.TRIAL,
     });
 
-    return [user, newGroup];
+    const specie = await newGroup.related('species').create({
+      description: 'some specie',
+    });
+
+    return [user, newGroup, specie];
   };
 
   test('should create specie', async ({ assert, client }) => {
@@ -69,5 +74,24 @@ test.group('Specie resource', group => {
 
     assert.equal(201, response.status());
     assert.equal('some specie', body.description);
+  });
+
+  test('should create specie', async ({ assert, client }) => {
+    const [user, _, specie1] = await createData();
+    const [__, ___, specie2] = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/species').bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isArray(body);
+    assert.equal(specie1.id, body[0].id);
+    assert.isFalse(Boolean(body.find(b => b.id === specie2.id)));
   });
 });

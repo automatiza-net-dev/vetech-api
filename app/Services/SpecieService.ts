@@ -6,6 +6,12 @@ import ISpecieData from 'Contracts/interfaces/ISpecieData';
 
 @inject()
 export default class SpecieService {
+  async index(unitId: string): Promise<Array<Specie>> {
+    const group = await this.getUserGroup(unitId);
+
+    return group.related('species').query();
+  }
+
   async store(unitId: string, payload: ISpecieData): Promise<Specie> {
     const group = await this.getUserGroup(unitId);
 

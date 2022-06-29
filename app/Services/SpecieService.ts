@@ -1,21 +1,22 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import Specie from 'App/Models/Specie';
+import SharedService from 'App/Services/SharedService';
 import ISpecieData from 'Contracts/interfaces/ISpecieData';
 import { v4 } from 'uuid';
 
 @inject()
 export default class SpecieService {
+  constructor(protected readonly sharedService: SharedService) {}
+
   async index(unitId: string): Promise<Array<Specie>> {
-    const group = await this.getUserGroup(unitId);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     return group.related('species').query();
   }
 
   async show(unitId: string, id: string): Promise<Specie> {
-    const group = await this.getUserGroup(unitId);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     const specie = await group
       .related('species')
@@ -35,7 +36,7 @@ export default class SpecieService {
   }
 
   async store(unitId: string, payload: ISpecieData): Promise<Specie> {
-    const group = await this.getUserGroup(unitId);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     return group.related('species').create({
       id: v4(),
@@ -57,11 +58,5 @@ export default class SpecieService {
     const specie = await this.show(unitId, id);
 
     await specie.softDelete();
-  }
-
-  // TODO refactor - move to shared service
-  private async getUserGroup(unitId: string): Promise<EconomicGroup> {
-    const unit = await BusinessUnit.findOrFail(unitId);
-    return unit.related('economicGroup').query().firstOrFail();
   }
 }

@@ -18,7 +18,7 @@ export default class extends BaseSchema {
       table.string('message_person_name').nullable();
       table.string('message_person_phone').nullable();
       table.string('postal_code', 255);
-      table.string('address', 255);
+      table.string('street', 255);
       table.string('number', 255);
       table.string('complement', 255).nullable();
       table.string('district', 255);

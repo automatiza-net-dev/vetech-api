@@ -51,7 +51,7 @@ export default class PatientTutor extends BaseModel {
   public patient_id: string;
 
   @column()
-  public address: string;
+  public street: string;
 
   @column()
   public number: string;

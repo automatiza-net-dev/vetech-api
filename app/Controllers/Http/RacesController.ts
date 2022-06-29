@@ -7,6 +7,14 @@ import CreateRaceValidator from 'App/Validators/Race/CreateRaceValidator';
 export default class RacesController {
   constructor(private readonly service: RaceService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const result = await this.service.index(
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateRaceValidator);
 

@@ -9,6 +9,16 @@ import { v4 } from 'uuid';
 export default class RaceService {
   constructor(protected readonly sharedService: SharedService) {}
 
+  async index(unitId: string): Promise<Array<Race>> {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const species = await group.related('species').query();
+
+    return Race.query().whereIn(
+      'specie_id',
+      species.map(s => s.id),
+    );
+  }
+
   async store(unitId: string, payload: IRaceData): Promise<Race> {
     const group = await this.sharedService.getUserGroup(unitId);
     const specie = await group

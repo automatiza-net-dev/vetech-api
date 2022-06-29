@@ -110,5 +110,6 @@ Route.group(() => {
 }).prefix('species');
 
 Route.group(() => {
+  Route.get('/', 'RacesController.index').middleware('auth');
   Route.post('/', 'RacesController.store').middleware('auth');
 }).prefix('races');

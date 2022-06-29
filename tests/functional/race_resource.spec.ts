@@ -82,4 +82,20 @@ test.group('Race resource', group => {
     assert.equal(201, response.status());
     assert.equal('some race', body.description);
   });
+
+  test('should return group races', async ({ assert, client }) => {
+    const [user, _, race] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/races`).bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isArray(body);
+    assert.equal(race.id, body[0].id);
+  });
 });

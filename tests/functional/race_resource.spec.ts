@@ -1,5 +1,5 @@
+import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import Race from 'App/Models/Race';
 import Specie from 'App/Models/Specie';
@@ -12,6 +12,11 @@ import { v4 } from 'uuid';
 import { generateJwtToken } from '../utils';
 
 test.group('Race resource', group => {
+  group.each.setup(async () => {
+    await Database.beginGlobalTransaction();
+    return () => Database.rollbackGlobalTransaction();
+  });
+
   const createData = async (): Promise<[User, Specie, Race]> => {
     const user = await UserFactory.create();
 

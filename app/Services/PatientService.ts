@@ -20,7 +20,11 @@ export default class PatientService {
     return group.related('patients').query();
   }
 
-  public async show(unitId: string, patientId: string): Promise<Patient> {
+  public async show(
+    unitId: string,
+    patientId: string,
+    withTutored = false,
+  ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
     const patient = await group
@@ -35,6 +39,10 @@ export default class PatientService {
         404,
         'E_NOT_FOUND',
       );
+    }
+
+    if (patient.type === PatientType.TUTOR && withTutored) {
+      await patient.load('tutored');
     }
 
     return patient;

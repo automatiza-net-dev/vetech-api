@@ -177,4 +177,33 @@ test.group('Patient resource', group => {
     assert.equal(patient.id, body.id);
     assert.notEqual(patient.name, body.name);
   });
+
+  test('should create new tutor', async ({ client, assert }) => {
+    const [user] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/patients/with-tutor')
+      .json({
+        name: 'patient name',
+        gender: PatientGender.MALE,
+        tags: 'tag',
+        birthDate: new Date('2000-01-01'),
+        document: '1',
+        email: 'mail123123@mail.com',
+        cellphone: '123',
+        postal_code: '123',
+        street: '213',
+        number: '123',
+        district: '2123',
+        city: '123',
+        state: '123',
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
 });

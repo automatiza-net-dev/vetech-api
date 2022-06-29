@@ -75,6 +75,9 @@ export default class Patient extends BaseModel {
   })
   public economicGroup: ManyToMany<typeof EconomicGroup>;
 
-  @hasMany(() => PatientTutor, {})
+  @hasMany(() => PatientTutor, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
   public tutored: HasMany<typeof PatientTutor>;
 }

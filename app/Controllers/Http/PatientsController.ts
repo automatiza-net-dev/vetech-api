@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PatientService from 'App/Services/PatientService';
 import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidator';
+import CreatePatientWithTutorValidator from 'App/Validators/Patient/CreatePatientWithTutorValidator';
 import UpdatePatientValidator from 'App/Validators/Patient/UpdatePatientValidator';
 
 @inject()
@@ -29,6 +30,17 @@ export default class PatientsController {
     const payload = await request.validate(CreatePatientValidator);
 
     const patient = await this.service.store(
+      auth.use('api').token!.meta.unit_id,
+      payload,
+    );
+
+    return response.created(patient);
+  }
+
+  public async storeTutor({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientWithTutorValidator);
+
+    const patient = await this.service.storeTutor(
       auth.use('api').token!.meta.unit_id,
       payload,
     );

@@ -108,3 +108,7 @@ Route.group(() => {
   Route.put('/:id', 'SpeciesController.update').middleware('auth');
   Route.delete('/:id', 'SpeciesController.destroy').middleware('auth');
 }).prefix('species');
+
+Route.group(() => {
+  Route.post('/', 'RacesController.store').middleware('auth');
+}).prefix('races');

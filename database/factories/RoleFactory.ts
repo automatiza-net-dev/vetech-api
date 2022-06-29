@@ -3,6 +3,6 @@ import Role from 'App/Models/Role';
 
 export default Factory.define(Role, ({ faker }) => {
   return {
-    name: faker.name.jobType(),
+    name: faker.datatype.uuid(),
   };
 }).build();

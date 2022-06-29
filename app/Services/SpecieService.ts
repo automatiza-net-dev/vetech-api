@@ -41,6 +41,16 @@ export default class SpecieService {
     });
   }
 
+  async update(
+    unitId: string,
+    id: string,
+    payload: ISpecieData,
+  ): Promise<Specie> {
+    const specie = await this.show(unitId, id);
+
+    return specie.merge(payload).save();
+  }
+
   // TODO refactor - move to shared service
   private async getUserGroup(unitId: string): Promise<EconomicGroup> {
     const unit = await BusinessUnit.findOrFail(unitId);

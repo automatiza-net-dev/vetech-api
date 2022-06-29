@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SpecieService from 'App/Services/SpecieService';
 import CreateSpecieValidator from 'App/Validators/Specie/CreateSpecieValidator';
+import UpdateSpecieValidator from 'App/Validators/Specie/UpdateSpecieValidator';
 
 @inject()
 export default class SpeciesController {
@@ -33,5 +34,22 @@ export default class SpeciesController {
     );
 
     return response.created(result);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateSpecieValidator);
+
+    const result = await this.service.update(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(result);
   }
 }

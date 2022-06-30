@@ -1,5 +1,5 @@
-import {inject} from '@adonisjs/fold';
-import {MultipartFileContract} from '@ioc:Adonis/Core/BodyParser';
+import { inject } from '@adonisjs/fold';
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
@@ -8,10 +8,10 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, {PatientType} from 'App/Models/Patient';
+import Patient, { PatientType } from 'App/Models/Patient';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
-import {v4} from 'uuid';
+import { v4 } from 'uuid';
 
 @inject()
 export default class PatientService {
@@ -105,7 +105,8 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type'> & IPatientTutorData,
+    data: Omit<IPatientData, 'active' | 'type' | 'holderId'> &
+      IPatientTutorData,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -190,7 +191,7 @@ export default class PatientService {
   public async updateTutor(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'type'> & IPatientTutorData,
+    data: Omit<IPatientData, 'type' | 'holderId'> & IPatientTutorData,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();

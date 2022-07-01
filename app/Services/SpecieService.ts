@@ -12,19 +12,20 @@ export default class SpecieService {
   async index(unitId: string): Promise<Array<Specie>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('species').query();
+    return Specie.query()
+      .where('economic_group_id', group.id)
+      .orWhereNull('economic_group_id');
   }
 
   async show(unitId: string, id: string): Promise<Specie> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const specie = await group
-      .related('species')
-      .query()
-      .where('id', id)
-      .first();
+    const specie = await Specie.find(id);
 
-    if (!specie) {
+    if (
+      !specie ||
+      (!!specie.economic_group_id && specie.economic_group_id !== group.id)
+    ) {
       throw new ResourceNotFoundException(
         'Espécie não foi encontrada',
         404,

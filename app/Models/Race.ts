@@ -2,18 +2,15 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
-  BelongsTo,
   belongsTo,
+  BelongsTo,
   column,
-  hasMany,
-  HasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Race from 'App/Models/Race';
+import Specie from 'App/Models/Specie';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
-export default class Specie extends BaseModel {
+export default class Race extends BaseModel {
   @column({ isPrimary: true })
   public id: string;
 
@@ -21,10 +18,7 @@ export default class Specie extends BaseModel {
   public description: string;
 
   @column()
-  public economic_group_id: string;
-
-  @belongsTo(() => EconomicGroup, {})
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
+  public specie_id: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -45,8 +39,6 @@ export default class Specie extends BaseModel {
     await softDelete(this, column);
   }
 
-  @hasMany(() => Race, {
-    foreignKey: 'specie_id',
-  })
-  public races: HasMany<typeof Race>;
+  @belongsTo(() => Specie, {})
+  public specie: BelongsTo<typeof Specie>;
 }

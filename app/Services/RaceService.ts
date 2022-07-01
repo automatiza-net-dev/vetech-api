@@ -55,6 +55,7 @@ export default class RaceService {
     return specie.related('races').create({
       id: v4(),
       description: payload.description,
+      economic_group_id: group.id,
     });
   }
 

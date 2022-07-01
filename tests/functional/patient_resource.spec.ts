@@ -17,7 +17,7 @@ test.group('Patient resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User, Patient]> => {
+  const createData = async (): Promise<[User, Patient, Patient]> => {
     const user = await UserFactory.create();
     const newGroup = await user.related('economicGroups').create({
       id: v4(),
@@ -49,13 +49,18 @@ test.group('Patient resource', group => {
     });
 
     const patient = await PatientFactory.create();
-    await newGroup.related('patients').attach([patient.id]);
+    const holder = await PatientFactory.create();
 
-    return [user, patient];
+    await holder.related('dependents').attach([patient.id]);
+    await newGroup.related('patients').attach([patient.id, holder.id]);
+
+    return [user, patient, holder];
   };
 
   test('should create new patient', async ({ client, assert }) => {
-    const [user] = await createData();
+    const [user, holder] = await createData();
+    await holder.merge({ type: PatientType.TUTOR }).save();
+
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -65,10 +70,10 @@ test.group('Patient resource', group => {
       .post('/patients')
       .json({
         name: 'patient name',
-        type: PatientType.TUTOR,
         gender: PatientGender.MALE,
         tags: 'tag',
         birthDate: new Date('2000-01-01'),
+        holderId: holder.id,
       })
       .bearerToken(token);
 
@@ -153,7 +158,9 @@ test.group('Patient resource', group => {
   });
 
   test('should update a patient', async ({ client, assert }) => {
-    const [user, patient] = await createData();
+    const [user, patient, holder] = await createData();
+    await patient.merge({ type: PatientType.ANIMAL }).save();
+
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -163,11 +170,12 @@ test.group('Patient resource', group => {
       .put(`/patients/${patient.id}`)
       .json({
         name: 'updated patient',
-        type: PatientType.TUTOR,
+        type: PatientType.ANIMAL,
         gender: PatientGender.MALE,
         tags: 'tag',
         birthDate: new Date('2000-01-01'),
         active: true,
+        holderId: holder.id,
       })
       .bearerToken(token);
 
@@ -208,7 +216,7 @@ test.group('Patient resource', group => {
   });
 
   test('should show tutor', async ({ client, assert }) => {
-    const [user, patient] = await createData();
+    const [user, _, patient] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',

@@ -44,6 +44,7 @@ export default class PatientService {
 
     if (patient.type === PatientType.TUTOR && withTutored) {
       await patient.load('tutor');
+      await patient.load('dependents');
     }
 
     return patient;

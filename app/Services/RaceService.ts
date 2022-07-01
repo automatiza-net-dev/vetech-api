@@ -11,20 +11,21 @@ export default class RaceService {
 
   async index(unitId: string): Promise<Array<Race>> {
     const group = await this.sharedService.getUserGroup(unitId);
-    const species = await group.related('species').query();
 
-    return Race.query().whereIn(
-      'specie_id',
-      species.map(s => s.id),
-    );
+    return Race.query()
+      .where('economic_group_id', group.id)
+      .orWhereNull('economic_group_id');
   }
 
   async show(unitId: string, id: string): Promise<Race> {
-    const races = await this.index(unitId);
+    const group = await this.sharedService.getUserGroup(unitId);
 
-    const race = races.find(s => s.id === id);
+    const race = await Race.find(id);
 
-    if (!race) {
+    if (
+      !race ||
+      (!!race.economic_group_id && race.economic_group_id !== group.id)
+    ) {
       throw new ResourceNotFoundException(
         'Raça não foi encontrada',
         404,

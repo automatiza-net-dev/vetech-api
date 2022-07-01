@@ -57,6 +57,7 @@ test.group('Race resource', group => {
     const race = await specie.related('races').create({
       id: v4(),
       description: 'some race',
+      economic_group_id: newGroup.id,
     });
 
     return [user, specie, race];
@@ -96,7 +97,7 @@ test.group('Race resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(race.id, body[0].id);
+    assert.isTrue(Boolean(body.find(b => b.id === race.id)));
   });
 
   test('should throw ResourceNotFoundException if no race matches', async ({

@@ -6,6 +6,7 @@ import {
   BelongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import Specie from 'App/Models/Specie';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -19,6 +20,9 @@ export default class Race extends BaseModel {
 
   @column()
   public specie_id: string;
+
+  @column()
+  public economic_group_id?: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -41,4 +45,7 @@ export default class Race extends BaseModel {
 
   @belongsTo(() => Specie, {})
   public specie: BelongsTo<typeof Specie>;
+
+  @belongsTo(() => EconomicGroup, {})
+  public economicGroup: BelongsTo<typeof EconomicGroup>;
 }

@@ -57,4 +57,10 @@ export default class UnavailableDayService {
       })
       .save();
   }
+
+  public async destroy(unitId: string, id: string): Promise<void> {
+    const unavailableDay = await this.show(unitId, id);
+
+    await unavailableDay.delete();
+  }
 }

@@ -124,3 +124,11 @@ Route.group(() => {
   Route.put('/:id', 'WorkingDaysController.update').middleware('auth');
   Route.delete('/:id', 'WorkingDaysController.destroy').middleware('auth');
 }).prefix('working-days');
+
+Route.group(() => {
+  Route.get('/', 'UnavailableDaysController.index').middleware('auth');
+  Route.post('/', 'UnavailableDaysController.store').middleware('auth');
+  Route.get('/:id', 'UnavailableDaysController.show').middleware('auth');
+  Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
+  Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
+}).prefix('unavailable-days');

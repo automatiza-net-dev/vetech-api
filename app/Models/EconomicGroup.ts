@@ -9,6 +9,7 @@ import {
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Specie from 'App/Models/Specie';
 import User from 'App/Models/User';
+import WorkingDay from 'App/Models/WorkingDay';
 import { DateTime } from 'luxon';
 
 export default class EconomicGroup extends BaseModel {
@@ -58,4 +59,10 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public species: HasMany<typeof Specie>;
+
+  @hasMany(() => WorkingDay, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public workingDays: HasMany<typeof WorkingDay>;
 }

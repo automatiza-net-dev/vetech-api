@@ -48,4 +48,10 @@ export default class WorkingDaysController {
 
     return response.ok(data);
   }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroy(auth.use('api').token!.meta.unit_id, params.id);
+
+    return response.noContent();
+  }
 }

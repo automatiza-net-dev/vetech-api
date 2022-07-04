@@ -60,4 +60,10 @@ export default class WorkingDayService {
       })
       .save();
   }
+
+  public async destroy(unitId: string, id: string): Promise<void> {
+    const workingDay = await this.show(unitId, id);
+
+    await workingDay.delete();
+  }
 }

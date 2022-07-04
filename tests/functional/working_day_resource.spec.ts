@@ -159,4 +159,20 @@ test.group('Working day resource', group => {
     assert.equal(workingDay.id, body.id);
     assert.notEqual(workingDay.weekDay, body.dayOfWeek);
   });
+
+  test('should delete a working day', async ({ client, assert }) => {
+    const [user, workingDay] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/working-days/${workingDay.id}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(204, response.status());
+  });
 });

@@ -122,5 +122,5 @@ Route.group(() => {
   Route.post('/', 'WorkingDaysController.store').middleware('auth');
   Route.get('/:id', 'WorkingDaysController.show').middleware('auth');
   Route.put('/:id', 'WorkingDaysController.update').middleware('auth');
-  // Route.delete('/:id', 'WorkingDaysController.destroy').middleware('auth');
+  Route.delete('/:id', 'WorkingDaysController.destroy').middleware('auth');
 }).prefix('working-days');

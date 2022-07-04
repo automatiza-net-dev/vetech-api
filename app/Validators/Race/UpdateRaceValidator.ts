@@ -10,6 +10,7 @@ export default class UpdateRaceValidator {
       rules.uuid(),
       rules.exists({ table: 'species', column: 'id' }),
     ]),
+    code: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

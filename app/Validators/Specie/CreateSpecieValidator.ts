@@ -6,6 +6,7 @@ export default class CreateSpecieValidator {
 
   public schema = schema.create({
     description: schema.string({}, []),
+    code: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

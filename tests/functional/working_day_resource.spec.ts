@@ -1,10 +1,13 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import { LicenceType } from 'App/Models/Licence';
+import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
+import WorkingDay from 'App/Models/WorkingDay';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
 import { addDays } from 'date-fns';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken } from '../utils';
@@ -15,7 +18,7 @@ test.group('Working day resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User]> => {
+  const createData = async (): Promise<[User, WorkingDay]> => {
     const user = await UserFactory.create();
 
     const newGroup = await user.related('economicGroups').create({
@@ -46,10 +49,19 @@ test.group('Working day resource', group => {
       expirationDate: addDays(new Date(), 1),
       type: LicenceType.TRIAL,
     });
-    return [user];
+
+    const working = await newGroup.related('workingDays').create({
+      id: v4(),
+      user_id: user.id,
+      weekDay: WeekDay.DOMINGO,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+    });
+
+    return [user, working];
   };
 
-  test('shold create new working day', async ({ client, assert }) => {
+  test('should create new working day', async ({ client, assert }) => {
     const [user] = await createData();
     const newUser = await UserFactory.create();
 
@@ -69,5 +81,21 @@ test.group('Working day resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should return list of working days', async ({ client, assert }) => {
+    const [user, workingDay] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/working-days').bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isArray(body);
+    assert.equal(workingDay.id, body[0].id);
   });
 });

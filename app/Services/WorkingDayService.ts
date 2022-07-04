@@ -8,6 +8,11 @@ import { v4 } from 'uuid';
 export default class WorkingDayService {
   constructor(private readonly sharedService: SharedService) {}
 
+  public async index(unitId: string): Promise<Array<WorkingDay>> {
+    const group = await this.sharedService.getUserGroup(unitId);
+    return group.related('workingDays').query();
+  }
+
   public async store(
     unitId: string,
     data: IWorkingDayData,

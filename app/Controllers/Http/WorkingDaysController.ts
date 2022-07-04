@@ -7,6 +7,12 @@ import CreateWorkingDayValidator from 'App/Validators/WorkingDay/CreateWorkingDa
 export default class WorkingDaysController {
   constructor(private readonly service: WorkingDayService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const data = await this.service.index(auth.use('api').token!.meta.unit_id);
+
+    return response.ok(data);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateWorkingDayValidator);
     const data = await this.service.store(

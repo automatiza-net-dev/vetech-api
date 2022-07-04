@@ -118,7 +118,7 @@ Route.group(() => {
 }).prefix('races');
 
 Route.group(() => {
-  // Route.get('/', 'WorkingDaysController.index').middleware('auth');
+  Route.get('/', 'WorkingDaysController.index').middleware('auth');
   Route.post('/', 'WorkingDaysController.store').middleware('auth');
   // Route.get('/:id', 'WorkingDaysController.show').middleware('auth');
   // Route.put('/:id', 'WorkingDaysController.update').middleware('auth');

@@ -9,8 +9,10 @@ export default class WorkingDay extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
-  @column()
-  public day_of_week: WeekDay;
+  @column({
+    columnName: 'day_of_week',
+  })
+  public weekDay: WeekDay;
 
   @column.dateTime({
     columnName: 'start_hour',
@@ -27,6 +29,12 @@ export default class WorkingDay extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @column()
+  public user_id: string;
+
+  @column()
+  public economic_group_id: string;
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>;

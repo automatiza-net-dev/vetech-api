@@ -116,3 +116,11 @@ Route.group(() => {
   Route.put('/:id', 'RacesController.update').middleware('auth');
   Route.delete('/:id', 'RacesController.destroy').middleware('auth');
 }).prefix('races');
+
+Route.group(() => {
+  // Route.get('/', 'WorkingDaysController.index').middleware('auth');
+  Route.post('/', 'WorkingDaysController.store').middleware('auth');
+  // Route.get('/:id', 'WorkingDaysController.show').middleware('auth');
+  // Route.put('/:id', 'WorkingDaysController.update').middleware('auth');
+  // Route.delete('/:id', 'WorkingDaysController.destroy').middleware('auth');
+}).prefix('working-days');

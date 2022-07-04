@@ -44,4 +44,20 @@ export default class WorkingDayService {
       endHour: data.endHour,
     });
   }
+
+  public async update(
+    unitId: string,
+    id: string,
+    data: Omit<IWorkingDayData, 'userId'>,
+  ): Promise<WorkingDay> {
+    const workingDay = await this.show(unitId, id);
+
+    return workingDay
+      .merge({
+        weekDay: data.dayOfWeek,
+        startHour: data.startHour,
+        endHour: data.endHour,
+      })
+      .save();
+  }
 }

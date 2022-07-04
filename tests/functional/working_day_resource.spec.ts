@@ -136,4 +136,27 @@ test.group('Working day resource', group => {
     assert.equal(200, response.status());
     assert.equal(workingDay.id, body.id);
   });
+
+  test('should update a working day', async ({ client, assert }) => {
+    const [user, workingDay] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/working-days/${workingDay.id}`)
+      .json({
+        dayOfWeek: 'terca',
+        startHour: new Date().toISOString(),
+        endHour: new Date().toISOString(),
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.equal(workingDay.id, body.id);
+    assert.notEqual(workingDay.weekDay, body.dayOfWeek);
+  });
 });

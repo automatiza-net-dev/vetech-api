@@ -1,5 +1,7 @@
 import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnavailableDay from 'App/Models/UnavailableDay';
+import WorkingDay from 'App/Models/WorkingDay';
 import SharedService from 'App/Services/SharedService';
 import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 
@@ -11,6 +13,22 @@ export default class UnavailableDayService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return group.related('unavailableDays').query();
+  }
+
+  public async show(unitId: string, id: string): Promise<UnavailableDay> {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const unavailableDay = await UnavailableDay.find(id);
+
+    if (!unavailableDay || unavailableDay.economic_group_id !== group.id) {
+      throw new ResourceNotFoundException(
+        'Recurso não foi encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return unavailableDay;
   }
 
   public async store(

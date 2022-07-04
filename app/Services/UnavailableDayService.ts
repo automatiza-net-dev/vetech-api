@@ -7,6 +7,12 @@ import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 export default class UnavailableDayService {
   constructor(private readonly sharedService: SharedService) {}
 
+  public async index(unitId: string): Promise<Array<UnavailableDay>> {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return group.related('unavailableDays').query();
+  }
+
   public async store(
     unitId: string,
     data: IUnavailableDayData,

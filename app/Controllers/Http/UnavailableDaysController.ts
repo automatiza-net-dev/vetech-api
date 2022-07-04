@@ -7,6 +7,12 @@ import CreateUnavailableDayValidator from 'App/Validators/UnavailableDay/CreateU
 export default class UnavailableDaysController {
   constructor(private readonly service: UnavailableDayService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const data = await this.service.index(auth.use('api').token!.meta.unit_id);
+
+    return response.ok(data);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUnavailableDayValidator);
     const data = await this.service.store(

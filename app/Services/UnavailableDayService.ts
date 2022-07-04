@@ -1,7 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnavailableDay from 'App/Models/UnavailableDay';
-import WorkingDay from 'App/Models/WorkingDay';
 import SharedService from 'App/Services/SharedService';
 import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 
@@ -42,5 +41,20 @@ export default class UnavailableDayService {
       startHour: data.startHour,
       endHour: data.endHour,
     });
+  }
+
+  public async update(
+    unitId: string,
+    id: string,
+    data: Omit<IUnavailableDayData, 'userId'>,
+  ): Promise<UnavailableDay> {
+    const unavailableDay = await this.show(unitId, id);
+
+    return unavailableDay
+      .merge({
+        startHour: data.startHour,
+        endHour: data.endHour,
+      })
+      .save();
   }
 }

@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import UnavailableDayService from 'App/Services/UnavailableDayService';
 import CreateUnavailableDayValidator from 'App/Validators/UnavailableDay/CreateUnavailableDayValidator';
+import UpdateUnavailableDayValidator from 'App/Validators/UnavailableDay/UpdateUnavailableDayValidator';
 
 @inject()
 export default class UnavailableDaysController {
@@ -30,5 +31,21 @@ export default class UnavailableDaysController {
     );
 
     return response.created(data);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateUnavailableDayValidator);
+    const data = await this.service.update(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(data);
   }
 }

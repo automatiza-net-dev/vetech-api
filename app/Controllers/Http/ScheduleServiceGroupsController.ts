@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import ScheduleServiceGroupService from 'App/Services/ScheduleServiceGroupService';
 import CreateScheduleServiceGroupValidator from 'App/Validators/ScheduleServiceGroup/CreateScheduleServiceGroupValidator';
+import UpdateScheduleServiceGroupValidator from 'App/Validators/ScheduleServiceGroup/UpdateScheduleServiceGroupValidator';
 
 @inject()
 export default class ScheduleServiceGroupsController {
@@ -31,6 +32,23 @@ export default class ScheduleServiceGroupsController {
     const data = await this.service.store(
       auth.use('api').user!,
       auth.use('api').token!.meta.unit_id,
+      payload,
+    );
+
+    return response.created(data);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateScheduleServiceGroupValidator);
+    const data = await this.service.update(
+      auth.use('api').user!,
+      auth.use('api').token!.meta.unit_id,
+      params.id,
       payload,
     );
 

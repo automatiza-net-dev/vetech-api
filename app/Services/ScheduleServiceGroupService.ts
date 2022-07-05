@@ -66,4 +66,15 @@ export default class ScheduleServiceGroupService {
       description: data.description,
     });
   }
+
+  public async update(
+    user: User,
+    unitId: string,
+    id: string,
+    data: IScheduleServiceGroupData,
+  ): Promise<ScheduleServiceGroup> {
+    const schedule = await this.show(user, unitId, id);
+
+    return schedule.merge(data).save();
+  }
 }

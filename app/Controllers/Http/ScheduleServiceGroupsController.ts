@@ -16,6 +16,16 @@ export default class ScheduleServiceGroupsController {
     return response.ok(data);
   }
 
+  public async show({ auth, params, response }: HttpContextContract) {
+    const data = await this.service.show(
+      auth.use('api').user!,
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+    );
+
+    return response.ok(data);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateScheduleServiceGroupValidator);
     const data = await this.service.store(

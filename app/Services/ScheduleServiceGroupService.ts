@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -21,6 +22,33 @@ export default class ScheduleServiceGroupService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return ScheduleServiceGroup.query().where('economic_group_id', group.id);
+  }
+
+  public async show(
+    user: User,
+    unitId: string,
+    id: string,
+  ): Promise<ScheduleServiceGroup> {
+    const schedule = await ScheduleServiceGroup.find(id);
+
+    const exception = new ResourceNotFoundException(
+      'Recurso não encontrado',
+      404,
+      'E_NOT_FOUND',
+    );
+
+    if (!schedule) throw exception;
+
+    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+
+    if (isSuperAdmin) {
+      return schedule;
+    }
+
+    const group = await this.sharedService.getUserGroup(unitId);
+    if (schedule.economic_group_id !== group.id) throw exception;
+
+    return schedule;
   }
 
   public async store(

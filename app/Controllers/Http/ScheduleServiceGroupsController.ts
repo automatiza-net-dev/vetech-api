@@ -7,6 +7,15 @@ import CreateScheduleServiceGroupValidator from 'App/Validators/ScheduleServiceG
 export default class ScheduleServiceGroupsController {
   constructor(private readonly service: ScheduleServiceGroupService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const data = await this.service.index(
+      auth.use('api').user!,
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(data);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateScheduleServiceGroupValidator);
     const data = await this.service.store(

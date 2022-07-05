@@ -8,6 +8,21 @@ import IScheduleServiceGroupData from 'Contracts/interfaces/IScheduleServiceGrou
 export default class ScheduleServiceGroupService {
   constructor(private readonly sharedService: SharedService) {}
 
+  public async index(
+    user: User,
+    unitId: string,
+  ): Promise<Array<ScheduleServiceGroup>> {
+    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+
+    if (isSuperAdmin) {
+      return ScheduleServiceGroup.all();
+    }
+
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return ScheduleServiceGroup.query().where('economic_group_id', group.id);
+  }
+
   public async store(
     user: User,
     unitId: string,

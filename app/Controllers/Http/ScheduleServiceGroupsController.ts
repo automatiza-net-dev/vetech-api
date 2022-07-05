@@ -54,4 +54,14 @@ export default class ScheduleServiceGroupsController {
 
     return response.created(data);
   }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroy(
+      auth.use('api').user!,
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+    );
+
+    return response.noContent();
+  }
 }

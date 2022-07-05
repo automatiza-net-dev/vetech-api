@@ -77,4 +77,10 @@ export default class ScheduleServiceGroupService {
 
     return schedule.merge(data).save();
   }
+
+  public async destroy(user: User, unitId: string, id: string): Promise<void> {
+    const schedule = await this.show(user, unitId, id);
+
+    await schedule.softDelete();
+  }
 }

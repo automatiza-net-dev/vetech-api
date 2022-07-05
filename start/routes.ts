@@ -116,3 +116,15 @@ Route.group(() => {
   Route.put('/:id', 'RacesController.update').middleware('auth');
   Route.delete('/:id', 'RacesController.destroy').middleware('auth');
 }).prefix('races');
+
+Route.group(() => {
+  Route.get('/', 'ScheduleServiceGroupsController.index').middleware('auth');
+  Route.post('/', 'ScheduleServiceGroupsController.store').middleware('auth');
+  Route.get('/:id', 'ScheduleServiceGroupsController.show').middleware('auth');
+  Route.put('/:id', 'ScheduleServiceGroupsController.update').middleware(
+    'auth',
+  );
+  Route.delete('/:id', 'ScheduleServiceGroupsController.destroy').middleware(
+    'auth',
+  );
+}).prefix('schedule-service-groups');

@@ -41,7 +41,7 @@ export default class ScheduleServiceGroup extends BaseModel {
   }
 
   @column()
-  public economic_group_id: number;
+  public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup, {})
   public group: BelongsTo<typeof EconomicGroup>;

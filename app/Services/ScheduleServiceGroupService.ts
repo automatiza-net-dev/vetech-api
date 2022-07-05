@@ -21,7 +21,9 @@ export default class ScheduleServiceGroupService {
 
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return ScheduleServiceGroup.query().where('economic_group_id', group.id);
+    return ScheduleServiceGroup.query()
+      .where('economic_group_id', group.id)
+      .orWhereNull('economic_group_id');
   }
 
   public async show(
@@ -46,7 +48,7 @@ export default class ScheduleServiceGroupService {
     }
 
     const group = await this.sharedService.getUserGroup(unitId);
-    if (schedule.economic_group_id !== group.id) throw exception;
+    if (schedule?.economic_group_id !== group.id) throw exception;
 
     return schedule;
   }

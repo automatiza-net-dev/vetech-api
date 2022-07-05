@@ -23,7 +23,6 @@ test.group('Business unit resource', group => {
       responsibleEmail: user.email,
       responsiblePhone: user.phone,
     });
-    await newGroup.save();
 
     const newBusinessUnit = await newGroup.related('businessUnits').create({
       id: v4(),
@@ -32,7 +31,6 @@ test.group('Business unit resource', group => {
       email: user.email,
       origin: 'TESTING',
     });
-    await newBusinessUnit.save();
 
     return [newBusinessUnit, newGroup, user];
   };

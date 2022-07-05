@@ -5,18 +5,20 @@ import {
   BelongsTo,
   belongsTo,
   column,
-  HasMany,
-  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
 
-export default class ScheduleServiceGroup extends BaseModel {
+export default class ScheduleServiceType extends BaseModel {
   @column({ isPrimary: true })
-  public id: string = v4();
+  public id: string;
+
+  @column({
+    columnName: 'reserved_minutes',
+  })
+  public reservedMinutes: number;
 
   @column()
   public description: string;
@@ -49,9 +51,9 @@ export default class ScheduleServiceGroup extends BaseModel {
   @belongsTo(() => EconomicGroup, {})
   public group: BelongsTo<typeof EconomicGroup>;
 
-  @hasMany(() => ScheduleServiceType, {
-    localKey: 'id',
-    foreignKey: 'schedule_service_group_id',
-  })
-  public types: HasMany<typeof ScheduleServiceType>;
+  @column()
+  public schedule_service_group_id: string;
+
+  @belongsTo(() => ScheduleServiceGroup, {})
+  public serviceGroup: BelongsTo<typeof ScheduleServiceGroup>;
 }

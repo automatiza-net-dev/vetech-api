@@ -8,6 +8,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import Specie from 'App/Models/Specie';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
@@ -65,4 +66,10 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public scheduleServiceGroups: HasMany<typeof ScheduleServiceGroup>;
+
+  @hasMany(() => ScheduleServiceType, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public scheduleServiceTypes: HasMany<typeof ScheduleServiceType>;
 }

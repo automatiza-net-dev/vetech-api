@@ -2,10 +2,11 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class UnavailableDay extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column.dateTime({
     columnName: 'start_hour',

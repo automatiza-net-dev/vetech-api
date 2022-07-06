@@ -4,6 +4,11 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
 
+export type DateSet = {
+  start: Date;
+  end: Date;
+};
+
 @inject()
 export default class SharedService {
   public async getUserGroup(unitId: string): Promise<EconomicGroup> {
@@ -21,5 +26,12 @@ export default class SharedService {
     const { unit_id } = auth.use('api').token!.meta;
 
     return { user, unit_id };
+  }
+
+  public checkOverlapping(ASet: DateSet, BSet: DateSet): boolean {
+    const firstMatch = ASet.start.getTime() < BSet.end.getTime();
+    const secondMatch = BSet.start.getTime() < ASet.end.getTime();
+
+    return firstMatch && secondMatch;
   }
 }

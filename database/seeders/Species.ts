@@ -22,6 +22,7 @@ export default class extends BaseSeeder {
       id: v4(),
       description: `Espécie ${v + 1 + speciesCount}`,
       economic_group_id: randomEconomicGroup(groups),
+      code: v4(),
     }));
 
     await Specie.fetchOrCreateMany('description', BASE_SPECIES);

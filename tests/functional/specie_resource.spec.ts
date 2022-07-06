@@ -94,7 +94,7 @@ test.group('Specie resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(specie1.id, body[0].id);
+    assert.isTrue(Boolean(body.find(b => b.id === specie1.id)));
     assert.isFalse(Boolean(body.find(b => b.id === specie2.id)));
   });
 

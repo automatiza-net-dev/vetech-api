@@ -13,7 +13,9 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
+import UnavailableDay from 'App/Models/UnavailableDay';
 import UserUnitRole from 'App/Models/UserUnitRole';
+import WorkingDay from 'App/Models/WorkingDay';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -88,6 +90,18 @@ export default class User extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public invites: HasMany<typeof Invite>;
+
+  @hasMany(() => WorkingDay, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
+  public workingDays: HasMany<typeof WorkingDay>;
+
+  @hasMany(() => UnavailableDay, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
+  public unavailableDays: HasMany<typeof UnavailableDay>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

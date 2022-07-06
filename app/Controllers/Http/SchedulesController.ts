@@ -19,6 +19,14 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.show(unit_id, params.id);
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateScheduleValidator);
     const { user, unit_id } = this.sharedService.extractUser(auth);

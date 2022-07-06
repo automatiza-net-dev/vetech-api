@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
 import { DateSet } from 'App/Services/SharedService';
@@ -73,6 +74,23 @@ export default class ScheduleService {
       schedule_service_type_id: data.scheduleServiceTypeId,
       schedule_status_id: data.scheduleStatusId,
     });
+  }
+
+  public async show(unitId: string, id: string): Promise<Schedule> {
+    const schedule = await Schedule.query()
+      .where('id', id)
+      .andWhere('business_unit_id', unitId)
+      .first();
+
+    if (!schedule) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return schedule;
   }
 
   private static async checkUnavailableDays(

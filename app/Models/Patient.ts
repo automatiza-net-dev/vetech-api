@@ -3,6 +3,8 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  HasMany,
+  hasMany,
   HasOne,
   hasOne,
   ManyToMany,
@@ -10,6 +12,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import PatientTutor from 'App/Models/PatientTutor';
+import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
@@ -91,4 +94,10 @@ export default class Patient extends BaseModel {
   })
   // eslint-disable-next-line no-use-before-define
   public dependents: ManyToMany<typeof Patient>;
+
+  @hasMany(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
+  public schedules: HasMany<typeof Schedule>;
 }

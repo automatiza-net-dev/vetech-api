@@ -13,6 +13,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
+import Schedule from 'App/Models/Schedule';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import UserUnitRole from 'App/Models/UserUnitRole';
 import WorkingDay from 'App/Models/WorkingDay';
@@ -102,6 +103,12 @@ export default class User extends BaseModel {
     foreignKey: 'user_id',
   })
   public unavailableDays: HasMany<typeof UnavailableDay>;
+
+  @hasMany(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
+  public schedules: HasMany<typeof Schedule>;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

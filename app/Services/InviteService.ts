@@ -10,6 +10,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import Invite from 'App/Models/Invite';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
+import SharedService from 'App/Services/SharedService';
 import IAcceptInvite from 'Contracts/interfaces/IAcceptInvite';
 import IAcceptInviteNewUser from 'Contracts/interfaces/IAcceptInviteNewUser';
 import IInviteData from 'Contracts/interfaces/IInviteData';
@@ -17,11 +18,10 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class InviteService {
+  constructor(private readonly sharedService: SharedService) {}
+
   public async index(user: User, unitId: string): Promise<Array<Invite>> {
-    const roles = await user.related('roles').query().preload('role');
-    const isSuperAdmin = Boolean(
-      roles.find(r => r.role.name === 'super-admin'),
-    );
+    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
     if (isSuperAdmin) {
       return Invite.all();

@@ -6,7 +6,9 @@
     "dev": "node ace serve --watch",
     "build": "node ace build --production --ignore-ts-errors",
     "start": "node server.js",
-    "test": "node ace test --watch"
+    "test": "node ace test --watch",
+    "seed:admin": "make admin",
+    "seed:animals": "make animals"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^5.7.0",

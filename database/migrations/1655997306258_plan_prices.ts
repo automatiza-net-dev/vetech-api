@@ -21,7 +21,7 @@ export default class extends BaseSchema {
           {
             useNative: true,
             enumName: 'plan_price_recurrence',
-            existingType: false,
+            existingType: true,
           },
         )
         .notNullable();

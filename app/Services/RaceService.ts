@@ -1,0 +1,74 @@
+import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Race from 'App/Models/Race';
+import SharedService from 'App/Services/SharedService';
+import IRaceData from 'Contracts/interfaces/IRaceData';
+import { v4 } from 'uuid';
+
+@inject()
+export default class RaceService {
+  constructor(protected readonly sharedService: SharedService) {}
+
+  async index(unitId: string): Promise<Array<Race>> {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Race.query()
+      .where('economic_group_id', group.id)
+      .orWhereNull('economic_group_id');
+  }
+
+  async show(unitId: string, id: string): Promise<Race> {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const race = await Race.find(id);
+
+    if (
+      !race ||
+      (!!race.economic_group_id && race.economic_group_id !== group.id)
+    ) {
+      throw new ResourceNotFoundException(
+        'Raça não foi encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return race;
+  }
+
+  async store(unitId: string, payload: IRaceData): Promise<Race> {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const specie = await group
+      .related('species')
+      .query()
+      .where('id', payload.specie_id)
+      .first();
+
+    if (!specie) {
+      throw new ResourceNotFoundException(
+        'Espécie não foi encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return specie.related('races').create({
+      id: v4(),
+      description: payload.description,
+      economic_group_id: group.id,
+      code: payload.code,
+    });
+  }
+
+  async update(unitId: string, id: string, payload: IRaceData): Promise<Race> {
+    const race = await this.show(unitId, id);
+
+    return race.merge(payload).save();
+  }
+
+  async destroy(unitId: string, id: string): Promise<void> {
+    const race = await this.show(unitId, id);
+
+    await race.softDelete();
+  }
+}

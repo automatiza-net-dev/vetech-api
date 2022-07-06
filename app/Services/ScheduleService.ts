@@ -7,6 +7,10 @@ import IScheduleData from 'Contracts/interfaces/IScheduleData';
 
 @inject()
 export default class ScheduleService {
+  public async index(unitId: string): Promise<Array<Schedule>> {
+    return Schedule.query().where('business_unit_id', unitId);
+  }
+
   public async store(
     unitId: string,
     user: User,

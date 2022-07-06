@@ -1,0 +1,92 @@
+import {
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+} from '@ioc:Adonis/Lucid/Orm';
+import Patient from 'App/Models/Patient';
+import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
+import { DateTime } from 'luxon';
+
+export default class PatientTutor extends BaseModel {
+  @column({ isPrimary: true })
+  public id: string;
+
+  @column()
+  public document: string;
+
+  @column()
+  public inscription: string; // ie/rg
+
+  @column({
+    columnName: 'corporate_name',
+  })
+  public corporateName?: string;
+
+  @column()
+  public email: string;
+
+  @column()
+  public cellphone: string;
+
+  @column()
+  public telephone?: string;
+
+  @column({
+    columnName: 'message_person_name',
+  })
+  public messagePersonName?: string;
+
+  @column({
+    columnName: 'message_person_phone',
+  })
+  public messagePersonPhone?: string;
+
+  @column()
+  public postalCode: string;
+
+  @column()
+  public patient_id: string;
+
+  @column()
+  public street: string;
+
+  @column()
+  public number: string;
+
+  @column()
+  public complement?: string;
+
+  @column()
+  public district: string;
+
+  @column()
+  public city: string;
+
+  @column()
+  public state: string;
+
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
+
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
+
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
+
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
+
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
+
+  @belongsTo(() => Patient, {})
+  public tutor: BelongsTo<typeof Patient>;
+}

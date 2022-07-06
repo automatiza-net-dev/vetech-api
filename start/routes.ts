@@ -102,6 +102,20 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/', 'PatientsController.index').middleware('auth');
+  Route.get('/:id', 'PatientsController.show').middleware('auth');
+  Route.post('/', 'PatientsController.store').middleware('auth');
+  Route.put('/:id', 'PatientsController.update').middleware('auth');
+  Route.delete('/:id', 'PatientsController.destroy').middleware('auth');
+}).prefix('patients');
+
+Route.group(() => {
+  Route.post('/', 'PatientTutorsController.store').middleware('auth');
+  Route.get('/:id', 'PatientTutorsController.show').middleware('auth');
+  Route.put('/:id', 'PatientTutorsController.update').middleware('auth');
+}).prefix('patient-tutors');
+
+Route.group(() => {
   Route.get('/', 'SpeciesController.index').middleware('auth');
   Route.post('/', 'SpeciesController.store').middleware('auth');
   Route.get('/:id', 'SpeciesController.show').middleware('auth');
@@ -162,3 +176,4 @@ Route.group(() => {
   Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
   Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
 }).prefix('unavailable-days');
+>>>>>>> start/routes.ts

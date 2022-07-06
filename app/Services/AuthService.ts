@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract, OpaqueTokenContract } from '@ioc:Adonis/Addons/Auth';
+import Env from '@ioc:Adonis/Core/Env';
 import Hash from '@ioc:Adonis/Core/Hash';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
@@ -24,7 +25,7 @@ export default class AuthService {
       await this.checkLicence(units[0]);
 
       return auth.use('api').generate(user, {
-        expiresIn: '1h',
+        expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
         unit_id: units[0].id,
       });
     }
@@ -46,7 +47,7 @@ export default class AuthService {
     await this.checkLicence(unit);
 
     return auth.use('api').generate(user, {
-      expiresIn: '1h',
+      expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
       unit_id: unit.id,
     });
   }

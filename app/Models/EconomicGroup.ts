@@ -7,6 +7,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Patient from 'App/Models/Patient';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -58,6 +59,12 @@ export default class EconomicGroup extends BaseModel {
   @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;
 
+  @manyToMany(() => Patient, {
+    pivotTable: 'patient_economic_groups',
+    pivotTimestamps: true,
+  })
+  public patients: ManyToMany<typeof Patient>;
+
   @hasMany(() => Specie, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
@@ -94,4 +101,5 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public unavailableDays: HasMany<typeof UnavailableDay>;
+>>>>>>> app/Models/EconomicGroup.ts
 }

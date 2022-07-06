@@ -3,6 +3,7 @@ import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
+import { DateTime } from 'luxon';
 
 export type DateSet = {
   start: Date;
@@ -33,5 +34,9 @@ export default class SharedService {
     const secondMatch = BSet.start.getTime() < ASet.end.getTime();
 
     return firstMatch && secondMatch;
+  }
+
+  public checkDTEqt(date1: DateTime, date2: DateTime): boolean {
+    return date1.toJSDate().getTime() === date2.toJSDate().getTime();
   }
 }

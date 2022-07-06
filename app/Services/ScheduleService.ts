@@ -3,11 +3,13 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
-import { DateSet } from 'App/Services/SharedService';
+import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData from 'Contracts/interfaces/IScheduleData';
 
 @inject()
 export default class ScheduleService {
+  constructor(private readonly sharedService: SharedService) {}
+
   public async index(unitId: string): Promise<Array<Schedule>> {
     return Schedule.query().where('business_unit_id', unitId);
   }
@@ -91,6 +93,80 @@ export default class ScheduleService {
     }
 
     return schedule;
+  }
+
+  public async update(
+    unitId: string,
+    user: User,
+    id: string,
+    data: IScheduleData,
+  ): Promise<Schedule> {
+    const schedule = await this.show(unitId, id);
+
+    const exception = new BadRequestException(
+      'Usuário não tem esse horário disponível',
+      400,
+      'E_BAD_REQUEST',
+    );
+
+    if (
+      !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
+      !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
+    ) {
+      await ScheduleService.checkAvailableDays(
+        user,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        exception,
+      );
+
+      await ScheduleService.checkUnavailableDays(
+        user,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        exception,
+      );
+
+      const overlapping = await Schedule.query()
+        .where('user_id', user.id)
+        .andWhere('business_unit_id', unitId)
+        .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+          data.startHour.toJSDate(),
+          data.endHour.toJSDate(),
+        ])
+        .first();
+
+      if (overlapping) {
+        throw new BadRequestException(
+          'Horário já está ocupado',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+    }
+
+    return schedule
+      .merge({
+        patientName: data.patientName,
+        patientPhone: data.patientPhone,
+        age: data.age,
+        startHour: data.startHour,
+        endHour: data.endHour,
+        majorComplaint: data.majorComplaint,
+        business_unit_id: unitId,
+        user_id: user.id,
+        patient_id: data.patientId,
+        race_id: data.raceId,
+        schedule_service_type_id: data.scheduleServiceTypeId,
+        schedule_status_id: data.scheduleStatusId,
+      })
+      .save();
   }
 
   private static async checkUnavailableDays(

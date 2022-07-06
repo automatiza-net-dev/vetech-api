@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
+import UpdateScheduleValidator from 'App/Validators/Schedule/UpdateScheduleValidator';
 
 @inject()
 export default class SchedulesController {
@@ -34,5 +35,19 @@ export default class SchedulesController {
     const result = await this.service.store(unit_id, user, payload);
 
     return response.created(result);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateScheduleValidator);
+    const { user, unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.update(unit_id, user, params.id, payload);
+
+    return response.ok(result);
   }
 }

@@ -66,6 +66,7 @@ export default class UserService {
 
       const newBusinessUnit = await newGroup.related('businessUnits').create({
         id: v4(),
+        companyName: `Clínica do(a) ${user.name}`,
         document: data.document,
         phone: data.phone,
         email: data.email,

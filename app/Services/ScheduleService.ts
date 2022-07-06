@@ -169,6 +169,12 @@ export default class ScheduleService {
       .save();
   }
 
+  public async destroy(unitId: string, id: string): Promise<void> {
+    const schedule = await this.show(unitId, id);
+
+    await schedule.softDelete();
+  }
+
   private static async checkUnavailableDays(
     user: User,
     unitId: string,

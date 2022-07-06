@@ -13,7 +13,7 @@ export default class extends BaseSchema {
       table.enu('type', Object.values(LicenceType), {
         useNative: true,
         enumName: 'licence_type',
-        existingType: true,
+        existingType: false,
       });
       table.uuid('plan_price_id').references('plan_prices.id').nullable();
       table.decimal('licence_value', 10, 2).unsigned().nullable();

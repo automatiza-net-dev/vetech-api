@@ -7,6 +7,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import ScheduleStatus from 'App/Models/ScheduleStatus';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import Specie from 'App/Models/Specie';
@@ -62,6 +63,13 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public species: HasMany<typeof Specie>;
+
+
+  @hasMany(() => ScheduleStatus, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public scheduleStatuses: HasMany<typeof ScheduleStatus>;
 
   @hasMany(() => ScheduleServiceGroup, {
     localKey: 'id',

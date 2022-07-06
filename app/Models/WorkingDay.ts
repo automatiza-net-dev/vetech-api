@@ -1,5 +1,5 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
@@ -34,11 +34,11 @@ export default class WorkingDay extends BaseModel {
   public user_id: string;
 
   @column()
-  public economic_group_id: string;
+  public business_unit_id: string;
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>;
 
-  @belongsTo(() => EconomicGroup)
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
+  @belongsTo(() => BusinessUnit)
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 }

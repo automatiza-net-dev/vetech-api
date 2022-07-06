@@ -50,7 +50,7 @@ test.group('Working day resource', group => {
       type: LicenceType.TRIAL,
     });
 
-    const working = await newGroup.related('workingDays').create({
+    const working = await newBusinessUnit.related('workingDays').create({
       id: v4(),
       user_id: user.id,
       weekDay: WeekDay.DOMINGO,
@@ -170,8 +170,6 @@ test.group('Working day resource', group => {
     const response = await client
       .delete(`/working-days/${workingDay.id}`)
       .bearerToken(token);
-
-    const body = response.body();
 
     assert.equal(204, response.status());
   });

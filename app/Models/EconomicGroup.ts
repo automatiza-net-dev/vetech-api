@@ -7,6 +7,8 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import Specie from 'App/Models/Specie';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -60,6 +62,18 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public species: HasMany<typeof Specie>;
+
+  @hasMany(() => ScheduleServiceGroup, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public scheduleServiceGroups: HasMany<typeof ScheduleServiceGroup>;
+
+  @hasMany(() => ScheduleServiceType, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public scheduleServiceTypes: HasMany<typeof ScheduleServiceType>;
 
   @hasMany(() => WorkingDay, {
     localKey: 'id',

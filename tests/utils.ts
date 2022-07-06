@@ -1,4 +1,5 @@
 import { ApiClient } from '@japa/api-client';
+import Role from 'App/Models/Role';
 
 type LoginType = {
   email: string;
@@ -15,4 +16,10 @@ export const generateJwtToken = async (
   });
   const { token } = loginResponse.body();
   return token;
+};
+
+export const createSudo = async (): Promise<[Role]> => {
+  const role = await Role.firstOrCreate({ name: 'super-admin' }, {});
+
+  return [role];
 };

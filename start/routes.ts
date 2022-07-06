@@ -118,6 +118,28 @@ Route.group(() => {
 }).prefix('races');
 
 Route.group(() => {
+  Route.get('/', 'ScheduleServiceGroupsController.index').middleware('auth');
+  Route.post('/', 'ScheduleServiceGroupsController.store').middleware('auth');
+  Route.get('/:id', 'ScheduleServiceGroupsController.show').middleware('auth');
+  Route.put('/:id', 'ScheduleServiceGroupsController.update').middleware(
+    'auth',
+  );
+  Route.delete('/:id', 'ScheduleServiceGroupsController.destroy').middleware(
+    'auth',
+  );
+}).prefix('schedule-service-groups');
+
+Route.group(() => {
+  Route.get('/', 'ScheduleServiceTypesController.index').middleware('auth');
+  Route.post('/', 'ScheduleServiceTypesController.store').middleware('auth');
+  Route.get('/:id', 'ScheduleServiceTypesController.show').middleware('auth');
+  Route.put('/:id', 'ScheduleServiceTypesController.update').middleware('auth');
+  Route.delete('/:id', 'ScheduleServiceTypesController.destroy').middleware(
+    'auth',
+  );
+}).prefix('schedule-service-types');
+
+Route.group(() => {
   Route.get('/', 'WorkingDaysController.index').middleware('auth');
   Route.post('/', 'WorkingDaysController.store').middleware('auth');
   Route.get('/:id', 'WorkingDaysController.show').middleware('auth');
@@ -132,3 +154,4 @@ Route.group(() => {
   Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
   Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
 }).prefix('unavailable-days');
+

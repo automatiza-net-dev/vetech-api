@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -45,7 +46,7 @@ export default class Schedule extends BaseModel {
   @column({
     columnName: 'major_complaint',
   })
-  public majorComplaint?: number;
+  public majorComplaint?: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -65,6 +66,12 @@ export default class Schedule extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @column()
+  public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit)
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column()
   public schedule_service_type_id: string;

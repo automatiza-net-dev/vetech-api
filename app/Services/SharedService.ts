@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
@@ -13,5 +14,12 @@ export default class SharedService {
   public async isSuperAdmin(user: User): Promise<boolean> {
     const roles = await user.related('roles').query().preload('role');
     return Boolean(roles.find(r => r.role.name === 'super-admin'));
+  }
+
+  public extractUser(auth: AuthContract): { user: User; unit_id: string } {
+    const user = auth.use('api').user!;
+    const { unit_id } = auth.use('api').token!.meta;
+
+    return { user, unit_id };
   }
 }

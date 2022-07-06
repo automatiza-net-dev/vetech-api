@@ -26,7 +26,7 @@ export default class ScheduleService {
     );
 
     await ScheduleService.checkAvailableDays(
-      user,
+      data.userId ?? user.id,
       unitId,
       {
         start: data.startHour.toJSDate(),
@@ -36,7 +36,7 @@ export default class ScheduleService {
     );
 
     await ScheduleService.checkUnavailableDays(
-      user,
+      data.userId ?? user.id,
       unitId,
       {
         start: data.startHour.toJSDate(),
@@ -114,7 +114,7 @@ export default class ScheduleService {
       !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
     ) {
       await ScheduleService.checkAvailableDays(
-        user,
+        data.userId ?? user.id,
         unitId,
         {
           start: data.startHour.toJSDate(),
@@ -124,7 +124,7 @@ export default class ScheduleService {
       );
 
       await ScheduleService.checkUnavailableDays(
-        user,
+        data.userId ?? user.id,
         unitId,
         {
           start: data.startHour.toJSDate(),
@@ -176,12 +176,13 @@ export default class ScheduleService {
   }
 
   private static async checkUnavailableDays(
-    user: User,
+    user: string,
     unitId: string,
     data: DateSet,
     exception: BadRequestException,
   ) {
-    const unavailableDays = await user
+    const scheduleUser = await User.findOrFail(user);
+    const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
       .where('business_unit_id', unitId)
@@ -193,12 +194,13 @@ export default class ScheduleService {
   }
 
   private static async checkAvailableDays(
-    user: User,
+    user: string,
     unitId: string,
     data: DateSet,
     exception: BadRequestException,
   ) {
-    const workingDays = await user
+    const scheduleUser = await User.findOrFail(user);
+    const workingDays = await scheduleUser
       .related('workingDays')
       .query()
       .where('business_unit_id', unitId)

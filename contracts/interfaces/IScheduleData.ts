@@ -11,4 +11,5 @@ export default interface IScheduleData {
   age?: number;
   raceId?: string;
   majorComplaint?: string;
+  userId?: string;
 }

@@ -2,30 +2,27 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
-  belongsTo,
   BelongsTo,
+  belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Specie from 'App/Models/Specie';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
-export default class Race extends BaseModel {
+export default class ScheduleServiceGroup extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column()
   public description: string;
 
   @column()
-  public specie_id: string;
-
-  @column()
-  public economic_group_id?: string;
-
-  @column()
-  public code: string;
+  public active: boolean;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -46,9 +43,15 @@ export default class Race extends BaseModel {
     await softDelete(this, column);
   }
 
-  @belongsTo(() => Specie, {})
-  public specie: BelongsTo<typeof Specie>;
+  @column()
+  public economic_group_id?: string;
 
   @belongsTo(() => EconomicGroup, {})
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
+  public group: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => ScheduleServiceType, {
+    localKey: 'id',
+    foreignKey: 'schedule_service_group_id',
+  })
+  public types: HasMany<typeof ScheduleServiceType>;
 }

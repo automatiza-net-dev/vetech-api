@@ -1,23 +1,23 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
-import Specie from 'App/Models/Specie';
+import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
 import { addDays } from 'date-fns';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken } from '../utils';
 
-test.group('Specie resource', group => {
+test.group('Unavailable day resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User, EconomicGroup, Specie]> => {
+  const createData = async (): Promise<[User, UnavailableDay]> => {
     const user = await UserFactory.create();
 
     const newGroup = await user.related('economicGroups').create({
@@ -49,125 +49,121 @@ test.group('Specie resource', group => {
       type: LicenceType.TRIAL,
     });
 
-    const specie = await newGroup.related('species').create({
+    const model = await newGroup.related('unavailableDays').create({
       id: v4(),
-      description: 'some specie',
-      code: v4(),
+      user_id: user.id,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
     });
 
-    return [user, newGroup, specie];
+    return [user, model];
   };
 
-  test('should create specie', async ({ assert, client }) => {
+  test('should create new unavailable day', async ({ client, assert }) => {
     const [user] = await createData();
+    const newUser = await UserFactory.create();
+
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .post('/species')
+      .post('/unavailable-days')
       .json({
-        description: 'some specie',
-        code: v4(),
+        userId: newUser.id,
+        startHour: new Date().toISOString(),
+        endHour: new Date().toISOString(),
       })
       .bearerToken(token);
 
-    const body = response.body();
-
     assert.equal(201, response.status());
-    assert.equal('some specie', body.description);
   });
 
-  test('should return all species from group', async ({ assert, client }) => {
-    const [user, _, specie1] = await createData();
-    const [__, ___, specie2] = await createData();
-
+  test('should return list of unavailable days', async ({ client, assert }) => {
+    const [user, unavailableDay] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const response = await client.get('/species').bearerToken(token);
+    const response = await client.get('/unavailable-days').bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(specie1.id, body[0].id);
-    assert.isFalse(Boolean(body.find(b => b.id === specie2.id)));
+    assert.equal(unavailableDay.id, body[0].id);
   });
 
-  test('should throw NotFoundException if no specie is found', async ({
-    assert,
+  test('should throw ResourceNotFoundException if no unavaiable day is found', async ({
     client,
+    assert,
   }) => {
-    const [user] = await createData();
-
+    const [_, unavailableDay] = await createData();
+    const [user2] = await createData();
     const token = await generateJwtToken(client, {
-      email: user.email,
+      email: user2.email,
       password: '102030',
     });
 
-    const response = await client.get(`/species/${v4()}`).bearerToken(token);
+    const response = await client
+      .get(`/unavailable-days/${unavailableDay.id}`)
+      .bearerToken(token);
 
     const body = response.body();
 
     assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Espécie não foi encontrada', body.message);
+    assert.equal('E_NOT_FOUND: Recurso não foi encontrada', body.message);
   });
 
-  test('should return species', async ({ assert, client }) => {
-    const [user, _, species] = await createData();
-
+  test('should return unavailable day', async ({ client, assert }) => {
+    const [user, unavailableDay] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .get(`/species/${species.id}`)
+      .get(`/unavailable-days/${unavailableDay.id}`)
       .bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal(species.id, body.id);
+    assert.equal(unavailableDay.id, body.id);
   });
 
-  test('should update a  specie', async ({ assert, client }) => {
-    const [user, _, species] = await createData();
-
+  test('should update a unavailable day', async ({ client, assert }) => {
+    const [user, unavailableDay] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .put(`/species/${species.id}`)
+      .put(`/unavailable-days/${unavailableDay.id}`)
       .json({
-        description: 'updated specie',
-        code: v4(),
+        startHour: new Date().toISOString(),
+        endHour: new Date().toISOString(),
       })
       .bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal(species.id, body.id);
-    assert.notEqual(species.description, body.description);
+    assert.equal(unavailableDay.id, body.id);
   });
 
-  test('should soft delete a  specie', async ({ assert, client }) => {
-    const [user, _, species] = await createData();
-
+  test('should delete a unavailable day', async ({ client, assert }) => {
+    const [user, unavailableDay] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .delete(`/species/${species.id}`)
+      .delete(`/unavailable-days/${unavailableDay.id}`)
       .bearerToken(token);
 
     assert.equal(204, response.status());

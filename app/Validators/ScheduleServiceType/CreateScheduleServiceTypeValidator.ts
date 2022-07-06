@@ -1,16 +1,19 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class UpdateRaceValidator {
+export default class CreateScheduleServiceTypeValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    description: schema.string({}, []),
-    specie_id: schema.string({}, [
+    scheduleServiceGroupId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'species', column: 'id' }),
+      rules.exists({
+        table: 'schedule_service_groups',
+        column: 'id',
+      }),
     ]),
-    code: schema.string({}, []),
+    description: schema.string({}),
+    reservedMinutes: schema.number([rules.unsigned()]),
   });
 
   public messages: CustomMessages = {};

@@ -42,6 +42,7 @@ export default class SpecieService {
     return group.related('species').create({
       id: v4(),
       description: payload.description,
+      code: payload.code,
     });
   }
 

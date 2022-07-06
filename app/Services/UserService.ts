@@ -63,16 +63,15 @@ export default class UserService {
         responsibleEmail: data.email,
         responsiblePhone: data.phone,
       });
-      await newGroup.save();
 
       const newBusinessUnit = await newGroup.related('businessUnits').create({
         id: v4(),
+        companyName: `Clínica do(a) ${user.name}`,
         document: data.document,
         phone: data.phone,
         email: data.email,
         origin: 'CADASTRO SELF-SERVICE',
       });
-      await newBusinessUnit.save();
 
       await user.related('roles').create({
         role_id: adminRole.id,

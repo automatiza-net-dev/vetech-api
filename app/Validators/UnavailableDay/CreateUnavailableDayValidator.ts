@@ -1,16 +1,19 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class UpdateRaceValidator {
+export default class CreateUnavailableDayValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    description: schema.string({}, []),
-    specie_id: schema.string({}, [
+    userId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'species', column: 'id' }),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
     ]),
-    code: schema.string({}, []),
+    startHour: schema.date({}),
+    endHour: schema.date({}),
   });
 
   public messages: CustomMessages = {};

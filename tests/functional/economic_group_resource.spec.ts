@@ -19,7 +19,6 @@ test.group('Economic group resource', group => {
       responsibleEmail: user.email,
       responsiblePhone: user.phone,
     });
-    await newGroup.save();
 
     return [newGroup, user];
   };

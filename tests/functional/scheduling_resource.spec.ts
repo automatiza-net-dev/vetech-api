@@ -225,4 +225,43 @@ test.group('Scheduling resource', group => {
     assert.equal(400, result.status());
     assert.equal('E_BAD_REQUEST: Horário já está ocupado', body.message);
   });
+
+  test('should ignore overlapping on request basis', async ({
+    assert,
+    client,
+  }) => {
+    const { user, status, serviceType, newBusinessUnit } = await createData();
+    await createWorkingDay(
+      user,
+      newBusinessUnit,
+      DateTime.now().minus({ hour: 1 }),
+      DateTime.now().minus({ hour: -1 }),
+    );
+    await Schedule.create({
+      startHour: DateTime.now(),
+      endHour: DateTime.now().minus({ hour: -1 }),
+      business_unit_id: newBusinessUnit.id,
+      user_id: user.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: status.id,
+    });
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const result = await client
+      .post('/schedules')
+      .json({
+        scheduleServiceTypeId: serviceType.id,
+        scheduleStatusId: status.id,
+        startHour: new Date(),
+        endHour: new Date(),
+        ignoreOverlapping: true,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, result.status());
+  });
 });

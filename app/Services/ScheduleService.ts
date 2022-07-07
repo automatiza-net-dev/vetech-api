@@ -50,21 +50,23 @@ export default class ScheduleService {
       exception,
     );
 
-    const overlapping = await Schedule.query()
-      .where('user_id', user.id)
-      .andWhere('business_unit_id', unitId)
-      .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-        data.startHour.toJSDate(),
-        data.endHour.toJSDate(),
-      ])
-      .first();
+    if (!data.ignoreOverlapping) {
+      const overlapping = await Schedule.query()
+        .where('user_id', user.id)
+        .andWhere('business_unit_id', unitId)
+        .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+          data.startHour.toJSDate(),
+          data.endHour.toJSDate(),
+        ])
+        .first();
 
-    if (overlapping) {
-      throw new BadRequestException(
-        'Horário já está ocupado',
-        400,
-        'E_BAD_REQUEST',
-      );
+      if (overlapping) {
+        throw new BadRequestException(
+          'Horário já está ocupado',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
     }
 
     return Schedule.create({
@@ -138,21 +140,23 @@ export default class ScheduleService {
         exception,
       );
 
-      const overlapping = await Schedule.query()
-        .where('user_id', user.id)
-        .andWhere('business_unit_id', unitId)
-        .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-          data.startHour.toJSDate(),
-          data.endHour.toJSDate(),
-        ])
-        .first();
+      if (!data.ignoreOverlapping) {
+        const overlapping = await Schedule.query()
+          .where('user_id', user.id)
+          .andWhere('business_unit_id', unitId)
+          .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
+          ])
+          .first();
 
-      if (overlapping) {
-        throw new BadRequestException(
-          'Horário já está ocupado',
-          400,
-          'E_BAD_REQUEST',
-        );
+        if (overlapping) {
+          throw new BadRequestException(
+            'Horário já está ocupado',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
       }
     }
 

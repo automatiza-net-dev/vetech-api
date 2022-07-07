@@ -12,4 +12,5 @@ export default interface IScheduleData {
   raceId?: string;
   majorComplaint?: string;
   userId?: string;
+  ignoreOverlapping?: boolean;
 }

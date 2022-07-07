@@ -40,6 +40,7 @@ export default class CreateScheduleValidator {
     age: schema.number.optional([rules.unsigned()]),
     raceId: schema.string.optional({}),
     majorComplaint: schema.string.optional({}),
+    ignoreOverlapping: schema.boolean.optional([]),
   });
 
   public messages: CustomMessages = {};

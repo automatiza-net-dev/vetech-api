@@ -178,6 +178,8 @@ Route.group(() => {
 }).prefix('unavailable-days');
 
 Route.group(() => {
+  Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+
   Route.get('/', 'SchedulesController.index').middleware('auth');
   Route.post('/', 'SchedulesController.store').middleware('auth');
   Route.get('/:id', 'SchedulesController.show').middleware('auth');

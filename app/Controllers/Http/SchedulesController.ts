@@ -4,6 +4,7 @@ import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
 import UpdateScheduleValidator from 'App/Validators/Schedule/UpdateScheduleValidator';
+import { v4 } from 'uuid';
 
 @inject()
 export default class SchedulesController {
@@ -57,5 +58,17 @@ export default class SchedulesController {
     await this.service.destroy(unit_id, params.id);
 
     return response.noContent();
+  }
+
+  public async viewDisponibility({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const result = await this.service.searchDisponibility({
+      start: qs.start ?? new Date().toISOString(),
+      end: qs.end ?? new Date().toISOString(),
+      business: qs.business ?? v4(),
+      user: qs.user,
+    });
+
+    return response.ok(result);
   }
 }

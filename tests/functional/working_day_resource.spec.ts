@@ -171,8 +171,6 @@ test.group('Working day resource', group => {
       .delete(`/working-days/${workingDay.id}`)
       .bearerToken(token);
 
-    const body = response.body();
-
     assert.equal(204, response.status());
   });
 });

@@ -176,4 +176,3 @@ Route.group(() => {
   Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
   Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
 }).prefix('unavailable-days');
->>>>>>> start/routes.ts

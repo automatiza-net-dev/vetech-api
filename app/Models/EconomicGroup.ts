@@ -8,9 +8,9 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
-import ScheduleStatus from 'App/Models/ScheduleStatus';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import ScheduleStatus from 'App/Models/ScheduleStatus';
 import Specie from 'App/Models/Specie';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -71,7 +71,6 @@ export default class EconomicGroup extends BaseModel {
   })
   public species: HasMany<typeof Specie>;
 
-
   @hasMany(() => ScheduleStatus, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
@@ -101,5 +100,4 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public unavailableDays: HasMany<typeof UnavailableDay>;
->>>>>>> app/Models/EconomicGroup.ts
 }

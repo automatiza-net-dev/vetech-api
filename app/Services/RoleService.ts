@@ -29,6 +29,8 @@ export default class RoleService {
       );
     }
 
+    await role.load('permissions');
+
     return role;
   }
 

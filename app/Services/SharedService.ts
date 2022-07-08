@@ -12,6 +12,6 @@ export default class SharedService {
 
   public async isSuperAdmin(user: User): Promise<boolean> {
     const roles = await user.related('roles').query().preload('role');
-    return Boolean(roles.find(r => r.role.name === 'super-admin'));
+    return Boolean(roles.find(r => r.role?.name === 'super-admin'));
   }
 }

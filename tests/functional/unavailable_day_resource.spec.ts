@@ -49,7 +49,7 @@ test.group('Unavailable day resource', group => {
       type: LicenceType.TRIAL,
     });
 
-    const model = await newGroup.related('unavailableDays').create({
+    const model = await newBusinessUnit.related('unavailableDays').create({
       id: v4(),
       user_id: user.id,
       startHour: DateTime.now(),

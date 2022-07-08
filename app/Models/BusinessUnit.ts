@@ -9,6 +9,9 @@ import {
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
 import Licence from 'App/Models/Licence';
+import Schedule from 'App/Models/Schedule';
+import UnavailableDay from 'App/Models/UnavailableDay';
+import WorkingDay from 'App/Models/WorkingDay';
 import { DateTime } from 'luxon';
 
 export default class BusinessUnit extends BaseModel {
@@ -98,4 +101,22 @@ export default class BusinessUnit extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public licences: HasMany<typeof Licence>;
+
+  @hasMany(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public schedules: HasMany<typeof Schedule>;
+
+  @hasMany(() => WorkingDay, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public workingDays: HasMany<typeof WorkingDay>;
+
+  @hasMany(() => UnavailableDay, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public unavailableDays: HasMany<typeof UnavailableDay>;
 }

@@ -1,25 +1,21 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import UnavailableDay from 'App/Models/UnavailableDay';
-import SharedService from 'App/Services/SharedService';
 import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 
 @inject()
 export default class UnavailableDayService {
-  constructor(private readonly sharedService: SharedService) {}
-
   public async index(unitId: string): Promise<Array<UnavailableDay>> {
-    const group = await this.sharedService.getUserGroup(unitId);
+    const unit = await BusinessUnit.findOrFail(unitId);
 
-    return group.related('unavailableDays').query();
+    return unit.related('unavailableDays').query();
   }
 
   public async show(unitId: string, id: string): Promise<UnavailableDay> {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     const unavailableDay = await UnavailableDay.find(id);
 
-    if (!unavailableDay || unavailableDay.economic_group_id !== group.id) {
+    if (!unavailableDay || unavailableDay.business_unit_id !== unitId) {
       throw new ResourceNotFoundException(
         'Recurso não foi encontrada',
         404,
@@ -34,9 +30,9 @@ export default class UnavailableDayService {
     unitId: string,
     data: IUnavailableDayData,
   ): Promise<UnavailableDay> {
-    const group = await this.sharedService.getUserGroup(unitId);
+    const unit = await BusinessUnit.findOrFail(unitId);
 
-    return group.related('unavailableDays').create({
+    return unit.related('unavailableDays').create({
       user_id: data.userId,
       startHour: data.startHour,
       endHour: data.endHour,

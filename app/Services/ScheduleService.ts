@@ -1,0 +1,338 @@
+import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Schedule from 'App/Models/Schedule';
+import UnavailableDay from 'App/Models/UnavailableDay';
+import User from 'App/Models/User';
+import WorkingDay from 'App/Models/WorkingDay';
+import SharedService, { DateSet } from 'App/Services/SharedService';
+import IScheduleData from 'Contracts/interfaces/IScheduleData';
+import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
+import IViewDisponibilityResponse from 'Contracts/interfaces/IViewDisponibilityResponse';
+import { addDays, format, intervalToDuration } from 'date-fns';
+
+@inject()
+export default class ScheduleService {
+  constructor(private readonly sharedService: SharedService) {}
+
+  public async index(unitId: string): Promise<Array<Schedule>> {
+    return Schedule.query().where('business_unit_id', unitId);
+  }
+
+  public async store(
+    unitId: string,
+    user: User,
+    data: IScheduleData,
+  ): Promise<Schedule> {
+    const exception = new BadRequestException(
+      'Usuário não tem esse horário disponível',
+      400,
+      'E_BAD_REQUEST',
+    );
+
+    await ScheduleService.checkAvailableDays(
+      data.userId ?? user.id,
+      unitId,
+      {
+        start: data.startHour.toJSDate(),
+        end: data.endHour.toJSDate(),
+      },
+      exception,
+    );
+
+    await ScheduleService.checkUnavailableDays(
+      data.userId ?? user.id,
+      unitId,
+      {
+        start: data.startHour.toJSDate(),
+        end: data.endHour.toJSDate(),
+      },
+      exception,
+    );
+
+    if (!data.ignoreOverlapping) {
+      const overlapping = await Schedule.query()
+        .where('user_id', user.id)
+        .andWhere('business_unit_id', unitId)
+        .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+          data.startHour.toJSDate(),
+          data.endHour.toJSDate(),
+        ])
+        .first();
+
+      if (overlapping) {
+        throw new BadRequestException(
+          'Horário já está ocupado',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+    }
+
+    return Schedule.create({
+      patientName: data.patientName,
+      patientPhone: data.patientPhone,
+      age: data.age,
+      startHour: data.startHour,
+      endHour: data.endHour,
+      majorComplaint: data.majorComplaint,
+      business_unit_id: unitId,
+      user_id: user.id,
+      patient_id: data.patientId,
+      race_id: data.raceId,
+      schedule_service_type_id: data.scheduleServiceTypeId,
+      schedule_status_id: data.scheduleStatusId,
+    });
+  }
+
+  public async show(unitId: string, id: string): Promise<Schedule> {
+    const schedule = await Schedule.query()
+      .where('id', id)
+      .andWhere('business_unit_id', unitId)
+      .first();
+
+    if (!schedule) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return schedule;
+  }
+
+  public async update(
+    unitId: string,
+    user: User,
+    id: string,
+    data: IScheduleData,
+  ): Promise<Schedule> {
+    const schedule = await this.show(unitId, id);
+
+    const exception = new BadRequestException(
+      'Usuário não tem esse horário disponível',
+      400,
+      'E_BAD_REQUEST',
+    );
+
+    if (
+      !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
+      !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
+    ) {
+      await ScheduleService.checkAvailableDays(
+        data.userId ?? user.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        exception,
+      );
+
+      await ScheduleService.checkUnavailableDays(
+        data.userId ?? user.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        exception,
+      );
+
+      if (!data.ignoreOverlapping) {
+        const overlapping = await Schedule.query()
+          .where('user_id', user.id)
+          .andWhere('business_unit_id', unitId)
+          .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
+          ])
+          .first();
+
+        if (overlapping) {
+          throw new BadRequestException(
+            'Horário já está ocupado',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
+      }
+    }
+
+    return schedule
+      .merge({
+        patientName: data.patientName,
+        patientPhone: data.patientPhone,
+        age: data.age,
+        startHour: data.startHour,
+        endHour: data.endHour,
+        majorComplaint: data.majorComplaint,
+        business_unit_id: unitId,
+        user_id: user.id,
+        patient_id: data.patientId,
+        race_id: data.raceId,
+        schedule_service_type_id: data.scheduleServiceTypeId,
+        schedule_status_id: data.scheduleStatusId,
+      })
+      .save();
+  }
+
+  public async destroy(unitId: string, id: string): Promise<void> {
+    const schedule = await this.show(unitId, id);
+
+    await schedule.softDelete();
+  }
+
+  public async searchDisponibility(
+    data: IViewDisponibilityRequest,
+  ): Promise<Array<IViewDisponibilityResponse>> {
+    const startDate = new Date(data.start);
+    const endDate = new Date(data.end);
+
+    const { days } = intervalToDuration({
+      start: startDate,
+      end: endDate,
+    });
+
+    const keys = Array.from({ length: days ? days + 1 : 0 }, (_, k) => {
+      const tmpDate = addDays(startDate, k + 1);
+
+      return format(tmpDate, 'yyyy-MM-dd');
+    });
+
+    const [wDays, uDays, schedules] = data.user
+      ? await this.getUserGeneralSchedules(
+          data.user,
+          data.business,
+          startDate,
+          endDate,
+        )
+      : await this.getGeneralSchedules(data.business, startDate, endDate);
+
+    return keys.map(k => {
+      const filteredWorkingDays = wDays.filter(
+        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      );
+
+      const filteredUnavailableDays = uDays.filter(
+        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      );
+
+      const filteredSchedules = schedules.filter(
+        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      );
+
+      return {
+        date: k,
+        events: [
+          ...filteredWorkingDays,
+          ...filteredUnavailableDays,
+          ...filteredSchedules,
+        ]
+          .sort(
+            (a, b) =>
+              a.startHour.toJSDate().getTime() -
+              b.startHour.toJSDate().getTime(),
+          )
+          .map(day => ({
+            start: day.startHour.toString(),
+            end: day.endHour.toString(),
+            type: this.getEventLabel(day),
+            user_id: day.user_id ?? '',
+            event_id: day.id,
+          })),
+      };
+    });
+  }
+
+  private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const { table } = data.constructor;
+    if (table === 'working_days') return 'working';
+    if (table === 'unavailable_days') return 'unavailable';
+    return 'schedule';
+  }
+
+  async getGeneralSchedules(
+    unit: string,
+    start: Date,
+    end: Date,
+  ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
+    const workingDays = await WorkingDay.query()
+      .where('business_unit_id', unit)
+      .andWhereBetween('start_hour', [start, end]);
+
+    const unavailableDays = await UnavailableDay.query()
+      .where('business_unit_id', unit)
+      .andWhereBetween('start_hour', [start, end]);
+
+    const schedules = await Schedule.query()
+      .where('business_unit_id', unit)
+      .andWhereBetween('start_hour', [start, end]);
+
+    return [workingDays, unavailableDays, schedules];
+  }
+
+  async getUserGeneralSchedules(
+    user: string,
+    unit: string,
+    start: Date,
+    end: Date,
+  ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
+    const workingDays = await WorkingDay.query()
+      .where('business_unit_id', unit)
+      .andWhere('user_id', user)
+      .andWhereBetween('start_hour', [start, end]);
+
+    const unavailableDays = await UnavailableDay.query()
+      .where('business_unit_id', unit)
+      .andWhere('user_id', user)
+      .andWhereBetween('start_hour', [start, end]);
+
+    const schedules = await Schedule.query()
+      .where('business_unit_id', unit)
+      .andWhere('user_id', user)
+      .andWhereBetween('start_hour', [start, end]);
+
+    return [workingDays, unavailableDays, schedules];
+  }
+
+  private static async checkUnavailableDays(
+    user: string,
+    unitId: string,
+    data: DateSet,
+    exception: BadRequestException,
+  ) {
+    const scheduleUser = await User.findOrFail(user);
+    const unavailableDays = await scheduleUser
+      .related('unavailableDays')
+      .query()
+      .where('business_unit_id', unitId)
+      .andWhereRaw('start_hour <= ? or end_hour >= ?', [data.start, data.end]);
+
+    if (unavailableDays.length !== 0) {
+      throw exception;
+    }
+  }
+
+  private static async checkAvailableDays(
+    user: string,
+    unitId: string,
+    data: DateSet,
+    exception: BadRequestException,
+  ) {
+    const scheduleUser = await User.findOrFail(user);
+    const workingDays = await scheduleUser
+      .related('workingDays')
+      .query()
+      .where('business_unit_id', unitId)
+      .andWhere('start_hour', '<=', data.start)
+      .andWhere('end_hour', '>=', data.end);
+
+    if (workingDays.length === 0) {
+      throw exception;
+    }
+  }
+}

@@ -5,8 +5,11 @@ import {
   belongsTo,
   BelongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Schedule from 'App/Models/Schedule';
 import Specie from 'App/Models/Specie';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -51,4 +54,10 @@ export default class Race extends BaseModel {
 
   @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'race_id',
+  })
+  public schedules: HasMany<typeof Schedule>;
 }

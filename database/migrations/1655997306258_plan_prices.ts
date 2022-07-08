@@ -11,19 +11,11 @@ export default class extends BaseSchema {
       table.decimal('plan_price', 10, 2).unsigned().notNullable();
       table.uuid('plan_id').references('plans.id');
       table
-        .enu(
-          'recurrence',
-          [
-            PlanPriceRecurrence.MONTHLY,
-            PlanPriceRecurrence.YEARLY,
-            PlanPriceRecurrence.CUSTOM,
-          ],
-          {
-            useNative: true,
-            enumName: 'plan_price_recurrence',
-            existingType: true,
-          },
-        )
+        .enu('recurrence', Object.values(PlanPriceRecurrence), {
+          useNative: true,
+          enumName: 'plan_price_recurrence',
+          existingType: false,
+        })
         .notNullable();
       table.integer('expiration_days').unsigned().notNullable();
 

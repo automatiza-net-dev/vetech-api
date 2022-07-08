@@ -176,4 +176,13 @@ Route.group(() => {
   Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
   Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
 }).prefix('unavailable-days');
->>>>>>> start/routes.ts
+
+Route.group(() => {
+  Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+
+  Route.get('/', 'SchedulesController.index').middleware('auth');
+  Route.post('/', 'SchedulesController.store').middleware('auth');
+  Route.get('/:id', 'SchedulesController.show').middleware('auth');
+  Route.put('/:id', 'SchedulesController.update').middleware('auth');
+  Route.delete('/:id', 'SchedulesController.destroy').middleware('auth');
+}).prefix('schedules');

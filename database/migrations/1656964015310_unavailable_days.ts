@@ -9,7 +9,7 @@ export default class extends BaseSchema {
       table.uuid('id').primary().defaultTo(v4());
 
       table.uuid('user_id').references('users.id');
-      table.uuid('economic_group_id').references('economic_groups.id');
+      table.uuid('business_unit_id').references('business_units.id');
       table.timestamp('start_hour');
       table.timestamp('end_hour');
 

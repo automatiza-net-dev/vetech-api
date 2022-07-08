@@ -86,4 +86,16 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public scheduleServiceTypes: HasMany<typeof ScheduleServiceType>;
+
+  @hasMany(() => WorkingDay, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public workingDays: HasMany<typeof WorkingDay>;
+
+  @hasMany(() => UnavailableDay, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public unavailableDays: HasMany<typeof UnavailableDay>;
 }

@@ -4,7 +4,6 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 export default class UpdateEconomicGroupValidator {
   constructor(protected ctx: HttpContextContract) {}
 
-  // TODO ignore current group on responsibleEmail.unique
   public schema = schema.create({
     fantasyName: schema.string({}),
     companyName: schema.string({}),

@@ -244,7 +244,6 @@ export default class InviteService {
     }
   }
 
-  // TODO refactor to use from BusinessUnitService
   private async userBusinessUnits(user: User): Promise<Array<BusinessUnit>> {
     const entities = await user
       .related('economicGroups')

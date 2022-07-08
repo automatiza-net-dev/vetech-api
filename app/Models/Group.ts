@@ -9,10 +9,11 @@ import {
 import EconomicGroup from 'App/Models/EconomicGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class Group extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column()
   public name: string;

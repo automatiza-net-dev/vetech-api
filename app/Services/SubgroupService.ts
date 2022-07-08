@@ -8,10 +8,14 @@ import ISubgroupData from 'Contracts/ISubgroupData';
 export default class SubgroupService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async show(unitId: string, id: string) {
+  public async show(unitId: string, id: string): Promise<Subgroup> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const subgroup = group.related('subgroups').query().where('id', id).first();
+    const subgroup = await group
+      .related('subgroups')
+      .query()
+      .where('id', id)
+      .first();
 
     if (!subgroup) {
       throw new ResourceNotFoundException(
@@ -33,6 +37,21 @@ export default class SubgroupService {
       tree,
       description: data.description,
     });
+  }
+
+  public async update(unitId: string, id: string, data: ISubgroupData) {
+    const subgroup = await this.show(unitId, id);
+
+    const tree = await this.getTree(data.parent);
+
+    return subgroup
+      .merge({
+        description: data.description,
+        parent_id: data.parent,
+        tree,
+        active: data.active,
+      })
+      .save();
   }
 
   private async getTree(

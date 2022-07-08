@@ -21,7 +21,7 @@ export default class Subgroup extends BaseModel {
   public description: string;
 
   @column()
-  public active: string;
+  public active: boolean;
 
   @column({
     prepare: value => JSON.stringify(value),

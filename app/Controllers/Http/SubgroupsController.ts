@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import SubgroupService from 'App/Services/SubgroupService';
 import CreateSubgroupValidator from 'App/Validators/Subgroup/CreateSubgroupValidator';
+import UpdateSubgroupValidator from 'App/Validators/Subgroup/UpdateSubgroupValidator';
 
 @inject()
 export default class SubgroupsController {
@@ -26,5 +27,19 @@ export default class SubgroupsController {
     const result = await this.service.store(unit_id, payload);
 
     return response.created(result);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateSubgroupValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.update(unit_id, params.id, payload);
+
+    return response.ok(result);
   }
 }

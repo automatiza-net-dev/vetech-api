@@ -1,6 +1,22 @@
-// import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-
 import { inject } from '@adonisjs/fold';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import SharedService from 'App/Services/SharedService';
+import SubgroupService from 'App/Services/SubgroupService';
+import CreateSubgroupValidator from 'App/Validators/Subgroup/CreateSubgroupValidator';
 
 @inject()
-export default class SubgroupsController {}
+export default class SubgroupsController {
+  constructor(
+    private readonly service: SubgroupService,
+    private readonly sharedService: SharedService,
+  ) {}
+
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateSubgroupValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.store(unit_id, payload);
+
+    return response.created(result);
+  }
+}

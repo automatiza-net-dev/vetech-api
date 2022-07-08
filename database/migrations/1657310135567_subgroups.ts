@@ -8,9 +8,9 @@ export default class extends BaseSchema {
       table.uuid('id').primary();
 
       table.uuid('economic_group_id').references('economic_groups.id');
-      table.uuid('patent_id').references('subgroups.id').nullable();
+      table.uuid('parent_id').references('subgroups.id').nullable();
       table.string('description');
-      table.json('tree');
+      table.string('tree');
       table.boolean('active').defaultTo(true);
 
       table.timestamp('created_at', { useTz: true });

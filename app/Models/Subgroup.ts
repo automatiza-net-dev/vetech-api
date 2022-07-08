@@ -49,7 +49,7 @@ export default class Subgroup extends BaseModel {
   }
 
   @column()
-  public group_id: string;
+  public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup)
   public economicGroup: BelongsTo<typeof EconomicGroup>;

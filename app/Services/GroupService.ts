@@ -43,4 +43,17 @@ export default class GroupService {
       name: data.name,
     });
   }
+
+  public async update(
+    unitId: string,
+    id: string,
+    data: IGroupData,
+  ): Promise<Group> {
+    const model = await this.show(unitId, id);
+
+    return model.merge({
+      name: data.name,
+      active: data.active,
+    });
+  }
 }

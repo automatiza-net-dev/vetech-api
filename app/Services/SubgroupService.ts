@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Subgroup from 'App/Models/Subgroup';
 import SharedService from 'App/Services/SharedService';
 import ISubgroupData from 'Contracts/ISubgroupData';
@@ -6,6 +7,22 @@ import ISubgroupData from 'Contracts/ISubgroupData';
 @inject()
 export default class SubgroupService {
   constructor(private readonly sharedService: SharedService) {}
+
+  public async show(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const subgroup = group.related('subgroups').query().where('id', id).first();
+
+    if (!subgroup) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return subgroup;
+  }
 
   public async store(unitId: string, data: Omit<ISubgroupData, 'active'>) {
     const group = await this.sharedService.getUserGroup(unitId);

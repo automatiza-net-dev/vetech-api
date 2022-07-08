@@ -54,6 +54,12 @@ export default class SubgroupService {
       .save();
   }
 
+  public async destroy(unitId: string, id: string) {
+    const subgroup = await this.show(unitId, id);
+
+    await subgroup.softDelete();
+  }
+
   private async getTree(
     parent?: string,
     tree: Array<string> = [],

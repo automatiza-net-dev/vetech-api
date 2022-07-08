@@ -42,4 +42,12 @@ export default class SubgroupsController {
 
     return response.ok(result);
   }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.destroy(unit_id, params.id);
+
+    return response.noContent();
+  }
 }

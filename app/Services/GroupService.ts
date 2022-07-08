@@ -56,4 +56,10 @@ export default class GroupService {
       active: data.active,
     });
   }
+
+  public async destroy(unitId: string, id: string): Promise<void> {
+    const model = await this.show(unitId, id);
+
+    await model.softDelete();
+  }
 }

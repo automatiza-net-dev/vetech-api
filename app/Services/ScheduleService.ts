@@ -30,17 +30,7 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    await ScheduleService.checkAvailableDays(
-      data.userId ?? user.id,
-      unitId,
-      {
-        start: data.startHour.toJSDate(),
-        end: data.endHour.toJSDate(),
-      },
-      exception,
-    );
-
-    await ScheduleService.checkUnavailableDays(
+    await ScheduleService.checkDisponibility(
       data.userId ?? user.id,
       unitId,
       {
@@ -120,17 +110,7 @@ export default class ScheduleService {
       !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
       !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
     ) {
-      await ScheduleService.checkAvailableDays(
-        data.userId ?? user.id,
-        unitId,
-        {
-          start: data.startHour.toJSDate(),
-          end: data.endHour.toJSDate(),
-        },
-        exception,
-      );
-
-      await ScheduleService.checkUnavailableDays(
+      await ScheduleService.checkDisponibility(
         data.userId ?? user.id,
         unitId,
         {
@@ -299,31 +279,14 @@ export default class ScheduleService {
     return [workingDays, unavailableDays, schedules];
   }
 
-  private static async checkUnavailableDays(
+  private static async checkDisponibility(
     user: string,
     unitId: string,
     data: DateSet,
     exception: BadRequestException,
   ) {
     const scheduleUser = await User.findOrFail(user);
-    const unavailableDays = await scheduleUser
-      .related('unavailableDays')
-      .query()
-      .where('business_unit_id', unitId)
-      .andWhereRaw('start_hour <= ? or end_hour >= ?', [data.start, data.end]);
 
-    if (unavailableDays.length !== 0) {
-      throw exception;
-    }
-  }
-
-  private static async checkAvailableDays(
-    user: string,
-    unitId: string,
-    data: DateSet,
-    exception: BadRequestException,
-  ) {
-    const scheduleUser = await User.findOrFail(user);
     const workingDays = await scheduleUser
       .related('workingDays')
       .query()
@@ -332,6 +295,16 @@ export default class ScheduleService {
       .andWhere('end_hour', '>=', data.end);
 
     if (workingDays.length === 0) {
+      throw exception;
+    }
+
+    const unavailableDays = await scheduleUser
+      .related('unavailableDays')
+      .query()
+      .where('business_unit_id', unitId)
+      .andWhereRaw('start_hour <= ? or end_hour >= ?', [data.start, data.end]);
+
+    if (unavailableDays.length !== 0) {
       throw exception;
     }
   }

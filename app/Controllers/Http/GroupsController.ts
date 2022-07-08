@@ -11,6 +11,22 @@ export default class GroupsController {
     private readonly service: GroupService,
   ) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.index(unit_id);
+
+    return response.ok(result);
+  }
+
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.show(unit_id, params.id);
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateGroupValidator);
     const { unit_id } = this.sharedService.extractUser(auth);

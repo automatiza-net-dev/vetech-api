@@ -5,8 +5,8 @@
  * file.
  */
 
-import Env from '@ioc:Adonis/Core/Env'
-import { mailConfig } from '@adonisjs/mail/build/config'
+import { mailConfig } from '@adonisjs/mail/build/config';
+import Env from '@ioc:Adonis/Core/Env';
 
 export default mailConfig({
   /*
@@ -34,7 +34,6 @@ export default mailConfig({
   |
   */
   mailers: {
-
     /*
     |--------------------------------------------------------------------------
     | Mailgun
@@ -53,4 +52,4 @@ export default mailConfig({
       domain: Env.get('MAILGUN_DOMAIN'),
     },
   },
-})
+});

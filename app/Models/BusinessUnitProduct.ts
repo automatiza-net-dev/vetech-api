@@ -32,7 +32,7 @@ export default class BusinessUnitProduct extends BaseModel {
   @column({
     columnName: 'maximum_discount_percentage',
   })
-  public maximumDiscountPercetange: number;
+  public maximumDiscountPercentage: number;
 
   @column({
     columnName: 'maximum_discount_value',

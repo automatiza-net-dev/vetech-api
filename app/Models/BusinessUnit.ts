@@ -6,6 +6,7 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
 import Licence from 'App/Models/Licence';
@@ -119,4 +120,10 @@ export default class BusinessUnit extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public unavailableDays: HasMany<typeof UnavailableDay>;
+
+  @hasMany(() => BusinessUnitProduct, {
+    localKey: 'id',
+    foreignKey: 'businnes_unit_id',
+  })
+  public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
 }

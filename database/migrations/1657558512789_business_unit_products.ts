@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.uuid('id').primary();
 
       table.uuid('product_id').references('products.id');
-      table.uuid('businnes_unit_id').references('business_units.id');
+      table.uuid('businness_unit_id').references('business_units.id');
 
       table.decimal('stock', 10, 3).notNullable();
       table.decimal('maximum_stock', 10, 3).notNullable();

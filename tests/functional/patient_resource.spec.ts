@@ -222,7 +222,7 @@ test.group('Patient resource', group => {
       password: '102030',
     });
 
-    const tutored = await patient.related('tutor').create({
+    await patient.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',

@@ -45,7 +45,7 @@ test.group('Plan price resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(pricePlan.id, body[0].id);
+    assert.isTrue(Boolean(body.find(f => f.id === pricePlan.id)));
   });
 
   test('get one price plan', async ({ client, assert }) => {

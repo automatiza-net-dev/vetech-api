@@ -202,3 +202,13 @@ Route.group(() => {
   Route.put('/:id', 'ProductsController.update').middleware('auth');
   Route.delete('/:id', 'ProductsController.destroy').middleware('auth');
 }).prefix('products');
+
+Route.group(() => {
+  Route.get('/', 'BusinessUnitProductsController.index');
+  Route.post('/', 'BusinessUnitProductsController.store');
+  Route.get('/:id', 'BusinessUnitProductsController.show');
+  Route.put('/:id', 'BusinessUnitProductsController.update');
+  Route.delete('/:id', 'BusinessUnitProductsController.destroy');
+})
+  .prefix('business-unit-products')
+  .middleware('auth');

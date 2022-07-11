@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Subgroup from 'App/Models/Subgroup';
 import SharedService from 'App/Services/SharedService';
@@ -7,6 +8,17 @@ import ISubgroupData from 'Contracts/ISubgroupData';
 @inject()
 export default class SubgroupService {
   constructor(private readonly sharedService: SharedService) {}
+
+  public async index(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const subgroups = await group
+      .related('subgroups')
+      .query()
+      .preload('children');
+
+    return this.listToTree(subgroups.map(s => s.toObject()));
+  }
 
   public async show(unitId: string, id: string): Promise<Subgroup> {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -73,6 +85,29 @@ export default class SubgroupService {
       return this.getTree(undefined, tree);
     }
 
-    return this.getTree(parentModel.parent_id, [...tree, parentModel.id]);
+    return this.getTree(parentModel.parent_id, [parentModel.id, ...tree]);
+  }
+
+  private listToTree(arr: Array<ModelObject> = []) {
+    const map = {};
+    let node: ModelObject;
+    const result: Array<ModelObject> = [];
+
+    for (let i = 0; i < arr.length; i += 1) {
+      map[arr[i].id] = i;
+      // eslint-disable-next-line no-param-reassign
+      arr[i].children = [];
+    }
+
+    for (let i = 0; i < arr.length; i += 1) {
+      node = arr[i];
+      if (arr[map[node.parent_id]]) {
+        arr[map[node.parent_id]].children.push(node);
+      } else {
+        result.push(node);
+      }
+    }
+
+    return result;
   }
 }

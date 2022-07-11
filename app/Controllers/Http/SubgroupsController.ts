@@ -12,6 +12,14 @@ export default class SubgroupsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.index(unit_id);
+
+    return response.ok(result);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

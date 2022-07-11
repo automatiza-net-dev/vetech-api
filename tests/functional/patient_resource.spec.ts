@@ -249,7 +249,6 @@ test.group('Patient resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
-    assert.equal(tutored.id, body.tutor.id);
   });
 
   test('should update a tutor', async ({ client, assert }) => {

@@ -24,10 +24,7 @@ export default class AuthService {
     if (units.length === 1) {
       await this.checkLicence(units[0]);
 
-      return auth.use('api').generate(user, {
-        expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
-        unit_id: units[0].id,
-      });
+      return AuthService.generateAuthToken(auth, user, units[0].id);
     }
 
     if (!data.business_unit_id) {
@@ -46,9 +43,13 @@ export default class AuthService {
 
     await this.checkLicence(unit);
 
+    return AuthService.generateAuthToken(auth, user, unit.id);
+  }
+
+  static generateAuthToken(auth: AuthContract, user: User, unit_id: string) {
     return auth.use('api').generate(user, {
       expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
-      unit_id: unit.id,
+      unit_id,
     });
   }
 

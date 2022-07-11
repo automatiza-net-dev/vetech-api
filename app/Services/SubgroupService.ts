@@ -17,7 +17,7 @@ export default class SubgroupService {
       .query()
       .preload('children');
 
-    return this.listToTree(subgroups.map(s => s.toObject()));
+    return this.listToTree(subgroups.map(this.mapModelObject));
   }
 
   public async show(unitId: string, id: string): Promise<Subgroup> {
@@ -109,5 +109,18 @@ export default class SubgroupService {
     }
 
     return result;
+  }
+
+  private mapModelObject(subgroup: Subgroup): ModelObject {
+    const data = subgroup.toObject();
+
+    // eslint-disable-next-line no-param-reassign
+    delete data.tree;
+    // eslint-disable-next-line no-param-reassign
+    delete data.deletedAt;
+    // eslint-disable-next-line no-param-reassign
+    delete data.$extras;
+
+    return data;
   }
 }

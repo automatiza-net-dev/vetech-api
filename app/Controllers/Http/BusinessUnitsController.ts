@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
+import SharedService from 'App/Services/SharedService';
 import UserRoleService from 'App/Services/UserRoleService';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
@@ -10,6 +11,7 @@ export default class BusinessUnitsController {
   constructor(
     private readonly service: BusinessUnitService,
     private readonly userRoleService: UserRoleService,
+    private readonly sharedService: SharedService,
   ) {}
 
   public async index({ response }: HttpContextContract) {
@@ -17,8 +19,9 @@ export default class BusinessUnitsController {
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
     const payload = await request.validate(CreateBusinessUnitValidator);
+    const { user } = this.sharedService.extractUser(auth);
+
     const unit = await this.service.store(user, payload);
 
     return response.created(unit);
@@ -40,7 +43,8 @@ export default class BusinessUnitsController {
   }
 
   public async user({ auth, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
+
     const groups = await this.service.getUserBusinessUnits(user);
 
     return response.ok(groups);

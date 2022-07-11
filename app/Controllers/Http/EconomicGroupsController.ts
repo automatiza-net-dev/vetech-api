@@ -1,11 +1,15 @@
 import { inject } from '@adonisjs/fold';
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import EconomicGroupService from 'App/Services/EconomicGroupService';
+import SharedService from 'App/Services/SharedService';
 import UpdateEconomicGroupValidator from 'App/Validators/EconomicGroup/UpdateEconomicGroupValidator';
 
 @inject()
 export default class EconomicGroupsController {
-  constructor(private readonly service: EconomicGroupService) {}
+  constructor(
+    private readonly service: EconomicGroupService,
+    private readonly sharedService: SharedService,
+  ) {}
 
   public async index({ response }: HttpContextContract) {
     return response.ok(await this.service.index());
@@ -26,7 +30,8 @@ export default class EconomicGroupsController {
   }
 
   public async userEconomicGroups({ auth, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
+
     const groups = await this.service.userEconomicGroups(user);
 
     return response.ok(groups);

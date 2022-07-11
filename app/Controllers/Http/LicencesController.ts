@@ -2,16 +2,21 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import LicenceService from 'App/Services/LicenceService';
+import SharedService from 'App/Services/SharedService';
 import CreateLicenceValidator from 'App/Validators/Licence/CreateLicenceValidator';
 
 @inject()
 export default class LicencesController {
-  constructor(private readonly service: LicenceService) {}
+  constructor(
+    private readonly service: LicenceService,
+    private readonly sharedService: SharedService,
+  ) {}
 
   public async additional({ auth, response }: HttpContextContract) {
-    const unit = await BusinessUnit.find(auth.use('api').token!.meta.unit_id);
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const unit = await BusinessUnit.findOrFail(unit_id);
 
-    await this.service.addAdditionalTrial(unit!);
+    await this.service.addAdditionalTrial(unit);
 
     return response.noContent();
   }

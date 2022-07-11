@@ -1,11 +1,15 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
 export default class UsersController {
-  constructor(private readonly service: UserService) {}
+  constructor(
+    private readonly service: UserService,
+    private readonly sharedService: SharedService,
+  ) {}
 
   public async index({ response }: HttpContextContract) {
     return response.ok(await this.service.index());
@@ -28,14 +32,17 @@ export default class UsersController {
   }
 
   public async update({ auth, request, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
     const payload = await request.validate(UpdateUserValidator);
+    const { user } = this.sharedService.extractUser(auth);
+
     const updatedUser = await this.service.update(user, payload);
+
     return response.ok(updatedUser);
   }
 
   public async destroy({ auth, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
+
     await this.service.delete(user);
 
     return response.noContent();

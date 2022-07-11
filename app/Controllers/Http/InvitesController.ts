@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import InviteService from 'App/Services/InviteService';
+import SharedService from 'App/Services/SharedService';
 import AcceptInviteNewUserValidator from 'App/Validators/Invite/AcceptInviteNewUserValidator';
 import AcceptInviteValidator from 'App/Validators/Invite/AcceptInviteValidator';
 import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
@@ -8,23 +9,22 @@ import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
 
 @inject()
 export default class InvitesController {
-  constructor(private readonly service: InviteService) {}
+  constructor(
+    private readonly service: InviteService,
+    private readonly sharedService: SharedService,
+  ) {}
 
   public async index({ auth, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user, unit_id } = this.sharedService.extractUser(auth);
 
-    // TODO logged unit id
-    const invite = await this.service.index(
-      user,
-      auth.use('api').token!.meta.unit_id,
-    );
+    const invite = await this.service.index(user, unit_id);
 
     return response.ok(invite);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateInviteValidator);
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
 
     const invite = await this.service.store(user, payload);
 
@@ -50,7 +50,7 @@ export default class InvitesController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateInviteValidator);
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
 
     const invite = await this.service.update(params.id, user, payload);
 
@@ -74,7 +74,7 @@ export default class InvitesController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user } = this.sharedService.extractUser(auth);
 
     await this.service.destroy(params.id, user);
 

@@ -123,7 +123,7 @@ export default class BusinessUnit extends BaseModel {
 
   @hasMany(() => BusinessUnitProduct, {
     localKey: 'id',
-    foreignKey: 'businnes_unit_id',
+    foreignKey: 'businness_unit_id',
   })
   public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
 }

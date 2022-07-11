@@ -16,39 +16,49 @@ export default class BusinessUnitProduct extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
-  @column()
+  @column({
+    serialize: parseFloat,
+  })
   public stock: number;
 
   @column({
     columnName: 'maximum_stock',
+    serialize: parseFloat,
   })
   public maximumStock: number;
 
   @column({
     columnName: 'minimum_stock',
+    serialize: parseFloat,
   })
   public minimumStock: number;
 
   @column({
     columnName: 'maximum_discount_percentage',
+    serialize: parseFloat,
   })
   public maximumDiscountPercentage: number;
 
   @column({
     columnName: 'maximum_discount_value',
+    serialize: parseFloat,
   })
   public maximumDiscountValue: number;
 
-  @column()
+  @column({
+    serialize: parseFloat,
+  })
   public price: number;
 
   @column({
     columnName: 'cost_price',
+    serialize: parseFloat,
   })
   public costPrice: number;
 
   @column({
     columnName: 'profit_margin',
+    serialize: parseFloat,
   })
   public profitMargin: number;
 
@@ -72,13 +82,13 @@ export default class BusinessUnitProduct extends BaseModel {
   }
 
   @column()
-  public product_id: number;
+  public product_id: string;
 
   @belongsTo(() => Product)
   public product: BelongsTo<typeof Product>;
 
   @column()
-  public businnes_unit_id: number;
+  public businness_unit_id: string;
 
   @belongsTo(() => BusinessUnit)
   public businessUnit: BelongsTo<typeof BusinessUnit>;

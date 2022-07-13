@@ -74,7 +74,7 @@ test.group('Licence resource', group => {
     });
 
     try {
-      await service.addAdditionalTrial(unit);
+      await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
       assert.equal('E_NO_LICENCE: Não existe licença ativa', err.message);
     }
@@ -88,7 +88,7 @@ test.group('Licence resource', group => {
     });
 
     try {
-      await service.addAdditionalTrial(unit);
+      await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
       assert.equal(
         'E_BAD_LICENCE: Apenas licença em teste podem ser extendidas',
@@ -107,7 +107,7 @@ test.group('Licence resource', group => {
     });
 
     try {
-      await service.addAdditionalTrial(unit);
+      await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
       assert.equal('E_BAD_LICENCE: Licença ainda não expirou', err.message);
     }

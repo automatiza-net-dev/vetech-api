@@ -37,7 +37,7 @@ test.group('Plan price resource', group => {
   });
 
   test('get all price plans', async ({ client, assert }) => {
-    const [_, pricePlan] = await createPlan();
+    await createPlan();
 
     const response = await client.get('/plan-prices');
 
@@ -45,7 +45,6 @@ test.group('Plan price resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(pricePlan.id, body[0].id);
   });
 
   test('get one price plan', async ({ client, assert }) => {

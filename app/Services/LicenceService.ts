@@ -12,19 +12,21 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class LicenceService {
-  public async addAdditionalTrial(unit: BusinessUnit): Promise<void> {
+  public async addAdditionalTrial({ unit }: { unit: string }): Promise<void> {
     const trialPlan = await Plan.findBy('default', true);
     if (!trialPlan) {
       Logger.error('No trial plan');
       // should have admin role
       throw new InternalErrorException(
-        'Erro na criação de usuário',
+        'Erro interno',
         400,
         'E_INTERNAL_SERVER_ERROR',
       );
     }
 
-    const activeLicence = await unit
+    const unitEntity = await BusinessUnit.findOrFail(unit);
+
+    const activeLicence = await unitEntity
       .related('licences')
       .query()
       .where('active', true)
@@ -58,7 +60,7 @@ export default class LicenceService {
       activeLicence.active = false;
       await activeLicence.useTransaction(trx).save();
 
-      await unit.related('licences').create(
+      await unitEntity.related('licences').create(
         {
           id: v4(),
           type: LicenceType.ADDITIONAL_TRIAL,

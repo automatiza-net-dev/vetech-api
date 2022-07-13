@@ -1,5 +1,5 @@
 import { inject } from '@adonisjs/fold';
-import { AuthContract, OpaqueTokenContract } from '@ioc:Adonis/Addons/Auth';
+import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import Env from '@ioc:Adonis/Core/Env';
 import Hash from '@ioc:Adonis/Core/Hash';
 import BadRequestException from 'App/Exceptions/BadRequestException';
@@ -14,24 +14,38 @@ import { isAfter } from 'date-fns';
 export default class AuthService {
   constructor(private readonly businessUnitService: BusinessUnitService) {}
 
-  public async login(
-    data: ILoginData,
-    auth: AuthContract,
-  ): Promise<OpaqueTokenContract<User> | Array<BusinessUnit>> {
+  public async login(data: ILoginData, auth: AuthContract) {
     const user = await this.getUser(data);
     const units = await this.businessUnitService.getUserBusinessUnits(user);
 
     if (units.length === 1) {
-      await this.checkLicence(units[0]);
+      const [unit] = units;
+
+      const status = await this.checkLicence(unit);
+
+      if (status) {
+        throw new BadRequestException('Erro', 400, status);
+      }
 
       return auth.use('api').generate(user, {
         expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
-        unit_id: units[0].id,
+        unit_id: unit.id,
       });
     }
 
     if (!data.business_unit_id) {
-      return units;
+      return Promise.all(
+        units.map(async unit => {
+          const result = await this.checkLicence(unit);
+
+          return {
+            id: unit.id,
+            identification: unit.id,
+            companyName: unit.companyName,
+            status: result ?? 'VALID',
+          };
+        }),
+      );
     }
 
     const unit = units.find(u => u.id === data.business_unit_id);
@@ -44,7 +58,11 @@ export default class AuthService {
       );
     }
 
-    await this.checkLicence(unit);
+    const status = await this.checkLicence(unit);
+
+    if (status) {
+      throw new BadRequestException('Erro', 400, status);
+    }
 
     return auth.use('api').generate(user, {
       expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
@@ -74,7 +92,7 @@ export default class AuthService {
     return user;
   }
 
-  public async checkLicence(unit: BusinessUnit): Promise<void> {
+  public async checkLicence(unit: BusinessUnit): Promise<string | null> {
     const licence = await unit
       .related('licences')
       .query()
@@ -82,35 +100,21 @@ export default class AuthService {
       .first();
 
     if (!licence) {
-      throw new BadRequestException(
-        'Clínica não tem licença ativa',
-        400,
-        'E_NO_LICENCE',
-      );
+      return 'E_NO_LICENCE';
     }
 
     if (isAfter(new Date(), licence.expirationDate)) {
       if (licence.type === LicenceType.TRIAL) {
-        throw new BadRequestException(
-          'Licença de teste já expirou',
-          400,
-          'E_EXPIRED_TRIAL',
-        );
+        return 'E_EXPIRED_TRIAL';
       }
 
       if (licence.type === LicenceType.ADDITIONAL_TRIAL) {
-        throw new BadRequestException(
-          'Licença de teste adicional já expirou',
-          400,
-          'E_EXPIRED_ADDITIONAL_TRIAL',
-        );
+        return 'E_EXPIRED_ADDITIONAL_TRIAL';
       }
 
-      throw new BadRequestException(
-        'Licença expirada',
-        400,
-        'E_EXPIRED_LICENCE',
-      );
+      return 'E_EXPIRED_LICENCE';
     }
+
+    return null;
   }
 }

@@ -8,6 +8,14 @@ import UpdatePatientWithTutorValidator from 'App/Validators/Patient/UpdatePatien
 export default class PatientTutorsController {
   constructor(private readonly service: PatientService) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const patients = await this.service.tutorsIndex(
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(patients);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const patients = await this.service.show(
       auth.use('api').token!.meta.unit_id,

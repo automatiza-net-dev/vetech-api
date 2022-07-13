@@ -194,3 +194,11 @@ Route.group(() => {
   Route.put('/:id', 'GroupsController.update').middleware('auth');
   Route.delete('/:id', 'GroupsController.destroy').middleware('auth');
 }).prefix('groups');
+
+Route.group(() => {
+  Route.get('/', 'VariationsController.index').middleware('auth');
+  Route.post('/', 'VariationsController.store').middleware('auth');
+  Route.get('/:id', 'VariationsController.show').middleware('auth');
+  Route.put('/:id', 'VariationsController.update').middleware('auth');
+  Route.delete('/:id', 'VariationsController.destroy').middleware('auth');
+}).prefix('variations');

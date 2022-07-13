@@ -2,8 +2,8 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
-import UserFactory from 'Database/factories/UserFactory';
-import { v4 } from 'uuid';
+
+import { userBootstrap } from '../utils';
 
 test.group('Economic group resource', group => {
   group.each.setup(async () => {
@@ -12,15 +12,8 @@ test.group('Economic group resource', group => {
   });
 
   const createEconomicGroup = async (): Promise<[EconomicGroup, User]> => {
-    const user = await UserFactory.create();
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    return [newGroup, user];
+    const { user, group } = await userBootstrap();
+    return [group, user];
   };
 
   test('should return a list of all economic groups', async ({

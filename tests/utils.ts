@@ -47,7 +47,7 @@ export const userBootstrap = async () => {
     origin: 'TESTING',
   });
 
-  await business.related('licences').create({
+  const licence = await business.related('licences').create({
     id: v4(),
     active: true,
     expirationDate: addDays(new Date(), 1),
@@ -61,5 +61,5 @@ export const userBootstrap = async () => {
     unit_id: business.id,
   });
 
-  return { user, group, business };
+  return { user, group, business, licence, role };
 };

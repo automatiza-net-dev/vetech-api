@@ -1,15 +1,12 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import { LicenceType } from 'App/Models/Licence';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
-import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
-import { addDays } from 'date-fns';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-import { generateJwtToken } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Unavailable day resource', group => {
   group.each.setup(async () => {
@@ -18,38 +15,9 @@ test.group('Unavailable day resource', group => {
   });
 
   const createData = async (): Promise<[User, UnavailableDay]> => {
-    const user = await UserFactory.create();
+    const { user, group } = await userBootstrap();
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    const role = await RoleFactory.create();
-
-    await user.related('roles').create({
-      role_id: role.id,
-      unit_id: newBusinessUnit.id,
-    });
-
-    await newBusinessUnit.related('licences').create({
-      id: v4(),
-      active: true,
-      expirationDate: addDays(new Date(), 1),
-      type: LicenceType.TRIAL,
-    });
-
-    const model = await newBusinessUnit.related('unavailableDays').create({
+    const model = await group.related('unavailableDays').create({
       id: v4(),
       user_id: user.id,
       startHour: DateTime.now(),

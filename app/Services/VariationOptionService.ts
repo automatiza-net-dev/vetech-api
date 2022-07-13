@@ -54,9 +54,12 @@ export default class VariationOptionService {
     unitId: string,
     data: Omit<IVariationOptionData, 'active'>,
   ): Promise<VariationOption> {
-    const product = await this.variationService.show(unitId, data.variationId);
+    const variation = await this.variationService.show(
+      unitId,
+      data.variationId,
+    );
 
-    return product.related('options').create({
+    return variation.related('options').create({
       description: data.description,
     });
   }

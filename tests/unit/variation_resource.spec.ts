@@ -1,13 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import { LicenceType } from 'App/Models/Licence';
 import SharedService from 'App/Services/SharedService';
 import VariationService from 'App/Services/VariationService';
-import RoleFactory from 'Database/factories/RoleFactory';
-import UserFactory from 'Database/factories/UserFactory';
-import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
+
+import { userBootstrap } from '../utils';
 
 test.group('Variation resource', group => {
   const sharedService = new SharedService();
@@ -21,42 +19,13 @@ test.group('Variation resource', group => {
   });
 
   const createData = async () => {
-    const user = await UserFactory.create();
+    const { user, group, business } = await userBootstrap();
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    const role = await RoleFactory.create();
-
-    await user.related('roles').create({
-      role_id: role.id,
-      unit_id: newBusinessUnit.id,
-    });
-
-    await newBusinessUnit.related('licences').create({
-      id: v4(),
-      active: true,
-      expirationDate: addDays(new Date(), 1),
-      type: LicenceType.TRIAL,
-    });
-
-    const variation = await newGroup.related('variations').create({
+    const variation = await group.related('variations').create({
       description: 'some description',
     });
 
-    return { user, unit: newBusinessUnit, variation };
+    return { user, unit: business, variation };
   };
 
   test('should return all variations', async ({ assert }) => {

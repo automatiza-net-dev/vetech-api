@@ -202,3 +202,11 @@ Route.group(() => {
   Route.put('/:id', 'VariationsController.update').middleware('auth');
   Route.delete('/:id', 'VariationsController.destroy').middleware('auth');
 }).prefix('variations');
+
+Route.group(() => {
+  Route.get('/', 'VariationOptionsController.index').middleware('auth');
+  Route.post('/', 'VariationOptionsController.store').middleware('auth');
+  Route.get('/:id', 'VariationOptionsController.show').middleware('auth');
+  Route.put('/:id', 'VariationOptionsController.update').middleware('auth');
+  Route.delete('/:id', 'VariationOptionsController.destroy').middleware('auth');
+}).prefix('variation-options');

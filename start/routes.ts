@@ -110,6 +110,7 @@ Route.group(() => {
 }).prefix('patients');
 
 Route.group(() => {
+  Route.get('/', 'PatientTutorsController.index').middleware('auth');
   Route.post('/', 'PatientTutorsController.store').middleware('auth');
   Route.get('/:id', 'PatientTutorsController.show').middleware('auth');
   Route.put('/:id', 'PatientTutorsController.update').middleware('auth');

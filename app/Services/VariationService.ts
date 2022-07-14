@@ -11,7 +11,7 @@ export default class VariationService {
   public async index(unitId: string): Promise<Array<Variation>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('variations').query();
+    return Variation.query().where('economic_group_id', group.id);
   }
 
   public async show(unitId: string, id: string): Promise<Variation> {

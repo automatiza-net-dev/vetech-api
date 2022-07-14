@@ -198,7 +198,14 @@ Route.group(() => {
 }).prefix('groups');
 
 Route.group(() => {
-  Route.get('/', 'VariationsController.index').middleware('auth');
+  Route.get('/', 'SubgroupsController.index').middleware('auth');
+  Route.post('/', 'SubgroupsController.store').middleware('auth');
+  Route.get('/:id', 'SubgroupsController.show').middleware('auth');
+  Route.put('/:id', 'SubgroupsController.update').middleware('auth');
+  Route.delete('/:id', 'SubgroupsController.destroy').middleware('auth');
+}).prefix('subgroups');
+
+Route.get('/', 'VariationsController.index').middleware('auth');
   Route.post('/', 'VariationsController.store').middleware('auth');
   Route.get('/:id', 'VariationsController.show').middleware('auth');
   Route.put('/:id', 'VariationsController.update').middleware('auth');

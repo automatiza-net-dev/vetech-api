@@ -31,6 +31,7 @@ export default class AuthService {
         expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
         unit_id: unit.id,
       });
+
     }
 
     if (!data.business_unit_id) {
@@ -64,9 +65,13 @@ export default class AuthService {
       throw new BadRequestException('Erro', 400, status);
     }
 
+    return AuthService.generateAuthToken(auth, user, unit.id);
+  }
+
+  static generateAuthToken(auth: AuthContract, user: User, unit_id: string) {
     return auth.use('api').generate(user, {
       expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
-      unit_id: unit.id,
+      unit_id,
     });
   }
 

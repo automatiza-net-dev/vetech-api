@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import VariationGroupService from 'App/Services/VariationGroupService';
 import CreateVariationGroupValidator from 'App/Validators/Variation/CreateVariationGroupValidator';
+import CreateVariationVariationValidator from 'App/Validators/Variation/CreateVariationVariationValidator';
 import UpdateVariationGroupValidator from 'App/Validators/Variation/UpdateVariationGroupValidator';
 
 @inject()
@@ -35,6 +36,23 @@ export default class VariationGroupsController {
     const result = await this.service.store(unit_id, payload);
 
     return response.created(result);
+  }
+
+  public async assign({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateVariationVariationValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.assignVariation(unit_id, payload);
+
+    return response.created();
+  }
+
+  public async detach({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.detach(unit_id, params.group, params.variation);
+
+    return response.created();
   }
 
   public async update({

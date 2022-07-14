@@ -62,6 +62,8 @@ export default class Variation extends BaseModel {
     pivotTable: 'variation_group_variations',
     localKey: 'id',
     pivotForeignKey: 'variation_id',
+    relatedKey: 'id',
+    pivotRelatedForeignKey: 'group_variation_id',
   })
   public variationGroups: ManyToMany<typeof VariationGroup>;
 }

@@ -15,9 +15,9 @@ test.group('Unavailable day resource', group => {
   });
 
   const createData = async (): Promise<[User, UnavailableDay]> => {
-    const { user, group } = await userBootstrap();
+    const { user, business } = await userBootstrap();
 
-    const model = await group.related('unavailableDays').create({
+    const model = await business.related('unavailableDays').create({
       id: v4(),
       user_id: user.id,
       startHour: DateTime.now(),

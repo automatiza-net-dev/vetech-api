@@ -5,8 +5,11 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Variation from 'App/Models/Variation';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -45,4 +48,11 @@ export default class VariationGroup extends BaseModel {
 
   @belongsTo(() => EconomicGroup, {})
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @manyToMany(() => Variation, {
+    pivotTable: 'variation_group_variations',
+    localKey: 'id',
+    pivotForeignKey: 'group_variation_id',
+  })
+  public variations: ManyToMany<typeof Variation>;
 }

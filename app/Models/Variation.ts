@@ -7,8 +7,11 @@ import {
   column,
   HasMany,
   hasMany,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import VariationGroup from 'App/Models/VariationGroup';
 import VariationOption from 'App/Models/VariationOption';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -54,4 +57,11 @@ export default class Variation extends BaseModel {
     foreignKey: 'variation_id',
   })
   public options: HasMany<typeof VariationOption>;
+
+  @manyToMany(() => VariationGroup, {
+    pivotTable: 'variation_group_variations',
+    localKey: 'id',
+    pivotForeignKey: 'variation_id',
+  })
+  public variationGroups: ManyToMany<typeof VariationGroup>;
 }

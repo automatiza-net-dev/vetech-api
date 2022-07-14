@@ -41,7 +41,7 @@ export default class AuthService {
           return {
             id: unit.id,
             identification: unit.id,
-            companyName: unit.companyName,
+            fantasy_name: unit.fantasyName,
             status: result ?? 'VALID',
           };
         }),

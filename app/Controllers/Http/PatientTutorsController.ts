@@ -12,6 +12,14 @@ export default class PatientTutorsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async index({ auth, response }: HttpContextContract) {
+    const patients = await this.service.tutorsIndex(
+      auth.use('api').token!.meta.unit_id,
+    );
+
+    return response.ok(patients);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

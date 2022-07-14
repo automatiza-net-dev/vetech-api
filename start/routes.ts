@@ -102,6 +102,7 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/animals', 'PatientsController.showAnimals').middleware('auth');
   Route.get('/', 'PatientsController.index').middleware('auth');
   Route.get('/:id', 'PatientsController.show').middleware('auth');
   Route.post('/', 'PatientsController.store').middleware('auth');
@@ -110,6 +111,7 @@ Route.group(() => {
 }).prefix('patients');
 
 Route.group(() => {
+  Route.get('/', 'PatientTutorsController.index').middleware('auth');
   Route.post('/', 'PatientTutorsController.store').middleware('auth');
   Route.get('/:id', 'PatientTutorsController.show').middleware('auth');
   Route.put('/:id', 'PatientTutorsController.update').middleware('auth');
@@ -212,3 +214,27 @@ Route.group(() => {
 })
   .prefix('business-unit-products')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'SubgroupsController.index').middleware('auth');
+  Route.post('/', 'SubgroupsController.store').middleware('auth');
+  Route.get('/:id', 'SubgroupsController.show').middleware('auth');
+  Route.put('/:id', 'SubgroupsController.update').middleware('auth');
+  Route.delete('/:id', 'SubgroupsController.destroy').middleware('auth');
+}).prefix('subgroups');
+
+Route.group(() => {
+  Route.get('/', 'VariationsController.index').middleware('auth');
+  Route.post('/', 'VariationsController.store').middleware('auth');
+  Route.get('/:id', 'VariationsController.show').middleware('auth');
+  Route.put('/:id', 'VariationsController.update').middleware('auth');
+  Route.delete('/:id', 'VariationsController.destroy').middleware('auth');
+}).prefix('variations');
+
+Route.group(() => {
+  Route.get('/', 'VariationOptionsController.index').middleware('auth');
+  Route.post('/', 'VariationOptionsController.store').middleware('auth');
+  Route.get('/:id', 'VariationOptionsController.show').middleware('auth');
+  Route.put('/:id', 'VariationOptionsController.update').middleware('auth');
+  Route.delete('/:id', 'VariationOptionsController.destroy').middleware('auth');
+}).prefix('variation-options');

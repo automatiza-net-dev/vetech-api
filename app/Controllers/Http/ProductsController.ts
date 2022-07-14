@@ -1,40 +1,38 @@
 import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import ProductService from 'App/Services/ProductService';
 import SharedService from 'App/Services/SharedService';
-import UnavailableDayService from 'App/Services/UnavailableDayService';
-import CreateUnavailableDayValidator from 'App/Validators/UnavailableDay/CreateUnavailableDayValidator';
-import UpdateUnavailableDayValidator from 'App/Validators/UnavailableDay/UpdateUnavailableDayValidator';
+import CreateProductValidator from 'App/Validators/Product/CreateProductValidator';
+import UpdateProductValidator from 'App/Validators/Product/UpdateProductValidator';
 
 @inject()
-export default class UnavailableDaysController {
+export default class ProductsController {
   constructor(
-    private readonly service: UnavailableDayService,
+    private readonly service: ProductService,
     private readonly sharedService: SharedService,
   ) {}
 
   public async index({ auth, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
+    const result = await this.service.index(unit_id);
 
-    const data = await this.service.index(unit_id);
-
-    return response.ok(data);
+    return response.ok(result);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
+    const result = await this.service.show(unit_id, params.id);
 
-    const data = await this.service.show(unit_id, params.id);
-
-    return response.ok(data);
+    return response.ok(result);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(CreateUnavailableDayValidator);
+    const payload = await request.validate(CreateProductValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.store(unit_id, payload);
+    const result = await this.service.store(unit_id, payload);
 
-    return response.created(data);
+    return response.created(result);
   }
 
   public async update({
@@ -43,17 +41,16 @@ export default class UnavailableDaysController {
     request,
     response,
   }: HttpContextContract) {
-    const payload = await request.validate(UpdateUnavailableDayValidator);
+    const payload = await request.validate(UpdateProductValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.update(unit_id, params.id, payload);
+    const result = await this.service.update(unit_id, params.id, payload);
 
-    return response.ok(data);
+    return response.ok(result);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-
     await this.service.destroy(unit_id, params.id);
 
     return response.noContent();

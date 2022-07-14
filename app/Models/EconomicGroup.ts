@@ -9,6 +9,7 @@ import {
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Group from 'App/Models/Group';
 import Patient from 'App/Models/Patient';
+import Product from 'App/Models/Product';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
@@ -110,12 +111,19 @@ export default class EconomicGroup extends BaseModel {
   })
   public groups: HasMany<typeof Group>;
 
-
   @hasMany(() => Subgroup, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
   })
   public subgroups: HasMany<typeof Subgroup>;
+
+
+  @hasMany(() => Product, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public products: HasMany<typeof Product>;
+
 
   @hasMany(() => Variation, {
     localKey: 'id',

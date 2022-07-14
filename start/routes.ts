@@ -198,6 +198,24 @@ Route.group(() => {
 }).prefix('groups');
 
 Route.group(() => {
+  Route.get('/', 'ProductsController.index').middleware('auth');
+  Route.post('/', 'ProductsController.store').middleware('auth');
+  Route.get('/:id', 'ProductsController.show').middleware('auth');
+  Route.put('/:id', 'ProductsController.update').middleware('auth');
+  Route.delete('/:id', 'ProductsController.destroy').middleware('auth');
+}).prefix('products');
+
+Route.group(() => {
+  Route.get('/', 'BusinessUnitProductsController.index');
+  Route.post('/', 'BusinessUnitProductsController.store');
+  Route.get('/:id', 'BusinessUnitProductsController.show');
+  Route.put('/:id', 'BusinessUnitProductsController.update');
+  Route.delete('/:id', 'BusinessUnitProductsController.destroy');
+})
+  .prefix('business-unit-products')
+  .middleware('auth');
+
+Route.group(() => {
   Route.get('/', 'SubgroupsController.index').middleware('auth');
   Route.post('/', 'SubgroupsController.store').middleware('auth');
   Route.get('/:id', 'SubgroupsController.show').middleware('auth');

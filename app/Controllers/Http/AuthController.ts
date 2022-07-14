@@ -3,6 +3,7 @@ import Env from '@ioc:Adonis/Core/Env';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import AuthService from 'App/Services/AuthService';
+import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
 import LoginValidator from 'App/Validators/Auth/LoginValidator';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
@@ -14,6 +15,7 @@ export default class AuthController {
   constructor(
     private readonly service: UserService,
     private readonly authService: AuthService,
+    private readonly sharedService: SharedService,
   ) {}
 
   public async login({ auth, request, response }: HttpContextContract) {
@@ -37,11 +39,11 @@ export default class AuthController {
   }
 
   public async whoAmI({ auth, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
+    const { user, unit_id } = this.sharedService.extractUser(auth);
 
     return response.ok({
       user,
-      unit: await BusinessUnit.find(auth.use('api').token!.meta.unit_id),
+      unit: await BusinessUnit.find(unit_id),
     });
   }
 

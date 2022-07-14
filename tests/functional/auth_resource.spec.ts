@@ -6,9 +6,10 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Licence, { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
-import UserFactory from 'Database/factories/UserFactory';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
+
+import { userBootstrap } from '../utils';
 
 test.group('Auth resource', group => {
   group.each.setup(async () => {
@@ -25,31 +26,17 @@ test.group('Auth resource', group => {
     expiration?: Date;
     licenceType?: LicenceType;
   }): Promise<[User, BusinessUnit, EconomicGroup, Licence]> => {
-    const user = await UserFactory.create();
+    const { user, group, business, licence } = await userBootstrap();
+    await licence.delete();
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    const licence = await newBusinessUnit.related('licences').create({
+    const newLicence = await business.related('licences').create({
       id: v4(),
       expirationDate: expiration ?? addDays(new Date(), 7),
       type: licenceType,
       active: activeLicence,
     });
 
-    return [user, newBusinessUnit, newGroup, licence];
+    return [user, business, group, newLicence];
   };
 
   test('should return authenticated user', async ({ client, assert }) => {

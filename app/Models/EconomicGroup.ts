@@ -16,6 +16,7 @@ import Specie from 'App/Models/Specie';
 import Subgroup from 'App/Models/Subgroup';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
+import Variation from 'App/Models/Variation';
 import WorkingDay from 'App/Models/WorkingDay';
 import { DateTime } from 'luxon';
 
@@ -109,9 +110,16 @@ export default class EconomicGroup extends BaseModel {
   })
   public groups: HasMany<typeof Group>;
 
+
   @hasMany(() => Subgroup, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
   })
   public subgroups: HasMany<typeof Subgroup>;
+
+  @hasMany(() => Variation, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public variations: HasMany<typeof Variation>;
 }

@@ -1,13 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import { LicenceType } from 'App/Models/Licence';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
-import RoleFactory from 'Database/factories/RoleFactory';
-import UserFactory from 'Database/factories/UserFactory';
-import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
-import { createSudo, generateJwtToken } from '../utils';
+import { createSudo, generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Schedule service type resource', group => {
   group.each.setup(async () => {
@@ -16,50 +12,21 @@ test.group('Schedule service type resource', group => {
   });
 
   const createData = async () => {
-    const user = await UserFactory.create();
-
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    const role = await RoleFactory.create();
-
-    await user.related('roles').create({
-      role_id: role.id,
-      unit_id: newBusinessUnit.id,
-    });
-
-    await newBusinessUnit.related('licences').create({
-      id: v4(),
-      active: true,
-      expirationDate: addDays(new Date(), 1),
-      type: LicenceType.TRIAL,
-    });
+    const { user, group, business } = await userBootstrap();
 
     const schedule = await ScheduleServiceGroup.create({
-      economic_group_id: newGroup.id,
+      economic_group_id: group.id,
       description: 'some schedule',
     });
 
     const groupType = await schedule.related('types').create({
       id: v4(),
-      economic_group_id: newGroup.id,
+      economic_group_id: group.id,
       description: 'some schedule',
       reservedMinutes: 90,
     });
 
-    return { user, newGroup, schedule, newBusinessUnit, groupType };
+    return { user, group, schedule, business, groupType };
   };
 
   test('should create schedule group type', async ({ assert, client }) => {
@@ -130,11 +97,11 @@ test.group('Schedule service type resource', group => {
     client,
   }) => {
     const { groupType } = await createData();
-    const { user: user2, newBusinessUnit } = await createData();
+    const { user: user2, business } = await createData();
     const [sudoRole] = await createSudo();
     await user2.related('roles').create({
       role_id: sudoRole.id,
-      unit_id: newBusinessUnit.id,
+      unit_id: business.id,
     });
 
     const token = await generateJwtToken(client, {
@@ -177,7 +144,7 @@ test.group('Schedule service type resource', group => {
     client,
   }) => {
     const { groupType } = await createData();
-    const { user: user2, newBusinessUnit: businessUnit } = await createData();
+    const { user: user2, business: businessUnit } = await createData();
     const [sudoRole] = await createSudo();
     await user2.related('roles').create({
       role_id: sudoRole.id,

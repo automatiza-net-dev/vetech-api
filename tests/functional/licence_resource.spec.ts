@@ -6,9 +6,10 @@ import Licence, { LicenceType } from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
 import User from 'App/Models/User';
 import LicenceService from 'App/Services/LicenceService';
-import UserFactory from 'Database/factories/UserFactory';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
+
+import { userBootstrap } from '../utils';
 
 type CreateLicence = {
   type: LicenceType;
@@ -31,24 +32,11 @@ test.group('Licence resource', group => {
   const createBusinessUnit = async (
     data: CreateLicence,
   ): Promise<[BusinessUnit, EconomicGroup, User, Licence]> => {
-    const user = await UserFactory.create();
+    const { user, business, licence, group } = await userBootstrap();
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
+    await licence.delete();
 
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    const licence = await newBusinessUnit.related('licences').create({
+    const newLicence = await business.related('licences').create({
       id: v4(),
       type: data.type,
       active: data.active,
@@ -63,7 +51,7 @@ test.group('Licence resource', group => {
       trialAdditional: 10,
     });
 
-    return [newBusinessUnit, newGroup, user, licence];
+    return [business, group, user, newLicence];
   };
 
   test('should throw error if no active licence', async ({ assert }) => {

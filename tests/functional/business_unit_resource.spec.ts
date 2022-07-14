@@ -3,8 +3,8 @@ import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
-import UserFactory from 'Database/factories/UserFactory';
-import { v4 } from 'uuid';
+
+import { userBootstrap } from '../utils';
 
 test.group('Business unit resource', group => {
   group.each.setup(async () => {
@@ -15,24 +15,9 @@ test.group('Business unit resource', group => {
   const createBusinessUnit = async (): Promise<
     [BusinessUnit, EconomicGroup, User]
   > => {
-    const user = await UserFactory.create();
+    const { user, group, business } = await userBootstrap();
 
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    return [newBusinessUnit, newGroup, user];
+    return [business, group, user];
   };
 
   test('should return a list of all business units', async ({

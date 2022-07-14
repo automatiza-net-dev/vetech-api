@@ -1,13 +1,10 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
-import UserFactory from 'Database/factories/UserFactory';
-import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
-import { createSudo, generateJwtToken } from '../utils';
+import { createSudo, generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Schedule status resource', group => {
   group.each.setup(async () => {
@@ -16,35 +13,14 @@ test.group('Schedule status resource', group => {
   });
 
   const createData = async () => {
-    const user = await UserFactory.create();
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
+    const { user, group, business } = await userBootstrap();
 
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    await newBusinessUnit.related('licences').create({
-      id: v4(),
-      active: true,
-      expirationDate: addDays(new Date(), 1),
-      type: LicenceType.TRIAL,
-    });
-
-    const status = await newGroup.related('scheduleStatuses').create({
+    const status = await group.related('scheduleStatuses').create({
       color: 'color1',
       description: 'description1',
     });
 
-    return { user, newBusinessUnit, status };
+    return { user, business, status };
   };
 
   const assignSuperAdmin = async (user: User, businessUnit: BusinessUnit) => {
@@ -59,8 +35,8 @@ test.group('Schedule status resource', group => {
     assert,
     client,
   }) => {
-    const { user, newBusinessUnit } = await createData();
-    await assignSuperAdmin(user, newBusinessUnit);
+    const { user, business } = await createData();
+    await assignSuperAdmin(user, business);
 
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -166,10 +142,10 @@ test.group('Schedule status resource', group => {
   });
 
   test('should return status for super admin', async ({ assert, client }) => {
-    const { user, newBusinessUnit } = await createData();
+    const { user, business } = await createData();
     const { status } = await createData();
 
-    await assignSuperAdmin(user, newBusinessUnit);
+    await assignSuperAdmin(user, business);
 
     const token = await generateJwtToken(client, {
       email: user.email,

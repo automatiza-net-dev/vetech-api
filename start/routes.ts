@@ -205,7 +205,8 @@ Route.group(() => {
   Route.delete('/:id', 'SubgroupsController.destroy').middleware('auth');
 }).prefix('subgroups');
 
-Route.get('/', 'VariationsController.index').middleware('auth');
+Route.group(() => {
+  Route.get('/', 'VariationsController.index').middleware('auth');
   Route.post('/', 'VariationsController.store').middleware('auth');
   Route.get('/:id', 'VariationsController.show').middleware('auth');
   Route.put('/:id', 'VariationsController.update').middleware('auth');

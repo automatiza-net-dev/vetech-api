@@ -21,6 +21,7 @@ export default class VariationService {
       .related('variations')
       .query()
       .where('id', id)
+      .preload('options')
       .first();
 
     if (!variation) {

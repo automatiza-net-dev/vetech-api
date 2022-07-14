@@ -238,3 +238,16 @@ Route.group(() => {
   Route.put('/:id', 'VariationOptionsController.update').middleware('auth');
   Route.delete('/:id', 'VariationOptionsController.destroy').middleware('auth');
 }).prefix('variation-options');
+
+Route.group(() => {
+  Route.get('/', 'VariationGroupsController.index').middleware('auth');
+  Route.post('/assign', 'VariationGroupsController.assign').middleware('auth');
+  Route.post('/', 'VariationGroupsController.store').middleware('auth');
+  Route.get('/:id', 'VariationGroupsController.show').middleware('auth');
+  Route.put('/:id', 'VariationGroupsController.update').middleware('auth');
+  Route.delete(
+    '/:group/:variation',
+    'VariationGroupsController.detach',
+  ).middleware('auth');
+  Route.delete('/:id', 'VariationGroupsController.destroy').middleware('auth');
+}).prefix('variation-groups');

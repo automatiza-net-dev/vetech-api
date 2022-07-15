@@ -10,6 +10,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import ProductVariation from 'App/Models/ProductVariation';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -86,4 +87,10 @@ export default class Product extends BaseModel {
     foreignKey: 'product_id',
   })
   public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
+
+  @hasMany(() => ProductVariation, {
+    localKey: 'id',
+    foreignKey: 'product_id',
+  })
+  public variations: HasMany<typeof ProductVariation>;
 }

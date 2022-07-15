@@ -1,15 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import { LicenceType } from 'App/Models/Licence';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import User from 'App/Models/User';
 import PatientFactory from 'Database/factories/PatientFactory';
-import RoleFactory from 'Database/factories/RoleFactory';
-import UserFactory from 'Database/factories/UserFactory';
-import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
-import { generateJwtToken } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Patient resource', group => {
   group.each.setup(async () => {
@@ -18,41 +14,13 @@ test.group('Patient resource', group => {
   });
 
   const createData = async (): Promise<[User, Patient, Patient]> => {
-    const user = await UserFactory.create();
-    const newGroup = await user.related('economicGroups').create({
-      id: v4(),
-      document: user.document,
-      responsibleEmail: user.email,
-      responsiblePhone: user.phone,
-    });
-
-    const newBusinessUnit = await newGroup.related('businessUnits').create({
-      id: v4(),
-      document: user.document,
-      phone: user.phone,
-      email: user.email,
-      origin: 'TESTING',
-    });
-
-    await newBusinessUnit.related('licences').create({
-      id: v4(),
-      active: true,
-      expirationDate: addDays(new Date(), 1),
-      type: LicenceType.TRIAL,
-    });
-
-    const role = await RoleFactory.create();
-
-    await user.related('roles').create({
-      role_id: role.id,
-      unit_id: newBusinessUnit.id,
-    });
+    const { user, group } = await userBootstrap();
 
     const patient = await PatientFactory.create();
     const holder = await PatientFactory.create();
 
     await holder.related('dependents').attach([patient.id]);
-    await newGroup.related('patients').attach([patient.id, holder.id]);
+    await group.related('patients').attach([patient.id, holder.id]);
 
     return [user, patient, holder];
   };

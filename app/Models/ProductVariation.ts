@@ -9,10 +9,11 @@ import {
 import Product from 'App/Models/Product';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class ProductVariation extends BaseModel {
   @column({ isPrimary: true })
-  public id: number;
+  public id: string = v4();
 
   @column()
   public barcode: string;

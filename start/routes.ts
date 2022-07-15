@@ -206,6 +206,16 @@ Route.group(() => {
 }).prefix('products');
 
 Route.group(() => {
+  Route.get('/', 'ProductVariationsController.index');
+  Route.post('/', 'ProductVariationsController.store');
+  Route.get('/:id', 'ProductVariationsController.show');
+  Route.put('/:id', 'ProductVariationsController.update');
+  Route.delete('/:id', 'ProductVariationsController.destroy');
+})
+  .prefix('product-variations')
+  .middleware('auth');
+
+Route.group(() => {
   Route.get('/', 'BusinessUnitProductsController.index');
   Route.post('/', 'BusinessUnitProductsController.store');
   Route.get('/:id', 'BusinessUnitProductsController.show');

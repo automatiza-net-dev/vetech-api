@@ -14,6 +14,12 @@ export default class ProductVariation extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
+  @column()
+  public barcode: string;
+
+  @column()
+  public active: boolean;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

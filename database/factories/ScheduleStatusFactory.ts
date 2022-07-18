@@ -1,9 +1,9 @@
 import Factory from '@ioc:Adonis/Lucid/Factory';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 
-export default Factory.define(ScheduleStatus, ({ faker }) => {
+export default Factory.define(ScheduleStatus, () => {
   return {
     description: 'some status',
-    color: faker.color.rgb(),
+    color: '#000',
   };
 }).build();

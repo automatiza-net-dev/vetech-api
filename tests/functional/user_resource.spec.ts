@@ -43,8 +43,8 @@ test.group('User resource', group => {
     assert.equal('E_NOT_FOUND: The user was not found', body.message as string);
   });
 
-  test('return the found user', async ({ client, assert }) => {
-    const [user] = await User.all();
+  test('should return the found user', async ({ client, assert }) => {
+    const user = await UserFactory.create();
 
     const response = await client.get(`/users/${user.id}`);
 

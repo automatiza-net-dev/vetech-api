@@ -9,6 +9,7 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientType } from 'App/Models/Patient';
+import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import { v4 } from 'uuid';
@@ -175,6 +176,13 @@ export default class PatientService {
         'E_INTERNAL_ERROR',
       );
     }
+  }
+
+  public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
+    const tutor = await this.show(unitId, data.holder);
+    const patient = await this.show(unitId, data.patient);
+
+    await tutor.related('dependents').attach([patient.id]);
   }
 
   public async update(

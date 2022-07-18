@@ -1,5 +1,4 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema';
-import { PatientGender, PatientType } from 'App/Models/Patient';
 
 export default class extends BaseSchema {
   protected tableName = 'patients';
@@ -9,17 +8,9 @@ export default class extends BaseSchema {
       table.uuid('id').primary();
 
       table.string('name');
-      table.enu('type', Object.values(PatientType), {
-        useNative: true,
-        enumName: 'patient_type',
-        existingType: false,
-      });
+      table.string('type');
       table.string('photo').nullable();
-      table.enu('gender', Object.values(PatientGender), {
-        useNative: true,
-        enumName: 'patient_gender',
-        existingType: false,
-      });
+      table.string('gender');
       table.text('tags').defaultTo('');
       table.date('birth_date');
       table.text('note').defaultTo('');

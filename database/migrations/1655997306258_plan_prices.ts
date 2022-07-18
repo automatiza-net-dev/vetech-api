@@ -1,5 +1,4 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema';
-import { PlanPriceRecurrence } from 'App/Models/PlanPrice';
 
 export default class extends BaseSchema {
   protected tableName = 'plan_prices';
@@ -10,13 +9,7 @@ export default class extends BaseSchema {
 
       table.decimal('plan_price', 10, 2).unsigned().notNullable();
       table.uuid('plan_id').references('plans.id');
-      table
-        .enu('recurrence', Object.values(PlanPriceRecurrence), {
-          useNative: true,
-          enumName: 'plan_price_recurrence',
-          existingType: false,
-        })
-        .notNullable();
+      table.string('recurrence').notNullable();
       table.integer('expiration_days').unsigned().notNullable();
 
       table.timestamp('created_at', { useTz: true });

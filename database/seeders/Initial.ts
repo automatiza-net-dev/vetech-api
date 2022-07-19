@@ -1,8 +1,10 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
+import { LicenceType } from 'App/Models/Licence';
 import Permission from 'App/Models/Permission';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
+import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
 export default class extends BaseSeeder {
@@ -57,9 +59,16 @@ export default class extends BaseSeeder {
         default: true,
         id: v4(),
         description: 'Plano padrão',
-        trialDays: 10,
-        trialAdditional: 2,
+        trialDays: 9999,
+        trialAdditional: 9999,
       },
     );
+
+    await newBusinessUnit.related('licences').create({
+      id: v4(),
+      expirationDate: addDays(new Date(), 9999),
+      type: LicenceType.TRIAL,
+      active: true,
+    });
   }
 }

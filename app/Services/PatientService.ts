@@ -25,7 +25,11 @@ export default class PatientService {
   public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query().where('type', PatientType.TUTOR);
+    return group
+      .related('patients')
+      .query()
+      .where('type', PatientType.TUTOR)
+      .preload('tutor');
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {

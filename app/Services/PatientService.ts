@@ -12,6 +12,7 @@ import Patient, { PatientType } from 'App/Models/Patient';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
+import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { v4 } from 'uuid';
 
 @inject()
@@ -32,6 +33,22 @@ export default class PatientService {
     const group = await this.getEconomicGroup(unitId);
 
     return group.related('patients').query().where('type', PatientType.ANIMAL);
+  }
+
+  public async search(unitId: string, data: ISearchPatient) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const tutors = await group
+      .related('patients')
+      .query()
+      .where('type', PatientType.TUTOR)
+      .andWhereILike('name', `%${data.tutor ?? ''}%`)
+      .preload('dependents', query => {
+        query.whereILike('name', `%${data.patient ?? ''}%`);
+      })
+      .select(['id']);
+
+    return tutors.map(t => t.dependents).flat();
   }
 
   public async show(

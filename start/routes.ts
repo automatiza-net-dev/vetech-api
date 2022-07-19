@@ -102,6 +102,7 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/search', 'PatientsController.search').middleware('auth');
   Route.get('/animals', 'PatientsController.showAnimals').middleware('auth');
   Route.get('/', 'PatientsController.index').middleware('auth');
   Route.get('/:id', 'PatientsController.show').middleware('auth');

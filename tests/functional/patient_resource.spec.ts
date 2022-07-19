@@ -309,4 +309,20 @@ test.group('Patient resource', group => {
     assert.equal(patient.id, body.id);
     assert.equal(tutored.id, body.tutor.id);
   });
+
+  test('should search for patient', async ({ client, assert }) => {
+    const [user, patient] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/search?patient=${patient.name}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.isTrue(Boolean(body.find(f => f.id === patient.id)));
+  });
 });

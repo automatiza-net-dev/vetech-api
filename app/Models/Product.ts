@@ -8,7 +8,6 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import ProductVariation from 'App/Models/ProductVariation';
 import VariationGroup from 'App/Models/VariationGroup';
@@ -84,16 +83,10 @@ export default class Product extends BaseModel {
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 
   @column()
-  public variation_group_id: boolean;
+  public variation_group_id: string;
 
   @belongsTo(() => VariationGroup)
   public variationGroup: BelongsTo<typeof VariationGroup>;
-
-  @hasMany(() => BusinessUnitProduct, {
-    localKey: 'id',
-    foreignKey: 'product_id',
-  })
-  public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
 
   @hasMany(() => ProductVariation, {
     localKey: 'id',

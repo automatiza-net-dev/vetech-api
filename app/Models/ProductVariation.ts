@@ -5,7 +5,10 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import Product from 'App/Models/Product';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -45,4 +48,10 @@ export default class ProductVariation extends BaseModel {
 
   @belongsTo(() => Product, {})
   public product: BelongsTo<typeof Product>;
+
+  @hasMany(() => BusinessUnitProduct, {
+    localKey: 'id',
+    foreignKey: 'product_id',
+  })
+  public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
 }

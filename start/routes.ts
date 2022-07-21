@@ -262,3 +262,13 @@ Route.group(() => {
 })
   .prefix('attendance-statuses')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'AttendancesController.index');
+  Route.post('/', 'AttendancesController.store');
+  Route.get('/:id', 'AttendancesController.show');
+  Route.put('/:id', 'AttendancesController.update');
+  Route.delete('/:id', 'AttendancesController.destroy');
+})
+  .prefix('attendances')
+  .middleware('auth');

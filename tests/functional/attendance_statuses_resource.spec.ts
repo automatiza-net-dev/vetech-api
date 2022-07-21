@@ -18,7 +18,7 @@ test.group('Attendance statuses resource', group => {
       color: 'some color',
     });
 
-    return { user, business, status };
+    return { user, status };
   };
 
   test('should get all attendance statuses', async ({ assert, client }) => {

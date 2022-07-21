@@ -7,6 +7,7 @@ import {
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import AttendanceStatus from 'App/Models/AttendanceStatus';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -64,4 +65,10 @@ export default class Attendance extends BaseModel {
 
   @belongsTo(() => AttendanceStatus)
   public status: BelongsTo<typeof AttendanceStatus>;
+
+  @column()
+  public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit)
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 }

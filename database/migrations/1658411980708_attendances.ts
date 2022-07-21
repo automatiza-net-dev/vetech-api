@@ -7,6 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, table => {
       table.uuid('id').primary();
 
+      table.uuid('business_unit_id').references('business_units.id');
       table.uuid('schedule_id').references('schedules.id');
       table.uuid('attendance_status_id').references('attendance_statuses.id');
 

@@ -130,7 +130,7 @@ export default class BusinessUnit extends BaseModel {
 
   @hasMany(() => AttendanceStatus, {
     localKey: 'id',
-    foreignKey: 'businness_unit_id',
+    foreignKey: 'business_unit_id',
   })
   public attendanceStatuses: HasMany<typeof AttendanceStatus>;
 }

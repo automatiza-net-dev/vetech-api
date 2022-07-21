@@ -7,6 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, table => {
       table.uuid('id').primary();
 
+      table.uuid('business_unit_id').references('business_units.id');
+
       table.string('description').notNullable();
       table.string('color').notNullable();
       table.boolean('active').defaultTo(true);

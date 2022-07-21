@@ -2,8 +2,11 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -39,4 +42,10 @@ export default class AttendanceStatus extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @column()
+  public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit)
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 }

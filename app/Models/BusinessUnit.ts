@@ -6,6 +6,7 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import AttendanceStatus from 'App/Models/AttendanceStatus';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
@@ -126,4 +127,10 @@ export default class BusinessUnit extends BaseModel {
     foreignKey: 'businness_unit_id',
   })
   public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
+
+  @hasMany(() => AttendanceStatus, {
+    localKey: 'id',
+    foreignKey: 'businness_unit_id',
+  })
+  public attendanceStatuses: HasMany<typeof AttendanceStatus>;
 }

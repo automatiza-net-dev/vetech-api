@@ -252,3 +252,13 @@ Route.group(() => {
   ).middleware('auth');
   Route.delete('/:id', 'VariationGroupsController.destroy').middleware('auth');
 }).prefix('variation-groups');
+
+Route.group(() => {
+  Route.get('/', 'AttendanceStatusesController.index');
+  Route.post('/', 'AttendanceStatusesController.store');
+  Route.get('/:id', 'AttendanceStatusesController.show');
+  Route.put('/:id', 'AttendanceStatusesController.update');
+  Route.delete('/:id', 'AttendanceStatusesController.destroy');
+})
+  .prefix('attendance-statuses')
+  .middleware('auth');

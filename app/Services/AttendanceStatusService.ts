@@ -18,7 +18,11 @@ export default class AttendanceStatusService {
       .first();
 
     if (!status) {
-      throw new ResourceNotFoundException('Recurso não encontrado');
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
     }
 
     return status;

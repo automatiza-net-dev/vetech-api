@@ -5,27 +5,34 @@ import {
   BelongsTo,
   belongsTo,
   column,
-  HasMany,
-  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import Attendance from 'App/Models/Attendance';
-import BusinessUnit from 'App/Models/BusinessUnit';
+import AttendanceStatus from 'App/Models/AttendanceStatus';
+import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export default class AttendanceStatus extends BaseModel {
+export default class Attendance extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
-  public description: string;
+  public complaint: string;
 
-  @column()
-  public color: string;
+  @column({
+    columnName: 'start_date',
+  })
+  public startDate: Date;
 
-  @column()
-  public active: boolean;
+  @column({
+    columnName: 'end_date',
+  })
+  public endDate: Date;
+
+  @column({
+    columnName: 'clinical_examination',
+  })
+  public clinicalExamination: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -47,14 +54,14 @@ export default class AttendanceStatus extends BaseModel {
   }
 
   @column()
-  public business_unit_id: string;
+  public schedule_id: string;
 
-  @belongsTo(() => BusinessUnit)
-  public businessUnit: BelongsTo<typeof BusinessUnit>;
+  @belongsTo(() => Schedule)
+  public schedule: BelongsTo<typeof Schedule>;
 
-  @hasMany(() => Attendance, {
-    localKey: 'id',
-    foreignKey: 'attendance_status_id',
-  })
-  public attendances: HasMany<typeof Attendance>;
+  @column()
+  public attendance_status_id: string;
+
+  @belongsTo(() => AttendanceStatus)
+  public status: BelongsTo<typeof AttendanceStatus>;
 }

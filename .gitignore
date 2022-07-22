@@ -7,3 +7,4 @@ coverage
 tmp
 .idea
 yarn.lock
+package-lock.json

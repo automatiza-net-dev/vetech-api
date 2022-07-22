@@ -1,26 +1,33 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import TimelineType from 'App/Models/TimelineType';
+import TimelineType, {
+  DOCUMENT_UUID,
+  PATHOLOGY_UUID,
+  RECIPE_UUID,
+} from 'App/Models/TimelineType';
 
 export default class extends BaseSeeder {
   private BASE: Array<Partial<TimelineType>> = [
     {
-      description: 'Type 1',
+      id: PATHOLOGY_UUID,
+      description: 'Patologia',
       color: '#000',
       requiresObservation: false,
     },
     {
-      description: 'Type 2',
+      id: DOCUMENT_UUID,
+      description: 'Documento',
       color: '#000',
       requiresObservation: false,
     },
     {
-      description: 'Type 3',
+      id: RECIPE_UUID,
+      description: 'Formato Receita Médica',
       color: '#000',
       requiresObservation: false,
     },
   ];
 
   public async run() {
-    await TimelineType.fetchOrCreateMany('description', this.BASE);
+    await TimelineType.fetchOrCreateMany('id', this.BASE);
   }
 }

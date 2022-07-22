@@ -257,3 +257,13 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/', 'TimelineTypesController.index');
 }).prefix('timeline');
+
+Route.group(() => {
+  Route.get('/', 'PathologiesController.index');
+  Route.post('/', 'PathologiesController.store');
+  Route.get('/:id', 'PathologiesController.show');
+  Route.put('/:id', 'PathologiesController.update');
+  Route.delete('/:id', 'PathologiesController.destroy');
+})
+  .prefix('pathologies')
+  .middleware('auth');

@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import TimelineType from 'App/Models/TimelineType';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -48,4 +49,10 @@ export default class Pathology extends BaseModel {
 
   @belongsTo(() => TimelineType)
   public timelineType: BelongsTo<typeof TimelineType>;
+
+  @column()
+  public economic_group_id: string;
+
+  @belongsTo(() => EconomicGroup)
+  public group: BelongsTo<typeof EconomicGroup>;
 }

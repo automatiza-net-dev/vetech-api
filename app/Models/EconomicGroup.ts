@@ -8,6 +8,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Group from 'App/Models/Group';
+import Pathology from 'App/Models/Pathology';
 import Patient from 'App/Models/Patient';
 import Product from 'App/Models/Product';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
@@ -118,13 +119,11 @@ export default class EconomicGroup extends BaseModel {
   })
   public subgroups: HasMany<typeof Subgroup>;
 
-
   @hasMany(() => Product, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
   })
   public products: HasMany<typeof Product>;
-
 
   @hasMany(() => Variation, {
     localKey: 'id',
@@ -137,4 +136,10 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public variationGroups: HasMany<typeof VariationGroup>;
+
+  @hasMany(() => Pathology, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public pathologies: HasMany<typeof Pathology>;
 }

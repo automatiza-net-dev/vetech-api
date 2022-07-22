@@ -8,6 +8,8 @@ export default class extends BaseSchema {
       table.uuid('id').primary();
 
       table.uuid('timeline_type_id').references('timeline_types.id');
+      table.uuid('economic_group_id').references('economic_groups.id');
+
       table.string('description').notNullable();
       table.text('definition').notNullable();
       table.boolean('active').defaultTo(true);

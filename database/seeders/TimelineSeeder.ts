@@ -4,17 +4,17 @@ import TimelineType from 'App/Models/TimelineType';
 export default class extends BaseSeeder {
   private BASE: Array<Partial<TimelineType>> = [
     {
-      description: 'Type 1',
+      description: 'Patologia',
       color: '#000',
       requiresObservation: false,
     },
     {
-      description: 'Type 2',
+      description: 'Documento',
       color: '#000',
       requiresObservation: false,
     },
     {
-      description: 'Type 3',
+      description: 'Formato Receita Médica',
       color: '#000',
       requiresObservation: false,
     },

@@ -3,7 +3,7 @@ import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Subgroup from 'App/Models/Subgroup';
 import SharedService from 'App/Services/SharedService';
-import ISubgroupData from 'Contracts/ISubgroupData';
+import ISubgroupData from 'Contracts/interfaces/ISubgroupData';
 
 @inject()
 export default class SubgroupService {

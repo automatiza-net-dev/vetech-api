@@ -253,3 +253,7 @@ Route.group(() => {
   ).middleware('auth');
   Route.delete('/:id', 'VariationGroupsController.destroy').middleware('auth');
 }).prefix('variation-groups');
+
+Route.group(() => {
+  Route.get('/', 'TimelineTypesController.index');
+}).prefix('timeline');

@@ -72,7 +72,7 @@ Route.group(() => {
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
-  Route.get('/:id/users', 'BusinessUnitsController.users');
+  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.put('/:id', 'BusinessUnitsController.update');
 }).prefix('business-units');
 

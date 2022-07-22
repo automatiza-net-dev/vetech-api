@@ -35,9 +35,9 @@ export default class BusinessUnitsController {
     return response.ok(updatedUnit);
   }
 
-  public async users({ params, response }: HttpContextContract) {
-    const { id } = params;
-    const users = await this.userRoleService.getUnitUsers(id);
+  public async users({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const users = await this.userRoleService.getUnitUsers(unit_id);
 
     return response.ok(users);
   }

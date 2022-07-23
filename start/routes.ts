@@ -267,3 +267,13 @@ Route.group(() => {
 })
   .prefix('pathologies')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'DocumentTemplatesController.index');
+  Route.post('/', 'DocumentTemplatesController.store');
+  Route.get('/:id', 'DocumentTemplatesController.show');
+  Route.put('/:id', 'DocumentTemplatesController.update');
+  Route.delete('/:id', 'DocumentTemplatesController.destroy');
+})
+  .prefix('document-templates')
+  .middleware('auth');

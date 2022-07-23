@@ -63,7 +63,7 @@ export default class DocumentTemplateService {
       .save();
   }
 
-  public async template(unitId: string, id: string) {
+  public async destroy(unitId: string, id: string) {
     const template = await this.show(unitId, id);
 
     await template.softDelete();

@@ -72,8 +72,11 @@ Route.group(() => {
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
-  Route.get('/:id/users', 'BusinessUnitsController.users');
+  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.put('/:id', 'BusinessUnitsController.update');
+  Route.delete('/user/:id', 'BusinessUnitsController.deleteUser').middleware(
+    'auth',
+  );
 }).prefix('business-units');
 
 Route.post('roles/add-permission', 'RolesController.addPermission');

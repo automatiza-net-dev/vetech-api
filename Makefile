@@ -4,3 +4,6 @@ admin:
 animals:
 	node ace db:seed --files "./database/seeders/Species.ts"
 	node ace db:seed --files "./database/seeders/Race.ts"
+
+timeline:
+	node ace db:seed --files "./database/seeders/TimelineSeeder.ts"

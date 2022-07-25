@@ -102,6 +102,7 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/search', 'PatientsController.search').middleware('auth');
   Route.get('/animals', 'PatientsController.showAnimals').middleware('auth');
   Route.get('/', 'PatientsController.index').middleware('auth');
   Route.get('/:id', 'PatientsController.show').middleware('auth');
@@ -264,6 +265,15 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/', 'TimelineTypesController.index');
+  Route.post('/', 'TimelineTypesController.store');
+  Route.get('/:id', 'TimelineTypesController.show');
+  Route.put('/:id', 'TimelineTypesController.update');
+  Route.delete('/:id', 'TimelineTypesController.destroy');
+}).prefix('timeline');
+
+
+Route.group(() => {
   Route.get('/', 'AttendancesController.index');
   Route.post('/', 'AttendancesController.store');
   Route.get('/:id', 'AttendancesController.show');
@@ -271,4 +281,13 @@ Route.group(() => {
   Route.delete('/:id', 'AttendancesController.destroy');
 })
   .prefix('attendances')
+
+Route.group(() => {
+  Route.get('/', 'PathologiesController.index');
+  Route.post('/', 'PathologiesController.store');
+  Route.get('/:id', 'PathologiesController.show');
+  Route.put('/:id', 'PathologiesController.update');
+  Route.delete('/:id', 'PathologiesController.destroy');
+})
+  .prefix('pathologies')
   .middleware('auth');

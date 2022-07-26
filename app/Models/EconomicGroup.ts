@@ -8,6 +8,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Group from 'App/Models/Group';
+import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import Pathology from 'App/Models/Pathology';
 import Patient from 'App/Models/Patient';
 import Product from 'App/Models/Product';
@@ -142,4 +143,10 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public pathologies: HasMany<typeof Pathology>;
+
+  @hasMany(() => MedicalDocumentTemplate, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public medicalDocumentTemplates: HasMany<typeof MedicalDocumentTemplate>;
 }

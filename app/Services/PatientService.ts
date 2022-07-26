@@ -238,8 +238,6 @@ export default class PatientService {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();
 
-    await patient.load('tutor');
-
     const trx = await Database.transaction();
 
     try {
@@ -265,9 +263,10 @@ export default class PatientService {
           city: data.city,
           state: data.state,
         })
+        .useTransaction(trx)
         .save();
 
-      return patient
+      await patient
         .merge({
           name: data.name,
           photo,
@@ -278,6 +277,10 @@ export default class PatientService {
         })
         .useTransaction(trx)
         .save();
+
+      await trx.commit();
+
+      return patient;
     } catch (e) {
       Logger.error(e.message);
       await trx.rollback();

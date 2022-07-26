@@ -55,6 +55,15 @@ export default class PatientService {
     return tutors.map(t => t.dependents).flat();
   }
 
+  public async tutorNonPatients(unitId: string, id: string) {
+    const tutor = await this.show(unitId, id, true);
+    const animalsIndex = await this.animalsIndex(unitId);
+
+    const dependents = tutor.dependents.map(d => d.id);
+
+    return animalsIndex.filter(f => !dependents.includes(f.id));
+  }
+
   public async show(
     unitId: string,
     patientId: string,

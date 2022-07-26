@@ -7,9 +7,17 @@ import { v4 } from 'uuid';
 
 @inject()
 export default class WorkingDayService {
-  public async index(unitId: string): Promise<Array<WorkingDay>> {
+  public async index(
+    unitId: string,
+    user?: string,
+  ): Promise<Array<WorkingDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
-    return unit.related('workingDays').query();
+
+    if (!user) {
+      return unit.related('workingDays').query();
+    }
+
+    return unit.related('workingDays').query().where('user_id', user);
   }
 
   public async show(unitId: string, id: string): Promise<WorkingDay> {

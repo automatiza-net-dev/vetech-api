@@ -28,6 +28,7 @@ export default class ScheduleServiceTypeService {
 
     return ScheduleServiceType.query()
       .where('economic_group_id', group.id)
+      .whereNull('deleted_at')
       .orWhereNull('economic_group_id');
   }
 

@@ -200,10 +200,13 @@ export default class PatientService {
   }
 
   public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    const tutor = await this.show(unitId, data.holder);
+    const tutor = await this.show(unitId, data.holder, true);
     const patient = await this.show(unitId, data.patient);
 
-    await tutor.related('dependents').attach([patient.id]);
+    const dependents = tutor.dependents.map(d => d.id);
+    const updatedDependents = Array.from(new Set([...dependents, patient.id]));
+
+    await tutor.related('dependents').sync(updatedDependents);
   }
 
   public async update(

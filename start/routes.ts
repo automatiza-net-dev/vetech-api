@@ -112,6 +112,7 @@ Route.group(() => {
 }).prefix('patients');
 
 Route.group(() => {
+  Route.get('/nr/:id', 'PatientTutorsController.notRelated').middleware('auth');
   Route.get('/', 'PatientTutorsController.index').middleware('auth');
   Route.post('/', 'PatientTutorsController.store').middleware('auth');
   Route.post('/assign', 'PatientTutorsController.assign').middleware('auth');

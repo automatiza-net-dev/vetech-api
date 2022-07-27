@@ -143,8 +143,8 @@ export default class ScheduleService {
           .where('user_id', user.id)
           .andWhere('business_unit_id', unitId)
           .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-            data.startHour.toJSDate(),
-            data.endHour.toJSDate(),
+            format(data.startHour.toJSDate(), 'HH:mm'),
+            format(data.endHour.toJSDate(), 'HH:mm'),
           ])
           .first();
 
@@ -220,8 +220,8 @@ export default class ScheduleService {
         this.dayOfWeekMatches(new Date(k), day.weekDay),
       );
 
-      const filteredUnavailableDays = uDays.filter(
-        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      const filteredUnavailableDays = uDays.filter(day =>
+        this.dayOfWeekMatches(new Date(k), day.frequency),
       );
 
       const filteredSchedules = schedules.filter(
@@ -285,7 +285,7 @@ export default class ScheduleService {
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhereBetween('start_date', [start, end])
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -310,7 +310,7 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhereBetween('start_date', [start, end])
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -334,8 +334,8 @@ export default class ScheduleService {
       .related('workingDays')
       .query()
       .where('business_unit_id', unitId)
-      .andWhere('start_hour', '<=', data.start)
-      .andWhere('end_hour', '>=', data.end);
+      .andWhere('start_hour', '<=', format(data.start, 'HH:mm'))
+      .andWhere('end_hour', '>=', format(data.end, 'HH:mm'));
 
     if (workingDays.length === 0) {
       throw exception;
@@ -345,7 +345,11 @@ export default class ScheduleService {
       .related('unavailableDays')
       .query()
       .where('business_unit_id', unitId)
-      .andWhereRaw('start_hour <= ? or end_hour >= ?', [data.start, data.end]);
+      .andWhereRaw('start_date <= ? or end_date >= ?', [data.start, data.end])
+      .andWhereRaw('start_hour <= ? or end_hour >= ?', [
+        format(data.start, 'HH:mm'),
+        format(data.end, 'HH:mm'),
+      ]);
 
     if (unavailableDays.length !== 0) {
       throw exception;

@@ -14,8 +14,8 @@ export default class CreateWorkingDayValidator {
       }),
     ]),
     dayOfWeek: schema.enum(Object.values(WeekDay), []),
-    startHour: schema.date({}),
-    endHour: schema.date({}),
+    startHour: schema.string({}),
+    endHour: schema.string({}),
   });
 
   public messages: CustomMessages = {};

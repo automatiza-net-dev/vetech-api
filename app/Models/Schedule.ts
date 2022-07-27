@@ -97,7 +97,10 @@ export default class Schedule extends BaseModel {
   @column()
   public user_id?: string;
 
-  @belongsTo(() => User)
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
   public user: BelongsTo<typeof User>;
 
   @column()

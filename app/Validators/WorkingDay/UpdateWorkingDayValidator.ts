@@ -7,8 +7,8 @@ export default class UpdateWorkingDayValidator {
 
   public schema = schema.create({
     dayOfWeek: schema.enum(Object.values(WeekDay), []),
-    startHour: schema.date({}),
-    endHour: schema.date({}),
+    startHour: schema.string({}),
+    endHour: schema.string({}),
   });
 
   public messages: CustomMessages = {};

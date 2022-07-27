@@ -44,8 +44,8 @@ test.group('Scheduling resource', group => {
   const createUnavailableDay = async (
     user: User,
     unit: BusinessUnit,
-    start: DateTime,
-    end: DateTime,
+    start: string,
+    end: string,
   ) => {
     unit.related('unavailableDays').create({
       id: v4(),
@@ -98,8 +98,8 @@ test.group('Scheduling resource', group => {
     await createUnavailableDay(
       user,
       business,
-      DateTime.now().minus({ hour: 1 }),
-      DateTime.now().minus({ minutes: 10 }),
+      DateTime.now().minus({ hour: 1 }).toString(),
+      DateTime.now().minus({ minutes: 10 }).toString(),
     );
 
     const token = await generateJwtToken(client, {

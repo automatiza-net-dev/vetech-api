@@ -4,6 +4,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import Schedule from 'App/Models/Schedule';
 import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
+import ScheduleService from 'App/Services/ScheduleService';
 import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
 import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
 import { DateTime } from 'luxon';
@@ -35,7 +36,7 @@ test.group('Scheduling resource', group => {
     unit.related('workingDays').create({
       id: v4(),
       user_id: user.id,
-      weekDay: WeekDay.DOMINGO,
+      weekDay: ScheduleService.GetWD(new Date()),
       startHour: start,
       endHour: end,
     });

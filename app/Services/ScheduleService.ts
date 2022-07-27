@@ -334,6 +334,7 @@ export default class ScheduleService {
       .related('workingDays')
       .query()
       .where('business_unit_id', unitId)
+      .andWhere('day_of_week', ScheduleService.GetWD(data.start))
       .andWhere('start_hour', '<=', format(data.start, 'HH:mm'))
       .andWhere('end_hour', '>=', format(data.end, 'HH:mm'));
 
@@ -357,7 +358,10 @@ export default class ScheduleService {
   }
 
   private dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
-    const day = date.getDay();
-    return Object.values(WeekDay)[day] === wd;
+    return ScheduleService.GetWD(date) === wd;
+  }
+
+  public static GetWD(date: Date) {
+    return Object.values(WeekDay)[date.getDay()];
   }
 }

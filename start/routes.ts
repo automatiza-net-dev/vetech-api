@@ -262,8 +262,32 @@ Route.group(() => {
 }).prefix('variation-groups');
 
 Route.group(() => {
+  Route.get('/', 'AttendanceStatusesController.index');
+  Route.post('/', 'AttendanceStatusesController.store');
+  Route.get('/:id', 'AttendanceStatusesController.show');
+  Route.put('/:id', 'AttendanceStatusesController.update');
+  Route.delete('/:id', 'AttendanceStatusesController.destroy');
+})
+  .prefix('attendance-statuses')
+  .middleware('auth');
+
+Route.group(() => {
   Route.get('/', 'TimelineTypesController.index');
+  Route.post('/', 'TimelineTypesController.store');
+  Route.get('/:id', 'TimelineTypesController.show');
+  Route.put('/:id', 'TimelineTypesController.update');
+  Route.delete('/:id', 'TimelineTypesController.destroy');
 }).prefix('timeline');
+
+
+Route.group(() => {
+  Route.get('/', 'AttendancesController.index');
+  Route.post('/', 'AttendancesController.store');
+  Route.get('/:id', 'AttendancesController.show');
+  Route.put('/:id', 'AttendancesController.update');
+  Route.delete('/:id', 'AttendancesController.destroy');
+})
+  .prefix('attendances')
 
 Route.group(() => {
   Route.get('/', 'PathologiesController.index');

@@ -235,7 +235,7 @@ test.group('Patient resource', group => {
 
   test('should update a tutor', async ({ client, assert }) => {
     const [user, patient] = await createData();
-    const tutored = await patient.related('tutor').create({
+    await patient.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',
@@ -289,7 +289,6 @@ test.group('Patient resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
-    assert.equal(tutored.id, body.tutor.id);
   });
 
   test('should search for patient', async ({ client, assert }) => {

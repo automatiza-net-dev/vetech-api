@@ -187,16 +187,17 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
-  Route.get('/user', 'SchedulesController.userDailySchedule').middleware(
-    'auth',
-  );
+  Route.get('/user', 'SchedulesController.userDailySchedule');
+  Route.get('/with-schedule', 'SchedulesController.withSchedule');
 
-  Route.get('/', 'SchedulesController.index').middleware('auth');
-  Route.post('/', 'SchedulesController.store').middleware('auth');
-  Route.get('/:id', 'SchedulesController.show').middleware('auth');
-  Route.put('/:id', 'SchedulesController.update').middleware('auth');
-  Route.delete('/:id', 'SchedulesController.destroy').middleware('auth');
-}).prefix('schedules');
+  Route.get('/', 'SchedulesController.index');
+  Route.post('/', 'SchedulesController.store');
+  Route.get('/:id', 'SchedulesController.show');
+  Route.put('/:id', 'SchedulesController.update');
+  Route.delete('/:id', 'SchedulesController.destroy');
+})
+  .prefix('schedules')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'GroupsController.index').middleware('auth');
@@ -279,15 +280,13 @@ Route.group(() => {
   Route.delete('/:id', 'TimelineTypesController.destroy');
 }).prefix('timeline');
 
-
 Route.group(() => {
   Route.get('/', 'AttendancesController.index');
   Route.post('/', 'AttendancesController.store');
   Route.get('/:id', 'AttendancesController.show');
   Route.put('/:id', 'AttendancesController.update');
   Route.delete('/:id', 'AttendancesController.destroy');
-})
-  .prefix('attendances')
+}).prefix('attendances');
 
 Route.group(() => {
   Route.get('/', 'PathologiesController.index');

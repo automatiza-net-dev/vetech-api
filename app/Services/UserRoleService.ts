@@ -32,12 +32,20 @@ export default class UserRoleService {
     });
   }
 
-  public async getUnitUsers(id: string): Promise<Array<User>> {
+  public async getUnitUsers(id: string) {
     const entities = await UserUnitRole.query()
       .where('unit_id', id)
-      .preload('user');
+      .preload('user')
+      .preload('role');
 
-    return entities.map(ent => ent.user);
+    return entities.map(ent => {
+      return {
+        ...ent.user.toJSON(),
+        roles: entities
+          .filter(f => f.user.id === ent.user_id)
+          .map(f => f.role.name),
+      };
+    });
   }
 
   public async deleteUserFromBusiness(unit: string, user: string) {

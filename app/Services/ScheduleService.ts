@@ -26,6 +26,17 @@ export default class ScheduleService {
     return Schedule.query().where('business_unit_id', unitId);
   }
 
+  public async usersWithSchedule(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return group
+      .related('users')
+      .query()
+      .has('workingDays')
+      .orHas('unavailableDays')
+      .orHas('schedules');
+  }
+
   public async store(
     unitId: string,
     user: User,

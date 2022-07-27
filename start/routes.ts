@@ -187,6 +187,9 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get('/user', 'SchedulesController.userDailySchedule').middleware(
+    'auth',
+  );
 
   Route.get('/', 'SchedulesController.index').middleware('auth');
   Route.post('/', 'SchedulesController.store').middleware('auth');
@@ -270,4 +273,14 @@ Route.group(() => {
   Route.delete('/:id', 'PathologiesController.destroy');
 })
   .prefix('pathologies')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'DocumentTemplatesController.index');
+  Route.post('/', 'DocumentTemplatesController.store');
+  Route.get('/:id', 'DocumentTemplatesController.show');
+  Route.put('/:id', 'DocumentTemplatesController.update');
+  Route.delete('/:id', 'DocumentTemplatesController.destroy');
+})
+  .prefix('document-templates')
   .middleware('auth');

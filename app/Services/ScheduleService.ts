@@ -9,7 +9,14 @@ import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData from 'Contracts/interfaces/IScheduleData';
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
-import { addDays, format, intervalToDuration } from 'date-fns';
+import {
+  addDays,
+  addHours,
+  endOfDay,
+  format,
+  intervalToDuration,
+  startOfDay,
+} from 'date-fns';
 
 @inject()
 export default class ScheduleService {
@@ -188,6 +195,15 @@ export default class ScheduleService {
         )
       : await this.getGeneralSchedules(data.business, startDate, endDate);
 
+    return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
+  }
+
+  private mapSchedulesToDays(
+    keys: string[],
+    wDays: WorkingDay[],
+    uDays: UnavailableDay[],
+    schedules: Schedule[],
+  ) {
     return keys.map(k => {
       const filteredWorkingDays = wDays.filter(day =>
         this.dayOfWeekMatches(new Date(k), day.weekDay),
@@ -216,6 +232,22 @@ export default class ScheduleService {
         })),
       };
     });
+  }
+
+  public async userDailySchedule(unitId: string, user: string, day: Date) {
+    const correctDate = addHours(day, 3);
+    const keys = [format(correctDate, 'yyyy-MM-dd')];
+
+    const [wDays, uDays, schedules] = await this.getUserGeneralSchedules(
+      user,
+      unitId,
+      startOfDay(correctDate),
+      endOfDay(correctDate),
+    );
+
+    return this.mapSchedulesToDays(keys, wDays, uDays, schedules).map(
+      m => m.events,
+    );
   }
 
   private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {

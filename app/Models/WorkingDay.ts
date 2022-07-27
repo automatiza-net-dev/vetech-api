@@ -14,15 +14,15 @@ export default class WorkingDay extends BaseModel {
   })
   public weekDay: WeekDay;
 
-  @column.dateTime({
+  @column({
     columnName: 'start_hour',
   })
-  public startHour: DateTime;
+  public startHour: string;
 
-  @column.dateTime({
+  @column({
     columnName: 'end_hour',
   })
-  public endHour: DateTime;
+  public endHour: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

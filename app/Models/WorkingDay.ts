@@ -36,7 +36,10 @@ export default class WorkingDay extends BaseModel {
   @column()
   public business_unit_id: string;
 
-  @belongsTo(() => User)
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
   public user: BelongsTo<typeof User>;
 
   @belongsTo(() => BusinessUnit)

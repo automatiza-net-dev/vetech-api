@@ -239,7 +239,10 @@ export default class ScheduleService {
   ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
     const workingDays = await WorkingDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhereBetween('start_hour', [
+        format(start, 'HH:mm'),
+        format(end, 'HH:mm'),
+      ])
       .preload('user');
 
     const unavailableDays = await UnavailableDay.query()
@@ -264,7 +267,10 @@ export default class ScheduleService {
     const workingDays = await WorkingDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhereBetween('start_hour', [
+        format(start, 'HH:mm'),
+        format(end, 'HH:mm'),
+      ])
       .preload('user');
 
     const unavailableDays = await UnavailableDay.query()

@@ -4,7 +4,6 @@ import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import UserFactory from 'Database/factories/UserFactory';
-import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -22,8 +21,8 @@ test.group('Working day resource', group => {
       id: v4(),
       user_id: user.id,
       weekDay: WeekDay.DOMINGO,
-      startHour: DateTime.now(),
-      endHour: DateTime.now(),
+      startHour: '09:00',
+      endHour: '18:00',
     });
 
     return [user, working];

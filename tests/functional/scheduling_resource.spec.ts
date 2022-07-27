@@ -29,8 +29,8 @@ test.group('Scheduling resource', group => {
   const createWorkingDay = async (
     user: User,
     unit: BusinessUnit,
-    start: DateTime,
-    end: DateTime,
+    start: string,
+    end: string,
   ) => {
     unit.related('workingDays').create({
       id: v4(),
@@ -92,8 +92,8 @@ test.group('Scheduling resource', group => {
     await createWorkingDay(
       user,
       business,
-      DateTime.now().minus({ hour: 1 }),
-      DateTime.now().minus({ hour: -1 }),
+      DateTime.now().minus({ hour: 1 }).toString(),
+      DateTime.now().minus({ hour: -1 }).toString(),
     );
     await createUnavailableDay(
       user,
@@ -131,8 +131,8 @@ test.group('Scheduling resource', group => {
     await createWorkingDay(
       user,
       business,
-      DateTime.now().minus({ hour: 1 }),
-      DateTime.now().minus({ hour: -1 }),
+      DateTime.now().minus({ hour: 1 }).toString(),
+      DateTime.now().minus({ hour: -1 }).toString(),
     );
 
     const token = await generateJwtToken(client, {
@@ -161,8 +161,8 @@ test.group('Scheduling resource', group => {
     await createWorkingDay(
       user,
       business,
-      DateTime.now().minus({ hour: 1 }),
-      DateTime.now().minus({ hour: -1 }),
+      DateTime.now().minus({ hour: 1 }).toString(),
+      DateTime.now().minus({ hour: -1 }).toString(),
     );
     await Schedule.create({
       startHour: DateTime.now(),
@@ -202,8 +202,8 @@ test.group('Scheduling resource', group => {
     await createWorkingDay(
       user,
       business,
-      DateTime.now().minus({ hour: 1 }),
-      DateTime.now().minus({ hour: -1 }),
+      DateTime.now().minus({ hour: 1 }).toString(),
+      DateTime.now().minus({ hour: -1 }).toString(),
     );
     await Schedule.create({
       startHour: DateTime.now(),

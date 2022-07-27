@@ -35,7 +35,7 @@ export default class UnavailableDayService {
 
   public async store(
     unitId: string,
-    data: IUnavailableDayData,
+    data: Omit<IUnavailableDayData, 'active'>,
   ): Promise<UnavailableDay> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
@@ -43,6 +43,9 @@ export default class UnavailableDayService {
       user_id: data.userId,
       startHour: data.startHour,
       endHour: data.endHour,
+      frequency: data.frequency,
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
   }
 
@@ -57,6 +60,10 @@ export default class UnavailableDayService {
       .merge({
         startHour: data.startHour,
         endHour: data.endHour,
+        frequency: data.frequency,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        active: data.active,
       })
       .save();
   }

@@ -1,10 +1,10 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import UserFactory from 'Database/factories/UserFactory';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -18,10 +18,12 @@ test.group('Unavailable day resource', group => {
     const { user, business } = await userBootstrap();
 
     const model = await business.related('unavailableDays').create({
-      id: v4(),
       user_id: user.id,
-      startHour: DateTime.now(),
-      endHour: DateTime.now(),
+      startDate: DateTime.now(),
+      endDate: DateTime.now(),
+      startHour: '09:00',
+      endHour: '21:00',
+      frequency: WeekDay.SEGUNDA,
     });
 
     return [user, model];
@@ -40,8 +42,11 @@ test.group('Unavailable day resource', group => {
       .post('/unavailable-days')
       .json({
         userId: newUser.id,
-        startHour: new Date().toISOString(),
-        endHour: new Date().toISOString(),
+        startDate: DateTime.now(),
+        endDate: DateTime.now(),
+        startHour: '09:00',
+        endHour: '21:00',
+        frequency: WeekDay.SEGUNDA,
       })
       .bearerToken(token);
 
@@ -112,8 +117,12 @@ test.group('Unavailable day resource', group => {
     const response = await client
       .put(`/unavailable-days/${unavailableDay.id}`)
       .json({
-        startHour: new Date().toISOString(),
-        endHour: new Date().toISOString(),
+        startDate: DateTime.now(),
+        endDate: DateTime.now(),
+        startHour: '10:00',
+        endHour: '21:00',
+        frequency: WeekDay.SEGUNDA,
+        active: true,
       })
       .bearerToken(token);
 

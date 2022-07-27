@@ -1,5 +1,6 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -8,15 +9,31 @@ export default class UnavailableDay extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
-  @column.dateTime({
+  @column({
+    columnName: 'start_date',
+  })
+  public startDate: DateTime;
+
+  @column({
+    columnName: 'end_date',
+  })
+  public endDate: DateTime;
+
+  @column({
     columnName: 'start_hour',
   })
-  public startHour: DateTime;
+  public startHour: string;
 
-  @column.dateTime({
+  @column({
     columnName: 'end_hour',
   })
-  public endHour: DateTime;
+  public endHour: string;
+
+  @column()
+  public frequency: WeekDay;
+
+  @column()
+  public active: boolean;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

@@ -187,6 +187,9 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get('/user', 'SchedulesController.userDailySchedule').middleware(
+    'auth',
+  );
 
   Route.get('/', 'SchedulesController.index').middleware('auth');
   Route.post('/', 'SchedulesController.store').middleware('auth');

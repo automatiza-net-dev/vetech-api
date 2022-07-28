@@ -5,7 +5,6 @@ import SharedService from 'App/Services/SharedService';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
 import UpdateScheduleValidator from 'App/Validators/Schedule/UpdateScheduleValidator';
 import { addDays } from 'date-fns';
-import { v4 } from 'uuid';
 
 @inject()
 export default class SchedulesController {
@@ -69,12 +68,18 @@ export default class SchedulesController {
     return response.noContent();
   }
 
-  public async viewDisponibility({ request, response }: HttpContextContract) {
+  public async viewDisponibility({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
     const qs = request.qs();
     const result = await this.service.searchDisponibility({
       start: qs.start ?? new Date().toISOString(),
       end: qs.end ?? new Date().toISOString(),
-      business: qs.business ?? v4(),
+      business: qs.business ?? unit_id,
       user: qs.user,
     });
 

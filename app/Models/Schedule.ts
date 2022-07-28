@@ -5,7 +5,10 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
@@ -94,7 +97,10 @@ export default class Schedule extends BaseModel {
   @column()
   public user_id?: string;
 
-  @belongsTo(() => User)
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'user_id',
+  })
   public user: BelongsTo<typeof User>;
 
   @column()
@@ -102,4 +108,10 @@ export default class Schedule extends BaseModel {
 
   @belongsTo(() => Patient)
   public patient: BelongsTo<typeof Patient>;
+
+  @hasMany(() => Attendance, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public attendances: HasMany<typeof Attendance>;
 }

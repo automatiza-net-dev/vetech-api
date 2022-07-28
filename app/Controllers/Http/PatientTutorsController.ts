@@ -21,6 +21,15 @@ export default class PatientTutorsController {
     return response.ok(patients);
   }
 
+  public async notRelated({ auth, params, response }: HttpContextContract) {
+    const patients = await this.service.tutorNonPatients(
+      auth.use('api').token!.meta.unit_id,
+      params.id,
+    );
+
+    return response.ok(patients);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

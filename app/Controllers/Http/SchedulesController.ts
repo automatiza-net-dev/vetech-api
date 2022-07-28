@@ -21,6 +21,14 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
+  public async withSchedule({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.usersWithSchedule(unit_id);
+
+    return response.ok(result);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
@@ -68,6 +76,24 @@ export default class SchedulesController {
       business: qs.business ?? v4(),
       user: qs.user,
     });
+
+    return response.ok(result);
+  }
+
+  public async userDailySchedule({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+
+    const result = await this.service.userDailySchedule(
+      unit_id,
+      qs.id,
+      new Date(qs.date),
+    );
 
     return response.ok(result);
   }

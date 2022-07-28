@@ -2,14 +2,21 @@ import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
+import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData from 'Contracts/interfaces/IScheduleData';
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
-import IViewDisponibilityResponse from 'Contracts/interfaces/IViewDisponibilityResponse';
-import { addDays, format, intervalToDuration } from 'date-fns';
+import {
+  addDays,
+  addHours,
+  endOfDay,
+  format,
+  intervalToDuration,
+  startOfDay,
+} from 'date-fns';
 
 @inject()
 export default class ScheduleService {
@@ -17,6 +24,17 @@ export default class ScheduleService {
 
   public async index(unitId: string): Promise<Array<Schedule>> {
     return Schedule.query().where('business_unit_id', unitId);
+  }
+
+  public async usersWithSchedule(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return group
+      .related('users')
+      .query()
+      .has('workingDays')
+      .orHas('unavailableDays')
+      .orHas('schedules');
   }
 
   public async store(
@@ -164,9 +182,7 @@ export default class ScheduleService {
     await schedule.softDelete();
   }
 
-  public async searchDisponibility(
-    data: IViewDisponibilityRequest,
-  ): Promise<Array<IViewDisponibilityResponse>> {
+  public async searchDisponibility(data: IViewDisponibilityRequest) {
     const startDate = new Date(data.start);
     const endDate = new Date(data.end);
 
@@ -190,9 +206,18 @@ export default class ScheduleService {
         )
       : await this.getGeneralSchedules(data.business, startDate, endDate);
 
+    return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
+  }
+
+  private mapSchedulesToDays(
+    keys: string[],
+    wDays: WorkingDay[],
+    uDays: UnavailableDay[],
+    schedules: Schedule[],
+  ) {
     return keys.map(k => {
-      const filteredWorkingDays = wDays.filter(
-        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      const filteredWorkingDays = wDays.filter(day =>
+        this.dayOfWeekMatches(new Date(k), day.weekDay),
       );
 
       const filteredUnavailableDays = uDays.filter(
@@ -209,21 +234,31 @@ export default class ScheduleService {
           ...filteredWorkingDays,
           ...filteredUnavailableDays,
           ...filteredSchedules,
-        ]
-          .sort(
-            (a, b) =>
-              a.startHour.toJSDate().getTime() -
-              b.startHour.toJSDate().getTime(),
-          )
-          .map(day => ({
-            start: day.startHour.toString(),
-            end: day.endHour.toString(),
-            type: this.getEventLabel(day),
-            user_id: day.user_id ?? '',
-            event_id: day.id,
-          })),
+        ].map(day => ({
+          start: day.startHour.toString(),
+          end: day.endHour.toString(),
+          type: this.getEventLabel(day),
+          user: day.user,
+          event_id: day.id,
+        })),
       };
     });
+  }
+
+  public async userDailySchedule(unitId: string, user: string, day: Date) {
+    const correctDate = addHours(day, 3);
+    const keys = [format(correctDate, 'yyyy-MM-dd')];
+
+    const [wDays, uDays, schedules] = await this.getUserGeneralSchedules(
+      user,
+      unitId,
+      startOfDay(correctDate),
+      endOfDay(correctDate),
+    );
+
+    return this.mapSchedulesToDays(keys, wDays, uDays, schedules).map(
+      m => m.events,
+    );
   }
 
   private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {
@@ -242,15 +277,21 @@ export default class ScheduleService {
   ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
     const workingDays = await WorkingDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end]);
+      .andWhereBetween('start_hour', [
+        format(start, 'HH:mm'),
+        format(end, 'HH:mm'),
+      ])
+      .preload('user');
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end]);
+      .andWhereBetween('start_hour', [start, end])
+      .preload('user');
 
     const schedules = await Schedule.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end]);
+      .andWhereBetween('start_hour', [start, end])
+      .preload('user');
 
     return [workingDays, unavailableDays, schedules];
   }
@@ -264,17 +305,19 @@ export default class ScheduleService {
     const workingDays = await WorkingDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end]);
+      .preload('user');
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end]);
+      .andWhereBetween('start_hour', [start, end])
+      .preload('user');
 
     const schedules = await Schedule.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end]);
+      .andWhereBetween('start_hour', [start, end])
+      .preload('user');
 
     return [workingDays, unavailableDays, schedules];
   }
@@ -307,5 +350,10 @@ export default class ScheduleService {
     if (unavailableDays.length !== 0) {
       throw exception;
     }
+  }
+
+  private dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
+    const day = date.getDay();
+    return Object.values(WeekDay)[day] === wd;
   }
 }

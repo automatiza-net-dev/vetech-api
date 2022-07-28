@@ -55,6 +55,15 @@ export default class PatientService {
     return tutors.map(t => t.dependents).flat();
   }
 
+  public async tutorNonPatients(unitId: string, id: string) {
+    const tutor = await this.show(unitId, id, true);
+    const animalsIndex = await this.animalsIndex(unitId);
+
+    const dependents = tutor.dependents.map(d => d.id);
+
+    return animalsIndex.filter(f => !dependents.includes(f.id));
+  }
+
   public async show(
     unitId: string,
     patientId: string,
@@ -200,10 +209,13 @@ export default class PatientService {
   }
 
   public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    const tutor = await this.show(unitId, data.holder);
+    const tutor = await this.show(unitId, data.holder, true);
     const patient = await this.show(unitId, data.patient);
 
-    await tutor.related('dependents').attach([patient.id]);
+    const dependents = tutor.dependents.map(d => d.id);
+    const updatedDependents = Array.from(new Set([...dependents, patient.id]));
+
+    await tutor.related('dependents').sync(updatedDependents);
   }
 
   public async update(
@@ -238,8 +250,6 @@ export default class PatientService {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();
 
-    await patient.load('tutor');
-
     const trx = await Database.transaction();
 
     try {
@@ -265,9 +275,10 @@ export default class PatientService {
           city: data.city,
           state: data.state,
         })
+        .useTransaction(trx)
         .save();
 
-      return patient
+      await patient
         .merge({
           name: data.name,
           photo,
@@ -278,6 +289,10 @@ export default class PatientService {
         })
         .useTransaction(trx)
         .save();
+
+      await trx.commit();
+
+      return patient;
     } catch (e) {
       Logger.error(e.message);
       await trx.rollback();

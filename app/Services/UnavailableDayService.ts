@@ -6,10 +6,17 @@ import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 
 @inject()
 export default class UnavailableDayService {
-  public async index(unitId: string): Promise<Array<UnavailableDay>> {
+  public async index(
+    unitId: string,
+    user?: string,
+  ): Promise<Array<UnavailableDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    return unit.related('unavailableDays').query();
+    if (!user) {
+      return unit.related('unavailableDays').query();
+    }
+
+    return unit.related('unavailableDays').query().where('user_id', user);
   }
 
   public async show(unitId: string, id: string): Promise<UnavailableDay> {

@@ -2,7 +2,6 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Schedule from 'App/Models/Schedule';
-import WeekDay from 'App/Models/shared/WeekDay';
 import User from 'App/Models/User';
 import ScheduleService from 'App/Services/ScheduleService';
 import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
@@ -57,7 +56,7 @@ test.group('Scheduling resource', group => {
       endHour: end,
       startDate: date1,
       endDate: date2,
-      frequency: WeekDay.SEGUNDA,
+      frequency: ScheduleService.GetWD(date1.toJSDate()),
     });
   };
 
@@ -101,8 +100,8 @@ test.group('Scheduling resource', group => {
       business,
       '08:00',
       '08:50',
-      DateTime.now(),
-      DateTime.now(),
+      DateTime.now().minus({ day: 1 }),
+      DateTime.now().minus({ day: -1 }),
     );
 
     const token = await generateJwtToken(client, {
@@ -110,13 +109,19 @@ test.group('Scheduling resource', group => {
       password: '102030',
     });
 
+    const d = new Date();
+
     const result = await client
       .post('/schedules')
       .json({
         scheduleServiceTypeId: serviceType.id,
         scheduleStatusId: status.id,
-        startHour: new Date().toISOString(),
-        endHour: new Date().toISOString(),
+        startHour: new Date(
+          `2022-${d.getMonth() + 1}-${d.getDate()} 08:00:00`,
+        ).toISOString(),
+        endHour: new Date(
+          `2022-${d.getMonth() + 1}-${d.getDate()} 08:50:00`,
+        ).toISOString(),
       })
       .bearerToken(token);
 

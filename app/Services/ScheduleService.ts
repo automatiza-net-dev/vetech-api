@@ -310,7 +310,8 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_date', [start, end])
+      .andWhere('start_date', '<', start)
+      .andWhere('end_date', '>', end)
       .preload('user');
 
     const schedules = await Schedule.query()

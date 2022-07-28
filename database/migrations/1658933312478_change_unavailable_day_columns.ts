@@ -9,9 +9,9 @@ export default class extends BaseSchema {
       table.time('start_hour').alter();
       table.time('end_hour').alter();
 
-      table.string('frequency').notNullable().defaultTo(WeekDay.SEGUNDA);
-      table.date('start_date').notNullable();
-      table.date('end_date').notNullable();
+      table.string('frequency').defaultTo(WeekDay.SEGUNDA);
+      table.date('start_date');
+      table.date('end_date');
       table.boolean('active').defaultTo(true);
     });
   }

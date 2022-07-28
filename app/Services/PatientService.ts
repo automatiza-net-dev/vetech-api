@@ -221,7 +221,7 @@ export default class PatientService {
   public async update(
     unitId: string,
     id: string,
-    data: IPatientData,
+    data: Omit<IPatientData, 'type' | 'holderId'>,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
@@ -232,7 +232,6 @@ export default class PatientService {
     return patient
       .merge({
         name: data.name,
-        type: data.type,
         photo,
         gender: data.gender,
         tags: data.tags,

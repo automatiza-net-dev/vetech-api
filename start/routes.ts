@@ -178,12 +178,14 @@ Route.group(() => {
 }).prefix('working-days');
 
 Route.group(() => {
-  Route.get('/', 'UnavailableDaysController.index').middleware('auth');
-  Route.post('/', 'UnavailableDaysController.store').middleware('auth');
-  Route.get('/:id', 'UnavailableDaysController.show').middleware('auth');
-  Route.put('/:id', 'UnavailableDaysController.update').middleware('auth');
-  Route.delete('/:id', 'UnavailableDaysController.destroy').middleware('auth');
-}).prefix('unavailable-days');
+  Route.get('/', 'UnavailableDaysController.index');
+  Route.post('/', 'UnavailableDaysController.store');
+  Route.get('/:id', 'UnavailableDaysController.show');
+  Route.put('/:id', 'UnavailableDaysController.update');
+  Route.delete('/:id', 'UnavailableDaysController.destroy');
+})
+  .prefix('unavailable-days')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
@@ -286,7 +288,9 @@ Route.group(() => {
   Route.get('/:id', 'AttendancesController.show');
   Route.put('/:id', 'AttendancesController.update');
   Route.delete('/:id', 'AttendancesController.destroy');
-}).prefix('attendances');
+})
+  .prefix('attendances')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'PathologiesController.index');

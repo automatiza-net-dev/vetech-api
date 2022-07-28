@@ -42,8 +42,8 @@ test.group('Working day resource', group => {
       .json({
         userId: newUser.id,
         dayOfWeek: 'segunda',
-        startHour: new Date().toISOString(),
-        endHour: new Date().toISOString(),
+        startHour: '09:00',
+        endHour: '09:00',
       })
       .bearerToken(token);
 
@@ -115,8 +115,8 @@ test.group('Working day resource', group => {
       .put(`/working-days/${workingDay.id}`)
       .json({
         dayOfWeek: 'terca',
-        startHour: new Date().toISOString(),
-        endHour: new Date().toISOString(),
+        startHour: '09:00',
+        endHour: '09:00',
       })
       .bearerToken(token);
 

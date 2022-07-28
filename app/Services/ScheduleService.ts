@@ -143,8 +143,8 @@ export default class ScheduleService {
           .where('user_id', user.id)
           .andWhere('business_unit_id', unitId)
           .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-            data.startHour.toJSDate(),
-            data.endHour.toJSDate(),
+            format(data.startHour.toJSDate(), 'HH:mm'),
+            format(data.endHour.toJSDate(), 'HH:mm'),
           ])
           .first();
 
@@ -217,11 +217,11 @@ export default class ScheduleService {
   ) {
     return keys.map(k => {
       const filteredWorkingDays = wDays.filter(day =>
-        this.dayOfWeekMatches(new Date(k), day.weekDay),
+        ScheduleService.dayOfWeekMatches(new Date(k), day.weekDay),
       );
 
-      const filteredUnavailableDays = uDays.filter(
-        day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
+      const filteredUnavailableDays = uDays.filter(day =>
+        ScheduleService.dayOfWeekMatches(new Date(k), day.frequency),
       );
 
       const filteredSchedules = schedules.filter(
@@ -285,7 +285,7 @@ export default class ScheduleService {
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhereBetween('start_date', [start, end])
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -310,7 +310,8 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end])
+      .andWhere('start_date', '<', start)
+      .andWhere('end_date', '>', end)
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -330,14 +331,19 @@ export default class ScheduleService {
   ) {
     const scheduleUser = await User.findOrFail(user);
 
-    const workingDays = await scheduleUser
-      .related('workingDays')
-      .query()
+    const workingDays = await WorkingDay.query()
       .where('business_unit_id', unitId)
-      .andWhere('start_hour', '<=', data.start)
-      .andWhere('end_hour', '>=', data.end);
+      .andWhere('day_of_week', ScheduleService.GetWD(data.start));
 
-    if (workingDays.length === 0) {
+    const wFiltered = workingDays
+      .filter(w => {
+        return w.startHour <= format(data.start, 'HH:mm');
+      })
+      .filter(w => {
+        return w.endHour >= format(data.end, 'HH:mm');
+      });
+
+    if (wFiltered.length === 0) {
       throw exception;
     }
 
@@ -345,15 +351,27 @@ export default class ScheduleService {
       .related('unavailableDays')
       .query()
       .where('business_unit_id', unitId)
-      .andWhereRaw('start_hour <= ? or end_hour >= ?', [data.start, data.end]);
+      .whereRaw('start_date <= ? or end_date >= ?', [data.start, data.end]);
 
-    if (unavailableDays.length !== 0) {
+    const uFiltered = unavailableDays
+      .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
+      .filter(w => {
+        return w.startHour <= format(data.start, 'HH:mm');
+      })
+      .filter(w => {
+        return w.endHour >= format(data.end, 'HH:mm');
+      });
+
+    if (uFiltered.length !== 0) {
       throw exception;
     }
   }
 
-  private dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
-    const day = date.getDay();
-    return Object.values(WeekDay)[day] === wd;
+  private static dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
+    return ScheduleService.GetWD(date) === wd;
+  }
+
+  public static GetWD(date: Date) {
+    return Object.values(WeekDay)[date.getDay()];
   }
 }

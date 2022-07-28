@@ -180,7 +180,7 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(400, response.status());
-    assert.equal('E_NO_LICENCE: Clínica não tem licença ativa', body.message);
+    assert.isTrue(body.message.startsWith('E_NO_LICENCE'));
   });
 
   test('should return 400 on expired trial licence', async ({
@@ -201,7 +201,7 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(400, response.status());
-    assert.equal('E_EXPIRED_TRIAL: Licença de teste já expirou', body.message);
+    assert.isTrue(body.message.startsWith('E_EXPIRED_TRIAL'));
   });
 
   test('should return 400 on expired additional trial licence', async ({
@@ -222,10 +222,7 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(400, response.status());
-    assert.equal(
-      'E_EXPIRED_ADDITIONAL_TRIAL: Licença de teste adicional já expirou',
-      body.message,
-    );
+    assert.isTrue(body.message.startsWith('E_EXPIRED_ADDITIONAL_TRIAL'));
   });
 
   test('should return 400 on expiried paid licence', async ({
@@ -246,6 +243,6 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(400, response.status());
-    assert.equal('E_EXPIRED_LICENCE: Licença expirada', body.message);
+    assert.isTrue(body.message.startsWith('E_EXPIRED_LICENCE'));
   });
 });

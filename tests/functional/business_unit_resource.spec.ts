@@ -47,9 +47,9 @@ test.group('Business unit resource', group => {
     client,
     assert,
   }) => {
-    const [unit] = await createBusinessUnit();
+    const [_, __, user] = await createBusinessUnit();
 
-    const response = await client.get(`/business-units/${unit.id}/users`);
+    const response = await client.get(`/business-units/users`).loginAs(user);
 
     const userList = response.body();
 

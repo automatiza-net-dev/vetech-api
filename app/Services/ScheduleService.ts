@@ -217,11 +217,11 @@ export default class ScheduleService {
   ) {
     return keys.map(k => {
       const filteredWorkingDays = wDays.filter(day =>
-        this.dayOfWeekMatches(new Date(k), day.weekDay),
+        ScheduleService.dayOfWeekMatches(new Date(k), day.weekDay),
       );
 
       const filteredUnavailableDays = uDays.filter(day =>
-        this.dayOfWeekMatches(new Date(k), day.frequency),
+        ScheduleService.dayOfWeekMatches(new Date(k), day.frequency),
       );
 
       const filteredSchedules = schedules.filter(
@@ -330,15 +330,19 @@ export default class ScheduleService {
   ) {
     const scheduleUser = await User.findOrFail(user);
 
-    const workingDays = await scheduleUser
-      .related('workingDays')
-      .query()
+    const workingDays = await WorkingDay.query()
       .where('business_unit_id', unitId)
-      .andWhere('day_of_week', ScheduleService.GetWD(data.start))
-      .andWhere('start_hour', '<=', format(data.start, 'HH:mm'))
-      .andWhere('end_hour', '>=', format(data.end, 'HH:mm'));
+      .andWhere('day_of_week', ScheduleService.GetWD(data.start));
 
-    if (workingDays.length === 0) {
+    const wFiltered = workingDays
+      .filter(w => {
+        return w.startHour <= format(data.start, 'HH:mm');
+      })
+      .filter(w => {
+        return w.endHour >= format(data.end, 'HH:mm');
+      });
+
+    if (wFiltered.length === 0) {
       throw exception;
     }
 
@@ -346,18 +350,23 @@ export default class ScheduleService {
       .related('unavailableDays')
       .query()
       .where('business_unit_id', unitId)
-      .andWhereRaw('start_date <= ? or end_date >= ?', [data.start, data.end])
-      .andWhereRaw('start_hour <= ? or end_hour >= ?', [
-        format(data.start, 'HH:mm'),
-        format(data.end, 'HH:mm'),
-      ]);
+      .whereRaw('start_date <= ? or end_date >= ?', [data.start, data.end]);
 
-    if (unavailableDays.length !== 0) {
+    const uFiltered = unavailableDays
+      .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
+      .filter(w => {
+        return w.startHour <= format(data.start, 'HH:mm');
+      })
+      .filter(w => {
+        return w.endHour >= format(data.end, 'HH:mm');
+      });
+
+    if (uFiltered.length !== 0) {
       throw exception;
     }
   }
 
-  private dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
+  private static dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
     return ScheduleService.GetWD(date) === wd;
   }
 

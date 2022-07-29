@@ -191,7 +191,7 @@ export default class ScheduleService {
       end: endDate,
     });
 
-    const keys = Array.from({ length: days ? days + 1 : 0 }, (_, k) => {
+    const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
       const tmpDate = addDays(startDate, k + 1);
 
       return format(tmpDate, 'yyyy-MM-dd');

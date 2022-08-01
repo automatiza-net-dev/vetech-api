@@ -9,7 +9,9 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Group from 'App/Models/Group';
 import ProductVariation from 'App/Models/ProductVariation';
+import Subgroup from 'App/Models/Subgroup';
 import VariationGroup from 'App/Models/VariationGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -96,4 +98,26 @@ export default class Product extends BaseModel {
     foreignKey: 'product_id',
   })
   public variations: HasMany<typeof ProductVariation>;
+
+  @column({
+    serializeAs: null,
+  })
+  public group_id: string;
+
+  @belongsTo(() => Group, {
+    localKey: 'id',
+    foreignKey: 'group_id',
+  })
+  public group: BelongsTo<typeof Group>;
+
+  @column({
+    serializeAs: null,
+  })
+  public subgroup_id: string;
+
+  @belongsTo(() => Subgroup, {
+    localKey: 'id',
+    foreignKey: 'subgroup_id',
+  })
+  public subgroup: BelongsTo<typeof Subgroup>;
 }

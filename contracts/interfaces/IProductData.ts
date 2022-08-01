@@ -21,6 +21,8 @@ export default interface IProductData {
   features: string;
   unityType: string;
   active: boolean;
-  group?: string;
+  variationGroup: string;
+  groupId: string;
+  subgroupId: string;
   variations: Array<IProductDataVariation>;
 }

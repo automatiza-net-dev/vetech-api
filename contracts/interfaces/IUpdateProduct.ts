@@ -10,4 +10,6 @@ export default interface IUpdateProduct {
   features: string;
   unityType: string;
   active: boolean;
+  groupId: string;
+  subgroupId: string;
 }

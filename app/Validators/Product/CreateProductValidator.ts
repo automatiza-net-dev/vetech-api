@@ -24,10 +24,24 @@ export default class CreateProductValidator {
     cest: schema.string({}, []),
     features: schema.string({}, []),
     unityType: schema.string({}, []),
-    group: schema.string({}, [
+    variationGroup: schema.string({}, [
       rules.uuid(),
       rules.exists({
         table: 'variation_groups',
+        column: 'id',
+      }),
+    ]),
+    groupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'groups',
+        column: 'id',
+      }),
+    ]),
+    subgroupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'subgroups',
         column: 'id',
       }),
     ]),

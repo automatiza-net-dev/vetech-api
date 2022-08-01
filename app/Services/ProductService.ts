@@ -19,7 +19,11 @@ export default class ProductService {
   public async index(unitId: string): Promise<Array<Product>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('products').query();
+    return group
+      .related('products')
+      .query()
+      .preload('group')
+      .preload('subgroup');
   }
 
   public async show(unitId: string, id: string): Promise<Product> {
@@ -29,6 +33,8 @@ export default class ProductService {
       .related('products')
       .query()
       .where('id', id)
+      .preload('group')
+      .preload('subgroup')
       .first();
 
     if (!product) {
@@ -52,7 +58,7 @@ export default class ProductService {
       group.id,
     );
 
-    const variationGroup = await VariationGroup.findOrFail(data.group);
+    const variationGroup = await VariationGroup.findOrFail(data.variationGroup);
 
     const trx = await Database.transaction();
 
@@ -69,6 +75,8 @@ export default class ProductService {
           unityType: data.unityType,
           economic_group_id: group.id,
           variation_group_id: variationGroup.id,
+          group_id: data.groupId,
+          subgroup_id: data.subgroupId,
         },
         {
           client: trx,
@@ -148,6 +156,8 @@ export default class ProductService {
         features: data.features,
         unityType: data.unityType,
         active: data.active,
+        group_id: data.groupId,
+        subgroup_id: data.subgroupId,
       })
       .save();
   }

@@ -1,6 +1,8 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Group from 'App/Models/Group';
 import Product, { ProductType } from 'App/Models/Product';
+import Subgroup from 'App/Models/Subgroup';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -18,6 +20,15 @@ test.group('Product resource', group => {
       description: 'some description',
     });
 
+    const groupEntity = await Group.create({
+      name: 'some description',
+      economic_group_id: group.id,
+    });
+
+    const subgroupEntity = await Subgroup.create({
+      description: 'some description',
+    });
+
     const product = await Product.create({
       description: 'some product',
       type: ProductType.PRODUCT,
@@ -32,7 +43,14 @@ test.group('Product resource', group => {
       variation_group_id: variationGroup.id,
     });
 
-    return { user, product, variationGroup, business };
+    return {
+      user,
+      product,
+      variationGroup,
+      business,
+      groupEntity,
+      subgroupEntity,
+    };
   };
 
   test('should return a list of products', async ({ client, assert }) => {
@@ -51,7 +69,8 @@ test.group('Product resource', group => {
   });
 
   test('should create a product', async ({ client, assert }) => {
-    const { user, variationGroup } = await createData();
+    const { user, variationGroup, groupEntity, subgroupEntity } =
+      await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -68,7 +87,9 @@ test.group('Product resource', group => {
         cest: 'some cest',
         features: 'some features',
         unityType: 'some unity type',
-        group: variationGroup.id,
+        variationGroup: variationGroup.id,
+        groupId: groupEntity.id,
+        subgroupId: subgroupEntity.id,
         variations: [
           {
             barcode: 'some bar code',
@@ -94,7 +115,8 @@ test.group('Product resource', group => {
     client,
     assert,
   }) => {
-    const { user, variationGroup, business } = await createData();
+    const { user, variationGroup, business, groupEntity, subgroupEntity } =
+      await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -114,6 +136,8 @@ test.group('Product resource', group => {
         features: 'some features',
         unityType: 'some unity type',
         group: variationGroup.id,
+        groupId: groupEntity.id,
+        subgroupId: subgroupEntity.id,
         variations: [
           {
             barcode: 'some bar code',
@@ -184,7 +208,7 @@ test.group('Product resource', group => {
   });
 
   test('should update a product', async ({ client, assert }) => {
-    const { user, product } = await createData();
+    const { user, product, subgroupEntity, groupEntity } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -202,6 +226,8 @@ test.group('Product resource', group => {
         features: 'some features',
         unityType: 'some unity type',
         active: true,
+        groupId: groupEntity.id,
+        subgroupId: subgroupEntity.id,
       })
       .bearerToken(token);
 

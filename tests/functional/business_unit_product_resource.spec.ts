@@ -44,7 +44,7 @@ test.group('Business unit product resource', group => {
         profitMargin: 10,
       });
 
-    return { user, product, model: businessUnitProduct };
+    return { user, product, model: businessUnitProduct, variation };
   };
 
   test('should return a list of business unit products', async ({
@@ -68,7 +68,7 @@ test.group('Business unit product resource', group => {
   });
 
   test('should create a business unit product', async ({ client, assert }) => {
-    const { user, product } = await createData();
+    const { user, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -77,7 +77,7 @@ test.group('Business unit product resource', group => {
     const response = await client
       .post('/business-unit-products')
       .json({
-        productId: product.id,
+        productVariationId: variation.id,
         stock: 10,
         price: 10,
         costPrice: 10,
@@ -129,7 +129,7 @@ test.group('Business unit product resource', group => {
   });
 
   test('should update a entity', async ({ client, assert }) => {
-    const { user, product, model } = await createData();
+    const { user, variation, model } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -138,7 +138,7 @@ test.group('Business unit product resource', group => {
     const response = await client
       .put(`/business-unit-products/${model.id}`)
       .json({
-        productId: product.id,
+        productVariationId: variation.id,
         stock: 20,
         price: 10,
         costPrice: 10,

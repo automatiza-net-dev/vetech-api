@@ -1,5 +1,5 @@
 export default interface IBusinessUnitProductData {
-  productId: string;
+  productVariationId: string;
   stock: number;
   maximumStock: number;
   minimumStock: number;

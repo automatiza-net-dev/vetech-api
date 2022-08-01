@@ -1,12 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
-import ProductService from 'App/Services/ProductService';
+import ProductVariationService from 'App/Services/ProductVariationService';
 import IBusinessUnitProductData from 'Contracts/interfaces/IBusinessUnitProductData';
 
 @inject()
 export default class BusinessUnitProductService {
-  constructor(private readonly productService: ProductService) {}
+  constructor(private readonly productService: ProductVariationService) {}
 
   public async index(unitId: string) {
     return BusinessUnitProduct.query().where('businness_unit_id', unitId);
@@ -30,7 +30,10 @@ export default class BusinessUnitProductService {
   }
 
   public async store(unitId: string, data: IBusinessUnitProductData) {
-    const product = await this.productService.show(unitId, data.productId);
+    const product = await this.productService.show(
+      unitId,
+      data.productVariationId,
+    );
 
     return product.related('businessUnitProducts').create({
       businness_unit_id: unitId,

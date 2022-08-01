@@ -51,7 +51,7 @@ export default class ProductVariation extends BaseModel {
 
   @hasMany(() => BusinessUnitProduct, {
     localKey: 'id',
-    foreignKey: 'product_id',
+    foreignKey: 'product_variation_id',
   })
   public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
 }

@@ -26,7 +26,11 @@ test.group('Business unit product resource', group => {
       active: true,
     });
 
-    const businessUnitProduct = await product
+    const variation = await product.related('variations').create({
+      barcode: 'some barcode',
+    });
+
+    const businessUnitProduct = await variation
       .related('businessUnitProducts')
       .create({
         businness_unit_id: business.id,

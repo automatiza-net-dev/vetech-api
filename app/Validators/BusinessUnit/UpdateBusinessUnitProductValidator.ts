@@ -5,10 +5,10 @@ export default class UpdateBusinessUnitProductValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    productId: schema.string({}, [
+    productVariationId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'products',
+        table: 'product_variations',
         column: 'id',
       }),
     ]),

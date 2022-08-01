@@ -72,8 +72,11 @@ Route.group(() => {
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
-  Route.get('/:id/users', 'BusinessUnitsController.users');
+  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.put('/:id', 'BusinessUnitsController.update');
+  Route.delete('/user/:id', 'BusinessUnitsController.deleteUser').middleware(
+    'auth',
+  );
 }).prefix('business-units');
 
 Route.post('roles/add-permission', 'RolesController.addPermission');
@@ -105,16 +108,6 @@ Route.group(() => {
   }).middleware('auth');
 }).prefix('invites');
 
-Route.group(() => {
-  Route.get('/animals', 'PatientsController.showAnimals');
-  Route.get('/', 'PatientsController.index');
-  Route.get('/:id', 'PatientsController.show');
-  Route.post('/', 'PatientsController.store');
-  Route.put('/:id', 'PatientsController.update');
-  Route.delete('/:id', 'PatientsController.destroy');
-})
-  .prefix('patients')
-  .middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'PatientTutorsController.index');
@@ -124,6 +117,26 @@ Route.group(() => {
 })
   .prefix('patient-tutors')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/search', 'PatientsController.search').middleware('auth');
+  Route.get('/animals', 'PatientsController.showAnimals').middleware('auth');
+  Route.get('/', 'PatientsController.index').middleware('auth');
+  Route.get('/:id', 'PatientsController.show').middleware('auth');
+  Route.post('/', 'PatientsController.store').middleware('auth');
+  Route.put('/:id', 'PatientsController.update').middleware('auth');
+  Route.delete('/:id', 'PatientsController.destroy').middleware('auth');
+}).prefix('patients')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/nr/:id', 'PatientTutorsController.notRelated').middleware('auth');
+  Route.get('/', 'PatientTutorsController.index').middleware('auth');
+  Route.post('/', 'PatientTutorsController.store').middleware('auth');
+  Route.post('/assign', 'PatientTutorsController.assign').middleware('auth');
+  Route.get('/:id', 'PatientTutorsController.show').middleware('auth');
+  Route.put('/:id', 'PatientTutorsController.update').middleware('auth');
+}).prefix('patient-tutors');
 
 Route.group(() => {
   Route.get('/', 'SpeciesController.index');
@@ -197,6 +210,8 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get('/user', 'SchedulesController.userDailySchedule');
+  Route.get('/with-schedule', 'SchedulesController.withSchedule');
 
   Route.get('/', 'SchedulesController.index');
   Route.post('/', 'SchedulesController.store');
@@ -286,8 +301,64 @@ Route.group(() => {
   Route.delete(
     '/:group/:variation',
     'VariationGroupsController.detach',
-  ).middleware('auth');
+  );
   Route.delete('/:id', 'VariationGroupsController.destroy');
+}).prefix('variation-groups').middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'AttendanceStatusesController.index');
+  Route.post('/', 'AttendanceStatusesController.store');
+  Route.get('/:id', 'AttendanceStatusesController.show');
+  Route.put('/:id', 'AttendanceStatusesController.update');
+  Route.delete('/:id', 'AttendanceStatusesController.destroy');
 })
-  .prefix('variation-groups')
+  .prefix('attendance-statuses')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'TimelineTypesController.index');
+  Route.post('/', 'TimelineTypesController.store');
+  Route.get('/:id', 'TimelineTypesController.show');
+  Route.put('/:id', 'TimelineTypesController.update');
+  Route.delete('/:id', 'TimelineTypesController.destroy');
+}).prefix('timeline');
+
+Route.group(() => {
+  Route.get('/', 'AttendancesController.index');
+  Route.post('/', 'AttendancesController.store');
+  Route.get('/:id', 'AttendancesController.show');
+  Route.put('/:id', 'AttendancesController.update');
+  Route.delete('/:id', 'AttendancesController.destroy');
+})
+  .prefix('attendances')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'PathologiesController.index');
+  Route.post('/', 'PathologiesController.store');
+  Route.get('/:id', 'PathologiesController.show');
+  Route.put('/:id', 'PathologiesController.update');
+  Route.delete('/:id', 'PathologiesController.destroy');
+})
+  .prefix('pathologies')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'MedicalDocumentTemplatesController.index');
+  Route.post('/', 'MedicalDocumentTemplatesController.store');
+  Route.get('/:id', 'MedicalDocumentTemplatesController.show');
+  Route.put('/:id', 'MedicalDocumentTemplatesController.update');
+  Route.delete('/:id', 'MedicalDocumentTemplatesController.destroy');
+})
+  .prefix('medical-document-templates')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'DocumentTemplatesController.index');
+  Route.post('/', 'DocumentTemplatesController.store');
+  Route.get('/:id', 'DocumentTemplatesController.show');
+  Route.put('/:id', 'DocumentTemplatesController.update');
+  Route.delete('/:id', 'DocumentTemplatesController.destroy');
+})
+  .prefix('document-templates')
   .middleware('auth');

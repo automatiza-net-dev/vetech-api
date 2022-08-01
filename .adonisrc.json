@@ -24,7 +24,8 @@
     "@adonisjs/lucid",
     "@adonisjs/auth",
     "@adonisjs/mail",
-    "@adonisjs/view"
+    "@adonisjs/view",
+    "@adonisjs/i18n"
   ],
   "aceProviders": [
     "@adonisjs/repl"
@@ -54,6 +55,7 @@
     {
       "pattern": "resources/views/**/*.edge",
       "reloadServer": false
-    }
+    },
+    "resources/lang/**/*.(json|yaml)"
   ]
 }

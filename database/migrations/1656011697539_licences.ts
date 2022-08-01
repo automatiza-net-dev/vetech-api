@@ -1,5 +1,4 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema';
-import { LicenceType } from 'App/Models/Licence';
 
 export default class extends BaseSchema {
   protected tableName = 'licences';
@@ -10,11 +9,7 @@ export default class extends BaseSchema {
 
       table.uuid('business_unit_id').references('business_units.id');
       table.timestamp('expiration_date', { useTz: true });
-      table.enu('type', Object.values(LicenceType), {
-        useNative: true,
-        enumName: 'licence_type',
-        existingType: false,
-      });
+      table.string('type');
       table.uuid('plan_price_id').references('plan_prices.id').nullable();
       table.decimal('licence_value', 10, 2).unsigned().nullable();
       table.boolean('active');

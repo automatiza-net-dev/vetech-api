@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import WeekDay from 'App/Models/shared/WeekDay';
 
 export default class CreateUnavailableDayValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -12,8 +13,11 @@ export default class CreateUnavailableDayValidator {
         column: 'id',
       }),
     ]),
-    startHour: schema.date({}),
-    endHour: schema.date({}),
+    frequency: schema.enum(Object.values(WeekDay), []),
+    startDate: schema.date({}),
+    endDate: schema.date({}),
+    startHour: schema.string({}),
+    endHour: schema.string({}),
   });
 
   public messages: CustomMessages = {};

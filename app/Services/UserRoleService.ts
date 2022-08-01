@@ -1,5 +1,8 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
@@ -29,11 +32,45 @@ export default class UserRoleService {
     });
   }
 
-  public async getUnitUsers(id: string): Promise<Array<User>> {
+  public async getUnitUsers(id: string) {
     const entities = await UserUnitRole.query()
       .where('unit_id', id)
-      .preload('user');
+      .preload('user')
+      .preload('role');
 
-    return entities.map(ent => ent.user);
+    return entities.map(ent => {
+      return {
+        ...ent.user.toJSON(),
+        roles: entities
+          .filter(f => f.user.id === ent.user_id)
+          .map(f => f.role.name),
+      };
+    });
+  }
+
+  public async deleteUserFromBusiness(unit: string, user: string) {
+    const entities = await UserUnitRole.query()
+      .where('unit_id', unit)
+      .andWhere('user_id', user);
+
+    const trx = await Database.transaction();
+
+    try {
+      // eslint-disable-next-line no-restricted-syntax
+      for await (const entity of entities) {
+        await entity.useTransaction(trx).delete();
+      }
+
+      await trx.commit();
+    } catch (error) {
+      Logger.error(error.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro ao executar operação',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 }

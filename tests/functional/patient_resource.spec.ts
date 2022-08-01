@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import User from 'App/Models/User';
 import PatientFactory from 'Database/factories/PatientFactory';
@@ -13,16 +14,30 @@ test.group('Patient resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<[User, Patient, Patient]> => {
+  const createData = async (): Promise<
+    [User, Patient, Patient, EconomicGroup]
+  > => {
     const { user, group } = await userBootstrap();
 
+    const patient = await PatientFactory.create();
+    const holder = await PatientFactory.create();
+    await holder.merge({ type: PatientType.TUTOR }).save();
+
+    await holder.related('dependents').attach([patient.id]);
+    await group.related('patients').attach([patient.id, holder.id]);
+
+    return [user, patient, holder, group];
+  };
+
+
+  const createGroupData = async (group: EconomicGroup) => {
     const patient = await PatientFactory.create();
     const holder = await PatientFactory.create();
 
     await holder.related('dependents').attach([patient.id]);
     await group.related('patients').attach([patient.id, holder.id]);
 
-    return [user, patient, holder];
+    return { patient, holder };
   };
 
   test('should create new patient', async ({ client, assert }) => {
@@ -221,7 +236,7 @@ test.group('Patient resource', group => {
 
   test('should update a tutor', async ({ client, assert }) => {
     const [user, patient] = await createData();
-    const tutored = await patient.related('tutor').create({
+    await patient.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',
@@ -275,6 +290,38 @@ test.group('Patient resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
-    assert.equal(tutored.id, body.tutor.id);
+  });
+
+  test('should search for patient', async ({ client, assert }) => {
+    const [user, patient] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/search?patient=${patient.name}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.isTrue(Boolean(body.find(f => f.id === patient.id)));
+  });
+
+  test('should get non related patients', async ({ client, assert }) => {
+    const [user, _, holder, group] = await createData();
+    await createGroupData(group);
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patient-tutors/nr/${holder.id}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.isArray(body);
   });
 });

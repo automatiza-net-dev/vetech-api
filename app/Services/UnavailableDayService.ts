@@ -6,10 +6,17 @@ import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 
 @inject()
 export default class UnavailableDayService {
-  public async index(unitId: string): Promise<Array<UnavailableDay>> {
+  public async index(
+    unitId: string,
+    user?: string,
+  ): Promise<Array<UnavailableDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    return unit.related('unavailableDays').query();
+    if (!user) {
+      return unit.related('unavailableDays').query();
+    }
+
+    return unit.related('unavailableDays').query().where('user_id', user);
   }
 
   public async show(unitId: string, id: string): Promise<UnavailableDay> {
@@ -28,7 +35,7 @@ export default class UnavailableDayService {
 
   public async store(
     unitId: string,
-    data: IUnavailableDayData,
+    data: Omit<IUnavailableDayData, 'active'>,
   ): Promise<UnavailableDay> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
@@ -36,6 +43,9 @@ export default class UnavailableDayService {
       user_id: data.userId,
       startHour: data.startHour,
       endHour: data.endHour,
+      frequency: data.frequency,
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
   }
 
@@ -50,6 +60,10 @@ export default class UnavailableDayService {
       .merge({
         startHour: data.startHour,
         endHour: data.endHour,
+        frequency: data.frequency,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        active: data.active,
       })
       .save();
   }

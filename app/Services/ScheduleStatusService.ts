@@ -22,6 +22,7 @@ export default class ScheduleStatusService {
     const group = await this.sharedService.getUserGroup(unitId);
     return ScheduleStatus.query()
       .where('economic_group_id', group.id)
+      .whereNull('deleted_at')
       .orWhereNull('economic_group_id');
   }
 

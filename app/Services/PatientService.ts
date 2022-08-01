@@ -9,8 +9,10 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientType } from 'App/Models/Patient';
+import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
+import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { v4 } from 'uuid';
 
 @inject()
@@ -24,13 +26,42 @@ export default class PatientService {
   public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query().where('type', PatientType.TUTOR);
+    return group
+      .related('patients')
+      .query()
+      .where('type', PatientType.TUTOR)
+      .preload('tutor');
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
     return group.related('patients').query().where('type', PatientType.ANIMAL);
+  }
+
+  public async search(unitId: string, data: ISearchPatient) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const tutors = await group
+      .related('patients')
+      .query()
+      .where('type', PatientType.TUTOR)
+      .andWhereILike('name', `%${data.tutor ?? ''}%`)
+      .preload('dependents', query => {
+        query.whereILike('name', `%${data.patient ?? ''}%`);
+      })
+      .select(['id']);
+
+    return tutors.map(t => t.dependents).flat();
+  }
+
+  public async tutorNonPatients(unitId: string, id: string) {
+    const tutor = await this.show(unitId, id, true);
+    const animalsIndex = await this.animalsIndex(unitId);
+
+    const dependents = tutor.dependents.map(d => d.id);
+
+    return animalsIndex.filter(f => !dependents.includes(f.id));
   }
 
   public async show(
@@ -177,10 +208,20 @@ export default class PatientService {
     }
   }
 
+  public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
+    const tutor = await this.show(unitId, data.holder, true);
+    const patient = await this.show(unitId, data.patient);
+
+    const dependents = tutor.dependents.map(d => d.id);
+    const updatedDependents = Array.from(new Set([...dependents, patient.id]));
+
+    await tutor.related('dependents').sync(updatedDependents);
+  }
+
   public async update(
     unitId: string,
     id: string,
-    data: IPatientData,
+    data: Omit<IPatientData, 'type' | 'holderId'>,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
@@ -191,7 +232,6 @@ export default class PatientService {
     return patient
       .merge({
         name: data.name,
-        type: data.type,
         photo,
         gender: data.gender,
         tags: data.tags,
@@ -208,8 +248,6 @@ export default class PatientService {
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();
-
-    await patient.load('tutor');
 
     const trx = await Database.transaction();
 
@@ -236,9 +274,10 @@ export default class PatientService {
           city: data.city,
           state: data.state,
         })
+        .useTransaction(trx)
         .save();
 
-      return patient
+      await patient
         .merge({
           name: data.name,
           photo,
@@ -249,6 +288,10 @@ export default class PatientService {
         })
         .useTransaction(trx)
         .save();
+
+      await trx.commit();
+
+      return patient;
     } catch (e) {
       Logger.error(e.message);
       await trx.rollback();

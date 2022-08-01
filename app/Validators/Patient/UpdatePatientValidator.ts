@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
 import { PatientGender, PatientType } from 'App/Models/Patient';
 
 export default class UpdatePatientValidator {
@@ -15,10 +15,6 @@ export default class UpdatePatientValidator {
     tags: schema.string({}, []),
     birthDate: schema.date({}),
     active: schema.boolean([]),
-    holderId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
   });
 
   public messages: CustomMessages = {};

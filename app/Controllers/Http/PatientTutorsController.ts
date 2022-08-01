@@ -33,7 +33,7 @@ export default class PatientTutorsController {
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const patients = await this.service.show(unit_id, params.id, true);
+    const patients = await this.service.show(unit_id, params.id);
 
     return response.ok(patients);
   }

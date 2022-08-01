@@ -56,7 +56,7 @@ export default class PatientService {
   }
 
   public async tutorNonPatients(unitId: string, id: string) {
-    const tutor = await this.show(unitId, id, true);
+    const tutor = await this.show(unitId, id);
     const animalsIndex = await this.animalsIndex(unitId);
 
     const dependents = tutor.dependents.map(d => d.id);
@@ -64,11 +64,7 @@ export default class PatientService {
     return animalsIndex.filter(f => !dependents.includes(f.id));
   }
 
-  public async show(
-    unitId: string,
-    patientId: string,
-    withTutored = false,
-  ): Promise<Patient> {
+  public async show(unitId: string, patientId: string): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
     const patient = await group
@@ -85,9 +81,13 @@ export default class PatientService {
       );
     }
 
-    if (patient.type === PatientType.TUTOR && withTutored) {
+    if (patient.type === PatientType.TUTOR) {
       await patient.load('tutor');
       await patient.load('dependents');
+    }
+
+    if (patient.type === PatientType.ANIMAL) {
+      await patient.load('tutors');
     }
 
     return patient;
@@ -209,7 +209,7 @@ export default class PatientService {
   }
 
   public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    const tutor = await this.show(unitId, data.holder, true);
+    const tutor = await this.show(unitId, data.holder);
     const patient = await this.show(unitId, data.patient);
 
     const dependents = tutor.dependents.map(d => d.id);

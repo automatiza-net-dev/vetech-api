@@ -88,6 +88,17 @@ export default class Patient extends BaseModel {
     pivotTable: 'holder_dependents',
     pivotTimestamps: true,
     localKey: 'id',
+    pivotForeignKey: 'dependent_id',
+    relatedKey: 'id',
+    pivotRelatedForeignKey: 'holder_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public tutors: ManyToMany<typeof Patient>;
+
+  @manyToMany(() => Patient, {
+    pivotTable: 'holder_dependents',
+    pivotTimestamps: true,
+    localKey: 'id',
     pivotForeignKey: 'holder_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'dependent_id',

@@ -8,6 +8,6 @@ export default Factory.define(EconomicGroup, ({ faker }) => {
     company_name: faker.company.companyName(),
     document: '123456789',
     responsible_email: faker.internet.email(),
-    responsible_phone: faker.phone.number(),
+    responsible_phone: 'some phone',
   };
 }).build();

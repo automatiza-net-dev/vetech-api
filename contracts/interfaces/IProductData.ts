@@ -4,11 +4,11 @@ import IBusinessUnitProductData from 'Contracts/interfaces/IBusinessUnitProductD
 export interface IProductDataVariation {
   barcode: string;
   price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
-  specificPrice: Array<{
+  specificPrice?: Array<{
     business: string;
     price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
   }>;
-  variation_options: Array<string>;
+  variation_options?: Array<string>;
 }
 
 export default interface IProductData {

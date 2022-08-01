@@ -89,7 +89,7 @@ export default class ProductService {
 
         await prodVariation
           .related('variationOptions')
-          .sync(variation.variation_options);
+          .sync(variation.variation_options ?? []);
 
         // eslint-disable-next-line no-restricted-syntax
         for await (const unit of businessUnits) {
@@ -159,6 +159,10 @@ export default class ProductService {
   }
 
   private checkForPrice(unit: BusinessUnit, data: IProductDataVariation) {
+    if (!data.specificPrice || data.specificPrice.length === 0) {
+      return data.price;
+    }
+
     const specificPrice = data.specificPrice.find(f => f.business === unit.id);
 
     if (specificPrice) return specificPrice.price;

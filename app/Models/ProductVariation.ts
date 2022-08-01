@@ -7,9 +7,12 @@ import {
   column,
   HasMany,
   hasMany,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import Product from 'App/Models/Product';
+import VariationOption from 'App/Models/VariationOption';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -54,4 +57,14 @@ export default class ProductVariation extends BaseModel {
     foreignKey: 'product_variation_id',
   })
   public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
+
+  @manyToMany(() => VariationOption, {
+    pivotTable: 'product_variation_options',
+    pivotTimestamps: false,
+    localKey: 'id',
+    pivotForeignKey: 'product_variation_id',
+    relatedKey: 'id',
+    pivotRelatedForeignKey: 'variation_option_id',
+  })
+  public variationOptions: ManyToMany<typeof VariationOption>;
 }

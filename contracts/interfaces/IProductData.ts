@@ -1,4 +1,15 @@
 import { ProductType } from 'App/Models/Product';
+import IBusinessUnitProductData from 'Contracts/interfaces/IBusinessUnitProductData';
+
+export interface IProductDataVariation {
+  barcode: string;
+  price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
+  specificPrice: Array<{
+    business: string;
+    price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
+  }>;
+  variation_options: Array<string>;
+}
 
 export default interface IProductData {
   description: string;
@@ -10,4 +21,6 @@ export default interface IProductData {
   features: string;
   unityType: string;
   active: boolean;
+  group?: string;
+  variations: Array<IProductDataVariation>;
 }

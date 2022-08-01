@@ -77,7 +77,7 @@ export default class Product extends BaseModel {
   }
 
   @column()
-  public economic_group_id: boolean;
+  public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup)
   public economicGroup: BelongsTo<typeof EconomicGroup>;
@@ -85,7 +85,10 @@ export default class Product extends BaseModel {
   @column()
   public variation_group_id: string;
 
-  @belongsTo(() => VariationGroup)
+  @belongsTo(() => VariationGroup, {
+    localKey: 'id',
+    foreignKey: 'variation_group_id',
+  })
   public variationGroup: BelongsTo<typeof VariationGroup>;
 
   @hasMany(() => ProductVariation, {

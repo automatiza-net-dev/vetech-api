@@ -1,17 +1,42 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import Product from 'App/Models/Product';
+import Product, { ProductType } from 'App/Models/Product';
 import SharedService from 'App/Services/SharedService';
 import IProductData from 'Contracts/interfaces/IProductData';
+
+interface ISearch {
+  description?: string;
+  type?: ProductType;
+  reference?: string;
+  collection?: number;
+}
 
 @inject()
 export default class ProductService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string): Promise<Array<Product>> {
+  public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('products').query();
+    const qb = group.related('products').query();
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.reference) {
+      qb.where('reference_code', 'like', `%${data.reference}%`);
+    }
+
+    if (data.collection) {
+      qb.where('collection_year', data.collection);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string): Promise<Product> {

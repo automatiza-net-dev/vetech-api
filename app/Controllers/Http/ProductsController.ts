@@ -12,9 +12,16 @@ export default class ProductsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const result = await this.service.index(unit_id);
+
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, {
+      description: qs.description,
+      type: qs.type,
+      reference: qs.reference,
+      collection: qs.collection,
+    });
 
     return response.ok(result);
   }

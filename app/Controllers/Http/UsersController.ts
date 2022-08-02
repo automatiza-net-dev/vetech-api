@@ -11,8 +11,17 @@ export default class UsersController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ response }: HttpContextContract) {
-    return response.ok(await this.service.index());
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+
+    return response.ok(
+      await this.service.index({
+        name: qs.name,
+        email: qs.email,
+        document: qs.document,
+        phone: qs.phone,
+      }),
+    );
   }
 
   public async show({ params, response }: HttpContextContract) {

@@ -21,12 +21,37 @@ import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  name?: string;
+  email?: string;
+  document?: string;
+  phone?: string;
+}
+
 @inject()
 export default class UserService {
   constructor(private readonly unitService: BusinessUnitService) {}
 
-  public async index(): Promise<Array<User>> {
-    return User.all();
+  public async index(data: ISearch): Promise<Array<User>> {
+    const qb = User.query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.email) {
+      qb.where('email', 'ilike', `%${data.email}%`);
+    }
+
+    if (data.document) {
+      qb.where('document', 'ilike', `%${data.document}%`);
+    }
+
+    if (data.phone) {
+      qb.where('phone', 'ilike', `%${data.phone}%`);
+    }
+
+    return qb;
   }
 
   public async store(data: ICreateUser): Promise<[User, BusinessUnit]> {

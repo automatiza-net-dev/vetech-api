@@ -18,12 +18,27 @@ import {
   startOfDay,
 } from 'date-fns';
 
+interface ISearch {
+  patient?: string;
+  complaint?: string;
+}
+
 @inject()
 export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string): Promise<Array<Schedule>> {
-    return Schedule.query().where('business_unit_id', unitId);
+  public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
+    const qb = Schedule.query().where('business_unit_id', unitId);
+
+    if (data.patient) {
+      qb.where('patient_name', 'ilike', `%${data.patient}%`);
+    }
+
+    if (data.complaint) {
+      qb.where('major_complaint', 'ilike', `%${data.complaint}%`);
+    }
+
+    return qb;
   }
 
   public async usersWithSchedule(unitId: string) {

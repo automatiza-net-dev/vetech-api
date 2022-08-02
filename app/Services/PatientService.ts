@@ -8,19 +8,39 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, { PatientType } from 'App/Models/Patient';
+import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  name?: string;
+  gender?: PatientGender;
+  type?: PatientType;
+}
+
 @inject()
 export default class PatientService {
-  public async index(unitId: string): Promise<Array<Patient>> {
+  public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query();
+    const qb = group.related('patients').query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.gender) {
+      qb.where('gender', data.gender);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    return qb;
   }
 
   public async tutorsIndex(unitId: string): Promise<Array<Patient>> {

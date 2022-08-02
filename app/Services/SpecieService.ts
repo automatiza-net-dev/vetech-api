@@ -14,6 +14,7 @@ export default class SpecieService {
 
     return Specie.query()
       .where('economic_group_id', group.id)
+      .whereNull('deleted_at')
       .orWhereNull('economic_group_id');
   }
 

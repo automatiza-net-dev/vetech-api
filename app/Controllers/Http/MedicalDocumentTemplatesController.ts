@@ -12,10 +12,15 @@ export default class MedicalDocumentTemplatesController {
     private readonly service: MedicalDocumentTemplateService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id);
+    const qs = request.qs();
+
+    const result = await this.service.index(unit_id, {
+      title: qs.title,
+      description: qs.description,
+    });
 
     return response.ok(result);
   }

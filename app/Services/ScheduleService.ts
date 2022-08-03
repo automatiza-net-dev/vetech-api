@@ -266,7 +266,6 @@ export default class ScheduleService {
 
   public async userDailySchedule(unitId: string, user: string, day: Date) {
     const correctDate = addHours(day, 3);
-    const keys = [format(correctDate, 'yyyy-MM-dd')];
 
     const [wDays, uDays, schedules] = await this.getUserGeneralSchedules(
       user,
@@ -275,11 +274,14 @@ export default class ScheduleService {
       endOfDay(correctDate),
     );
 
-    return this.mapSchedulesToDays(keys, wDays, uDays, schedules).map(m =>
-      m.users.map(u => ({
-        event: u.events,
-      })),
-    );
+    const allEvents = [...wDays, ...uDays, ...schedules];
+
+    return allEvents.map(day => ({
+      start: day.startHour.toString(),
+      end: day.endHour.toString(),
+      type: this.getEventLabel(day),
+      event_id: day.id,
+    }));
   }
 
   private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {

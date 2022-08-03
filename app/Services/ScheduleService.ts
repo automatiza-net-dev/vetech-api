@@ -204,7 +204,11 @@ export default class ScheduleService {
           startDate,
           endDate,
         )
-      : await this.getGeneralSchedules(data.business, startDate, endDate);
+      : await this.getGeneralSchedules(
+          data.business,
+          startOfDay(startDate),
+          endOfDay(endDate),
+        );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
@@ -302,7 +306,8 @@ export default class ScheduleService {
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_date', [start, end])
+      .andWhere('start_date', '<', start)
+      .andWhere('end_date', '>', end)
       .preload('user');
 
     const schedules = await Schedule.query()

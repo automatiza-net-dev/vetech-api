@@ -9,8 +9,14 @@ import UpdateRoleValidator from 'App/Validators/Role/UpdateRoleValidator';
 export default class RolesController {
   constructor(private readonly roleService: RoleService) {}
 
-  public async index({ response }: HttpContextContract) {
-    response.ok(await this.roleService.index());
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+
+    response.ok(
+      await this.roleService.index({
+        name: qs.name,
+      }),
+    );
   }
 
   public async show({ params, response }: HttpContextContract) {

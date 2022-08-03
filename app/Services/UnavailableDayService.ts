@@ -1,22 +1,34 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
+
+interface ISearch {
+  frequency?: WeekDay;
+  user?: string;
+}
 
 @inject()
 export default class UnavailableDayService {
   public async index(
     unitId: string,
-    user?: string,
+    data: ISearch,
   ): Promise<Array<UnavailableDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    if (!user) {
-      return unit.related('unavailableDays').query();
+    const qb = unit.related('unavailableDays').query();
+
+    if (data.user) {
+      qb.where('user_id', data.user);
     }
 
-    return unit.related('unavailableDays').query().where('user_id', user);
+    if (data.frequency) {
+      qb.where('frequency', data.frequency);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string): Promise<UnavailableDay> {

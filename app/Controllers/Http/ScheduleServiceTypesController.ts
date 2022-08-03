@@ -12,10 +12,13 @@ export default class ScheduleServiceTypesController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.index(user, unit_id);
+    const qs = request.qs();
+    const data = await this.service.index(user, unit_id, {
+      description: qs.description,
+    });
 
     return response.ok(data);
   }

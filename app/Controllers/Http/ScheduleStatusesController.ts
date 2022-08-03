@@ -12,10 +12,13 @@ export default class ScheduleStatusesController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id, user);
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, user, {
+      description: qs.description,
+    });
 
     return response.ok(result);
   }

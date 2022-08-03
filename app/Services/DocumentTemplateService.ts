@@ -4,14 +4,29 @@ import { DOCUMENT_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IDocumentTemplateData from 'Contracts/interfaces/IDocumentTemplateData';
 
+interface ISearch {
+  description?: string;
+  title?: string;
+}
+
 @inject()
 export default class DocumentTemplateService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('documentTemplates').query();
+    const qb = group.related('documentTemplates').query();
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.title) {
+      qb.where('title', 'ilike', `%${data.title}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string) {

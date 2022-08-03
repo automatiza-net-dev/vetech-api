@@ -16,7 +16,10 @@ export default class UnavailableDaysController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const qs = request.qs();
-    const data = await this.service.index(unit_id, qs.user);
+    const data = await this.service.index(unit_id, {
+      user: qs.user,
+      frequency: qs.frequency,
+    });
 
     return response.ok(data);
   }

@@ -4,10 +4,21 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
 import { IUpdateEconomicGroup } from 'Contracts/interfaces/UpdateEconomicGroup';
 
+interface ISearch {
+  name?: string;
+}
+
 @inject()
 export default class EconomicGroupService {
-  public async index(): Promise<Array<EconomicGroup>> {
-    return EconomicGroup.all();
+  public async index(data: ISearch): Promise<Array<EconomicGroup>> {
+    const qb = EconomicGroup.query();
+
+    if (data.name) {
+      qb.where('fantasy_name', 'like', `%${data.name}%`);
+      qb.orWhere('company_name', 'like', `%${data.name}%`);
+    }
+
+    return qb;
   }
 
   public async show(id: string): Promise<EconomicGroup> {

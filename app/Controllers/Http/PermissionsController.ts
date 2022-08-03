@@ -8,8 +8,14 @@ import UpdatePermissionValidator from 'App/Validators/Permission/UpdatePermissio
 export default class PermissionsController {
   constructor(private readonly service: PermissionService) {}
 
-  public async index({ response }: HttpContextContract) {
-    return response.ok(await this.service.index());
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+
+    return response.ok(
+      await this.service.index({
+        name: qs.name,
+      }),
+    );
   }
 
   public async store({ request, response }: HttpContextContract) {
@@ -23,6 +29,7 @@ export default class PermissionsController {
     const { id } = params;
     return response.ok(await this.service.show(id));
   }
+
   public async update({ params, request, response }: HttpContextContract) {
     const { id } = params;
     const payload = await request.validate(UpdatePermissionValidator);

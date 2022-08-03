@@ -5,6 +5,10 @@ import AttendanceStatusService from 'App/Services/AttendanceStatusService';
 import ScheduleService from 'App/Services/ScheduleService';
 import IAttendanceData from 'Contracts/interfaces/IAttendanceData';
 
+interface ISearchAttendance {
+  complaint?: string;
+}
+
 @inject()
 export default class AttendanceService {
   constructor(
@@ -13,8 +17,14 @@ export default class AttendanceService {
   ) {}
 
   // TODO paginate
-  public async index(unitId: string) {
-    return Attendance.query().where('business_unit_id', unitId);
+  public async index(unitId: string, data: ISearchAttendance) {
+    const query = Attendance.query().where('business_unit_id', unitId);
+
+    if (data.complaint) {
+      query.where('complaint', 'ilike', `%${data.complaint}%`);
+    }
+
+    return query;
   }
 
   public async show(unitId: string, id: string) {

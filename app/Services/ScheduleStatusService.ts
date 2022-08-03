@@ -5,6 +5,10 @@ import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IScheduleStatusData from 'Contracts/interfaces/IScheduleStatusData';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class ScheduleStatusService {
   constructor(private readonly sharedService: SharedService) {}
@@ -12,18 +16,26 @@ export default class ScheduleStatusService {
   public async index(
     unitId: string,
     user: User,
+    data: ISearch,
   ): Promise<Array<ScheduleStatus>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
+    const qb = ScheduleStatus.query();
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
     if (isSuperAdmin) {
-      return ScheduleStatus.all();
+      return qb;
     }
 
     const group = await this.sharedService.getUserGroup(unitId);
-    return ScheduleStatus.query()
-      .where('economic_group_id', group.id)
-      .whereNull('deleted_at')
-      .orWhereNull('economic_group_id');
+    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+      group.id,
+    ]);
+
+    return qb;
   }
 
   public async show(

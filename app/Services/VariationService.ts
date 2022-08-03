@@ -4,14 +4,24 @@ import Variation from 'App/Models/Variation';
 import SharedService from 'App/Services/SharedService';
 import IVariationData from 'Contracts/interfaces/IVariationData';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class VariationService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string): Promise<Array<Variation>> {
+  public async index(unitId: string, data: ISearch): Promise<Array<Variation>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Variation.query().where('economic_group_id', group.id);
+    const qb = Variation.query().where('economic_group_id', group.id);
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string): Promise<Variation> {

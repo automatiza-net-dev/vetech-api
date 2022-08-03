@@ -8,8 +8,13 @@ import UpdatePlanValidator from 'App/Validators/Plan/UpdatePlanValidator';
 export default class PlansController {
   constructor(private readonly planService: PlanService) {}
 
-  public async index({ response }: HttpContextContract) {
-    return response.ok(await this.planService.index());
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+    return response.ok(
+      await this.planService.index({
+        description: qs.description,
+      }),
+    );
   }
 
   public async store({ request, response }: HttpContextContract) {

@@ -7,6 +7,10 @@ import SharedService from 'App/Services/SharedService';
 import IScheduleServiceTypeData from 'Contracts/interfaces/IScheduleServiceTypeData';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class ScheduleServiceTypeService {
   constructor(
@@ -17,19 +21,26 @@ export default class ScheduleServiceTypeService {
   public async index(
     user: User,
     unitId: string,
+    data: ISearch,
   ): Promise<Array<ScheduleServiceType>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
+    const qb = ScheduleServiceType.query();
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
     if (isSuperAdmin) {
-      return ScheduleServiceType.all();
+      return qb;
     }
 
     const group = await this.sharedService.getUserGroup(unitId);
+    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+      group.id,
+    ]);
 
-    return ScheduleServiceType.query()
-      .where('economic_group_id', group.id)
-      .whereNull('deleted_at')
-      .orWhereNull('economic_group_id');
+    return qb;
   }
 
   public async show(

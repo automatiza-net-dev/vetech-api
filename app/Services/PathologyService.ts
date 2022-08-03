@@ -4,13 +4,23 @@ import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IPathologyData from 'Contracts/interfaces/IPathologyData';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class PathologyService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
-    return group.related('pathologies').query();
+    const qb = group.related('pathologies').query();
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string) {

@@ -4,11 +4,21 @@ import AttendanceStatus from 'App/Models/AttendanceStatus';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import IAttendanceStatusData from 'Contracts/interfaces/IAttendanceStatusData';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class AttendanceStatusService {
   // TODO paginate
-  public async index(unitId: string) {
-    return AttendanceStatus.query().where('business_unit_id', unitId);
+  public async index(unitId: string, data: ISearch) {
+    const qb = AttendanceStatus.query().where('business_unit_id', unitId);
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string) {

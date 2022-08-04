@@ -11,6 +11,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import PatientAnimal from 'App/Models/PatientAnimal';
 import PatientTutor from 'App/Models/PatientTutor';
 import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -111,4 +112,10 @@ export default class Patient extends BaseModel {
     foreignKey: 'patient_id',
   })
   public schedules: HasMany<typeof Schedule>;
+
+  @hasMany(() => PatientAnimal, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
+  public patientAnimal: HasMany<typeof PatientAnimal>;
 }

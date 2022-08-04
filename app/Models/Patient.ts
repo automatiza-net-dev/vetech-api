@@ -113,9 +113,9 @@ export default class Patient extends BaseModel {
   })
   public schedules: HasMany<typeof Schedule>;
 
-  @hasMany(() => PatientAnimal, {
+  @hasOne(() => PatientAnimal, {
     localKey: 'id',
     foreignKey: 'patient_id',
   })
-  public patientAnimal: HasMany<typeof PatientAnimal>;
+  public patientAnimal: HasOne<typeof PatientAnimal>;
 }

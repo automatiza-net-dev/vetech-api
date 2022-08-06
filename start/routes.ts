@@ -321,3 +321,10 @@ Route.group(() => {
 })
   .prefix('document-templates')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/animals/:id', 'TimelinesController.animalWeightIndex');
+  Route.post('/animals', 'TimelinesController.animalWeightStore');
+})
+  .prefix('n-timeline')
+  .middleware('auth');

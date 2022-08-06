@@ -23,4 +23,5 @@ export default Env.rules({
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
   MAILGUN_API_KEY: Env.schema.string(),
   MAILGUN_DOMAIN: Env.schema.string(),
+  MONGO_URI: Env.schema.string(),
 });

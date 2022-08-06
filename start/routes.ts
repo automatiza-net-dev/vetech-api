@@ -323,8 +323,15 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
-  Route.get('/animals/:id', 'TimelinesController.animalWeightIndex');
-  Route.post('/animals', 'TimelinesController.animalWeightStore');
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalWeightIndex');
+    Route.post('/', 'TimelinesController.animalWeightStore');
+  }).prefix('weight');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalObservationIndex');
+    Route.post('/', 'TimelinesController.animalObservationStore');
+  }).prefix('observations');
 })
   .prefix('n-timeline')
   .middleware('auth');

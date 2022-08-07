@@ -332,6 +332,11 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalObservationIndex');
     Route.post('/', 'TimelinesController.animalObservationStore');
   }).prefix('observations');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalDocumentIndex');
+    Route.post('/', 'TimelinesController.animalDocumentStore');
+  }).prefix('documents');
 })
   .prefix('n-timeline')
   .middleware('auth');

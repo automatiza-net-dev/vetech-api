@@ -337,6 +337,21 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
     Route.post('/', 'TimelinesController.animalDocumentStore');
   }).prefix('documents');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalPathologyIndex');
+    Route.post('/', 'TimelinesController.animalPathologyStore');
+  }).prefix('pathologies');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalMedicalRecipeIndex');
+    Route.post('/', 'TimelinesController.animalMedicalRecipeStore');
+  }).prefix('recipes');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalPhotoIndex');
+    Route.post('/', 'TimelinesController.animalPhotoStore');
+  }).prefix('photos');
 })
   .prefix('n-timeline')
   .middleware('auth');

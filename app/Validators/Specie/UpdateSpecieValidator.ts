@@ -5,8 +5,7 @@ export default class UpdateSpecieValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    description: schema.string({}, []),
-    code: schema.string.optional({}, []),
+    description: schema.string({}, [])
   });
 
   public messages: CustomMessages = {};

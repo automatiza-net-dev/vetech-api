@@ -19,7 +19,6 @@ test.group('Specie resource', group => {
     const specie = await group.related('species').create({
       id: v4(),
       description: 'some specie',
-      code: v4(),
     });
 
     return [user, group, specie];
@@ -36,7 +35,6 @@ test.group('Specie resource', group => {
       .post('/species')
       .json({
         description: 'some specie',
-        code: v4(),
       })
       .bearerToken(token);
 
@@ -114,7 +112,6 @@ test.group('Specie resource', group => {
       .put(`/species/${species.id}`)
       .json({
         description: 'updated specie',
-        code: v4(),
       })
       .bearerToken(token);
 

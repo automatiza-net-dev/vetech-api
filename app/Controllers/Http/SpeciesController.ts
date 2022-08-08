@@ -18,7 +18,6 @@ export default class SpeciesController {
     const qs = request.qs();
     const result = await this.service.index(unit_id, {
       description: qs.description,
-      code: qs.code,
     });
 
     return response.ok(result);

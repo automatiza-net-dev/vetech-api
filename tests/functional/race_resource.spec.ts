@@ -19,7 +19,6 @@ test.group('Race resource', group => {
     const specie = await group.related('species').create({
       id: v4(),
       description: 'some specie',
-      code: v4(),
     });
 
     const race = await specie.related('races').create({

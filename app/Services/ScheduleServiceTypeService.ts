@@ -25,7 +25,7 @@ export default class ScheduleServiceTypeService {
   ): Promise<Array<ScheduleServiceType>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    const qb = ScheduleServiceType.query();
+    const qb = ScheduleServiceType.query().preload('serviceGroup');
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
@@ -57,6 +57,8 @@ export default class ScheduleServiceTypeService {
     );
 
     if (!type) throw exception;
+
+    await type.load('serviceGroup');
 
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 

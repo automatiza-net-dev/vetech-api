@@ -13,19 +13,21 @@ export default class PatientsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
-    const patients = await this.service.index(
-      auth.use('api').token!.meta.unit_id,
-    );
+  public async index({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const qs = request.qs();
+    const patients = await this.service.index(unit_id, {
+      name: qs.name,
+      gender: qs.gender,
+      type: qs.type,
+    });
 
     return response.ok(patients);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
-    const patients = await this.service.show(
-      auth.use('api').token!.meta.unit_id,
-      params.id,
-    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const patients = await this.service.show(unit_id, params.id);
 
     return response.ok(patients);
   }
@@ -45,20 +47,17 @@ export default class PatientsController {
   }
 
   public async showAnimals({ auth, response }: HttpContextContract) {
-    const patients = await this.service.animalsIndex(
-      auth.use('api').token!.meta.unit_id,
-    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const patients = await this.service.animalsIndex(unit_id);
 
     return response.ok(patients);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const patient = await this.service.store(
-      auth.use('api').token!.meta.unit_id,
-      payload,
-    );
+    const patient = await this.service.store(unit_id, payload);
 
     return response.created(patient);
   }
@@ -70,18 +69,16 @@ export default class PatientsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdatePatientValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const patient = await this.service.update(
-      auth.use('api').token!.meta.unit_id,
-      params.id,
-      payload,
-    );
+    const patient = await this.service.update(unit_id, params.id, payload);
 
     return response.ok(patient);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(auth.use('api').token!.meta.unit_id, params.id);
+    const { unit_id } = this.sharedService.extractUser(auth);
+    await this.service.destroy(unit_id, params.id);
 
     return response.noContent();
   }

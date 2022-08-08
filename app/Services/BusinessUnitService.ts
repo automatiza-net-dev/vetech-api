@@ -7,10 +7,25 @@ import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
 import { v4 } from 'uuid';
 
+interface ISearchBusinessUnit {
+  identification?: string;
+  email?: string;
+}
+
 @inject()
 export default class BusinessUnitService {
-  public async index(): Promise<Array<BusinessUnit>> {
-    return BusinessUnit.query().preload('economicGroup');
+  public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
+    const qb = BusinessUnit.query().preload('economicGroup');
+
+    if (data.identification) {
+      qb.where('identification', 'ilike', `%${data.identification}%`);
+    }
+
+    if (data.email) {
+      qb.where('email', 'ilike', `%${data.email}%`);
+    }
+
+    return qb;
   }
 
   public async store(

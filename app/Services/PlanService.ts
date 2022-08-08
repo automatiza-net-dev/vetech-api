@@ -4,10 +4,20 @@ import Plan from 'App/Models/Plan';
 import IPlanData from 'Contracts/interfaces/IPlanData';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class PlanService {
-  public async index(): Promise<Array<Plan>> {
-    return Plan.all();
+  public async index(data: ISearch): Promise<Array<Plan>> {
+    const qb = Plan.query();
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    return qb;
   }
 
   public async store(data: IPlanData): Promise<Plan> {

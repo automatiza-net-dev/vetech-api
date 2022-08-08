@@ -26,7 +26,6 @@ test.group('Race resource', group => {
       id: v4(),
       description: 'some race',
       economic_group_id: group.id,
-      code: v4(),
     });
 
     return [user, specie, race];
@@ -44,7 +43,6 @@ test.group('Race resource', group => {
       .json({
         description: 'some race',
         specie_id: specie.id,
-        code: v4(),
       })
       .bearerToken(token);
 
@@ -116,7 +114,6 @@ test.group('Race resource', group => {
       .json({
         description: 'updated race',
         specie_id: specie.id,
-        code: v4(),
       })
       .bearerToken(token);
 

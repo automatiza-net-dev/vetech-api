@@ -4,14 +4,29 @@ import { RECIPE_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IMedicalDocumentTemplateData from 'Contracts/interfaces/IMedicalDocumentTemplateData';
 
+interface ISearch {
+  description?: string;
+  title?: string;
+}
+
 @inject()
 export default class MedicalDocumentTemplateService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('medicalDocumentTemplates').query();
+    const qb = group.related('medicalDocumentTemplates').query();
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.title) {
+      qb.where('title', 'ilike', `%${data.title}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string) {

@@ -4,14 +4,24 @@ import Group from 'App/Models/Group';
 import SharedService from 'App/Services/SharedService';
 import IGroupData from 'Contracts/interfaces/IGroupData';
 
+interface ISearch {
+  name?: string;
+}
+
 @inject()
 export default class GroupService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string): Promise<Array<Group>> {
+  public async index(unitId: string, data: ISearch): Promise<Array<Group>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('groups').query();
+    const qb = group.related('groups').query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    return qb;
   }
 
   public async show(unitId: string, id: string): Promise<Group> {

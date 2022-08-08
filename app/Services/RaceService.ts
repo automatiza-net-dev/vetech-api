@@ -5,16 +5,33 @@ import SharedService from 'App/Services/SharedService';
 import IRaceData from 'Contracts/interfaces/IRaceData';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  description?: string;
+  code?: string;
+}
+
 @inject()
 export default class RaceService {
   constructor(protected readonly sharedService: SharedService) {}
 
-  async index(unitId: string): Promise<Array<Race>> {
+  async index(unitId: string, data: ISearch): Promise<Array<Race>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Race.query()
-      .where('economic_group_id', group.id)
-      .orWhereNull('economic_group_id');
+    const qb = Race.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
+      .whereNull('deleted_at');
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.code) {
+      qb.where('code', 'ilike', `%${data.code}%`);
+    }
+
+    return qb;
   }
 
   async show(unitId: string, id: string): Promise<Race> {
@@ -56,7 +73,6 @@ export default class RaceService {
       id: v4(),
       description: payload.description,
       economic_group_id: group.id,
-      code: payload.code,
     });
   }
 

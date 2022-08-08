@@ -17,6 +17,10 @@ export default class CreatePatientValidator {
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
+    raceId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'races', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

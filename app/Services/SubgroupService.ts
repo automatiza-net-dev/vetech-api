@@ -5,17 +5,24 @@ import Subgroup from 'App/Models/Subgroup';
 import SharedService from 'App/Services/SharedService';
 import ISubgroupData from 'Contracts/interfaces/ISubgroupData';
 
+interface ISearch {
+  description?: string;
+}
+
 @inject()
 export default class SubgroupService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const subgroups = await group
-      .related('subgroups')
-      .query()
-      .preload('children');
+    const qb = group.related('subgroups').query();
+
+    if (data.description) {
+      qb.where('description', 'like', `%${data.description}%`);
+    }
+
+    const subgroups = await qb.preload('children');
 
     return this.listToTree(subgroups.map(this.mapModelObject));
   }

@@ -18,12 +18,27 @@ import {
   startOfDay,
 } from 'date-fns';
 
+interface ISearch {
+  patient?: string;
+  complaint?: string;
+}
+
 @inject()
 export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string): Promise<Array<Schedule>> {
-    return Schedule.query().where('business_unit_id', unitId);
+  public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
+    const qb = Schedule.query().where('business_unit_id', unitId);
+
+    if (data.patient) {
+      qb.where('patient_name', 'ilike', `%${data.patient}%`);
+    }
+
+    if (data.complaint) {
+      qb.where('major_complaint', 'ilike', `%${data.complaint}%`);
+    }
+
+    return qb;
   }
 
   public async usersWithSchedule(unitId: string) {
@@ -204,7 +219,11 @@ export default class ScheduleService {
           startDate,
           endDate,
         )
-      : await this.getGeneralSchedules(data.business, startDate, endDate);
+      : await this.getGeneralSchedules(
+          data.business,
+          startOfDay(startDate),
+          endOfDay(endDate),
+        );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
@@ -228,18 +247,33 @@ export default class ScheduleService {
         day => k === format(day.startHour.toJSDate(), 'yyyy-MM-dd'),
       );
 
+      const users = [
+        filteredUnavailableDays.map(s => s.user),
+        filteredWorkingDays.map(s => s.user),
+        filteredSchedules.map(s => s.user),
+      ].flat();
+      const uniqueIds = Array.from(new Set(users.map(u => u.id)));
+      const uniqueUsers = uniqueIds.map(id => users.find(u => u.id === id)!);
+
+      const allEvents = [
+        ...filteredWorkingDays,
+        ...filteredUnavailableDays,
+        ...filteredSchedules,
+      ];
+
       return {
         date: k,
-        events: [
-          ...filteredWorkingDays,
-          ...filteredUnavailableDays,
-          ...filteredSchedules,
-        ].map(day => ({
-          start: day.startHour.toString(),
-          end: day.endHour.toString(),
-          type: this.getEventLabel(day),
-          user: day.user,
-          event_id: day.id,
+        users: uniqueUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          events: allEvents
+            .filter(e => e.user.id === u.id)
+            .map(day => ({
+              start: day.startHour.toString(),
+              end: day.endHour.toString(),
+              type: this.getEventLabel(day),
+              event_id: day.id,
+            })),
         })),
       };
     });
@@ -247,7 +281,6 @@ export default class ScheduleService {
 
   public async userDailySchedule(unitId: string, user: string, day: Date) {
     const correctDate = addHours(day, 3);
-    const keys = [format(correctDate, 'yyyy-MM-dd')];
 
     const [wDays, uDays, schedules] = await this.getUserGeneralSchedules(
       user,
@@ -256,9 +289,32 @@ export default class ScheduleService {
       endOfDay(correctDate),
     );
 
-    return this.mapSchedulesToDays(keys, wDays, uDays, schedules).map(
-      m => m.events,
-    );
+    const allEvents = [...wDays, ...uDays, ...schedules];
+
+    return allEvents.map(day => ({
+      start: day.startHour.toString(),
+      end: day.endHour.toString(),
+      type: this.getEventLabel(day),
+      event_id: day.id,
+    }));
+  }
+
+  public async userAppointments(unitId: string, uid: string, day: Date) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const user = await group
+      .related('users')
+      .query()
+      .where('user_id', uid)
+      .firstOrFail();
+
+    return user
+      .related('schedules')
+      .query()
+      .whereBetween('start_hour', [startOfDay(day), endOfDay(day)])
+      .preload('patient')
+      .preload('serviceType')
+      .preload('serviceStatus')
+      .preload('race');
   }
 
   private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {
@@ -285,7 +341,8 @@ export default class ScheduleService {
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhereBetween('start_date', [start, end])
+      .andWhere('start_date', '<', start)
+      .andWhere('end_date', '>', end)
       .preload('user');
 
     const schedules = await Schedule.query()

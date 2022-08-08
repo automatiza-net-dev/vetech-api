@@ -3,10 +3,20 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Permission from 'App/Models/Permission';
 import IPermissionData from 'Contracts/interfaces/PermissionData';
 
+interface ISearch {
+  name?: string;
+}
+
 @inject()
 export default class PermissionService {
-  public async index(): Promise<Array<Permission>> {
-    return Permission.all();
+  public async index(data: ISearch): Promise<Array<Permission>> {
+    const qb = Permission.query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    return qb;
   }
 
   public async store(data: IPermissionData): Promise<Permission> {

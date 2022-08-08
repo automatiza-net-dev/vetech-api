@@ -212,6 +212,7 @@ Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
+  Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
 
   Route.get('/', 'SchedulesController.index');
   Route.post('/', 'SchedulesController.store');

@@ -31,7 +31,7 @@ test.group('Variation resource', group => {
   test('should return all variations', async ({ assert }) => {
     const { unit, variation } = await createData();
 
-    const result = await service.index(unit.id);
+    const result = await service.index(unit.id, {});
 
     assert.isArray(result);
     assert.isTrue(Boolean(result.find(f => f.id === variation.id)));

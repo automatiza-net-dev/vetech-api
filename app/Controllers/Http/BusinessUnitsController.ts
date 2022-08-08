@@ -14,8 +14,14 @@ export default class BusinessUnitsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ response }: HttpContextContract) {
-    return response.ok(await this.service.index());
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+    return response.ok(
+      await this.service.index({
+        email: qs.email,
+        identification: qs.identification,
+      }),
+    );
   }
 
   public async store({ auth, request, response }: HttpContextContract) {

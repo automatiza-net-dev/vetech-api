@@ -12,10 +12,12 @@ export default class AttendancesController {
     protected readonly service: AttendanceService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id);
+    const result = await this.service.index(unit_id, {
+      complaint: request.qs().complaint,
+    });
 
     return response.ok(result);
   }

@@ -5,16 +5,29 @@ import SharedService from 'App/Services/SharedService';
 import ISpecieData from 'Contracts/interfaces/ISpecieData';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  description?: string;
+  code?: string;
+}
+
 @inject()
 export default class SpecieService {
   constructor(protected readonly sharedService: SharedService) {}
 
-  async index(unitId: string): Promise<Array<Specie>> {
+  async index(unitId: string, data: ISearch): Promise<Array<Specie>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Specie.query()
-      .where('economic_group_id', group.id)
-      .orWhereNull('economic_group_id');
+    const qb = Specie.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
+      .whereNull('deleted_at');
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    return qb;
   }
 
   async show(unitId: string, id: string): Promise<Specie> {
@@ -42,7 +55,6 @@ export default class SpecieService {
     return group.related('species').create({
       id: v4(),
       description: payload.description,
-      code: payload.code,
     });
   }
 

@@ -8,19 +8,39 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, { PatientType } from 'App/Models/Patient';
+import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  name?: string;
+  gender?: PatientGender;
+  type?: PatientType;
+}
+
 @inject()
 export default class PatientService {
-  public async index(unitId: string): Promise<Array<Patient>> {
+  public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query();
+    const qb = group.related('patients').query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.gender) {
+      qb.where('gender', data.gender);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    return qb;
   }
 
   public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
@@ -56,7 +76,7 @@ export default class PatientService {
   }
 
   public async tutorNonPatients(unitId: string, id: string) {
-    const tutor = await this.show(unitId, id, true);
+    const tutor = await this.show(unitId, id);
     const animalsIndex = await this.animalsIndex(unitId);
 
     const dependents = tutor.dependents.map(d => d.id);
@@ -64,11 +84,7 @@ export default class PatientService {
     return animalsIndex.filter(f => !dependents.includes(f.id));
   }
 
-  public async show(
-    unitId: string,
-    patientId: string,
-    withTutored = false,
-  ): Promise<Patient> {
+  public async show(unitId: string, patientId: string): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
     const patient = await group
@@ -85,9 +101,14 @@ export default class PatientService {
       );
     }
 
-    if (patient.type === PatientType.TUTOR && withTutored) {
+    if (patient.type === PatientType.TUTOR) {
       await patient.load('tutor');
       await patient.load('dependents');
+    }
+
+    if (patient.type === PatientType.ANIMAL) {
+      await patient.load('tutors');
+      await patient.load('patientAnimal');
     }
 
     return patient;
@@ -131,6 +152,13 @@ export default class PatientService {
       await holder.related('dependents').attach([patient.id], trx);
 
       await group.related('patients').attach([patient.id], trx);
+
+      await patient.related('patientAnimal').create(
+        {
+          race_id: data.raceId,
+        },
+        trx,
+      );
 
       await trx.commit();
 
@@ -209,7 +237,7 @@ export default class PatientService {
   }
 
   public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    const tutor = await this.show(unitId, data.holder, true);
+    const tutor = await this.show(unitId, data.holder);
     const patient = await this.show(unitId, data.patient);
 
     const dependents = tutor.dependents.map(d => d.id);
@@ -225,20 +253,47 @@ export default class PatientService {
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
-    const photo = data.photo
-      ? await this.uploadPhoto(data.photo)
-      : patient.photo;
+    const trx = await Database.transaction();
 
-    return patient
-      .merge({
-        name: data.name,
-        photo,
-        gender: data.gender,
-        tags: data.tags,
-        birthDate: data.birthDate.toJSDate(),
-        active: data.active,
-      })
-      .save();
+    try {
+      const photo = data.photo
+        ? await this.uploadPhoto(data.photo)
+        : patient.photo;
+
+      await patient
+        .merge({
+          name: data.name,
+          photo,
+          gender: data.gender,
+          tags: data.tags,
+          birthDate: data.birthDate.toJSDate(),
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+
+      if (patient.patientAnimal) {
+        await patient.patientAnimal
+          .merge({
+            race_id: data.raceId,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
+      await trx.commit();
+    } catch (e) {
+      Logger.error(e.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    return patient;
   }
 
   public async updateTutor(

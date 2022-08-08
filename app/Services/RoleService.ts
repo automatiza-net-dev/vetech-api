@@ -6,12 +6,22 @@ import PermissionService from 'App/Services/PermissionService';
 import IAddPermissionToRole from 'Contracts/interfaces/AddPermissionToRole';
 import IRoleData from 'Contracts/interfaces/IRoleData';
 
+interface ISearch {
+  name?: string;
+}
+
 @inject()
 export default class RoleService {
   constructor(private readonly permissionService: PermissionService) {}
 
-  public async index(): Promise<Array<Role>> {
-    return Role.all();
+  public async index(data: ISearch): Promise<Array<Role>> {
+    const qb = Role.query();
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    return qb;
   }
 
   public async store(data: IRoleData): Promise<Role> {

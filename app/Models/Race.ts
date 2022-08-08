@@ -27,9 +27,6 @@ export default class Race extends BaseModel {
   @column()
   public economic_group_id?: string;
 
-  @column()
-  public code: string;
-
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

@@ -46,7 +46,10 @@ export default class Race extends BaseModel {
     await softDelete(this, column);
   }
 
-  @belongsTo(() => Specie, {})
+  @belongsTo(() => Specie, {
+    localKey: 'id',
+    foreignKey: 'specie_id',
+  })
   public specie: BelongsTo<typeof Specie>;
 
   @belongsTo(() => EconomicGroup, {})

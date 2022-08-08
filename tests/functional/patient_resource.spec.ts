@@ -43,6 +43,7 @@ test.group('Patient resource', group => {
     return [user, patient, holder, group, race];
   };
 
+
   const createGroupData = async (group: EconomicGroup) => {
     const patient = await PatientFactory.create();
     const holder = await PatientFactory.create();

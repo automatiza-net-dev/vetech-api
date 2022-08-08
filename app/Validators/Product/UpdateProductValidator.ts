@@ -15,6 +15,20 @@ export default class UpdateProductValidator {
     features: schema.string({}, []),
     unityType: schema.string({}, []),
     active: schema.boolean([]),
+    groupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'groups',
+        column: 'id',
+      }),
+    ]),
+    subgroupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'subgroups',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

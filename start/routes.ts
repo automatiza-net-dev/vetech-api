@@ -91,18 +91,32 @@ Route.group(() => {
 }).prefix('licences');
 
 Route.group(() => {
-  Route.get('/', 'InvitesController.index').middleware('auth');
-  Route.post('/', 'InvitesController.store').middleware('auth');
   Route.get('/check/:id', 'InvitesController.check');
   Route.get('/:id', 'InvitesController.show');
-  Route.put('/:id', 'InvitesController.update').middleware('auth');
+
   Route.post('/accept-invite', 'InvitesController.acceptInvite');
   Route.post(
     '/accept-invite-new-user',
     'InvitesController.acceptInviteNewUser',
   );
-  Route.delete('/:id', 'InvitesController.destroy').middleware('auth');
+
+  Route.group(() => {
+    Route.get('/', 'InvitesController.index');
+    Route.post('/', 'InvitesController.store');
+    Route.put('/:id', 'InvitesController.update');
+    Route.delete('/:id', 'InvitesController.destroy');
+  }).middleware('auth');
 }).prefix('invites');
+
+
+Route.group(() => {
+  Route.get('/', 'PatientTutorsController.index');
+  Route.post('/', 'PatientTutorsController.store');
+  Route.get('/:id', 'PatientTutorsController.show');
+  Route.put('/:id', 'PatientTutorsController.update');
+})
+  .prefix('patient-tutors')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/search', 'PatientsController.search').middleware('auth');
@@ -112,7 +126,8 @@ Route.group(() => {
   Route.post('/', 'PatientsController.store').middleware('auth');
   Route.put('/:id', 'PatientsController.update').middleware('auth');
   Route.delete('/:id', 'PatientsController.destroy').middleware('auth');
-}).prefix('patients');
+}).prefix('patients')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/nr/:id', 'PatientTutorsController.notRelated').middleware('auth');
@@ -124,58 +139,64 @@ Route.group(() => {
 }).prefix('patient-tutors');
 
 Route.group(() => {
-  Route.get('/', 'SpeciesController.index').middleware('auth');
-  Route.post('/', 'SpeciesController.store').middleware('auth');
-  Route.get('/:id', 'SpeciesController.show').middleware('auth');
-  Route.put('/:id', 'SpeciesController.update').middleware('auth');
-  Route.delete('/:id', 'SpeciesController.destroy').middleware('auth');
-}).prefix('species');
+  Route.get('/', 'SpeciesController.index');
+  Route.post('/', 'SpeciesController.store');
+  Route.get('/:id', 'SpeciesController.show');
+  Route.put('/:id', 'SpeciesController.update');
+  Route.delete('/:id', 'SpeciesController.destroy');
+})
+  .prefix('species')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'RacesController.index').middleware('auth');
-  Route.post('/', 'RacesController.store').middleware('auth');
-  Route.get('/:id', 'RacesController.show').middleware('auth');
-  Route.put('/:id', 'RacesController.update').middleware('auth');
-  Route.delete('/:id', 'RacesController.destroy').middleware('auth');
-}).prefix('races');
+  Route.get('/', 'RacesController.index');
+  Route.post('/', 'RacesController.store');
+  Route.get('/:id', 'RacesController.show');
+  Route.put('/:id', 'RacesController.update');
+  Route.delete('/:id', 'RacesController.destroy');
+})
+  .prefix('races')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'ScheduleStatusesController.index').middleware('auth');
-  Route.post('/', 'ScheduleStatusesController.store').middleware('auth');
-  Route.get('/:id', 'ScheduleStatusesController.show').middleware('auth');
-  Route.put('/:id', 'ScheduleStatusesController.update').middleware('auth');
-  Route.delete('/:id', 'ScheduleStatusesController.destroy').middleware('auth');
-}).prefix('schedule-statuses');
+  Route.get('/', 'ScheduleStatusesController.index');
+  Route.post('/', 'ScheduleStatusesController.store');
+  Route.get('/:id', 'ScheduleStatusesController.show');
+  Route.put('/:id', 'ScheduleStatusesController.update');
+  Route.delete('/:id', 'ScheduleStatusesController.destroy');
+})
+  .prefix('schedule-statuses')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'ScheduleServiceGroupsController.index').middleware('auth');
-  Route.post('/', 'ScheduleServiceGroupsController.store').middleware('auth');
-  Route.get('/:id', 'ScheduleServiceGroupsController.show').middleware('auth');
-  Route.put('/:id', 'ScheduleServiceGroupsController.update').middleware(
-    'auth',
-  );
-  Route.delete('/:id', 'ScheduleServiceGroupsController.destroy').middleware(
-    'auth',
-  );
-}).prefix('schedule-service-groups');
+  Route.get('/', 'ScheduleServiceGroupsController.index');
+  Route.post('/', 'ScheduleServiceGroupsController.store');
+  Route.get('/:id', 'ScheduleServiceGroupsController.show');
+  Route.put('/:id', 'ScheduleServiceGroupsController.update');
+  Route.delete('/:id', 'ScheduleServiceGroupsController.destroy');
+})
+  .prefix('schedule-service-groups')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'ScheduleServiceTypesController.index').middleware('auth');
-  Route.post('/', 'ScheduleServiceTypesController.store').middleware('auth');
-  Route.get('/:id', 'ScheduleServiceTypesController.show').middleware('auth');
-  Route.put('/:id', 'ScheduleServiceTypesController.update').middleware('auth');
-  Route.delete('/:id', 'ScheduleServiceTypesController.destroy').middleware(
-    'auth',
-  );
-}).prefix('schedule-service-types');
+  Route.get('/', 'ScheduleServiceTypesController.index');
+  Route.post('/', 'ScheduleServiceTypesController.store');
+  Route.get('/:id', 'ScheduleServiceTypesController.show');
+  Route.put('/:id', 'ScheduleServiceTypesController.update');
+  Route.delete('/:id', 'ScheduleServiceTypesController.destroy');
+})
+  .prefix('schedule-service-types')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'WorkingDaysController.index').middleware('auth');
-  Route.post('/', 'WorkingDaysController.store').middleware('auth');
-  Route.get('/:id', 'WorkingDaysController.show').middleware('auth');
-  Route.put('/:id', 'WorkingDaysController.update').middleware('auth');
-  Route.delete('/:id', 'WorkingDaysController.destroy').middleware('auth');
-}).prefix('working-days');
+  Route.get('/', 'WorkingDaysController.index');
+  Route.post('/', 'WorkingDaysController.store');
+  Route.get('/:id', 'WorkingDaysController.show');
+  Route.put('/:id', 'WorkingDaysController.update');
+  Route.delete('/:id', 'WorkingDaysController.destroy');
+})
+  .prefix('working-days')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'UnavailableDaysController.index');
@@ -203,20 +224,34 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'GroupsController.index').middleware('auth');
-  Route.post('/', 'GroupsController.store').middleware('auth');
-  Route.get('/:id', 'GroupsController.show').middleware('auth');
-  Route.put('/:id', 'GroupsController.update').middleware('auth');
-  Route.delete('/:id', 'GroupsController.destroy').middleware('auth');
-}).prefix('groups');
+  Route.get('/', 'GroupsController.index');
+  Route.post('/', 'GroupsController.store');
+  Route.get('/:id', 'GroupsController.show');
+  Route.put('/:id', 'GroupsController.update');
+  Route.delete('/:id', 'GroupsController.destroy');
+})
+  .prefix('groups')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'ProductsController.index').middleware('auth');
-  Route.post('/', 'ProductsController.store').middleware('auth');
-  Route.get('/:id', 'ProductsController.show').middleware('auth');
-  Route.put('/:id', 'ProductsController.update').middleware('auth');
-  Route.delete('/:id', 'ProductsController.destroy').middleware('auth');
-}).prefix('products');
+  Route.get('/', 'ProductsController.index');
+  Route.post('/', 'ProductsController.store');
+  Route.get('/:id', 'ProductsController.show');
+  Route.put('/:id', 'ProductsController.update');
+  Route.delete('/:id', 'ProductsController.destroy');
+})
+  .prefix('products')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ProductVariationsController.index');
+  Route.post('/', 'ProductVariationsController.store');
+  Route.get('/:id', 'ProductVariationsController.show');
+  Route.put('/:id', 'ProductVariationsController.update');
+  Route.delete('/:id', 'ProductVariationsController.destroy');
+})
+  .prefix('product-variations')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'BusinessUnitProductsController.index');
@@ -229,41 +264,47 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'SubgroupsController.index').middleware('auth');
-  Route.post('/', 'SubgroupsController.store').middleware('auth');
-  Route.get('/:id', 'SubgroupsController.show').middleware('auth');
-  Route.put('/:id', 'SubgroupsController.update').middleware('auth');
-  Route.delete('/:id', 'SubgroupsController.destroy').middleware('auth');
-}).prefix('subgroups');
+  Route.get('/', 'SubgroupsController.index');
+  Route.post('/', 'SubgroupsController.store');
+  Route.get('/:id', 'SubgroupsController.show');
+  Route.put('/:id', 'SubgroupsController.update');
+  Route.delete('/:id', 'SubgroupsController.destroy');
+})
+  .prefix('subgroups')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'VariationsController.index').middleware('auth');
-  Route.post('/', 'VariationsController.store').middleware('auth');
-  Route.get('/:id', 'VariationsController.show').middleware('auth');
-  Route.put('/:id', 'VariationsController.update').middleware('auth');
-  Route.delete('/:id', 'VariationsController.destroy').middleware('auth');
-}).prefix('variations');
+  Route.get('/', 'VariationsController.index');
+  Route.post('/', 'VariationsController.store');
+  Route.get('/:id', 'VariationsController.show');
+  Route.put('/:id', 'VariationsController.update');
+  Route.delete('/:id', 'VariationsController.destroy');
+})
+  .prefix('variations')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'VariationOptionsController.index').middleware('auth');
-  Route.post('/', 'VariationOptionsController.store').middleware('auth');
-  Route.get('/:id', 'VariationOptionsController.show').middleware('auth');
-  Route.put('/:id', 'VariationOptionsController.update').middleware('auth');
-  Route.delete('/:id', 'VariationOptionsController.destroy').middleware('auth');
-}).prefix('variation-options');
+  Route.get('/', 'VariationOptionsController.index');
+  Route.post('/', 'VariationOptionsController.store');
+  Route.get('/:id', 'VariationOptionsController.show');
+  Route.put('/:id', 'VariationOptionsController.update');
+  Route.delete('/:id', 'VariationOptionsController.destroy');
+})
+  .prefix('variation-options')
+  .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'VariationGroupsController.index').middleware('auth');
-  Route.post('/assign', 'VariationGroupsController.assign').middleware('auth');
-  Route.post('/', 'VariationGroupsController.store').middleware('auth');
-  Route.get('/:id', 'VariationGroupsController.show').middleware('auth');
-  Route.put('/:id', 'VariationGroupsController.update').middleware('auth');
+  Route.get('/', 'VariationGroupsController.index');
+  Route.post('/assign', 'VariationGroupsController.assign');
+  Route.post('/', 'VariationGroupsController.store');
+  Route.get('/:id', 'VariationGroupsController.show');
+  Route.put('/:id', 'VariationGroupsController.update');
   Route.delete(
     '/:group/:variation',
     'VariationGroupsController.detach',
-  ).middleware('auth');
-  Route.delete('/:id', 'VariationGroupsController.destroy').middleware('auth');
-}).prefix('variation-groups');
+  );
+  Route.delete('/:id', 'VariationGroupsController.destroy');
+}).prefix('variation-groups').middleware('auth');
 
 Route.group(() => {
   Route.get('/', 'AttendanceStatusesController.index');

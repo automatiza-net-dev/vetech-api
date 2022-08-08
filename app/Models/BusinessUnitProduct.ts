@@ -7,7 +7,7 @@ import {
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import Product from 'App/Models/Product';
+import ProductVariation from 'App/Models/ProductVariation';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -82,10 +82,10 @@ export default class BusinessUnitProduct extends BaseModel {
   }
 
   @column()
-  public product_id: string;
+  public product_variation_id: string;
 
-  @belongsTo(() => Product)
-  public product: BelongsTo<typeof Product>;
+  @belongsTo(() => ProductVariation)
+  public productVariation: BelongsTo<typeof ProductVariation>;
 
   @column()
   public businness_unit_id: string;

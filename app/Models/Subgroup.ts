@@ -9,6 +9,7 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Product from 'App/Models/Product';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -70,4 +71,7 @@ export default class Subgroup extends BaseModel {
   })
   // eslint-disable-next-line no-use-before-define
   public children: HasMany<typeof Subgroup>;
+
+  @hasMany(() => Product)
+  public products: HasMany<typeof Product>;
 }

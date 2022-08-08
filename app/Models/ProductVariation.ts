@@ -7,19 +7,22 @@ import {
   column,
   HasMany,
   hasMany,
+  ManyToMany,
+  manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
+import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import Product from 'App/Models/Product';
+import VariationOption from 'App/Models/VariationOption';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export default class Group extends BaseModel {
+export default class ProductVariation extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
-  public name: string;
+  public barcode: string;
 
   @column()
   public active: boolean;
@@ -44,11 +47,24 @@ export default class Group extends BaseModel {
   }
 
   @column()
-  public economic_group_id: string;
+  public product_id: string;
 
-  @belongsTo(() => EconomicGroup)
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
+  @belongsTo(() => Product, {})
+  public product: BelongsTo<typeof Product>;
 
-  @hasMany(() => Product)
-  public products: HasMany<typeof Product>;
+  @hasMany(() => BusinessUnitProduct, {
+    localKey: 'id',
+    foreignKey: 'product_variation_id',
+  })
+  public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
+
+  @manyToMany(() => VariationOption, {
+    pivotTable: 'product_variation_options',
+    pivotTimestamps: false,
+    localKey: 'id',
+    pivotForeignKey: 'product_variation_id',
+    relatedKey: 'id',
+    pivotRelatedForeignKey: 'variation_option_id',
+  })
+  public variationOptions: ManyToMany<typeof VariationOption>;
 }

@@ -108,6 +108,7 @@ export default class PatientService {
 
     if (patient.type === PatientType.ANIMAL) {
       await patient.load('tutors');
+      await patient.load('patientAnimal');
     }
 
     return patient;
@@ -151,6 +152,13 @@ export default class PatientService {
       await holder.related('dependents').attach([patient.id], trx);
 
       await group.related('patients').attach([patient.id], trx);
+
+      await patient.related('patientAnimal').create(
+        {
+          race_id: data.raceId,
+        },
+        trx,
+      );
 
       await trx.commit();
 
@@ -245,20 +253,47 @@ export default class PatientService {
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
-    const photo = data.photo
-      ? await this.uploadPhoto(data.photo)
-      : patient.photo;
+    const trx = await Database.transaction();
 
-    return patient
-      .merge({
-        name: data.name,
-        photo,
-        gender: data.gender,
-        tags: data.tags,
-        birthDate: data.birthDate.toJSDate(),
-        active: data.active,
-      })
-      .save();
+    try {
+      const photo = data.photo
+        ? await this.uploadPhoto(data.photo)
+        : patient.photo;
+
+      await patient
+        .merge({
+          name: data.name,
+          photo,
+          gender: data.gender,
+          tags: data.tags,
+          birthDate: data.birthDate.toJSDate(),
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+
+      if (patient.patientAnimal) {
+        await patient.patientAnimal
+          .merge({
+            race_id: data.raceId,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
+      await trx.commit();
+    } catch (e) {
+      Logger.error(e.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    return patient;
   }
 
   public async updateTutor(

@@ -20,7 +20,8 @@ export default class RaceService {
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         group.id,
       ])
-      .whereNull('deleted_at');
+      .whereNull('deleted_at')
+      .preload('specie');
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
@@ -44,6 +45,8 @@ export default class RaceService {
         'E_NOT_FOUND',
       );
     }
+
+    await race.load('specie');
 
     return race;
   }

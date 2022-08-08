@@ -7,7 +7,6 @@ import { v4 } from 'uuid';
 
 interface ISearch {
   description?: string;
-  code?: string;
 }
 
 @inject()

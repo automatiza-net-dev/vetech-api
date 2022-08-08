@@ -177,7 +177,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type' | 'holderId'> &
+    data: Omit<IPatientData, 'active' | 'type' | 'holderId' | 'raceId'> &
       IPatientTutorData,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
@@ -299,7 +299,8 @@ export default class PatientService {
   public async updateTutor(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'type' | 'holderId'> & IPatientTutorData,
+    data: Omit<IPatientData, 'type' | 'holderId' | 'raceId'> &
+      IPatientTutorData,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();

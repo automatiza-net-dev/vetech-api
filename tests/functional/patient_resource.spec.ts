@@ -30,19 +30,16 @@ test.group('Patient resource', group => {
     const specie = await group.related('species').create({
       id: v4(),
       description: 'some specie',
-      code: v4(),
     });
 
     const race = await specie.related('races').create({
       id: v4(),
       description: 'some race',
       economic_group_id: group.id,
-      code: v4(),
     });
 
     return [user, patient, holder, group, race];
   };
-
 
   const createGroupData = async (group: EconomicGroup) => {
     const patient = await PatientFactory.create();

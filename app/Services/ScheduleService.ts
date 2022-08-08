@@ -299,6 +299,24 @@ export default class ScheduleService {
     }));
   }
 
+  public async userAppointments(unitId: string, uid: string, day: Date) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const user = await group
+      .related('users')
+      .query()
+      .where('user_id', uid)
+      .firstOrFail();
+
+    return user
+      .related('schedules')
+      .query()
+      .whereBetween('start_hour', [startOfDay(day), endOfDay(day)])
+      .preload('patient')
+      .preload('serviceType')
+      .preload('serviceStatus')
+      .preload('race');
+  }
+
   private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore

@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 
 interface ISearch {
   description?: string;
+  specie?: string;
 }
 
 @inject()
@@ -21,6 +22,9 @@ export default class RaceService {
         group.id,
       ])
       .whereNull('deleted_at')
+      .whereHas('specie', query => {
+        query.whereILike('description', `%${data.specie ?? ''}%`);
+      })
       .preload('specie');
 
     if (data.description) {

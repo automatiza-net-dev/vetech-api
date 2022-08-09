@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import User from 'App/Models/User';
 import ScheduleServiceGroupService from 'App/Services/ScheduleServiceGroupService';
@@ -8,6 +9,7 @@ import IScheduleServiceTypeData from 'Contracts/interfaces/IScheduleServiceTypeD
 import { v4 } from 'uuid';
 
 interface ISearch {
+  group?: string;
   description?: string;
 }
 
@@ -25,22 +27,30 @@ export default class ScheduleServiceTypeService {
   ): Promise<Array<ScheduleServiceType>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    const qb = ScheduleServiceType.query().preload('serviceGroup');
+    const groupQb = ScheduleServiceGroup.query().where(
+      'description',
+      'like',
+      `%${data.group ?? ''}%`,
+    );
 
-    if (data.description) {
-      qb.where('description', 'ilike', `%${data.description}%`);
+    if (!isSuperAdmin) {
+      const group = await this.sharedService.getUserGroup(unitId);
+      groupQb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ]);
     }
 
-    if (isSuperAdmin) {
-      return qb;
-    }
+    await groupQb.preload('types', qb => {
+      qb.where('description', 'ilike', `%${data.description ?? ''}%`);
+    });
 
-    const group = await this.sharedService.getUserGroup(unitId);
-    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-      group.id,
-    ]);
+    const result = await groupQb;
 
-    return qb;
+    const types = result.map(group => group.types).flat();
+
+    await Promise.all(types.map(type => type.load('serviceGroup')));
+
+    return types;
   }
 
   public async show(
@@ -57,8 +67,6 @@ export default class ScheduleServiceTypeService {
     );
 
     if (!type) throw exception;
-
-    await type.load('serviceGroup');
 
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 

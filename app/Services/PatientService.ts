@@ -50,7 +50,8 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
-      .preload('tutor');
+      .preload('tutor')
+      .preload('dependents');
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {

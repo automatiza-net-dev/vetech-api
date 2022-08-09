@@ -57,7 +57,10 @@ export default class ScheduleServiceType extends BaseModel {
   @column()
   public schedule_service_group_id: string;
 
-  @belongsTo(() => ScheduleServiceGroup, {})
+  @belongsTo(() => ScheduleServiceGroup, {
+    localKey: 'id',
+    foreignKey: 'schedule_service_group_id',
+  })
   public serviceGroup: BelongsTo<typeof ScheduleServiceGroup>;
 
   @hasMany(() => Schedule, {

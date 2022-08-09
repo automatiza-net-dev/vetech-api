@@ -18,6 +18,7 @@ export default class ScheduleServiceTypesController {
     const qs = request.qs();
     const data = await this.service.index(user, unit_id, {
       description: qs.description,
+      group: qs.group,
     });
 
     return response.ok(data);

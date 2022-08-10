@@ -67,8 +67,17 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
-      .preload('tutor')
-      .preload('dependents');
+      .preload('tutor', query => {
+        query.whereILike('document', `%${data.document ?? ''}`);
+        query.whereILike('cellphone', `%${data.phone ?? ''}`);
+      })
+      .preload('dependents', query => {
+        query.preload('patientAnimal', subquery => {
+          subquery.preload('race', subsubquery => {
+            subsubquery.whereILike('description', `%${data.race ?? ''}`);
+          });
+        });
+      });
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -82,39 +91,16 @@ export default class PatientService {
 
     const result = await qb;
 
-    await Promise.all(
-      result.map(model => model.dependents.map(d => d.load('patientAnimal'))),
-    );
-
-    await Promise.all(
-      result.map(model =>
-        model.dependents.map(d => d.patientAnimal?.load('race')),
-      ),
-    );
-
     return result.filter(model => {
-      if (
-        data.document &&
-        !model.tutor.document
-          .toLowerCase()
-          .includes(data.document.toLowerCase())
-      ) {
+      if (data.document && !model.tutor) {
+        return false;
+      }
+      if (data.phone && !model.tutor) {
         return false;
       }
 
-      if (
-        data.phone &&
-        !model.tutor.cellphone.toLowerCase().includes(data.phone.toLowerCase())
-      ) {
+      if (data.race && !model.patientAnimal.race) {
         return false;
-      }
-
-      if (data.race) {
-        return Boolean(
-          model.dependents.find((d: Patient) =>
-            d.patientAnimal?.race.description.includes(data.patient ?? ''),
-          ),
-        );
       }
 
       return true;
@@ -487,11 +473,5 @@ export default class PatientService {
     );
 
     return Drive.getUrl(`patients/${key}`);
-  }
-
-  private includeString(val: string, toMatch?: string) {
-    if (!toMatch) return false;
-
-    return val.toLowerCase().includes(toMatch.toLowerCase());
   }
 }

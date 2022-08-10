@@ -87,6 +87,9 @@ export default class PatientTutor extends BaseModel {
     await softDelete(this, column);
   }
 
-  @belongsTo(() => Patient, {})
+  @belongsTo(() => Patient, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
   public tutor: BelongsTo<typeof Patient>;
 }

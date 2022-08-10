@@ -21,6 +21,12 @@ interface ISearch {
   type?: PatientType;
 }
 
+interface ISearchAnimals {
+  name?: string;
+  tutor?: string;
+  race?: string;
+}
+
 interface ISearchTutor {
   name?: string;
   document?: string;
@@ -61,8 +67,17 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
-      .preload('tutor')
-      .preload('dependents');
+      .preload('tutor', query => {
+        query.whereILike('document', `%${data.document ?? ''}`);
+        query.whereILike('cellphone', `%${data.phone ?? ''}`);
+      })
+      .preload('dependents', query => {
+        query.preload('patientAnimal', subquery => {
+          subquery.preload('race', subsubquery => {
+            subsubquery.whereILike('description', `%${data.race ?? ''}`);
+          });
+        });
+      });
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -76,49 +91,55 @@ export default class PatientService {
 
     const result = await qb;
 
-    await Promise.all(
-      result.map(model => model.dependents.map(d => d.load('patientAnimal'))),
-    );
-
-    await Promise.all(
-      result.map(model =>
-        model.dependents.map(d => d.patientAnimal?.load('race')),
-      ),
-    );
-
     return result.filter(model => {
-      if (
-        data.document &&
-        !model.tutor.document
-          .toLowerCase()
-          .includes(data.document.toLowerCase())
-      ) {
+      if (data.document && !model.tutor) {
+        return false;
+      }
+      if (data.phone && !model.tutor) {
         return false;
       }
 
-      if (
-        data.phone &&
-        !model.tutor.cellphone.toLowerCase().includes(data.phone.toLowerCase())
-      ) {
+      if (data.race && !model.patientAnimal.race) {
         return false;
-      }
-
-      if (data.race) {
-        return Boolean(
-          model.dependents.find((d: Patient) =>
-            d.patientAnimal?.race.description.includes(data.patient ?? ''),
-          ),
-        );
       }
 
       return true;
     });
   }
 
-  public async animalsIndex(unitId: string): Promise<Array<Patient>> {
+  public async animalsIndex(
+    unitId: string,
+    data: ISearchAnimals,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query().where('type', PatientType.ANIMAL);
+    const qb = group
+      .related('patients')
+      .query()
+      .where('type', PatientType.ANIMAL)
+      .preload('tutors', query => {
+        query.whereILike('name', `%${data.tutor ?? ''}%`);
+        query.preload('tutor');
+      })
+      .preload('patientAnimal', query => {
+        query.preload('race', subquery => {
+          subquery.whereILike('description', `%${data.race ?? ''}%`);
+        });
+      });
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    const result = await qb;
+
+    return result.filter(model => {
+      if (data.race && !model.patientAnimal?.race) {
+        return false;
+      }
+
+      return model.tutors.length >= 0;
+    });
   }
 
   public async search(unitId: string, data: ISearchPatient) {
@@ -139,7 +160,7 @@ export default class PatientService {
 
   public async tutorNonPatients(unitId: string, id: string) {
     const tutor = await this.show(unitId, id);
-    const animalsIndex = await this.animalsIndex(unitId);
+    const animalsIndex = await this.animalsIndex(unitId, {});
 
     const dependents = tutor.dependents.map(d => d.id);
 

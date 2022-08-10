@@ -21,6 +21,14 @@ interface ISearch {
   type?: PatientType;
 }
 
+interface ISearchTutor {
+  name?: string;
+  document?: string;
+  phone?: string;
+  patient?: string;
+  race?: string;
+}
+
 @inject()
 export default class PatientService {
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
@@ -43,15 +51,42 @@ export default class PatientService {
     return qb;
   }
 
-  public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
+  public async tutorsIndex(
+    unitId: string,
+    data: ISearchTutor,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group
+    const qb = group
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
       .preload('tutor')
       .preload('dependents');
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    // document is aggregated from patient-tutors
+    // if (data.document) {
+    //   qb.where('document', 'ilike', `%${data.document}%`);
+    // }
+
+    // phone is aggregated from patient-tutors
+    // if (data.phone) {
+    //   qb.where('phone', 'ilike', `%${data.phone}%`);
+    // }
+
+    // race is id or name?
+
+    if (data.patient) {
+      qb.whereHas('dependents', query => {
+        query.where('name', 'ilike', `%${data.patient}%`);
+      });
+    }
+
+    return qb;
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {

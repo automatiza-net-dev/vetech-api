@@ -21,6 +21,14 @@ interface ISearch {
   type?: PatientType;
 }
 
+interface ISearchTutor {
+  name?: string;
+  document?: string;
+  phone?: string;
+  patient?: string;
+  race?: string;
+}
+
 @inject()
 export default class PatientService {
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
@@ -43,14 +51,68 @@ export default class PatientService {
     return qb;
   }
 
-  public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
+  public async tutorsIndex(
+    unitId: string,
+    data: ISearchTutor,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group
+    const qb = group
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
-      .preload('tutor');
+      .preload('tutor')
+      .preload('dependents');
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.patient) {
+      qb.whereHas('dependents', query => {
+        query.where('name', 'ilike', `%${data.patient}%`);
+      });
+    }
+
+    const result = await qb;
+
+    await Promise.all(
+      result.map(model => model.dependents.map(d => d.load('patientAnimal'))),
+    );
+
+    await Promise.all(
+      result.map(model =>
+        model.dependents.map(d => d.patientAnimal?.load('race')),
+      ),
+    );
+
+    return result.filter(model => {
+      if (
+        data.document &&
+        !model.tutor.document
+          .toLowerCase()
+          .includes(data.document.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (
+        data.phone &&
+        !model.tutor.cellphone.toLowerCase().includes(data.phone.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (data.race) {
+        return Boolean(
+          model.dependents.find((d: Patient) =>
+            d.patientAnimal?.race.description.includes(data.patient ?? ''),
+          ),
+        );
+      }
+
+      return true;
+    });
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {

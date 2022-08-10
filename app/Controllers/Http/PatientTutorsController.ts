@@ -13,19 +13,24 @@ export default class PatientTutorsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
-    const patients = await this.service.tutorsIndex(
-      auth.use('api').token!.meta.unit_id,
-    );
+  public async index({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const qs = request.qs();
+    const patients = await this.service.tutorsIndex(unit_id, {
+      name: qs.name,
+      document: qs.document,
+      patient: qs.patient,
+      phone: qs.phone,
+      race: qs.race,
+    });
 
     return response.ok(patients);
   }
 
   public async notRelated({ auth, params, response }: HttpContextContract) {
-    const patients = await this.service.tutorNonPatients(
-      auth.use('api').token!.meta.unit_id,
-      params.id,
-    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const patients = await this.service.tutorNonPatients(unit_id, params.id);
 
     return response.ok(patients);
   }

@@ -68,25 +68,51 @@ export default class PatientService {
       qb.where('name', 'ilike', `%${data.name}%`);
     }
 
-    // document is aggregated from patient-tutors
-    // if (data.document) {
-    //   qb.where('document', 'ilike', `%${data.document}%`);
-    // }
-
-    // phone is aggregated from patient-tutors
-    // if (data.phone) {
-    //   qb.where('phone', 'ilike', `%${data.phone}%`);
-    // }
-
-    // race is id or name?
-
     if (data.patient) {
       qb.whereHas('dependents', query => {
         query.where('name', 'ilike', `%${data.patient}%`);
       });
     }
 
-    return qb;
+    const result = await qb;
+
+    await Promise.all(
+      result.map(model => model.dependents.map(d => d.load('patientAnimal'))),
+    );
+
+    await Promise.all(
+      result.map(model =>
+        model.dependents.map(d => d.patientAnimal?.load('race')),
+      ),
+    );
+
+    return result.filter(model => {
+      if (
+        data.document &&
+        !model.tutor.document
+          .toLowerCase()
+          .includes(data.document.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (
+        data.phone &&
+        !model.tutor.cellphone.toLowerCase().includes(data.phone.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (data.race) {
+        return Boolean(
+          model.dependents.find((d: Patient) =>
+            d.patientAnimal?.race.description.includes(data.patient ?? ''),
+          ),
+        );
+      }
+
+      return true;
+    });
   }
 
   public async animalsIndex(unitId: string): Promise<Array<Patient>> {

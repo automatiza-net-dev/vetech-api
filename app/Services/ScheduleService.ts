@@ -28,7 +28,17 @@ export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
-    const qb = Schedule.query().where('business_unit_id', unitId);
+    const qb = Schedule.query()
+      .where('business_unit_id', unitId)
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('patient', query => {
+        query.select(['id', 'name']);
+      });
 
     if (data.patient) {
       qb.where('patient_name', 'ilike', `%${data.patient}%`);
@@ -112,6 +122,15 @@ export default class ScheduleService {
     const schedule = await Schedule.query()
       .where('id', id)
       .andWhere('business_unit_id', unitId)
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('patient', query => {
+        query.select(['id', 'name']);
+      })
       .first();
 
     if (!schedule) {

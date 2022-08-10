@@ -300,21 +300,44 @@ export default class ScheduleService {
 
   public async userDailySchedule(unitId: string, user: string, day: Date) {
     const correctDate = addHours(day, 3);
+    const start = startOfDay(correctDate);
+    const end = endOfDay(correctDate);
 
-    const [wDays, uDays, schedules] = await this.getUserGeneralSchedules(
-      user,
-      unitId,
-      startOfDay(correctDate),
-      endOfDay(correctDate),
-    );
+    const workingDays = await WorkingDay.query()
+      .where('business_unit_id', unitId)
+      .andWhere('user_id', user)
+      .andWhereBetween('start_hour', [
+        format(start, 'HH:mm'),
+        format(end, 'HH:mm'),
+      ]);
 
-    const allEvents = [...wDays, ...uDays, ...schedules];
+    const unavailableDays = await UnavailableDay.query()
+      .where('business_unit_id', unitId)
+      .andWhere('user_id', user)
+      .andWhere('start_date', '<', start)
+      .andWhere('end_date', '>', end);
+
+    const schedules = await Schedule.query()
+      .where('business_unit_id', unitId)
+      .andWhere('user_id', user)
+      .andWhereBetween('start_hour', [start, end])
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('patient', query => {
+        query.select(['id', 'name']);
+      });
+
+    const allEvents = [...workingDays, ...unavailableDays, ...schedules];
 
     return allEvents.map(day => ({
       start: day.startHour.toString(),
       end: day.endHour.toString(),
       type: this.getEventLabel(day),
-      event_id: day.id,
+      event: day,
     }));
   }
 

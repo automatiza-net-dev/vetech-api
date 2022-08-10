@@ -38,6 +38,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
+        query.preload('tutors', subquery => {
+          subquery.select(['id', 'name']);
+        });
       });
 
     if (data.patient) {
@@ -130,6 +133,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
+        query.preload('tutors', subquery => {
+          subquery.select(['id', 'name']);
+        });
       })
       .first();
 
@@ -331,6 +337,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
+        query.preload('tutors', subquery => {
+          subquery.select(['id', 'name']);
+        });
       });
 
     const allEvents = [...workingDays, ...unavailableDays, ...schedules];
@@ -400,6 +409,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
+        query.preload('tutors', subquery => {
+          subquery.select(['id', 'name']);
+        });
       })
       .preload('user');
 

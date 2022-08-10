@@ -306,6 +306,7 @@ export default class ScheduleService {
     const workingDays = await WorkingDay.query()
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
+      .andWhere('day_of_week', ScheduleService.GetWD(start))
       .andWhereBetween('start_hour', [
         format(start, 'HH:mm'),
         format(end, 'HH:mm'),
@@ -314,6 +315,7 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
+      .andWhere('frequency', ScheduleService.GetWD(start))
       .andWhere('start_date', '<', start)
       .andWhere('end_date', '>', end);
 

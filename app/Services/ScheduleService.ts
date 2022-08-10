@@ -291,7 +291,7 @@ export default class ScheduleService {
               start: day.startHour.toString(),
               end: day.endHour.toString(),
               type: this.getEventLabel(day),
-              event_id: day.id,
+              event: day,
             })),
         })),
       };
@@ -390,6 +390,15 @@ export default class ScheduleService {
     const schedules = await Schedule.query()
       .where('business_unit_id', unit)
       .andWhereBetween('start_hour', [start, end])
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('patient', query => {
+        query.select(['id', 'name']);
+      })
       .preload('user');
 
     return [workingDays, unavailableDays, schedules];
@@ -419,6 +428,15 @@ export default class ScheduleService {
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
       .andWhereBetween('start_hour', [start, end])
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('patient', query => {
+        query.select(['id', 'name']);
+      })
       .preload('user');
 
     return [workingDays, unavailableDays, schedules];

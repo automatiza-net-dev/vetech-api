@@ -21,6 +21,12 @@ interface ISearch {
   type?: PatientType;
 }
 
+interface ISearchAnimals {
+  name?: string;
+  tutor?: string;
+  race?: string;
+}
+
 interface ISearchTutor {
   name?: string;
   document?: string;
@@ -115,14 +121,39 @@ export default class PatientService {
     });
   }
 
-  public async animalsIndex(unitId: string): Promise<Array<Patient>> {
+  public async animalsIndex(
+    unitId: string,
+    data: ISearchAnimals,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group
+    const qb = group
       .related('patients')
       .query()
       .where('type', PatientType.ANIMAL)
-      .preload('tutors');
+      .preload('tutors', query => {
+        query.whereILike('name', `%${data.tutor ?? ''}%`);
+        query.preload('tutor');
+      })
+      .preload('patientAnimal', query => {
+        query.preload('race', subquery => {
+          subquery.whereILike('description', `%${data.race ?? ''}%`);
+        });
+      });
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    const result = await qb;
+
+    return result.filter(model => {
+      if (data.race && !model.patientAnimal?.race) {
+        return false;
+      }
+
+      return model.tutors.length >= 0;
+    });
   }
 
   public async search(unitId: string, data: ISearchPatient) {
@@ -143,7 +174,7 @@ export default class PatientService {
 
   public async tutorNonPatients(unitId: string, id: string) {
     const tutor = await this.show(unitId, id);
-    const animalsIndex = await this.animalsIndex(unitId);
+    const animalsIndex = await this.animalsIndex(unitId, {});
 
     const dependents = tutor.dependents.map(d => d.id);
 
@@ -456,5 +487,11 @@ export default class PatientService {
     );
 
     return Drive.getUrl(`patients/${key}`);
+  }
+
+  private includeString(val: string, toMatch?: string) {
+    if (!toMatch) return false;
+
+    return val.toLowerCase().includes(toMatch.toLowerCase());
   }
 }

@@ -24,6 +24,10 @@ export default class BusinessUnitsController {
     );
   }
 
+  public async show({ params, response }: HttpContextContract) {
+    return response.ok(await this.service.show(params.id));
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateBusinessUnitValidator);
     const { user } = this.sharedService.extractUser(auth);

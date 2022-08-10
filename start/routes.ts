@@ -68,6 +68,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('', 'BusinessUnitsController.index');
+  Route.get(':id', 'BusinessUnitsController.show');
   Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');

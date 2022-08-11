@@ -16,6 +16,7 @@ import PatientTutor from 'App/Models/PatientTutor';
 import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export enum PatientType {
   TUTOR = 'tutor',
@@ -29,7 +30,7 @@ export enum PatientGender {
 
 export default class Patient extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column()
   public name: string;
@@ -41,15 +42,15 @@ export default class Patient extends BaseModel {
   public photo?: string;
 
   @column()
-  public gender: PatientGender;
+  public gender?: PatientGender;
 
   @column()
-  public tags: string;
+  public tags?: string;
 
   @column({
     columnName: 'birth_date',
   })
-  public birthDate: Date;
+  public birthDate?: Date;
 
   @column()
   public active: boolean;

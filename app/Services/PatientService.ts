@@ -199,7 +199,7 @@ export default class PatientService {
 
   public async store(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type'>,
+    data: Omit<IPatientData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
     const holder = await Patient.findOrFail(data.holderId);
@@ -212,19 +212,13 @@ export default class PatientService {
     try {
       const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-      const patientData = {
-        name: data.name,
-        gender: data.gender,
-        tags: data.tags,
-        birthDate: data.birthDate,
-      };
-
       const patient = await Patient.create(
         {
-          ...patientData,
+          name: data.name,
+          gender: data.gender,
+          tags: data.tags,
+          birthDate: data.birthDate?.toJSDate(),
           type: PatientType.ANIMAL,
-          id: v4(),
-          birthDate: data.birthDate.toJSDate(),
           photo,
         },
         {
@@ -260,8 +254,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type' | 'holderId' | 'raceId'> &
-      IPatientTutorData,
+    data: Omit<IPatientTutorData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -272,9 +265,8 @@ export default class PatientService {
     try {
       const patient = await Patient.create(
         {
-          id: v4(),
           name: data.name,
-          birthDate: data.birthDate.toJSDate(),
+          birthDate: data.birthDate?.toJSDate(),
           gender: data.gender,
           tags: data.tags,
           photo,
@@ -284,7 +276,6 @@ export default class PatientService {
       );
 
       await patient.related('tutor').create({
-        id: v4(),
         document: data.document,
         inscription: data.inscription,
         corporateName: data.corporate_name,
@@ -332,7 +323,7 @@ export default class PatientService {
   public async update(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'type' | 'holderId'>,
+    data: Omit<IPatientData, 'holderId'>,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
@@ -349,7 +340,7 @@ export default class PatientService {
           photo,
           gender: data.gender,
           tags: data.tags,
-          birthDate: data.birthDate.toJSDate(),
+          birthDate: data.birthDate?.toJSDate(),
           active: data.active,
         })
         .useTransaction(trx)
@@ -382,8 +373,7 @@ export default class PatientService {
   public async updateTutor(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'type' | 'holderId' | 'raceId'> &
-      IPatientTutorData,
+    data: IPatientTutorData,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();
@@ -422,7 +412,7 @@ export default class PatientService {
           photo,
           gender: data.gender,
           tags: data.tags,
-          birthDate: data.birthDate.toJSDate(),
+          birthDate: data.birthDate?.toJSDate(),
           active: data.active,
         })
         .useTransaction(trx)

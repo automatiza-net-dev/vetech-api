@@ -5,24 +5,16 @@ import {
   BelongsTo,
   belongsTo,
   column,
-  HasMany,
-  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Product from 'App/Models/Product';
+import Patient from 'App/Models/Patient';
+import Race from 'App/Models/Race';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export default class Group extends BaseModel {
+export default class PatientAnimal extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
-
-  @column()
-  public name: string;
-
-  @column()
-  public active: boolean;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -44,11 +36,20 @@ export default class Group extends BaseModel {
   }
 
   @column()
-  public economic_group_id: string;
+  public patient_id: string;
 
-  @belongsTo(() => EconomicGroup)
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
+  @belongsTo(() => Patient, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
+  public patient: BelongsTo<typeof Patient>;
 
-  @hasMany(() => Product)
-  public products: HasMany<typeof Product>;
+  @column()
+  public race_id: string;
+
+  @belongsTo(() => Race, {
+    localKey: 'id',
+    foreignKey: 'race_id',
+  })
+  public race: BelongsTo<typeof Race>;
 }

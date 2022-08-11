@@ -4,6 +4,7 @@ import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
 import UpdateScheduleValidator from 'App/Validators/Schedule/UpdateScheduleValidator';
+import { addDays } from 'date-fns';
 
 @inject()
 export default class SchedulesController {
@@ -102,6 +103,25 @@ export default class SchedulesController {
       unit_id,
       qs.id,
       new Date(qs.date),
+    );
+
+    return response.ok(result);
+  }
+
+  public async userAppointments({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+
+    const result = await this.service.userAppointments(
+      unit_id,
+      params.id,
+      addDays(new Date(qs.date), 1),
     );
 
     return response.ok(result);

@@ -18,7 +18,7 @@ export default class RacesController {
     const qs = request.qs();
     const result = await this.service.index(unit_id, {
       description: qs.description,
-      code: qs.code,
+      specie: qs.specie,
     });
 
     return response.ok(result);

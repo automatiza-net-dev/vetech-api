@@ -5,14 +5,14 @@ import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
-test.group('Business unit product resource', group => {
+test.group('Product variations resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group } = await userBootstrap();
 
     const product = await group.related('products').create({
       description: 'some product',
@@ -27,72 +27,49 @@ test.group('Business unit product resource', group => {
     });
 
     const variation = await product.related('variations').create({
-      barcode: 'some barcode',
+      barcode: '123',
     });
 
-    const businessUnitProduct = await variation
-      .related('businessUnitProducts')
-      .create({
-        businness_unit_id: business.id,
-        stock: 10,
-        price: 10,
-        costPrice: 10,
-        maximumStock: 10,
-        minimumStock: 10,
-        maximumDiscountPercentage: 10,
-        maximumDiscountValue: 10,
-        profitMargin: 10,
-      });
-
-    return { user, product, model: businessUnitProduct, variation };
+    return { user, product, variation };
   };
 
-  test('should return a list of business unit products', async ({
+  test('should return a list of product variations', async ({
     client,
     assert,
   }) => {
-    const { user, model } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .get('/business-unit-products')
-      .bearerToken(token);
-
-    const body = response.body();
-
-    assert.isArray(body);
-    assert.isTrue(Boolean(body.find(f => f.id === model.id)));
-  });
-
-  test('should create a business unit product', async ({ client, assert }) => {
     const { user, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
+    const response = await client.get('/product-variations').bearerToken(token);
+
+    const body = response.body();
+
+    assert.isArray(body);
+    assert.isTrue(Boolean(body.find(f => f.id === variation.id)));
+  });
+
+  test('should create a product variation', async ({ client, assert }) => {
+    const { user, product } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
     const response = await client
-      .post('/business-unit-products')
+      .post('/product-variations')
       .json({
-        productVariationId: variation.id,
-        stock: 10,
-        price: 10,
-        costPrice: 10,
-        maximumStock: 10,
-        minimumStock: 10,
-        maximumDiscountPercentage: 10,
-        maximumDiscountValue: 10,
-        profitMargin: 10,
+        productId: product.id,
+        barcode: '123',
       })
       .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
-  test('should throw ResourceNotFound if no entity was found', async ({
+  test('should throw ResourceNotFound if no product variation is found', async ({
     client,
     assert,
   }) => {
@@ -103,7 +80,7 @@ test.group('Business unit product resource', group => {
     });
 
     const response = await client
-      .get(`/business-unit-products/${v4()}`)
+      .get(`/product-variations/${v4()}`)
       .bearerToken(token);
 
     assert.equal(404, response.status());
@@ -113,59 +90,53 @@ test.group('Business unit product resource', group => {
     );
   });
 
-  test('should return given entity', async ({ client, assert }) => {
-    const { user, model } = await createData();
+  test('should return given product variation', async ({ client, assert }) => {
+    const { user, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .get(`/business-unit-products/${model.id}`)
+      .get(`/product-variations/${variation.id}`)
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(model.id, response.body().id);
+    assert.equal(variation.id, response.body().id);
   });
 
-  test('should update a entity', async ({ client, assert }) => {
-    const { user, variation, model } = await createData();
+  test('should update a product variation', async ({ client, assert }) => {
+    const { user, product, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .put(`/business-unit-products/${model.id}`)
+      .put(`/product-variations/${variation.id}`)
       .json({
-        productVariationId: variation.id,
-        stock: 20,
-        price: 10,
-        costPrice: 10,
-        maximumStock: 10,
-        minimumStock: 10,
-        maximumDiscountPercentage: 10,
-        maximumDiscountValue: 10,
-        profitMargin: 10,
+        productId: product.id,
+        barcode: '321',
+        active: true,
       })
       .bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal(model.id, body.id);
-    assert.notEqual(model.stock, body.stock);
+    assert.equal(variation.id, body.id);
+    assert.notEqual(variation.barcode, body.barcode);
   });
 
-  test('should soft delete a entity', async ({ client, assert }) => {
-    const { user, model } = await createData();
+  test('should soft delete a product variation', async ({ client, assert }) => {
+    const { user, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .delete(`/business-unit-products/${model.id}`)
+      .delete(`/product-variations/${variation.id}`)
       .bearerToken(token);
 
     assert.equal(204, response.status());

@@ -7,7 +7,7 @@ import { v4 } from 'uuid';
 
 interface ISearch {
   description?: string;
-  code?: string;
+  specie?: string;
 }
 
 @inject()
@@ -21,14 +21,14 @@ export default class RaceService {
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         group.id,
       ])
-      .whereNull('deleted_at');
+      .whereNull('deleted_at')
+      .whereHas('specie', query => {
+        query.whereILike('description', `%${data.specie ?? ''}%`);
+      })
+      .preload('specie');
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
-    }
-
-    if (data.code) {
-      qb.where('code', 'ilike', `%${data.code}%`);
     }
 
     return qb;
@@ -49,6 +49,8 @@ export default class RaceService {
         'E_NOT_FOUND',
       );
     }
+
+    await race.load('specie');
 
     return race;
   }
@@ -73,7 +75,6 @@ export default class RaceService {
       id: v4(),
       description: payload.description,
       economic_group_id: group.id,
-      code: payload.code,
     });
   }
 

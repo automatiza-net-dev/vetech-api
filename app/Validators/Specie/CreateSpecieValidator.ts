@@ -5,8 +5,7 @@ export default class CreateSpecieValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    description: schema.string({}, []),
-    code: schema.string({}, []),
+    description: schema.string({}, [])
   });
 
   public messages: CustomMessages = {};

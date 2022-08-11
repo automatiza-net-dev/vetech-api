@@ -79,19 +79,28 @@ export default class Schedule extends BaseModel {
   @column()
   public schedule_service_type_id: string;
 
-  @belongsTo(() => ScheduleServiceType)
+  @belongsTo(() => ScheduleServiceType, {
+    localKey: 'id',
+    foreignKey: 'schedule_service_type_id',
+  })
   public serviceType: BelongsTo<typeof ScheduleServiceType>;
 
   @column()
   public schedule_status_id: string;
 
-  @belongsTo(() => ScheduleStatus)
+  @belongsTo(() => ScheduleStatus, {
+    localKey: 'id',
+    foreignKey: 'schedule_status_id',
+  })
   public serviceStatus: BelongsTo<typeof ScheduleStatus>;
 
   @column()
   public race_id?: string;
 
-  @belongsTo(() => Race)
+  @belongsTo(() => Race, {
+    localKey: 'id',
+    foreignKey: 'race_id',
+  })
   public race: BelongsTo<typeof Race>;
 
   @column()
@@ -106,7 +115,10 @@ export default class Schedule extends BaseModel {
   @column()
   public patient_id?: string;
 
-  @belongsTo(() => Patient)
+  @belongsTo(() => Patient, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
   public patient: BelongsTo<typeof Patient>;
 
   @hasMany(() => Attendance, {

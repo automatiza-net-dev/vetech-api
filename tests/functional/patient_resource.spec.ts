@@ -2,6 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
+import Race from 'App/Models/Race';
 import User from 'App/Models/User';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
@@ -15,7 +16,7 @@ test.group('Patient resource', group => {
   });
 
   const createData = async (): Promise<
-    [User, Patient, Patient, EconomicGroup]
+    [User, Patient, Patient, EconomicGroup, Race]
   > => {
     const { user, group } = await userBootstrap();
 
@@ -26,7 +27,18 @@ test.group('Patient resource', group => {
     await holder.related('dependents').attach([patient.id]);
     await group.related('patients').attach([patient.id, holder.id]);
 
-    return [user, patient, holder, group];
+    const specie = await group.related('species').create({
+      id: v4(),
+      description: 'some specie',
+    });
+
+    const race = await specie.related('races').create({
+      id: v4(),
+      description: 'some race',
+      economic_group_id: group.id,
+    });
+
+    return [user, patient, holder, group, race];
   };
 
   const createGroupData = async (group: EconomicGroup) => {
@@ -40,7 +52,7 @@ test.group('Patient resource', group => {
   };
 
   test('should create new patient', async ({ client, assert }) => {
-    const [user, holder] = await createData();
+    const [user, holder, _, __, race] = await createData();
     await holder.merge({ type: PatientType.TUTOR }).save();
 
     const token = await generateJwtToken(client, {
@@ -56,6 +68,7 @@ test.group('Patient resource', group => {
         tags: 'tag',
         birthDate: new Date('2000-01-01'),
         holderId: holder.id,
+        raceId: race.id,
       })
       .bearerToken(token);
 
@@ -140,7 +153,7 @@ test.group('Patient resource', group => {
   });
 
   test('should update a patient', async ({ client, assert }) => {
-    const [user, patient, holder] = await createData();
+    const [user, patient, holder, _, race] = await createData();
     await patient.merge({ type: PatientType.ANIMAL }).save();
 
     const token = await generateJwtToken(client, {
@@ -158,6 +171,7 @@ test.group('Patient resource', group => {
         birthDate: new Date('2000-01-01'),
         active: true,
         holderId: holder.id,
+        raceId: race.id,
       })
       .bearerToken(token);
 

@@ -8,8 +8,11 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Group from 'App/Models/Group';
+import ProductVariation from 'App/Models/ProductVariation';
+import Subgroup from 'App/Models/Subgroup';
+import VariationGroup from 'App/Models/VariationGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -76,14 +79,45 @@ export default class Product extends BaseModel {
   }
 
   @column()
-  public economic_group_id: boolean;
+  public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup)
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 
-  @hasMany(() => BusinessUnitProduct, {
+  @column()
+  public variation_group_id: string;
+
+  @belongsTo(() => VariationGroup, {
+    localKey: 'id',
+    foreignKey: 'variation_group_id',
+  })
+  public variationGroup: BelongsTo<typeof VariationGroup>;
+
+  @hasMany(() => ProductVariation, {
     localKey: 'id',
     foreignKey: 'product_id',
   })
-  public businessUnitProducts: HasMany<typeof BusinessUnitProduct>;
+  public variations: HasMany<typeof ProductVariation>;
+
+  @column({
+    serializeAs: null,
+  })
+  public group_id: string;
+
+  @belongsTo(() => Group, {
+    localKey: 'id',
+    foreignKey: 'group_id',
+  })
+  public group: BelongsTo<typeof Group>;
+
+  @column({
+    serializeAs: null,
+  })
+  public subgroup_id: string;
+
+  @belongsTo(() => Subgroup, {
+    localKey: 'id',
+    foreignKey: 'subgroup_id',
+  })
+  public subgroup: BelongsTo<typeof Subgroup>;
 }

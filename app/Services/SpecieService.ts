@@ -7,7 +7,6 @@ import { v4 } from 'uuid';
 
 interface ISearch {
   description?: string;
-  code?: string;
 }
 
 @inject()
@@ -25,10 +24,6 @@ export default class SpecieService {
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
-    }
-
-    if (data.code) {
-      qb.where('code', 'ilike', `%${data.code}%`);
     }
 
     return qb;
@@ -59,7 +54,6 @@ export default class SpecieService {
     return group.related('species').create({
       id: v4(),
       description: payload.description,
-      code: payload.code,
     });
   }
 

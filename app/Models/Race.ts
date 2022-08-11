@@ -27,9 +27,6 @@ export default class Race extends BaseModel {
   @column()
   public economic_group_id?: string;
 
-  @column()
-  public code: string;
-
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
@@ -49,7 +46,10 @@ export default class Race extends BaseModel {
     await softDelete(this, column);
   }
 
-  @belongsTo(() => Specie, {})
+  @belongsTo(() => Specie, {
+    localKey: 'id',
+    foreignKey: 'specie_id',
+  })
   public specie: BelongsTo<typeof Specie>;
 
   @belongsTo(() => EconomicGroup, {})

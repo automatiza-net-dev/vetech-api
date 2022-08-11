@@ -21,6 +21,20 @@ interface ISearch {
   type?: PatientType;
 }
 
+interface ISearchAnimals {
+  name?: string;
+  tutor?: string;
+  race?: string;
+}
+
+interface ISearchTutor {
+  name?: string;
+  document?: string;
+  phone?: string;
+  patient?: string;
+  race?: string;
+}
+
 @inject()
 export default class PatientService {
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
@@ -43,20 +57,89 @@ export default class PatientService {
     return qb;
   }
 
-  public async tutorsIndex(unitId: string): Promise<Array<Patient>> {
+  public async tutorsIndex(
+    unitId: string,
+    data: ISearchTutor,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group
+    const qb = group
       .related('patients')
       .query()
       .where('type', PatientType.TUTOR)
-      .preload('tutor');
+      .preload('tutor', query => {
+        query.whereILike('document', `%${data.document ?? ''}`);
+        query.whereILike('cellphone', `%${data.phone ?? ''}`);
+      })
+      .preload('dependents', query => {
+        query.preload('patientAnimal', subquery => {
+          subquery.preload('race', subsubquery => {
+            subsubquery.whereILike('description', `%${data.race ?? ''}`);
+          });
+        });
+      });
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.patient) {
+      qb.whereHas('dependents', query => {
+        query.where('name', 'ilike', `%${data.patient}%`);
+      });
+    }
+
+    const result = await qb;
+
+    return result.filter(model => {
+      if (data.document && !model.tutor) {
+        return false;
+      }
+      if (data.phone && !model.tutor) {
+        return false;
+      }
+
+      if (data.race && !model.patientAnimal.race) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
-  public async animalsIndex(unitId: string): Promise<Array<Patient>> {
+  public async animalsIndex(
+    unitId: string,
+    data: ISearchAnimals,
+  ): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
-    return group.related('patients').query().where('type', PatientType.ANIMAL);
+    const qb = group
+      .related('patients')
+      .query()
+      .where('type', PatientType.ANIMAL)
+      .preload('tutors', query => {
+        query.whereILike('name', `%${data.tutor ?? ''}%`);
+        query.preload('tutor');
+      })
+      .preload('patientAnimal', query => {
+        query.preload('race', subquery => {
+          subquery.whereILike('description', `%${data.race ?? ''}%`);
+        });
+      });
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    const result = await qb;
+
+    return result.filter(model => {
+      if (data.race && !model.patientAnimal?.race) {
+        return false;
+      }
+
+      return model.tutors.length >= 0;
+    });
   }
 
   public async search(unitId: string, data: ISearchPatient) {
@@ -77,7 +160,7 @@ export default class PatientService {
 
   public async tutorNonPatients(unitId: string, id: string) {
     const tutor = await this.show(unitId, id);
-    const animalsIndex = await this.animalsIndex(unitId);
+    const animalsIndex = await this.animalsIndex(unitId, {});
 
     const dependents = tutor.dependents.map(d => d.id);
 
@@ -108,6 +191,7 @@ export default class PatientService {
 
     if (patient.type === PatientType.ANIMAL) {
       await patient.load('tutors');
+      await patient.load('patientAnimal');
     }
 
     return patient;
@@ -152,6 +236,13 @@ export default class PatientService {
 
       await group.related('patients').attach([patient.id], trx);
 
+      await patient.related('patientAnimal').create(
+        {
+          race_id: data.raceId,
+        },
+        trx,
+      );
+
       await trx.commit();
 
       return patient;
@@ -169,7 +260,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type' | 'holderId'> &
+    data: Omit<IPatientData, 'active' | 'type' | 'holderId' | 'raceId'> &
       IPatientTutorData,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
@@ -245,26 +336,54 @@ export default class PatientService {
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
 
-    const photo = data.photo
-      ? await this.uploadPhoto(data.photo)
-      : patient.photo;
+    const trx = await Database.transaction();
 
-    return patient
-      .merge({
-        name: data.name,
-        photo,
-        gender: data.gender,
-        tags: data.tags,
-        birthDate: data.birthDate.toJSDate(),
-        active: data.active,
-      })
-      .save();
+    try {
+      const photo = data.photo
+        ? await this.uploadPhoto(data.photo)
+        : patient.photo;
+
+      await patient
+        .merge({
+          name: data.name,
+          photo,
+          gender: data.gender,
+          tags: data.tags,
+          birthDate: data.birthDate.toJSDate(),
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+
+      if (patient.patientAnimal) {
+        await patient.patientAnimal
+          .merge({
+            race_id: data.raceId,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
+      await trx.commit();
+    } catch (e) {
+      Logger.error(e.message);
+      await trx.rollback();
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    return patient;
   }
 
   public async updateTutor(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'type' | 'holderId'> & IPatientTutorData,
+    data: Omit<IPatientData, 'type' | 'holderId' | 'raceId'> &
+      IPatientTutorData,
   ): Promise<Patient> {
     const patient = await this.show(unitId, id);
     const tutorData = await patient.related('tutor').query().firstOrFail();

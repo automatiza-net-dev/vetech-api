@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
@@ -38,5 +39,9 @@ export default class SharedService {
 
   public checkDTEqt(date1: DateTime, date2: DateTime): boolean {
     return date1.toJSDate().getTime() === date2.toJSDate().getTime();
+  }
+
+  public ResourceNotFound(message = 'Recurso não encontrado') {
+    return new ResourceNotFoundException(message, 404, 'E_NOT_FOUND');
   }
 }

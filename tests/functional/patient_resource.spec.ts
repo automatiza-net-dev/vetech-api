@@ -65,8 +65,6 @@ test.group('Patient resource', group => {
       .json({
         name: 'patient name',
         gender: PatientGender.MALE,
-        tags: 'tag',
-        birthDate: new Date('2000-01-01'),
         holderId: holder.id,
         raceId: race.id,
       })

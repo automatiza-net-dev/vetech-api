@@ -54,6 +54,8 @@ export default class PatientsController {
       name: qs.name,
       race: qs.race,
       tutor: qs.tutor,
+      document: qs.document,
+      phone: qs.phone,
     });
 
     return response.ok(patients);

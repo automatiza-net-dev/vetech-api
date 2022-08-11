@@ -25,6 +25,8 @@ interface ISearchAnimals {
   name?: string;
   tutor?: string;
   race?: string;
+  document?: string;
+  phone?: string;
 }
 
 interface ISearchTutor {
@@ -119,7 +121,10 @@ export default class PatientService {
       .where('type', PatientType.ANIMAL)
       .preload('tutors', query => {
         query.whereILike('name', `%${data.tutor ?? ''}%`);
-        query.preload('tutor');
+        query.preload('tutor', subquery => {
+          subquery.whereILike('document', `%${data.document ?? ''}`);
+          subquery.whereILike('cellphone', `%${data.phone ?? ''}`);
+        });
       })
       .preload('patientAnimal', query => {
         query.preload('race', subquery => {
@@ -138,7 +143,9 @@ export default class PatientService {
         return false;
       }
 
-      return model.tutors.length >= 0;
+      const validTutors = model.tutors.filter(m => !!m.tutor);
+
+      return validTutors.length > 0;
     });
   }
 

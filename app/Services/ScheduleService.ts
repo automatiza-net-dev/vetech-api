@@ -38,9 +38,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
-        query.preload('tutors', subquery => {
-          subquery.select(['id', 'name']);
-        });
+      })
+      .preload('holder', query => {
+        query.select(['id', 'name']);
       });
 
     if (data.patient) {
@@ -108,6 +108,7 @@ export default class ScheduleService {
     return Schedule.create({
       patientName: data.patientName,
       patientPhone: data.patientPhone,
+      holder_id: data.holderId,
       age: data.age,
       startHour: data.startHour,
       endHour: data.endHour,
@@ -133,9 +134,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
-        query.preload('tutors', subquery => {
-          subquery.select(['id', 'name']);
-        });
+      })
+      .preload('holder', query => {
+        query.select(['id', 'name']);
       })
       .first();
 
@@ -202,6 +203,7 @@ export default class ScheduleService {
       .merge({
         patientName: data.patientName,
         patientPhone: data.patientPhone,
+        holder_id: data.holderId,
         age: data.age,
         startHour: data.startHour,
         endHour: data.endHour,
@@ -337,9 +339,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
-        query.preload('tutors', subquery => {
-          subquery.select(['id', 'name']);
-        });
+      })
+      .preload('holder', query => {
+        query.select(['id', 'name']);
       });
 
     const allEvents = [...workingDays, ...unavailableDays, ...schedules];
@@ -367,6 +369,7 @@ export default class ScheduleService {
       .preload('patient')
       .preload('serviceType')
       .preload('serviceStatus')
+      .preload('holder')
       .preload('race');
   }
 
@@ -409,9 +412,9 @@ export default class ScheduleService {
       })
       .preload('patient', query => {
         query.select(['id', 'name']);
-        query.preload('tutors', subquery => {
-          subquery.select(['id', 'name']);
-        });
+      })
+      .preload('holder', query => {
+        query.select(['id', 'name']);
       })
       .preload('user');
 

@@ -132,7 +132,7 @@ export default class Schedule extends BaseModel {
 
   @belongsTo(() => Patient, {
     localKey: 'id',
-    foreignKey: 'patient',
+    foreignKey: 'holder_id',
   })
   public holder: BelongsTo<typeof Patient>;
 }

@@ -193,18 +193,8 @@ test.group('Patient resource', group => {
       .post('/patient-tutors')
       .json({
         name: 'patient name',
-        gender: PatientGender.MALE,
-        tags: 'tag',
-        birthDate: new Date('2000-01-01'),
-        document: '1',
         email: 'mail123123@mail.com',
         cellphone: '123',
-        postal_code: '123',
-        street: '213',
-        number: '123',
-        district: '2123',
-        city: '123',
-        state: '123',
       })
       .bearerToken(token);
 

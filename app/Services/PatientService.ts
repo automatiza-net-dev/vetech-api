@@ -260,8 +260,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientData, 'active' | 'type' | 'holderId' | 'raceId'> &
-      IPatientTutorData,
+    data: Omit<IPatientTutorData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -272,9 +271,8 @@ export default class PatientService {
     try {
       const patient = await Patient.create(
         {
-          id: v4(),
           name: data.name,
-          birthDate: data.birthDate.toJSDate(),
+          birthDate: data.birthDate?.toJSDate(),
           gender: data.gender,
           tags: data.tags,
           photo,
@@ -284,7 +282,6 @@ export default class PatientService {
       );
 
       await patient.related('tutor').create({
-        id: v4(),
         document: data.document,
         inscription: data.inscription,
         corporateName: data.corporate_name,

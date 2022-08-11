@@ -129,6 +129,7 @@ export default class PatientService {
       .preload('patientAnimal', query => {
         query.preload('race', subquery => {
           subquery.whereILike('description', `%${data.race ?? ''}%`);
+          subquery.preload('specie');
         });
       });
 

@@ -126,4 +126,13 @@ export default class Schedule extends BaseModel {
     foreignKey: 'schedule_id',
   })
   public attendances: HasMany<typeof Attendance>;
+
+  @column()
+  public holder_id?: string;
+
+  @belongsTo(() => Patient, {
+    localKey: 'id',
+    foreignKey: 'patient',
+  })
+  public holder: BelongsTo<typeof Patient>;
 }

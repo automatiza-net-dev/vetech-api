@@ -20,7 +20,7 @@ export default class ScheduleServiceGroupService {
   ): Promise<Array<ScheduleServiceGroup>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    const qb = ScheduleServiceGroup.query();
+    const qb = ScheduleServiceGroup.query().preload('types');
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
@@ -52,6 +52,8 @@ export default class ScheduleServiceGroupService {
     );
 
     if (!schedule) throw exception;
+
+    await schedule.load('types');
 
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 

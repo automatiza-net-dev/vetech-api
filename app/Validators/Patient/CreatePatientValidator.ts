@@ -10,9 +10,9 @@ export default class CreatePatientValidator {
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],
     }),
-    gender: schema.enum(Object.values(PatientGender), []),
-    tags: schema.string({}, []),
-    birthDate: schema.date({}),
+    gender: schema.enum.optional(Object.values(PatientGender), []),
+    tags: schema.string.optional({}, []),
+    birthDate: schema.date.optional({}),
     holderId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),

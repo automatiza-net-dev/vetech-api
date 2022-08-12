@@ -9,16 +9,17 @@ import {
 import Patient from 'App/Models/Patient';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class PatientTutor extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column()
-  public document: string;
+  public document?: string;
 
   @column()
-  public inscription: string; // ie/rg
+  public inscription?: string; // ie/rg
 
   @column({
     columnName: 'corporate_name',
@@ -45,28 +46,28 @@ export default class PatientTutor extends BaseModel {
   public messagePersonPhone?: string;
 
   @column()
-  public postalCode: string;
+  public postalCode?: string;
 
   @column()
   public patient_id: string;
 
   @column()
-  public street: string;
+  public street?: string;
 
   @column()
-  public number: string;
+  public number?: string;
 
   @column()
   public complement?: string;
 
   @column()
-  public district: string;
+  public district?: string;
 
   @column()
-  public city: string;
+  public city?: string;
 
   @column()
-  public state: string;
+  public state?: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

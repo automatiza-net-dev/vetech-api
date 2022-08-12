@@ -67,9 +67,9 @@ Route.group(() => {
 }).prefix('economic-groups');
 
 Route.group(() => {
+  Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
-  Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 

@@ -17,6 +17,7 @@ import {
   intervalToDuration,
   startOfDay,
 } from 'date-fns';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   patient?: string;
@@ -225,8 +226,12 @@ export default class ScheduleService {
   }
 
   public async searchDisponibility(data: IViewDisponibilityRequest) {
-    const startDate = new Date(data.start);
-    const endDate = new Date(data.end);
+    const startDate = DateTime.fromISO(data.start)
+      .setZone('America/Sao_Paulo')
+      .toJSDate();
+    const endDate = DateTime.fromISO(data.end)
+      .setZone('America/Sao_Paulo')
+      .toJSDate();
 
     const { days } = intervalToDuration({
       start: startDate,
@@ -234,7 +239,7 @@ export default class ScheduleService {
     });
 
     const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
-      const tmpDate = addDays(startDate, k + 1);
+      const tmpDate = addDays(startDate, k);
 
       return format(tmpDate, 'yyyy-MM-dd');
     });

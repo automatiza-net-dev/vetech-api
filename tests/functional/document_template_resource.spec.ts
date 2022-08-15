@@ -17,7 +17,6 @@ test.group('Document template resource', group => {
     const template = await group.related('documentTemplates').create({
       description: 'any description',
       title: 'any title',
-      header: 'any header',
       template: 'any template',
       timeline_type_id: DOCUMENT_UUID,
     });
@@ -106,7 +105,6 @@ test.group('Document template resource', group => {
       .json({
         description: 'some description',
         title: 'another title',
-        header: 'some header',
         template: 'some template',
         active: true,
       })

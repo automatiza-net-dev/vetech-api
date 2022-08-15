@@ -23,7 +23,7 @@ export default class DocumentTemplate extends BaseModel {
   public title: string;
 
   @column()
-  public header: string;
+  public header?: string;
 
   @column()
   public template: string;

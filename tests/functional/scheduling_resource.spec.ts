@@ -1,9 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import { PatientType } from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
 import ScheduleService from 'App/Services/ScheduleService';
+import PatientFactory from 'Database/factories/PatientFactory';
 import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
 import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
 import { DateTime } from 'luxon';
@@ -23,7 +25,10 @@ test.group('Scheduling resource', group => {
     const status = await ScheduleStatusFactory.create();
     const serviceType = await ScheduleServiceTypeFactory.create();
 
-    return { user, status, serviceType, business };
+    const holder = await PatientFactory.create();
+    await holder.merge({ type: PatientType.TUTOR }).save();
+
+    return { user, status, serviceType, business, holder };
   };
 
   const createWorkingDay = async (
@@ -150,6 +155,29 @@ test.group('Scheduling resource', group => {
         scheduleStatusId: status.id,
         startHour: new Date(),
         endHour: new Date(),
+      })
+      .bearerToken(token);
+
+    assert.equal(201, result.status());
+  });
+
+  test('should create scheduling with holder', async ({ assert, client }) => {
+    const { user, status, serviceType, business, holder } = await createData();
+    await createWorkingDay(user, business, '09:00', '21:00');
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const result = await client
+      .post('/schedules')
+      .json({
+        scheduleServiceTypeId: serviceType.id,
+        scheduleStatusId: status.id,
+        startHour: new Date(),
+        endHour: new Date(),
+        holderId: holder.id,
       })
       .bearerToken(token);
 

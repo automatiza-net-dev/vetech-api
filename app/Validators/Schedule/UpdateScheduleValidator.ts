@@ -26,6 +26,13 @@ export default class UpdateScheduleValidator {
         column: 'id',
       }),
     ]),
+    holderId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'patients',
+        column: 'id',
+      }),
+    ]),
     userId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({

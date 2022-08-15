@@ -204,6 +204,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get('/groups', 'SchedulesController.viewServiceGroups');
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');

@@ -356,3 +356,9 @@ Route.group(() => {
 })
   .prefix('document-templates')
   .middleware('auth');
+
+Route.resource('exams', 'ExamsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

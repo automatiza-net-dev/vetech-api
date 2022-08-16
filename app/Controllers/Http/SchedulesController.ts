@@ -90,6 +90,16 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
+  public async viewServiceGroups({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const result = await this.service.searchServices({
+      start: qs.start ?? new Date().toISOString(),
+      end: qs.end ?? new Date().toISOString(),
+    });
+
+    return response.ok(result);
+  }
+
   public async userDailySchedule({
     auth,
     request,

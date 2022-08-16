@@ -1,6 +1,5 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import DocumentTemplate from 'App/Models/DocumentTemplate';
 import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
 import { v4 } from 'uuid';
 
@@ -21,15 +20,7 @@ test.group('Pathology resource', group => {
       timeline_type_id: PATHOLOGY_UUID,
     });
 
-    const template = await DocumentTemplate.create({
-      description: 'any description',
-      title: 'any title',
-      header: 'any header',
-      template: 'any template',
-      timeline_type_id: PATHOLOGY_UUID,
-    });
-
-    return { user, pathology, template };
+    return { user, pathology };
   };
 
   test('should get all pathologies', async ({ client, assert }) => {
@@ -82,7 +73,7 @@ test.group('Pathology resource', group => {
   });
 
   test('should create pathology', async ({ client, assert }) => {
-    const { user, template } = await createData();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -93,7 +84,6 @@ test.group('Pathology resource', group => {
       .json({
         description: 'any description',
         definition: 'any definition',
-        templateId: template.id,
       })
       .bearerToken(token);
 
@@ -101,7 +91,7 @@ test.group('Pathology resource', group => {
   });
 
   test('should update a pathology', async ({ client, assert }) => {
-    const { user, pathology, template } = await createData();
+    const { user, pathology } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -113,7 +103,6 @@ test.group('Pathology resource', group => {
         description: 'another description',
         definition: 'any definition',
         active: true,
-        templateId: template.id,
       })
       .bearerToken(token);
 

@@ -20,6 +20,9 @@ export default class PathologyService {
       qb.where('description', 'like', `%${data.description}%`);
     }
 
+    qb.preload('template');
+    qb.preload('group');
+
     return qb;
   }
 
@@ -28,6 +31,8 @@ export default class PathologyService {
     const entity = await group
       .related('pathologies')
       .query()
+      .preload('template')
+      .preload('group')
       .where('id', id)
       .first();
 
@@ -49,6 +54,7 @@ export default class PathologyService {
       description: data.description,
       definition: data.definition,
       timeline_type_id: PATHOLOGY_UUID,
+      template_id: data.templateId,
     });
   }
 
@@ -60,6 +66,7 @@ export default class PathologyService {
         description: data.description,
         definition: data.definition,
         active: data.active,
+        template_id: data.templateId,
       })
       .save();
   }

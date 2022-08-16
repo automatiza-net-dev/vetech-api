@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import DocumentTemplate from 'App/Models/DocumentTemplate';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import TimelineType from 'App/Models/TimelineType';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -53,6 +54,18 @@ export default class Pathology extends BaseModel {
   @column()
   public economic_group_id: string;
 
-  @belongsTo(() => EconomicGroup)
+  @belongsTo(() => EconomicGroup, {
+    foreignKey: 'economic_group_id',
+    localKey: 'id',
+  })
   public group: BelongsTo<typeof EconomicGroup>;
+
+  @column()
+  public template_id: string;
+
+  @belongsTo(() => DocumentTemplate, {
+    foreignKey: 'template_id',
+    localKey: 'id',
+  })
+  public template: BelongsTo<typeof DocumentTemplate>;
 }

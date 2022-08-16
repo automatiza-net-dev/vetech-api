@@ -8,6 +8,13 @@ import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import UserUnitRole from 'App/Models/UserUnitRole';
 
+interface ISearchBusinessUnitUsers {
+  name?: string;
+  document?: string;
+  phone?: string;
+  role?: string;
+}
+
 @inject()
 export default class UserRoleService {
   public async assignUnitRoleToUser(
@@ -32,9 +39,23 @@ export default class UserRoleService {
     });
   }
 
-  public async getUnitUsers(id: string) {
+  public async getUnitUsers(id: string, data: ISearchBusinessUnitUsers) {
     const entities = await UserUnitRole.query()
       .where('unit_id', id)
+      .whereHas('user', subquery => {
+        subquery.whereILike('name', `%${data.name ?? ''}%`);
+
+        if (data.document) {
+          subquery.whereILike('document', `%${data.document}%`);
+        }
+
+        if (data.phone) {
+          subquery.whereILike('phone', `%${data.phone}%`);
+        }
+      })
+      .whereHas('role', subquery => {
+        subquery.whereILike('name', `%${data.role ?? ''}%`);
+      })
       .preload('user')
       .preload('role');
 

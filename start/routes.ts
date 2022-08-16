@@ -67,13 +67,13 @@ Route.group(() => {
 }).prefix('economic-groups');
 
 Route.group(() => {
+  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
-  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.put('/:id', 'BusinessUnitsController.update');
   Route.delete('/user/:id', 'BusinessUnitsController.deleteUser').middleware(
     'auth',

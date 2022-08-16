@@ -14,7 +14,11 @@ export default class PathologyService {
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const qb = group.related('pathologies').query();
+    const qb = group
+      .related('pathologies')
+      .query()
+      .preload('timelineType')
+      .preload('group');
 
     if (data.description) {
       qb.where('description', 'like', `%${data.description}%`);
@@ -28,6 +32,8 @@ export default class PathologyService {
     const entity = await group
       .related('pathologies')
       .query()
+      .preload('timelineType')
+      .preload('group')
       .where('id', id)
       .first();
 
@@ -48,6 +54,7 @@ export default class PathologyService {
     return group.related('pathologies').create({
       description: data.description,
       definition: data.definition,
+      template: data.template,
       timeline_type_id: PATHOLOGY_UUID,
     });
   }
@@ -60,6 +67,7 @@ export default class PathologyService {
         description: data.description,
         definition: data.definition,
         active: data.active,
+        template: data.template,
       })
       .save();
   }

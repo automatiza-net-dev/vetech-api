@@ -7,6 +7,7 @@ export default class CreatePathologyValidator {
   public schema = schema.create({
     description: schema.string({}, []),
     definition: schema.string({}, []),
+    template: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

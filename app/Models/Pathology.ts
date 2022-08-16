@@ -23,6 +23,9 @@ export default class Pathology extends BaseModel {
   public definition: string;
 
   @column()
+  public template: string;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })
@@ -47,12 +50,18 @@ export default class Pathology extends BaseModel {
   @column()
   public timeline_type_id: string;
 
-  @belongsTo(() => TimelineType)
+  @belongsTo(() => TimelineType, {
+    foreignKey: 'timeline_type_id',
+    localKey: 'id',
+  })
   public timelineType: BelongsTo<typeof TimelineType>;
 
   @column()
   public economic_group_id: string;
 
-  @belongsTo(() => EconomicGroup)
+  @belongsTo(() => EconomicGroup, {
+    foreignKey: 'economic_group_id',
+    localKey: 'id',
+  })
   public group: BelongsTo<typeof EconomicGroup>;
 }

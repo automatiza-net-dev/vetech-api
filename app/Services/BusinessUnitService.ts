@@ -76,6 +76,6 @@ export default class BusinessUnitService {
       .query()
       .preload('businessUnits');
 
-    return (await qb).map(ent => ent.businessUnits).flat();
+    return entities.map(ent => ent.businessUnits).flat();
   }
 }

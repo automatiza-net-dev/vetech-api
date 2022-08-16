@@ -12,6 +12,13 @@ export default class UpdateScheduleServiceTypeValidator {
         column: 'id',
       }),
     ]),
+    productId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'products',
+        column: 'id',
+      }),
+    ]),
     description: schema.string({}),
     reservedMinutes: schema.number([rules.unsigned()]),
     active: schema.boolean([]),

@@ -9,6 +9,7 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Product from 'App/Models/Product';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -68,4 +69,13 @@ export default class ScheduleServiceType extends BaseModel {
     foreignKey: 'schedule_service_type_id',
   })
   public schedules: HasMany<typeof Schedule>;
+
+  @column()
+  public product_id: string;
+
+  @belongsTo(() => Product, {
+    localKey: 'id',
+    foreignKey: 'product_id',
+  })
+  public product: BelongsTo<typeof Product>;
 }

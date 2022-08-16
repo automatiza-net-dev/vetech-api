@@ -121,10 +121,11 @@ export default class PatientService {
       .where('type', PatientType.ANIMAL)
       .preload('tutors', query => {
         query.whereILike('name', `%${data.tutor ?? ''}%`);
-        query.preload('tutor', subquery => {
-          subquery.whereILike('document', `%${data.document ?? ''}`);
-          subquery.whereILike('cellphone', `%${data.phone ?? ''}`);
+        query.whereHas('tutor', subquery => {
+          subquery.whereILike('document', `%${data.document ?? ''}%`);
+          subquery.whereILike('cellphone', `%${data.phone ?? ''}%`);
         });
+        query.preload('tutor');
       })
       .preload('patientAnimal', query => {
         query.preload('race', subquery => {

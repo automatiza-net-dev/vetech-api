@@ -149,4 +149,30 @@ export default class BusinessUnitService {
 
     return entities.map(ent => ent.businessUnits).flat();
   }
+
+  async searchUser(unitId: string, id: string) {
+    const user = await User.find(id);
+
+    if (!user) {
+      throw new ResourceNotFoundException(
+        'Usuário não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    await user.load('roles', q => {
+      q.where('unit_id', unitId);
+      q.preload('role');
+    });
+
+    if (user.roles.length === 0) {
+      throw new BadRequestException('Você não tem permissão para acessar');
+    }
+
+    return {
+      ...user.toJSON(),
+      roles: user.roles.map(f => f.role.name),
+    };
+  }
 }

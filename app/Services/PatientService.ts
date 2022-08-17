@@ -118,21 +118,29 @@ export default class PatientService {
     const qb = group
       .related('patients')
       .query()
-      .where('type', PatientType.ANIMAL)
-      .preload('tutors', query => {
-        query.whereILike('name', `%${data.tutor ?? ''}%`);
-        query.whereHas('tutor', subquery => {
-          subquery.whereILike('document', `%${data.document ?? ''}%`);
-          subquery.whereILike('cellphone', `%${data.phone ?? ''}%`);
-        });
-        query.preload('tutor');
-      })
-      .preload('patientAnimal', query => {
-        query.preload('race', subquery => {
+      .where('type', PatientType.ANIMAL);
+
+    if (data.race) {
+      qb.whereHas('patientAnimal', query => {
+        query.whereHas('race', subquery => {
           subquery.whereILike('description', `%${data.race ?? ''}%`);
-          subquery.preload('specie');
         });
       });
+    }
+
+    if (data.tutor) {
+      qb.whereHas('tutors', query => {
+        query.where('name', 'ilike', `%${data.tutor ?? ''}%`);
+      });
+    }
+
+    qb.preload('tutors', query => {
+      query.preload('tutor');
+    });
+
+    qb.preload('patientAnimal', query => {
+      query.preload('race');
+    });
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -140,14 +148,28 @@ export default class PatientService {
 
     const result = await qb;
 
-    return result.filter(model => {
-      if (data.race && !model.patientAnimal?.race) {
-        return false;
+    return result.filter(r => {
+      if (data.document) {
+        const matches = r.tutors.some(t =>
+          t.tutor.document?.includes(data.document ?? ''),
+        );
+
+        if (!matches) {
+          return false;
+        }
       }
 
-      const validTutors = model.tutors.filter(m => !!m.tutor);
+      if (data.phone) {
+        const matches = r.tutors.some(t =>
+          t.tutor.cellphone?.includes(data.phone ?? ''),
+        );
 
-      return validTutors.length > 0;
+        if (!matches) {
+          return false;
+        }
+      }
+
+      return true;
     });
   }
 

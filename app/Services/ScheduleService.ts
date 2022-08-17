@@ -302,8 +302,8 @@ export default class ScheduleService {
             age: schedule.age,
             majorComplaint: schedule.majorComplaint,
             holder: {
-              id: schedule.holder.id,
-              name: schedule.holder.name,
+              id: schedule.holder?.id,
+              name: schedule.holder?.name,
             },
             patient: {
               id: schedule.patient.id,

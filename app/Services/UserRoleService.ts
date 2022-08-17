@@ -59,12 +59,14 @@ export default class UserRoleService {
       .preload('user')
       .preload('role');
 
-    return entities.map(ent => {
+    const uniqueUsers = Array.from(
+      new Set(entities.map(entity => entity.user)),
+    );
+
+    return uniqueUsers.map(ent => {
       return {
-        ...ent.user.toJSON(),
-        roles: entities
-          .filter(f => f.user.id === ent.user_id)
-          .map(f => f.role.name),
+        ...ent.toJSON(),
+        roles: entities.filter(f => f.user.id === ent.id).map(f => f.role.name),
       };
     });
   }

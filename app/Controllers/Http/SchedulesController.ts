@@ -90,9 +90,14 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
-  public async viewServiceGroups({ request, response }: HttpContextContract) {
+  public async viewServiceGroups({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
     const qs = request.qs();
-    const result = await this.service.searchServices({
+    const result = await this.service.searchServices(unit_id, {
       start: qs.start ?? new Date().toISOString(),
       end: qs.end ?? new Date().toISOString(),
     });

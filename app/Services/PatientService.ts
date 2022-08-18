@@ -139,7 +139,9 @@ export default class PatientService {
     });
 
     qb.preload('patientAnimal', query => {
-      query.preload('race');
+      query.preload('race', q => {
+        q.preload('specie');
+      });
     });
 
     if (data.name) {

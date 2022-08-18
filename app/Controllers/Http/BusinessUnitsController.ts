@@ -80,6 +80,14 @@ export default class BusinessUnitsController {
     return response.ok(users);
   }
 
+  public async searchUser({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const groups = await this.service.searchUser(unit_id, params.id);
+
+    return response.ok(groups);
+  }
+
   public async user({ auth, response }: HttpContextContract) {
     const { user } = this.sharedService.extractUser(auth);
 

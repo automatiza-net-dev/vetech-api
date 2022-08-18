@@ -9,6 +9,7 @@ export default class UpdateBusinessUnitValidator {
     fantasyName: schema.string.optional({}),
     companyName: schema.string.optional({}),
     email: schema.string.optional({}, [rules.email()]),
+    document: schema.string.optional({}),
     phone: schema.string.optional({}),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),

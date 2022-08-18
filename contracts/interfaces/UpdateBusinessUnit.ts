@@ -3,6 +3,7 @@ export interface IUpdateBusinessUnit {
   fantasyName?: string;
   companyName?: string;
   email?: string;
+  document?: string;
   phone?: string;
   postalCode?: string;
   address?: string;

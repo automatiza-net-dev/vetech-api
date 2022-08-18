@@ -72,7 +72,24 @@ export default class BusinessUnitService {
   ): Promise<BusinessUnit> {
     const unit = await this.show(id);
 
-    return unit.merge(data).save();
+    return unit
+      .merge({
+        identification: data.identification,
+        fantasyName: data.fantasyName,
+        companyName: data.companyName,
+        email: data.email,
+        document: data.document,
+        phone: data.phone,
+        postalCode: data.postalCode,
+        address: data.address,
+        number: data.number,
+        complement: data.complement,
+        district: data.district,
+        city: data.city,
+        state: data.state,
+        active: data.active,
+      })
+      .save();
   }
 
   public async updateUser(

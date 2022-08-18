@@ -259,7 +259,8 @@ export default class ScheduleService {
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
 
-  public async searchServices(data: IViewDailyServicesRequest) {
+  public async searchServices(unitId: string, data: IViewDailyServicesRequest) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const startDate = new Date(data.start);
     const endDate = new Date(data.end);
 
@@ -276,6 +277,7 @@ export default class ScheduleService {
 
     const services = await ScheduleServiceType.query()
       // .has('schedules', '>', 0)
+      .where('economic_group_id', group.id)
       .preload('schedules', query => {
         query.whereBetween('start_hour', [startDate, endDate]);
 

@@ -6,6 +6,7 @@ export default class CreateUnavailableDayValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
+    title: schema.string(),
     userId: schema.string({}, [
       rules.uuid(),
       rules.exists({

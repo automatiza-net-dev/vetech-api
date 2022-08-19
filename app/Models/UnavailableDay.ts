@@ -9,6 +9,9 @@ export default class UnavailableDay extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
+  @column()
+  public title: string;
+
   @column({
     columnName: 'start_date',
   })

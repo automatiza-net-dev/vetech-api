@@ -41,6 +41,7 @@ test.group('Unavailable day resource', group => {
     const response = await client
       .post('/unavailable-days')
       .json({
+        title: 'any title',
         userId: newUser.id,
         startDate: DateTime.now(),
         endDate: DateTime.now(),
@@ -117,6 +118,7 @@ test.group('Unavailable day resource', group => {
     const response = await client
       .put(`/unavailable-days/${unavailableDay.id}`)
       .json({
+        title: 'any title',
         startDate: DateTime.now(),
         endDate: DateTime.now(),
         startHour: '10:00',

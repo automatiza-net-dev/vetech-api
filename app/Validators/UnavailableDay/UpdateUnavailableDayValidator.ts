@@ -6,6 +6,7 @@ export default class UpdateUnavailableDayValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
+    title: schema.string(),
     frequency: schema.enum(Object.values(WeekDay), []),
     startDate: schema.date({}),
     endDate: schema.date({}),

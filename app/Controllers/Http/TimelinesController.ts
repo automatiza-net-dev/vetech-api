@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import TimelineService from 'App/Services/TimelineService';
+import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWeightValidator';
 
 @inject()
@@ -17,21 +18,21 @@ export default class TimelinesController {
     return response.created();
   }
 
-  // public async animalObservationIndex({
-  //   params,
-  //   response,
-  // }: HttpContextContract) {
-  //   return response.ok(await this.animalObservationService.index(params.id));
-  // }
+  public async animalObservationIndex({
+    params,
+    response,
+  }: HttpContextContract) {
+    return response.ok(await this.timelineService.observationIndex(params.id));
+  }
 
-  // public async animalObservationStore({
-  //   request,
-  //   response,
-  // }: HttpContextContract) {
-  //   const payload = await request.validate(CreateAnimalObservationValidator);
-  //   await this.animalObservationService.store(payload);
-  //   return response.created();
-  // }
+  public async animalObservationStore({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalObservationValidator);
+    await this.timelineService.storeObservation(payload);
+    return response.created();
+  }
 
   // public async animalDocumentIndex({ params, response }: HttpContextContract) {
   //   return response.ok(await this.animalDocumentService.index(params.id));

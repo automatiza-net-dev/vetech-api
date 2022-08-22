@@ -332,7 +332,7 @@ export default class ScheduleService {
   ) {
     return keys.map(k => {
       const filteredWorkingDays = wDays.filter(day =>
-        ScheduleService.dayOfWeekMatches(new Date(k), day.weekDay),
+        ScheduleService.dayOfWeekMatches(new Date(k), [day.weekDay]),
       );
 
       const filteredUnavailableDays = uDays.filter(day =>
@@ -392,7 +392,7 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
-      .andWhere('frequency', ScheduleService.GetWD(start))
+      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
       .andWhere('start_date', '<', start)
       .andWhere('end_date', '>', end);
 
@@ -507,7 +507,7 @@ export default class ScheduleService {
       .andWhere('user_id', user)
       .andWhere('start_date', '<', start)
       .andWhere('end_date', '>', end)
-      .andWhere('frequency', ScheduleService.GetWD(start))
+      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -572,8 +572,8 @@ export default class ScheduleService {
     }
   }
 
-  private static dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
-    return ScheduleService.GetWD(date) === wd;
+  private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {
+    return wd.includes(ScheduleService.GetWD(_date));
   }
 
   public static GetWD(date: Date) {

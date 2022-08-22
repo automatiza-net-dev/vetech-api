@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import TimelineService from 'App/Services/TimelineService';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
+import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
 import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWeightValidator';
@@ -59,21 +60,23 @@ export default class TimelinesController {
     return response.created();
   }
 
-  // public async animalMedicalRecipeIndex({
-  //   params,
-  //   response,
-  // }: HttpContextContract) {
-  //   return response.ok(await this.animalMedicalRecipeService.index(params.id));
-  // }
+  public async animalMedicalRecipeIndex({
+    params,
+    response,
+  }: HttpContextContract) {
+    return response.ok(
+      await this.timelineService.medicalRecipeIndex(params.id),
+    );
+  }
 
-  // public async animalMedicalRecipeStore({
-  //   request,
-  //   response,
-  // }: HttpContextContract) {
-  //   const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
-  //   await this.animalMedicalRecipeService.store(payload);
-  //   return response.created();
-  // }
+  public async animalMedicalRecipeStore({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
+    await this.timelineService.storeMedicalRecipe(payload);
+    return response.created();
+  }
 
   // public async animalPhotoIndex({ params, response }: HttpContextContract) {
   //   return response.ok(await this.animalPhotoService.index(params.id));

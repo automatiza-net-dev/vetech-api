@@ -8,8 +8,11 @@ import TimelineType, {
   DOCUMENT_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
+  RECIPE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
+
+import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
 
 @inject()
 export default class TimelineService {
@@ -104,6 +107,30 @@ export default class TimelineService {
       timeline_info: {
         tag: data.tag,
         pathology: data.pathology,
+        observation: data.observation ?? '',
+      },
+    });
+  }
+
+  public async medicalRecipeIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: RECIPE_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeMedicalRecipe(data: IAnimalMedicalRecipe) {
+    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+    return AnimalTimeline.create({
+      timeline_id: RECIPE_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        recipe: data.recipe,
         observation: data.observation ?? '',
       },
     });

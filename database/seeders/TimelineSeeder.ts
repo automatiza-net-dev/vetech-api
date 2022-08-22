@@ -1,6 +1,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import TimelineType, {
   DOCUMENT_UUID,
+  OBSERVATION_UUID,
   PATHOLOGY_UUID,
   RECIPE_UUID,
   WEIGHT_UUID,
@@ -29,6 +30,12 @@ export default class extends BaseSeeder {
     {
       id: WEIGHT_UUID,
       description: 'Peso',
+      color: '#000',
+      requiresObservation: true,
+    },
+    {
+      id: OBSERVATION_UUID,
+      description: 'Observação',
       color: '#000',
       requiresObservation: true,
     },

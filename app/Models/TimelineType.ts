@@ -12,6 +12,7 @@ export const PATHOLOGY_UUID = '5f6b40d0-5976-4fee-9162-91c7bbb750fb';
 export const DOCUMENT_UUID = '745a4fb1-f0b4-43ee-a97e-377faeefa84f';
 export const RECIPE_UUID = '15a959c1-c509-4a11-9a98-4ea54e12398d';
 export const WEIGHT_UUID = 'b7df5bcb-5d09-412d-afd9-c3104fd29314';
+export const OBSERVATION_UUID = 'e12f6b9b-1b0c-42c9-9020-978acf394807';
 
 export default class TimelineType extends BaseModel {
   @column({ isPrimary: true })

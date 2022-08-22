@@ -1,8 +1,10 @@
 import { inject } from '@adonisjs/fold';
+import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalObservation } from 'App/Models/mongoose/AnimalObservation';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import TimelineType, {
+  DOCUMENT_UUID,
   OBSERVATION_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
@@ -52,6 +54,30 @@ export default class TimelineService {
       timeline_info: {
         tag: data.tag,
         observation: data.observation,
+      },
+    });
+  }
+
+  public async documentIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: DOCUMENT_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeDocument(data: IAnimalDocument) {
+    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
+    return AnimalTimeline.create({
+      timeline_id: DOCUMENT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        type: data.type,
+        value: data.value,
       },
     });
   }

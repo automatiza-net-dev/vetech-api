@@ -5,7 +5,7 @@ import AnimalMedicalRecipeService from 'App/Services/AnimalMedicalRecipeService'
 import AnimalObservationService from 'App/Services/AnimalObservationService';
 import AnimalPathologyService from 'App/Services/AnimalPathologyService';
 import AnimalPhotoService from 'App/Services/AnimalPhotoService';
-import AnimalWeightService from 'App/Services/AnimalWeightService';
+import TimelineService from 'App/Services/TimelineService';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
@@ -16,7 +16,7 @@ import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWei
 @inject()
 export default class TimelinesController {
   constructor(
-    private readonly animalWeightService: AnimalWeightService,
+    private readonly timelineService: TimelineService,
     private readonly animalObservationService: AnimalObservationService,
     private readonly animalDocumentService: AnimalDocumentService,
     private readonly animalPathologyService: AnimalPathologyService,
@@ -25,12 +25,12 @@ export default class TimelinesController {
   ) {}
 
   public async animalWeightIndex({ params, response }: HttpContextContract) {
-    return response.ok(await this.animalWeightService.index(params.id));
+    return response.ok(await this.timelineService.weightIndex(params.id));
   }
 
   public async animalWeightStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalWeightValidator);
-    await this.animalWeightService.store(payload);
+    await this.timelineService.storeWeight(payload);
     return response.created();
   }
 

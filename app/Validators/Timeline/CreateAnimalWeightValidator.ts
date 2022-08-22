@@ -7,6 +7,7 @@ export default class CreateAnimalWeightValidator {
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
     weight: schema.number([rules.unsigned()]),
+    observation: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

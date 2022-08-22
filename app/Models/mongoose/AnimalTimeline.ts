@@ -17,9 +17,27 @@ export const animalTimelineSchema = new Schema<IAnimalTimeline>(
   },
 );
 
-const AnimalTimeline = model<IAnimalTimeline>(
-  'animal_timeline',
-  animalTimelineSchema,
-);
+const AnimalTimeline = model<IAnimalTimeline>('timeline', animalTimelineSchema);
 
 export default AnimalTimeline;
+
+// const animalWeight = {
+//   timeline_id: Timeline.id,
+//   timeline_type: {
+//     ...timelineType,
+//   },
+//   timeline_info: {
+//     weight: 10,
+//     observation: '',
+//   },
+// };
+
+// const animalPhothology = {
+//   timeline_id: Timeline.id,
+//   timeline_type: {
+//     ...timelineType,
+//   },
+//   timeline_info: {
+//     pathology: {},
+//   },
+// };

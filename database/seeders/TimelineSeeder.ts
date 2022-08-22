@@ -3,6 +3,7 @@ import TimelineType, {
   DOCUMENT_UUID,
   PATHOLOGY_UUID,
   RECIPE_UUID,
+  WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 
 export default class extends BaseSeeder {
@@ -24,6 +25,12 @@ export default class extends BaseSeeder {
       description: 'Formato Receita Médica',
       color: '#000',
       requiresObservation: false,
+    },
+    {
+      id: WEIGHT_UUID,
+      description: 'Peso',
+      color: '#000',
+      requiresObservation: true,
     },
   ];
 

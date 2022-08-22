@@ -61,7 +61,7 @@ test.group('Scheduling resource', group => {
       endHour: end,
       startDate: date1,
       endDate: date2,
-      frequency: ScheduleService.GetWD(date1.toJSDate()),
+      frequency: [ScheduleService.GetWD(date1.toJSDate())],
     });
   };
 

@@ -8,6 +8,7 @@ export default class CreateAnimalDocumentValidator {
     tag: schema.string({}, [rules.uuid()]),
     type: schema.string({}, []),
     value: schema.string({}, []),
+    observation: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

@@ -7,6 +7,7 @@ export default class CreateAnimalPathologyValidator {
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
     pathology: schema.string({}, []),
+    observation: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

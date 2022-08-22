@@ -1,4 +1,6 @@
 import { inject } from '@adonisjs/fold';
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
+import Drive from '@ioc:Adonis/Core/Drive';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalObservation } from 'App/Models/mongoose/AnimalObservation';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
@@ -8,9 +10,12 @@ import TimelineType, {
   DOCUMENT_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
+  PHOTO_UUID,
   RECIPE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
+import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
+import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
 
@@ -134,5 +139,42 @@ export default class TimelineService {
         observation: data.observation ?? '',
       },
     });
+  }
+
+  public async photoIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: PHOTO_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storePhoto(data: ICreateAnimalPhoto) {
+    const timelineInfo = await TimelineType.findOrFail(PHOTO_UUID);
+    return AnimalTimeline.create({
+      timeline_id: PHOTO_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        photo: await this.uploadPhoto(data.photo),
+        observation: data.observation ?? '',
+      },
+    });
+  }
+
+  private async uploadPhoto(file: MultipartFileContract): Promise<string> {
+    const key = `${v4()}.${file.extname}`;
+    await file.moveToDisk(
+      'patients',
+      {
+        name: key,
+      },
+      'local',
+    );
+
+    return Drive.getUrl(`patients/${key}`);
   }
 }

@@ -3,6 +3,7 @@ import TimelineType, {
   DOCUMENT_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
+  PHOTO_UUID,
   RECIPE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
@@ -38,6 +39,12 @@ export default class extends BaseSeeder {
       description: 'Observação',
       color: '#000',
       requiresObservation: true,
+    },
+    {
+      id: PHOTO_UUID,
+      description: 'Fotos',
+      color: '#000',
+      requiresObservation: false,
     },
   ];
 

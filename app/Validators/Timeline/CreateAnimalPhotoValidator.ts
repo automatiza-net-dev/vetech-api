@@ -9,6 +9,7 @@ export default class CreateAnimalPhotoValidator {
     photo: schema.file({
       extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),
+    observation: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

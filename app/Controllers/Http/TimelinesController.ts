@@ -5,6 +5,7 @@ import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalD
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
+import CreateAnimalPhotoValidator from 'App/Validators/Timeline/CreateAnimalPhotoValidator';
 import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWeightValidator';
 
 @inject()
@@ -78,13 +79,13 @@ export default class TimelinesController {
     return response.created();
   }
 
-  // public async animalPhotoIndex({ params, response }: HttpContextContract) {
-  //   return response.ok(await this.animalPhotoService.index(params.id));
-  // }
+  public async animalPhotoIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.photoIndex(params.id));
+  }
 
-  // public async animalPhotoStore({ request, response }: HttpContextContract) {
-  //   const payload = await request.validate(CreateAnimalPhotoValidator);
-  //   await this.animalPhotoService.store(payload);
-  //   return response.created();
-  // }
+  public async animalPhotoStore({ request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalPhotoValidator);
+    await this.timelineService.storePhoto(payload);
+    return response.created();
+  }
 }

@@ -400,6 +400,9 @@ export default class ScheduleService {
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
       .andWhereBetween('start_hour', [start, end])
+      .preload('user', query => {
+        query.select(['id', 'name', 'email', 'phone', 'profilePicture']);
+      })
       .preload('serviceType', query => {
         query.select(['id', 'description']);
       })
@@ -407,7 +410,17 @@ export default class ScheduleService {
         query.select(['id', 'description', 'color']);
       })
       .preload('patient', query => {
-        query.select(['id', 'name']);
+        query.select(['id', 'name', 'photo']);
+
+        query.preload('patientAnimal', subquery => {
+          subquery.select(['id', 'race_id']);
+          subquery.preload('race', subsubquery => {
+            subsubquery.select(['id', 'description', 'specie_id']);
+            subsubquery.preload('specie', subsubsubquery => {
+              subsubsubquery.select(['id', 'description']);
+            });
+          });
+        });
       })
       .preload('holder', query => {
         query.select(['id', 'name']);

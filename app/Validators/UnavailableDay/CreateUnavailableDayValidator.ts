@@ -14,7 +14,7 @@ export default class CreateUnavailableDayValidator {
         column: 'id',
       }),
     ]),
-    frequency: schema.enum(Object.values(WeekDay), []),
+    frequency: schema.array().members(schema.enum(Object.values(WeekDay), [])),
     startDate: schema.date({}),
     endDate: schema.date({}),
     startHour: schema.string({}),

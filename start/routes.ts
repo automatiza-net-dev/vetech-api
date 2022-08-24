@@ -410,6 +410,11 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalVaccineIndex');
     Route.post('/', 'TimelinesController.animalVaccineStore');
   }).prefix('vaccines');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalExamIndex');
+    Route.post('/', 'TimelinesController.animalExamStore');
+  }).prefix('exams');
 })
   .prefix('n-timeline')
   .middleware('auth');

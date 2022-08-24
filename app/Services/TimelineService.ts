@@ -8,6 +8,7 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import TimelineType, {
   DOCUMENT_UUID,
+  EXAM_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
   PHOTO_UUID,
@@ -15,6 +16,7 @@ import TimelineType, {
   VACCINE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
+import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
 import { v4 } from 'uuid';
@@ -178,6 +180,31 @@ export default class TimelineService {
     const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
     return AnimalTimeline.create({
       timeline_id: VACCINE_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        description: data.description,
+        observation: data.observation ?? '',
+      },
+    });
+  }
+
+  public async examIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: EXAM_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeExam(data: ICreateAnimalExam) {
+    const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+    return AnimalTimeline.create({
+      timeline_id: EXAM_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,

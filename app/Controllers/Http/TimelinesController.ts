@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import TimelineService from 'App/Services/TimelineService';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
+import CreateAnimalExamValidator from 'App/Validators/Timeline/CreateAnimalExamValidator';
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
@@ -97,6 +98,16 @@ export default class TimelinesController {
   public async animalVaccineStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalVaccineValidator);
     await this.timelineService.storeVaccine(payload);
+    return response.created();
+  }
+
+  public async animalExamIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.examIndex(params.id));
+  }
+
+  public async animalExamStore({ request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalExamValidator);
+    await this.timelineService.storeExam(payload);
     return response.created();
   }
 }

@@ -8,6 +8,7 @@ import IUnavailableDayData from 'Contracts/interfaces/IUnavailableDayData';
 interface ISearch {
   frequency?: WeekDay;
   user?: string;
+  title?: string;
 }
 
 @inject()
@@ -19,6 +20,10 @@ export default class UnavailableDayService {
     const unit = await BusinessUnit.findOrFail(unitId);
 
     const qb = unit.related('unavailableDays').query();
+
+    if (data.title) {
+      qb.where('title', 'ilike', `%${data.title}%`);
+    }
 
     if (data.user) {
       qb.where('user_id', data.user);
@@ -52,6 +57,7 @@ export default class UnavailableDayService {
     const unit = await BusinessUnit.findOrFail(unitId);
 
     return unit.related('unavailableDays').create({
+      title: data.title,
       user_id: data.userId,
       startHour: data.startHour,
       endHour: data.endHour,
@@ -70,6 +76,7 @@ export default class UnavailableDayService {
 
     return unavailableDay
       .merge({
+        title: data.title,
         startHour: data.startHour,
         endHour: data.endHour,
         frequency: data.frequency,

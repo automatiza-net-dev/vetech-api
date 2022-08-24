@@ -1,0 +1,132 @@
+import Database from '@ioc:Adonis/Lucid/Database';
+import { test } from '@japa/runner';
+import Subgroup from 'App/Models/Subgroup';
+import Vaccine from 'App/Models/Vaccine';
+import { v4 } from 'uuid';
+
+import { generateJwtToken, userBootstrap } from '../utils';
+
+test.group('Vaccine resource', group => {
+  group.each.setup(async () => {
+    await Database.beginGlobalTransaction();
+    return () => Database.rollbackGlobalTransaction();
+  });
+
+  const createData = async () => {
+    const { user, business } = await userBootstrap();
+
+    const subgroup = await Subgroup.create({
+      description: 'some group',
+      tree: [],
+    });
+
+    const vaccine = await Vaccine.create({
+      name: 'some vaccine',
+      description: 'some description',
+      subgroup_id: subgroup.id,
+      business_unit_id: business.id,
+    });
+
+    return { user, business, subgroup, vaccine };
+  };
+
+  test('should return all vaccines', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/vaccines`).bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.isArray(response.body());
+  });
+
+  test('should create vaccine', async ({ assert, client }) => {
+    const { user, business, subgroup } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/vaccines`)
+      .json({
+        businessUnitId: business.id,
+        subgroupId: subgroup.id,
+        name: 'some name',
+        description: 'some description',
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should throw NotFoundException if no vaccine is found', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/vaccines/${v4()}`).bearerToken(token);
+
+    assert.equal(404, response.status());
+    assert.equal('E_NOT_FOUND: Vacina não encontrada', response.body().message);
+  });
+
+  test('should show vaccine', async ({ assert, client }) => {
+    const { user, vaccine } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/vaccines/${vaccine.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.equal(vaccine.id, response.body().id);
+  });
+
+  test('should update vaccine', async ({ assert, client }) => {
+    const { user, business, subgroup, vaccine } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/vaccines/${vaccine.id}`)
+      .json({
+        businessUnitId: business.id,
+        subgroupId: subgroup.id,
+        name: 'some name',
+        description: 'some description',
+        active: true,
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.equal(vaccine.id, response.body().id);
+  });
+
+  test('should soft delete vaccine', async ({ assert, client }) => {
+    const { user, vaccine } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/vaccines/${vaccine.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+});

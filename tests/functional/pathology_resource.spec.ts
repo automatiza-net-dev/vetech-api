@@ -84,6 +84,7 @@ test.group('Pathology resource', group => {
       .json({
         description: 'any description',
         definition: 'any definition',
+        template: 'any template',
       })
       .bearerToken(token);
 
@@ -102,6 +103,7 @@ test.group('Pathology resource', group => {
       .json({
         description: 'another description',
         definition: 'any definition',
+        template: 'any template',
         active: true,
       })
       .bearerToken(token);

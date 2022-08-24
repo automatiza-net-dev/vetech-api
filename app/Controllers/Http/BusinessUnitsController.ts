@@ -5,6 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import UserRoleService from 'App/Services/UserRoleService';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
+import UpdateUnitUserValidator from 'App/Validators/BusinessUnit/UpdateUnitUserValidator';
 
 @inject()
 export default class BusinessUnitsController {
@@ -45,11 +46,46 @@ export default class BusinessUnitsController {
     return response.ok(updatedUnit);
   }
 
-  public async users({ auth, response }: HttpContextContract) {
+  public async updateUser({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdateUnitUserValidator);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    const updatedUnit = await this.service.updateUser(
+      unit_id,
+      user,
+      id,
+      payload,
+    );
+
+    return response.ok(updatedUnit);
+  }
+
+  public async users({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const users = await this.userRoleService.getUnitUsers(unit_id);
+
+    const qs = request.qs();
+    const users = await this.userRoleService.getUnitUsers(unit_id, {
+      name: qs.name,
+      document: qs.document,
+      phone: qs.phone,
+      role: qs.role,
+    });
 
     return response.ok(users);
+  }
+
+  public async searchUser({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const groups = await this.service.searchUser(unit_id, params.id);
+
+    return response.ok(groups);
   }
 
   public async user({ auth, response }: HttpContextContract) {

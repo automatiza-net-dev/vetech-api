@@ -42,15 +42,14 @@ export default class ScheduleServiceTypeService {
 
     await groupQb.preload('types', qb => {
       qb.where('description', 'ilike', `%${data.description ?? ''}%`);
+
+      qb.preload('serviceGroup');
+      qb.preload('product');
     });
 
     const result = await groupQb;
 
-    const types = result.map(group => group.types).flat();
-
-    await Promise.all(types.map(type => type.load('serviceGroup')));
-
-    return types;
+    return result.map(group => group.types).flat();
   }
 
   public async show(
@@ -69,6 +68,8 @@ export default class ScheduleServiceTypeService {
     if (!type) throw exception;
 
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+
+    await type.load('product');
 
     if (isSuperAdmin) {
       return type;
@@ -97,6 +98,7 @@ export default class ScheduleServiceTypeService {
       economic_group_id: group.id,
       description: data.description,
       reservedMinutes: data.reservedMinutes,
+      product_id: data.productId,
     });
   }
 
@@ -118,6 +120,7 @@ export default class ScheduleServiceTypeService {
         reservedMinutes: data.reservedMinutes,
         schedule_service_group_id: data.scheduleServiceGroupId,
         description: data.description,
+        product_id: data.productId,
       })
       .save();
   }

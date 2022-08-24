@@ -5,11 +5,12 @@ export default class UpdateBusinessUnitValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    identification: schema.string.optional({}),
-    fantasyName: schema.string.optional({}),
-    companyName: schema.string.optional({}),
+    phone: schema.string.optional({}, [rules.maxLength(14)]),
+    identification: schema.string.optional({}, [rules.maxLength(80)]),
+    fantasyName: schema.string.optional({}, [rules.maxLength(80)]),
+    companyName: schema.string.optional({}, [rules.maxLength(80)]),
     email: schema.string.optional({}, [rules.email()]),
-    phone: schema.string.optional({}),
+    document: schema.string.optional({}),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),
     number: schema.string.optional({}),

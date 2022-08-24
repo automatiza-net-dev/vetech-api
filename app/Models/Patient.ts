@@ -119,4 +119,10 @@ export default class Patient extends BaseModel {
     foreignKey: 'patient_id',
   })
   public patientAnimal: HasOne<typeof PatientAnimal>;
+
+  @hasMany(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'holder_id',
+  })
+  public holderSchedules: HasMany<typeof Schedule>;
 }

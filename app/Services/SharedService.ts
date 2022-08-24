@@ -44,4 +44,10 @@ export default class SharedService {
   public ResourceNotFound(message = 'Recurso não encontrado') {
     return new ResourceNotFoundException(message, 404, 'E_NOT_FOUND');
   }
+
+  public async userHasRoles(user: User, roles: string[]): Promise<boolean> {
+    const userRoles = await user.related('roles').query().preload('role');
+
+    return Boolean(userRoles.find(r => roles.includes(r.role?.name)));
+  }
 }

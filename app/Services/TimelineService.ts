@@ -12,9 +12,11 @@ import TimelineType, {
   PATHOLOGY_UUID,
   PHOTO_UUID,
   RECIPE_UUID,
+  VACCINE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
+import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
 import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
@@ -160,6 +162,31 @@ export default class TimelineService {
       timeline_info: {
         tag: data.tag,
         photo: await this.uploadPhoto(data.photo),
+        observation: data.observation ?? '',
+      },
+    });
+  }
+
+  public async vaccineIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: VACCINE_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeVaccine(data: ICreateAnimalVaccine) {
+    const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
+    return AnimalTimeline.create({
+      timeline_id: VACCINE_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        description: data.description,
         observation: data.observation ?? '',
       },
     });

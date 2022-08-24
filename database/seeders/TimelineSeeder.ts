@@ -5,6 +5,7 @@ import TimelineType, {
   PATHOLOGY_UUID,
   PHOTO_UUID,
   RECIPE_UUID,
+  VACCINE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 
@@ -43,6 +44,12 @@ export default class extends BaseSeeder {
     {
       id: PHOTO_UUID,
       description: 'Fotos',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: VACCINE_UUID,
+      description: 'Vacinas',
       color: '#000',
       requiresObservation: false,
     },

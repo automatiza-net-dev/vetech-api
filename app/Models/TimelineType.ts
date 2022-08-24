@@ -14,6 +14,7 @@ export const RECIPE_UUID = '15a959c1-c509-4a11-9a98-4ea54e12398d';
 export const PHOTO_UUID = '8a4bf0b0-043b-4df2-9d62-13478e985bd1';
 export const WEIGHT_UUID = 'b7df5bcb-5d09-412d-afd9-c3104fd29314';
 export const OBSERVATION_UUID = 'e12f6b9b-1b0c-42c9-9020-978acf394807';
+export const VACCINE_UUID = 'ebb7e7c2-85ca-4d59-b2d7-6c0bfa66d538';
 
 export default class TimelineType extends BaseModel {
   @column({ isPrimary: true })

@@ -363,7 +363,6 @@ Route.group(() => {
   .prefix('document-templates')
   .middleware('auth');
 
-
 Route.resource('vaccines', 'VaccinesController')
   .apiOnly()
   .middleware({
@@ -406,6 +405,11 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalPhotoIndex');
     Route.post('/', 'TimelinesController.animalPhotoStore');
   }).prefix('photos');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalVaccineIndex');
+    Route.post('/', 'TimelinesController.animalVaccineStore');
+  }).prefix('vaccines');
 })
   .prefix('n-timeline')
   .middleware('auth');

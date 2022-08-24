@@ -2,28 +2,25 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
-  BelongsTo,
   belongsTo,
+  BelongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import TimelineType from 'App/Models/TimelineType';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Subgroup from 'App/Models/Subgroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export default class Pathology extends BaseModel {
+export default class Exam extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
+  public name: string;
+
+  @column()
   public description: string;
-
-  @column()
-  public definition: string;
-
-  @column()
-  public template: string;
 
   @column()
   public active: boolean;
@@ -48,20 +45,14 @@ export default class Pathology extends BaseModel {
   }
 
   @column()
-  public timeline_type_id: string;
+  public business_unit_id?: string;
 
-  @belongsTo(() => TimelineType, {
-    foreignKey: 'timeline_type_id',
-    localKey: 'id',
-  })
-  public timelineType: BelongsTo<typeof TimelineType>;
+  @belongsTo(() => BusinessUnit, {})
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column()
-  public economic_group_id: string;
+  public subgroup_id: string;
 
-  @belongsTo(() => EconomicGroup, {
-    foreignKey: 'economic_group_id',
-    localKey: 'id',
-  })
-  public group: BelongsTo<typeof EconomicGroup>;
+  @belongsTo(() => Subgroup, {})
+  public subgroup: BelongsTo<typeof Subgroup>;
 }

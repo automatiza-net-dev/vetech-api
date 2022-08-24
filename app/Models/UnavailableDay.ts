@@ -9,6 +9,9 @@ export default class UnavailableDay extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
+  @column()
+  public title: string;
+
   @column({
     columnName: 'start_date',
   })
@@ -29,8 +32,15 @@ export default class UnavailableDay extends BaseModel {
   })
   public endHour: string;
 
-  @column()
-  public frequency: WeekDay;
+  @column({
+    prepare(value) {
+      return value.join(',');
+    },
+    consume(value) {
+      return value.split(',');
+    },
+  })
+  public frequency: Array<WeekDay>;
 
   @column()
   public active: boolean;

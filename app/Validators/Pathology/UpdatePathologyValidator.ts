@@ -8,6 +8,7 @@ export default class UpdatePathologyValidator {
     description: schema.string({}, []),
     definition: schema.string({}, []),
     active: schema.boolean([]),
+    template: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

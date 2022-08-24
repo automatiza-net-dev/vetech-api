@@ -135,7 +135,7 @@ test.group('Product resource', group => {
         cest: 'some cest',
         features: 'some features',
         unityType: 'some unity type',
-        group: variationGroup.id,
+        variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
         variations: [

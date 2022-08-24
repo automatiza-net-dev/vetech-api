@@ -1,8 +1,7 @@
-export interface IUpdateBusinessUnit {
-  identification?: string;
-  fantasyName?: string;
-  companyName?: string;
+export interface IUpdateUnitUser {
+  name?: string;
   email?: string;
+  password?: string;
   document?: string;
   phone?: string;
   postalCode?: string;
@@ -12,5 +11,5 @@ export interface IUpdateBusinessUnit {
   district?: string;
   city?: string;
   state?: string;
-  active?: boolean;
+  roles?: Array<number>;
 }

@@ -2,12 +2,14 @@ import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData from 'Contracts/interfaces/IScheduleData';
+import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRequest';
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
 import {
   addDays,
@@ -15,6 +17,7 @@ import {
   endOfDay,
   format,
   intervalToDuration,
+  isSameDay,
   startOfDay,
 } from 'date-fns';
 import { DateTime } from 'luxon';
@@ -226,12 +229,8 @@ export default class ScheduleService {
   }
 
   public async searchDisponibility(data: IViewDisponibilityRequest) {
-    const startDate = DateTime.fromISO(data.start)
-      .setZone('America/Sao_Paulo')
-      .toJSDate();
-    const endDate = DateTime.fromISO(data.end)
-      .setZone('America/Sao_Paulo')
-      .toJSDate();
+    const startDate = new Date(data.start);
+    const endDate = new Date(data.end);
 
     const { days } = intervalToDuration({
       start: startDate,
@@ -260,6 +259,71 @@ export default class ScheduleService {
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
 
+  public async searchServices(unitId: string, data: IViewDailyServicesRequest) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const startDate = new Date(data.start);
+    const endDate = new Date(data.end);
+
+    const { days } = intervalToDuration({
+      start: startDate,
+      end: endDate,
+    });
+
+    const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
+      const tmpDate = addDays(startDate, k);
+
+      return format(tmpDate, 'yyyy-MM-dd');
+    });
+
+    const services = await ScheduleServiceType.query()
+      // .has('schedules', '>', 0)
+      .where('economic_group_id', group.id)
+      .preload('schedules', query => {
+        query.whereBetween('start_hour', [startDate, endDate]);
+
+        query.preload('patient');
+        query.preload('race');
+        query.preload('holder');
+        query.preload('user');
+      });
+
+    return keys.map(key => ({
+      [key]: services.map(service => ({
+        [service.description]: service.schedules
+          .filter(schedule => {
+            const scheduleDate = schedule.startHour.toJSDate();
+
+            const keyDate = DateTime.fromFormat(key, 'yyyy-MM-dd').toJSDate();
+
+            return isSameDay(scheduleDate, keyDate);
+          })
+          .map(schedule => ({
+            id: schedule.id,
+            startHour: schedule.startHour,
+            endHour: schedule.endHour,
+            age: schedule.age,
+            majorComplaint: schedule.majorComplaint,
+            holder: {
+              id: schedule.holder?.id,
+              name: schedule.holder?.name,
+            },
+            patient: {
+              id: schedule.patient.id,
+              name: schedule.patient.name,
+            },
+            race: {
+              id: schedule.race?.id,
+              description: schedule.race?.description,
+            },
+            user: {
+              id: schedule.user.id,
+              name: schedule.user.name,
+            },
+          })),
+      })),
+    }));
+  }
+
   private mapSchedulesToDays(
     keys: string[],
     wDays: WorkingDay[],
@@ -268,7 +332,7 @@ export default class ScheduleService {
   ) {
     return keys.map(k => {
       const filteredWorkingDays = wDays.filter(day =>
-        ScheduleService.dayOfWeekMatches(new Date(k), day.weekDay),
+        ScheduleService.dayOfWeekMatches(new Date(k), [day.weekDay]),
       );
 
       const filteredUnavailableDays = uDays.filter(day =>
@@ -328,7 +392,7 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
-      .andWhere('frequency', ScheduleService.GetWD(start))
+      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
       .andWhere('start_date', '<', start)
       .andWhere('end_date', '>', end);
 
@@ -336,6 +400,9 @@ export default class ScheduleService {
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
       .andWhereBetween('start_hour', [start, end])
+      .preload('user', query => {
+        query.select(['id', 'name', 'email', 'phone', 'profilePicture']);
+      })
       .preload('serviceType', query => {
         query.select(['id', 'description']);
       })
@@ -343,7 +410,17 @@ export default class ScheduleService {
         query.select(['id', 'description', 'color']);
       })
       .preload('patient', query => {
-        query.select(['id', 'name']);
+        query.select(['id', 'name', 'photo']);
+
+        query.preload('patientAnimal', subquery => {
+          subquery.select(['id', 'race_id']);
+          subquery.preload('race', subsubquery => {
+            subsubquery.select(['id', 'description', 'specie_id']);
+            subsubquery.preload('specie', subsubsubquery => {
+              subsubsubquery.select(['id', 'description']);
+            });
+          });
+        });
       })
       .preload('holder', query => {
         query.select(['id', 'name']);
@@ -443,7 +520,7 @@ export default class ScheduleService {
       .andWhere('user_id', user)
       .andWhere('start_date', '<', start)
       .andWhere('end_date', '>', end)
-      .andWhere('frequency', ScheduleService.GetWD(start))
+      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -508,8 +585,8 @@ export default class ScheduleService {
     }
   }
 
-  private static dayOfWeekMatches(date: Date, wd: WeekDay): boolean {
-    return ScheduleService.GetWD(date) === wd;
+  private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {
+    return wd.includes(ScheduleService.GetWD(_date));
   }
 
   public static GetWD(date: Date) {

@@ -7,7 +7,7 @@ export default class UpdateDocumentTemplateValidator {
   public schema = schema.create({
     title: schema.string({}, []),
     description: schema.string({}, []),
-    header: schema.string({}, []),
+    header: schema.string.optional({}, []),
     template: schema.string({}, []),
     active: schema.boolean([]),
   });

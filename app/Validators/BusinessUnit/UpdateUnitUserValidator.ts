@@ -1,16 +1,15 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class UpdateBusinessUnitValidator {
+export default class UpdateUnitUserValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    identification: schema.string.optional({}),
-    fantasyName: schema.string.optional({}),
-    companyName: schema.string.optional({}),
+    name: schema.string.optional({}),
     email: schema.string.optional({}, [rules.email()]),
-    document: schema.string.optional({}),
-    phone: schema.string.optional({}),
+    password: schema.string.optional({}, [rules.confirmed()]),
+    document: schema.string.optional({}, []),
+    phone: schema.string.optional({}, [rules.maxLength(20)]),
     postalCode: schema.string.optional({}),
     address: schema.string.optional({}),
     number: schema.string.optional({}),
@@ -19,6 +18,14 @@ export default class UpdateBusinessUnitValidator {
     city: schema.string.optional({}),
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
+    roles: schema.array
+      .optional()
+      .members(
+        schema.number([
+          rules.unsigned(),
+          rules.exists({ table: 'roles', column: 'id' }),
+        ]),
+      ),
   });
 
   public messages: CustomMessages = {};

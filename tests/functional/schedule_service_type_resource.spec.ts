@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Product, { ProductType } from 'App/Models/Product';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import { v4 } from 'uuid';
 
@@ -26,11 +27,29 @@ test.group('Schedule service type resource', group => {
       reservedMinutes: 90,
     });
 
-    return { user, group, schedule, business, groupType };
+    const variationGroup = await group.related('variationGroups').create({
+      description: 'some description',
+    });
+
+    const product = await Product.create({
+      description: 'some product',
+      type: ProductType.PRODUCT,
+      referenceCode: 'some reference code',
+      collectionYear: 2022,
+      ncm: 'some ncm',
+      cest: 'some cest',
+      features: 'some features',
+      unityType: 'some unity type',
+      active: true,
+      economic_group_id: group.id,
+      variation_group_id: variationGroup.id,
+    });
+
+    return { user, group, schedule, business, groupType, product };
   };
 
   test('should create schedule group type', async ({ assert, client }) => {
-    const { user, schedule } = await createData();
+    const { user, schedule, product } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -42,6 +61,7 @@ test.group('Schedule service type resource', group => {
         description: 'some schedule',
         reversedMinutes: 90,
         scheduleServiceGroupId: schedule.id,
+        productId: product.id,
       })
       .bearerToken(token);
 

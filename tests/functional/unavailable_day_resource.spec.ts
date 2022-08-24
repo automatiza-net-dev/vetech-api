@@ -23,7 +23,7 @@ test.group('Unavailable day resource', group => {
       endDate: DateTime.now(),
       startHour: '09:00',
       endHour: '21:00',
-      frequency: WeekDay.SEGUNDA,
+      frequency: [WeekDay.SEGUNDA],
     });
 
     return [user, model];
@@ -41,12 +41,13 @@ test.group('Unavailable day resource', group => {
     const response = await client
       .post('/unavailable-days')
       .json({
+        title: 'any title',
         userId: newUser.id,
         startDate: DateTime.now(),
         endDate: DateTime.now(),
         startHour: '09:00',
         endHour: '21:00',
-        frequency: WeekDay.SEGUNDA,
+        frequency: [WeekDay.SEGUNDA],
       })
       .bearerToken(token);
 
@@ -117,11 +118,12 @@ test.group('Unavailable day resource', group => {
     const response = await client
       .put(`/unavailable-days/${unavailableDay.id}`)
       .json({
+        title: 'any title',
         startDate: DateTime.now(),
         endDate: DateTime.now(),
         startHour: '10:00',
         endHour: '21:00',
-        frequency: WeekDay.SEGUNDA,
+        frequency: [WeekDay.SEGUNDA],
         active: true,
       })
       .bearerToken(token);

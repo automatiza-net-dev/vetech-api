@@ -67,13 +67,19 @@ Route.group(() => {
 }).prefix('economic-groups');
 
 Route.group(() => {
+  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
+  Route.get('/user/:id', 'BusinessUnitsController.searchUser').middleware(
+    'auth',
+  );
   Route.get('/user', 'BusinessUnitsController.user').middleware('auth');
+  Route.put('/user/:id', 'BusinessUnitsController.updateUser').middleware(
+    'auth',
+  );
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
-  Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.put('/:id', 'BusinessUnitsController.update');
   Route.delete('/user/:id', 'BusinessUnitsController.deleteUser').middleware(
     'auth',
@@ -204,6 +210,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get('/groups', 'SchedulesController.viewServiceGroups');
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
@@ -357,7 +364,14 @@ Route.group(() => {
   .prefix('document-templates')
   .middleware('auth');
 
+
 Route.resource('vaccines', 'VaccinesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
+  
+Route.resource('exams', 'ExamsController')
   .apiOnly()
   .middleware({
     '*': ['auth'],

@@ -37,7 +37,7 @@ export default class PatientsController {
     const qs = request.qs();
 
     const data = {
-      holder: qs.holder,
+      tutor: qs.tutor,
       patient: qs.patient,
     } as ISearchPatient;
 

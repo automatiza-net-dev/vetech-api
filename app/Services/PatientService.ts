@@ -25,6 +25,7 @@ interface ISearchAnimals {
   name?: string;
   tutor?: string;
   race?: string;
+  specie?: string;
   document?: string;
   phone?: string;
 }
@@ -165,6 +166,16 @@ export default class PatientService {
         const matches = r.tutors.some(t =>
           t.tutor.cellphone?.includes(data.phone ?? ''),
         );
+
+        if (!matches) {
+          return false;
+        }
+      }
+
+      if (data.specie) {
+        const matches = r.patientAnimal?.race?.specie.description
+          .toLocaleLowerCase()
+          .includes(data.specie.toLowerCase());
 
         if (!matches) {
           return false;

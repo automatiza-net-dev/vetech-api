@@ -44,7 +44,7 @@ test.group('Vaccine resource', group => {
   });
 
   test('should create vaccine', async ({ assert, client }) => {
-    const { user, business, subgroup } = await createData();
+    const { user, subgroup } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -53,7 +53,6 @@ test.group('Vaccine resource', group => {
     const response = await client
       .post(`/vaccines`)
       .json({
-        businessUnitId: business.id,
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',
@@ -95,7 +94,7 @@ test.group('Vaccine resource', group => {
   });
 
   test('should update vaccine', async ({ assert, client }) => {
-    const { user, business, subgroup, vaccine } = await createData();
+    const { user, subgroup, vaccine } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -104,7 +103,6 @@ test.group('Vaccine resource', group => {
     const response = await client
       .put(`/vaccines/${vaccine.id}`)
       .json({
-        businessUnitId: business.id,
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',

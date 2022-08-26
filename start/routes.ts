@@ -364,13 +364,12 @@ Route.group(() => {
   .prefix('document-templates')
   .middleware('auth');
 
-
 Route.resource('vaccines', 'VaccinesController')
   .apiOnly()
   .middleware({
     '*': ['auth'],
   });
-  
+
 Route.resource('exams', 'ExamsController')
   .apiOnly()
   .middleware({

@@ -3,13 +3,14 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
+import { SS_NOT_CONFIRMED, VALID_CHANGES } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData from 'Contracts/interfaces/IScheduleData';
+import IUpdateScheduleStatus from 'Contracts/interfaces/IUpdateScheduleStatus';
 import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRequest';
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
 import {
@@ -591,5 +592,34 @@ export default class ScheduleService {
 
   public static GetWD(date: Date) {
     return Object.values(WeekDay)[date.getDay()];
+  }
+
+  public async updateScheduleStatusWithStaticValues(
+    unitId: string,
+    data: IUpdateScheduleStatus,
+  ) {
+    const schedule = await Schedule.query()
+      .where('id', data.scheduleId)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!schedule) {
+      throw new ResourceNotFoundException('Agendamento não encontrado');
+    }
+
+    if (schedule.schedule_status_id === data.scheduleId) {
+      return schedule;
+    }
+
+    const validChanges = VALID_CHANGES[schedule.schedule_status_id];
+    if (!validChanges || !validChanges.includes(data.statusId)) {
+      throw new BadRequestException('Mudança inválida');
+    }
+
+    return schedule
+      .merge({
+        schedule_status_id: data.statusId,
+      })
+      .save();
   }
 }

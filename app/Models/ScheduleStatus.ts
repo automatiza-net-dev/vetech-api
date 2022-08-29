@@ -24,6 +24,19 @@ export const SS_SURGERY = '796b9b07-a746-47d0-a93a-da7154869773';
 export const SS_HOSPITALIZED = '07cfeb17-192e-4196-a0d5-f33d3240a736';
 export const SS_ON_NOTE = '3aad3eec-4cb0-4295-9840-5c584cb1040d';
 
+export const VALID_CHANGES: Record<string, Array<string>> = {
+  [SS_NOT_CONFIRMED]: [SS_CONFIRMED],
+  [SS_CONFIRMED]: [SS_RECEPTION],
+  [SS_RECEPTION]: [SS_ON_ATTENDANCE],
+  [SS_ON_ATTENDANCE]: [
+    SS_ATTENDANCE_FINISHED,
+    SS_ATTENDANCE_CANCELLED,
+    SS_SURGERY,
+    SS_HOSPITALIZED,
+    SS_ON_NOTE,
+  ],
+};
+
 export default class ScheduleStatus extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

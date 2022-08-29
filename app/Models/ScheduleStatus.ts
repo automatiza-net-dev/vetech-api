@@ -14,6 +14,16 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export const SS_NOT_CONFIRMED = '982ab03a-c747-4296-89ba-44d3e359064e';
+export const SS_CONFIRMED = '7940c391-fb29-48a8-b12c-a54c90f429bf';
+export const SS_RECEPTION = 'c8d04207-3666-4c40-bf5a-f80bc1cd2357';
+export const SS_ON_ATTENDANCE = 'c044b0de-dbf2-43d8-9184-215e517afaba';
+export const SS_ATTENDANCE_FINISHED = 'd4caeeb9-c101-4187-a0e1-76ce6fdf7191';
+export const SS_ATTENDANCE_CANCELLED = 'd1a58af6-748c-4966-85d2-8ef21c891ccc';
+export const SS_SURGERY = '796b9b07-a746-47d0-a93a-da7154869773';
+export const SS_HOSPITALIZED = '07cfeb17-192e-4196-a0d5-f33d3240a736';
+export const SS_ON_NOTE = '3aad3eec-4cb0-4295-9840-5c584cb1040d';
+
 export default class ScheduleStatus extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

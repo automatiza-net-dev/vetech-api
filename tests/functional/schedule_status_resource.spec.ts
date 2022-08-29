@@ -1,9 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import User from 'App/Models/User';
 
-import { createSudo, generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Schedule status resource', group => {
   group.each.setup(async () => {
@@ -20,14 +18,6 @@ test.group('Schedule status resource', group => {
     });
 
     return { user, business, status };
-  };
-
-  const assignSuperAdmin = async (user: User, businessUnit: BusinessUnit) => {
-    const [sudoRole] = await createSudo();
-    await user.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: businessUnit.id,
-    });
   };
 
   // test('should create new schedule status for super admin', async ({

@@ -4,7 +4,6 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
@@ -17,7 +16,7 @@ interface ISearchBusinessUnit {
 
 @inject()
 export default class BusinessUnitService {
-  constructor(private readonly sharedService: SharedService) {}
+  // constructor(private readonly sharedService: SharedService) {}
 
   public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
     const qb = BusinessUnit.query().preload('economicGroup');
@@ -94,15 +93,16 @@ export default class BusinessUnitService {
 
   public async updateUser(
     unitId: string,
-    loggedUser: User,
+    _: User,
     id: string,
     data: IUpdateUnitUser,
   ) {
-    if (!(await this.sharedService.userHasRoles(loggedUser, ['admin']))) {
-      throw new BadRequestException(
-        'Apenas administradores podem alterar usuários',
-      );
-    }
+    // TODO enable later
+    // if (!(await this.sharedService.userHasRoles(loggedUser, ['admin']))) {
+    //   throw new BadRequestException(
+    //     'Apenas administradores podem alterar usuários',
+    //   );
+    // }
 
     const user = await User.find(id);
 

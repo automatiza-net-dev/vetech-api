@@ -160,10 +160,10 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/', 'ScheduleStatusesController.index');
-  Route.post('/', 'ScheduleStatusesController.store');
-  Route.get('/:id', 'ScheduleStatusesController.show');
-  Route.put('/:id', 'ScheduleStatusesController.update');
-  Route.delete('/:id', 'ScheduleStatusesController.destroy');
+  // Route.post('/', 'ScheduleStatusesController.store');
+  // Route.get('/:id', 'ScheduleStatusesController.show');
+  // Route.put('/:id', 'ScheduleStatusesController.update');
+  // Route.delete('/:id', 'ScheduleStatusesController.destroy');
 })
   .prefix('schedule-statuses')
   .middleware('auth');
@@ -218,6 +218,7 @@ Route.group(() => {
   Route.get('/', 'SchedulesController.index');
   Route.post('/', 'SchedulesController.store');
   Route.get('/:id', 'SchedulesController.show');
+  Route.put('/status', 'SchedulesController.updateStatus');
   Route.put('/:id', 'SchedulesController.update');
   Route.delete('/:id', 'SchedulesController.destroy');
 })

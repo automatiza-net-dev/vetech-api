@@ -7,3 +7,6 @@ animals:
 
 timeline:
 	node ace db:seed --files "./database/seeders/TimelineSeeder.ts"
+
+schedule-statuses:
+	node ace db:seed --files "./database/seeders/ScheduleStatus.ts"

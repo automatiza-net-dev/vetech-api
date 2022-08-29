@@ -53,6 +53,7 @@ export default class PatientsController {
     const patients = await this.service.animalsIndex(unit_id, {
       name: qs.name,
       race: qs.race,
+      specie: qs.specie,
       tutor: qs.tutor,
       document: qs.document,
       phone: qs.phone,

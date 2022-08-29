@@ -44,7 +44,7 @@ test.group('Exam resource', group => {
   });
 
   test('should create exam', async ({ assert, client }) => {
-    const { user, business, subgroup } = await createData();
+    const { user, subgroup } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -53,7 +53,6 @@ test.group('Exam resource', group => {
     const response = await client
       .post(`/exams`)
       .json({
-        businessUnitId: business.id,
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',
@@ -93,7 +92,7 @@ test.group('Exam resource', group => {
   });
 
   test('should update exam', async ({ assert, client }) => {
-    const { user, business, subgroup, exam } = await createData();
+    const { user, subgroup, exam } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -102,7 +101,6 @@ test.group('Exam resource', group => {
     const response = await client
       .put(`/exams/${exam.id}`)
       .json({
-        businessUnitId: business.id,
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',

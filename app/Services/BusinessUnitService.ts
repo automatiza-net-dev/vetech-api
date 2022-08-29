@@ -139,19 +139,21 @@ export default class BusinessUnitService {
     await Database.transaction(async trx => {
       await user.merge(sanitized).useTransaction(trx).save();
 
-      await user.related('roles').query().delete().useTransaction(trx);
+      if ((roles ?? []).length > 0) {
+        await user.related('roles').query().delete().useTransaction(trx);
 
-      // eslint-disable-next-line no-restricted-syntax
-      for await (const role of roles ?? []) {
-        await user.related('roles').create(
-          {
-            role_id: role,
-            unit_id: unitId,
-          },
-          {
-            client: trx,
-          },
-        );
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const role of roles ?? []) {
+          await user.related('roles').create(
+            {
+              role_id: role,
+              unit_id: unitId,
+            },
+            {
+              client: trx,
+            },
+          );
+        }
       }
     });
 

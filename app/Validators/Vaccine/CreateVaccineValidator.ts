@@ -5,13 +5,6 @@ export default class CreateVaccineValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    businessUnitId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'business_units',
-        column: 'id',
-      }),
-    ]),
     subgroupId: schema.string({}, [
       rules.uuid(),
       rules.exists({

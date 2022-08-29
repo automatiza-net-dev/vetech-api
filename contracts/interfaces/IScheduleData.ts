@@ -2,7 +2,6 @@ import { DateTime } from 'luxon';
 
 export default interface IScheduleData {
   scheduleServiceTypeId: string;
-  scheduleStatusId: string;
   patientId?: string;
   holderId?: string;
   patientName?: string;

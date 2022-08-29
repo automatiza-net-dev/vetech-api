@@ -3,6 +3,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -122,7 +123,7 @@ export default class ScheduleService {
       patient_id: data.patientId,
       race_id: data.raceId,
       schedule_service_type_id: data.scheduleServiceTypeId,
-      schedule_status_id: data.scheduleStatusId,
+      schedule_status_id: SS_NOT_CONFIRMED,
     });
   }
 
@@ -217,7 +218,6 @@ export default class ScheduleService {
         patient_id: data.patientId,
         race_id: data.raceId,
         schedule_service_type_id: data.scheduleServiceTypeId,
-        schedule_status_id: data.scheduleStatusId,
       })
       .save();
   }

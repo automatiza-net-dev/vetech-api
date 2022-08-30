@@ -4,6 +4,7 @@ import ScheduleStatus, {
   SS_ATTENDANCE_FINISHED,
   SS_CONFIRMED,
   SS_HOSPITALIZED,
+  SS_LATE,
   SS_NOT_CONFIRMED,
   SS_ON_ATTENDANCE,
   SS_ON_NOTE,
@@ -56,6 +57,11 @@ export default class extends BaseSeeder {
     {
       id: SS_ON_NOTE,
       description: 'Em observação',
+      color: '#000',
+    },
+    {
+      id: SS_LATE,
+      description: 'Atrasado',
       color: '#000',
     },
   ];

@@ -1,5 +1,8 @@
+import { DateTime } from 'luxon';
+
 export type IAnimalPathology = {
   tag: string;
   pathology: string;
-  observation?: string;
+  realizedAt: DateTime;
+  technicianId: string;
 };

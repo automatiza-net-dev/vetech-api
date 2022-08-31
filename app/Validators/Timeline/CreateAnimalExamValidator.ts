@@ -8,8 +8,20 @@ export default class CreateAnimalExamValidator {
     tag: schema.string({}, [rules.uuid()]),
     name: schema.string({}, []),
     realizedAt: schema.date({}),
-    requesterId: schema.string({}, [rules.uuid()]),
-    technicianId: schema.string({}, [rules.uuid()]),
+    requesterId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
+    ]),
+    technicianId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
+    ]),
     description: schema.string({}, []),
     attachments: schema.array().members(schema.file({}, [])),
   });

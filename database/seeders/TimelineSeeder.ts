@@ -1,7 +1,9 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import TimelineType, {
+  APPOINTMENT_UUID,
   DOCUMENT_UUID,
   EXAM_UUID,
+  HOSPITALIZATION_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
   PHOTO_UUID,
@@ -57,6 +59,18 @@ export default class extends BaseSeeder {
     {
       id: EXAM_UUID,
       description: 'Exames',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: HOSPITALIZATION_UUID,
+      description: 'Hospitalização',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: APPOINTMENT_UUID,
+      description: 'Consulta',
       color: '#000',
       requiresObservation: false,
     },

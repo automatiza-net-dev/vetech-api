@@ -16,6 +16,7 @@ import TimelineType, {
   VACCINE_UUID,
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
+import User from 'App/Models/User';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -203,6 +204,12 @@ export default class TimelineService {
 
   public async storeExam(data: ICreateAnimalExam) {
     const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+
+    const requester = await User.findOrFail(data.requesterId);
+    const technician = await User.findOrFail(data.technicianId);
+
+    const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
+
     return AnimalTimeline.create({
       timeline_id: EXAM_UUID,
       timeline_type: {
@@ -213,8 +220,17 @@ export default class TimelineService {
       timeline_info: {
         tag: data.tag,
         name: data.name,
+        realized: data.realizedAt,
         description: data.description,
-        observation: data.observation ?? '',
+        requester: {
+          id: requester.id,
+          name: requester.name,
+        },
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        attachments: medias,
       },
     });
   }
@@ -222,13 +238,13 @@ export default class TimelineService {
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {
     const key = `${v4()}.${file.extname}`;
     await file.moveToDisk(
-      'patients',
+      'timeline',
       {
         name: key,
       },
       'local',
     );
 
-    return Drive.getUrl(`patients/${key}`);
+    return Drive.getUrl(`timeline/${key}`);
   }
 }

@@ -7,8 +7,11 @@ export default class CreateAnimalExamValidator {
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
     name: schema.string({}, []),
+    realizedAt: schema.date({}),
+    requesterId: schema.string({}, [rules.uuid()]),
+    technicianId: schema.string({}, [rules.uuid()]),
     description: schema.string({}, []),
-    observation: schema.string.optional({}, []),
+    attachments: schema.array().members(schema.file({}, [])),
   });
 
   public messages: CustomMessages = {};

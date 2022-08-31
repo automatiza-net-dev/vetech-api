@@ -382,11 +382,6 @@ Route.group(() => {
   }).prefix('weight');
 
   Route.group(() => {
-    Route.get('/:id', 'TimelinesController.animalObservationIndex');
-    Route.post('/', 'TimelinesController.animalObservationStore');
-  }).prefix('observations');
-
-  Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
     Route.post('/', 'TimelinesController.animalDocumentStore');
   }).prefix('documents');
@@ -415,6 +410,17 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalExamIndex');
     Route.post('/', 'TimelinesController.animalExamStore');
   }).prefix('exams');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.appointmentsIndex');
+    Route.post('/', 'TimelinesController.appointmentsStore');
+  }).prefix('appointments');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.appointmentsIndex');
+    Route.post('/discharge', 'TimelinesController.dischargeStore');
+    Route.post('/', 'TimelinesController.hospitalizaionStore');
+  }).prefix('hospitalizations');
 })
   .prefix('n-timeline')
   .middleware('auth');

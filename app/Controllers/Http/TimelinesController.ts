@@ -1,10 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import TimelineService from 'App/Services/TimelineService';
+import CreateAnimalAppointmentValidator from 'App/Validators/Timeline/CreateAnimalAppointmentValidator';
+import CreateAnimalDischargeValidator from 'App/Validators/Timeline/CreateAnimalDischargeValidator';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
 import CreateAnimalExamValidator from 'App/Validators/Timeline/CreateAnimalExamValidator';
+import CreateAnimalHospitalizationValidator from 'App/Validators/Timeline/CreateAnimalHospitalization';
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
-import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
 import CreateAnimalPhotoValidator from 'App/Validators/Timeline/CreateAnimalPhotoValidator';
 import CreateAnimalVaccineValidator from 'App/Validators/Timeline/CreateAnimalVaccineValidator';
@@ -21,22 +23,6 @@ export default class TimelinesController {
   public async animalWeightStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalWeightValidator);
     await this.timelineService.storeWeight(payload);
-    return response.created();
-  }
-
-  public async animalObservationIndex({
-    params,
-    response,
-  }: HttpContextContract) {
-    return response.ok(await this.timelineService.observationIndex(params.id));
-  }
-
-  public async animalObservationStore({
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(CreateAnimalObservationValidator);
-    await this.timelineService.storeObservation(payload);
     return response.created();
   }
 
@@ -108,6 +94,34 @@ export default class TimelinesController {
   public async animalExamStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalExamValidator);
     await this.timelineService.storeExam(payload);
+    return response.created();
+  }
+
+  public async appointmentsIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.appointmentIndex(params.id));
+  }
+
+  public async appointmentsStore({ request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalAppointmentValidator);
+    await this.timelineService.storeAppointment(payload);
+    return response.created();
+  }
+
+  public async hospitalizationIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.hospizationIndex(params.id));
+  }
+
+  public async hospitalizaionStore({ request, response }: HttpContextContract) {
+    const payload = await request.validate(
+      CreateAnimalHospitalizationValidator,
+    );
+    await this.timelineService.storeHospization(payload);
+    return response.created();
+  }
+
+  public async dischargeStore({ request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalDischargeValidator);
+    await this.timelineService.storeDischarge(payload);
     return response.created();
   }
 }

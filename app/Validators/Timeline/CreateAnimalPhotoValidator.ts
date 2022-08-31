@@ -6,6 +6,13 @@ export default class CreateAnimalPhotoValidator {
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
+    technicianId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
+    ]),
     photo: schema.file({
       extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),

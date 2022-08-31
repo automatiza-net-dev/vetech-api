@@ -1,5 +1,8 @@
+import { DateTime } from 'luxon';
+
 export type IAnimalWeight = {
   tag: string;
   weight: number;
-  observation: string;
+  realizedAt: DateTime;
+  technicianId: string;
 };

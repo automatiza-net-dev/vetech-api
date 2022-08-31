@@ -7,8 +7,17 @@ export default class CreateAnimalVaccineValidator {
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
     name: schema.string({}, []),
-    description: schema.string({}, []),
-    observation: schema.string.optional({}, []),
+    technicianId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
+    ]),
+    expectedDate: schema.date({}, []),
+    applicationDate: schema.date({}, []),
+    laboratory: schema.string({}, []),
+    batch: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

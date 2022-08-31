@@ -6,8 +6,16 @@ export default class CreateAnimalMedicalRecipeValidator {
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
+    name: schema.string({}, []),
+    realizedAt: schema.date({}),
+    technicianId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'users',
+        column: 'id',
+      }),
+    ]),
     recipe: schema.string({}, []),
-    observation: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

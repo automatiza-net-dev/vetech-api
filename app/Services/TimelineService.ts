@@ -131,6 +131,9 @@ export default class TimelineService {
 
   public async storeMedicalRecipe(data: IAnimalMedicalRecipe) {
     const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
     return AnimalTimeline.create({
       timeline_id: RECIPE_UUID,
       timeline_type: {
@@ -140,8 +143,13 @@ export default class TimelineService {
       },
       timeline_info: {
         tag: data.tag,
+        name: data.name,
+        realizedAt: data.realizedAt.toJSDate(),
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
         recipe: data.recipe,
-        observation: data.observation ?? '',
       },
     });
   }

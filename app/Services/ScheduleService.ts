@@ -190,8 +190,8 @@ export default class ScheduleService {
           .where('user_id', user.id)
           .andWhere('business_unit_id', unitId)
           .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-            format(data.startHour.toJSDate(), 'HH:mm'),
-            format(data.endHour.toJSDate(), 'HH:mm'),
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
           ])
           .first();
 

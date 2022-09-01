@@ -404,6 +404,7 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalVaccineIndex');
     Route.post('/', 'TimelinesController.animalVaccineStore');
+    Route.put('/:id', 'TimelinesController.updateAnimalVaccine');
   }).prefix('vaccines');
 
   Route.group(() => {

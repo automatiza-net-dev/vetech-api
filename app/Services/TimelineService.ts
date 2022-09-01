@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
@@ -214,12 +215,39 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
-        expectedDate: data.expectedDate.toJSDate(),
-        applicationDate: data.applicationDate.toJSDate(),
+        expectedDate: data.expectedDate?.toJSDate(),
+        applicationDate: data.applicationDate?.toJSDate(),
         laboratory: data.laboratory,
         batch: data.batch,
       },
     });
+  }
+
+  public async updateVaccine(id: string, data: ICreateAnimalVaccine) {
+    const vaccine = await AnimalTimeline.findById(id);
+
+    if (!vaccine) {
+      throw new ResourceNotFoundException('Vaccine not found');
+    }
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    vaccine.timeline_info = {
+      tag: data.tag,
+      name: data.name,
+      technician: {
+        id: technician.id,
+        name: technician.name,
+      },
+      expectedDate: data.expectedDate?.toJSDate(),
+      applicationDate: data.applicationDate?.toJSDate(),
+      laboratory: data.laboratory,
+      batch: data.batch,
+    };
+
+    await vaccine.save();
+
+    return vaccine;
   }
 
   public async examIndex(tag: string) {

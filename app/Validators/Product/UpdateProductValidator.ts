@@ -10,12 +10,12 @@ export default class UpdateProductValidator {
     type: schema.enum(Object.values(ProductType), []),
     referenceCode: schema.string({}, []),
     collectionYear: schema.number([rules.unsigned()]),
-    ncm: schema.string({}, []),
-    cest: schema.string({}, []),
-    features: schema.string({}, []),
-    unityType: schema.string({}, []),
+    ncm: schema.string.optional({}, []),
+    cest: schema.string.optional({}, []),
+    features: schema.string.optional({}, []),
+    unityType: schema.string.optional({}, []),
     active: schema.boolean([]),
-    groupId: schema.string({}, [
+    groupId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'groups',

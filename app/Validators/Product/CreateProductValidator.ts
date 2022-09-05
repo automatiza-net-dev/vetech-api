@@ -20,10 +20,10 @@ export default class CreateProductValidator {
     type: schema.enum(Object.values(ProductType), []),
     referenceCode: schema.string({}, []),
     collectionYear: schema.number([rules.unsigned()]),
-    ncm: schema.string({}, []),
-    cest: schema.string({}, []),
-    features: schema.string({}, []),
-    unityType: schema.string({}, []),
+    ncm: schema.string.optional({}, []),
+    cest: schema.string.optional({}, []),
+    features: schema.string.optional({}, []),
+    unityType: schema.string.optional({}, []),
     variationGroup: schema.string({}, [
       rules.uuid(),
       rules.exists({
@@ -31,7 +31,7 @@ export default class CreateProductValidator {
         column: 'id',
       }),
     ]),
-    groupId: schema.string({}, [
+    groupId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'groups',

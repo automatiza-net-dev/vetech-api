@@ -16,6 +16,8 @@ import IAcceptInviteNewUser from 'Contracts/interfaces/IAcceptInviteNewUser';
 import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
+export const DEFAULT_USER_NAME = '[NOT REGISTERED]';
+
 @inject()
 export default class InviteService {
   constructor(private readonly sharedService: SharedService) {}
@@ -23,34 +25,65 @@ export default class InviteService {
   public async index(user: User, unitId: string): Promise<Array<Invite>> {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
+    const qb = Invite.query().where('active', true);
+
     if (isSuperAdmin) {
-      return Invite.all();
+      return qb;
     }
 
-    return Invite.query().where('business_unit_id', unitId);
+    return qb.where('business_unit_id', unitId);
   }
 
   public async store(user: User, data: IInviteData): Promise<Invite> {
     const businessUnit = await this.getUserValidBusinessUnit(user, data);
 
     const role = await Role.findOrFail(data.role_id);
-    const existingUser = await User.findBy('email', data.email);
-    const id = v4();
+    const existingUser = await User.firstOrCreate(
+      {
+        email: data.email,
+      },
+      {
+        name: DEFAULT_USER_NAME,
+        password: v4(),
+      },
+    );
+
+    const existingRole = await existingUser
+      .related('roles')
+      .query()
+      .where('role_id', role.id)
+      .first();
+
+    if (existingRole) {
+      throw new BadRequestException(
+        'Convite já existe para o usuário/cargo',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    await existingUser.related('roles').create({
+      role_id: role.id,
+      unit_id: businessUnit.id,
+      active: false,
+    });
+
+    const inviteId = v4();
 
     await Mail.send(message => {
       message
         .from('support@vetech.com')
         .to('gfreitasneto18@gmail.com') // TODO correct email for prod
         .subject('Convite - Vetech')
-        .htmlView('emails/invite', { id });
+        .htmlView('emails/invite', { id: inviteId });
     });
 
     return businessUnit.related('invites').create({
-      id,
+      id: inviteId,
       role_id: role.id,
       email: data.email,
       active: true,
-      user_id: existingUser?.id,
+      user_id: existingUser.id,
     });
   }
 
@@ -71,9 +104,19 @@ export default class InviteService {
   public async check(id: string) {
     const invite = await this.show(id);
 
+    const user = await User.findBy('email', invite.email);
+
+    if (!user) {
+      throw new BadRequestException(
+        'Convite sem usuário',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
     return {
       active: invite.active,
-      user: Boolean(invite.user_id),
+      user: user.name !== DEFAULT_USER_NAME,
     };
   }
 
@@ -95,6 +138,26 @@ export default class InviteService {
 
     const role = await Role.findOrFail(data.role_id);
     const existingUser = await User.findBy('email', data.email);
+
+    if (!existingUser) {
+      throw new BadRequestException('Usuário não existe', 400, 'E_BAD_REQUEST');
+    }
+
+    if (invite.role_id !== data.role_id) {
+      const existingRole = await existingUser
+        .related('roles')
+        .query()
+        .where('role_id', data.role_id)
+        .first();
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'Convite já existe para o usuário/cargo',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+    }
 
     await Mail.send(message => {
       message
@@ -125,23 +188,44 @@ export default class InviteService {
       );
     }
 
-    const user = invite.user_id
-      ? await User.findOrFail(invite.user_id)
-      : await User.findByOrFail('email', invite.email);
+    const user = await User.findBy('email', invite.email);
+
+    if (!user) {
+      throw new BadRequestException(
+        'Usuário não encontrado',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    if (user.name === DEFAULT_USER_NAME) {
+      throw new BadRequestException(
+        'Pedido inválido. Usuário não tem um cadastro válido',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    const role = await user
+      .related('roles')
+      .query()
+      .where('role_id', invite.role_id)
+      .where('unit_id', invite.business_unit_id)
+      .where('active', false)
+      .first();
+
+    if (!role) {
+      throw new BadRequestException(
+        'Cargo não encontrado',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
 
     const trx = await Database.transaction();
 
     try {
-      await user.related('roles').create(
-        {
-          role_id: invite.role_id,
-          unit_id: invite.business_unit_id,
-        },
-        {
-          client: trx,
-        },
-      );
-
+      await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
 
       await trx.commit();
@@ -170,25 +254,31 @@ export default class InviteService {
       );
     }
 
+    const user = await User.findByOrFail('email', invite.email);
+    const role = await user
+      .related('roles')
+      .query()
+      .where('role_id', invite.role_id)
+      .where('unit_id', invite.business_unit_id)
+      .where('active', false)
+      .first();
+
+    if (!role) {
+      throw new BadRequestException(
+        'Cargo não encontrado',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
     const trx = await Database.transaction();
 
     try {
-      const user = await User.create(
-        {
-          name: data.name,
-          email: invite.email,
-          password: data.password,
-        },
-        {
-          client: trx,
-        },
-      );
-
-      await user.related('roles').create({
-        role_id: invite.role_id,
-        unit_id: invite.business_unit_id,
-      });
-
+      await user
+        .merge({ name: data.name, password: data.password })
+        .useTransaction(trx)
+        .save();
+      await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
 
       await trx.commit();

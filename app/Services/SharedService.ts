@@ -46,7 +46,11 @@ export default class SharedService {
   }
 
   public async userHasRoles(user: User, roles: string[]): Promise<boolean> {
-    const userRoles = await user.related('roles').query().preload('role');
+    const userRoles = await user
+      .related('roles')
+      .query()
+      .where('active', true)
+      .preload('role');
 
     return Boolean(userRoles.find(r => roles.includes(r.role?.name)));
   }

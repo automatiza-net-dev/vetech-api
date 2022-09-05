@@ -66,7 +66,12 @@ export default class UserRoleService {
     return uniqueUsers.map(ent => {
       return {
         ...ent.toJSON(),
-        roles: entities.filter(f => f.user.id === ent.id).map(f => f.role.name),
+        roles: entities
+          .filter(f => f.user.id === ent.id)
+          .map(f => ({
+            name: f.role.name,
+            active: f.active,
+          })),
       };
     });
   }

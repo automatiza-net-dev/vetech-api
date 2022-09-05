@@ -16,7 +16,12 @@ export default class VariationGroupService {
   public async index(unitId: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return group.related('variationGroups').query();
+    return group
+      .related('variationGroups')
+      .query()
+      .preload('variations', query => {
+        query.preload('options');
+      });
   }
 
   public async show(unitId: string, id: string): Promise<VariationGroup> {

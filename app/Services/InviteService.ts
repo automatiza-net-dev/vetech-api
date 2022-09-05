@@ -16,7 +16,7 @@ import IAcceptInviteNewUser from 'Contracts/interfaces/IAcceptInviteNewUser';
 import IInviteData from 'Contracts/interfaces/IInviteData';
 import { v4 } from 'uuid';
 
-const DEFAULT_USER_NAME = '[NOT REGISTERED]';
+export const DEFAULT_USER_NAME = '[NOT REGISTERED]';
 
 @inject()
 export default class InviteService {
@@ -138,6 +138,26 @@ export default class InviteService {
 
     const role = await Role.findOrFail(data.role_id);
     const existingUser = await User.findBy('email', data.email);
+
+    if (!existingUser) {
+      throw new BadRequestException('Usuário não existe', 400, 'E_BAD_REQUEST');
+    }
+
+    if (invite.role_id !== data.role_id) {
+      const existingRole = await existingUser
+        .related('roles')
+        .query()
+        .where('role_id', data.role_id)
+        .first();
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'Convite já existe para o usuário/cargo',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+    }
 
     await Mail.send(message => {
       message

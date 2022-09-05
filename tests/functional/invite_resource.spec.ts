@@ -1,7 +1,6 @@
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Role from 'App/Models/Role';
 import { DEFAULT_USER_NAME } from 'App/Services/InviteService';
 import UserFactory from 'Database/factories/UserFactory';
 import { v4 } from 'uuid';
@@ -26,12 +25,6 @@ test.group('Invite resource', group => {
     });
 
     return { user, business, role, invite };
-  };
-
-  const createSudo = async (): Promise<[Role]> => {
-    const role = await Role.firstOrCreate({ name: 'super-admin' }, {});
-
-    return [role];
   };
 
   test('should return a list of invites', async ({ assert, client }) => {

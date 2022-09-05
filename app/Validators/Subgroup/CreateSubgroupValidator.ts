@@ -13,6 +13,13 @@ export default class CreateSubgroupValidator {
         column: 'id',
       }),
     ]),
+    variationGroup: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'variation_groups',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

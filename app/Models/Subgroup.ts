@@ -10,6 +10,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Product from 'App/Models/Product';
+import VariationGroup from 'App/Models/VariationGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -54,6 +55,15 @@ export default class Subgroup extends BaseModel {
 
   @belongsTo(() => EconomicGroup)
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @column()
+  public variation_group_id: string;
+
+  @belongsTo(() => VariationGroup, {
+    foreignKey: 'variation_group_id',
+    localKey: 'id',
+  })
+  public variationGroup: BelongsTo<typeof VariationGroup>;
 
   @column()
   public parent_id?: string;

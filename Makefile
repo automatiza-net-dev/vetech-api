@@ -10,3 +10,6 @@ timeline:
 
 schedule-statuses:
 	node ace db:seed --files "./database/seeders/ScheduleStatus.ts"
+
+variations:
+	node ace db:seed --files "./database/seeders/VariationSeeder.ts"

@@ -4,8 +4,8 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import VariationGroup from 'App/Models/VariationGroup';
 import Product, { ProductType } from 'App/Models/Product';
+import VariationGroup from 'App/Models/VariationGroup';
 import SharedService from 'App/Services/SharedService';
 import IProductData, {
   IProductDataVariation,
@@ -26,7 +26,8 @@ export default class ProductService {
   public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = group.related('products')
+    const qb = group
+      .related('products')
       .query()
       .preload('group')
       .preload('subgroup');
@@ -57,8 +58,22 @@ export default class ProductService {
       .related('products')
       .query()
       .where('id', id)
-      .preload('group')
-      .preload('subgroup')
+      .preload('group', query => {
+        query.select('id', 'name', 'active');
+      })
+      .preload('subgroup', query => {
+        query.select('id', 'description');
+      })
+      .preload('variations', query => {
+        query.select('id', 'barcode', 'active');
+
+        query.preload('variationOptions', subquery => {
+          subquery.select('id', 'description', 'active');
+        });
+      })
+      .preload('variationGroup', query => {
+        query.select('id', 'description', 'active');
+      })
       .first();
 
     if (!product) {

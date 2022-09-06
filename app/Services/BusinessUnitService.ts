@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
@@ -44,11 +46,59 @@ export default class BusinessUnitService {
     if (!economicGroup) {
       throw new BadRequestException('Grupo econômico inválido');
     }
-
-    return economicGroup.related('businessUnits').create({
+    const unit = await economicGroup.related('businessUnits').create({
       id: v4(),
       ...data,
     });
+
+    const trx = await Database.transaction();
+
+    try {
+      const products = await economicGroup
+        .related('products')
+        .query()
+        .preload('variations', query => {
+          query.preload('businessUnitProducts').limit(1);
+        });
+
+      // eslint-disable-next-line no-restricted-syntax
+      for await (const product of products) {
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const variation of product.variations) {
+          const [unitPrice] = product.variations[0].businessUnitProducts;
+
+          await variation.related('businessUnitProducts').create(
+            {
+              businness_unit_id: unit.id,
+              stock: 0,
+              price: unitPrice.price,
+              costPrice: unitPrice.costPrice,
+              maximumStock: unitPrice.maximumStock,
+              minimumStock: unitPrice.minimumStock,
+              maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
+              maximumDiscountValue: unitPrice.maximumDiscountValue,
+              profitMargin: unitPrice.profitMargin,
+            },
+            {
+              client: trx,
+            },
+          );
+        }
+      }
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      Logger.error(error.message);
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    return unit;
   }
 
   public async show(id: string): Promise<BusinessUnit> {

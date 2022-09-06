@@ -1,0 +1,399 @@
+import { inject } from '@adonisjs/fold';
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
+import Drive from '@ioc:Adonis/Core/Drive';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
+import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
+import TimelineType, {
+  APPOINTMENT_UUID,
+  DOCUMENT_UUID,
+  EXAM_UUID,
+  HOSPITALIZATION_UUID,
+  PATHOLOGY_UUID,
+  PHOTO_UUID,
+  RECIPE_UUID,
+  VACCINE_UUID,
+  WEIGHT_UUID,
+} from 'App/Models/TimelineType';
+import User from 'App/Models/User';
+import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
+import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
+import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
+import ICreateAppointment from 'Contracts/interfaces/ICreateAppointment';
+import {
+  ICreateDischarge,
+  ICreateHospitalization,
+} from 'Contracts/interfaces/ICreateHospitalization';
+import { v4 } from 'uuid';
+
+import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
+
+@inject()
+export default class TimelineService {
+  public async weightIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: WEIGHT_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeWeight(data: IAnimalWeight) {
+    const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: WEIGHT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        weight: data.weight,
+        tag: data.tag,
+        realizedAt: data.realizedAt.toJSDate(),
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async documentIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: DOCUMENT_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeDocument(data: IAnimalDocument) {
+    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: DOCUMENT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        type: data.type,
+        value: data.value,
+        realizedAt: new Date(),
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async pathologyIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: PATHOLOGY_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storePathology(data: IAnimalPathology) {
+    const timelineInfo = await TimelineType.findOrFail(PATHOLOGY_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: PATHOLOGY_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        pathology: data.pathology,
+        realizedAt: data.realizedAt.toJSDate(),
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async medicalRecipeIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: RECIPE_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeMedicalRecipe(data: IAnimalMedicalRecipe) {
+    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: RECIPE_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        realizedAt: data.realizedAt.toJSDate(),
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        recipe: data.recipe,
+      },
+    });
+  }
+
+  public async photoIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: PHOTO_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storePhoto(data: ICreateAnimalPhoto) {
+    const timelineInfo = await TimelineType.findOrFail(PHOTO_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: PHOTO_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        photo: await this.uploadPhoto(data.photo),
+        observation: data.observation ?? '',
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async vaccineIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: VACCINE_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeVaccine(data: ICreateAnimalVaccine) {
+    const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: VACCINE_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        expectedDate: data.expectedDate?.toJSDate(),
+        applicationDate: data.applicationDate?.toJSDate(),
+        laboratory: data.laboratory,
+        batch: data.batch,
+      },
+    });
+  }
+
+  public async updateVaccine(id: string, data: ICreateAnimalVaccine) {
+    const vaccine = await AnimalTimeline.findById(id);
+
+    if (!vaccine) {
+      throw new ResourceNotFoundException('Vaccine not found');
+    }
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    vaccine.timeline_info = {
+      tag: data.tag,
+      name: data.name,
+      technician: {
+        id: technician.id,
+        name: technician.name,
+      },
+      expectedDate: data.expectedDate?.toJSDate(),
+      applicationDate: data.applicationDate?.toJSDate(),
+      laboratory: data.laboratory,
+      batch: data.batch,
+    };
+
+    await vaccine.save();
+
+    return vaccine;
+  }
+
+  public async examIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: EXAM_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeExam(data: ICreateAnimalExam) {
+    const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+
+    const requester = await User.findOrFail(data.requesterId);
+    const technician = await User.findOrFail(data.technicianId);
+
+    const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
+
+    return AnimalTimeline.create({
+      timeline_id: EXAM_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        realized: data.realizedAt,
+        description: data.description,
+        requester: {
+          id: requester.id,
+          name: requester.name,
+        },
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        attachments: medias,
+      },
+    });
+  }
+
+  public async appointmentIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: APPOINTMENT_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeAppointment(data: ICreateAppointment) {
+    const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: APPOINTMENT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        name: data.name,
+        realized: data.realizedAt,
+        description: data.description,
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async hospizationIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: HOSPITALIZATION_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeHospization(data: ICreateHospitalization) {
+    const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: APPOINTMENT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        type: 'hospitalization',
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        situation: data.situation,
+        box: data.box,
+        risk: data.risk,
+        expectedDate: data.expectedDate.toJSDate(),
+        complaint: data.complaint,
+        diagnosis: data.diagnosis,
+        prognosis: data.prognosis,
+      },
+    });
+  }
+
+  public async storeDischarge(data: ICreateDischarge) {
+    const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.create({
+      timeline_id: APPOINTMENT_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        type: 'hospitalization',
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        dischargeDate: data.dischargeDate.toJSDate(),
+        observation: data.observation,
+      },
+    });
+  }
+
+  private async uploadPhoto(file: MultipartFileContract): Promise<string> {
+    const key = `${v4()}.${file.extname}`;
+    await file.moveToDisk(
+      'timeline',
+      {
+        name: key,
+      },
+      'local',
+    );
+
+    return Drive.getUrl(`timeline/${key}`);
+  }
+}

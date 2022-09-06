@@ -210,7 +210,6 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
-  Route.get('/groups', 'SchedulesController.viewServiceGroups');
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
@@ -376,3 +375,54 @@ Route.resource('exams', 'ExamsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalWeightIndex');
+    Route.post('/', 'TimelinesController.animalWeightStore');
+  }).prefix('weight');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalDocumentIndex');
+    Route.post('/', 'TimelinesController.animalDocumentStore');
+  }).prefix('documents');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalPathologyIndex');
+    Route.post('/', 'TimelinesController.animalPathologyStore');
+  }).prefix('pathologies');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalMedicalRecipeIndex');
+    Route.post('/', 'TimelinesController.animalMedicalRecipeStore');
+  }).prefix('recipes');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalPhotoIndex');
+    Route.post('/', 'TimelinesController.animalPhotoStore');
+  }).prefix('photos');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalVaccineIndex');
+    Route.post('/', 'TimelinesController.animalVaccineStore');
+    Route.put('/:id', 'TimelinesController.updateAnimalVaccine');
+  }).prefix('vaccines');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.animalExamIndex');
+    Route.post('/', 'TimelinesController.animalExamStore');
+  }).prefix('exams');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.appointmentsIndex');
+    Route.post('/', 'TimelinesController.appointmentsStore');
+  }).prefix('appointments');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.appointmentsIndex');
+    Route.post('/discharge', 'TimelinesController.dischargeStore');
+    Route.post('/', 'TimelinesController.hospitalizaionStore');
+  }).prefix('hospitalizations');
+})
+  .prefix('n-timeline')
+  .middleware('auth');

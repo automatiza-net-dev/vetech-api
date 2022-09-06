@@ -235,7 +235,9 @@ export default class PatientService {
 
     if (patient.type === PatientType.ANIMAL) {
       await patient.load('tutors');
-      await patient.load('patientAnimal');
+      await patient.load('patientAnimal', query => {
+        query.preload('race');
+      });
     }
 
     return patient;

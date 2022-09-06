@@ -16,13 +16,13 @@ export default interface IProductData {
   type: ProductType;
   referenceCode: string;
   collectionYear: number;
-  ncm: string;
-  cest: string;
-  features: string;
-  unityType: string;
+  ncm?: string;
+  cest?: string;
+  features?: string;
+  unityType?: string;
   active: boolean;
   variationGroup: string;
-  groupId: string;
+  groupId?: string;
   subgroupId: string;
   variations: Array<IProductDataVariation>;
 }

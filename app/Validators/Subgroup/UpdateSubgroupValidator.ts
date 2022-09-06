@@ -14,6 +14,13 @@ export default class UpdateSubgroupValidator {
       }),
     ]),
     active: schema.boolean([]),
+    variationGroup: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'variation_groups',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

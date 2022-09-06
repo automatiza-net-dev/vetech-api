@@ -34,6 +34,7 @@ export default class SubgroupService {
       .related('subgroups')
       .query()
       .where('id', id)
+      .preload('variationGroup')
       .first();
 
     if (!subgroup) {
@@ -55,6 +56,7 @@ export default class SubgroupService {
       parent_id: data.parent,
       tree,
       description: data.description,
+      variation_group_id: data.variationGroup,
     });
   }
 
@@ -69,6 +71,7 @@ export default class SubgroupService {
         parent_id: data.parent,
         tree,
         active: data.active,
+        variation_group_id: data.variationGroup,
       })
       .save();
   }

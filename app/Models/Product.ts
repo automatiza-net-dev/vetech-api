@@ -43,10 +43,10 @@ export default class Product extends BaseModel {
   public collectionYear: number;
 
   @column()
-  public ncm: string;
+  public ncm?: string;
 
   @column()
-  public cest: string;
+  public cest?: string;
 
   @column()
   public features: string;
@@ -54,7 +54,7 @@ export default class Product extends BaseModel {
   @column({
     columnName: 'unity_type',
   })
-  public unityType: string;
+  public unityType?: string;
 
   @column()
   public active: boolean;
@@ -102,7 +102,7 @@ export default class Product extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public group_id: string;
+  public group_id?: string;
 
   @belongsTo(() => Group, {
     localKey: 'id',

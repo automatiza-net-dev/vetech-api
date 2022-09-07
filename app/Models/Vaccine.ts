@@ -4,13 +4,18 @@ import {
   beforeFind,
   belongsTo,
   BelongsTo,
-  column
+  column,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Subgroup from 'App/Models/Subgroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+export enum VaccineType {
+  VACCINE = 'vaccine',
+  VERMIFUGE = 'vermifuge',
+}
 
 export default class Vaccine extends BaseModel {
   @column({ isPrimary: true })
@@ -24,6 +29,9 @@ export default class Vaccine extends BaseModel {
 
   @column()
   public active: boolean;
+
+  @column()
+  public type: VaccineType;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

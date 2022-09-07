@@ -426,3 +426,9 @@ Route.group(() => {
 })
   .prefix('n-timeline')
   .middleware('auth');
+
+Route.resource('vaccine-protocols', 'VaccineProtocolsController')
+  .only(['index', 'store', 'update'])
+  .middleware({
+    '*': ['auth'],
+  });

@@ -1,0 +1,69 @@
+import { inject } from '@adonisjs/fold';
+import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import VaccineProtocol from 'App/Models/VaccineProtocol';
+import SharedService from 'App/Services/SharedService';
+import { IVaccineProtocolData } from 'Contracts/interfaces/IVaccineProtocolData';
+
+interface ISearch {
+  name?: string;
+}
+
+@inject()
+export default class VaccineProtocolService {
+  constructor(private readonly sharedService: SharedService) {}
+
+  public async index(data: ISearch) {
+    const qb = VaccineProtocol.query().preload('vaccine').preload('specie');
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    // TODO paginate
+    return qb;
+  }
+
+  public async store(data: Omit<IVaccineProtocolData, 'active'>) {
+    return VaccineProtocol.create({
+      name: data.name,
+      doses: data.doses,
+      interval: data.interval,
+      vaccine_id: data.vaccineId,
+      specie_id: data.specieId,
+    });
+  }
+
+  public async show(id: string) {
+    const model = await VaccineProtocol.find(id);
+
+    if (!model) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    await model.load('vaccine');
+    await model.load('specie');
+
+    return model;
+  }
+
+  public async update(id: string, data: IVaccineProtocolData) {
+    const model = await this.show(id);
+
+    return model
+      .merge({
+        name: data.name,
+        doses: data.doses,
+        interval: data.interval,
+        vaccine_id: data.vaccineId,
+        specie_id: data.specieId,
+        active: data.active,
+      })
+      .save();
+  }
+
+  public async destroy(id: string) {
+    const model = await this.show(id);
+
+    await model.softDelete();
+  }
+}

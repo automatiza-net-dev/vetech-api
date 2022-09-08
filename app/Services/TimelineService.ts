@@ -32,6 +32,12 @@ import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
 
 @inject()
 export default class TimelineService {
+  public async all(tag: string) {
+    return AnimalTimeline.find({
+      'timeline_info.tag': tag,
+    });
+  }
+
   public async weightIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: WEIGHT_UUID,

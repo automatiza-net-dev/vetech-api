@@ -377,6 +377,8 @@ Route.resource('exams', 'ExamsController')
   });
 
 Route.group(() => {
+  Route.get('/:id', 'TimelinesController.index');
+
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalWeightIndex');
     Route.post('/', 'TimelinesController.animalWeightStore');

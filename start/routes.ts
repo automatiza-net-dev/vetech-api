@@ -438,3 +438,9 @@ Route.resource('patient-vaccines', 'PatientVaccinesController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('vaccine-calendars', 'VaccineCalendarsController')
+  .only(['update', 'destroy'])
+  .middleware({
+    '*': ['auth'],
+  });

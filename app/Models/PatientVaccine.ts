@@ -5,11 +5,14 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
 import Vaccine from 'App/Models/Vaccine';
+import VaccineCalendar from 'App/Models/VaccineCalendar';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -80,4 +83,9 @@ export default class PatientVaccine extends BaseModel {
 
   @column()
   public business_unit_id: string;
+
+  @hasMany(() => VaccineCalendar, {
+    foreignKey: 'patient_vaccine_id',
+  })
+  public calendars: HasMany<typeof VaccineCalendar>;
 }

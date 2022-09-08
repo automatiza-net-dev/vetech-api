@@ -1,7 +1,13 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
+import Database from '@ioc:Adonis/Lucid/Database';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import User from 'App/Models/User';
+import VaccineCalendar from 'App/Models/VaccineCalendar';
+import VaccineProtocol from 'App/Models/VaccineProtocol';
 import IPatientVaccineData from 'Contracts/interfaces/IPatientVaccineData';
+import { DateTime } from 'luxon';
 
 import PatientVaccine from '../Models/PatientVaccine';
 
@@ -16,14 +22,50 @@ export default class PatientVaccineService {
   }
 
   public async store(unitId: string, user: User, data: IPatientVaccineData) {
-    return PatientVaccine.create({
-      business_unit_id: unitId,
-      user_id: data.userId ?? user.id,
-      patient_id: data.patientId,
-      vaccine_id: data.vaccineId,
-      vaccine_protocol_id: data.vaccineProtocolId,
-      schedule_id: data.scheduleId,
-    });
+    const trx = await Database.transaction();
+
+    const protocol = await VaccineProtocol.findOrFail(data.vaccineProtocolId);
+
+    try {
+      const entity = await PatientVaccine.create(
+        {
+          business_unit_id: unitId,
+          user_id: data.userId ?? user.id,
+          patient_id: data.patientId,
+          vaccine_id: data.vaccineId,
+          vaccine_protocol_id: data.vaccineProtocolId,
+          schedule_id: data.scheduleId,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      const calendars: Array<Partial<VaccineCalendar>> = Array.from(
+        { length: protocol.doses },
+        (_, index) => ({
+          schedulingDate: DateTime.now().plus({
+            days: index * protocol.interval,
+          }),
+          dose: index + 1,
+          schedule_id: data.scheduleId,
+          user_id: data.userId ?? user.id,
+        }),
+      );
+
+      await entity.related('calendars').createMany(calendars, trx);
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      Logger.error(error.message);
+
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 
   public async show(unitId: string, id: string) {
@@ -38,7 +80,8 @@ export default class PatientVaccineService {
       .preload('user', query => {
         query.select('id', 'name', 'email');
       })
-      .preload('schedule');
+      .preload('schedule')
+      .preload('calendars');
 
     const entity = await qb.first();
 

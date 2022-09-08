@@ -47,6 +47,7 @@ export default class PatientVaccineService {
           schedulingDate: DateTime.now().plus({
             days: index * protocol.interval,
           }),
+          applicationDate: index === 0 ? DateTime.now() : null,
           dose: index + 1,
           schedule_id: data.scheduleId,
           user_id: data.userId ?? user.id,
@@ -80,8 +81,7 @@ export default class PatientVaccineService {
       .preload('user', query => {
         query.select('id', 'name', 'email');
       })
-      .preload('schedule')
-      .preload('calendars');
+      .preload('schedule');
 
     const entity = await qb.first();
 

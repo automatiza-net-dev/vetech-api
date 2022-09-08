@@ -440,7 +440,7 @@ Route.resource('patient-vaccines', 'PatientVaccinesController')
   });
 
 Route.resource('vaccine-calendars', 'VaccineCalendarsController')
-  .only(['update', 'destroy'])
+  .only(['index', 'update', 'destroy'])
   .middleware({
     '*': ['auth'],
   });

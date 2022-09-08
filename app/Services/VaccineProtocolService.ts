@@ -1,22 +1,22 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import { VaccineType } from 'App/Models/Vaccine';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
-import SharedService from 'App/Services/SharedService';
 import { IVaccineProtocolData } from 'Contracts/interfaces/IVaccineProtocolData';
 
 interface ISearch {
-  name?: string;
+  type?: VaccineType;
 }
 
 @inject()
 export default class VaccineProtocolService {
-  constructor(private readonly sharedService: SharedService) {}
-
   public async index(data: ISearch) {
     const qb = VaccineProtocol.query().preload('vaccine').preload('specie');
 
-    if (data.name) {
-      qb.where('name', 'ilike', `%${data.name}%`);
+    if (data.type) {
+      qb.whereHas('vaccine', query => {
+        query.where('type', data.type ?? '');
+      });
     }
 
     // TODO paginate

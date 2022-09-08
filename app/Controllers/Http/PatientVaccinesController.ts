@@ -12,10 +12,15 @@ export default class PatientVaccinesController {
     private readonly service: PatientVaccineService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id);
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, {
+      vaccine: qs.vaccine,
+      protocol: qs.protocol,
+      patient: qs.patient,
+    });
 
     return response.ok(result);
   }

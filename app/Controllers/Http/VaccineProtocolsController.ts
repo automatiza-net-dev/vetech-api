@@ -11,7 +11,7 @@ export default class VaccineProtocolsController {
   public async index({ request, response }: HttpContextContract) {
     const qs = request.qs();
     const result = await this.service.index({
-      name: qs.name,
+      type: qs.type,
     });
 
     return response.ok(result);

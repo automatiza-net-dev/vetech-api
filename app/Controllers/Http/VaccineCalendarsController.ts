@@ -7,6 +7,20 @@ import UpdateVaccineCalendarValidator from 'App/Validators/VaccineCalendar/Updat
 export default class VaccineCalendarsController {
   constructor(private readonly service: VaccineCalendarService) {}
 
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const result = await this.service.index({
+      vaccineProtocol: qs.vaccineProtocol,
+      vaccine: qs.vaccine,
+      patient: qs.patient,
+      schedule: qs.schedule,
+      scheduleDate: qs.scheduleDate,
+      applicationDate: qs.applicationDate,
+    });
+
+    return response.ok(result);
+  }
+
   public async update({ params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateVaccineCalendarValidator);
 

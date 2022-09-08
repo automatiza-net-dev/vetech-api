@@ -11,12 +11,30 @@ import { DateTime } from 'luxon';
 
 import PatientVaccine from '../Models/PatientVaccine';
 
+type ISearch = {
+  vaccine?: string;
+  protocol?: string;
+  patient?: string;
+};
+
 @inject()
 export default class PatientVaccineService {
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const qb = PatientVaccine.query();
 
     qb.where('business_unit_id', unitId);
+
+    if (data.vaccine) {
+      qb.where('vaccine_id', data.vaccine);
+    }
+
+    if (data.protocol) {
+      qb.where('vaccine_protocol_id', data.protocol);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
 
     return qb;
   }

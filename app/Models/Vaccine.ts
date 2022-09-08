@@ -61,6 +61,8 @@ export default class Vaccine extends BaseModel {
   @column()
   public subgroup_id: string;
 
-  @belongsTo(() => Subgroup, {})
+  @belongsTo(() => Subgroup, {
+    foreignKey: 'subgroup_id',
+  })
   public subgroup: BelongsTo<typeof Subgroup>;
 }

@@ -432,3 +432,9 @@ Route.resource('vaccine-protocols', 'VaccineProtocolsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('patient-vaccines', 'PatientVaccinesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

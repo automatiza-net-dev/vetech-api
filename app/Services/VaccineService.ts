@@ -47,6 +47,7 @@ export default class VaccineService {
       description: data.description,
       business_unit_id: isSuperAdmin ? undefined : unitId,
       subgroup_id: data.subgroupId,
+      type: data.type,
     });
   }
 
@@ -94,6 +95,7 @@ export default class VaccineService {
       business_unit_id: isSuperAdmin ? undefined : unitId,
       subgroup_id: data.subgroupId,
       active: data.active,
+      type: data.type,
     });
   }
 

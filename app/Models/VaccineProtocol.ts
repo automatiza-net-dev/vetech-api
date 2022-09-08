@@ -2,22 +2,17 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
-  belongsTo,
   BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import Subgroup from 'App/Models/Subgroup';
+import Specie from 'App/Models/Specie';
+import Vaccine from 'App/Models/Vaccine';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export enum VaccineType {
-  VACCINE = 'vaccine',
-  VERMIFUGE = 'vermifuge',
-}
-
-export default class Vaccine extends BaseModel {
+export default class VaccineProtocol extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
@@ -25,13 +20,13 @@ export default class Vaccine extends BaseModel {
   public name: string;
 
   @column()
-  public description: string;
+  public doses: number;
+
+  @column()
+  public interval: number;
 
   @column()
   public active: boolean;
-
-  @column()
-  public type: VaccineType;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -53,16 +48,18 @@ export default class Vaccine extends BaseModel {
   }
 
   @column()
-  public business_unit_id?: string;
+  public vaccine_id: string;
 
-  @belongsTo(() => BusinessUnit, {})
-  public businessUnit: BelongsTo<typeof BusinessUnit>;
+  @belongsTo(() => Vaccine, {
+    foreignKey: 'vaccine_id',
+  })
+  public vaccine: BelongsTo<typeof Vaccine>;
 
   @column()
-  public subgroup_id: string;
+  public specie_id?: string;
 
-  @belongsTo(() => Subgroup, {
-    foreignKey: 'subgroup_id',
+  @belongsTo(() => Specie, {
+    foreignKey: 'specie_id',
   })
-  public subgroup: BelongsTo<typeof Subgroup>;
+  public specie: BelongsTo<typeof Specie>;
 }

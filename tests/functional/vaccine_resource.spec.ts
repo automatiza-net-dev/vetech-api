@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Subgroup from 'App/Models/Subgroup';
-import Vaccine from 'App/Models/Vaccine';
+import Vaccine, { VaccineType } from 'App/Models/Vaccine';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -25,6 +25,7 @@ test.group('Vaccine resource', group => {
       description: 'some description',
       subgroup_id: subgroup.id,
       business_unit_id: business.id,
+      type: VaccineType.VACCINE,
     });
 
     return { user, business, subgroup, vaccine };
@@ -56,6 +57,7 @@ test.group('Vaccine resource', group => {
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',
+        type: VaccineType.VACCINE,
       })
       .bearerToken(token);
 
@@ -107,6 +109,7 @@ test.group('Vaccine resource', group => {
         name: 'some name',
         description: 'some description',
         active: true,
+        type: VaccineType.VACCINE,
       })
       .bearerToken(token);
 

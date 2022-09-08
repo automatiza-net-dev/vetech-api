@@ -1,21 +1,21 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { VaccineType } from 'App/Models/Vaccine';
 
-export default class CreateVaccineValidator {
+export default class UpdateVaccineCalendarValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    subgroupId: schema.string({}, [
+    applicationDate: schema.date.optional(),
+    productId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
-        table: 'subgroups',
+        table: 'products',
         column: 'id',
       }),
     ]),
-    name: schema.string({}, []),
-    description: schema.string({}, []),
-    type: schema.enum(Object.values(VaccineType), []),
+    dose: schema.number([rules.unsigned()]),
+    laboratory: schema.string.optional(),
+    batch: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

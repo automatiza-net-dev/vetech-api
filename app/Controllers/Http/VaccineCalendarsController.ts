@@ -1,11 +1,15 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import SharedService from 'App/Services/SharedService';
 import VaccineCalendarService from 'App/Services/VaccineCalendarService';
 import UpdateVaccineCalendarValidator from 'App/Validators/VaccineCalendar/UpdateVaccineCalendarValidator';
 
 @inject()
 export default class VaccineCalendarsController {
-  constructor(private readonly service: VaccineCalendarService) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly service: VaccineCalendarService,
+  ) {}
 
   public async index({ request, response }: HttpContextContract) {
     const qs = request.qs();
@@ -21,10 +25,16 @@ export default class VaccineCalendarsController {
     return response.ok(result);
   }
 
-  public async update({ params, request, response }: HttpContextContract) {
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateVaccineCalendarValidator);
 
-    const result = await this.service.update(params.id, payload);
+    const result = await this.service.update(params.id, user, payload);
 
     return response.ok(result);
   }

@@ -16,6 +16,10 @@ import UpsertAnimalVaccineValidator from 'App/Validators/Timeline/UpsertAnimalVa
 export default class TimelinesController {
   constructor(private readonly timelineService: TimelineService) {}
 
+  public async index({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.all(params.id));
+  }
+
   public async animalWeightIndex({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.weightIndex(params.id));
   }

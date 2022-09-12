@@ -1,0 +1,59 @@
+import { inject } from '@adonisjs/fold';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import PatientExamService from 'App/Services/PatientExamService';
+import SharedService from 'App/Services/SharedService';
+import CreatePatientExamValidator from 'App/Validators/PatientExam/CreatePatientExamValidator';
+import UpdatePatientExamValidator from 'App/Validators/PatientExam/UpdatePatientExamValidator';
+
+@inject()
+export default class PatientExamsController {
+  constructor(
+    private readonly service: PatientExamService,
+    private readonly sharedService: SharedService,
+  ) {}
+
+  public async index({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const exams = await this.service.index(unit_id);
+
+    return response.ok(exams);
+  }
+
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const exam = await this.service.show(unit_id, params.id);
+
+    return response.ok(exam);
+  }
+
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientExamValidator);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    const patient = await this.service.store(unit_id, user, payload);
+
+    return response.created(patient);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdatePatientExamValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const patient = await this.service.update(unit_id, params.id, payload);
+
+    return response.ok(patient);
+  }
+
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    await this.service.destroy(unit_id, params.id);
+
+    return response.noContent();
+  }
+}

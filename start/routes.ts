@@ -446,3 +446,9 @@ Route.resource('vaccine-calendars', 'VaccineCalendarsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('patient-exams', 'PatientExamsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

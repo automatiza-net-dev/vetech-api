@@ -11,6 +11,7 @@ import TimelineType, {
   DOCUMENT_UUID,
   EXAM_UUID,
   HOSPITALIZATION_UUID,
+  OBSERVATION_UUID,
   PATHOLOGY_UUID,
   PHOTO_UUID,
   RECIPE_UUID,
@@ -26,6 +27,7 @@ import {
   ICreateDischarge,
   ICreateHospitalization,
 } from 'Contracts/interfaces/ICreateHospitalization';
+import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
 import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
@@ -386,6 +388,38 @@ export default class TimelineService {
         },
         dischargeDate: data.dischargeDate.toJSDate(),
         observation: data.observation,
+      },
+    });
+  }
+
+  public async observationsIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: OBSERVATION_UUID,
+      'timeline_info.tag': tag,
+    });
+  }
+
+  public async storeObservations(data: ICreateObservation) {
+    const timelineInfo = await TimelineType.findOrFail(OBSERVATION_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+
+    return AnimalTimeline.create({
+      timeline_id: OBSERVATION_UUID,
+      timeline_type: {
+        description: timelineInfo.description,
+        color: timelineInfo.color,
+        requires_observation: timelineInfo.requiresObservation,
+      },
+      timeline_info: {
+        tag: data.tag,
+        technician: {
+          id: technician.id,
+          name: technician.name,
+        },
+        medias,
       },
     });
   }

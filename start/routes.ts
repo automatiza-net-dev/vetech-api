@@ -425,6 +425,11 @@ Route.group(() => {
     Route.post('/discharge', 'TimelinesController.dischargeStore');
     Route.post('/', 'TimelinesController.hospitalizaionStore');
   }).prefix('hospitalizations');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.observationsIndex');
+    Route.post('/', 'TimelinesController.observationsStore');
+  }).prefix('observations');
 })
   .prefix('n-timeline')
   .middleware('auth');

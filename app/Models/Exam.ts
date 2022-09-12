@@ -23,6 +23,14 @@ export default class Exam extends BaseModel {
   public description: string;
 
   @column()
+  public type: string;
+
+  @column({
+    columnName: 'own_laboratory',
+  })
+  public ownLaboratory: boolean;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

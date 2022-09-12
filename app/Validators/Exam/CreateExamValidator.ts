@@ -14,6 +14,8 @@ export default class CreateExamValidator {
     ]),
     name: schema.string({}, []),
     description: schema.string({}, []),
+    type: schema.string({}, []),
+    ownLaboratory: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

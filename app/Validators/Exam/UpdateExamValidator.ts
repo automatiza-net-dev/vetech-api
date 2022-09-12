@@ -15,6 +15,8 @@ export default class UpdateExamValidator {
     name: schema.string({}, []),
     description: schema.string({}, []),
     active: schema.boolean([]),
+    type: schema.string({}, []),
+    ownLaboratory: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

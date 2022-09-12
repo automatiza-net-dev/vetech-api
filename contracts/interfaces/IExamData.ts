@@ -3,4 +3,6 @@ export interface IExamData {
   name: string;
   description: string;
   active: boolean;
+  type: string;
+  ownLaboratory: boolean;
 }

@@ -451,3 +451,15 @@ Route.resource('vaccine-calendars', 'VaccineCalendarsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.get('/', 'PatientExamsController.index');
+  Route.post('/', 'PatientExamsController.store');
+  Route.post('/attachment/:id', 'PatientExamsController.storeAttachment');
+  Route.get('/:id', 'PatientExamsController.show');
+  Route.put('/:id', 'PatientExamsController.update');
+  Route.delete('/:id/:attachment', 'PatientExamsController.destroyAttachment');
+  Route.delete('/:id', 'PatientExamsController.destroy');
+})
+  .prefix('patient-exams')
+  .middleware('auth');

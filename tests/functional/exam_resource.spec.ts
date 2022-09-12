@@ -25,6 +25,8 @@ test.group('Exam resource', group => {
       description: 'some description',
       subgroup_id: subgroup.id,
       business_unit_id: business.id,
+      ownLaboratory: true,
+      type: 'some type',
     });
 
     return { user, business, subgroup, exam };
@@ -56,6 +58,8 @@ test.group('Exam resource', group => {
         subgroupId: subgroup.id,
         name: 'some name',
         description: 'some description',
+        ownLaboratory: true,
+        type: 'some type',
       })
       .bearerToken(token);
 
@@ -105,6 +109,8 @@ test.group('Exam resource', group => {
         name: 'some name',
         description: 'some description',
         active: true,
+        ownLaboratory: true,
+        type: 'some type',
       })
       .bearerToken(token);
 

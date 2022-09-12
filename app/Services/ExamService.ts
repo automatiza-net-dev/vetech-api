@@ -47,6 +47,8 @@ export default class ExamService {
       description: data.description,
       business_unit_id: isSuperAdmin ? undefined : unitId,
       subgroup_id: data.subgroupId,
+      ownLaboratory: data.ownLaboratory,
+      type: data.type,
     });
   }
 
@@ -89,6 +91,8 @@ export default class ExamService {
       business_unit_id: isSuperAdmin ? undefined : unitId,
       subgroup_id: data.subgroupId,
       active: data.active,
+      ownLaboratory: data.ownLaboratory,
+      type: data.type,
     });
   }
 

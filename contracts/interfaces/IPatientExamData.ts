@@ -1,3 +1,4 @@
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import { DateTime } from 'luxon';
 
 export default interface IPatientExamData {
@@ -7,4 +8,9 @@ export default interface IPatientExamData {
   examId: string;
   patientId: string;
   scheduleId: string;
+}
+export interface IPatientExamAttachmentData {
+  realizedAt: DateTime;
+  patientId: string;
+  attachment: MultipartFileContract;
 }

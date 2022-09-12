@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PatientExamService from 'App/Services/PatientExamService';
 import SharedService from 'App/Services/SharedService';
+import CreatePatientExamAttachmentValidator from 'App/Validators/PatientExam/CreatePatientExamAttachmentValidator';
 import CreatePatientExamValidator from 'App/Validators/PatientExam/CreatePatientExamValidator';
 import UpdatePatientExamValidator from 'App/Validators/PatientExam/UpdatePatientExamValidator';
 
@@ -36,6 +37,27 @@ export default class PatientExamsController {
     return response.created(patient);
   }
 
+  public async storeAttachment({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(
+      CreatePatientExamAttachmentValidator,
+    );
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    const patient = await this.service.createAttachment(
+      unit_id,
+      params.id,
+      user,
+      payload,
+    );
+
+    return response.created(patient);
+  }
+
   public async update({
     auth,
     params,
@@ -53,6 +75,17 @@ export default class PatientExamsController {
   public async destroy({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     await this.service.destroy(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async destroyAttachment({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    await this.service.deleteAttachment(unit_id, params.id, params.attachment);
 
     return response.noContent();
   }

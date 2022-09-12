@@ -2,13 +2,10 @@ import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import PatientExam from 'App/Models/PatientExam';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
 import IPatientExamData from 'Contracts/interfaces/IPatientExamData';
 
 @inject()
 export default class PatientExamService {
-  constructor(private sharedService: SharedService) {}
-
   public async index(unitId: string) {
     const qb = PatientExam.query().where('business_id', unitId);
 

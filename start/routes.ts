@@ -463,3 +463,9 @@ Route.group(() => {
 })
   .prefix('patient-exams')
   .middleware('auth');
+
+Route.resource('units', 'UnitsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

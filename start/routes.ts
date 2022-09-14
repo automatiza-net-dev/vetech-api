@@ -481,3 +481,9 @@ Route.resource('beds', 'BedsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('clinic-parameters', 'ClinicParametersController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

@@ -5,9 +5,12 @@ import {
   belongsTo,
   BelongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Subgroup from 'App/Models/Subgroup';
+import VaccineProtocol from 'App/Models/VaccineProtocol';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -65,4 +68,9 @@ export default class Vaccine extends BaseModel {
     foreignKey: 'subgroup_id',
   })
   public subgroup: BelongsTo<typeof Subgroup>;
+
+  @hasMany(() => VaccineProtocol, {
+    foreignKey: 'vaccine_id',
+  })
+  public protocols: HasMany<typeof VaccineProtocol>;
 }

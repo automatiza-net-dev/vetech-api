@@ -7,28 +7,45 @@ import IDrugAdministrationData from 'Contracts/interfaces/IDrugAdministrationDat
 export default class DrugAdministrationService {
   constructor(private sharedService: SharedService) {}
 
-  public async index() {
-    return DrugAdministration.query();
+  public async index(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    return DrugAdministration.query().where('economic_group_id', group.id);
   }
 
-  public async store(data: Omit<IDrugAdministrationData, 'active'>) {
+  public async store(
+    unitId: string,
+    data: Omit<IDrugAdministrationData, 'active'>,
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     return DrugAdministration.create({
       description: data.description,
+      economic_group_id: group.id,
     });
   }
 
-  public async show(id: string) {
+  public async show(unitId: string, id: string) {
     const ent = await DrugAdministration.find(id);
 
     if (!ent) {
       throw this.sharedService.ResourceNotFound();
     }
 
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    if (ent.economic_group_id !== group.id) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
     return ent;
   }
 
-  public async update(id: string, data: IDrugAdministrationData) {
-    const entity = await this.show(id);
+  public async update(
+    unitId: string,
+    id: string,
+    data: IDrugAdministrationData,
+  ) {
+    const entity = await this.show(unitId, id);
 
     return entity
       .merge({
@@ -38,8 +55,8 @@ export default class DrugAdministrationService {
       .save();
   }
 
-  public async destroy(id: string) {
-    const entity = await this.show(id);
+  public async destroy(unitId: string, id: string) {
+    const entity = await this.show(unitId, id);
 
     await entity.softDelete();
   }

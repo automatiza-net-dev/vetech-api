@@ -17,7 +17,13 @@ export default class VaccineService {
   public async index(unitId: string, user: User, data: ISearch) {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    const qb = Vaccine.query();
+    const qb = Vaccine.query().preload('protocols', query => {
+      query.select('id', 'name', 'doses', 'interval', 'active', 'specie_id');
+
+      query.preload('specie', query => {
+        query.select('id', 'description');
+      });
+    });
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);

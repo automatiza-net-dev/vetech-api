@@ -475,3 +475,9 @@ Route.resource('drug-administrations', 'DrugAdministrationsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('beds', 'BedsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

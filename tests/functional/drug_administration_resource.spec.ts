@@ -12,10 +12,11 @@ test.group('Drug administration resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
     const drug = await DrugAdministration.create({
       description: 'some description',
+      economic_group_id: group.id,
     });
 
     return { user, drug, business };
@@ -65,6 +66,28 @@ test.group('Drug administration resource', group => {
 
     const response = await client
       .get(`/drug-administrations/${v4()}`)
+      .bearerToken(token);
+
+    assert.equal(404, response.status());
+    assert.equal(
+      'E_NOT_FOUND: Recurso não encontrado',
+      response.body().message,
+    );
+  });
+
+  test('should throw NotFoundException if drug administration does not belong to group', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const { drug } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/drug-administrations/${drug.id}`)
       .bearerToken(token);
 
     assert.equal(404, response.status());

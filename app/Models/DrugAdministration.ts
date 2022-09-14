@@ -36,4 +36,9 @@ export default class DrugAdministration extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
 }

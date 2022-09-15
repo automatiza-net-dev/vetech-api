@@ -125,12 +125,22 @@ export default class MedicalPrescription extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public unit_id: string;
+  public prescription_unit_id: string;
 
   @belongsTo(() => Unit, {
-    foreignKey: 'unit_id',
+    foreignKey: 'prescription_unit_id',
   })
-  public unit: BelongsTo<typeof Unit>;
+  public prescriptionUnit: BelongsTo<typeof Unit>;
+
+  @column({
+    serializeAs: null,
+  })
+  public fluid_unit_id: string;
+
+  @belongsTo(() => Unit, {
+    foreignKey: 'fluid_unit_id',
+  })
+  public fluidUnit: BelongsTo<typeof Unit>;
 
   @column({
     serializeAs: null,

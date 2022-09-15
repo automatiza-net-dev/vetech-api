@@ -7,7 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, table => {
       table.uuid('id').primary(); // i
 
-      table.uuid('unit_id').references('units.id'); // xvii
+      table.uuid('prescription_unit_id').references('units.id'); // xvii
+      table.uuid('fluid_unit_id').references('units.id'); // xvii
       table.uuid('business_unit_id').references('business_units.id');
       table
         .uuid('drug_administration_id')

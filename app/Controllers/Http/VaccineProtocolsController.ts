@@ -12,6 +12,7 @@ export default class VaccineProtocolsController {
     const qs = request.qs();
     const result = await this.service.index({
       type: qs.type,
+      vaccine: qs.vaccine,
     });
 
     return response.ok(result);

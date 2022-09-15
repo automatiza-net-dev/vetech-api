@@ -6,6 +6,7 @@ import { IVaccineProtocolData } from 'Contracts/interfaces/IVaccineProtocolData'
 
 interface ISearch {
   type?: VaccineType;
+  vaccine?: string;
 }
 
 @inject()
@@ -13,9 +14,15 @@ export default class VaccineProtocolService {
   public async index(data: ISearch) {
     const qb = VaccineProtocol.query().preload('vaccine').preload('specie');
 
-    if (data.type) {
+    if (data.type || data.vaccine) {
       qb.whereHas('vaccine', query => {
-        query.where('type', data.type ?? '');
+        if (data.type) {
+          query.where('type', data.type);
+        }
+
+        if (data.vaccine) {
+          query.where('id', data.vaccine);
+        }
       });
     }
 

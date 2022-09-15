@@ -1,7 +1,13 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import { validator } from '@ioc:Adonis/Core/Validator';
+import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import MedicalPrescription, {
+  MedicalPrescriptionFluidSet,
   MedicalPrescriptionFrequency,
+  MedicalPrescriptionFrequencyQuantityUnit,
+  MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
 import SharedService from 'App/Services/SharedService';
@@ -18,7 +24,11 @@ export default class MedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
 
   public async index(unitId: string) {
-    return MedicalPrescription.query().where('business_unit_id', unitId);
+    return MedicalPrescription.query()
+      .where('business_unit_id', unitId)
+      .preload('drugAdministration')
+      .preload('prescriptionUnit')
+      .preload('fluidUnit');
   }
 
   public async store(
@@ -26,19 +36,115 @@ export default class MedicalPrescriptionService {
     data: IMedicalPrescriptionData,
     body: Record<string, unknown>,
   ) {
-    const schema = this.matchSchema(data.type, data.frequency);
+    const { key, schema } = this.matchSchema(data.type, data.frequency);
 
-    await validator.validate({
-      schema,
-      data: body,
-    });
+    try {
+      await validator.validate({
+        schema,
+        data: body,
+      });
 
-    const entity = await MedicalPrescription.create({
-      ...data,
-      business_unit_id: unitId,
-    });
+      if (key === 'PR') {
+        return MedicalPrescription.create({
+          business_unit_id: unitId,
+          name: data.name,
+          type: data.type,
+          prescribedAt: data.prescribedAt,
+          frequency: data.frequency,
+          description: data.description,
+          resume: data.resume,
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+        });
+      }
 
-    return entity;
+      if (key === 'MR') {
+        return MedicalPrescription.create({
+          business_unit_id: unitId,
+          name: data.name,
+          type: data.type,
+          prescribedAt: data.prescribedAt,
+          frequency: data.frequency,
+          description: data.description,
+          resume: data.resume,
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+        });
+      }
+
+      if (key === 'M_') {
+        return MedicalPrescription.create({
+          business_unit_id: unitId,
+          name: data.name,
+          type: data.type,
+          prescribedAt: data.prescribedAt,
+          frequency: data.frequency,
+          description: data.description,
+          resume: data.resume,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+        });
+      }
+
+      if (key === 'FR') {
+        return MedicalPrescription.create({
+          business_unit_id: unitId,
+          name: data.name,
+          type: data.type,
+          prescribedAt: data.prescribedAt,
+          frequency: data.frequency,
+          description: data.description,
+          resume: data.resume,
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+          fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          fluid_unit_id: body.fluidUnitId as string,
+          suplement: body.suplement as string,
+        });
+      }
+
+      if (key === 'F_') {
+        return MedicalPrescription.create({
+          business_unit_id: unitId,
+          name: data.name,
+          type: data.type,
+          prescribedAt: data.prescribedAt,
+          frequency: data.frequency,
+          description: data.description,
+          resume: data.resume,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+          fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          fluid_unit_id: body.fluidUnitId as string,
+          suplement: body.suplement as string,
+        });
+      }
+
+      throw new BadRequestException('Tipo e Frequência não combinam');
+    } catch (error) {
+      Logger.error(error.message);
+
+      throw new InternalErrorException('Erro ao criar prescrição médica');
+    }
   }
 
   public async show(unitId: string, id: string) {
@@ -80,26 +186,26 @@ export default class MedicalPrescriptionService {
     if (type === MedicalPrescriptionType.PROCEDURE) {
       // b)
       if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-        return PROCEDURE_RECURRING_SCHEMA;
+        return { key: 'PR', schema: PROCEDURE_RECURRING_SCHEMA };
       }
     }
 
     if (type === MedicalPrescriptionType.MEDICATION) {
       // c)
       if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-        return MEDICATION_RECURRING_SCHEMA;
+        return { key: 'MR', schema: MEDICATION_RECURRING_SCHEMA };
       }
 
       // d)
-      return MEDICATION_ONCE_OR_NEEDED_SCHEMA;
+      return { key: 'M_', schema: MEDICATION_ONCE_OR_NEEDED_SCHEMA };
     }
 
     // e)
     if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-      return FLUID_RECURRENT_SCHEMA;
+      return { key: 'FR', schema: FLUID_RECURRENT_SCHEMA };
     }
 
     // f)
-    return FLUID_ONCE_OR_NEEDED_SCHEMA;
+    return { key: 'F_', schema: FLUID_ONCE_OR_NEEDED_SCHEMA };
   }
 }

@@ -487,3 +487,9 @@ Route.resource('clinic-parameters', 'ClinicParametersController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('medical-prescriptions', 'MedicalPrescriptionsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

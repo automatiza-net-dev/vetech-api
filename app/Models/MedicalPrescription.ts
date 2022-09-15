@@ -85,7 +85,7 @@ export default class MedicalPrescription extends BaseModel {
   public resume: string;
 
   @column()
-  public number: string;
+  public dose: number;
 
   @column({
     columnName: 'fluid_set',

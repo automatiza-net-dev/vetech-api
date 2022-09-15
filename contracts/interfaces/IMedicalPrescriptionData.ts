@@ -1,5 +1,6 @@
 import { rules, schema } from '@ioc:Adonis/Core/Validator';
 import {
+  MedicalPrescriptionFluidSet,
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
   MedicalPrescriptionFrequencyUnit,
@@ -10,7 +11,7 @@ import { DateTime } from 'luxon';
 export default interface IMedicalPrescriptionData {
   name: string;
   type: MedicalPrescriptionType;
-  date: DateTime;
+  prescribedAt: DateTime;
   frequency: MedicalPrescriptionFrequency;
   description: string;
   resume: string;
@@ -89,16 +90,16 @@ export const FLUID_RECURRENT_SCHEMA = schema.create({
       column: 'id',
     }),
   ]),
-  fluidSet: schema.enum(Object.values(MedicalPrescriptionFrequencyUnit)),
+  fluidSet: schema.enum(Object.values(MedicalPrescriptionFluidSet)),
   fluidSpeed: schema.number(),
-  fluidId: schema.string({}, [
+  fluidUnitId: schema.string({}, [
     rules.uuid(),
     rules.exists({
       table: 'units',
       column: 'id',
     }),
   ]),
-  suplementId: schema.string({}),
+  suplement: schema.string({}),
 });
 
 export const FLUID_ONCE_OR_NEEDED_SCHEMA = schema.create({
@@ -117,14 +118,14 @@ export const FLUID_ONCE_OR_NEEDED_SCHEMA = schema.create({
       column: 'id',
     }),
   ]),
-  fluidSet: schema.enum(Object.values(MedicalPrescriptionFrequencyUnit)),
+  fluidSet: schema.enum(Object.values(MedicalPrescriptionFluidSet)),
   fluidSpeed: schema.number(),
-  fluidId: schema.string({}, [
+  fluidUnitId: schema.string({}, [
     rules.uuid(),
     rules.exists({
       table: 'units',
       column: 'id',
     }),
   ]),
-  suplementId: schema.string({}),
+  suplement: schema.string({}),
 });

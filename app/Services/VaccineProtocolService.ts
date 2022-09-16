@@ -7,12 +7,22 @@ import { IVaccineProtocolData } from 'Contracts/interfaces/IVaccineProtocolData'
 interface ISearch {
   type?: VaccineType;
   vaccine?: string;
+  specie?: string;
+  name?: string;
 }
 
 @inject()
 export default class VaccineProtocolService {
   public async index(data: ISearch) {
     const qb = VaccineProtocol.query().preload('vaccine').preload('specie');
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.specie) {
+      qb.where('specie_id', data.specie);
+    }
 
     if (data.type || data.vaccine) {
       qb.whereHas('vaccine', query => {
@@ -54,7 +64,11 @@ export default class VaccineProtocolService {
   }
 
   public async update(id: string, data: IVaccineProtocolData) {
-    const model = await this.show(id);
+    const model = await VaccineProtocol.find(id);
+
+    if (!model) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
 
     return model
       .merge({

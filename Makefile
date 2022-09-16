@@ -13,3 +13,6 @@ schedule-statuses:
 
 variations:
 	node ace db:seed --files "./database/seeders/VariationSeeder.ts"
+
+units:
+	node ace db:seed --files "./database/seeders/UnitSeeder.ts"

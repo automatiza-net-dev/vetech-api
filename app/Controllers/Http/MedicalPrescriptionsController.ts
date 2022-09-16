@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import MedicalPrescriptionService from 'App/Services/MedicalPrescriptionService';
 import SharedService from 'App/Services/SharedService';
 import CreateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/CreateMedicalPrescriptionValidator';
+import UpdateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/UpdateMedicalPrescriptionValidator';
 
 @inject()
 export default class MedicalPrescriptionsController {
@@ -34,6 +35,25 @@ export default class MedicalPrescriptionsController {
     const result = await this.service.store(unit_id, payload, request.body());
 
     return response.created(result);
+  }
+
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateMedicalPrescriptionValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.update(
+      unit_id,
+      params.id,
+      payload,
+      request.body(),
+    );
+
+    return response.ok(result);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {

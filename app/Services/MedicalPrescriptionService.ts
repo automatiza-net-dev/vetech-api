@@ -146,6 +146,106 @@ export default class MedicalPrescriptionService {
     return entity;
   }
 
+  public async update(
+    unitId: string,
+    id: string,
+    data: IMedicalPrescriptionData,
+    body: Record<string, unknown>,
+  ) {
+    const entity = await MedicalPrescription.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!entity) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const { key, schema } = this.matchSchema(data.type, data.frequency);
+
+    try {
+      await validator.validate({
+        schema,
+        data: body,
+      });
+
+      entity.merge({
+        name: data.name,
+        type: data.type,
+        prescribedAt: data.prescribedAt,
+        frequency: data.frequency,
+        description: data.description,
+        resume: data.resume,
+      });
+
+      if (key === 'PR') {
+        entity.merge({
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+        });
+      }
+
+      if (key === 'MR') {
+        entity.merge({
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+        });
+      }
+
+      if (key === 'M_') {
+        entity.merge({
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+        });
+      }
+
+      if (key === 'FR') {
+        entity.merge({
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+          fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          fluid_unit_id: body.fluidUnitId as string,
+          suplement: body.suplement as string,
+        });
+      }
+
+      if (key === 'F_') {
+        entity.merge({
+          dose: body.dose as number,
+          prescription_unit_id: body.prescriptionUnitId as string,
+          drug_administration_id: body.drugAdministrationId as string,
+          fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          fluid_unit_id: body.fluidUnitId as string,
+          suplement: body.suplement as string,
+        });
+      }
+
+      return entity.save();
+    } catch (error) {
+      Logger.error(error.message);
+
+      throw new InternalErrorException('Erro ao criar prescrição médica');
+    }
+  }
+
   public async delete(unitId: string, id: string) {
     const entity = await MedicalPrescription.query()
       .where('id', id)

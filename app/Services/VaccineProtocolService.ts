@@ -54,7 +54,11 @@ export default class VaccineProtocolService {
   }
 
   public async update(id: string, data: IVaccineProtocolData) {
-    const model = await this.show(id);
+    const model = await VaccineProtocol.find(id);
+
+    if (!model) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
 
     return model
       .merge({

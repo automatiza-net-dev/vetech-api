@@ -95,14 +95,16 @@ export default class VaccineService {
 
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    return vaccine.merge({
-      name: data.name,
-      description: data.description,
-      business_unit_id: isSuperAdmin ? undefined : unitId,
-      subgroup_id: data.subgroupId,
-      active: data.active,
-      type: data.type,
-    });
+    return vaccine
+      .merge({
+        name: data.name,
+        description: data.description,
+        business_unit_id: isSuperAdmin ? undefined : unitId,
+        subgroup_id: data.subgroupId,
+        active: data.active,
+        type: data.type,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, user: User, id: string) {

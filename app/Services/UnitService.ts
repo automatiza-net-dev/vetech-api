@@ -1,20 +1,28 @@
 import { inject } from '@adonisjs/fold';
-import Unit from 'App/Models/Unit';
+import Unit, { UnitType } from 'App/Models/Unit';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IUnitData from 'Contracts/interfaces/IUnitData';
+
+interface ISearch {
+  type?: UnitType;
+}
 
 @inject()
 export default class UnitService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string, user: User) {
+  public async index(unitId: string, user: User, data: ISearch) {
     const isSudo = await this.sharedService.isSuperAdmin(user);
 
     const qb = Unit.query();
 
     if (!isSudo) {
       qb.whereRaw('(business_id = ? or business_id = null)', [unitId]);
+    }
+
+    if (data.type) {
+      qb.whereILike('type', `%${data.type}%`);
     }
 
     return qb;

@@ -8,6 +8,7 @@ import VaccineCalendar from 'App/Models/VaccineCalendar';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
 import IPatientVaccineData from 'Contracts/interfaces/IPatientVaccineData';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 import PatientVaccine from '../Models/PatientVaccine';
 
@@ -44,9 +45,12 @@ export default class PatientVaccineService {
 
     const protocol = await VaccineProtocol.findOrFail(data.vaccineProtocolId);
 
+    const id = v4();
+
     try {
       const entity = await PatientVaccine.create(
         {
+          id,
           business_unit_id: unitId,
           user_id: data.userId ?? user.id,
           patient_id: data.patientId,
@@ -85,6 +89,8 @@ export default class PatientVaccineService {
         'E_INTERNAL_ERROR',
       );
     }
+
+    return this.show(unitId, id);
   }
 
   public async show(unitId: string, id: string) {

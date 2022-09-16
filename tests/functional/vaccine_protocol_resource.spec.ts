@@ -13,7 +13,7 @@ test.group('Vaccine protocol resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
     const subgroup = await Subgroup.create({
       description: 'some group',
@@ -24,7 +24,7 @@ test.group('Vaccine protocol resource', group => {
       name: 'some vaccine',
       description: 'some description',
       subgroup_id: subgroup.id,
-      business_unit_id: business.id,
+      economic_group_id: group.id,
       type: VaccineType.VACCINE,
     });
 

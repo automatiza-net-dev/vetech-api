@@ -14,11 +14,14 @@ export default class UnitService {
 
   public async index(unitId: string, user: User, data: ISearch) {
     const isSudo = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Unit.query();
 
     if (!isSudo) {
-      qb.whereRaw('(business_id = ? or business_id = null)', [unitId]);
+      qb.whereRaw('(economic_group_id = ? or economic_group_id = null)', [
+        group.id,
+      ]);
     }
 
     if (data.type) {
@@ -34,10 +37,11 @@ export default class UnitService {
     data: Omit<IUnitData, 'active'>,
   ) {
     const isSudo = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     return Unit.create({
       name: data.name,
-      business_id: isSudo ? null : unitId,
+      economic_group_id: isSudo ? null : group.id,
       tag: data.tag,
       type: data.type,
     });
@@ -45,13 +49,14 @@ export default class UnitService {
 
   public async show(unitId: string, user: User, id: string) {
     const isSudo = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
     const unit = await Unit.find(id);
 
     if (!unit) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (!isSudo && unit.business_id !== unitId) {
+    if (!isSudo && unit.economic_group_id !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 

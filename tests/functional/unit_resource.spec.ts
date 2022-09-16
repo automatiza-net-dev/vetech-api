@@ -12,16 +12,16 @@ test.group('Unit resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, group, business } = await userBootstrap();
 
     const unit = await Unit.create({
       name: 'some unit',
-      business_id: business.id,
+      economic_group_id: group.id,
       tag: 'some tag',
       type: UnitType.PRODUCT,
     });
 
-    return { user, unit, business };
+    return { user, unit, group, business };
   };
 
   test('should return all units', async ({ assert, client }) => {

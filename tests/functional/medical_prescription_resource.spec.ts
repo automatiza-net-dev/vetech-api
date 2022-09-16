@@ -30,7 +30,7 @@ test.group('Medical prescription resource', group => {
 
     const unit = await Unit.create({
       name: 'some unit',
-      business_id: business.id,
+      economic_group_id: group.id,
       tag: 'some tag',
       type: UnitType.PRODUCT,
     });

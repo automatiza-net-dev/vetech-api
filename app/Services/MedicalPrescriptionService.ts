@@ -38,6 +38,16 @@ export default class MedicalPrescriptionService {
   ) {
     const { key, schema } = this.matchSchema(data.type, data.frequency);
 
+    const validatedData: Partial<MedicalPrescription> = {
+      business_unit_id: unitId,
+      name: data.name,
+      type: data.type,
+      prescribedAt: data.prescribedAt,
+      frequency: data.frequency,
+      description: data.description,
+      resume: data.resume,
+    };
+
     try {
       await validator.validate({
         schema,
@@ -46,13 +56,7 @@ export default class MedicalPrescriptionService {
 
       if (key === 'PR') {
         return MedicalPrescription.create({
-          business_unit_id: unitId,
-          name: data.name,
-          type: data.type,
-          prescribedAt: data.prescribedAt,
-          frequency: data.frequency,
-          description: data.description,
-          resume: data.resume,
+          ...validatedData,
           frequencyInterval: body.frequencyInterval as number,
           frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
           frequencyQuantity: body.frequencyQuantity as number,
@@ -63,13 +67,7 @@ export default class MedicalPrescriptionService {
 
       if (key === 'MR') {
         return MedicalPrescription.create({
-          business_unit_id: unitId,
-          name: data.name,
-          type: data.type,
-          prescribedAt: data.prescribedAt,
-          frequency: data.frequency,
-          description: data.description,
-          resume: data.resume,
+          ...validatedData,
           frequencyInterval: body.frequencyInterval as number,
           frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
           frequencyQuantity: body.frequencyQuantity as number,
@@ -83,13 +81,7 @@ export default class MedicalPrescriptionService {
 
       if (key === 'M_') {
         return MedicalPrescription.create({
-          business_unit_id: unitId,
-          name: data.name,
-          type: data.type,
-          prescribedAt: data.prescribedAt,
-          frequency: data.frequency,
-          description: data.description,
-          resume: data.resume,
+          ...validatedData,
           dose: body.dose as number,
           prescription_unit_id: body.prescriptionUnitId as string,
           drug_administration_id: body.drugAdministrationId as string,
@@ -98,13 +90,7 @@ export default class MedicalPrescriptionService {
 
       if (key === 'FR') {
         return MedicalPrescription.create({
-          business_unit_id: unitId,
-          name: data.name,
-          type: data.type,
-          prescribedAt: data.prescribedAt,
-          frequency: data.frequency,
-          description: data.description,
-          resume: data.resume,
+          ...validatedData,
           frequencyInterval: body.frequencyInterval as number,
           frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
           frequencyQuantity: body.frequencyQuantity as number,
@@ -122,13 +108,7 @@ export default class MedicalPrescriptionService {
 
       if (key === 'F_') {
         return MedicalPrescription.create({
-          business_unit_id: unitId,
-          name: data.name,
-          type: data.type,
-          prescribedAt: data.prescribedAt,
-          frequency: data.frequency,
-          description: data.description,
-          resume: data.resume,
+          ...validatedData,
           dose: body.dose as number,
           prescription_unit_id: body.prescriptionUnitId as string,
           drug_administration_id: body.drugAdministrationId as string,

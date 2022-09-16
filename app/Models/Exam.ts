@@ -6,7 +6,6 @@ import {
   BelongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import Subgroup from 'App/Models/Subgroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -52,11 +51,10 @@ export default class Exam extends BaseModel {
     await softDelete(this, column);
   }
 
-  @column()
-  public business_unit_id?: string;
-
-  @belongsTo(() => BusinessUnit, {})
-  public businessUnit: BelongsTo<typeof BusinessUnit>;
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id?: string;
 
   @column()
   public subgroup_id: string;

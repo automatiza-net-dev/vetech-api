@@ -16,6 +16,7 @@ export default class ExamService {
 
   public async index(unitId: string, user: User, data: ISearch) {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Exam.query();
 
@@ -28,7 +29,7 @@ export default class ExamService {
     }
 
     if (!isSuperAdmin) {
-      qb.where('business_unit_id', unitId);
+      qb.where('economic_group_id', group.id);
     }
 
     // TODO paginate
@@ -41,11 +42,12 @@ export default class ExamService {
     data: Omit<IExamData, 'active'>,
   ) {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     return Exam.create({
       name: data.name,
       description: data.description,
-      business_unit_id: isSuperAdmin ? undefined : unitId,
+      economic_group_id: isSuperAdmin ? undefined : group.id,
       subgroup_id: data.subgroupId,
       ownLaboratory: data.ownLaboratory,
       type: data.type,
@@ -63,11 +65,13 @@ export default class ExamService {
       );
     }
 
-    if (exam.business_unit_id) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    if (exam.economic_group_id) {
       const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
       if (!isSuperAdmin) {
-        if (unitId !== exam.business_unit_id) {
+        if (group.id !== exam.economic_group_id) {
           throw new ResourceNotFoundException(
             'Exame não encontrada',
             404,
@@ -83,12 +87,9 @@ export default class ExamService {
   public async update(unitId: string, user: User, id: string, data: IExamData) {
     const exam = await this.show(unitId, id, user);
 
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
     return exam.merge({
       name: data.name,
       description: data.description,
-      business_unit_id: isSuperAdmin ? undefined : unitId,
       subgroup_id: data.subgroupId,
       active: data.active,
       ownLaboratory: data.ownLaboratory,

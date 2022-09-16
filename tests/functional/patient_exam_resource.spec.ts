@@ -17,12 +17,12 @@ test.group('Patient exam resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
     const patient = await PatientFactory.create();
 
     const exam = await Exam.create({
-      business_unit_id: business.id,
+      economic_group_id: group.id,
       type: 'some type',
       name: 'some name',
       description: 'some description',

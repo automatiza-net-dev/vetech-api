@@ -105,7 +105,8 @@ export default class PatientVaccineService {
       .preload('user', query => {
         query.select('id', 'name', 'email');
       })
-      .preload('schedule');
+      .preload('schedule')
+      .preload('calendars');
 
     const entity = await qb.first();
 

@@ -16,6 +16,7 @@ export default class VaccineService {
 
   public async index(unitId: string, user: User, data: ISearch) {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Vaccine.query().preload('protocols', query => {
       query.select('id', 'name', 'doses', 'interval', 'active', 'specie_id');
@@ -34,7 +35,7 @@ export default class VaccineService {
     }
 
     if (!isSuperAdmin) {
-      qb.where('business_unit_id', unitId);
+      qb.where('economic_group_id', group.id);
     }
 
     // TODO paginate
@@ -47,11 +48,12 @@ export default class VaccineService {
     data: Omit<IVaccineData, 'active'>,
   ) {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     return Vaccine.create({
       name: data.name,
       description: data.description,
-      business_unit_id: isSuperAdmin ? undefined : unitId,
+      economic_group_id: isSuperAdmin ? undefined : group.id,
       subgroup_id: data.subgroupId,
       type: data.type,
     });
@@ -68,11 +70,13 @@ export default class VaccineService {
       );
     }
 
-    if (vaccine.business_unit_id) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    if (vaccine.economic_group_id) {
       const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
       if (!isSuperAdmin) {
-        if (unitId !== vaccine.business_unit_id) {
+        if (group.id !== vaccine.economic_group_id) {
           throw new ResourceNotFoundException(
             'Vacina não encontrada',
             404,
@@ -93,13 +97,10 @@ export default class VaccineService {
   ) {
     const vaccine = await this.show(unitId, id, user);
 
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
     return vaccine
       .merge({
         name: data.name,
         description: data.description,
-        business_unit_id: isSuperAdmin ? undefined : unitId,
         subgroup_id: data.subgroupId,
         active: data.active,
         type: data.type,

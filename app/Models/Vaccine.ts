@@ -8,7 +8,6 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import Subgroup from 'App/Models/Subgroup';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -55,11 +54,10 @@ export default class Vaccine extends BaseModel {
     await softDelete(this, column);
   }
 
-  @column()
-  public business_unit_id?: string;
-
-  @belongsTo(() => BusinessUnit, {})
-  public businessUnit: BelongsTo<typeof BusinessUnit>;
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id?: string;
 
   @column()
   public subgroup_id: string;

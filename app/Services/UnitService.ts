@@ -30,6 +30,8 @@ export default class UnitService {
     return Unit.create({
       name: data.name,
       business_id: isSudo ? null : unitId,
+      tag: data.tag,
+      type: data.type,
     });
   }
 
@@ -54,6 +56,8 @@ export default class UnitService {
     return entity
       .merge({
         name: data.name,
+        tag: data.tag,
+        type: data.type,
         active: data.active,
       })
       .save();

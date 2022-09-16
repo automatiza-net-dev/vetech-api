@@ -8,12 +8,24 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum UnitType {
+  PRODUCT = 'PRODUCT',
+  MEDICINE = 'MEDICINE',
+  FLUID_VELOCITY = 'FLUID_VELOCITY',
+}
+
 export default class Unit extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
   public name: string;
+
+  @column()
+  public tag: string;
+
+  @column()
+  public type: UnitType;
 
   @column()
   public active: boolean;

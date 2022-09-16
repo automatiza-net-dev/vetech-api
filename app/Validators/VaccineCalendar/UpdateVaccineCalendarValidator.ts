@@ -5,6 +5,7 @@ export default class UpdateVaccineCalendarValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
+    schedulingDate: schema.date.optional(),
     applicationDate: schema.date.optional(),
     productId: schema.string.optional({}, [
       rules.uuid(),

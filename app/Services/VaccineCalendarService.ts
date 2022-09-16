@@ -82,6 +82,7 @@ export default class VaccineCalendarService {
     });
 
     calendar.merge({
+      schedulingDate: data.schedulingDate ?? calendar.schedulingDate,
       applicationDate: data.applicationDate,
       dose: data.dose,
       laboratory: data.laboratory,

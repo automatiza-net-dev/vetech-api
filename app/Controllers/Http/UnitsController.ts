@@ -12,10 +12,13 @@ export default class UnitsController {
     private readonly service: UnitService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id, user);
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, user, {
+      type: qs.type,
+    });
 
     return response.ok(result);
   }

@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Unit from 'App/Models/Unit';
+import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
 import { createSudo, generateJwtToken, userBootstrap } from '../utils';
@@ -17,6 +17,8 @@ test.group('Unit resource', group => {
     const unit = await Unit.create({
       name: 'some unit',
       business_id: business.id,
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
     });
 
     return { user, unit, business };
@@ -46,6 +48,8 @@ test.group('Unit resource', group => {
       .post(`/units`)
       .json({
         name: 'some name',
+        tag: 'some tag',
+        type: UnitType.PRODUCT,
       })
       .bearerToken(token);
 
@@ -138,7 +142,8 @@ test.group('Unit resource', group => {
       .put(`/units/${unit.id}`)
       .json({
         name: 'some name',
-
+        tag: 'some tag',
+        type: UnitType.PRODUCT,
         active: true,
       })
       .bearerToken(token);

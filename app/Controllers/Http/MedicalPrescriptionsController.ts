@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import MedicalPrescriptionService from 'App/Services/MedicalPrescriptionService';
+import MedicalPrescriptionService, {
+  MedicalPrescriptionValidation,
+} from 'App/Services/MedicalPrescriptionService';
 import SharedService from 'App/Services/SharedService';
 import CreateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/CreateMedicalPrescriptionValidator';
 import UpdateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/UpdateMedicalPrescriptionValidator';
@@ -30,9 +32,12 @@ export default class MedicalPrescriptionsController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateMedicalPrescriptionValidator);
+    const { key } = this.service.matchSchema(payload.type, payload.frequency);
+    const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
+
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, payload, request.body());
+    const result = await this.service.store(unit_id, payload, payload2);
 
     return response.created(result);
   }
@@ -44,13 +49,16 @@ export default class MedicalPrescriptionsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateMedicalPrescriptionValidator);
+    const { key } = this.service.matchSchema(payload.type, payload.frequency);
+    const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
+
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const result = await this.service.update(
       unit_id,
       params.id,
       payload,
-      request.body(),
+      payload2,
     );
 
     return response.ok(result);

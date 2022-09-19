@@ -41,7 +41,9 @@ export default class PatientVaccine extends BaseModel {
     await softDelete(this, column);
   }
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public vaccine_id: string;
 
   @belongsTo(() => Vaccine, {
@@ -49,7 +51,9 @@ export default class PatientVaccine extends BaseModel {
   })
   public vaccine: BelongsTo<typeof Vaccine>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public vaccine_protocol_id: string;
 
   @belongsTo(() => VaccineProtocol, {
@@ -57,7 +61,9 @@ export default class PatientVaccine extends BaseModel {
   })
   public protocol: BelongsTo<typeof VaccineProtocol>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public patient_id: string;
 
   @belongsTo(() => Patient, {
@@ -65,7 +71,9 @@ export default class PatientVaccine extends BaseModel {
   })
   public patient: BelongsTo<typeof Patient>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public user_id: string;
 
   @belongsTo(() => User, {
@@ -73,7 +81,9 @@ export default class PatientVaccine extends BaseModel {
   })
   public user: BelongsTo<typeof User>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public schedule_id: string;
 
   @belongsTo(() => Schedule, {
@@ -81,7 +91,9 @@ export default class PatientVaccine extends BaseModel {
   })
   public schedule: BelongsTo<typeof Schedule>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public business_unit_id: string;
 
   @hasMany(() => VaccineCalendar, {

@@ -37,6 +37,19 @@ export default class PatientVaccineService {
       qb.where('patient_id', data.patient);
     }
 
+    await Promise.all([
+      qb.preload('vaccine'),
+      qb.preload('protocol'),
+      qb.preload('patient'),
+      qb.preload('user', query => {
+        query.select('id', 'name', 'email');
+      }),
+      qb.preload('schedule'),
+      qb.preload('calendars', query => {
+        query.orderBy('dose');
+      }),
+    ]);
+
     return qb;
   }
 

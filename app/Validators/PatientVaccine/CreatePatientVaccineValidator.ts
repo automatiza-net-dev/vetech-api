@@ -25,6 +25,12 @@ export default class CreatePatientVaccineValidator {
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
+    applications: schema.array.optional().members(
+      schema.object().members({
+        dose: schema.number(),
+        date: schema.date(),
+      }),
+    ),
   });
 
   public messages: CustomMessages = {};

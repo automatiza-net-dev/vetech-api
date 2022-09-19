@@ -493,3 +493,9 @@ Route.resource('medical-prescriptions', 'MedicalPrescriptionsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('occurrences', 'OccurrencesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

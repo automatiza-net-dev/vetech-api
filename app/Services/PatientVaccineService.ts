@@ -65,15 +65,23 @@ export default class PatientVaccineService {
 
       const calendars: Array<Partial<VaccineCalendar>> = Array.from(
         { length: protocol.doses },
-        (_, index) => ({
-          schedulingDate: DateTime.now().plus({
-            days: index * protocol.interval,
-          }),
-          applicationDate: index === 0 ? DateTime.now() : null,
-          dose: index + 1,
-          schedule_id: data.scheduleId,
-          user_id: data.userId ?? user.id,
-        }),
+        (_, index) => {
+          const schedulingDate = data.applications?.find(
+            application => application.dose === index + 1,
+          )?.date;
+
+          return {
+            schedulingDate:
+              schedulingDate ??
+              DateTime.now().plus({
+                days: index * protocol.interval,
+              }),
+            applicationDate: index === 0 ? DateTime.now() : null,
+            dose: index + 1,
+            schedule_id: data.scheduleId,
+            user_id: data.userId ?? user.id,
+          };
+        },
       );
 
       await entity.related('calendars').createMany(calendars, trx);
@@ -121,7 +129,7 @@ export default class PatientVaccineService {
     unitId: string,
     id: string,
     user: User,
-    data: IPatientVaccineData,
+    data: Omit<IPatientVaccineData, 'applications'>,
   ) {
     const entity = await this.show(unitId, id);
 

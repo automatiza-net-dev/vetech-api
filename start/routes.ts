@@ -499,3 +499,9 @@ Route.resource('occurrences', 'OccurrencesController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('hospitalizations', 'HospitalizationsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

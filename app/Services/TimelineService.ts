@@ -23,11 +23,11 @@ import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
 import ICreateAppointment from 'Contracts/interfaces/ICreateAppointment';
+import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
 import {
   ICreateTimelineDischarge,
   ICreateTimelineHospitalization,
-} from 'Contracts/interfaces/ICreateHospitalization';
-import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
+} from 'Contracts/interfaces/ICreateTimelineHospitalization';
 import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';

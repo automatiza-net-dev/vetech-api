@@ -27,7 +27,7 @@ export default class extends BaseSchema {
       table.float('dose'); // xiii
       table.string('fluid_set'); // xv
       table.float('fluid_speed'); // xvi
-      table.text('suplement'); // xvviii
+      table.text('supplement'); // xvviii
       table.boolean('active').defaultTo(true); // xix
 
       table.timestamp('created_at', { useTz: true });

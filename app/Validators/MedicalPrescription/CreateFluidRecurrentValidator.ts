@@ -40,7 +40,7 @@ export default class CreateFluidRecurrentValidator {
         column: 'id',
       }),
     ]),
-    suplement: schema.string({}),
+    supplement: schema.string({}),
   });
 
   public messages: CustomMessages = {};

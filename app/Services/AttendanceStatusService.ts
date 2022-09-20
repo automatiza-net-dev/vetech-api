@@ -53,11 +53,13 @@ export default class AttendanceStatusService {
   public async update(unitId: string, id: string, data: IAttendanceStatusData) {
     const status = await this.show(unitId, id);
 
-    return status.merge({
-      description: data.description,
-      color: data.color,
-      active: data.active,
-    });
+    return status
+      .merge({
+        description: data.description,
+        color: data.color,
+        active: data.active,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, id: string) {

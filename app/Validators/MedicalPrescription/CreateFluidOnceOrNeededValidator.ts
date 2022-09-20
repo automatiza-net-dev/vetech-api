@@ -30,7 +30,7 @@ export default class CreateFluidOnceOrNeededValidator {
         column: 'id',
       }),
     ]),
-    suplement: schema.string({}),
+    supplement: schema.string({}),
   });
 
   public messages: CustomMessages = {};

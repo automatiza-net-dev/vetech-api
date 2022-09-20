@@ -98,7 +98,7 @@ export default class MedicalPrescription extends BaseModel {
   public fluidSpeed: number;
 
   @column()
-  public suplement: string;
+  public supplement: string;
 
   @column()
   public active: boolean;

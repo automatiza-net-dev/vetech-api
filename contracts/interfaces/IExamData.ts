@@ -1,8 +1,8 @@
 export interface IExamData {
-  subgroupId: string;
+  subgroupId?: string;
   name: string;
-  description: string;
+  description?: string;
   active: boolean;
-  type: string;
+  type?: string;
   ownLaboratory: boolean;
 }

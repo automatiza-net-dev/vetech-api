@@ -1,7 +1,7 @@
 import { VaccineType } from 'App/Models/Vaccine';
 
 export interface IVaccineData {
-  subgroupId: string;
+  subgroupId?: string;
   name: string;
   description: string;
   type: VaccineType;

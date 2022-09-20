@@ -59,7 +59,9 @@ export default class Vaccine extends BaseModel {
   })
   public economic_group_id?: string;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public subgroup_id: string;
 
   @belongsTo(() => Subgroup, {

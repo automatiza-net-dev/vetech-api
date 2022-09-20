@@ -24,8 +24,8 @@ import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
 import ICreateAppointment from 'Contracts/interfaces/ICreateAppointment';
 import {
-  ICreateDischarge,
-  ICreateHospitalization,
+  ICreateTimelineDischarge,
+  ICreateTimelineHospitalization,
 } from 'Contracts/interfaces/ICreateHospitalization';
 import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
 import { v4 } from 'uuid';
@@ -337,7 +337,7 @@ export default class TimelineService {
     });
   }
 
-  public async storeHospization(data: ICreateHospitalization) {
+  public async storeHospization(data: ICreateTimelineHospitalization) {
     const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
@@ -367,7 +367,7 @@ export default class TimelineService {
     });
   }
 
-  public async storeDischarge(data: ICreateDischarge) {
+  public async storeDischarge(data: ICreateTimelineDischarge) {
     const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
 
     const technician = await User.findOrFail(data.technicianId);

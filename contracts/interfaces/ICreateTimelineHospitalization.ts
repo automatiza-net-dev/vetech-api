@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 
-export interface ICreateHospitalization {
+export interface ICreateTimelineHospitalization {
   tag: string;
   technicianId: string;
   situation: string;
@@ -12,7 +12,7 @@ export interface ICreateHospitalization {
   prognosis: string;
 }
 
-export interface ICreateDischarge {
+export interface ICreateTimelineDischarge {
   tag: string;
   technicianId: string;
   dischargeDate: DateTime;

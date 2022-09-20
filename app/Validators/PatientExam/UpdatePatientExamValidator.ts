@@ -16,7 +16,7 @@ export default class UpdatePatientExamValidator {
       rules.uuid(),
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),
-    executorId: schema.string.optional({}, [
+    executionerId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),

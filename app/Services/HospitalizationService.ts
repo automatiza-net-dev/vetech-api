@@ -19,7 +19,8 @@ export default class HospitalizationService {
       .preload('bed')
       .preload('patient')
       .preload('tutor')
-      .preload('technician');
+      .preload('technician')
+      .preload('medicalPrescriptions');
 
     qb.where('business_unit_id', unitId);
 
@@ -43,7 +44,8 @@ export default class HospitalizationService {
       .preload('bed')
       .preload('patient')
       .preload('tutor')
-      .preload('technician');
+      .preload('technician')
+      .preload('medicalPrescriptions');
 
     qb.where('business_unit_id', unitId).where('id', id);
 

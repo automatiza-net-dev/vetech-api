@@ -89,7 +89,6 @@ export default class PatientVaccineService {
               DateTime.now().plus({
                 days: index * protocol.interval,
               }),
-            applicationDate: index === 0 ? DateTime.now() : null,
             dose: index + 1,
             schedule_id: data.scheduleId,
             user_id: data.userId ?? user.id,

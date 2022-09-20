@@ -5,7 +5,7 @@ export default class CreateExamValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    subgroupId: schema.string({}, [
+    subgroupId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'subgroups',
@@ -13,8 +13,8 @@ export default class CreateExamValidator {
       }),
     ]),
     name: schema.string({}, []),
-    description: schema.string({}, []),
-    type: schema.string({}, []),
+    description: schema.string.optional({}, []),
+    type: schema.string.optional({}, []),
     ownLaboratory: schema.boolean(),
   });
 

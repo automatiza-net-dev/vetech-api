@@ -8,10 +8,6 @@ export default class UpdatePatientExamValidator {
     realizedAt: schema.date.optional(),
     laboratory: schema.string(),
     report: schema.string(),
-    examId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'exams', column: 'id' }),
-    ]),
     patientId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
@@ -20,6 +16,13 @@ export default class UpdatePatientExamValidator {
       rules.uuid(),
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),
+    executorId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
+    executedAt: schema.date.optional({}),
+    resultDate: schema.date.optional({}),
+    status: schema.string.optional({}),
   });
 
   public messages: CustomMessages = {};

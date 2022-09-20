@@ -19,6 +19,7 @@ export enum OccurrenceType {
   PROCEDIMENTO_CLINICO = 'PC',
   MEDICACAO = 'M',
   FLUIDOTERAPIA = 'F',
+  OBITO = 'OB',
 }
 
 export default class Occurrence extends BaseModel {

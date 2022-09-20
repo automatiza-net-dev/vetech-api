@@ -32,6 +32,19 @@ export default class PatientExam extends BaseModel {
   @column()
   public report: string;
 
+  @column.dateTime({
+    columnName: 'result_date',
+  })
+  public resultDate: DateTime;
+
+  @column.dateTime({
+    columnName: 'executed_at',
+  })
+  public executedAt: DateTime;
+
+  @column()
+  public status: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
@@ -56,7 +69,9 @@ export default class PatientExam extends BaseModel {
   })
   public business_id: string;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public exam_id: string;
 
   @belongsTo(() => Exam, {
@@ -64,7 +79,9 @@ export default class PatientExam extends BaseModel {
   })
   public exam: BelongsTo<typeof Exam>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public patient_id: string;
 
   @belongsTo(() => Patient, {
@@ -72,7 +89,9 @@ export default class PatientExam extends BaseModel {
   })
   public patient: BelongsTo<typeof Patient>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public user_id: string;
 
   @belongsTo(() => User, {
@@ -80,7 +99,9 @@ export default class PatientExam extends BaseModel {
   })
   public user: BelongsTo<typeof User>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public schedule_id: string;
 
   @belongsTo(() => Schedule, {
@@ -92,4 +113,24 @@ export default class PatientExam extends BaseModel {
     foreignKey: 'patient_exam_id',
   })
   public attachments: HasMany<typeof PatientExamAttachment>;
+
+  @column({
+    serializeAs: null,
+  })
+  public solicitor_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'solicitor_id',
+  })
+  public solicitor: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
+  public executioner_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'executioner_id',
+  })
+  public executor: BelongsTo<typeof User>;
 }

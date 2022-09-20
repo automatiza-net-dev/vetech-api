@@ -8,6 +8,11 @@ export default interface IPatientExamData {
   examId: string;
   patientId: string;
   scheduleId: string;
+  solicitorId?: string;
+  executionerId?: string;
+  executedAt?: DateTime;
+  resultDate?: DateTime;
+  status?: string;
 }
 export interface IPatientExamAttachmentData {
   realizedAt: DateTime;

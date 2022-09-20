@@ -25,6 +25,8 @@ export default class PatientExamService {
       .preload('patient')
       .preload('user')
       .preload('attachments')
+      .preload('executor')
+      .preload('solicitor')
       .first();
 
     if (!ent) {
@@ -44,10 +46,15 @@ export default class PatientExamService {
       patient_id: data.patientId,
       schedule_id: data.scheduleId,
       user_id: user.id,
+      solicitor_id: data.solicitorId,
     });
   }
 
-  public async update(unitId: string, id: string, data: IPatientExamData) {
+  public async update(
+    unitId: string,
+    id: string,
+    data: Omit<IPatientExamData, 'examId'>,
+  ) {
     const ent = await PatientExam.query()
       .where('business_id', unitId)
       .where('id', id)
@@ -62,9 +69,13 @@ export default class PatientExamService {
       laboratory: data.laboratory,
       report: data.report,
       business_id: unitId,
-      exam_id: data.examId,
       patient_id: data.patientId,
       schedule_id: data.scheduleId,
+      executedAt: data.executedAt,
+      executioner_id: data.executionerId,
+      resultDate: data.resultDate,
+      solicitor_id: data.solicitorId,
+      status: data.status,
     });
 
     return ent.save();

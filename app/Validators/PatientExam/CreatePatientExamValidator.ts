@@ -20,6 +20,10 @@ export default class CreatePatientExamValidator {
       rules.uuid(),
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),
+    solicitorId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

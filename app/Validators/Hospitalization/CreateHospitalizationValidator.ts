@@ -17,6 +17,10 @@ export default class CreateHospitalizationValidator {
       rules.uuid(),
       rules.exists({ table: 'beds', column: 'id' }),
     ]),
+    userId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
     type: schema.number(),
     complaint: schema.string(),
     risk: schema.number.optional(),

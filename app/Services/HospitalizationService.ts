@@ -102,7 +102,7 @@ export default class HospitalizationService {
       patient_id: data.patientId,
       tutor_id: data.tutorId,
       bed_id: data.bedId,
-      technician_id: user.id,
+      technician_id: data.userId ?? user.id,
     });
 
     if (occurrence) {
@@ -123,7 +123,12 @@ export default class HospitalizationService {
     return this.show(unitId, ent.id);
   }
 
-  public async update(unitId: string, id: string, data: IHospitalizationData) {
+  public async update(
+    unitId: string,
+    id: string,
+    user: User,
+    data: IHospitalizationData,
+  ) {
     const ent = await this.show(unitId, id);
 
     await ent
@@ -138,6 +143,7 @@ export default class HospitalizationService {
         patient_id: data.patientId,
         tutor_id: data.tutorId,
         bed_id: data.bedId,
+        technician_id: data.userId ?? user.id,
       })
       .save();
 

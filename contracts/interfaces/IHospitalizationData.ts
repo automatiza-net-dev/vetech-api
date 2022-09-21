@@ -11,4 +11,5 @@ export interface IHospitalizationData {
   diagnosis?: string;
   prognosis?: string;
   status?: string;
+  userId?: string;
 }

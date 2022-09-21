@@ -74,7 +74,7 @@ export default class HospitalizationOccurrence extends BaseModel {
   @belongsTo(() => Occurrence, {
     foreignKey: 'occurrence_id',
   })
-  public occurence: BelongsTo<typeof Occurrence>;
+  public occurrence: BelongsTo<typeof Occurrence>;
 
   @column({
     serializeAs: null,

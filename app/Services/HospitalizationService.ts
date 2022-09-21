@@ -30,7 +30,7 @@ export default class HospitalizationService {
         query.preload('drugAdministration');
       })
       .preload('occurrences', query => {
-        query.preload('occurence');
+        query.preload('occurrence');
         query.preload('user');
         query.preload('prescription');
       });
@@ -64,7 +64,7 @@ export default class HospitalizationService {
         query.preload('drugAdministration');
       })
       .preload('occurrences', query => {
-        query.preload('occurence');
+        query.preload('occurrence');
         query.preload('user');
         query.preload('prescription');
       });

@@ -53,7 +53,7 @@ test.group('Medical prescription resource', group => {
       fluid_unit_id: unit.id,
       fluidSet: MedicalPrescriptionFluidSet.MACRODROPS,
       fluidSpeed: 1,
-      supplement: 'some suplement',
+      supplement: 'some supplement',
     });
 
     return { user, drug, prescription };
@@ -234,7 +234,7 @@ test.group('Medical prescription resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should throw ResourceNotFound if no prescription was found', async ({
+  test('should throw ResouceNotFound if no prescription was found', async ({
     client,
     assert,
   }) => {

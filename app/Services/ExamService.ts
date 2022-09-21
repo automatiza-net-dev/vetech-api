@@ -87,14 +87,16 @@ export default class ExamService {
   public async update(unitId: string, user: User, id: string, data: IExamData) {
     const exam = await this.show(unitId, id, user);
 
-    return exam.merge({
-      name: data.name,
-      description: data.description,
-      subgroup_id: data.subgroupId,
-      active: data.active,
-      ownLaboratory: data.ownLaboratory,
-      type: data.type,
-    });
+    return exam
+      .merge({
+        name: data.name,
+        description: data.description,
+        subgroup_id: data.subgroupId,
+        active: data.active,
+        ownLaboratory: data.ownLaboratory,
+        type: data.type,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, user: User, id: string) {

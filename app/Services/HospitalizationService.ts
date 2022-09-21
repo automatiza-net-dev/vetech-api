@@ -82,6 +82,7 @@ export default class HospitalizationService {
     const ent = await Hospitalization.create({
       type: data.type,
       risk: data.risk,
+      complaint: data.complaint,
       expectedDischarge: data.expectedDischarge,
       diagnosis: data.diagnosis,
       prognosis: data.prognosis,
@@ -104,6 +105,7 @@ export default class HospitalizationService {
       .merge({
         type: data.type,
         risk: data.risk,
+        complaint: data.complaint,
         expectedDischarge: data.expectedDischarge,
         diagnosis: data.diagnosis,
         prognosis: data.prognosis,

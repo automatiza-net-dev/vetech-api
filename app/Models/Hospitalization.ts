@@ -39,6 +39,9 @@ export default class Hospitalization extends BaseModel {
   public prognosis: string;
 
   @column()
+  public complaint: string;
+
+  @column()
   public status: string;
 
   @column.dateTime({ autoCreate: true })

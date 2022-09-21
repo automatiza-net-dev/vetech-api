@@ -23,6 +23,7 @@ test.group('Hospitalization resource', group => {
       patient_id: patient.id,
       tutor_id: patient.id,
       type: 10,
+      complaint: 'Test',
     });
 
     const bed = await Bed.create({
@@ -64,6 +65,7 @@ test.group('Hospitalization resource', group => {
         tutorId: patient.id,
         patientId: patient.id,
         type: 10,
+        complaint: 'Test',
       })
       .bearerToken(token);
 
@@ -124,6 +126,7 @@ test.group('Hospitalization resource', group => {
         prognosis: 'some prognosis',
         bedId: bed.id,
         status: 'some status',
+        complaint: 'Test',
       })
       .bearerToken(token);
 

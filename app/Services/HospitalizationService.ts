@@ -1,8 +1,12 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Hospitalization from 'App/Models/Hospitalization';
+import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
+import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   tutor?: string;
@@ -78,6 +82,12 @@ export default class HospitalizationService {
 
   public async store(unitId: string, user: User, data: IHospitalizationData) {
     const group = await this.sharedService.getUserGroup(unitId);
+    const patient = await Patient.find(data.patientId);
+
+    const occurrence = await Occurrence.query()
+      .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
+      .where('economic_group_id', group.id)
+      .first();
 
     const ent = await Hospitalization.create({
       type: data.type,
@@ -94,6 +104,21 @@ export default class HospitalizationService {
       bed_id: data.bedId,
       technician_id: user.id,
     });
+
+    if (occurrence) {
+      await ent.related('occurrences').create({
+        occurrence_id: occurrence.id,
+        description: `Internação do paciente ${patient?.name} por ${
+          user.name
+        } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
+        executedAt: DateTime.now(),
+        user_id: user.id,
+      });
+    } else {
+      Logger.error(
+        'Não existe ocorrência de internação cadastrada para o grupo econômico',
+      );
+    }
 
     return this.show(unitId, ent.id);
   }

@@ -20,8 +20,16 @@ export default class HospitalizationService {
       .preload('patient')
       .preload('tutor')
       .preload('technician')
-      .preload('medicalPrescriptions')
-      .preload('occurrences');
+      .preload('medicalPrescriptions', query => {
+        query.preload('prescriptionUnit');
+        query.preload('fluidUnit');
+        query.preload('drugAdministration');
+      })
+      .preload('occurrences', query => {
+        query.preload('occurence');
+        query.preload('user');
+        query.preload('prescription');
+      });
 
     qb.where('business_unit_id', unitId);
 
@@ -46,8 +54,16 @@ export default class HospitalizationService {
       .preload('patient')
       .preload('tutor')
       .preload('technician')
-      .preload('medicalPrescriptions')
-      .preload('occurrences');
+      .preload('medicalPrescriptions', query => {
+        query.preload('prescriptionUnit');
+        query.preload('fluidUnit');
+        query.preload('drugAdministration');
+      })
+      .preload('occurrences', query => {
+        query.preload('occurence');
+        query.preload('user');
+        query.preload('prescription');
+      });
 
     qb.where('business_unit_id', unitId).where('id', id);
 

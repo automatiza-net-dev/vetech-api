@@ -9,10 +9,24 @@ import IPatientExamData, {
 } from 'Contracts/interfaces/IPatientExamData';
 import { v4 } from 'uuid';
 
+interface ISearch {
+  patient?: string;
+}
 @inject()
 export default class PatientExamService {
-  public async index(unitId: string) {
+  public async index(unitId: string, data: ISearch) {
     const qb = PatientExam.query().where('business_id', unitId);
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    qb.preload('exam')
+      .preload('patient')
+      .preload('user')
+      .preload('attachments')
+      .preload('executor')
+      .preload('solicitor');
 
     return qb;
   }

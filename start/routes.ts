@@ -507,8 +507,17 @@ Route.resource('hospitalizations', 'HospitalizationsController')
   });
 
 Route.resource(
-  'hospitalizations-prescriptions',
+  'hospitalization-prescriptions',
   'HospitalizationMedicalPrescriptionsController',
+)
+  .only(['store', 'update', 'destroy'])
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.resource(
+  'hospitalization-occurrences',
+  'HospitalizationOccurrencesController',
 )
   .only(['store', 'update', 'destroy'])
   .middleware({

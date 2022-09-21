@@ -10,6 +10,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import Bed from 'App/Models/Bed';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
 import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -115,4 +116,9 @@ export default class Hospitalization extends BaseModel {
   public medicalPrescriptions: HasMany<
     typeof HospitalizationMedicalPrescription
   >;
+
+  @hasMany(() => HospitalizationOccurrence, {
+    foreignKey: 'hospitalization_id',
+  })
+  public occurrences: HasMany<typeof HospitalizationOccurrence>;
 }

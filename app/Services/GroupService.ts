@@ -61,10 +61,12 @@ export default class GroupService {
   ): Promise<Group> {
     const model = await this.show(unitId, id);
 
-    return model.merge({
-      name: data.name,
-      active: data.active,
-    });
+    return model
+      .merge({
+        name: data.name,
+        active: data.active,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, id: string): Promise<void> {

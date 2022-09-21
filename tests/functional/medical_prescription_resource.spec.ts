@@ -53,7 +53,7 @@ test.group('Medical prescription resource', group => {
       fluid_unit_id: unit.id,
       fluidSet: MedicalPrescriptionFluidSet.MACRODROPS,
       fluidSpeed: 1,
-      suplement: 'some suplement',
+      supplement: 'some supplement',
     });
 
     return { user, drug, prescription };
@@ -167,7 +167,7 @@ test.group('Medical prescription resource', group => {
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
         fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
-        suplement: 'some suplement',
+        supplement: 'some supplement',
       })
       .bearerToken(token);
 
@@ -199,7 +199,7 @@ test.group('Medical prescription resource', group => {
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
         fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
-        suplement: 'some suplement',
+        supplement: 'some supplement',
       })
       .bearerToken(token);
 

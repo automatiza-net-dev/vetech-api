@@ -124,11 +124,12 @@ test.group('Patient exam resource', group => {
         report: 'some report',
         examId: exam.id,
         patientId: patient.id,
-        executionerId: schedule.id,
+        executionerId: user.id,
         executorId: user.id,
         executedAt: new Date(),
         resultDate: new Date(),
         status: 'some status',
+        scheduleId: schedule.id,
       })
       .bearerToken(token);
 

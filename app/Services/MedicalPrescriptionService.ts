@@ -105,7 +105,7 @@ export default class MedicalPrescriptionService {
         fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
         fluidSpeed: body.fluidSpeed as number,
         fluid_unit_id: body.fluidUnitId as string,
-        suplement: body.suplement as string,
+        supplement: body.supplement as string,
       });
     }
 
@@ -118,7 +118,7 @@ export default class MedicalPrescriptionService {
         fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
         fluidSpeed: body.fluidSpeed as number,
         fluid_unit_id: body.fluidUnitId as string,
-        suplement: body.suplement as string,
+        supplement: body.supplement as string,
       });
     }
 
@@ -214,7 +214,7 @@ export default class MedicalPrescriptionService {
         fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
         fluidSpeed: body.fluidSpeed as number,
         fluid_unit_id: body.fluidUnitId as string,
-        suplement: body.suplement as string,
+        supplement: body.supplement as string,
       });
     }
 
@@ -226,7 +226,7 @@ export default class MedicalPrescriptionService {
         fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
         fluidSpeed: body.fluidSpeed as number,
         fluid_unit_id: body.fluidUnitId as string,
-        suplement: body.suplement as string,
+        supplement: body.supplement as string,
       });
     }
 

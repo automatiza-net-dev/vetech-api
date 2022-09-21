@@ -64,14 +64,16 @@ export default class AttendanceService {
     const schedule = await this.scheduleService.show(unitId, data.schedule);
     const status = await this.statusService.show(unitId, data.status);
 
-    return attendance.merge({
-      startDate: data.startDate.toJSDate(),
-      endDate: data.endDate.toJSDate(),
-      complaint: data.complaint,
-      clinicalExamination: data.clinicalExamination,
-      attendance_status_id: status.id,
-      schedule_id: schedule.id,
-    });
+    return attendance
+      .merge({
+        startDate: data.startDate.toJSDate(),
+        endDate: data.endDate.toJSDate(),
+        complaint: data.complaint,
+        clinicalExamination: data.clinicalExamination,
+        attendance_status_id: status.id,
+        schedule_id: schedule.id,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, id: string) {

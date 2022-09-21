@@ -1,3 +1,4 @@
+import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import DrugAdministration from 'App/Models/DrugAdministration';
 import Hospitalization from 'App/Models/Hospitalization';
@@ -12,6 +13,11 @@ import PatientFactory from 'Database/factories/PatientFactory';
 import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Hospitalization medical prescription resource', group => {
+  group.each.setup(async () => {
+    await Database.beginGlobalTransaction();
+    return () => Database.rollbackGlobalTransaction();
+  });
+
   const createData = async () => {
     const { user, group, business } = await userBootstrap();
 
@@ -43,7 +49,7 @@ test.group('Hospitalization medical prescription resource', group => {
     });
 
     const response = await client
-      .post(`/hospitalizations-prescriptions`)
+      .post(`/hospitalization-prescriptions`)
       .json({
         hospitalizationId: hospitalization.id,
         type: MedicalPrescriptionType.PROCEDURE,
@@ -72,7 +78,7 @@ test.group('Hospitalization medical prescription resource', group => {
     });
 
     const response = await client
-      .post(`/hospitalizations-prescriptions`)
+      .post(`/hospitalization-prescriptions`)
       .json({
         hospitalizationId: hospitalization.id,
         type: 'MEDICATION',
@@ -104,7 +110,7 @@ test.group('Hospitalization medical prescription resource', group => {
     });
 
     const response = await client
-      .post(`/hospitalizations-prescriptions`)
+      .post(`/hospitalization-prescriptions`)
       .json({
         hospitalizationId: hospitalization.id,
         type: 'FLUID_THERAPY',
@@ -140,7 +146,7 @@ test.group('Hospitalization medical prescription resource', group => {
     });
 
     const response = await client
-      .post(`/hospitalizations-prescriptions`)
+      .post(`/hospitalization-prescriptions`)
       .json({
         hospitalizationId: hospitalization.id,
         type: 'FLUID_THERAPY',
@@ -172,7 +178,7 @@ test.group('Hospitalization medical prescription resource', group => {
     });
 
     const response = await client
-      .post(`/hospitalizations-prescriptions`)
+      .post(`/hospitalization-prescriptions`)
       .json({
         hospitalizationId: hospitalization.id,
         type: 'MEDICATION',

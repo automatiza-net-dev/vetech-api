@@ -28,6 +28,9 @@ export default class Bed extends BaseModel {
   public type: BedType;
 
   @column()
+  public occupied: boolean;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

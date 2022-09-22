@@ -1,14 +1,29 @@
 import { inject } from '@adonisjs/fold';
-import Bed from 'App/Models/Bed';
+import Bed, { BedType } from 'App/Models/Bed';
 import SharedService from 'App/Services/SharedService';
 import IBedData from 'Contracts/interfaces/IBedData';
+
+interface ISearch {
+  type?: BedType;
+  active?: string;
+}
 
 @inject()
 export default class BedService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string) {
-    return Bed.query().where('business_id', unitId);
+  public async index(unitId: string, data: ISearch) {
+    const qb = Bed.query().where('business_id', unitId);
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active === 'true');
+    }
+
+    return qb;
   }
 
   public async store(unitId: string, data: Omit<IBedData, 'active'>) {

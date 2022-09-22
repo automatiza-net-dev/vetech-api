@@ -16,10 +16,12 @@ export enum OccurrenceType {
   ALTA_OBSERVACAO = 'AO',
   ADMISSAO_UTI = 'U',
   ALTA_UTI = 'AU',
-  PROCEDIMENTO_CLINICO = 'PC',
+  PROCEDIMENTO_MEDICO = 'PM',
   MEDICACAO = 'M',
   FLUIDOTERAPIA = 'F',
   OBITO = 'OB',
+  OCORRENCIA = 'OC',
+  RELATORIO_MEDICO = 'RM',
 }
 
 export default class Occurrence extends BaseModel {

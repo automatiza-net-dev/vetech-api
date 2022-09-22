@@ -1,9 +1,12 @@
 import { inject } from '@adonisjs/fold';
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
+import Drive from '@ioc:Adonis/Core/Drive';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData from 'Contracts/interfaces/IHospitalizationOccurrenceData';
+import { v4 } from 'uuid';
 
 @inject()
 export default class HospitalizationOccurrencesService {
@@ -19,7 +22,7 @@ export default class HospitalizationOccurrencesService {
       data.hospitalizationId,
     );
 
-    return hospitalization.related('occurrences').create({
+    const ent = await hospitalization.related('occurrences').create({
       occurrence_id: data.occurrenceId,
       description: data.description,
       executedAt: data.executedAt,
@@ -29,6 +32,20 @@ export default class HospitalizationOccurrencesService {
       resume: data.resume,
       user_id: user.id,
     });
+
+    if (data.attachments) {
+      const attachments = await Promise.all(
+        data.attachments.map(this.uploadFile),
+      );
+
+      await ent.related('attachments').createMany(
+        attachments.map(url => ({
+          attachment: url,
+        })),
+      );
+    }
+
+    return ent;
   }
 
   public async update(
@@ -92,5 +109,18 @@ export default class HospitalizationOccurrencesService {
     }
 
     return hospitalization;
+  }
+
+  private async uploadFile(file: MultipartFileContract): Promise<string> {
+    const key = `${v4()}.${file.extname}`;
+    await file.moveToDisk(
+      'hospitalizations',
+      {
+        name: key,
+      },
+      'local',
+    );
+
+    return Drive.getUrl(`hospitalizations/${key}`);
   }
 }

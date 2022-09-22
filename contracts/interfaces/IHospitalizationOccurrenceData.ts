@@ -1,3 +1,4 @@
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import { DateTime } from 'luxon';
 
 export default interface IHospitalizationOccurrenceData {
@@ -9,4 +10,5 @@ export default interface IHospitalizationOccurrenceData {
   description: string;
   resume: string;
   active: boolean;
+  attachments?: MultipartFileContract[];
 }

@@ -27,6 +27,7 @@ export default class CreateHospitalizationOccurrenceValidator {
     executedAt: schema.date(),
     description: schema.string({ trim: true }),
     resume: schema.string({ trim: true }),
+    attachments: schema.array.optional().members(schema.file()),
   });
 
   public messages: CustomMessages = {};

@@ -3,6 +3,9 @@ import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
+import TimelineType, { WEIGHT_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
@@ -45,6 +48,29 @@ export default class HospitalizationOccurrencesService {
           attachment: url,
         })),
       );
+    }
+
+    const occurrence = await Occurrence.findOrFail(data.occurrenceId);
+    if (occurrence.type === OccurrenceType.PESO) {
+      const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
+
+      await AnimalTimeline.create({
+        timeline_id: WEIGHT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          weight: data.resume,
+          tag: hospitalization.patient_id,
+          realizedAt: data.executedAt,
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+        },
+      });
     }
 
     return ent;

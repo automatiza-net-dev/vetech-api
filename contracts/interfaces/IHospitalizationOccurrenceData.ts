@@ -12,3 +12,8 @@ export default interface IHospitalizationOccurrenceData {
   active: boolean;
   attachments?: MultipartFileContract[];
 }
+
+export interface IHospitalizationOccurrenceAttachmentData {
+  occurrenceId: string;
+  attachments: MultipartFileContract[];
+}

@@ -515,11 +515,18 @@ Route.resource(
     '*': ['auth'],
   });
 
-Route.resource(
-  'hospitalization-occurrences',
-  'HospitalizationOccurrencesController',
-)
-  .only(['store', 'update', 'destroy'])
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.post('/', 'HospitalizationOccurrencesController.store');
+  Route.post(
+    '/attachment',
+    'HospitalizationOccurrencesController.storeAttachment',
+  );
+  Route.put('/:id', 'HospitalizationOccurrencesController.update');
+  Route.delete(
+    '/:id/:attachment',
+    'HospitalizationOccurrencesController.destroyAttachment',
+  );
+  Route.delete('/:id', 'HospitalizationOccurrencesController.destroy');
+})
+  .prefix('hospitalization-occurrences')
+  .middleware('auth');

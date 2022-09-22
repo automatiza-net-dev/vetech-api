@@ -4,6 +4,7 @@ import { inject } from '@adonisjs/fold';
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import HospitalizationOccurrencesService from 'App/Services/HospitalizationOccurrencesService';
 import SharedService from 'App/Services/SharedService';
+import CreateHospitalizationOccurrenceAttachmentValidator from 'App/Validators/HospitalizationOccurrence/CreateHospitalizationOccurrenceAttachmentValidator';
 import CreateHospitalizationOccurrenceValidator from 'App/Validators/HospitalizationOccurrence/CreateHospitalizationOccurrenceValidator';
 import UpdateHospitalizationOccurrenceValidator from 'App/Validators/HospitalizationOccurrence/UpdateHospitalizationOccurrenceValidator';
 
@@ -23,6 +24,21 @@ export default class HospitalizationOccurrencesController {
     const result = await this.service.store(unit_id, user, payload);
 
     return response.created(result);
+  }
+
+  public async storeAttachment({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(
+      CreateHospitalizationOccurrenceAttachmentValidator,
+    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.storeAttachments(unit_id, payload);
+
+    return response.noContent();
   }
 
   public async update({
@@ -45,6 +61,18 @@ export default class HospitalizationOccurrencesController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.delete(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async destroyAttachment({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.deleteAttachment(unit_id, params.id, params.attachment);
 
     return response.noContent();
   }

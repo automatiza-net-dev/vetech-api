@@ -5,7 +5,9 @@ import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
-import IHospitalizationOccurrenceData from 'Contracts/interfaces/IHospitalizationOccurrenceData';
+import IHospitalizationOccurrenceData, {
+  IHospitalizationOccurrenceAttachmentData,
+} from 'Contracts/interfaces/IHospitalizationOccurrenceData';
 import { v4 } from 'uuid';
 
 @inject()
@@ -46,6 +48,29 @@ export default class HospitalizationOccurrencesService {
     }
 
     return ent;
+  }
+
+  public async storeAttachments(
+    unitId: string,
+    data: IHospitalizationOccurrenceAttachmentData,
+  ) {
+    const ent = await HospitalizationOccurrence.find(data.occurrenceId);
+
+    await ent?.load('hospitalization');
+
+    if (!ent || ent.hospitalization?.business_unit_id !== unitId) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const attachments = await Promise.all(
+      data.attachments.map(this.uploadFile),
+    );
+
+    await ent.related('attachments').createMany(
+      attachments.map(url => ({
+        attachment: url,
+      })),
+    );
   }
 
   public async update(
@@ -96,6 +121,36 @@ export default class HospitalizationOccurrencesService {
     }
 
     await ent.softDelete();
+  }
+
+  public async deleteAttachment(
+    unitId: string,
+    id: string,
+    attachment: string,
+  ) {
+    const ent = await HospitalizationOccurrence.find(id);
+
+    if (!ent) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await ent.load('hospitalization');
+
+    if (ent.hospitalization.business_unit_id !== unitId) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const attachmentEnt = await ent
+      .related('attachments')
+      .query()
+      .where('id', attachment)
+      .first();
+
+    if (!attachmentEnt) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await attachmentEnt.softDelete();
   }
 
   private async getHospitalization(unitId: string, hospitalizationId: string) {

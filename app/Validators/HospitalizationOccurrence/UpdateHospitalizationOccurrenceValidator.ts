@@ -13,13 +13,16 @@ export default class UpdateHospitalizationOccurrenceValidator {
       rules.uuid(),
       rules.exists({ table: 'occurrences', column: 'id' }),
     ]),
-    hospitalizationMedicalPrescriptionId: schema.string({ trim: true }, [
-      rules.uuid(),
-      rules.exists({
-        table: 'hospitalization_medical_prescriptions',
-        column: 'id',
-      }),
-    ]),
+    hospitalizationMedicalPrescriptionId: schema.string.optional(
+      { trim: true },
+      [
+        rules.uuid(),
+        rules.exists({
+          table: 'hospitalization_medical_prescriptions',
+          column: 'id',
+        }),
+      ],
+    ),
     previewedAt: schema.date.optional(),
     executedAt: schema.date(),
     description: schema.string({ trim: true }),

@@ -19,6 +19,8 @@ export default class ExamsController {
     const result = await this.service.index(unit_id, user, {
       name: qs.name,
       description: qs.description,
+      type: qs.type,
+      active: qs.active,
     });
 
     return response.ok(result);

@@ -5,9 +5,12 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+import HospitalizationOccurrenceAttachment from 'App/Models/HospitalizationOccurrenceAttachment';
 import Occurrence from 'App/Models/Occurrence';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -95,4 +98,9 @@ export default class HospitalizationOccurrence extends BaseModel {
     foreignKey: 'hospitalization_medical_prescription_id',
   })
   public prescription: BelongsTo<typeof HospitalizationMedicalPrescription>;
+
+  @hasMany(() => HospitalizationOccurrenceAttachment, {
+    foreignKey: 'hospitalization_occurrence_id',
+  })
+  public attachments: HasMany<typeof HospitalizationOccurrenceAttachment>;
 }

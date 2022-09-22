@@ -33,6 +33,7 @@ export default class HospitalizationService {
         query.preload('occurrence');
         query.preload('user');
         query.preload('prescription');
+        query.preload('attachments');
       });
 
     qb.where('business_unit_id', unitId);
@@ -67,6 +68,7 @@ export default class HospitalizationService {
         query.preload('occurrence');
         query.preload('user');
         query.preload('prescription');
+        query.preload('attachments');
       });
 
     qb.where('business_unit_id', unitId).where('id', id);

@@ -17,6 +17,11 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum HospitalizationStatus {
+  'ACTIVE' = 'A',
+  'COMPLETE' = 'C',
+}
+
 export default class Hospitalization extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -42,7 +47,7 @@ export default class Hospitalization extends BaseModel {
   public complaint: string;
 
   @column()
-  public status: string;
+  public status: HospitalizationStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

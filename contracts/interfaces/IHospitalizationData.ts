@@ -1,3 +1,4 @@
+import { HospitalizationStatus } from 'App/Models/Hospitalization';
 import { DateTime } from 'luxon';
 
 export interface IHospitalizationData {
@@ -10,6 +11,6 @@ export interface IHospitalizationData {
   expectedDischarge?: DateTime;
   diagnosis?: string;
   prognosis?: string;
-  status?: string;
+  status?: HospitalizationStatus;
   userId?: string;
 }

@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import { HospitalizationStatus } from 'App/Models/Hospitalization';
 
 export default class CreateHospitalizationValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -27,7 +28,7 @@ export default class CreateHospitalizationValidator {
     expectedDischarge: schema.date.optional(),
     diagnosis: schema.string.optional(),
     prognosis: schema.string.optional(),
-    status: schema.string.optional(),
+    status: schema.enum.optional(Object.values(HospitalizationStatus)),
   });
 
   public messages: CustomMessages = {};

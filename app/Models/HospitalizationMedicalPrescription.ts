@@ -79,6 +79,9 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   @column()
   public active: boolean;
 
+  @column.dateTime({ columnName: 'execution_start' })
+  public executionStart: DateTime;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

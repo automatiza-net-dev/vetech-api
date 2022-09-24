@@ -15,6 +15,7 @@ export default class UpdateHospitalizationMedicalPrescriptionValidator {
     ]),
     type: schema.enum(Object.values(MedicalPrescriptionType)),
     prescribedAt: schema.date(),
+    executionStart: schema.date(),
     frequency: schema.enum(Object.values(MedicalPrescriptionFrequency)),
     description: schema.string(),
     resume: schema.string(),

@@ -46,6 +46,7 @@ export default class HospitalizationMedicalPrescriptionService {
       frequency: data.frequency,
       description: data.description,
       resume: data.resume,
+      executionStart: data.executionStart,
     };
 
     if (key === 'PR') {
@@ -138,6 +139,7 @@ export default class HospitalizationMedicalPrescriptionService {
       frequency: data.frequency,
       description: data.description,
       resume: data.resume,
+      executionStart: data.executionStart,
     });
 
     if (key === 'PR') {

@@ -1,6 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+import HospitalizationMedicalPrescriptionScheduling, {
+  HospitalizationSchedulingStatus,
+} from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFluidSet,
   MedicalPrescriptionFrequency,
@@ -8,13 +11,20 @@ import {
   MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import { WEIGHT_UUID } from 'App/Models/TimelineType';
+import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import CreateFluidOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateFluidOnceOrNeededValidator';
 import CreateFluidRecurrentValidator from 'App/Validators/MedicalPrescription/CreateFluidRecurrentValidator';
 import CreateMedicationOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateMedicationOnceOrNeededValidator';
 import CreateMedicationRecurrentValidator from 'App/Validators/MedicalPrescription/CreateMedicationRecurrentValidator';
 import CreateProcedureRecurrentValidator from 'App/Validators/MedicalPrescription/CreateProcedureRecurrentValidator';
-import IHospitalizationMedicalPrescriptionData from 'Contracts/interfaces/IHospitalizationMedicalPrescriptionData';
+import IHospitalizationMedicalPrescriptionData, {
+  IHospitalizationMedicalPrescriptionSchedulingData,
+} from 'Contracts/interfaces/IHospitalizationMedicalPrescriptionData';
+import { addMinutes, differenceInMinutes, format } from 'date-fns';
+import { DateTime } from 'luxon';
 
 type HospitalizationMedicalPrescriptionKeys = 'PR' | 'MR' | 'FR' | 'F_' | 'M_';
 
@@ -205,6 +215,31 @@ export default class HospitalizationMedicalPrescriptionService {
     return entity.save();
   }
 
+  public async updateScheduling(
+    id: string,
+    data: IHospitalizationMedicalPrescriptionSchedulingData,
+  ) {
+    const scheduling = await HospitalizationMedicalPrescriptionScheduling.find(
+      id,
+    );
+
+    if (!scheduling) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await scheduling
+      .merge({
+        description: data.description,
+        resume: data.resume,
+        executedAt: data.executedAt,
+        scheduledAt: data.scheduledAt,
+        status: data.status,
+        type: data.type,
+        frequency: data.frequency,
+      })
+      .save();
+  }
+
   public async delete(id: string) {
     const entity = await HospitalizationMedicalPrescription.query()
       .where('id', id)
@@ -245,5 +280,88 @@ export default class HospitalizationMedicalPrescriptionService {
 
     // f)
     return { key: 'F_' };
+  }
+
+  async createScheduling(
+    prescription: HospitalizationMedicalPrescription,
+    user: User,
+  ) {
+    const description = await this.createDescription(prescription);
+
+    await prescription.load('hospitalization');
+
+    if (prescription.frequency !== MedicalPrescriptionFrequency.RECURRENT) {
+      await prescription.related('scheduling').create({
+        type: prescription.type,
+        frequency: prescription.frequency,
+        description,
+        resume: prescription.resume,
+        scheduledAt: prescription.executionStart,
+        hospitalization_id: prescription.hospitalization_id,
+        status: HospitalizationSchedulingStatus.ACTIVE,
+        user_id: user.id,
+      });
+    }
+
+    const rawDifference = differenceInMinutes(
+      prescription.hospitalization.expectedDischarge.toJSDate(),
+      prescription.executionStart.toJSDate(),
+    );
+
+    const offset =
+      prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.DAY
+        ? 1140
+        : 60;
+    const parsedDifference = rawDifference / offset;
+
+    const data: Array<Partial<HospitalizationMedicalPrescriptionScheduling>> =
+      Array.from<Partial<HospitalizationMedicalPrescriptionScheduling>>({
+        length: parsedDifference,
+      }).map((_, index) => {
+        return {
+          type: prescription.type,
+          frequency: prescription.frequency,
+          description,
+          resume: prescription.resume,
+          scheduledAt: DateTime.fromJSDate(
+            addMinutes(prescription.executionStart.toJSDate(), index * offset),
+          ),
+          status: HospitalizationSchedulingStatus.ACTIVE,
+          hospitalization_id: prescription.hospitalization_id,
+          user_id: user.id,
+        };
+      });
+
+    await prescription.related('scheduling').createMany(data);
+  }
+
+  async createDescription(prescription: HospitalizationMedicalPrescription) {
+    if (prescription.type === MedicalPrescriptionType.PROCEDURE) {
+      return prescription.description;
+    }
+
+    await prescription.load('drugAdministration');
+    await prescription.load('hospitalization');
+    const [lastWeight] = await AnimalTimeline.find({
+      'timeline_info.tag': prescription.hospitalization.patient_id,
+      timeline_id: WEIGHT_UUID,
+    });
+
+    if (prescription.type === MedicalPrescriptionType.MEDICATION) {
+      return `${prescription.description}, ${prescription.dose}, ${
+        prescription.drugAdministration?.description
+      } (${(lastWeight?.timeline_info as any)?.weight ?? ''} kg em ${format(
+        (lastWeight as any).createdAt,
+        'dd/MM/yyyy HH:mm',
+      )})`;
+    }
+
+    await prescription.load('fluidUnit');
+
+    return `${prescription.description}, ${prescription.fluidSpeed} ${
+      prescription.fluidUnit?.name ?? ''
+    }, ${prescription.dose}, ${prescription.supplement ?? ''} (${
+      (lastWeight?.timeline_info as any)?.weight ?? ''
+    } kg em ${format((lastWeight as any).createdAt, 'dd/MM/yyyy HH:mm')})`;
   }
 }

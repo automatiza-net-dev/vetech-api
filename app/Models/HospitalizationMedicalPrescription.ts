@@ -5,8 +5,12 @@ import {
   belongsTo,
   BelongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import DrugAdministration from 'App/Models/DrugAdministration';
+import Hospitalization from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFluidSet,
   MedicalPrescriptionFrequency,
@@ -106,6 +110,11 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   })
   public hospitalization_id: string;
 
+  @belongsTo(() => Hospitalization, {
+    foreignKey: 'hospitalization_id',
+  })
+  public hospitalization: BelongsTo<typeof Hospitalization>;
+
   @column({
     serializeAs: null,
   })
@@ -135,4 +144,11 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
     foreignKey: 'drug_administration_id',
   })
   public drugAdministration: BelongsTo<typeof DrugAdministration>;
+
+  @hasMany(() => HospitalizationMedicalPrescriptionScheduling, {
+    foreignKey: 'hospitalization_medical_prescription_id',
+  })
+  public scheduling: HasMany<
+    typeof HospitalizationMedicalPrescriptionScheduling
+  >;
 }

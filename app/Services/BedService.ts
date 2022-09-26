@@ -4,6 +4,7 @@ import SharedService from 'App/Services/SharedService';
 import IBedData from 'Contracts/interfaces/IBedData';
 
 interface ISearch {
+  name?: string;
   type?: BedType;
   active?: string;
 }
@@ -14,6 +15,10 @@ export default class BedService {
 
   public async index(unitId: string, data: ISearch) {
     const qb = Bed.query().where('business_id', unitId);
+
+    if (data.name) {
+      qb.where('name', 'like', `%${data.name}%`);
+    }
 
     if (data.type) {
       qb.where('type', data.type);

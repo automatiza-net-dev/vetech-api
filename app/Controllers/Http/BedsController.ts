@@ -17,6 +17,7 @@ export default class BedsController {
 
     const qs = request.qs();
     const beds = await this.service.index(unit_id, {
+      name: qs.name,
       type: qs.type,
       active: qs.active,
     });

@@ -35,7 +35,11 @@ export default class HospitalizationService {
         query.preload('prescription');
         query.preload('attachments');
       })
-      .preload('scheduling');
+      .preload('scheduling')
+      .preload('parameters', query => {
+        query.preload('parameter');
+        query.preload('user');
+      });
 
     qb.where('business_unit_id', unitId);
 
@@ -71,7 +75,11 @@ export default class HospitalizationService {
         query.preload('prescription');
         query.preload('attachments');
       })
-      .preload('scheduling');
+      .preload('scheduling')
+      .preload('parameters', query => {
+        query.preload('parameter');
+        query.preload('user');
+      });
 
     qb.where('business_unit_id', unitId).where('id', id);
 
@@ -90,7 +98,9 @@ export default class HospitalizationService {
 
     const occurrence = await Occurrence.query()
       .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
-      .where('economic_group_id', group.id)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .first();
 
     const ent = await Hospitalization.create({

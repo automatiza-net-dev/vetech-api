@@ -506,12 +506,6 @@ Route.resource('hospitalizations', 'HospitalizationsController')
     '*': ['auth'],
   });
 
-Route.resource('', '')
-  .only(['store', 'update', 'destroy'])
-  .middleware({
-    '*': ['auth'],
-  });
-
 Route.group(() => {
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
   Route.put(
@@ -539,3 +533,12 @@ Route.group(() => {
 })
   .prefix('hospitalization-occurrences')
   .middleware('auth');
+
+Route.resource(
+  'hospitalization-parameters',
+  'HospitalizationClinicParametersController',
+)
+  .only(['store', 'update', 'destroy'])
+  .middleware({
+    '*': ['auth'],
+  });

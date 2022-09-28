@@ -42,6 +42,11 @@ export default class PatientExam extends BaseModel {
   })
   public executedAt: DateTime;
 
+  @column.dateTime({
+    columnName: 'released_at',
+  })
+  public releasedAt: DateTime;
+
   @column()
   public status: string;
 

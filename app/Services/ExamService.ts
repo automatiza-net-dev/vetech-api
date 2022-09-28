@@ -8,6 +8,8 @@ import { IExamData } from 'Contracts/interfaces/IExamData';
 interface ISearch {
   name?: string;
   description?: string;
+  active?: string;
+  type?: string;
 }
 
 @inject()
@@ -26,6 +28,14 @@ export default class ExamService {
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.type) {
+      qb.where('type', 'ilike', `%${data.type}%`);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active === 'true');
     }
 
     if (!isSuperAdmin) {

@@ -12,9 +12,15 @@ export default class BedsController {
     private service: BedService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const beds = await this.service.index(unit_id);
+
+    const qs = request.qs();
+    const beds = await this.service.index(unit_id, {
+      name: qs.name,
+      type: qs.type,
+      active: qs.active,
+    });
 
     return response.ok(beds);
   }

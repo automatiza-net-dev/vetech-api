@@ -22,6 +22,7 @@ export default class UpdatePatientExamValidator {
     ]),
     executedAt: schema.date.optional({}),
     resultDate: schema.date.optional({}),
+    releasedAt: schema.date.optional({}),
     status: schema.string.optional({}),
   });
 

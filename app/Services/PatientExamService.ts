@@ -7,6 +7,7 @@ import User from 'App/Models/User';
 import IPatientExamData, {
   IPatientExamAttachmentData,
 } from 'Contracts/interfaces/IPatientExamData';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 interface ISearch {
@@ -67,7 +68,7 @@ export default class PatientExamService {
   public async update(
     unitId: string,
     id: string,
-    data: Omit<IPatientExamData, 'examId'>,
+    data: Omit<IPatientExamData, 'examId'> & { releasedAt?: DateTime },
   ) {
     const ent = await PatientExam.query()
       .where('business_id', unitId)
@@ -90,6 +91,7 @@ export default class PatientExamService {
       resultDate: data.resultDate,
       solicitor_id: data.solicitorId,
       status: data.status,
+      releasedAt: data.releasedAt,
     });
 
     return ent.save();

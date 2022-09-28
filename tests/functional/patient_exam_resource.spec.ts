@@ -130,6 +130,7 @@ test.group('Patient exam resource', group => {
         resultDate: new Date(),
         status: 'some status',
         scheduleId: schedule.id,
+        releasedAt: new Date(),
       })
       .bearerToken(token);
 

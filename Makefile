@@ -16,3 +16,6 @@ variations:
 
 units:
 	node ace db:seed --files "./database/seeders/UnitSeeder.ts"
+
+occurrences:
+	node ace db:seed --files "./database/seeders/OccurrenceSeeder.ts"

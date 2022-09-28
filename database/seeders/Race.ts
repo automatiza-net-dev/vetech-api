@@ -33,7 +33,6 @@ export default class extends BaseSeeder {
       description: `Raça ${raceCount + v + 1}`,
       specie_id: randomSpecie(species),
       economic_group_id: randomEconomicGroup(groups),
-      code: v4(),
     }));
 
     await Race.createMany(data);

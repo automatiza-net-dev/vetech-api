@@ -499,3 +499,46 @@ Route.resource('occurrences', 'OccurrencesController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('hospitalizations', 'HospitalizationsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.group(() => {
+  Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
+  Route.put(
+    '/schedule/:id',
+    'HospitalizationMedicalPrescriptionsController.updateSchedule',
+  );
+  Route.put('/:id', 'HospitalizationMedicalPrescriptionsController.update');
+  Route.delete('/:id', 'HospitalizationMedicalPrescriptionsController.destroy');
+})
+  .prefix('hospitalization-prescriptions')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.post('/', 'HospitalizationOccurrencesController.store');
+  Route.post(
+    '/attachment',
+    'HospitalizationOccurrencesController.storeAttachment',
+  );
+  Route.put('/:id', 'HospitalizationOccurrencesController.update');
+  Route.delete(
+    '/:id/:attachment',
+    'HospitalizationOccurrencesController.destroyAttachment',
+  );
+  Route.delete('/:id', 'HospitalizationOccurrencesController.destroy');
+})
+  .prefix('hospitalization-occurrences')
+  .middleware('auth');
+
+Route.resource(
+  'hospitalization-parameters',
+  'HospitalizationClinicParametersController',
+)
+  .only(['store', 'update', 'destroy'])
+  .middleware({
+    '*': ['auth'],
+  });

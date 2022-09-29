@@ -4,6 +4,7 @@ import Drive from '@ioc:Adonis/Core/Drive';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import TimelineType, { WEIGHT_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
@@ -69,6 +70,37 @@ export default class HospitalizationOccurrencesService {
             id: user.id,
             name: user.name,
           },
+        },
+      });
+    }
+
+    if (
+      [
+        OccurrenceType.ALTA_INTERNACAO,
+        OccurrenceType.ALTA_OBSERVACAO,
+        OccurrenceType.ALTA_UTI,
+        OccurrenceType.OBITO,
+        OccurrenceType.PESO,
+        OccurrenceType.RELATORIO_MEDICO,
+        OccurrenceType.OCORRENCIA,
+      ].includes(occurrence.type)
+    ) {
+      await HospitalizationTimeline.create({
+        data: {
+          hospitalization_id: hospitalization.id,
+          type: {
+            id: occurrence.id,
+            description: occurrence.description,
+          },
+          user: {
+            id: user.id,
+            name: user.name,
+          },
+          previewedAt: data.previewedAt,
+          executedAt: data.executedAt,
+          resume: data.resume,
+          description: data.description,
+          active: true,
         },
       });
     }

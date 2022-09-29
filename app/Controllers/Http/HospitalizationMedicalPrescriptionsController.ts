@@ -42,6 +42,7 @@ export default class HospitalizationMedicalPrescriptionsController {
   }
 
   public async updateSchedule({
+    auth,
     params,
     request,
     response,
@@ -49,7 +50,9 @@ export default class HospitalizationMedicalPrescriptionsController {
     const payload = await request.validate(
       UpdateHospitalizationMedicalPrescriptionScheduleValidator,
     );
-    await this.service.updateScheduling(params.id, payload);
+    const { user } = this.sharedService.extractUser(auth);
+
+    await this.service.updateScheduling(params.id, user, payload);
 
     return response.noContent();
   }

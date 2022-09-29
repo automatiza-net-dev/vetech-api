@@ -12,6 +12,7 @@ import {
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import { WEIGHT_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -58,6 +59,19 @@ export default class HospitalizationMedicalPrescriptionService {
       resume: data.resume,
       executionStart: data.executionStart,
     };
+
+    await HospitalizationTimeline.create({
+      data: {
+        hospitalization_id: data.hospitalizationId,
+        type: data.type,
+        prescribedAt: data.prescribedAt,
+        executionStart: data.executionStart,
+        frequency: data.frequency,
+        resume: data.resume,
+        description: data.description,
+        active: true,
+      },
+    });
 
     if (key === 'PR') {
       return HospitalizationMedicalPrescription.create({
@@ -217,6 +231,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
   public async updateScheduling(
     id: string,
+    user: User,
     data: IHospitalizationMedicalPrescriptionSchedulingData,
   ) {
     const scheduling = await HospitalizationMedicalPrescriptionScheduling.find(
@@ -238,6 +253,25 @@ export default class HospitalizationMedicalPrescriptionService {
         frequency: data.frequency,
       })
       .save();
+
+    if (data.executedAt) {
+      await HospitalizationTimeline.create({
+        data: {
+          hospitalization_id: scheduling.hospitalization_id,
+          user: {
+            id: user.id,
+            name: user.name,
+          },
+          type: scheduling.type,
+          frequency: scheduling.frequency,
+          executedAt: scheduling.executedAt,
+          scheduledAt: scheduling.scheduledAt,
+          description: scheduling.description,
+          resume: scheduling.resume,
+          status: scheduling.status,
+        },
+      });
+    }
   }
 
   public async delete(id: string) {

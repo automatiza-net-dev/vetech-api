@@ -4,9 +4,11 @@ import Bed from 'App/Models/Bed';
 import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
+import { WEIGHT_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
@@ -73,7 +75,13 @@ export default class HospitalizationService {
   public async show(unitId: string, id: string) {
     const qb = Hospitalization.query()
       .preload('bed')
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
       .preload('tutor')
       .preload('technician')
       .preload('medicalPrescriptions', query => {
@@ -101,7 +109,16 @@ export default class HospitalizationService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    return hospitalization;
+    const [lastWeight] = await AnimalTimeline.find({
+      'timeline_info.tag': hospitalization.patient_id,
+      timeline_id: WEIGHT_UUID,
+    });
+
+    const result = hospitalization.toJSON();
+
+    return Object.assign(result, {
+      weight: (lastWeight?.timeline_info as any)?.weight,
+    });
   }
 
   public async store(unitId: string, user: User, data: IHospitalizationData) {

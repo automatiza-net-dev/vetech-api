@@ -24,12 +24,18 @@ export enum HospitalizationStatus {
   'COMPLETE' = 'C',
 }
 
+export enum HospitalizationType {
+  'Internação' = 1,
+  'Observação' = 2,
+  'Uti' = 3,
+}
+
 export default class Hospitalization extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
-  public type: number;
+  public type: HospitalizationType;
 
   @column()
   public risk: number;

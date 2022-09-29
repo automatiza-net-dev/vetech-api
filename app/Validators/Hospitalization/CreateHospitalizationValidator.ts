@@ -22,7 +22,7 @@ export default class CreateHospitalizationValidator {
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
-    type: schema.number(),
+    type: schema.number([rules.range(1, 3)]),
     complaint: schema.string(),
     risk: schema.number.optional(),
     expectedDischarge: schema.date.optional(),

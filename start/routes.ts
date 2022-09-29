@@ -500,11 +500,16 @@ Route.resource('occurrences', 'OccurrencesController')
     '*': ['auth'],
   });
 
-Route.resource('hospitalizations', 'HospitalizationsController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/', 'HospitalizationsController.index');
+  Route.post('/', 'HospitalizationsController.store');
+  Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
+  Route.get('/:id', 'HospitalizationsController.show');
+  Route.put('/:id', 'HospitalizationsController.update');
+  Route.delete('/:id', 'HospitalizationsController.destroy');
+})
+  .prefix('hospitalizations')
+  .middleware('auth');
 
 Route.group(() => {
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');

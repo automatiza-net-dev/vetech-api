@@ -29,7 +29,7 @@
     "not_equals": "Campo deve ser diferente de { argument.0 }.",
     "not_in": "Campo não pode estar entre: ({ argument }).",
     "object": "Campo deve ser um OBJETO válido.",
-    "range": "Campo deve estar entre { argument.0 } e { argument.1 }.",
+    "range": "Campo deve estar entre os valores permitidos.",
     "regex": "O formato de Campo é inválido.",
     "required": "Campo é obrigatório e está faltando.",
     "exists": "Campo não existe nos registros.",

@@ -1,6 +1,10 @@
 import { inject } from '@adonisjs/fold';
 import Logger from '@ioc:Adonis/Core/Logger';
-import Hospitalization from 'App/Models/Hospitalization';
+import Bed from 'App/Models/Bed';
+import Hospitalization, {
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
@@ -17,6 +21,14 @@ interface ISearch {
 @inject()
 export default class HospitalizationService {
   constructor(private readonly sharedService: SharedService) {}
+
+  public async timeline(unitId: string, id: string) {
+    const hospitalization = await this.show(unitId, id);
+
+    return HospitalizationTimeline.find({
+      hospitalization_id: hospitalization.id,
+    });
+  }
 
   public async index(unitId: string, data: ISearch) {
     const qb = Hospitalization.query()
@@ -94,7 +106,9 @@ export default class HospitalizationService {
 
   public async store(unitId: string, user: User, data: IHospitalizationData) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const patient = await Patient.find(data.patientId);
+    const patient = await Patient.findOrFail(data.patientId);
+    const tutor = await Patient.findOrFail(data.tutorId);
+    const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
 
     const occurrence = await Occurrence.query()
       .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
@@ -133,6 +147,36 @@ export default class HospitalizationService {
         'Não existe ocorrência de internação cadastrada para o grupo econômico',
       );
     }
+
+    await HospitalizationTimeline.create({
+      data: {
+        hospitalization_id: ent.id,
+        patient: {
+          id: patient.id,
+          name: patient.name,
+        },
+        tutor: {
+          id: tutor.id,
+          name: tutor.name,
+        },
+        user: {
+          id: user.id,
+          name: user.name,
+        },
+        type: HospitalizationType[data.type],
+        risk: data.risk,
+        complaint: data.complaint,
+        diagnosis: data.diagnosis,
+        prognosis: data.prognosis,
+        expectedDischarge: data.expectedDischarge,
+        bed: {
+          id: bed?.id,
+          name: bed?.name,
+          tag: bed?.tag,
+        },
+        status: data.status,
+      },
+    });
 
     return this.show(unitId, ent.id);
   }

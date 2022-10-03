@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Subgroup from 'App/Models/Subgroup';
 import SharedService from 'App/Services/SharedService';
@@ -22,9 +21,9 @@ export default class SubgroupService {
       qb.where('description', 'like', `%${data.description}%`);
     }
 
-    const subgroups = await qb.preload('children');
+    qb.preload('parent');
 
-    return this.listToTree(subgroups.map(this.mapModelObject));
+    return qb;
   }
 
   public async show(unitId: string, id: string): Promise<Subgroup> {
@@ -35,6 +34,7 @@ export default class SubgroupService {
       .query()
       .where('id', id)
       .preload('variationGroup')
+      .preload('parent')
       .first();
 
     if (!subgroup) {
@@ -98,39 +98,39 @@ export default class SubgroupService {
     return this.getTree(parentModel.parent_id, [parentModel.id, ...tree]);
   }
 
-  private listToTree(arr: Array<ModelObject> = []) {
-    const map = {};
-    let node: ModelObject;
-    const result: Array<ModelObject> = [];
+  // private listToTree(arr: Array<ModelObject> = []) {
+  //   const map = {};
+  //   let node: ModelObject;
+  //   const result: Array<ModelObject> = [];
 
-    for (let i = 0; i < arr.length; i += 1) {
-      map[arr[i].id] = i;
-      // eslint-disable-next-line no-param-reassign
-      arr[i].children = [];
-    }
+  //   for (let i = 0; i < arr.length; i += 1) {
+  //     map[arr[i].id] = i;
+  //     // eslint-disable-next-line no-param-reassign
+  //     arr[i].children = [];
+  //   }
 
-    for (let i = 0; i < arr.length; i += 1) {
-      node = arr[i];
-      if (arr[map[node.parent_id]]) {
-        arr[map[node.parent_id]].children.push(node);
-      } else {
-        result.push(node);
-      }
-    }
+  //   for (let i = 0; i < arr.length; i += 1) {
+  //     node = arr[i];
+  //     if (arr[map[node.parent_id]]) {
+  //       arr[map[node.parent_id]].children.push(node);
+  //     } else {
+  //       result.push(node);
+  //     }
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  private mapModelObject(subgroup: Subgroup): ModelObject {
-    const data = subgroup.toObject();
+  // private mapModelObject(subgroup: Subgroup): ModelObject {
+  //   const data = subgroup.toObject();
 
-    // eslint-disable-next-line no-param-reassign
-    delete data.tree;
-    // eslint-disable-next-line no-param-reassign
-    delete data.deletedAt;
-    // eslint-disable-next-line no-param-reassign
-    delete data.$extras;
+  //   // eslint-disable-next-line no-param-reassign
+  //   delete data.tree;
+  //   // eslint-disable-next-line no-param-reassign
+  //   delete data.deletedAt;
+  //   // eslint-disable-next-line no-param-reassign
+  //   delete data.$extras;
 
-    return data;
-  }
+  //   return data;
+  // }
 }

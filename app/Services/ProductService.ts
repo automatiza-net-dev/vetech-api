@@ -157,7 +157,7 @@ export default class ProductService {
               maximumDiscountValue: unitPrice.maximumDiscountValue,
               profitMargin: unitPrice.profitMargin,
               commission: unitPrice.commission,
-              commission_meta: unitPrice.commissionMeta,
+              commissionMeta: unitPrice.commissionMeta,
               meta: unitPrice.meta,
               metaType: unitPrice.metaType,
             },

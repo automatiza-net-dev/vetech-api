@@ -84,8 +84,9 @@ export default class BusinessUnitProduct extends BaseModel {
 
   @column({
     serialize: parseFloat,
+    columnName: 'commission_meta',
   })
-  public commission_meta: number;
+  public commissionMeta: number;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

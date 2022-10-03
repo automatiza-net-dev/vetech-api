@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 
 export default class UpdateBusinessUnitProductValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -20,6 +21,10 @@ export default class UpdateBusinessUnitProductValidator {
     price: schema.number([rules.unsigned()]),
     costPrice: schema.number([rules.unsigned()]),
     profitMargin: schema.number([rules.unsigned()]),
+    commission: schema.number([rules.unsigned()]),
+    meta: schema.number([rules.unsigned()]),
+    metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
+    commissionMeta: schema.number([rules.unsigned()]),
   });
 
   public messages: CustomMessages = {};

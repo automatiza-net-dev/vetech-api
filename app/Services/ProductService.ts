@@ -67,6 +67,8 @@ export default class ProductService {
       .preload('variations', query => {
         query.select('id', 'barcode', 'active');
 
+        query.preload('businessUnitProducts');
+
         query.preload('variationOptions', subquery => {
           subquery.select('id', 'description', 'active');
         });
@@ -154,6 +156,10 @@ export default class ProductService {
               maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
               maximumDiscountValue: unitPrice.maximumDiscountValue,
               profitMargin: unitPrice.profitMargin,
+              commission: unitPrice.commission,
+              commission_meta: unitPrice.commissionMeta,
+              meta: unitPrice.meta,
+              metaType: unitPrice.metaType,
             },
             {
               client: trx,

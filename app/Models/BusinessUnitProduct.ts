@@ -12,6 +12,11 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum BusinessUnitProductMetaType {
+  Quantidade = 'q',
+  Valor = 'v',
+}
+
 export default class BusinessUnitProduct extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -61,6 +66,26 @@ export default class BusinessUnitProduct extends BaseModel {
     serialize: parseFloat,
   })
   public profitMargin: number;
+
+  @column({
+    serialize: parseFloat,
+  })
+  public commission: number;
+
+  @column({
+    serialize: parseFloat,
+  })
+  public meta: number;
+
+  @column({
+    columnName: 'meta_type',
+  })
+  public metaType: BusinessUnitProductMetaType;
+
+  @column({
+    serialize: parseFloat,
+  })
+  public commission_meta: number;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

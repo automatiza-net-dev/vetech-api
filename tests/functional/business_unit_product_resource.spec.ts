@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductType } from 'App/Models/Product';
 import { v4 } from 'uuid';
 
@@ -42,6 +43,10 @@ test.group('Business unit product resource', group => {
         maximumDiscountPercentage: 10,
         maximumDiscountValue: 10,
         profitMargin: 10,
+        commission: 10,
+        meta: 10,
+        metaType: BusinessUnitProductMetaType.Quantidade,
+        commissionMeta: 10,
       });
 
     return { user, product, model: businessUnitProduct, variation };
@@ -86,6 +91,10 @@ test.group('Business unit product resource', group => {
         maximumDiscountPercentage: 10,
         maximumDiscountValue: 10,
         profitMargin: 10,
+        commission: 10,
+        meta: 10,
+        metaType: 'q',
+        commissionMeta: 10,
       })
       .bearerToken(token);
 
@@ -147,6 +156,10 @@ test.group('Business unit product resource', group => {
         maximumDiscountPercentage: 10,
         maximumDiscountValue: 10,
         profitMargin: 10,
+        commission: 10,
+        meta: 10,
+        metaType: 'q',
+        commissionMeta: 10,
       })
       .bearerToken(token);
 

@@ -45,6 +45,10 @@ export default class BusinessUnitProductService {
       maximumDiscountPercentage: data.maximumDiscountPercentage,
       maximumDiscountValue: data.maximumDiscountValue,
       profitMargin: data.profitMargin,
+      commission: data.commission,
+      commissionMeta: data.commissionMeta,
+      meta: data.meta,
+      metaType: data.metaType,
     });
   }
 
@@ -66,6 +70,10 @@ export default class BusinessUnitProductService {
         maximumDiscountPercentage: data.maximumDiscountPercentage,
         maximumDiscountValue: data.maximumDiscountValue,
         profitMargin: data.profitMargin,
+        commission: data.commission,
+        commissionMeta: data.commissionMeta,
+        meta: data.meta,
+        metaType: data.metaType,
       })
       .save();
   }

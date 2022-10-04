@@ -15,10 +15,12 @@ export default class VariationService {
   public async index(unitId: string, data: ISearch): Promise<Array<Variation>> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = Variation.query().where('economic_group_id', group.id);
+    const qb = Variation.query()
+      .where('economic_group_id', group.id)
+      .preload('options');
 
     if (data.description) {
-      qb.where('description', 'like', `%${data.description}%`);
+      qb.where('description', 'ilike', `%${data.description}%`);
     }
 
     return qb;

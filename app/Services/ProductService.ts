@@ -29,8 +29,28 @@ export default class ProductService {
     const qb = group
       .related('products')
       .query()
-      .preload('group')
-      .preload('subgroup');
+      .preload('group', query => {
+        query.select('id', 'name', 'active');
+      })
+      .preload('subgroup', query => {
+        query.select('id', 'description');
+      })
+      .preload('variations', query => {
+        query.select('id', 'barcode', 'active');
+
+        query.preload('businessUnitProducts', query => {
+          query.preload('businessUnit', query => {
+            query.select('id', 'fantasyName', 'companyName', 'identification');
+          });
+        });
+
+        query.preload('variationOptions', subquery => {
+          subquery.select('id', 'description', 'active');
+        });
+      })
+      .preload('variationGroup', query => {
+        query.select('id', 'description', 'active');
+      });
 
     if (data.description) {
       qb.where('description', 'like', `%${data.description}%`);
@@ -67,7 +87,11 @@ export default class ProductService {
       .preload('variations', query => {
         query.select('id', 'barcode', 'active');
 
-        query.preload('businessUnitProducts');
+        query.preload('businessUnitProducts', query => {
+          query.preload('businessUnit', query => {
+            query.select('id', 'fantasyName', 'companyName', 'identification');
+          });
+        });
 
         query.preload('variationOptions', subquery => {
           subquery.select('id', 'description', 'active');

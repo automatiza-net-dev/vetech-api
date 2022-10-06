@@ -116,6 +116,9 @@ export default class BusinessUnitProduct extends BaseModel {
   @column()
   public businness_unit_id: string;
 
-  @belongsTo(() => BusinessUnit)
+  @belongsTo(() => BusinessUnit, {
+    localKey: 'id',
+    foreignKey: 'businness_unit_id',
+  })
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 }

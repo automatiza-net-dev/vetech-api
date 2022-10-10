@@ -13,6 +13,13 @@ export default class CreateBusinessUnitProductValidator {
         column: 'id',
       }),
     ]),
+    businessUnitId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'business_units',
+        column: 'id',
+      }),
+    ]),
     stock: schema.number([rules.unsigned()]),
     maximumStock: schema.number([rules.unsigned()]),
     minimumStock: schema.number([rules.unsigned()]),

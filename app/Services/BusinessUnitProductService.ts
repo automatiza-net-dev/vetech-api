@@ -35,7 +35,7 @@ export default class BusinessUnitProductService {
     );
 
     return product.related('businessUnitProducts').create({
-      businness_unit_id: unitId,
+      businness_unit_id: data.businessUnitId,
       stock: data.stock,
       price: data.price,
       costPrice: data.costPrice,
@@ -60,7 +60,6 @@ export default class BusinessUnitProductService {
 
     return product
       .merge({
-        businness_unit_id: unitId,
         stock: data.stock,
         price: data.price,
         costPrice: data.costPrice,

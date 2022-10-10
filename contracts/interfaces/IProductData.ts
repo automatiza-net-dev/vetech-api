@@ -3,10 +3,16 @@ import IBusinessUnitProductData from 'Contracts/interfaces/IBusinessUnitProductD
 
 export interface IProductDataVariation {
   barcode: string;
-  price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
+  price: Omit<
+    IBusinessUnitProductData,
+    'productVariationId' | 'stock' | 'businessUnitId'
+  >;
   specificPrice?: Array<{
     business: string;
-    price: Omit<IBusinessUnitProductData, 'productVariationId' | 'stock'>;
+    price: Omit<
+      IBusinessUnitProductData,
+      'productVariationId' | 'stock' | 'businessUnitId'
+    >;
   }>;
   variation_options?: Array<string>;
 }

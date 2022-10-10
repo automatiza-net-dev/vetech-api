@@ -12,9 +12,8 @@ export default class BusinessUnitProductService {
     return BusinessUnitProduct.query().where('businness_unit_id', unitId);
   }
 
-  public async show(unitId: string, id: string) {
+  public async show(_: string, id: string) {
     const product = await BusinessUnitProduct.query()
-      .where('businness_unit_id', unitId)
       .andWhere('id', id)
       .first();
 

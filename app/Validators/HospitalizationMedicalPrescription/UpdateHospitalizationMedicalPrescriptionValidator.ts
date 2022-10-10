@@ -13,6 +13,10 @@ export default class UpdateHospitalizationMedicalPrescriptionValidator {
       rules.uuid(),
       rules.exists({ table: 'hospitalizations', column: 'id' }),
     ]),
+    userId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
     type: schema.enum(Object.values(MedicalPrescriptionType)),
     prescribedAt: schema.date(),
     executionStart: schema.date(),

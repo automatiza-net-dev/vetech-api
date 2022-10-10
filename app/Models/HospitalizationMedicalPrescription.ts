@@ -19,6 +19,7 @@ import {
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
 import Unit from 'App/Models/Unit';
+import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -114,6 +115,16 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
     foreignKey: 'hospitalization_id',
   })
   public hospitalization: BelongsTo<typeof Hospitalization>;
+
+  @column({
+    serializeAs: null,
+  })
+  public user_id?: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

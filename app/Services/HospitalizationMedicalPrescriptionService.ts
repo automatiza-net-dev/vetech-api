@@ -58,6 +58,7 @@ export default class HospitalizationMedicalPrescriptionService {
       description: data.description,
       resume: data.resume,
       executionStart: data.executionStart,
+      user_id: data.userId,
     };
 
     await HospitalizationTimeline.create({
@@ -164,6 +165,7 @@ export default class HospitalizationMedicalPrescriptionService {
       description: data.description,
       resume: data.resume,
       executionStart: data.executionStart,
+      user_id: data.userId,
     });
 
     if (key === 'PR') {

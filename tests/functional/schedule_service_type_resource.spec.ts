@@ -2,6 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Product, { ProductType } from 'App/Models/Product';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
+import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
 import { createSudo, generateJwtToken, userBootstrap } from '../utils';
@@ -31,6 +32,12 @@ test.group('Schedule service type resource', group => {
       description: 'some description',
     });
 
+    const unit = await Unit.create({
+      name: 'some name',
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
     const product = await Product.create({
       description: 'some product',
       type: ProductType.PRODUCT,
@@ -39,13 +46,13 @@ test.group('Schedule service type resource', group => {
       ncm: 'some ncm',
       cest: 'some cest',
       features: 'some features',
-      unityType: 'some unity type',
+      unit_id: unit.id,
       active: true,
       economic_group_id: group.id,
       variation_group_id: variationGroup.id,
     });
 
-    return { user, group, schedule, business, groupType, product };
+    return { user, group, schedule, business, groupType, product, unit };
   };
 
   test('should create schedule group type', async ({ assert, client }) => {

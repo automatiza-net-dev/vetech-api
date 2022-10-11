@@ -13,7 +13,6 @@ export default class UpdateProductValidator {
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),
     features: schema.string.optional({}, []),
-    unityType: schema.string.optional({}, []),
     active: schema.boolean([]),
     groupId: schema.string.optional({}, [
       rules.uuid(),
@@ -26,6 +25,13 @@ export default class UpdateProductValidator {
       rules.uuid(),
       rules.exists({
         table: 'subgroups',
+        column: 'id',
+      }),
+    ]),
+    unitId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'units',
         column: 'id',
       }),
     ]),

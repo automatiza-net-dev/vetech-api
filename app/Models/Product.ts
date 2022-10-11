@@ -12,6 +12,7 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import Group from 'App/Models/Group';
 import ProductVariation from 'App/Models/ProductVariation';
 import Subgroup from 'App/Models/Subgroup';
+import Unit from 'App/Models/Unit';
 import VariationGroup from 'App/Models/VariationGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -50,11 +51,6 @@ export default class Product extends BaseModel {
 
   @column()
   public features: string;
-
-  @column({
-    columnName: 'unity_type',
-  })
-  public unityType?: string;
 
   @column()
   public active: boolean;
@@ -120,4 +116,15 @@ export default class Product extends BaseModel {
     foreignKey: 'subgroup_id',
   })
   public subgroup: BelongsTo<typeof Subgroup>;
+
+  @column({
+    serializeAs: null,
+  })
+  public unit_id: string;
+
+  @belongsTo(() => Unit, {
+    localKey: 'id',
+    foreignKey: 'unit_id',
+  })
+  public unit: BelongsTo<typeof Unit>;
 }

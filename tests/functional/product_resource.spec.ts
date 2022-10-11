@@ -3,6 +3,7 @@ import { test } from '@japa/runner';
 import Group from 'App/Models/Group';
 import Product, { ProductType } from 'App/Models/Product';
 import Subgroup from 'App/Models/Subgroup';
+import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -29,6 +30,12 @@ test.group('Product resource', group => {
       description: 'some description',
     });
 
+    const unit = await Unit.create({
+      name: 'some name',
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
     const product = await Product.create({
       description: 'some product',
       type: ProductType.PRODUCT,
@@ -37,7 +44,7 @@ test.group('Product resource', group => {
       ncm: 'some ncm',
       cest: 'some cest',
       features: 'some features',
-      unityType: 'some unity type',
+      unit_id: unit.id,
       active: true,
       economic_group_id: group.id,
       variation_group_id: variationGroup.id,
@@ -50,6 +57,7 @@ test.group('Product resource', group => {
       business,
       groupEntity,
       subgroupEntity,
+      unit,
     };
   };
 
@@ -69,7 +77,7 @@ test.group('Product resource', group => {
   });
 
   test('should create a product', async ({ client, assert }) => {
-    const { user, variationGroup, groupEntity, subgroupEntity } =
+    const { user, variationGroup, groupEntity, subgroupEntity, unit } =
       await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -86,7 +94,7 @@ test.group('Product resource', group => {
         ncm: 'some ncm',
         cest: 'some cest',
         features: 'some features',
-        unityType: 'some unity type',
+        unitId: unit.id,
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
@@ -119,8 +127,14 @@ test.group('Product resource', group => {
     client,
     assert,
   }) => {
-    const { user, variationGroup, business, groupEntity, subgroupEntity } =
-      await createData();
+    const {
+      user,
+      variationGroup,
+      business,
+      groupEntity,
+      subgroupEntity,
+      unit,
+    } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -138,7 +152,7 @@ test.group('Product resource', group => {
         ncm: 'some ncm',
         cest: 'some cest',
         features: 'some features',
-        unityType: 'some unity type',
+        unitId: unit.id,
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
@@ -220,7 +234,8 @@ test.group('Product resource', group => {
   });
 
   test('should update a product', async ({ client, assert }) => {
-    const { user, product, subgroupEntity, groupEntity } = await createData();
+    const { user, product, subgroupEntity, groupEntity, unit } =
+      await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -236,7 +251,7 @@ test.group('Product resource', group => {
         ncm: 'some ncm',
         cest: 'some cest',
         features: 'some features',
-        unityType: 'some unity type',
+        unitId: unit.id,
         active: true,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,

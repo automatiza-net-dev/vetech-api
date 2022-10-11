@@ -8,7 +8,7 @@ export default interface IUpdateProduct {
   ncm?: string;
   cest?: string;
   features?: string;
-  unityType?: string;
+  unitId: string;
   active: boolean;
   groupId?: string;
   subgroupId: string;

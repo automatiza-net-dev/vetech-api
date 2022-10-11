@@ -44,13 +44,17 @@ export default class ProductVariationService {
 
   public async store(
     unitId: string,
-    data: Omit<IProductVariationData, 'active'>,
+    data: Omit<IProductVariationData, 'active'> & { options: Array<string> },
   ) {
     const product = await this.productService.show(unitId, data.productId);
 
-    return product.related('variations').create({
+    const variation = await product.related('variations').create({
       barcode: data.barcode,
     });
+
+    await variation.related('variationOptions').sync(data.options);
+
+    return variation;
   }
 
   public async update(unitId: string, id: string, data: IProductVariationData) {

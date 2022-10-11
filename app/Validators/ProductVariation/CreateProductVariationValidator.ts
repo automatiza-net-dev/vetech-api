@@ -13,6 +13,15 @@ export default class CreateProductVariationValidator {
         column: 'id',
       }),
     ]),
+    options: schema.array().members(
+      schema.string({}, [
+        rules.uuid(),
+        rules.exists({
+          table: 'variation_options',
+          column: 'id',
+        }),
+      ]),
+    ),
   });
 
   public messages: CustomMessages = {};

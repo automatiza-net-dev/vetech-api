@@ -28,7 +28,13 @@ export default class CreateProductValidator {
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),
     features: schema.string.optional({}, []),
-    unityType: schema.string.optional({}, []),
+    unitId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'units',
+        column: 'id',
+      }),
+    ]),
     variationGroup: schema.string({}, [
       rules.uuid(),
       rules.exists({

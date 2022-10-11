@@ -29,6 +29,7 @@ export default class ProductService {
     const qb = group
       .related('products')
       .query()
+      .preload('unit')
       .preload('group', query => {
         query.select('id', 'name', 'active');
       })
@@ -36,6 +37,7 @@ export default class ProductService {
         query.select('id', 'description');
       })
       .preload('variations', query => {
+        query.orderBy('created_at', 'desc');
         query.select('id', 'barcode', 'active');
 
         query.preload('businessUnitProducts', query => {
@@ -78,6 +80,7 @@ export default class ProductService {
       .related('products')
       .query()
       .where('id', id)
+      .preload('unit')
       .preload('group', query => {
         query.select('id', 'name', 'active');
       })
@@ -85,6 +88,7 @@ export default class ProductService {
         query.select('id', 'description');
       })
       .preload('variations', query => {
+        query.orderBy('created_at', 'desc');
         query.select('id', 'barcode', 'active');
 
         query.preload('businessUnitProducts', query => {
@@ -137,7 +141,7 @@ export default class ProductService {
           ncm: data.ncm,
           cest: data.cest,
           features: data.features,
-          unityType: data.unityType,
+          unit_id: data.unitId,
           economic_group_id: group.id,
           variation_group_id: variationGroup.id,
           group_id: data.groupId,
@@ -223,7 +227,7 @@ export default class ProductService {
         ncm: data.ncm,
         cest: data.cest,
         features: data.features,
-        unityType: data.unityType,
+        unit_id: data.unitId,
         active: data.active,
         group_id: data.groupId,
         subgroup_id: data.subgroupId,

@@ -25,7 +25,7 @@ export default interface IProductData {
   ncm?: string;
   cest?: string;
   features?: string;
-  unityType?: string;
+  unitId?: string;
   active: boolean;
   variationGroup: string;
   groupId?: string;

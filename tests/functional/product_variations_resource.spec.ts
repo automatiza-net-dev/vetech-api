@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import { ProductType } from 'App/Models/Product';
+import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -14,6 +15,12 @@ test.group('Product variations resource', group => {
   const createData = async () => {
     const { user, group } = await userBootstrap();
 
+    const unit = await Unit.create({
+      name: 'some name',
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
     const product = await group.related('products').create({
       description: 'some product',
       type: ProductType.PRODUCT,
@@ -22,7 +29,7 @@ test.group('Product variations resource', group => {
       ncm: 'some ncm',
       cest: 'some cest',
       features: 'some features',
-      unityType: 'some unity type',
+      unit_id: unit.id,
       active: true,
     });
 

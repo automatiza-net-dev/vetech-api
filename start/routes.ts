@@ -512,6 +512,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/', 'HospitalizationMedicalPrescriptionsController.index');
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
   Route.put(
     '/schedule/:id',

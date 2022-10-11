@@ -40,9 +40,34 @@ export const HospitalizationMedicalPrescriptionValidation: Record<
   M_: CreateMedicationOnceOrNeededValidator,
 };
 
+interface ISearch {
+  hospitalization: string;
+  fromExecutionDate?: string;
+  toExecutionDate?: string;
+}
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
+
+  public async index(data: ISearch) {
+    const query = HospitalizationMedicalPrescription.query();
+
+    if (!data.hospitalization) {
+      throw new BadRequestException('Internação é obrigatória');
+    }
+
+    query.where('hospitalization_id', data.hospitalization);
+
+    if (data.fromExecutionDate) {
+      query.where('execution_start', '>=', new Date(data.fromExecutionDate));
+    }
+
+    if (data.toExecutionDate) {
+      query.where('execution_start', '<=', new Date(data.toExecutionDate));
+    }
+
+    return query;
+  }
 
   public async store(
     data: IHospitalizationMedicalPrescriptionData,

@@ -14,6 +14,18 @@ export default class HospitalizationMedicalPrescriptionsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async index({ request, response }: HttpContextContract) {
+    const qs = request.qs();
+
+    const result = await this.service.index({
+      hospitalization: qs.hospitalization,
+      fromExecutionDate: qs.from,
+      toExecutionDate: qs.to,
+    });
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(
       CreateHospitalizationMedicalPrescriptionValidator,

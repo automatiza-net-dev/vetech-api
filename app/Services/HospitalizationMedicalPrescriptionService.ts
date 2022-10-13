@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling, {
   HospitalizationSchedulingStatus,
@@ -41,7 +42,7 @@ export const HospitalizationMedicalPrescriptionValidation: Record<
 };
 
 interface ISearch {
-  hospitalization: string;
+  hospitalization?: string;
   fromExecutionDate?: string;
   toExecutionDate?: string;
 }
@@ -49,14 +50,21 @@ interface ISearch {
 export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(data: ISearch) {
+  public async index(unitId: string, data: ISearch) {
     const query = HospitalizationMedicalPrescription.query();
 
-    if (!data.hospitalization) {
-      throw new BadRequestException('Internação é obrigatória');
-    }
+    if (data.hospitalization) {
+      query.where('hospitalization_id', data.hospitalization);
+    } else {
+      const hospitalizations = await Hospitalization.query()
+        .where('business_unit_id', unitId)
+        .select('id');
 
-    query.where('hospitalization_id', data.hospitalization);
+      query.whereIn(
+        'hospitalization_id',
+        hospitalizations.map(h => h.id),
+      );
+    }
 
     if (data.fromExecutionDate) {
       query.where('execution_start', '>=', new Date(data.fromExecutionDate));

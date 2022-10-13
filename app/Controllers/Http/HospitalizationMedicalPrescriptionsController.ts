@@ -14,10 +14,11 @@ export default class HospitalizationMedicalPrescriptionsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ request, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
     const qs = request.qs();
 
-    const result = await this.service.index({
+    const result = await this.service.index(unit_id, {
       hospitalization: qs.hospitalization,
       fromExecutionDate: qs.from,
       toExecutionDate: qs.to,

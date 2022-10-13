@@ -46,8 +46,10 @@ export default class BusinessUnitService {
     if (!economicGroup) {
       throw new BadRequestException('Grupo econômico inválido');
     }
+
+    const unitId = v4();
     const unit = await economicGroup.related('businessUnits').create({
-      id: v4(),
+      id: unitId,
       ...data,
     });
 
@@ -58,7 +60,7 @@ export default class BusinessUnitService {
         .related('products')
         .query()
         .preload('variations', query => {
-          query.preload('businessUnitProducts').limit(1);
+          query.preload('businessUnitProducts');
         });
 
       // eslint-disable-next-line no-restricted-syntax
@@ -69,7 +71,7 @@ export default class BusinessUnitService {
 
           await variation.related('businessUnitProducts').create(
             {
-              businness_unit_id: unit.id,
+              businness_unit_id: unitId,
               stock: 0,
               price: unitPrice.price,
               costPrice: unitPrice.costPrice,

@@ -1,4 +1,7 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
+import Database from '@ioc:Adonis/Lucid/Database';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ProductVariation from 'App/Models/ProductVariation';
 import ProductService from 'App/Services/ProductService';
 import SharedService from 'App/Services/SharedService';
@@ -33,6 +36,7 @@ export default class ProductVariationService {
         'product_id',
         products.map(p => p.id),
       )
+      .preload('businessUnitProducts')
       .first();
 
     if (!variation) {
@@ -48,13 +52,61 @@ export default class ProductVariationService {
   ) {
     const product = await this.productService.show(unitId, data.productId);
 
-    const variation = await product.related('variations').create({
-      barcode: data.barcode,
-    });
+    const firstVariation = await ProductVariation.query()
+      .where('product_id', product.id)
+      .preload('businessUnitProducts')
+      .first();
 
-    await variation.related('variationOptions').sync(data.options);
+    const trx = await Database.transaction();
 
-    return variation;
+    try {
+      const newVariation = await product.related('variations').create(
+        {
+          barcode: data.barcode,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await newVariation
+        .related('variationOptions')
+        .sync(data.options, false, trx);
+
+      if (firstVariation) {
+        const data = firstVariation.businessUnitProducts.map(bup => ({
+          businness_unit_id: bup.businness_unit_id,
+          stock: 0,
+          price: bup.price,
+          costPrice: bup.costPrice,
+          maximumStock: bup.maximumStock,
+          minimumStock: bup.minimumStock,
+          maximumDiscountPercentage: bup.maximumDiscountPercentage,
+          maximumDiscountValue: bup.maximumDiscountValue,
+          profitMargin: bup.profitMargin,
+          commission: bup.commission,
+          commissionMeta: bup.commissionMeta,
+          meta: bup.meta,
+          metaType: bup.metaType,
+        }));
+
+        await newVariation
+          .related('businessUnitProducts')
+          .createMany(data, trx);
+      }
+
+      await trx.commit();
+
+      return newVariation;
+    } catch (error) {
+      await trx.rollback();
+      Logger.error(error.message);
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 
   public async update(unitId: string, id: string, data: IProductVariationData) {

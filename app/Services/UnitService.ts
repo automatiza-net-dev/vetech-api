@@ -19,7 +19,7 @@ export default class UnitService {
     const qb = Unit.query();
 
     if (!isSudo) {
-      qb.whereRaw('(economic_group_id = ? or economic_group_id = null)', [
+      qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         group.id,
       ]);
     }

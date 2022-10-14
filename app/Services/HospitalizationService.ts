@@ -25,7 +25,11 @@ export default class HospitalizationService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async timeline(unitId: string, id: string) {
-    const hospitalization = await this.show(unitId, id);
+    const hospitalization = await Hospitalization.find(id);
+
+    if (!hospitalization || hospitalization.business_unit_id !== unitId) {
+      throw this.sharedService.ResourceNotFound();
+    }
 
     return HospitalizationTimeline.find({
       hospitalization_id: hospitalization.id,
@@ -206,9 +210,13 @@ export default class HospitalizationService {
     user: User,
     data: IHospitalizationData,
   ) {
-    const ent = await this.show(unitId, id);
+    const hospitalization = await Hospitalization.find(id);
 
-    await ent
+    if (!hospitalization || hospitalization.business_unit_id !== unitId) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await hospitalization
       .merge({
         type: data.type,
         risk: data.risk,
@@ -224,12 +232,16 @@ export default class HospitalizationService {
       })
       .save();
 
-    return this.show(unitId, ent.id);
+    return this.show(unitId, hospitalization.id);
   }
 
   public async destroy(unitId: string, id: string) {
-    const ent = await this.show(unitId, id);
+    const hospitalization = await Hospitalization.find(id);
 
-    await ent.softDelete();
+    if (!hospitalization || hospitalization.business_unit_id !== unitId) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await hospitalization.softDelete();
   }
 }

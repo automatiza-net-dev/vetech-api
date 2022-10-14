@@ -361,11 +361,26 @@ export default class HospitalizationMedicalPrescriptionService {
     prescription: HospitalizationMedicalPrescription,
     user: User,
   ) {
-    const description = await this.createDescription(prescription);
-
     await prescription.load('hospitalization');
 
-    if (prescription.frequency !== MedicalPrescriptionFrequency.RECURRENT) {
+    const rawDifference = differenceInMinutes(
+      prescription.hospitalization.expectedDischarge.toJSDate(),
+      prescription.executionStart.toJSDate(),
+    );
+
+    if (rawDifference < 0) {
+      throw new BadRequestException(
+        'A data de início da execução não pode ser maior que a data de alta esperada',
+      );
+    }
+
+    if (prescription.frequency === MedicalPrescriptionFrequency.WHEN_NEEDED) {
+      return;
+    }
+
+    const description = await this.createDescription(prescription);
+
+    if (prescription.frequency === MedicalPrescriptionFrequency.ONCE) {
       await prescription.related('scheduling').create({
         type: prescription.type,
         frequency: prescription.frequency,
@@ -378,14 +393,9 @@ export default class HospitalizationMedicalPrescriptionService {
       });
     }
 
-    const rawDifference = differenceInMinutes(
-      prescription.hospitalization.expectedDischarge.toJSDate(),
-      prescription.executionStart.toJSDate(),
-    );
-
     const offset =
       prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.DAY
-        ? 1140
+        ? 60 * 24
         : 60;
     const parsedDifference = rawDifference / offset;
 

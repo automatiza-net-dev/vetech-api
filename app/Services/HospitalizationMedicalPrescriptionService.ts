@@ -51,7 +51,13 @@ export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
-    const query = HospitalizationMedicalPrescription.query();
+    const query = HospitalizationMedicalPrescription.query().preload(
+      'hospitalization',
+      query => {
+        query.select('id', 'patient_id');
+        query.preload('patient');
+      },
+    );
 
     if (data.hospitalization) {
       query.where('hospitalization_id', data.hospitalization);

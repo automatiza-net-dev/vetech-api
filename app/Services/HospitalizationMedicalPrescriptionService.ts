@@ -56,6 +56,7 @@ export default class HospitalizationMedicalPrescriptionService {
       query => {
         query.select('id', 'patient_id');
         query.preload('patient');
+        query.preload('technician');
       },
     );
 

@@ -70,6 +70,7 @@ test.group('Product variations resource', group => {
       .json({
         productId: product.id,
         barcode: '123',
+        options: [],
       })
       .bearerToken(token);
 

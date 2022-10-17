@@ -9,6 +9,7 @@ import {
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -33,6 +34,7 @@ test.group('Hospitalization medical prescription resource', group => {
       patient_id: patient.id,
       tutor_id: patient.id,
       type: 10,
+      expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
     return { user, drug, hospitalization };
@@ -92,9 +94,9 @@ test.group('Hospitalization medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
       })
       .bearerToken(token);
 
@@ -125,12 +127,12 @@ test.group('Hospitalization medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -158,12 +160,12 @@ test.group('Hospitalization medical prescription resource', group => {
         description: 'some description',
         resume: 'some resume',
         executionStart: new Date(),
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -191,9 +193,9 @@ test.group('Hospitalization medical prescription resource', group => {
         description: 'some description',
         resume: 'some resume',
         executionStart: new Date(),
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
       })
       .bearerToken(token);
 

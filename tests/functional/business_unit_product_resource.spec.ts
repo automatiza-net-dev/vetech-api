@@ -56,7 +56,7 @@ test.group('Business unit product resource', group => {
         commissionMeta: 10,
       });
 
-    return { user, product, model: businessUnitProduct, variation };
+    return { user, product, model: businessUnitProduct, variation, business };
   };
 
   test('should return a list of business unit products', async ({
@@ -80,7 +80,7 @@ test.group('Business unit product resource', group => {
   });
 
   test('should create a business unit product', async ({ client, assert }) => {
-    const { user, variation } = await createData();
+    const { user, variation, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -102,6 +102,7 @@ test.group('Business unit product resource', group => {
         meta: 10,
         metaType: 'q',
         commissionMeta: 10,
+        businessUnitId: business.id,
       })
       .bearerToken(token);
 
@@ -145,7 +146,7 @@ test.group('Business unit product resource', group => {
   });
 
   test('should update a entity', async ({ client, assert }) => {
-    const { user, variation, model } = await createData();
+    const { user, variation, model, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -167,6 +168,7 @@ test.group('Business unit product resource', group => {
         meta: 10,
         metaType: 'q',
         commissionMeta: 10,
+        businessUnitId: business.id,
       })
       .bearerToken(token);
 

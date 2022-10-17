@@ -129,9 +129,9 @@ test.group('Medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
       })
       .bearerToken(token);
 
@@ -161,12 +161,12 @@ test.group('Medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -193,12 +193,12 @@ test.group('Medical prescription resource', group => {
         frequency: 'WHEN_NEEDED',
         description: 'some description',
         resume: 'some resume',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -225,16 +225,16 @@ test.group('Medical prescription resource', group => {
         frequency: 'ONCE',
         description: 'some description',
         resume: 'some resume',
-        prescriptionUnitId: '57e2fa72-c0ff-468b-812b-b84bcc67c94c',
+        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
         dose: 10,
-        drugAdministrationId: '265d2b6f-6ee0-42da-bdbf-4991dc83524c',
+        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
       })
       .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
-  test('should throw ResouceNotFound if no prescription was found', async ({
+  test('should throw ResourceNotFound if no prescription was found', async ({
     client,
     assert,
   }) => {

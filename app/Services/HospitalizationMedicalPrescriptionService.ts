@@ -54,7 +54,7 @@ export default class HospitalizationMedicalPrescriptionService {
     const query = HospitalizationMedicalPrescription.query().preload(
       'hospitalization',
       query => {
-        query.select('id', 'patient_id');
+        query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');
         query.preload('technician');
       },

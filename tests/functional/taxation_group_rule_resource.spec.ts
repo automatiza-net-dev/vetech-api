@@ -74,7 +74,7 @@ test.group('Taxation group rule resource', group => {
     assert.equal(200, response.status());
   });
 
-  test('should be able to create a new rule', async ({ assert, client }) => {
+  test('should be able to create a new rule', async ({ client }) => {
     const { user, taxation, operation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,

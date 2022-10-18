@@ -1,8 +1,10 @@
+import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
+
 export default interface ITaxOperation {
   code: string;
   description: string;
-  movementType: string; // TODO fix correct type
-  movementCategory: string; // TODO fix correct type
+  movementType: MovementType;
+  movementCategory: MovementCategory;
   generatesFinancial: boolean;
   accountingResult: boolean;
   active: boolean;

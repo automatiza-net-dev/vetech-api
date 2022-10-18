@@ -7,6 +7,7 @@ import {
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -24,12 +25,12 @@ export default class TaxOperation extends BaseModel {
   @column({
     columnName: 'movement_type',
   })
-  public movementType: string; // TODO fix correct type
+  public movementType: MovementType;
 
   @column({
     columnName: 'movement_category',
   })
-  public movementCategory: string; // TODO fix correct type
+  public movementCategory: MovementCategory;
 
   @column({
     columnName: 'generates_financial',

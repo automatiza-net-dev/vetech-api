@@ -64,7 +64,7 @@ test.group('Hospitalization resource', group => {
       .json({
         tutorId: patient.id,
         patientId: patient.id,
-        type: 10,
+        type: 2,
         complaint: 'Test',
       })
       .bearerToken(token);
@@ -119,13 +119,13 @@ test.group('Hospitalization resource', group => {
       .json({
         tutorId: patient.id,
         patientId: patient.id,
-        type: 11111,
+        type: 2,
         risk: 1,
         expectedDischarge: new Date(),
         diagnosis: 'some diagnosis',
         prognosis: 'some prognosis',
         bedId: bed.id,
-        status: 'some status',
+        status: 'A',
         complaint: 'Test',
       })
       .bearerToken(token);

@@ -548,3 +548,21 @@ Route.resource(
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('taxation-groups', 'TaxationGroupsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.resource('tax-operations', 'TaxOperationsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.resource('taxation-group-rules', 'TaxationGroupRulesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

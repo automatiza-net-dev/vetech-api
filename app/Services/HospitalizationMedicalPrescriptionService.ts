@@ -436,7 +436,7 @@ export default class HospitalizationMedicalPrescriptionService {
       return `${prescription.description}, ${prescription.dose}, ${
         prescription.drugAdministration?.description
       } (${(lastWeight?.timeline_info as any)?.weight ?? ''} kg em ${format(
-        (lastWeight as any).createdAt,
+        (lastWeight as any)?.createdAt ?? new Date(),
         'dd/MM/yyyy HH:mm',
       )})`;
     }
@@ -447,6 +447,9 @@ export default class HospitalizationMedicalPrescriptionService {
       prescription.fluidUnit?.name ?? ''
     }, ${prescription.dose}, ${prescription.supplement ?? ''} (${
       (lastWeight?.timeline_info as any)?.weight ?? ''
-    } kg em ${format((lastWeight as any).createdAt, 'dd/MM/yyyy HH:mm')})`;
+    } kg em ${format(
+      (lastWeight as any)?.createdAt ?? new Date(),
+      'dd/MM/yyyy HH:mm',
+    )})`;
   }
 }

@@ -10,7 +10,7 @@ export default class UpdateTaxOperationValidator {
     movementType: schema.string(),
     movementCategory: schema.string(),
     generatesFinancial: schema.boolean(),
-    financialTrouble: schema.boolean(),
+    accountingResult: schema.boolean(),
     active: schema.boolean(),
   });
 

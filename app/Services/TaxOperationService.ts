@@ -50,7 +50,7 @@ export default class TaxOperationService {
       movementType: data.movementType,
       movementCategory: data.movementCategory,
       generatesFinancial: data.generatesFinancial,
-      financialTrouble: data.financialTrouble,
+      accountingResult: data.accountingResult,
       active: true,
     };
 

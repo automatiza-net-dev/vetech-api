@@ -37,9 +37,9 @@ export default class TaxOperation extends BaseModel {
   public generatesFinancial: boolean;
 
   @column({
-    columnName: 'financial_trouble',
+    columnName: 'accounting_result',
   })
-  public financialTrouble: boolean;
+  public accountingResult: boolean;
 
   @column()
   public active: boolean;

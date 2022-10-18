@@ -19,7 +19,7 @@ test.group('Tax operation resource', group => {
       movementType: 'any movement type',
       movementCategory: 'any movement category',
       generatesFinancial: true,
-      financialTrouble: true,
+      accountingResult: true,
     });
 
     return { user, operation };
@@ -40,7 +40,7 @@ test.group('Tax operation resource', group => {
         movementType: 'any movement type',
         movementCategory: 'any movement category',
         generatesFinancial: true,
-        financialTrouble: true,
+        accountingResult: true,
       })
       .bearerToken(token);
 

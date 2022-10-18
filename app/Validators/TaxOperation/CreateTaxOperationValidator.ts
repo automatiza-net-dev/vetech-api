@@ -10,7 +10,7 @@ export default class CreateTaxOperationValidator {
     movementType: schema.string(),
     movementCategory: schema.string(),
     generatesFinancial: schema.boolean(),
-    financialTrouble: schema.boolean(),
+    accountingResult: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

@@ -14,7 +14,7 @@ export default class extends BaseSchema {
       table.string('movement_type');
       table.string('movement_category');
       table.boolean('generates_financial').defaultTo(false);
-      table.boolean('financial_trouble').defaultTo(false);
+      table.boolean('accounting_result').defaultTo(false);
       table.boolean('active').defaultTo(true);
 
       table.timestamp('created_at', { useTz: true });

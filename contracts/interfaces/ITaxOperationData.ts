@@ -4,6 +4,6 @@ export default interface ITaxOperation {
   movementType: string; // TODO fix correct type
   movementCategory: string; // TODO fix correct type
   generatesFinancial: boolean;
-  financialTrouble: boolean;
+  accountingResult: boolean;
   active: boolean;
 }

@@ -15,7 +15,7 @@ export default class TaxationGroupService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = TaxationGroup.query();
+    const qb = TaxationGroup.query().preload('rules');
 
     qb.where('economic_group_id', group.id);
 

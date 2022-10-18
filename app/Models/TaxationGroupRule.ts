@@ -7,6 +7,7 @@ import {
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import TaxationGroup from 'App/Models/TaxationGroup';
+import TaxOperation from 'App/Models/TaxOperation';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -57,6 +58,11 @@ export const ICMS_CST_NAO_SIMPLES = [
   '400',
   '500',
   '900',
+] as const;
+
+export const COMPLETE_ICMS = [
+  ...ICMS_CST_SIMPLES,
+  ...ICMS_CST_NAO_SIMPLES,
 ] as const;
 
 export const IPI_CST = [
@@ -149,7 +155,7 @@ export default class TaxationGroupRule extends BaseModel {
   @column({
     columnName: 'icms_cst',
   })
-  public icmsCst: typeof ICMS_CST_SIMPLES[number];
+  public icmsCst: typeof COMPLETE_ICMS[number];
 
   @column({
     columnName: 'icms_perc',
@@ -160,6 +166,59 @@ export default class TaxationGroupRule extends BaseModel {
     columnName: 'icms_perc_red_aliquota',
   })
   public icmsPercRedAliquota: number;
+
+  @column({
+    columnName: 'icms_perc_red_base_calculo',
+  })
+  public icmsPercRedBaseCalculo: number;
+
+  @column({
+    columnName: 'iva_icms_st',
+  })
+  public ivaIcmsSt: number;
+
+  @column({
+    columnName: 'fcp_perc',
+  })
+  public fcpPerc: number;
+
+  @column({
+    columnName: 'tax_benefit_code',
+  })
+  public taxBenefitCode: string;
+
+  @column({
+    columnName: 'ipi_cst',
+  })
+  public ipiCst: typeof IPI_CST[number];
+
+  @column({
+    columnName: 'ipi_perc',
+  })
+  public ipiPerc: number;
+
+  @column({
+    columnName: 'pis_cst',
+  })
+  public pisCst: typeof PIS_CST__COFINS_CST[number];
+
+  @column({
+    columnName: 'pis_perc',
+  })
+  public pisPerc: number;
+
+  @column({
+    columnName: 'cofins_cst',
+  })
+  public cofinsCst: typeof PIS_CST__COFINS_CST[number];
+
+  @column({
+    columnName: 'cofins_perc',
+  })
+  public cofinsPerc: number;
+
+  @column()
+  public active: boolean;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -189,4 +248,14 @@ export default class TaxationGroupRule extends BaseModel {
     foreignKey: 'taxation_group_id',
   })
   public taxationGroup: BelongsTo<typeof TaxationGroup>;
+
+  @column({
+    serializeAs: null,
+  })
+  public tax_operation_id: string;
+
+  @belongsTo(() => TaxOperation, {
+    foreignKey: 'tax_operation_id',
+  })
+  public taxOperation: BelongsTo<typeof TaxOperation>;
 }

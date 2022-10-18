@@ -13,7 +13,7 @@ test.group('Tax operation resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user } = await userBootstrap();
 
     const operation = await TaxOperation.create({
       code: 'any code',

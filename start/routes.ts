@@ -560,3 +560,9 @@ Route.resource('tax-operations', 'TaxOperationsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('taxation-group-rules', 'TaxationGroupRulesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

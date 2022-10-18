@@ -19,7 +19,7 @@ export default class extends BaseSchema {
       table.decimal('icms_perc', 5, 2);
       table.decimal('icms_perc_red_aliquota', 5, 2);
       table.decimal('icms_perc_red_base_calculo', 5, 2);
-      table.decimal('iva_icmsSt', 5, 2);
+      table.decimal('iva_icms_st', 5, 2);
       table.decimal('fcp_perc', 5, 2);
       table.string('tax_benefit_code');
       table.string('ipi_cst');

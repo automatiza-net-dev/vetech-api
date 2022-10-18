@@ -5,8 +5,11 @@ import {
   belongsTo,
   BelongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import TaxationGroupRule from 'App/Models/TaxationGroupRule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -49,4 +52,9 @@ export default class TaxationGroup extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => TaxationGroupRule, {
+    foreignKey: 'taxation_group_id',
+  })
+  public rules: HasMany<typeof TaxationGroupRule>;
 }

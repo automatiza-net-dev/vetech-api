@@ -20,7 +20,7 @@ import {
   format,
   intervalToDuration,
   isSameDay,
-  startOfDay,
+  startOfDay
 } from 'date-fns';
 import { DateTime } from 'luxon';
 
@@ -43,7 +43,7 @@ export default class ScheduleService {
         query.select(['id', 'description', 'color']);
       })
       .preload('patient', query => {
-        query.select(['id', 'name']);
+        query.select(['id', 'name', 'gender']);
       })
       .preload('holder', query => {
         query.select(['id', 'name']);
@@ -139,7 +139,7 @@ export default class ScheduleService {
         query.select(['id', 'description', 'color']);
       })
       .preload('patient', query => {
-        query.select(['id', 'name']);
+        query.select(['id', 'name', 'gender']);
       })
       .preload('holder', query => {
         query.select(['id', 'name']);

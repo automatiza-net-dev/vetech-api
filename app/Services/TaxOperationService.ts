@@ -52,6 +52,7 @@ export default class TaxOperationService {
       generatesFinancial: data.generatesFinancial,
       accountingResult: data.accountingResult,
       active: true,
+      economic_group_id: isSuperAdmin ? undefined : group.id,
     };
 
     if (!isSuperAdmin) {

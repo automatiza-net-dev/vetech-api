@@ -217,6 +217,16 @@ export default class TaxationGroupRule extends BaseModel {
   })
   public cofinsPerc: number;
 
+  @column({
+    columnName: 'icms_perc_red_base_calculo_st',
+  })
+  public icmsPercRedBaseCalculoST: number;
+
+  @column({
+    columnName: 'icms_perc_diferimento',
+  })
+  public icmsPercDiferimento: number;
+
   @column()
   public active: boolean;
 

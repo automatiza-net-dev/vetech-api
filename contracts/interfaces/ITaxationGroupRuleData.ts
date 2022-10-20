@@ -26,6 +26,8 @@ export default interface ITaxationGroupRuleData {
   pisPerc: number;
   cofinsCst: typeof PIS_CST__COFINS_CST[number];
   cofinsPerc: number;
+  icmsPercRedBaseCalculoST: number;
+  icmsPercDiferimento: number;
   active: boolean;
 
   taxationGroupId: string;

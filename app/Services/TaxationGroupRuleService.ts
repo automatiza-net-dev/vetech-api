@@ -50,6 +50,10 @@ export default class TaxationGroupRuleService {
       pisCst: data.pisCst,
       cofinsCst: data.cofinsCst,
       active: true,
+      icmsPercDiferimento: data.icmsPercDiferimento,
+      icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
+      pisPerc: data.pisPerc,
+      cofinsPerc: data.cofinsPerc,
       tax_operation_id: data.taxOperationId,
       taxation_group_id: data.taxationGroupId,
     });
@@ -109,6 +113,10 @@ export default class TaxationGroupRuleService {
       pisCst: data.pisCst,
       cofinsCst: data.cofinsCst,
       active: data.active,
+      icmsPercDiferimento: data.icmsPercDiferimento,
+      icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
+      pisPerc: data.pisPerc,
+      cofinsPerc: data.cofinsPerc,
       tax_operation_id: data.taxOperationId,
       taxation_group_id: data.taxationGroupId,
     });

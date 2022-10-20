@@ -55,6 +55,8 @@ test.group('Taxation group rule resource', group => {
       cofinsPerc: 10,
       tax_operation_id: operation.id,
       taxation_group_id: taxation.id,
+      icmsPercRedBaseCalculoST: 10,
+      icmsPercDiferimento: 10,
     });
 
     return { user, taxation, operation, rule };
@@ -104,6 +106,8 @@ test.group('Taxation group rule resource', group => {
         cofinsPerc: 10,
         taxOperationId: operation.id,
         taxationGroupId: taxation.id,
+        icmsPercRedBaseCalculoST: 10,
+        icmsPercDiferimento: 10,
       })
       .bearerToken(token);
 
@@ -172,6 +176,8 @@ test.group('Taxation group rule resource', group => {
         active: true,
         taxOperationId: operation.id,
         taxationGroupId: taxation.id,
+        icmsPercRedBaseCalculoST: 10,
+        icmsPercDiferimento: 10,
       })
       .bearerToken(token);
 

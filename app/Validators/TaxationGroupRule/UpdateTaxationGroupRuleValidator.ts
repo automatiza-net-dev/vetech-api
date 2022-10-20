@@ -31,6 +31,8 @@ export default class UpdateTaxationGroupRuleValidator {
     pisPerc: schema.number(),
     cofinsCst: schema.enum(Object.values(PIS_CST__COFINS_CST)),
     cofinsPerc: schema.number(),
+    icmsPercRedBaseCalculoST: schema.number(),
+    icmsPercDiferimento: schema.number(),
     active: schema.boolean(),
     taxationGroupId: schema.string({}, [
       rules.uuid(),

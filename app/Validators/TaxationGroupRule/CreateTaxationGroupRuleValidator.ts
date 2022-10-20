@@ -31,6 +31,8 @@ export default class CreateTaxationGroupRuleValidator {
     pisPerc: schema.number(),
     cofinsCst: schema.enum(Object.values(PIS_CST__COFINS_CST)),
     cofinsPerc: schema.number(),
+    icmsPercRedBaseCalculoST: schema.number(),
+    icmsPercDiferimento: schema.number(),
     taxationGroupId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'taxation_groups', column: 'id' }),

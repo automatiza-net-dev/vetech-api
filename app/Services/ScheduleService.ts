@@ -20,7 +20,7 @@ import {
   format,
   intervalToDuration,
   isSameDay,
-  startOfDay
+  startOfDay,
 } from 'date-fns';
 import { DateTime } from 'luxon';
 
@@ -431,6 +431,9 @@ export default class ScheduleService {
       })
       .preload('holder', query => {
         query.select(['id', 'name']);
+        query.preload('tutor', query => {
+          query.select(['cellphone', 'telephone']);
+        });
       });
 
     const allEvents = [...workingDays, ...unavailableDays, ...schedules];
@@ -504,6 +507,9 @@ export default class ScheduleService {
       })
       .preload('holder', query => {
         query.select(['id', 'name']);
+        query.preload('tutor', query => {
+          query.select(['cellphone', 'telephone']);
+        });
       })
       .preload('user');
 

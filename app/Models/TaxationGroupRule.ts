@@ -159,26 +159,31 @@ export default class TaxationGroupRule extends BaseModel {
 
   @column({
     columnName: 'icms_perc',
+    serialize: parseFloat,
   })
   public icmsPerc: number;
 
   @column({
     columnName: 'icms_perc_red_aliquota',
+    serialize: parseFloat,
   })
   public icmsPercRedAliquota: number;
 
   @column({
     columnName: 'icms_perc_red_base_calculo',
+    serialize: parseFloat,
   })
   public icmsPercRedBaseCalculo: number;
 
   @column({
     columnName: 'iva_icms_st',
+    serialize: parseFloat,
   })
   public ivaIcmsSt: number;
 
   @column({
     columnName: 'fcp_perc',
+    serialize: parseFloat,
   })
   public fcpPerc: number;
 
@@ -194,6 +199,7 @@ export default class TaxationGroupRule extends BaseModel {
 
   @column({
     columnName: 'ipi_perc',
+    serialize: parseFloat,
   })
   public ipiPerc: number;
 
@@ -204,6 +210,7 @@ export default class TaxationGroupRule extends BaseModel {
 
   @column({
     columnName: 'pis_perc',
+    serialize: parseFloat,
   })
   public pisPerc: number;
 
@@ -214,16 +221,19 @@ export default class TaxationGroupRule extends BaseModel {
 
   @column({
     columnName: 'cofins_perc',
+    serialize: parseFloat,
   })
   public cofinsPerc: number;
 
   @column({
     columnName: 'icms_perc_red_base_calculo_st',
+    serialize: parseFloat,
   })
   public icmsPercRedBaseCalculoST: number;
 
   @column({
     columnName: 'icms_perc_diferimento',
+    serialize: parseFloat,
   })
   public icmsPercDiferimento: number;
 

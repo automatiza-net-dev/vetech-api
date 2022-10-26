@@ -3,5 +3,5 @@ export default interface IScheduleServiceTypeData {
   active: boolean;
   reservedMinutes: number;
   scheduleServiceGroupId: string;
-  productId: string;
+  productId?: string;
 }

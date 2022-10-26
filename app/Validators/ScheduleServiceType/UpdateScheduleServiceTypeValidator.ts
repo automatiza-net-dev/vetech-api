@@ -12,7 +12,7 @@ export default class UpdateScheduleServiceTypeValidator {
         column: 'id',
       }),
     ]),
-    productId: schema.string({}, [
+    productId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'products',

@@ -12,10 +12,15 @@ export default class TaxationGroupRulesController {
     private service: TaxationGroupRuleService,
   ) {}
 
-  public async index({ response, auth }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
+  public async index({ request, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const rules = await this.service.index(unit_id, user);
+    const qs = request.qs();
+    const rules = await this.service.index(unit_id, {
+      name: qs.name,
+      type: qs.type,
+      movement: qs.movement,
+    });
 
     return response.ok(rules);
   }

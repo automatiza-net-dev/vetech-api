@@ -1,31 +1,46 @@
 import { inject } from '@adonisjs/fold';
-import TaxationGroup from 'App/Models/TaxationGroup';
-import TaxationGroupRule from 'App/Models/TaxationGroupRule';
+import TaxationGroupRule, {
+  CompanyType,
+  MovementType,
+} from 'App/Models/TaxationGroupRule';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import ITaxationGroupRuleData from 'Contracts/interfaces/ITaxationGroupRuleData';
 
+interface ISearch {
+  name?: string;
+  type?: CompanyType;
+  movement?: MovementType;
+}
 @inject()
 export default class TaxationGroupRuleService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string, user: User) {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const isSudo = await this.sharedService.isSuperAdmin(user);
 
     const query = TaxationGroupRule.query()
       .preload('taxationGroup')
-      .preload('taxOperation');
+      .preload('taxOperation')
+      .whereIn('taxation_group_id', query => {
+        query
+          .select('id')
+          .from('taxation_groups')
+          .where('economic_group_id', group.id);
+      });
 
-    if (!isSudo) {
-      const groups = await TaxationGroup.query()
-        .select('id')
-        .where('economic_group_id', group.id);
+    if (data.name) {
+      query.whereHas('taxationGroup', query => {
+        query.where('name', 'like', `%${data.name}%`);
+      });
+    }
 
-      query.whereIn(
-        'taxation_group_id',
-        groups.map(g => g.id),
-      );
+    if (data.type) {
+      query.where('company_type', data.type);
+    }
+
+    if (data.movement) {
+      query.where('movement_type', data.movement);
     }
 
     return query;

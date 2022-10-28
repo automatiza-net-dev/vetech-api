@@ -20,6 +20,9 @@ export default class TaxationGroupRulesController {
       name: qs.name,
       type: qs.type,
       movement: qs.movement,
+      fromUf: qs.fromUf,
+      toUf: qs.toUf,
+      active: qs.active,
     });
 
     return response.ok(rules);

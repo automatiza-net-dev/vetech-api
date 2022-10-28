@@ -11,6 +11,9 @@ interface ISearch {
   name?: string;
   type?: CompanyType;
   movement?: MovementType;
+  fromUf?: string;
+  toUf?: string;
+  active?: string;
 }
 @inject()
 export default class TaxationGroupRuleService {
@@ -41,6 +44,18 @@ export default class TaxationGroupRuleService {
 
     if (data.movement) {
       query.where('movement_type', data.movement);
+    }
+
+    if (data.fromUf) {
+      query.where('from_uf', data.fromUf);
+    }
+
+    if (data.toUf) {
+      query.where('to_uf', data.toUf);
+    }
+
+    if (data.active) {
+      query.where('active', data.active === 'true');
     }
 
     return query;

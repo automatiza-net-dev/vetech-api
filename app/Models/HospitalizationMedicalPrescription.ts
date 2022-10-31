@@ -81,6 +81,11 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   @column()
   public supplement: string;
 
+  @column({
+    columnName: 'observation_on_execution',
+  })
+  public observationOnExecution: string;
+
   @column()
   public active: boolean;
 

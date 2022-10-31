@@ -13,6 +13,7 @@ export default interface IHospitalizationMedicalPrescriptionData {
   frequency: MedicalPrescriptionFrequency;
   description: string;
   resume: string;
+  observationOnExecution?: string;
   userId?: string;
 }
 

@@ -205,6 +205,7 @@ export default class HospitalizationMedicalPrescriptionService {
       resume: data.resume,
       executionStart: data.executionStart,
       user_id: data.userId,
+      observationOnExecution: data.observationOnExecution,
     });
 
     if (key === 'PR') {

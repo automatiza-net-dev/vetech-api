@@ -8,6 +8,8 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export const REASON_TYPES = ['RA'] as const;
+
 export default class Reason extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -15,9 +17,8 @@ export default class Reason extends BaseModel {
   @column()
   public reason: string;
 
-  // TODO specify types
   @column()
-  public type: string;
+  public type: typeof REASON_TYPES[number];
 
   @column({
     columnName: 'requires_observation',

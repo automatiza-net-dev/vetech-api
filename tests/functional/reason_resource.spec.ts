@@ -17,7 +17,7 @@ test.group('Reason resource', group => {
     const reason = await Reason.create({
       reason: 'any reason',
       requiresObservation: true,
-      type: 'any type',
+      type: 'RA',
       economicGroupId: group.id,
     });
 
@@ -78,7 +78,7 @@ test.group('Reason resource', group => {
       .json({
         reason: 'any reason',
         requiresObservation: true,
-        type: 'any type',
+        type: 'RA',
       })
       .bearerToken(token);
 
@@ -97,7 +97,7 @@ test.group('Reason resource', group => {
       .json({
         reason: 'any reason',
         requiresObservation: true,
-        type: 'any type',
+        type: 'RA',
         active: true,
       })
       .bearerToken(token);

@@ -35,8 +35,6 @@ export default class UpdateScheduleValidator {
     ]),
     patientName: schema.string.optional({}, []),
     patientPhone: schema.string.optional({}, []),
-    startHour: schema.date({}),
-    endHour: schema.date({}),
     age: schema.number.optional([rules.unsigned()]),
     raceId: schema.string.optional({}),
     majorComplaint: schema.string.optional({}),

@@ -14,3 +14,11 @@ export default interface IScheduleData {
   userId?: string;
   ignoreOverlapping?: boolean;
 }
+
+export interface IRescheduleData {
+  startHour: DateTime;
+  endHour: DateTime;
+  userId?: string;
+  reasonId?: string;
+  observation?: string;
+}

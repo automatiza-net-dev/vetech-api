@@ -26,12 +26,6 @@ export default class Rescheduling extends BaseModel {
   })
   public originalDate: DateTime;
 
-  @column({
-    columnName: 'new_date',
-    serializeAs: null,
-  })
-  public newDate: DateTime;
-
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

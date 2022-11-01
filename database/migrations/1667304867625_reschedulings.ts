@@ -14,7 +14,6 @@ export default class extends BaseSchema {
       table.text('observation');
 
       table.timestamp('original_date', { useTz: true });
-      table.timestamp('new_date', { useTz: true });
 
       table.timestamp('created_at', { useTz: true });
       table.timestamp('updated_at', { useTz: true });

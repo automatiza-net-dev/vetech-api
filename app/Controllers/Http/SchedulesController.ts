@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
+import RescheduleValidator from 'App/Validators/Schedule/RescheduleValidator';
 import UpdateScheduleSpecificStatusValidator from 'App/Validators/Schedule/UpdateScheduleSpecificStatusValidator';
 import UpdateScheduleValidator from 'App/Validators/Schedule/UpdateScheduleValidator';
 import { addDays } from 'date-fns';
@@ -61,6 +62,25 @@ export default class SchedulesController {
     const { user, unit_id } = this.sharedService.extractUser(auth);
 
     const result = await this.service.update(unit_id, user, params.id, payload);
+
+    return response.ok(result);
+  }
+
+  public async reschedule({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(RescheduleValidator);
+    const { user, unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.reschedule(
+      unit_id,
+      user,
+      params.id,
+      payload,
+    );
 
     return response.ok(result);
   }

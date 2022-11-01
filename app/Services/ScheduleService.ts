@@ -50,6 +50,10 @@ export default class ScheduleService {
         query.preload('tutor', query => {
           query.select(['cellphone', 'telephone']);
         });
+      })
+      .preload('reschedules', query => {
+        query.preload('reason');
+        query.preload('user', query => query.select(['id', 'name', 'email']));
       });
 
     if (data.patient) {
@@ -149,6 +153,10 @@ export default class ScheduleService {
         query.preload('tutor', query => {
           query.select(['cellphone', 'telephone']);
         });
+      })
+      .preload('reschedules', query => {
+        query.preload('reason');
+        query.preload('user', query => query.select(['id', 'name', 'email']));
       })
       .first();
 

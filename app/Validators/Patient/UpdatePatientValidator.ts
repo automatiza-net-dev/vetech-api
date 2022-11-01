@@ -1,6 +1,10 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { PatientGender, PatientType } from 'App/Models/Patient';
+import {
+  PatientGender,
+  PatientType,
+  PatientVaccineOrigin,
+} from 'App/Models/Patient';
 
 export default class UpdatePatientValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -19,6 +23,7 @@ export default class UpdatePatientValidator {
       rules.uuid(),
       rules.exists({ table: 'races', column: 'id' }),
     ]),
+    vaccineOrigin: schema.enum(Object.values(PatientVaccineOrigin), []),
   });
 
   public messages: CustomMessages = {};

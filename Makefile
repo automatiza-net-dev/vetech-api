@@ -19,3 +19,6 @@ units:
 
 occurrences:
 	node ace db:seed --files "./database/seeders/OccurrenceSeeder.ts"
+
+reason:
+	node ace db:seed --files "./database/seeders/ReasonSeeder.ts"

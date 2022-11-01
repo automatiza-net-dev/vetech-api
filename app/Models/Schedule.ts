@@ -12,6 +12,7 @@ import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
+import Rescheduling from 'App/Models/Rescheduling';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 import User from 'App/Models/User';
@@ -135,4 +136,10 @@ export default class Schedule extends BaseModel {
     foreignKey: 'holder_id',
   })
   public holder: BelongsTo<typeof Patient>;
+
+  @hasMany(() => Rescheduling, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public reschedules: HasMany<typeof Rescheduling>;
 }

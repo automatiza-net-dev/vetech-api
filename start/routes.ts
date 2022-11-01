@@ -217,6 +217,7 @@ Route.group(() => {
   Route.get('/', 'SchedulesController.index');
   Route.post('/', 'SchedulesController.store');
   Route.get('/:id', 'SchedulesController.show');
+  Route.put('/reschedule/:id', 'SchedulesController.reschedule');
   Route.put('/status', 'SchedulesController.updateStatus');
   Route.put('/:id', 'SchedulesController.update');
   Route.delete('/:id', 'SchedulesController.destroy');
@@ -562,6 +563,12 @@ Route.resource('tax-operations', 'TaxOperationsController')
   });
 
 Route.resource('taxation-group-rules', 'TaxationGroupRulesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.resource('reasons', 'ReasonsController')
   .apiOnly()
   .middleware({
     '*': ['auth'],

@@ -9,7 +9,9 @@ import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
-import IScheduleData from 'Contracts/interfaces/IScheduleData';
+import IScheduleData, {
+  IRescheduleData,
+} from 'Contracts/interfaces/IScheduleData';
 import IUpdateScheduleStatus from 'Contracts/interfaces/IUpdateScheduleStatus';
 import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRequest';
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
@@ -50,6 +52,10 @@ export default class ScheduleService {
         query.preload('tutor', query => {
           query.select(['cellphone', 'telephone']);
         });
+      })
+      .preload('reschedules', query => {
+        query.preload('reason');
+        query.preload('user', query => query.select(['id', 'name', 'email']));
       });
 
     if (data.patient) {
@@ -150,6 +156,10 @@ export default class ScheduleService {
           query.select(['cellphone', 'telephone']);
         });
       })
+      .preload('reschedules', query => {
+        query.preload('reason');
+        query.preload('user', query => query.select(['id', 'name', 'email']));
+      })
       .first();
 
     if (!schedule) {
@@ -167,49 +177,43 @@ export default class ScheduleService {
     unitId: string,
     user: User,
     id: string,
-    data: IScheduleData,
+    data: Omit<IScheduleData, 'startHour' | 'endHour'>,
   ): Promise<Schedule> {
     const schedule = await this.show(unitId, id);
 
-    const exception = new BadRequestException(
-      'Usuário não tem esse horário disponível',
-      400,
-      'E_BAD_REQUEST',
-    );
+    // if (
+    //   !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
+    //   !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
+    // ) {
+    //   await ScheduleService.checkDisponibility(
+    //     data.userId ?? user.id,
+    //     unitId,
+    //     {
+    //       start: data.startHour.toJSDate(),
+    //       end: data.endHour.toJSDate(),
+    //     },
+    //     exception,
+    //   );
 
-    if (
-      !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
-      !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
-    ) {
-      await ScheduleService.checkDisponibility(
-        data.userId ?? user.id,
-        unitId,
-        {
-          start: data.startHour.toJSDate(),
-          end: data.endHour.toJSDate(),
-        },
-        exception,
-      );
+    //   if (!data.ignoreOverlapping) {
+    //     const overlapping = await Schedule.query()
+    //       .where('user_id', data.userId ?? user.id)
+    //       .andWhere('business_unit_id', unitId)
+    //       .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+    //         data.startHour.toJSDate(),
+    //         data.endHour.toJSDate(),
+    //       ])
+    //       .first();
 
-      if (!data.ignoreOverlapping) {
-        const overlapping = await Schedule.query()
-          .where('user_id', data.userId ?? user.id)
-          .andWhere('business_unit_id', unitId)
-          .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-            data.startHour.toJSDate(),
-            data.endHour.toJSDate(),
-          ])
-          .first();
-
-        if (overlapping) {
-          throw new BadRequestException(
-            'Horário já está ocupado',
-            400,
-            'E_BAD_REQUEST',
-          );
-        }
-      }
-    }
+    //     if (overlapping) {
+    //       throw new BadRequestException(
+    //         'Horário já está ocupado',
+    //         400,
+    //         'E_BAD_REQUEST',
+    //       );
+    //     }
+    //   }
+    // }
 
     return schedule
       .merge({
@@ -217,14 +221,45 @@ export default class ScheduleService {
         patientPhone: data.patientPhone,
         holder_id: data.holderId,
         age: data.age,
-        startHour: data.startHour,
-        endHour: data.endHour,
         majorComplaint: data.majorComplaint,
         business_unit_id: unitId,
         user_id: data?.userId ?? user.id,
         patient_id: data.patientId,
         race_id: data.raceId,
         schedule_service_type_id: data.scheduleServiceTypeId,
+      })
+      .save();
+  }
+
+  public async reschedule(
+    unitId: string,
+    user: User,
+    id: string,
+    data: IRescheduleData,
+  ): Promise<Schedule> {
+    const schedule = await this.show(unitId, id);
+
+    await ScheduleService.checkDisponibility(
+      data.userId ?? user.id,
+      unitId,
+      {
+        start: data.startHour.toJSDate(),
+        end: data.endHour.toJSDate(),
+      },
+      new BadRequestException('Usuário não tem esse horário disponível'),
+    );
+
+    await schedule.related('reschedules').create({
+      user_id: data.userId ?? user.id,
+      originalDate: schedule.startHour,
+      reason_id: data.reasonId,
+      observation: data.observation,
+    });
+
+    return schedule
+      .merge({
+        startHour: data.startHour,
+        endHour: data.endHour,
       })
       .save();
   }

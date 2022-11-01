@@ -28,6 +28,12 @@ export enum PatientGender {
   FEMALE = 'female',
 }
 
+export enum PatientVaccineOrigin {
+  C = 'PROPRIA_CLINICA',
+  F = 'FORA_DA_CLINICA',
+  N = 'NAO_VACINADO',
+}
+
 export default class Patient extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -40,6 +46,11 @@ export default class Patient extends BaseModel {
 
   @column()
   public photo?: string;
+
+  @column({
+    columnName: 'vaccine_origin',
+  })
+  public vaccineOrigin: PatientVaccineOrigin;
 
   @column()
   public gender?: PatientGender;

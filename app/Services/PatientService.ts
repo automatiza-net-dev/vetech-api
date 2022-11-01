@@ -266,6 +266,7 @@ export default class PatientService {
           birthDate: data.birthDate?.toJSDate(),
           type: PatientType.ANIMAL,
           photo,
+          vaccineOrigin: data.vaccineOrigin,
         },
         {
           client: trx,
@@ -388,6 +389,7 @@ export default class PatientService {
           tags: data.tags,
           birthDate: data.birthDate?.toJSDate(),
           active: data.active,
+          vaccineOrigin: data.vaccineOrigin,
         })
         .useTransaction(trx)
         .save();

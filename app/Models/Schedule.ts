@@ -142,4 +142,30 @@ export default class Schedule extends BaseModel {
     foreignKey: 'schedule_id',
   })
   public reschedules: HasMany<typeof Rescheduling>;
+
+  @column({
+    columnName: 'schedule_origin_id',
+    serializeAs: null,
+  })
+  public scheduleOriginId?: string;
+
+  @belongsTo(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'schedule_origin_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public scheduleOrigin: BelongsTo<typeof Schedule>;
+
+  @column({
+    columnName: 'schedule_return_id',
+    serializeAs: null,
+  })
+  public scheduleReturnId?: string;
+
+  @belongsTo(() => Schedule, {
+    localKey: 'id',
+    foreignKey: 'schedule_return_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public scheduleReturn: BelongsTo<typeof Schedule>;
 }

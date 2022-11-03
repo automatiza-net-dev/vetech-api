@@ -14,12 +14,19 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum ScheduleServiceGroupType {
+  'R' = 'RETORNO',
+}
+
 export default class ScheduleServiceGroup extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
   public description: string;
+
+  @column()
+  public type: ScheduleServiceGroupType;
 
   @column()
   public active: boolean;

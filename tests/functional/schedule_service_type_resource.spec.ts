@@ -1,7 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Product, { ProductType } from 'App/Models/Product';
-import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
+import ScheduleServiceGroup, {
+  ScheduleServiceGroupType,
+} from 'App/Models/ScheduleServiceGroup';
 import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
@@ -19,6 +21,7 @@ test.group('Schedule service type resource', group => {
     const schedule = await ScheduleServiceGroup.create({
       economic_group_id: group.id,
       description: 'some schedule',
+      type: ScheduleServiceGroupType.R,
     });
 
     const groupType = await schedule.related('types').create({
@@ -26,6 +29,7 @@ test.group('Schedule service type resource', group => {
       economic_group_id: group.id,
       description: 'some schedule',
       reservedMinutes: 90,
+      allowReturn: true,
     });
 
     const variationGroup = await group.related('variationGroups').create({
@@ -69,6 +73,7 @@ test.group('Schedule service type resource', group => {
         reversedMinutes: 90,
         scheduleServiceGroupId: schedule.id,
         productId: product.id,
+        type: ScheduleServiceGroupType.R,
       })
       .bearerToken(token);
 

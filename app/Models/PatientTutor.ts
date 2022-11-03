@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import ClientOrigin from 'App/Models/ClientOrigin';
 import Patient from 'App/Models/Patient';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -93,4 +94,16 @@ export default class PatientTutor extends BaseModel {
     foreignKey: 'patient_id',
   })
   public tutor: BelongsTo<typeof Patient>;
+
+  @column({
+    columnName: 'client_origin_id',
+    serializeAs: null,
+  })
+  public client_origin_id: string;
+
+  @belongsTo(() => ClientOrigin, {
+    localKey: 'id',
+    foreignKey: 'client_origin_id',
+  })
+  public clientOrigin: BelongsTo<typeof ClientOrigin>;
 }

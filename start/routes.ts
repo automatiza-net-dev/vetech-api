@@ -574,3 +574,9 @@ Route.resource('reasons', 'ReasonsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('client-origins', 'ClientOriginsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

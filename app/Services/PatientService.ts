@@ -71,13 +71,20 @@ export default class PatientService {
       .query()
       .where('type', PatientType.TUTOR)
       .preload('tutor', query => {
-        query.whereILike('document', `%${data.document ?? ''}`);
-        query.whereILike('cellphone', `%${data.phone ?? ''}`);
+        query.preload('clientOrigin');
+
+        if (data.document) {
+          query.where('document', 'ilike', `%${data.document}%`);
+        }
+
+        if (data.phone) {
+          query.where('cellphone', 'ilike', `%${data.phone}%`);
+        }
       })
       .preload('dependents', query => {
-        query.preload('patientAnimal', subquery => {
-          subquery.preload('race', subsubquery => {
-            subsubquery.whereILike('description', `%${data.race ?? ''}`);
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.whereILike('description', `%${data.race ?? ''}`);
           });
         });
       });
@@ -136,7 +143,9 @@ export default class PatientService {
     }
 
     qb.preload('tutors', query => {
-      query.preload('tutor');
+      query.preload('tutor', query => {
+        query.preload('clientOrigin');
+      });
     });
 
     qb.preload('patientAnimal', query => {
@@ -229,7 +238,9 @@ export default class PatientService {
     }
 
     if (patient.type === PatientType.TUTOR) {
-      await patient.load('tutor');
+      await patient.load('tutor', query => {
+        query.preload('clientOrigin');
+      });
       await patient.load('dependents');
     }
 
@@ -301,7 +312,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientTutorData, 'active'>,
+    data: Omit<IPatientTutorData, 'active'> & { clientOriginId: string },
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -338,6 +349,7 @@ export default class PatientService {
         district: data.district,
         city: data.city,
         state: data.state,
+        client_origin_id: data.clientOriginId,
       });
 
       await group.related('patients').attach([patient.id], trx);

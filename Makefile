@@ -22,3 +22,6 @@ occurrences:
 
 reason:
 	node ace db:seed --files "./database/seeders/ReasonSeeder.ts"
+
+client-origin:
+	node ace db:seed --files "./database/seeders/ClientOrigin.ts"

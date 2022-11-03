@@ -67,6 +67,7 @@ test.group('Client origin resource', group => {
       .json({
         description: 'some description',
         type: ClientOriginType.C,
+        active: true,
       })
       .bearerToken(token);
 

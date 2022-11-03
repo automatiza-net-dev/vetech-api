@@ -1,7 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
+import Patient, {
+  PatientGender,
+  PatientType,
+  PatientVaccineOrigin,
+} from 'App/Models/Patient';
 import Race from 'App/Models/Race';
 import User from 'App/Models/User';
 import PatientFactory from 'Database/factories/PatientFactory';
@@ -67,6 +71,7 @@ test.group('Patient resource', group => {
         gender: PatientGender.MALE,
         holderId: holder.id,
         raceId: race.id,
+        vaccineOrigin: PatientVaccineOrigin.C,
       })
       .bearerToken(token);
 
@@ -170,6 +175,7 @@ test.group('Patient resource', group => {
         active: true,
         holderId: holder.id,
         raceId: race.id,
+        vaccineOrigin: PatientVaccineOrigin.C,
       })
       .bearerToken(token);
 

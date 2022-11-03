@@ -80,6 +80,26 @@ export default class ScheduleService {
       .orHas('schedules');
   }
 
+  public async returnableSchedules(unitId: string, patientId: string) {
+    const qb = Schedule.query()
+      .where('business_unit_id', unitId)
+      .where('patient_id', patientId)
+      .whereNull('scheduleOriginId')
+      .whereNull('scheduleReturnId')
+      .whereHas('serviceType', query => {
+        query.where('allow_return', true);
+      })
+      .whereBetween('start_hour', [
+        DateTime.now().minus({ days: 30 }).toJSDate(),
+        DateTime.now().toJSDate(),
+      ])
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      });
+
+    return qb;
+  }
+
   public async store(
     unitId: string,
     user: User,

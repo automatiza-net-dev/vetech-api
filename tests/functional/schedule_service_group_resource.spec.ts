@@ -2,7 +2,9 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
+import ScheduleServiceGroup, {
+  ScheduleServiceGroupType,
+} from 'App/Models/ScheduleServiceGroup';
 import User from 'App/Models/User';
 import { v4 } from 'uuid';
 
@@ -38,6 +40,7 @@ test.group('Schedule service group resource', group => {
       .post('/schedule-service-groups')
       .json({
         description: 'some schedule',
+        type: ScheduleServiceGroupType.R,
       })
       .bearerToken(token);
 

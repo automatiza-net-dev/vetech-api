@@ -22,6 +22,7 @@ export default class UpdateScheduleServiceTypeValidator {
     description: schema.string({}),
     reservedMinutes: schema.number([rules.unsigned()]),
     active: schema.boolean([]),
+    allowReturn: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

@@ -80,6 +80,7 @@ export default class ScheduleServiceGroupService {
     return ScheduleServiceGroup.create({
       economic_group_id: group ? group.id : undefined,
       description: data.description,
+      type: data.type,
     });
   }
 

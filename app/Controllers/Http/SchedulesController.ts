@@ -35,6 +35,21 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
+  public async returnableSchedules({
+    auth,
+    response,
+    params,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.returnableSchedules(
+      unit_id,
+      params.patient,
+    );
+
+    return response.ok(result);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

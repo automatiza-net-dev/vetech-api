@@ -33,6 +33,13 @@ export default class CreateScheduleValidator {
         column: 'id',
       }),
     ]),
+    scheduleOriginId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'schedules',
+        column: 'id',
+      }),
+    ]),
     patientName: schema.string.optional({}, []),
     patientPhone: schema.string.optional({}, []),
     startHour: schema.date({}),

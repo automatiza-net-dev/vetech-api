@@ -99,6 +99,7 @@ export default class ScheduleServiceTypeService {
       description: data.description,
       reservedMinutes: data.reservedMinutes,
       product_id: data.productId,
+      allowReturn: data.allowReturn,
     });
   }
 
@@ -121,6 +122,7 @@ export default class ScheduleServiceTypeService {
         schedule_service_group_id: data.scheduleServiceGroupId,
         description: data.description,
         product_id: data.productId,
+        allowReturn: data.allowReturn,
       })
       .save();
   }

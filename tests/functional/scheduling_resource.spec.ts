@@ -141,7 +141,7 @@ test.group('Scheduling resource', group => {
 
   test('should create scheduling', async ({ assert, client }) => {
     const { user, status, serviceType, business } = await createData();
-    await createWorkingDay(user, business, '09:00', '21:00');
+    await createWorkingDay(user, business, '00:00', '23:59');
 
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -163,7 +163,7 @@ test.group('Scheduling resource', group => {
 
   test('should create scheduling with holder', async ({ assert, client }) => {
     const { user, status, serviceType, business, holder } = await createData();
-    await createWorkingDay(user, business, '09:00', '21:00');
+    await createWorkingDay(user, business, '00:00', '23:59');
 
     const token = await generateJwtToken(client, {
       email: user.email,

@@ -4,4 +4,5 @@ export default interface IScheduleServiceTypeData {
   reservedMinutes: number;
   scheduleServiceGroupId: string;
   productId?: string;
+  allowReturn: boolean;
 }

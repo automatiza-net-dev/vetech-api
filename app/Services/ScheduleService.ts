@@ -56,7 +56,9 @@ export default class ScheduleService {
       .preload('reschedules', query => {
         query.preload('reason');
         query.preload('user', query => query.select(['id', 'name', 'email']));
-      });
+      })
+      .preload('scheduleOrigin')
+      .preload('scheduleReturn');
 
     if (data.patient) {
       qb.where('patient_name', 'ilike', `%${data.patient}%`);
@@ -103,7 +105,7 @@ export default class ScheduleService {
   public async store(
     unitId: string,
     user: User,
-    data: IScheduleData,
+    data: IScheduleData & { scheduleOriginId?: string },
   ): Promise<Schedule> {
     const exception = new BadRequestException(
       'Usuário não tem esse horário disponível',
@@ -140,7 +142,7 @@ export default class ScheduleService {
       }
     }
 
-    return Schedule.create({
+    const result = await Schedule.create({
       patientName: data.patientName,
       patientPhone: data.patientPhone,
       holder_id: data.holderId,
@@ -154,7 +156,16 @@ export default class ScheduleService {
       race_id: data.raceId,
       schedule_service_type_id: data.scheduleServiceTypeId,
       schedule_status_id: SS_NOT_CONFIRMED,
+      scheduleOriginId: data.scheduleOriginId,
     });
+
+    if (data.scheduleOriginId) {
+      const origin = await Schedule.findOrFail(data.scheduleOriginId);
+      origin.scheduleReturnId = result.id;
+      await origin.save();
+    }
+
+    return result;
   }
 
   public async show(unitId: string, id: string): Promise<Schedule> {
@@ -180,6 +191,8 @@ export default class ScheduleService {
         query.preload('reason');
         query.preload('user', query => query.select(['id', 'name', 'email']));
       })
+      .preload('scheduleOrigin')
+      .preload('scheduleReturn')
       .first();
 
     if (!schedule) {

@@ -150,8 +150,8 @@ export default class Schedule extends BaseModel {
   public scheduleOriginId?: string;
 
   @belongsTo(() => Schedule, {
-    localKey: 'id',
-    foreignKey: 'schedule_origin_id',
+    localKey: 'scheduleOriginId',
+    foreignKey: 'id',
   })
   // eslint-disable-next-line no-use-before-define
   public scheduleOrigin: BelongsTo<typeof Schedule>;
@@ -163,8 +163,8 @@ export default class Schedule extends BaseModel {
   public scheduleReturnId?: string;
 
   @belongsTo(() => Schedule, {
-    localKey: 'id',
-    foreignKey: 'schedule_return_id',
+    localKey: 'scheduleReturnId',
+    foreignKey: 'id',
   })
   // eslint-disable-next-line no-use-before-define
   public scheduleReturn: BelongsTo<typeof Schedule>;

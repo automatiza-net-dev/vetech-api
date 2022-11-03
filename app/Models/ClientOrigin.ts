@@ -48,5 +48,5 @@ export default class ClientOrigin extends BaseModel {
     columnName: 'economic_group_id',
     serializeAs: null,
   })
-  public economicGroupId: string;
+  public economic_group_id: string;
 }

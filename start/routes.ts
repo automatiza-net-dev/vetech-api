@@ -580,3 +580,13 @@ Route.resource('client-origins', 'ClientOriginsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.get('/', 'DailyMovementsController.index');
+  Route.post('/open', 'DailyMovementsController.openDailyMovement');
+  Route.post('/close/:id', 'DailyMovementsController.closeDailyMovement');
+  Route.post('/reopen/:id', 'DailyMovementsController.reopenDailyMovement');
+  Route.post('/check/:id', 'DailyMovementsController.checkDailyMovement');
+})
+  .prefix('daily-movements')
+  .middleware('auth');

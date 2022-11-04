@@ -5,7 +5,10 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import DailyMovementLog from 'App/Models/DailyMovementLog';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -113,4 +116,9 @@ export default class DailyMovement extends BaseModel {
     foreignKey: 'user_who_checked_id',
   })
   public userWhoChecked: BelongsTo<typeof User>;
+
+  @hasMany(() => DailyMovementLog, {
+    foreignKey: 'daily_movement_id',
+  })
+  public logs: HasMany<typeof DailyMovementLog>;
 }

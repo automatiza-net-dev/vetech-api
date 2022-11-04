@@ -54,10 +54,11 @@ export default class DailyMovementsController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
     const dailyMovement = await this.service.reopenDailyMovement(
       unit_id,
       params.id,
+      user.id,
     );
 
     return response.ok(dailyMovement);

@@ -8,6 +8,7 @@ import {
   IOpenDailyMovementData,
 } from 'Contracts/interfaces/IDailyMovementData';
 import { isSameDay } from 'date-fns';
+import { DateTime } from 'luxon';
 
 @inject()
 export default class DailyMovementService {
@@ -17,9 +18,18 @@ export default class DailyMovementService {
     return DailyMovement.query()
       .where('business_unit_id', unitId)
       .orderBy('openingDate', 'desc')
-      .preload('userWhoOpened')
-      .preload('userWhoClosed')
-      .preload('userWhoChecked');
+      .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
+      .preload('userWhoClosed', query => query.select('id', 'name', 'email'))
+      .preload('userWhoChecked', query => query.select('id', 'name', 'email'))
+      .preload('logs', query => {
+        query.preload('userWhoReopened', query => {
+          query.select('id', 'name', 'email');
+        });
+
+        query.preload('userWhoClosed', query => {
+          query.select('id', 'name', 'email');
+        });
+      });
   }
 
   async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
@@ -90,7 +100,7 @@ export default class DailyMovementService {
     return dailyMovement.save();
   }
 
-  async reopenDailyMovement(unitId: string, id: string) {
+  async reopenDailyMovement(unitId: string, id: string, userId: string) {
     const dailyMovement = await DailyMovement.query()
       .where('id', id)
       .where('business_unit_id', unitId)
@@ -117,6 +127,17 @@ export default class DailyMovementService {
         'E_DAILY_MOVEMENT_NOT_SAME_DAY',
       );
     }
+
+    await dailyMovement.related('logs').create({
+      user_who_reopened_id: userId,
+      reopeningDate: DateTime.now(),
+      user_who_closed_id: dailyMovement.user_who_closed_id as string,
+      closingDate: dailyMovement.closingDate as DateTime,
+      salesTotal: dailyMovement.salesTotal,
+      expensesTotal: dailyMovement.expensesTotal,
+      receiptsTotal: dailyMovement.receiptsTotal,
+      observations: dailyMovement.observations,
+    });
 
     dailyMovement.status = DailyMovementStatus.A;
     dailyMovement.closingDate = null;

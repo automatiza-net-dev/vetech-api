@@ -32,7 +32,7 @@ export default class DailyCashierService {
       .preload('userWhoClosed')
       .preload('userWhoRevised')
       .preload('userWhoChecked')
-      .preload('dailyMovement');
+      .preload('entries');
 
     if (data.movement) {
       query.whereHas('dailyMovement', builder => {

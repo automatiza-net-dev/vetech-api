@@ -126,7 +126,7 @@ export default class DailyCashiersController {
   }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateCashierReceiptValidator);
-    await this.service.createCashierExpenseEntry(unit_id, params.id, data);
+    await this.service.createCashierReceiptEntry(unit_id, params.id, data);
 
     return response.noContent();
   }

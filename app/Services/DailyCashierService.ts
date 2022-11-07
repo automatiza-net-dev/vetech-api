@@ -1,0 +1,318 @@
+import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
+import {
+  DailyCashierEntryStatus,
+  DailyCashierEntryType,
+} from 'App/Models/DailyCashierEntry';
+import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import SharedService from 'App/Services/SharedService';
+import {
+  ICheckCashierData,
+  ICloseCashierData,
+  ICreateCashierExpenseEntryData,
+  ICreateCashierReceiptEntryData,
+  IOpenCashierData,
+  IReviewCashierData,
+} from 'Contracts/interfaces/IDailyCashierData';
+
+interface ISearch {
+  movement: string;
+  status: string;
+}
+
+@inject()
+export default class DailyCashierService {
+  constructor(private readonly sharedService: SharedService) {}
+
+  async index(unitId: string, data: ISearch) {
+    const query = DailyCashier.query()
+      .where('business_unit_id', unitId)
+      .preload('userWhoOpened')
+      .preload('userWhoClosed')
+      .preload('userWhoRevised')
+      .preload('userWhoChecked')
+      .preload('entries');
+
+    if (data.movement) {
+      query.whereHas('dailyMovement', builder => {
+        builder.where('id', data.movement);
+      });
+    }
+
+    if (data.status) {
+      query.where('status', data.status);
+    }
+
+    return query;
+  }
+
+  async openDailyCashier(unitId: string, data: IOpenCashierData) {
+    // já validado no request, nunca vai "falhar"
+    const dailyMovement = await DailyMovement.findOrFail(data.dailyMovementId);
+
+    if (dailyMovement.status !== DailyMovementStatus.A) {
+      throw new BadRequestException(
+        'Movimento diário não está aberto',
+        400,
+        'E_DAILY_MOVEMENT_NOT_OPENED',
+      );
+    }
+
+    const existingCashier = await dailyMovement
+      .related('cashiers')
+      .query()
+      .where('user_who_opened_id', data.userId)
+      .where('status', DailyCashierStatus.A)
+      .first();
+
+    if (existingCashier) {
+      throw new BadRequestException(
+        'Caixa já está aberto para este usuário',
+        400,
+        'E_DAILY_CASHIER_ALREADY_OPENED',
+      );
+    }
+
+    return dailyMovement.related('cashiers').create({
+      business_unit_id: unitId,
+      user_who_opened_id: data.userId,
+      openingDate: data.openingDate,
+      status: DailyCashierStatus.A,
+    });
+  }
+
+  async closeDailyCashier(unitId: string, id: string, data: ICloseCashierData) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.A) {
+      throw new BadRequestException(
+        'Caixa diário não está aberto',
+        400,
+        'E_DAILY_CASHIER_NOT_OPENED',
+      );
+    }
+
+    const entries = await dailyCashier.related('entries').query();
+
+    const expensesTotal = entries
+      .filter(entry => entry.type === DailyCashierEntryType.D)
+      .reduce(
+        (total, entry) => total + parseFloat(entry.value as unknown as string),
+        0,
+      );
+    const receiptsTotal = entries
+      .filter(entry => entry.type === DailyCashierEntryType.C)
+      .reduce(
+        (total, entry) => total + parseFloat(entry.value as unknown as string),
+        0,
+      );
+
+    dailyCashier.status = DailyCashierStatus.F;
+    dailyCashier.closingDate = data.closingDate;
+    dailyCashier.user_who_closed_id = data.userId;
+
+    dailyCashier.salesTotal = 0; // TODO fix this
+    dailyCashier.expensesTotal = expensesTotal;
+    dailyCashier.receiptsTotal = receiptsTotal;
+    dailyCashier.cashierTotal = data.cashierTotal;
+    dailyCashier.cashierBalance =
+      dailyCashier.openingBalance +
+      dailyCashier.salesTotal +
+      receiptsTotal -
+      expensesTotal;
+
+    return dailyCashier.save();
+  }
+
+  async reopenDailyCashier(unitId: string, id: string, userId: string) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (
+      ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
+        dailyCashier.status,
+      )
+    ) {
+      throw new BadRequestException(
+        'Caixa diário não está fechado',
+        400,
+        'E_DAILY_CASHIER_NOT_CLOSED',
+      );
+    }
+
+    const openCashier = await DailyCashier.query()
+      .where('business_unit_id', unitId)
+      .where('user_who_opened_id', userId)
+      .whereNot('id', id)
+      .where('status', DailyCashierStatus.A)
+      .first();
+    if (openCashier) {
+      throw new BadRequestException(
+        'Já existe um caixa diário aberto para este usuário',
+        400,
+        'E_DAILY_CASHIER_ALREADY_OPENED',
+      );
+    }
+
+    await dailyCashier.related('logs').create({
+      business_unit_id: unitId,
+      user_who_closed_id: dailyCashier.user_who_closed_id,
+      user_who_reopened_id: userId,
+      openingBalance: dailyCashier.openingBalance,
+      cashierFunds: dailyCashier.cashierFunds,
+      salesTotal: dailyCashier.salesTotal,
+      receiptsTotal: dailyCashier.receiptsTotal,
+      cashierTotal: dailyCashier.cashierTotal,
+      cashierBalance: dailyCashier.cashierBalance,
+      observations: dailyCashier.observations,
+    });
+
+    dailyCashier.merge({
+      status: DailyCashierStatus.A,
+      salesTotal: 0,
+      expensesTotal: 0,
+      receiptsTotal: 0,
+      cashierTotal: 0,
+      cashierBalance: 0,
+    });
+
+    return dailyCashier.save();
+  }
+
+  async checkDailyCashier(unitId: string, id: string, data: ICheckCashierData) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.F) {
+      throw new BadRequestException(
+        'Caixa diário não está fechado',
+        400,
+        'E_DAILY_CASHIER_NOT_CLOSED',
+      );
+    }
+
+    dailyCashier.merge({
+      user_who_checked_id: data.userId,
+      status: DailyCashierStatus.C,
+      observations: [dailyCashier.observations, data.observations].join(' - '),
+    });
+
+    return dailyCashier.save();
+  }
+
+  async reviewDailyCashier(
+    unitId: string,
+    id: string,
+    data: IReviewCashierData,
+  ) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.F) {
+      throw new BadRequestException(
+        'Caixa diário não está fechado',
+        400,
+        'E_DAILY_CASHIER_NOT_CLOSED',
+      );
+    }
+
+    dailyCashier.merge({
+      user_who_revised_id: data.userId,
+      status: DailyCashierStatus.R,
+      revisionDate: data.revisionDate,
+      observations: [dailyCashier.observations, data.observations].join(' - '),
+    });
+
+    return dailyCashier.save();
+  }
+
+  async createCashierExpenseEntry(
+    unitId: string,
+    id: string,
+    data: ICreateCashierExpenseEntryData,
+  ) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.A) {
+      throw new BadRequestException(
+        'Caixa diário não está aberto',
+        400,
+        'E_DAILY_CASHIER_NOT_OPENED',
+      );
+    }
+
+    await dailyCashier.related('entries').create({
+      type: DailyCashierEntryType.D,
+      business_unit_id: unitId,
+      description: data.description,
+      value: data.value,
+      status: DailyCashierEntryStatus.A,
+      entryDate: data.entryDate,
+    });
+  }
+
+  async createCashierReceiptEntry(
+    unitId: string,
+    id: string,
+    data: ICreateCashierReceiptEntryData,
+  ) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.A) {
+      throw new BadRequestException(
+        'Caixa diário não está aberto',
+        400,
+        'E_DAILY_CASHIER_NOT_OPENED',
+      );
+    }
+
+    await dailyCashier.related('entries').create({
+      type: DailyCashierEntryType.C,
+      business_unit_id: unitId,
+      description: data.description,
+      value: data.value,
+      status: DailyCashierEntryStatus.A,
+      entryDate: data.entryDate,
+    });
+  }
+}

@@ -580,3 +580,27 @@ Route.resource('client-origins', 'ClientOriginsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.get('/', 'DailyMovementsController.index');
+  Route.post('/open', 'DailyMovementsController.openDailyMovement');
+  Route.post('/close/:id', 'DailyMovementsController.closeDailyMovement');
+  Route.post('/reopen/:id', 'DailyMovementsController.reopenDailyMovement');
+  Route.post('/check/:id', 'DailyMovementsController.checkDailyMovement');
+})
+  .prefix('daily-movements')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'DailyCashiersController.index');
+  Route.post('/open', 'DailyCashiersController.openDailyCashier');
+  Route.post('/close/:id', 'DailyCashiersController.closeDailyCashier');
+  Route.post('/reopen/:id', 'DailyCashiersController.reopenDailyCashier');
+  Route.post('/check/:id', 'DailyCashiersController.checkDailyCashier');
+  Route.post('/review/:id', 'DailyCashiersController.reviewDailyCashier');
+
+  Route.post('/expense/:id', 'DailyCashiersController.createCashierExpense');
+  Route.post('/receipt/:id', 'DailyCashiersController.createCashierReceipt');
+})
+  .prefix('daily-cashiers')
+  .middleware('auth');

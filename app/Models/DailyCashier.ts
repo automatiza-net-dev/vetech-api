@@ -8,20 +8,21 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
-import DailyCashier from 'App/Models/DailyCashier';
-import DailyMovementLog from 'App/Models/DailyMovementLog';
+import DailyCashierLog from 'App/Models/DailyCashierLog';
+import DailyMovement from 'App/Models/DailyMovement';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export enum DailyMovementStatus {
-  'A' = 'Aberto',
-  'C' = 'Conferido',
-  'F' = 'Fechado',
+export enum DailyCashierStatus {
+  A = 'ABERTO',
+  F = 'FECHADO',
+  R = 'REVISAO',
+  C = 'CONFERIDO',
 }
 
-export default class DailyMovement extends BaseModel {
+export default class DailyCashier extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
@@ -33,12 +34,29 @@ export default class DailyMovement extends BaseModel {
   @column.dateTime({
     columnName: 'closing_date',
   })
-  public closingDate: DateTime | null;
+  public closingDate: DateTime;
+
+  @column.dateTime({
+    columnName: 'revision_date',
+  })
+  public revisionDate: DateTime;
 
   @column.dateTime({
     columnName: 'checking_date',
   })
-  public checkingDate: DateTime | null;
+  public checkingDate: DateTime;
+
+  @column({
+    columnName: 'opening_balance',
+    serialize: parseFloat,
+  })
+  public openingBalance: number;
+
+  @column({
+    columnName: 'cashier_funds',
+    serialize: parseFloat,
+  })
+  public cashierFunds: number;
 
   @column({
     columnName: 'sales_total',
@@ -58,11 +76,22 @@ export default class DailyMovement extends BaseModel {
   })
   public receiptsTotal: number;
 
+  @column({
+    columnName: 'cashier_total',
+    serialize: parseFloat,
+  })
+  public cashierTotal: number;
+  @column({
+    columnName: 'cashier_balance',
+    serialize: parseFloat,
+  })
+  public cashierBalance: number;
+
   @column()
   public observations: string;
 
   @column()
-  public status: DailyMovementStatus;
+  public status: DailyCashierStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -91,7 +120,17 @@ export default class DailyMovement extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_opened_id: string | null;
+  public daily_movement_id: string;
+
+  @belongsTo(() => DailyMovement, {
+    foreignKey: 'daily_movement_id',
+  })
+  public dailyMovement: BelongsTo<typeof DailyMovement>;
+
+  @column({
+    serializeAs: null,
+  })
+  public user_who_opened_id: string;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_opened_id',
@@ -101,7 +140,7 @@ export default class DailyMovement extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_closed_id: string | null;
+  public user_who_closed_id: string;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_closed_id',
@@ -111,20 +150,25 @@ export default class DailyMovement extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_checked_id: string | null;
+  public user_who_checked_id: string;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_checked_id',
   })
   public userWhoChecked: BelongsTo<typeof User>;
 
-  @hasMany(() => DailyMovementLog, {
-    foreignKey: 'daily_movement_id',
+  @column({
+    serializeAs: null,
   })
-  public logs: HasMany<typeof DailyMovementLog>;
+  public user_who_revised_id: string;
 
-  @hasMany(() => DailyCashier, {
-    foreignKey: 'daily_movement_id',
+  @belongsTo(() => User, {
+    foreignKey: 'user_who_revised_id',
   })
-  public cashiers: HasMany<typeof DailyCashier>;
+  public userWhoRevised: BelongsTo<typeof User>;
+
+  @hasMany(() => DailyCashierLog, {
+    foreignKey: 'daily_cashier_id',
+  })
+  public logs: HasMany<typeof DailyCashierLog>;
 }

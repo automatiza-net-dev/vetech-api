@@ -590,3 +590,14 @@ Route.group(() => {
 })
   .prefix('daily-movements')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'DailyMovementsController.index');
+  Route.post('/open', 'DailyCashiersController.openDailyCashier');
+  Route.post('/close/:id', 'DailyCashiersController.closeDailyCashier');
+  Route.post('/reopen/:id', 'DailyCashiersController.reopenDailyCashier');
+  Route.post('/check/:id', 'DailyCashiersController.checkDailyCashier');
+  Route.post('/review/:id', 'DailyCashiersController.reviewDailyCashier');
+})
+  .prefix('daily-cashiers')
+  .middleware('auth');

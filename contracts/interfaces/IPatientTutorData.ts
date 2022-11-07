@@ -24,4 +24,5 @@ export default interface IPatientTutorData {
   district?: string;
   city?: string;
   state?: string;
+  clientOriginId: string;
 }

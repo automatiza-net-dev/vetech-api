@@ -26,7 +26,7 @@ test.group('Daily cashier resource', group => {
   };
 
   test('should return all daily cashiers', async ({ client, assert }) => {
-    const { user, dailyMovement } = await createData();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',

@@ -104,10 +104,16 @@ export default class DailyCashierService {
 
     const expensesTotal = entries
       .filter(entry => entry.type === DailyCashierEntryType.D)
-      .reduce((total, entry) => total + entry.value, 0);
+      .reduce(
+        (total, entry) => total + parseFloat(entry.value as unknown as string),
+        0,
+      );
     const receiptsTotal = entries
       .filter(entry => entry.type === DailyCashierEntryType.C)
-      .reduce((total, entry) => total + entry.value, 0);
+      .reduce(
+        (total, entry) => total + parseFloat(entry.value as unknown as string),
+        0,
+      );
 
     dailyCashier.status = DailyCashierStatus.F;
     dailyCashier.closingDate = data.closingDate;

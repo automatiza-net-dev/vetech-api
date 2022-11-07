@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import { DailyCashierEntryType } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import SharedService from 'App/Services/SharedService';
 import {
@@ -91,11 +92,38 @@ export default class DailyMovementService {
       );
     }
 
+    const cashiers = await dailyMovement
+      .related('cashiers')
+      .query()
+      .preload('entries');
+
+    const expenses = cashiers
+      .map(cashier =>
+        cashier.entries.filter(entry => entry.type === DailyCashierEntryType.D),
+      )
+      .flat();
+
+    const receipts = cashiers
+      .map(cashier =>
+        cashier.entries.filter(entry => entry.type === DailyCashierEntryType.C),
+      )
+      .flat();
+
     dailyMovement.status = DailyMovementStatus.F;
     dailyMovement.closingDate = data.closingDate;
     dailyMovement.observations = data.observations;
     dailyMovement.user_who_closed_id = data.userId;
-    // TODO - Calculate totals
+    dailyMovement.salesTotal = 0;
+    dailyMovement.expensesTotal = expenses.reduce(
+      (total, expense) =>
+        total + parseFloat(expense.value as unknown as string),
+      0,
+    );
+    dailyMovement.receiptsTotal = receipts.reduce(
+      (total, receipt) =>
+        total + parseFloat(receipt.value as unknown as string),
+      0,
+    );
 
     return dailyMovement.save();
   }

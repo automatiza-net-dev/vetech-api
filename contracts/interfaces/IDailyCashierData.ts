@@ -30,3 +30,9 @@ export interface ICreateCashierExpenseEntryData {
   value: number;
   description: string;
 }
+
+export interface ICreateCashierReceiptEntryData {
+  entryDate: DateTime;
+  value: number;
+  description: string;
+}

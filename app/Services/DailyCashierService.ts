@@ -11,6 +11,7 @@ import {
   ICheckCashierData,
   ICloseCashierData,
   ICreateCashierExpenseEntryData,
+  ICreateCashierReceiptEntryData,
   IOpenCashierData,
   IReviewCashierData,
 } from 'Contracts/interfaces/IDailyCashierData';
@@ -258,6 +259,38 @@ export default class DailyCashierService {
 
     await dailyCashier.related('entries').create({
       type: DailyCashierEntryType.D,
+      business_unit_id: unitId,
+      description: data.description,
+      value: data.value,
+      status: DailyCashierEntryStatus.A,
+      entryDate: data.entryDate,
+    });
+  }
+
+  async createCashierReceiptEntry(
+    unitId: string,
+    id: string,
+    data: ICreateCashierReceiptEntryData,
+  ) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.A) {
+      throw new BadRequestException(
+        'Caixa diário não está aberto',
+        400,
+        'E_DAILY_CASHIER_NOT_OPENED',
+      );
+    }
+
+    await dailyCashier.related('entries').create({
+      type: DailyCashierEntryType.C,
       business_unit_id: unitId,
       description: data.description,
       value: data.value,

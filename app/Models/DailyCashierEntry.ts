@@ -10,6 +10,7 @@ import { v4 } from 'uuid';
 
 export enum DailyCashierEntryType {
   D = 'DEBITO',
+  C = 'CREDITO',
 }
 
 export enum DailyCashierEntryStatus {

@@ -600,6 +600,7 @@ Route.group(() => {
   Route.post('/review/:id', 'DailyCashiersController.reviewDailyCashier');
 
   Route.post('/expense/:id', 'DailyCashiersController.createCashierExpense');
+  Route.post('/receipt/:id', 'DailyCashiersController.createCashierReceipt');
 })
   .prefix('daily-cashiers')
   .middleware('auth');

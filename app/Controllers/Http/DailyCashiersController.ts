@@ -4,6 +4,7 @@ import DailyCashierService from 'App/Services/DailyCashierService';
 import SharedService from 'App/Services/SharedService';
 import CloseDailyCashierValidator from 'App/Validators/DailyCashier/CloseDailyCashierValidator';
 import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCashierExpenseValidator';
+import CreateCashierReceiptValidator from 'App/Validators/DailyCashier/CreateCashierReceiptValidator';
 import OpenDailyCashierValidator from 'App/Validators/DailyCashier/OpenDailyCashierValidator';
 import ReviewDailyCashierValidator from 'App/Validators/DailyCashier/ReviewDailyCashierValidator';
 import CheckDailyMovementValidator from 'App/Validators/DailyMovement/CheckDailyMovementValidator';
@@ -112,6 +113,19 @@ export default class DailyCashiersController {
   }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateCashierExpenseValidator);
+    await this.service.createCashierExpenseEntry(unit_id, params.id, data);
+
+    return response.noContent();
+  }
+
+  public async createCashierReceipt({
+    auth,
+    request,
+    response,
+    params,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const data = await request.validate(CreateCashierReceiptValidator);
     await this.service.createCashierExpenseEntry(unit_id, params.id, data);
 
     return response.noContent();

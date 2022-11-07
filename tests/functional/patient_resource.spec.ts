@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, {
   PatientGender,
@@ -193,12 +194,18 @@ test.group('Patient resource', group => {
       password: '102030',
     });
 
+    const patientOrigin = await ClientOrigin.create({
+      type: ClientOriginType.C,
+      description: 'some origin',
+    });
+
     const response = await client
       .post('/patient-tutors')
       .json({
         name: 'patient name',
         email: 'mail123123@mail.com',
         cellphone: '123',
+        clientOriginId: patientOrigin.id,
       })
       .bearerToken(token);
 

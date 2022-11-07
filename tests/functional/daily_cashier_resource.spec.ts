@@ -25,6 +25,18 @@ test.group('Daily cashier resource', group => {
     return { user, business, dailyMovement };
   };
 
+  test('should return all daily cashiers', async ({ client, assert }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/daily-cashiers').bearerToken(token);
+
+    assert.equal(response.status(), 200);
+  });
+
   test('should throw BadRequestException if daily movement is not opened', async ({
     assert,
     client,
@@ -383,5 +395,64 @@ test.group('Daily cashier resource', group => {
 
     assert.equal(response.status(), 200);
     assert.equal(response.body().status, DailyCashierStatus.R);
+  });
+
+  test('should throw BadRequestException if adding expense on invalid status cashier', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.C,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/expense/${cashier.id}`)
+      .json({
+        description: 'test',
+        value: 100,
+        entryDate: DateTime.now(),
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 400);
+    assert.equal(
+      response.body().message,
+      'E_DAILY_CASHIER_NOT_OPENED: Caixa diário não está aberto',
+    );
+  });
+
+  test('should create new cashier expense', async ({ assert, client }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/expense/${cashier.id}`)
+      .json({
+        description: 'test',
+        value: 100,
+        entryDate: DateTime.now(),
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 201);
   });
 });

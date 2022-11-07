@@ -8,6 +8,7 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import DailyCashierEntry from 'App/Models/DailyCashierEntry';
 import DailyCashierLog from 'App/Models/DailyCashierLog';
 import DailyMovement from 'App/Models/DailyMovement';
 import User from 'App/Models/User';
@@ -171,4 +172,9 @@ export default class DailyCashier extends BaseModel {
     foreignKey: 'daily_cashier_id',
   })
   public logs: HasMany<typeof DailyCashierLog>;
+
+  @hasMany(() => DailyCashierEntry, {
+    foreignKey: 'daily_cashier_id',
+  })
+  public entries: HasMany<typeof DailyCashierEntry>;
 }

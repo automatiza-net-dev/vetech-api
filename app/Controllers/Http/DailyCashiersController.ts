@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import DailyCashierService from 'App/Services/DailyCashierService';
 import SharedService from 'App/Services/SharedService';
 import CloseDailyCashierValidator from 'App/Validators/DailyCashier/CloseDailyCashierValidator';
+import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCashierExpenseValidator';
 import OpenDailyCashierValidator from 'App/Validators/DailyCashier/OpenDailyCashierValidator';
 import ReviewDailyCashierValidator from 'App/Validators/DailyCashier/ReviewDailyCashierValidator';
 import CheckDailyMovementValidator from 'App/Validators/DailyMovement/CheckDailyMovementValidator';
@@ -13,6 +14,17 @@ export default class DailyCashiersController {
     private sharedService: SharedService,
     private service: DailyCashierService,
   ) {}
+
+  public async index({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const qs = request.qs();
+    const dailyMovement = await this.service.index(unit_id, {
+      movement: qs.movement,
+      status: qs.status,
+    });
+
+    return response.ok(dailyMovement);
+  }
 
   public async openDailyCashier({
     auth,
@@ -90,5 +102,18 @@ export default class DailyCashiersController {
     );
 
     return response.ok(dailyMovement);
+  }
+
+  public async createCashierExpense({
+    auth,
+    request,
+    response,
+    params,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const data = await request.validate(CreateCashierExpenseValidator);
+    await this.service.createCashierExpenseEntry(unit_id, params.id, data);
+
+    return response.noContent();
   }
 }

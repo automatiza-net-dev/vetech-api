@@ -1,18 +1,50 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
+import {
+  DailyCashierEntryStatus,
+  DailyCashierEntryType,
+} from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import SharedService from 'App/Services/SharedService';
 import {
   ICheckCashierData,
   ICloseCashierData,
+  ICreateCashierExpenseEntryData,
   IOpenCashierData,
   IReviewCashierData,
 } from 'Contracts/interfaces/IDailyCashierData';
 
+interface ISearch {
+  movement: string;
+  status: string;
+}
+
 @inject()
 export default class DailyCashierService {
   constructor(private readonly sharedService: SharedService) {}
+
+  async index(unitId: string, data: ISearch) {
+    const query = DailyCashier.query()
+      .where('business_unit_id', unitId)
+      .preload('userWhoOpened')
+      .preload('userWhoClosed')
+      .preload('userWhoRevised')
+      .preload('userWhoChecked')
+      .preload('dailyMovement');
+
+    if (data.movement) {
+      query.whereHas('dailyMovement', builder => {
+        builder.where('id', data.movement);
+      });
+    }
+
+    if (data.status) {
+      query.where('status', data.status);
+    }
+
+    return query;
+  }
 
   async openDailyCashier(unitId: string, data: IOpenCashierData) {
     // já validado no request, nunca vai "falhar"
@@ -200,5 +232,37 @@ export default class DailyCashierService {
     });
 
     return dailyCashier.save();
+  }
+
+  async createCashierExpenseEntry(
+    unitId: string,
+    id: string,
+    data: ICreateCashierExpenseEntryData,
+  ) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    if (dailyCashier.status !== DailyCashierStatus.A) {
+      throw new BadRequestException(
+        'Caixa diário não está aberto',
+        400,
+        'E_DAILY_CASHIER_NOT_OPENED',
+      );
+    }
+
+    await dailyCashier.related('entries').create({
+      type: DailyCashierEntryType.D,
+      business_unit_id: unitId,
+      description: data.description,
+      value: data.value,
+      status: DailyCashierEntryStatus.A,
+      entryDate: data.entryDate,
+    });
   }
 }

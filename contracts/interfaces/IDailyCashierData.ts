@@ -24,3 +24,9 @@ export interface IReviewCashierData {
   revisionDate: DateTime;
   observations: string;
 }
+
+export interface ICreateCashierExpenseEntryData {
+  entryDate: DateTime;
+  value: number;
+  description: string;
+}

@@ -29,6 +29,10 @@ export default class UpdatePatientWithTutorValidator {
     district: schema.string({}, []),
     city: schema.string({}, []),
     state: schema.string({}, []),
+    clientOriginId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'client_origins', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

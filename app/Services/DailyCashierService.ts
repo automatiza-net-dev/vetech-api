@@ -100,17 +100,28 @@ export default class DailyCashierService {
       );
     }
 
+    const entries = await dailyCashier.related('entries').query();
+
+    const expensesTotal = entries
+      .filter(entry => entry.type === DailyCashierEntryType.D)
+      .reduce((total, entry) => total + entry.value, 0);
+    const receiptsTotal = entries
+      .filter(entry => entry.type === DailyCashierEntryType.C)
+      .reduce((total, entry) => total + entry.value, 0);
+
     dailyCashier.status = DailyCashierStatus.F;
     dailyCashier.closingDate = data.closingDate;
     dailyCashier.user_who_closed_id = data.userId;
+
+    dailyCashier.salesTotal = 0; // TODO fix this
+    dailyCashier.expensesTotal = expensesTotal;
+    dailyCashier.receiptsTotal = receiptsTotal;
     dailyCashier.cashierTotal = data.cashierTotal;
-    dailyCashier.expensesTotal = 0; // calculate after new table
-    dailyCashier.receiptsTotal = 0; // calculate after new table
     dailyCashier.cashierBalance =
       dailyCashier.openingBalance +
-      data.cashierTotal +
-      dailyCashier.receiptsTotal -
-      dailyCashier.expensesTotal;
+      dailyCashier.salesTotal +
+      receiptsTotal -
+      expensesTotal;
 
     return dailyCashier.save();
   }

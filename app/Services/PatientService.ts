@@ -312,7 +312,7 @@ export default class PatientService {
 
   public async storeTutor(
     unitId: string,
-    data: Omit<IPatientTutorData, 'active'> & { clientOriginId: string },
+    data: Omit<IPatientTutorData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -462,6 +462,7 @@ export default class PatientService {
           district: data.district,
           city: data.city,
           state: data.state,
+          client_origin_id: data.clientOriginId,
         })
         .useTransaction(trx)
         .save();

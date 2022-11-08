@@ -604,3 +604,9 @@ Route.group(() => {
 })
   .prefix('daily-cashiers')
   .middleware('auth');
+
+Route.resource('account-plans', 'AccountPlansController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

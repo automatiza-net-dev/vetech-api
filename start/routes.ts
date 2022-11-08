@@ -610,3 +610,21 @@ Route.resource('account-plans', 'AccountPlansController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('banks', 'BanksController')
+  .only(['index'])
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.group(() => {
+  Route.get('/', 'CheckingAccountsController.index');
+  Route.get('/check/:id', 'CheckingAccountsController.check');
+  Route.get('/:id', 'CheckingAccountsController.show');
+  Route.post('/open', 'CheckingAccountsController.openAccount');
+  Route.put('/balance/:id', 'CheckingAccountsController.updateAccountBalance');
+  Route.put('/:id', 'CheckingAccountsController.updateAccount');
+  Route.delete('/:id', 'CheckingAccountsController.deleteAccount');
+})
+  .prefix('checking-accounts')
+  .middleware('auth');

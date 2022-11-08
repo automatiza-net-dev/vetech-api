@@ -25,3 +25,6 @@ reason:
 
 client-origin:
 	node ace db:seed --files "./database/seeders/ClientOrigin.ts"
+
+bank:
+	node ace db:seed --files "./database/seeders/BankSeeder.ts"

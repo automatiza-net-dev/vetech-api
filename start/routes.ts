@@ -610,3 +610,9 @@ Route.resource('account-plans', 'AccountPlansController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('banks', 'BanksController')
+  .only(['index'])
+  .middleware({
+    '*': ['auth'],
+  });

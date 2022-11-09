@@ -16,7 +16,7 @@ interface IPrice {
 }
 
 export interface IProductDataVariation {
-  barcode: string;
+  barcode?: string;
   price: IPrice;
   specificPrice?: Array<{
     business: string;

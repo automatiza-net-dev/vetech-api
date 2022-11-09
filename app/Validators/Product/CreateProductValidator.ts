@@ -58,7 +58,7 @@ export default class CreateProductValidator {
     ]),
     variations: schema.array().members(
       schema.object().members({
-        barcode: schema.string({}),
+        barcode: schema.string.optional({}),
         price: this.price,
         variation_options: schema.array().members(schema.string()),
         specificPrice: schema.array.optional([rules.minLength(1)]).members(

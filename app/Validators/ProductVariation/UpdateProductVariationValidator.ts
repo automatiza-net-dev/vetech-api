@@ -5,7 +5,7 @@ export default class UpdateProductVariationValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    barcode: schema.string({}, []),
+    barcode: schema.string.optional({}, []),
     active: schema.boolean([]),
     productId: schema.string({}, [
       rules.uuid(),

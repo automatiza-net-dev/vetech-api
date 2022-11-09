@@ -4,7 +4,7 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductType } from 'App/Models/Product';
 
 export default class CreateProductValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   private price = schema.object().members({
     maximumStock: schema.number([rules.unsigned()]),
@@ -12,8 +12,8 @@ export default class CreateProductValidator {
     maximumDiscountPercentage: schema.number([rules.unsigned()]),
     maximumDiscountValue: schema.number([rules.unsigned()]),
     price: schema.number([rules.unsigned()]),
-    costPrice: schema.number([rules.unsigned()]),
-    profitMargin: schema.number([rules.unsigned()]),
+    costPrice: schema.number.optional([rules.unsigned()]),
+    profitMargin: schema.number.optional([rules.unsigned()]),
     commission: schema.number([rules.unsigned()]),
     meta: schema.number([rules.unsigned()]),
     metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),

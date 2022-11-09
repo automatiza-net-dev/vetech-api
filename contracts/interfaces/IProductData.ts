@@ -1,18 +1,27 @@
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductType } from 'App/Models/Product';
-import IBusinessUnitProductData from 'Contracts/interfaces/IBusinessUnitProductData';
+
+interface IPrice {
+  businessUnitId: string;
+  maximumStock: number;
+  minimumStock: number;
+  maximumDiscountPercentage: number;
+  maximumDiscountValue: number;
+  price: number;
+  costPrice?: number;
+  profitMargin?: number;
+  commission: number;
+  meta: number;
+  metaType: BusinessUnitProductMetaType;
+  commissionMeta: number;
+}
 
 export interface IProductDataVariation {
   barcode: string;
-  price: Omit<
-    IBusinessUnitProductData,
-    'productVariationId' | 'stock' | 'businessUnitId'
-  >;
+  price: IPrice;
   specificPrice?: Array<{
     business: string;
-    price: Omit<
-      IBusinessUnitProductData,
-      'productVariationId' | 'stock' | 'businessUnitId'
-    >;
+    price: IPrice;
   }>;
   variation_options?: Array<string>;
 }

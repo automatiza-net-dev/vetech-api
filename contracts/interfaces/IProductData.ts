@@ -2,7 +2,6 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductType } from 'App/Models/Product';
 
 interface IPrice {
-  businessUnitId: string;
   maximumStock: number;
   minimumStock: number;
   maximumDiscountPercentage: number;

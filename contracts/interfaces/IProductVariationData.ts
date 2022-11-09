@@ -1,5 +1,5 @@
 export default interface IProductVariationData {
   productId: string;
-  barcode: string;
+  barcode?: string;
   active: boolean;
 }

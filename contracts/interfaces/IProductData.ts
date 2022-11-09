@@ -21,7 +21,7 @@ export default interface IProductData {
   description: string;
   type: ProductType;
   referenceCode: string;
-  collectionYear: number;
+  collectionYear?: number;
   ncm?: string;
   cest?: string;
   features?: string;

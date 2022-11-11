@@ -19,8 +19,8 @@ export interface ICreatePaymentMethodData {
 
 export interface ICreatePaymentMethodFlagData {
   paymentMethodId: string;
-  paymentMethodFlagId: string;
-  paymentMethodAcquirerId: string;
+  tefFlagId: string;
+  tefAcquirerId: string;
   checkingAccountId?: string;
   maxInstallments?: number;
   fee?: number;

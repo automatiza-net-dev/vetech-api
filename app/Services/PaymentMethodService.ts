@@ -44,8 +44,8 @@ export default class PaymentMethodService {
     return PaymentMethodFlag.create({
       economic_group_id: group.id,
       payment_method_id: data.paymentMethodId,
-      tef_flag_id: data.paymentMethodFlagId,
-      tef_acquirer_id: data.paymentMethodAcquirerId,
+      tef_flag_id: data.tefFlagId,
+      tef_acquirer_id: data.tefAcquirerId,
       checking_account_id: data.checkingAccountId,
       fee: data.fee ?? 0,
       maxInstallments: data.maxInstallments,

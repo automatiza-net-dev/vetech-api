@@ -36,6 +36,7 @@ export default class PaymentMethodsController {
 
     return response.created(result);
   }
+
   public async createPaymentMethodFee({
     auth,
     request,

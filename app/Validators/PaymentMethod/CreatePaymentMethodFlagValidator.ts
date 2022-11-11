@@ -9,11 +9,11 @@ export default class CreatePaymentMethodFlagValidator {
       rules.uuid(),
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
-    paymentMethodFlagId: schema.string({}, [
+    tefFlagId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'payment_method_flags', column: 'id' }),
+      rules.exists({ table: 'tef_flags', column: 'id' }),
     ]),
-    paymentMethodAcquirerId: schema.string({}, [
+    tefAcquirerId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'tef_acquirers', column: 'id' }),
     ]),

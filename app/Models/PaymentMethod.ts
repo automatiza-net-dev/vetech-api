@@ -104,11 +104,13 @@ export default class PaymentMethod extends BaseModel {
 
   @column({
     columnName: 'economic_group_id',
+    serializeAs: null,
   })
   public economicGroupId: string;
 
   @column({
     columnName: 'checking_account_id',
+    serializeAs: null,
   })
   public checkingAccountId: string;
 }

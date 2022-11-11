@@ -24,6 +24,7 @@ export default class CreatePaymentMethodValidator {
       rules.uuid(),
       rules.exists({ table: 'checking_accounts', column: 'id' }),
     ]),
+    fee: schema.number.optional(),
     daysUntilTransfer: schema.number.optional(),
     installmentsWithoutPassword: schema.number.optional(),
     maxInstallments: schema.number.optional(),

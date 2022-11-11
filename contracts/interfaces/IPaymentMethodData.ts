@@ -11,7 +11,17 @@ export interface ICreatePaymentMethodData {
   minimumInstallmentValue: number;
   type?: PaymentMethodType;
   checkingAccountId?: string;
+  fee?: number;
   daysUntilTransfer?: number;
   installmentsWithoutPassword?: number;
   maxInstallments?: number;
+}
+
+export interface ICreatePaymentMethodFlagData {
+  paymentMethodId: string;
+  paymentMethodFlagId: string;
+  paymentMethodAcquirerId: string;
+  checkingAccountId?: string;
+  maxInstallments?: number;
+  fee?: number;
 }

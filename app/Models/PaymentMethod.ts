@@ -8,7 +8,16 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export enum PaymentMethodType {}
+export enum PaymentMethodTef {
+  N = 'NAO',
+  T = 'TEF',
+  P = 'POS',
+}
+
+export enum PaymentMethodType {
+  C = 'CREDITO',
+  D = 'DEBITO',
+}
 
 export default class PaymentMethod extends BaseModel {
   @column({ isPrimary: true })
@@ -23,7 +32,7 @@ export default class PaymentMethod extends BaseModel {
   public requiresDocument: boolean;
 
   @column()
-  public tef: string;
+  public tef: PaymentMethodTef;
 
   @column()
   public type: PaymentMethodType;

@@ -8,6 +8,13 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum TefFlagType {
+  A = 'A',
+  B = 'B',
+  C = 'C',
+  D = 'D',
+}
+
 export default class TefFlag extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -16,7 +23,10 @@ export default class TefFlag extends BaseModel {
   public description: string;
 
   @column()
-  public type: string;
+  public code: string;
+
+  @column()
+  public type: TefFlagType;
 
   @column()
   public active: boolean;

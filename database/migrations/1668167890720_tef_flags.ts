@@ -10,6 +10,7 @@ export default class extends BaseSchema {
       table.uuid('economic_group_id').references('economic_groups.id');
 
       table.string('description');
+      table.string('code');
       table.string('type');
       table.boolean('active').defaultTo(true);
 

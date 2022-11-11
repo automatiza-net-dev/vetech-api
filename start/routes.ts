@@ -628,3 +628,9 @@ Route.group(() => {
 })
   .prefix('checking-accounts')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/create', 'PaymentMethodsController.createPaymentMethod');
+})
+  .prefix('payment-methods')
+  .middleware('auth');

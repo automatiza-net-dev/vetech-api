@@ -630,6 +630,8 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/tef-flags', 'PaymentMethodsController.searchTefFlags');
+  Route.get('/tef-acquirers', 'PaymentMethodsController.searchTefAcquirers');
   Route.get('/partial', 'PaymentMethodsController.searchPartialPaymentMethods');
   Route.get(
     '/complete',

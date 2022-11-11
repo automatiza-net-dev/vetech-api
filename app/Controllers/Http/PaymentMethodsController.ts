@@ -29,6 +29,7 @@ export default class PaymentMethodsController {
 
     return response.ok(result);
   }
+
   public async searchCompletePaymentMethods({
     auth,
     request,
@@ -42,6 +43,29 @@ export default class PaymentMethodsController {
       tef: qs.tef,
       type: qs.type,
     });
+
+    return response.ok(result);
+  }
+
+  public async searchTefFlags({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchTefFlags(unit_id, {
+      type: qs.type,
+    });
+
+    return response.ok(result);
+  }
+
+  public async searchTefAcquirers({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.searchTefAcquirers(unit_id);
 
     return response.ok(result);
   }

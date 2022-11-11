@@ -1,7 +1,10 @@
 import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFee from 'App/Models/PaymentMethodFee';
 import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag from 'App/Models/TefFlag';
 import SharedService from 'App/Services/SharedService';
 import {
   ICreatePaymentMethodData,
@@ -9,9 +12,13 @@ import {
   ICreatePaymentMethodFlagData,
 } from 'Contracts/interfaces/IPaymentMethodData';
 
-interface ISearch {
+interface ISearchPaymentMethods {
   description?: string;
   tef?: string;
+  type?: string;
+}
+
+interface ISearchTefFlags {
   type?: string;
 }
 
@@ -19,7 +26,10 @@ interface ISearch {
 export default class PaymentMethodService {
   constructor(private sharedService: SharedService) {}
 
-  async searchPartialPaymentMethods(unitId: string, data: ISearch) {
+  async searchPartialPaymentMethods(
+    unitId: string,
+    data: ISearchPaymentMethods,
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = PaymentMethod.query().where('economic_group_id', group.id);
@@ -39,7 +49,10 @@ export default class PaymentMethodService {
     return qb;
   }
 
-  async searchCompletePaymentMethods(unitId: string, data: ISearch) {
+  async searchCompletePaymentMethods(
+    unitId: string,
+    data: ISearchPaymentMethods,
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = PaymentMethod.query().preload('flags').preload('fees');
@@ -57,6 +70,40 @@ export default class PaymentMethodService {
     if (data.type) {
       qb.where('type', data.type);
     }
+
+    return qb;
+  }
+
+  async searchTefFlags(unitId: string, data: ISearchTefFlags) {
+    if (!data.type) {
+      throw new BadRequestException(
+        'Informe o tipo de TEF',
+        400,
+        'E_MISSING_PARAMETER',
+      );
+    }
+
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const qb = TefFlag.query();
+
+    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+      group.id,
+    ]);
+
+    qb.where('type', data.type);
+
+    return qb;
+  }
+
+  async searchTefAcquirers(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const qb = TefAcquirer.query();
+
+    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+      group.id,
+    ]);
 
     return qb;
   }

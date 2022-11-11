@@ -51,7 +51,10 @@ export default class CheckingAccountService {
   }
 
   public async openAccount(unitId: string, data: IOpenCheckingAccountData) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     return CheckingAccount.create({
+      economic_group_id: group.id,
       business_unit_id: unitId,
       description: data.description,
       accountNumber: data.accountNumber,

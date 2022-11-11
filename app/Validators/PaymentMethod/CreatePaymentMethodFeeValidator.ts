@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class CreatePaymentMethodFlagValidator {
+export default class CreatePaymentMethodFeeValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
@@ -13,16 +13,8 @@ export default class CreatePaymentMethodFlagValidator {
       rules.uuid(),
       rules.exists({ table: 'payment_method_flags', column: 'id' }),
     ]),
-    paymentMethodAcquirerId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'tef_acquirers', column: 'id' }),
-    ]),
-    checkingAccountId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({ table: 'checking_accounts', column: 'id' }),
-    ]),
-    maxInstallments: schema.number.optional(),
-    fee: schema.number.optional(),
+    installments: schema.number(),
+    fee: schema.number(),
   });
 
   public messages: CustomMessages = {};

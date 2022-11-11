@@ -25,3 +25,9 @@ export interface ICreatePaymentMethodFlagData {
   maxInstallments?: number;
   fee?: number;
 }
+export interface ICreatePaymentMethodFeeData {
+  paymentMethodId: string;
+  paymentMethodFlagId: string;
+  installments: number;
+  fee: number;
+}

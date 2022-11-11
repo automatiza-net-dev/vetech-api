@@ -1,9 +1,11 @@
 import { inject } from '@adonisjs/fold';
 import PaymentMethod from 'App/Models/PaymentMethod';
+import PaymentMethodFee from 'App/Models/PaymentMethodFee';
 import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
 import SharedService from 'App/Services/SharedService';
 import {
   ICreatePaymentMethodData,
+  ICreatePaymentMethodFeeData,
   ICreatePaymentMethodFlagData,
 } from 'Contracts/interfaces/IPaymentMethodData';
 
@@ -47,6 +49,22 @@ export default class PaymentMethodService {
       checking_account_id: data.checkingAccountId,
       fee: data.fee ?? 0,
       maxInstallments: data.maxInstallments,
+    });
+  }
+
+  async createPaymentMethodFee(
+    unitId: string,
+    data: ICreatePaymentMethodFeeData,
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return PaymentMethodFee.create({
+      economic_group_id: group.id,
+      business_unit_id: unitId,
+      payment_method_id: data.paymentMethodId,
+      payment_method_flag_id: data.paymentMethodFlagId,
+      installments: data.installments,
+      fee: data.fee,
     });
   }
 }

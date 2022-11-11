@@ -635,6 +635,7 @@ Route.group(() => {
     '/create-flag',
     'PaymentMethodsController.createPaymentMethodFlag',
   );
+  Route.post('/create-fee', 'PaymentMethodsController.createPaymentMethodFee');
 })
   .prefix('payment-methods')
   .middleware('auth');

@@ -13,6 +13,39 @@ export default class PaymentMethodsController {
     private service: PaymentMethodService,
   ) {}
 
+  public async searchPartialPaymentMethods({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchPartialPaymentMethods(unit_id, {
+      description: qs.description,
+      tef: qs.tef,
+      type: qs.type,
+    });
+
+    return response.ok(result);
+  }
+  public async searchCompletePaymentMethods({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchCompletePaymentMethods(unit_id, {
+      description: qs.description,
+      tef: qs.tef,
+      type: qs.type,
+    });
+
+    return response.ok(result);
+  }
+
   public async createPaymentMethod({
     auth,
     request,

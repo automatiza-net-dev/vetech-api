@@ -9,9 +9,57 @@ import {
   ICreatePaymentMethodFlagData,
 } from 'Contracts/interfaces/IPaymentMethodData';
 
+interface ISearch {
+  description?: string;
+  tef?: string;
+  type?: string;
+}
+
 @inject()
 export default class PaymentMethodService {
   constructor(private sharedService: SharedService) {}
+
+  async searchPartialPaymentMethods(unitId: string, data: ISearch) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const qb = PaymentMethod.query().where('economic_group_id', group.id);
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.tef) {
+      qb.where('tef', data.tef);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    return qb;
+  }
+
+  async searchCompletePaymentMethods(unitId: string, data: ISearch) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const qb = PaymentMethod.query().preload('flags').preload('fees');
+
+    qb.where('economic_group_id', group.id);
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.tef) {
+      qb.where('tef', data.tef);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    return qb;
+  }
 
   async createPaymentMethod(unitId: string, data: ICreatePaymentMethodData) {
     const group = await this.sharedService.getUserGroup(unitId);

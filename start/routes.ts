@@ -630,6 +630,11 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/partial', 'PaymentMethodsController.searchPartialPaymentMethods');
+  Route.get(
+    '/complete',
+    'PaymentMethodsController.searchCompletePaymentMethods',
+  );
   Route.post('/create', 'PaymentMethodsController.createPaymentMethod');
   Route.post(
     '/create-flag',

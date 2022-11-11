@@ -33,9 +33,9 @@ export default class BusinessUnitsController {
     const payload = await request.validate(CreateBusinessUnitValidator);
     const { user } = this.sharedService.extractUser(auth);
 
-    const unit = await this.service.store(user, payload);
+    await this.service.store(user, payload);
 
-    return response.created(unit);
+    return response.created();
   }
 
   public async update({ params, request, response }: HttpContextContract) {

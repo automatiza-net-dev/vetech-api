@@ -9,6 +9,7 @@ import {
 import Attendance from 'App/Models/Attendance';
 import AttendanceStatus from 'App/Models/AttendanceStatus';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
+import CheckingAccount from 'App/Models/CheckingAccount';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Invite from 'App/Models/Invite';
 import Licence from 'App/Models/Licence';
@@ -16,10 +17,11 @@ import Schedule from 'App/Models/Schedule';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import WorkingDay from 'App/Models/WorkingDay';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class BusinessUnit extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column()
   public identification?: string;
@@ -140,4 +142,10 @@ export default class BusinessUnit extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public Attendances: HasMany<typeof Attendance>;
+
+  @hasMany(() => CheckingAccount, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
+  public checkingAccounts: HasMany<typeof CheckingAccount>;
 }

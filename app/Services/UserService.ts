@@ -7,6 +7,7 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import { CheckingAccountType } from 'App/Models/CheckingAccount';
 import { LicenceType } from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
@@ -107,6 +108,17 @@ export default class UserService {
         id: v4(),
         expirationDate: addDays(new Date(), trialPlan.trialDays),
         type: LicenceType.TRIAL,
+        active: true,
+      });
+
+      await newBusinessUnit.related('checkingAccounts').create({
+        description: `Cofre - Matriz`,
+        accountNumber: 'Cofre',
+        bankCode: 'Cofre',
+        bankName: 'Cofre',
+        agency: '001',
+        type: CheckingAccountType.CX,
+        balance: 0,
         active: true,
       });
     });

@@ -105,5 +105,10 @@ export default class CheckingAccount extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public economic_group_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public business_unit_id: string;
 }

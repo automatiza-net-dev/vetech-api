@@ -5,11 +5,13 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import CheckingAccount, {
+  CheckingAccountType,
+} from 'App/Models/CheckingAccount';
 import User from 'App/Models/User';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
-import { v4 } from 'uuid';
 
 interface ISearchBusinessUnit {
   identification?: string;
@@ -34,10 +36,7 @@ export default class BusinessUnitService {
     return qb;
   }
 
-  public async store(
-    user: User,
-    data: ICreateBusinessUnit,
-  ): Promise<BusinessUnit> {
+  public async store(user: User, data: ICreateBusinessUnit) {
     const economicGroups = await user.related('economicGroups').query();
     const economicGroup = economicGroups.find(
       eg => eg.id === data.economic_group_id,
@@ -47,21 +46,19 @@ export default class BusinessUnitService {
       throw new BadRequestException('Grupo econômico inválido');
     }
 
-    const unitId = v4();
-    const unit = await economicGroup.related('businessUnits').create({
-      id: unitId,
-      ...data,
-    });
+    const products = await economicGroup
+      .related('products')
+      .query()
+      .preload('variations', query => {
+        query.preload('businessUnitProducts');
+      });
 
     const trx = await Database.transaction();
 
     try {
-      const products = await economicGroup
-        .related('products')
-        .query()
-        .preload('variations', query => {
-          query.preload('businessUnitProducts');
-        });
+      const unit = await economicGroup.related('businessUnits').create({
+        ...data,
+      });
 
       // eslint-disable-next-line no-restricted-syntax
       for await (const product of products) {
@@ -71,7 +68,7 @@ export default class BusinessUnitService {
 
           await variation.related('businessUnitProducts').create(
             {
-              businness_unit_id: unitId,
+              businness_unit_id: unit.id,
               stock: 0,
               price: unitPrice.price,
               costPrice: unitPrice.costPrice,
@@ -88,6 +85,23 @@ export default class BusinessUnitService {
         }
       }
 
+      await CheckingAccount.create(
+        {
+          business_unit_id: unit.id,
+          description: `Cofre - ${unit.identification ?? 'Não informado'}`,
+          accountNumber: 'Cofre',
+          bankCode: 'Cofre',
+          bankName: 'Cofre',
+          agency: '001',
+          type: CheckingAccountType.CX,
+          balance: 0,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
       await trx.commit();
     } catch (error) {
       await trx.rollback();
@@ -99,8 +113,6 @@ export default class BusinessUnitService {
         'E_INTERNAL_ERROR',
       );
     }
-
-    return unit;
   }
 
   public async show(id: string): Promise<BusinessUnit> {

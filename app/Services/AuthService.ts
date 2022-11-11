@@ -31,7 +31,6 @@ export default class AuthService {
         expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
         unit_id: unit.id,
       });
-
     }
 
     if (!data.business_unit_id) {

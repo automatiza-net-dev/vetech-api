@@ -38,7 +38,7 @@ export default class TimelinesController {
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalWeightValidator);
     await this.timelineService.updateWeight(params.id, payload);
-    return response.ok();
+    return response.noContent();
   }
 
   public async animalDocumentIndex({ params, response }: HttpContextContract) {

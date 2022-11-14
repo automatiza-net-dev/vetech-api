@@ -185,9 +185,19 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.observationsIndex(params.id));
   }
 
-  public async observationsStore({ request, response }: HttpContextContract) {
+  public async storeObservation({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalObservationValidator);
     await this.timelineService.storeObservations(payload);
+    return response.created();
+  }
+
+  public async updateObservations({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalObservationValidator);
+    await this.timelineService.updateObservations(params.id, payload);
     return response.created();
   }
 }

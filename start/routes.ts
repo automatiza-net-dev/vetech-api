@@ -434,7 +434,8 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.observationsIndex');
-    Route.post('/', 'TimelinesController.observationsStore');
+    Route.post('/', 'TimelinesController.storeObservation');
+    Route.put('/:id', 'TimelinesController.updateObservations');
   }).prefix('observations');
 })
   .prefix('n-timeline')

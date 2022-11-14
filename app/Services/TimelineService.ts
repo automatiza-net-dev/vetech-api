@@ -553,6 +553,39 @@ export default class TimelineService {
     });
   }
 
+  public async updateObservations(id: string, data: ICreateObservation) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(OBSERVATION_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: OBSERVATION_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          medias,
+        },
+      },
+    });
+  }
+
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {
     const key = `${v4()}.${file.extname}`;
     await file.moveToDisk(

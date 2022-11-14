@@ -383,27 +383,32 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalWeightIndex');
-    Route.post('/', 'TimelinesController.animalWeightStore');
+    Route.post('/', 'TimelinesController.storeAnimalWeight');
+    Route.put('/:id', 'TimelinesController.updateAnimalWeight');
   }).prefix('weight');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
-    Route.post('/', 'TimelinesController.animalDocumentStore');
+    Route.post('/', 'TimelinesController.storeAnimalDocument');
+    Route.put('/:id', 'TimelinesController.updateAnimalDocument');
   }).prefix('documents');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalPathologyIndex');
-    Route.post('/', 'TimelinesController.animalPathologyStore');
+    Route.post('/', 'TimelinesController.storeAnimalPathology');
+    Route.put('/:id', 'TimelinesController.updateAnimalPathology');
   }).prefix('pathologies');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalMedicalRecipeIndex');
-    Route.post('/', 'TimelinesController.animalMedicalRecipeStore');
+    Route.post('/', 'TimelinesController.storeAnimalMedicalRecipe');
+    Route.put('/:id', 'TimelinesController.updateAnimalMedicalRecipe');
   }).prefix('recipes');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalPhotoIndex');
     Route.post('/', 'TimelinesController.animalPhotoStore');
+    Route.delete('/:id', 'TimelinesController.deleteAnimalPhoto');
   }).prefix('photos');
 
   Route.group(() => {
@@ -430,7 +435,8 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.observationsIndex');
-    Route.post('/', 'TimelinesController.observationsStore');
+    Route.post('/', 'TimelinesController.storeObservation');
+    Route.put('/:id', 'TimelinesController.updateObservations');
   }).prefix('observations');
 })
   .prefix('n-timeline')

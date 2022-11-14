@@ -8,4 +8,5 @@ export default interface ICreateAnimalVaccine {
   applicationDate?: DateTime;
   laboratory?: string;
   batch?: string;
+  vaccineId: string;
 }

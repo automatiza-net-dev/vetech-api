@@ -24,6 +24,13 @@ export default class CreateAnimalExamValidator {
     ]),
     description: schema.string({}, []),
     attachments: schema.array().members(schema.file({}, [])),
+    examId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'patient_exams',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

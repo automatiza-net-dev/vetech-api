@@ -9,4 +9,5 @@ export default interface ICreateAnimalExam {
   technicianId: string;
   description: string;
   attachments: Array<MultipartFileContract>;
+  examId: string;
 }

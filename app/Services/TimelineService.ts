@@ -6,6 +6,7 @@ import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
+import PatientExam from 'App/Models/PatientExam';
 import TimelineType, {
   APPOINTMENT_UUID,
   DOCUMENT_UUID,
@@ -19,6 +20,7 @@ import TimelineType, {
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import Vaccine from 'App/Models/Vaccine';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -71,6 +73,37 @@ export default class TimelineService {
     });
   }
 
+  public async updateWeight(id: string, data: IAnimalWeight) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: WEIGHT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          weight: data.weight,
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      },
+    });
+  }
+
   public async documentIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: DOCUMENT_UUID,
@@ -103,6 +136,39 @@ export default class TimelineService {
     });
   }
 
+  public async updateDocument(id: string, data: IAnimalDocument) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: DOCUMENT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          type: data.type,
+          value: data.value,
+          realizedAt: new Date(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      },
+    });
+  }
+
   public async pathologyIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: PATHOLOGY_UUID,
@@ -129,6 +195,38 @@ export default class TimelineService {
         technician: {
           id: technician.id,
           name: technician.name,
+        },
+      },
+    });
+  }
+
+  public async updatePathology(id: string, data: IAnimalPathology) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(PATHOLOGY_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: PATHOLOGY_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          pathology: data.pathology,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
         },
       },
     });
@@ -166,6 +264,39 @@ export default class TimelineService {
     });
   }
 
+  public async updateMedicalRecipe(id: string, data: IAnimalMedicalRecipe) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: RECIPE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          name: data.name,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          recipe: data.recipe,
+        },
+      },
+    });
+  }
+
   public async photoIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: PHOTO_UUID,
@@ -197,6 +328,10 @@ export default class TimelineService {
     });
   }
 
+  public async deletePhoto(id: string) {
+    return AnimalTimeline.findByIdAndDelete(id);
+  }
+
   public async vaccineIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: VACCINE_UUID,
@@ -208,6 +343,7 @@ export default class TimelineService {
     const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
+    const vaccine = await Vaccine.findOrFail(data.vaccineId);
 
     return AnimalTimeline.create({
       timeline_id: VACCINE_UUID,
@@ -223,6 +359,12 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        vaccine: {
+          id: vaccine.id,
+          name: vaccine.name,
+          description: vaccine.description,
+          type: vaccine.type,
+        },
         expectedDate: data.expectedDate?.toJSDate(),
         applicationDate: data.applicationDate?.toJSDate(),
         laboratory: data.laboratory,
@@ -232,20 +374,27 @@ export default class TimelineService {
   }
 
   public async updateVaccine(id: string, data: ICreateAnimalVaccine) {
-    const vaccine = await AnimalTimeline.findById(id);
+    const resource = await AnimalTimeline.findById(id);
 
-    if (!vaccine) {
+    if (!resource) {
       throw new ResourceNotFoundException('Vaccine not found');
     }
 
     const technician = await User.findOrFail(data.technicianId);
+    const vaccine = await Vaccine.findOrFail(data.vaccineId);
 
-    vaccine.timeline_info = {
+    resource.timeline_info = {
       tag: data.tag,
       name: data.name,
       technician: {
         id: technician.id,
         name: technician.name,
+      },
+      vaccine: {
+        id: vaccine.id,
+        name: vaccine.name,
+        description: vaccine.description,
+        type: vaccine.type,
       },
       expectedDate: data.expectedDate?.toJSDate(),
       applicationDate: data.applicationDate?.toJSDate(),
@@ -253,9 +402,9 @@ export default class TimelineService {
       batch: data.batch,
     };
 
-    await vaccine.save();
+    await resource.save();
 
-    return vaccine;
+    return resource;
   }
 
   public async examIndex(tag: string) {
@@ -270,6 +419,10 @@ export default class TimelineService {
 
     const requester = await User.findOrFail(data.requesterId);
     const technician = await User.findOrFail(data.technicianId);
+    const exam = await PatientExam.query()
+      .where('id', data.examId)
+      .preload('exam')
+      .firstOrFail();
 
     const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
 
@@ -292,6 +445,15 @@ export default class TimelineService {
         technician: {
           id: technician.id,
           name: technician.name,
+        },
+        exam: {
+          id: exam.id,
+          name: exam.exam.name,
+          description: exam.exam.description,
+          own_laboratory: exam.exam.ownLaboratory,
+          type: exam.exam.type,
+          result_data: exam.resultDate,
+          executed_at: exam.executedAt,
         },
         attachments: medias,
       },
@@ -414,12 +576,47 @@ export default class TimelineService {
         requires_observation: timelineInfo.requiresObservation,
       },
       timeline_info: {
+        observation: data.observation,
         tag: data.tag,
         technician: {
           id: technician.id,
           name: technician.name,
         },
         medias,
+      },
+    });
+  }
+
+  public async updateObservations(id: string, data: ICreateObservation) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(OBSERVATION_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: OBSERVATION_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          observation: data.observation,
+          tag: data.tag,
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          medias,
+        },
       },
     });
   }

@@ -25,19 +25,39 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.weightIndex(params.id));
   }
 
-  public async animalWeightStore({ request, response }: HttpContextContract) {
+  public async storeAnimalWeight({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalWeightValidator);
     await this.timelineService.storeWeight(payload);
     return response.created();
+  }
+
+  public async updateAnimalWeight({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalWeightValidator);
+    await this.timelineService.updateWeight(params.id, payload);
+    return response.noContent();
   }
 
   public async animalDocumentIndex({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.documentIndex(params.id));
   }
 
-  public async animalDocumentStore({ request, response }: HttpContextContract) {
+  public async storeAnimalDocument({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalDocumentValidator);
     await this.timelineService.storeDocument(payload);
+    return response.created();
+  }
+
+  public async updateAnimalDocument({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalDocumentValidator);
+    await this.timelineService.updateDocument(params.id, payload);
     return response.created();
   }
 
@@ -45,12 +65,22 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.pathologyIndex(params.id));
   }
 
-  public async animalPathologyStore({
+  public async storeAnimalPathology({
     request,
     response,
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalPathologyValidator);
     await this.timelineService.storePathology(payload);
+    return response.created();
+  }
+
+  public async updateAnimalPathology({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalPathologyValidator);
+    await this.timelineService.updatePathology(params.id, payload);
     return response.created();
   }
 
@@ -63,12 +93,22 @@ export default class TimelinesController {
     );
   }
 
-  public async animalMedicalRecipeStore({
+  public async storeAnimalMedicalRecipe({
     request,
     response,
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
     await this.timelineService.storeMedicalRecipe(payload);
+    return response.created();
+  }
+
+  public async updateAnimalMedicalRecipe({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
+    await this.timelineService.updateMedicalRecipe(params.id, payload);
     return response.created();
   }
 
@@ -80,6 +120,11 @@ export default class TimelinesController {
     const payload = await request.validate(CreateAnimalPhotoValidator);
     await this.timelineService.storePhoto(payload);
     return response.created();
+  }
+
+  public async deleteAnimalPhoto({ params, response }: HttpContextContract) {
+    await this.timelineService.deletePhoto(params.id);
+    return response.noContent();
   }
 
   public async animalVaccineIndex({ params, response }: HttpContextContract) {
@@ -145,9 +190,19 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.observationsIndex(params.id));
   }
 
-  public async observationsStore({ request, response }: HttpContextContract) {
+  public async storeObservation({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalObservationValidator);
     await this.timelineService.storeObservations(payload);
+    return response.created();
+  }
+
+  public async updateObservations({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalObservationValidator);
+    await this.timelineService.updateObservations(params.id, payload);
     return response.created();
   }
 }

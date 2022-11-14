@@ -198,6 +198,38 @@ export default class TimelineService {
     });
   }
 
+  public async updatePathology(id: string, data: IAnimalPathology) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(PATHOLOGY_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: PATHOLOGY_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          pathology: data.pathology,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      },
+    });
+  }
+
   public async medicalRecipeIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: RECIPE_UUID,

@@ -65,12 +65,22 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.pathologyIndex(params.id));
   }
 
-  public async animalPathologyStore({
+  public async storeAnimalPathology({
     request,
     response,
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalPathologyValidator);
     await this.timelineService.storePathology(payload);
+    return response.created();
+  }
+
+  public async updateAnimalPathology({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalPathologyValidator);
+    await this.timelineService.updatePathology(params.id, payload);
     return response.created();
   }
 

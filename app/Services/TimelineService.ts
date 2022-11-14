@@ -71,6 +71,37 @@ export default class TimelineService {
     });
   }
 
+  public async updateWeight(id: string, data: IAnimalWeight) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: WEIGHT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          weight: data.weight,
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      },
+    });
+  }
+
   public async documentIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: DOCUMENT_UUID,

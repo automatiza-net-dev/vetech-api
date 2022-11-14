@@ -25,10 +25,20 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.weightIndex(params.id));
   }
 
-  public async animalWeightStore({ request, response }: HttpContextContract) {
+  public async storeAnimalWeight({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalWeightValidator);
     await this.timelineService.storeWeight(payload);
     return response.created();
+  }
+
+  public async updateAnimalWeight({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalWeightValidator);
+    await this.timelineService.updateWeight(params.id, payload);
+    return response.ok();
   }
 
   public async animalDocumentIndex({ params, response }: HttpContextContract) {

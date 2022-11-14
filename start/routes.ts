@@ -383,7 +383,8 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalWeightIndex');
-    Route.post('/', 'TimelinesController.animalWeightStore');
+    Route.post('/', 'TimelinesController.storeAnimalWeight');
+    Route.put('/:id', 'TimelinesController.updateAnimalWeight');
   }).prefix('weight');
 
   Route.group(() => {

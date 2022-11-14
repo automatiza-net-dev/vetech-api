@@ -543,6 +543,7 @@ export default class TimelineService {
         requires_observation: timelineInfo.requiresObservation,
       },
       timeline_info: {
+        observation: data.observation,
         tag: data.tag,
         technician: {
           id: technician.id,
@@ -575,6 +576,7 @@ export default class TimelineService {
           requires_observation: timelineInfo.requiresObservation,
         },
         timeline_info: {
+          observation: data.observation,
           tag: data.tag,
           technician: {
             id: technician.id,

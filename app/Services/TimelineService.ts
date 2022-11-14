@@ -19,6 +19,7 @@ import TimelineType, {
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import Vaccine from 'App/Models/Vaccine';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -341,6 +342,7 @@ export default class TimelineService {
     const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
+    const vaccine = await Vaccine.findOrFail(data.vaccineId);
 
     return AnimalTimeline.create({
       timeline_id: VACCINE_UUID,
@@ -356,6 +358,12 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        vaccine: {
+          id: vaccine.id,
+          name: vaccine.name,
+          description: vaccine.description,
+          type: vaccine.type,
+        },
         expectedDate: data.expectedDate?.toJSDate(),
         applicationDate: data.applicationDate?.toJSDate(),
         laboratory: data.laboratory,
@@ -365,20 +373,27 @@ export default class TimelineService {
   }
 
   public async updateVaccine(id: string, data: ICreateAnimalVaccine) {
-    const vaccine = await AnimalTimeline.findById(id);
+    const resource = await AnimalTimeline.findById(id);
 
-    if (!vaccine) {
+    if (!resource) {
       throw new ResourceNotFoundException('Vaccine not found');
     }
 
     const technician = await User.findOrFail(data.technicianId);
+    const vaccine = await Vaccine.findOrFail(data.vaccineId);
 
-    vaccine.timeline_info = {
+    resource.timeline_info = {
       tag: data.tag,
       name: data.name,
       technician: {
         id: technician.id,
         name: technician.name,
+      },
+      vaccine: {
+        id: vaccine.id,
+        name: vaccine.name,
+        description: vaccine.description,
+        type: vaccine.type,
       },
       expectedDate: data.expectedDate?.toJSDate(),
       applicationDate: data.applicationDate?.toJSDate(),
@@ -386,9 +401,9 @@ export default class TimelineService {
       batch: data.batch,
     };
 
-    await vaccine.save();
+    await resource.save();
 
-    return vaccine;
+    return resource;
   }
 
   public async examIndex(tag: string) {

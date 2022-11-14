@@ -18,6 +18,13 @@ export default class UpsertAnimalVaccineValidator {
     applicationDate: schema.date.optional({}, []),
     laboratory: schema.string.optional({}, []),
     batch: schema.string.optional({}, []),
+    vaccineId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'vaccines',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

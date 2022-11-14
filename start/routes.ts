@@ -389,7 +389,8 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
-    Route.post('/', 'TimelinesController.animalDocumentStore');
+    Route.post('/', 'TimelinesController.storeAnimalDocument');
+    Route.put('/:id', 'TimelinesController.updateAnimalDocument');
   }).prefix('documents');
 
   Route.group(() => {

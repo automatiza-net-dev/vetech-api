@@ -134,6 +134,39 @@ export default class TimelineService {
     });
   }
 
+  public async updateDocument(id: string, data: IAnimalDocument) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: DOCUMENT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          type: data.type,
+          value: data.value,
+          realizedAt: new Date(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      },
+    });
+  }
+
   public async pathologyIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: PATHOLOGY_UUID,

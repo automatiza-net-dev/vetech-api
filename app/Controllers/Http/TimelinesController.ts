@@ -45,9 +45,19 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.documentIndex(params.id));
   }
 
-  public async animalDocumentStore({ request, response }: HttpContextContract) {
+  public async storeAnimalDocument({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalDocumentValidator);
     await this.timelineService.storeDocument(payload);
+    return response.created();
+  }
+
+  public async updateAnimalDocument({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalDocumentValidator);
+    await this.timelineService.updateDocument(params.id, payload);
     return response.created();
   }
 

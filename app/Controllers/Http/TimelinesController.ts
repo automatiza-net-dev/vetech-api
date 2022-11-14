@@ -122,6 +122,11 @@ export default class TimelinesController {
     return response.created();
   }
 
+  public async deleteAnimalPhoto({ params, response }: HttpContextContract) {
+    await this.timelineService.deletePhoto(params.id);
+    return response.noContent();
+  }
+
   public async animalVaccineIndex({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.vaccineIndex(params.id));
   }

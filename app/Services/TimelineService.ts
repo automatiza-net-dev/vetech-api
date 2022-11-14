@@ -326,6 +326,10 @@ export default class TimelineService {
     });
   }
 
+  public async deletePhoto(id: string) {
+    return AnimalTimeline.findByIdAndDelete(id);
+  }
+
   public async vaccineIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: VACCINE_UUID,

@@ -3,7 +3,10 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import PaymentMethod from 'App/Models/PaymentMethod';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -111,4 +114,9 @@ export default class CheckingAccount extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @hasMany(() => PaymentMethod, {
+    foreignKey: 'checking_account_id',
+  })
+  public paymentMethods: HasMany<typeof PaymentMethod>;
 }

@@ -628,3 +628,21 @@ Route.group(() => {
 })
   .prefix('checking-accounts')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/tef-flags', 'PaymentMethodsController.searchTefFlags');
+  Route.get('/tef-acquirers', 'PaymentMethodsController.searchTefAcquirers');
+  Route.get('/partial', 'PaymentMethodsController.searchPartialPaymentMethods');
+  Route.get(
+    '/complete',
+    'PaymentMethodsController.searchCompletePaymentMethods',
+  );
+  Route.post('/create', 'PaymentMethodsController.createPaymentMethod');
+  Route.post(
+    '/create-flag',
+    'PaymentMethodsController.createPaymentMethodFlag',
+  );
+  Route.post('/create-fee', 'PaymentMethodsController.createPaymentMethodFee');
+})
+  .prefix('payment-methods')
+  .middleware('auth');

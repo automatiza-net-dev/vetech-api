@@ -28,3 +28,6 @@ client-origin:
 
 bank:
 	node ace db:seed --files "./database/seeders/BankSeeder.ts"
+	
+tef:
+	node ace db:seed --files "./database/seeders/TefSeeder.ts"

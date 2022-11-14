@@ -262,6 +262,39 @@ export default class TimelineService {
     });
   }
 
+  public async updateMedicalRecipe(id: string, data: IAnimalMedicalRecipe) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        timeline_id: RECIPE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          name: data.name,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          recipe: data.recipe,
+        },
+      },
+    });
+  }
+
   public async photoIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: PHOTO_UUID,

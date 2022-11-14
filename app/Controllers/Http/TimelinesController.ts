@@ -93,12 +93,22 @@ export default class TimelinesController {
     );
   }
 
-  public async animalMedicalRecipeStore({
+  public async storeAnimalMedicalRecipe({
     request,
     response,
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
     await this.timelineService.storeMedicalRecipe(payload);
+    return response.created();
+  }
+
+  public async updateAnimalMedicalRecipe({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
+    await this.timelineService.updateMedicalRecipe(params.id, payload);
     return response.created();
   }
 

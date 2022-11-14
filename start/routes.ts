@@ -401,7 +401,8 @@ Route.group(() => {
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalMedicalRecipeIndex');
-    Route.post('/', 'TimelinesController.animalMedicalRecipeStore');
+    Route.post('/', 'TimelinesController.storeAnimalMedicalRecipe');
+    Route.put('/:id', 'TimelinesController.updateAnimalMedicalRecipe');
   }).prefix('recipes');
 
   Route.group(() => {

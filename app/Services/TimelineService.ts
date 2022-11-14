@@ -6,6 +6,7 @@ import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
+import PatientExam from 'App/Models/PatientExam';
 import TimelineType, {
   APPOINTMENT_UUID,
   DOCUMENT_UUID,
@@ -418,6 +419,10 @@ export default class TimelineService {
 
     const requester = await User.findOrFail(data.requesterId);
     const technician = await User.findOrFail(data.technicianId);
+    const exam = await PatientExam.query()
+      .where('id', data.examId)
+      .preload('exam')
+      .firstOrFail();
 
     const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
 
@@ -440,6 +445,15 @@ export default class TimelineService {
         technician: {
           id: technician.id,
           name: technician.name,
+        },
+        exam: {
+          id: exam.id,
+          name: exam.exam.name,
+          description: exam.exam.description,
+          own_laboratory: exam.exam.ownLaboratory,
+          type: exam.exam.type,
+          result_data: exam.resultDate,
+          executed_at: exam.executedAt,
         },
         attachments: medias,
       },

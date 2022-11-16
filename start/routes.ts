@@ -654,6 +654,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/', 'FinancesController.index');
   Route.post('/create', 'FinancesController.storeFinance');
   Route.put('/update/:id', 'FinancesController.updateFinance');
   Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');

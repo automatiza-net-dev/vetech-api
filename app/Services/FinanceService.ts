@@ -19,6 +19,12 @@ import { DateTime } from 'luxon';
 export default class FinanceService {
   constructor(private sharedService: SharedService) {}
 
+  async index(unitId: string) {
+    const qb = Finance.query().where('business_unit_id', unitId);
+
+    return qb;
+  }
+
   async createFinance(unitId: string, user: User, data: IUpsertFinance) {
     const group = await this.sharedService.getUserGroup(unitId);
 

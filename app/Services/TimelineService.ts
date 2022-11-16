@@ -430,7 +430,9 @@ export default class TimelineService {
       .preload('exam')
       .firstOrFail();
 
-    const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
+    const medias = data.attachments
+      ? await Promise.all(data.attachments.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.create({
       timeline_id: EXAM_UUID,

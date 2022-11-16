@@ -23,7 +23,7 @@ export default class CreateAnimalExamValidator {
       }),
     ]),
     description: schema.string({}, []),
-    attachments: schema.array().members(schema.file({}, [])),
+    attachments: schema.array.optional().members(schema.file({}, [])),
     examId: schema.string({}, [
       rules.uuid(),
       rules.exists({

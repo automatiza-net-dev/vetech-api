@@ -15,6 +15,8 @@ export default class CreateAnimalPathologyValidator {
         column: 'id',
       }),
     ]),
+    description: schema.string({}, []),
+    defaultProtocol: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

@@ -5,4 +5,6 @@ export type IAnimalPathology = {
   pathology: string;
   realizedAt: DateTime;
   technicianId: string;
+  description: string;
+  defaultProtocol: string;
 };

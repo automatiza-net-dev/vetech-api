@@ -4,5 +4,5 @@ export interface ICreateObservation {
   tag: string;
   technicianId: string;
   observation: string;
-  medias: Array<MultipartFileContract>;
+  medias?: Array<MultipartFileContract>;
 }

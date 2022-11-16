@@ -21,7 +21,7 @@ export default class UpsertAnimalVaccineValidator {
     vaccineId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'vaccines',
+        table: 'patient_vaccines',
         column: 'id',
       }),
     ]),

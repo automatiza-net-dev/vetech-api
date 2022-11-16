@@ -5,4 +5,5 @@ export default interface ICreateAnimalPhoto {
   photo: MultipartFileContract;
   technicianId: string;
   observation?: string;
+  title?: string;
 }

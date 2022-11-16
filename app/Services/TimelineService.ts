@@ -7,6 +7,7 @@ import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import PatientExam from 'App/Models/PatientExam';
+import PatientVaccine from 'App/Models/PatientVaccine';
 import TimelineType, {
   APPOINTMENT_UUID,
   DOCUMENT_UUID,
@@ -20,7 +21,6 @@ import TimelineType, {
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import Vaccine from 'App/Models/Vaccine';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -69,6 +69,7 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        observation: data.observation,
       },
     });
   }
@@ -99,6 +100,7 @@ export default class TimelineService {
             id: technician.id,
             name: technician.name,
           },
+          observation: data.observation,
         },
       },
     });
@@ -196,6 +198,8 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        description: data.description,
+        defaultProtocol: data.defaultProtocol,
       },
     });
   }
@@ -227,6 +231,8 @@ export default class TimelineService {
             id: technician.id,
             name: technician.name,
           },
+          description: data.description,
+          defaultProtocol: data.defaultProtocol,
         },
       },
     });
@@ -320,6 +326,7 @@ export default class TimelineService {
         tag: data.tag,
         photo: await this.uploadPhoto(data.photo),
         observation: data.observation ?? '',
+        title: data.title ?? '',
         technician: {
           id: technician.id,
           name: technician.name,
@@ -343,7 +350,8 @@ export default class TimelineService {
     const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
-    const vaccine = await Vaccine.findOrFail(data.vaccineId);
+    const vaccine = await PatientVaccine.findOrFail(data.vaccineId);
+    await vaccine.load('calendars');
 
     return AnimalTimeline.create({
       timeline_id: VACCINE_UUID,
@@ -361,9 +369,8 @@ export default class TimelineService {
         },
         vaccine: {
           id: vaccine.id,
-          name: vaccine.name,
-          description: vaccine.description,
-          type: vaccine.type,
+          schedule: vaccine.schedule_id,
+          calendars: vaccine.calendars.map(c => c.id),
         },
         expectedDate: data.expectedDate?.toJSDate(),
         applicationDate: data.applicationDate?.toJSDate(),
@@ -381,7 +388,8 @@ export default class TimelineService {
     }
 
     const technician = await User.findOrFail(data.technicianId);
-    const vaccine = await Vaccine.findOrFail(data.vaccineId);
+    const vaccine = await PatientVaccine.findOrFail(data.vaccineId);
+    await vaccine.load('calendars');
 
     resource.timeline_info = {
       tag: data.tag,
@@ -392,9 +400,8 @@ export default class TimelineService {
       },
       vaccine: {
         id: vaccine.id,
-        name: vaccine.name,
-        description: vaccine.description,
-        type: vaccine.type,
+        schedule: vaccine.schedule_id,
+        calendars: vaccine.calendars.map(c => c.id),
       },
       expectedDate: data.expectedDate?.toJSDate(),
       applicationDate: data.applicationDate?.toJSDate(),
@@ -424,7 +431,9 @@ export default class TimelineService {
       .preload('exam')
       .firstOrFail();
 
-    const medias = await Promise.all(data.attachments.map(this.uploadPhoto));
+    const medias = data.attachments
+      ? await Promise.all(data.attachments.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.create({
       timeline_id: EXAM_UUID,
@@ -566,7 +575,9 @@ export default class TimelineService {
 
     const technician = await User.findOrFail(data.technicianId);
 
-    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+    const medias = data.medias
+      ? await Promise.all(data.medias.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.create({
       timeline_id: OBSERVATION_UUID,
@@ -598,7 +609,9 @@ export default class TimelineService {
 
     const technician = await User.findOrFail(data.technicianId);
 
-    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+    const medias = data.medias
+      ? await Promise.all(data.medias.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {

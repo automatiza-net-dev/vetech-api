@@ -652,3 +652,12 @@ Route.group(() => {
 })
   .prefix('payment-methods')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/create', 'FinancesController.storeFinance');
+  Route.put('/update/:id', 'FinancesController.updateFinance');
+  Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
+  Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
+})
+  .prefix('finances')
+  .middleware('auth');

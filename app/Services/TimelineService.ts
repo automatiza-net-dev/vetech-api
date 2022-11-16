@@ -326,6 +326,7 @@ export default class TimelineService {
         tag: data.tag,
         photo: await this.uploadPhoto(data.photo),
         observation: data.observation ?? '',
+        title: data.title ?? '',
         technician: {
           id: technician.id,
           name: technician.name,

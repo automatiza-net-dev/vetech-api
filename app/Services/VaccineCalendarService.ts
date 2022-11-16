@@ -100,7 +100,7 @@ export default class VaccineCalendarService {
       applicationDate: calendar.applicationDate ?? DateTime.now(),
       laboratory: calendar.laboratory ?? '',
       batch: calendar.batch ?? '',
-      vaccineId: calendar.patientVaccine.vaccine.id,
+      vaccineId: calendar.patientVaccine.id,
     });
 
     return calendar;

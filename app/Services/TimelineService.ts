@@ -575,7 +575,9 @@ export default class TimelineService {
 
     const technician = await User.findOrFail(data.technicianId);
 
-    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+    const medias = data.medias
+      ? await Promise.all(data.medias.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.create({
       timeline_id: OBSERVATION_UUID,
@@ -607,7 +609,9 @@ export default class TimelineService {
 
     const technician = await User.findOrFail(data.technicianId);
 
-    const medias = await Promise.all(data.medias.map(this.uploadPhoto));
+    const medias = data.medias
+      ? await Promise.all(data.medias.map(this.uploadPhoto))
+      : [];
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {

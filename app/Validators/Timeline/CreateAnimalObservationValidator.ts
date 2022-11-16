@@ -13,7 +13,7 @@ export default class CreateAnimalObservationValidator {
         column: 'id',
       }),
     ]),
-    medias: schema.array().members(schema.file({})),
+    medias: schema.array.optional().members(schema.file({})),
     observation: schema.string({}, []),
   });
 

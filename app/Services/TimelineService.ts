@@ -7,6 +7,7 @@ import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import PatientExam from 'App/Models/PatientExam';
+import PatientVaccine from 'App/Models/PatientVaccine';
 import TimelineType, {
   APPOINTMENT_UUID,
   DOCUMENT_UUID,
@@ -20,7 +21,6 @@ import TimelineType, {
   WEIGHT_UUID,
 } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import Vaccine from 'App/Models/Vaccine';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -350,7 +350,8 @@ export default class TimelineService {
     const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
-    const vaccine = await Vaccine.findOrFail(data.vaccineId);
+    const vaccine = await PatientVaccine.findOrFail(data.vaccineId);
+    await vaccine.load('calendars');
 
     return AnimalTimeline.create({
       timeline_id: VACCINE_UUID,
@@ -368,9 +369,8 @@ export default class TimelineService {
         },
         vaccine: {
           id: vaccine.id,
-          name: vaccine.name,
-          description: vaccine.description,
-          type: vaccine.type,
+          schedule: vaccine.schedule_id,
+          calendars: vaccine.calendars.map(c => c.id),
         },
         expectedDate: data.expectedDate?.toJSDate(),
         applicationDate: data.applicationDate?.toJSDate(),
@@ -388,7 +388,8 @@ export default class TimelineService {
     }
 
     const technician = await User.findOrFail(data.technicianId);
-    const vaccine = await Vaccine.findOrFail(data.vaccineId);
+    const vaccine = await PatientVaccine.findOrFail(data.vaccineId);
+    await vaccine.load('calendars');
 
     resource.timeline_info = {
       tag: data.tag,
@@ -399,9 +400,8 @@ export default class TimelineService {
       },
       vaccine: {
         id: vaccine.id,
-        name: vaccine.name,
-        description: vaccine.description,
-        type: vaccine.type,
+        schedule: vaccine.schedule_id,
+        calendars: vaccine.calendars.map(c => c.id),
       },
       expectedDate: data.expectedDate?.toJSDate(),
       applicationDate: data.applicationDate?.toJSDate(),

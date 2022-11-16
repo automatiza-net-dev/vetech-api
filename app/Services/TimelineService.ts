@@ -69,6 +69,7 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        observation: data.observation,
       },
     });
   }
@@ -99,6 +100,7 @@ export default class TimelineService {
             id: technician.id,
             name: technician.name,
           },
+          observation: data.observation,
         },
       },
     });

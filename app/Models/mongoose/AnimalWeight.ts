@@ -5,4 +5,5 @@ export type IAnimalWeight = {
   weight: number;
   realizedAt: DateTime;
   technicianId: string;
+  observation: string;
 };

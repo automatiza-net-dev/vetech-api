@@ -196,6 +196,8 @@ export default class TimelineService {
           id: technician.id,
           name: technician.name,
         },
+        description: data.description,
+        defaultProtocol: data.defaultProtocol,
       },
     });
   }
@@ -227,6 +229,8 @@ export default class TimelineService {
             id: technician.id,
             name: technician.name,
           },
+          description: data.description,
+          defaultProtocol: data.defaultProtocol,
         },
       },
     });

@@ -8,51 +8,26 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export enum FinanceType {
+export enum BankingType {
   C = 'CREDITO',
   D = 'DEBITO',
 }
 
-export enum FinanceAccept {
-  S = 'SIM',
-  N = 'NAO',
-}
-
-export enum FinanceOriginFlag {
-  C = 'CAIXA_DIARIO',
-  B = 'BANCARIO',
+export enum BankingOriginFlag {
   F = 'FINANCEIRO',
-  E = 'NOTA_ENTRADA',
-  S = 'NOTA_SAIDA',
-}
-
-export enum FinanceOriginDownFlag {
-  C = 'CAIXA_DIARIO',
   B = 'BANCARIO',
-  F = 'FINANCEIRO',
 }
 
-export enum FinanceStatus {
-  A = 'ABERTO',
+export enum BankingStatus {
   B = 'BAIXADO',
 }
 
-export default class Finance extends BaseModel {
+export default class Banking extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
-  public type: FinanceType;
-
-  @column({
-    columnName: 'fee_discount_value',
-  })
-  public feeDiscountValue: number;
-
-  @column({
-    columnName: 'fee_discount_percentage',
-  })
-  public feeDiscountPercentage: number;
+  public type: BankingType;
 
   @column()
   public document: string;
@@ -63,43 +38,20 @@ export default class Finance extends BaseModel {
   @column()
   public historic: string;
 
-  @column.dateTime({
+  @column({
     columnName: 'issue_date',
   })
   public issueDate: DateTime;
 
-  @column.dateTime({
-    columnName: 'expiration_date',
-  })
-  public expirationDate: DateTime;
-
-  @column.dateTime({
-    columnName: 'payment_date',
-  })
-  public paymentDate: DateTime;
-
-  @column.dateTime({
-    columnName: 'down_date',
-  })
-  public downDate: DateTime;
-
   @column({
-    columnName: 'original_value',
+    columnName: 'document_value',
   })
-  public originalValue: number;
-
-  @column()
-  public value: number;
+  public documentValue: number;
 
   @column({
     columnName: 'total_value',
   })
   public totalValue: number;
-
-  @column({
-    columnName: 'payment_value',
-  })
-  public paymentValue: number;
 
   @column({
     columnName: 'fee_value',
@@ -122,38 +74,36 @@ export default class Finance extends BaseModel {
   public discountPercentage: number;
 
   @column({
-    columnName: 'addition_value',
+    columnName: 'payment_method_discount_value',
   })
-  public additionValue: number;
+  public paymentMethodDiscountValue: number;
 
   @column({
-    columnName: 'addition_percentage',
+    columnName: 'payment_method_discount_percentage',
   })
-  public additionPercentage: number;
+  public paymentMethodDiscountPercentage: number;
 
   @column()
-  public observation: string;
+  public balance: number;
+
+  @column({
+    columnName: 'prev_balance',
+  })
+  public prevBalance: number;
 
   @column({
     columnName: 'origin_flag',
   })
-  public originFlag: FinanceOriginFlag;
-
-  @column({
-    columnName: 'origin_down_flag',
-  })
-  public originDownFlag: FinanceOriginDownFlag;
+  public originFlag: BankingOriginFlag;
 
   @column()
-  public accept: FinanceAccept;
-
-  @column({
-    columnName: 'reversal_reason',
-  })
-  public reversalReason: string;
+  public reconciled: boolean;
 
   @column()
-  public status: FinanceStatus;
+  public observation: string;
+
+  @column()
+  public status: BankingStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -207,15 +157,15 @@ export default class Finance extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public finance_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public account_plan_id: string;
 
   @column({
     serializeAs: null,
   })
   public payment_method_id: string;
-
-  @column({
-    serializeAs: null,
-  })
-  public banking_id: string;
 }

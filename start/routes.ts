@@ -662,3 +662,11 @@ Route.group(() => {
 })
   .prefix('finances')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'BankingsController.index');
+  Route.post('/create', 'BankingsController.storeBanking');
+  Route.put('/update/:id', 'BankingsController.updateBanking');
+})
+  .prefix('bankings')
+  .middleware('auth');

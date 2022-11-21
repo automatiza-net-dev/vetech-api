@@ -51,9 +51,7 @@ export default class BankingService {
         (data.feeValue || 0) -
         (data.discountValue || 0) -
         discount;
-      const prevBalance = parseFloat(
-        checkingAccount.balance as unknown as string,
-      );
+      const prevBalance = checkingAccount.balance;
 
       const finance = await Finance.create(
         {
@@ -147,8 +145,7 @@ export default class BankingService {
 
       await checkingAccount
         .merge({
-          balance:
-            parseFloat(checkingAccount.balance as unknown as string) + total,
+          balance: checkingAccount.balance + total,
         })
         .useTransaction(trx)
         .save();
@@ -192,9 +189,7 @@ export default class BankingService {
       (data.feeValue || 0) -
       (data.discountValue || 0) -
       discount;
-    const prevBalance = parseFloat(
-      checkingAccount.balance as unknown as string,
-    );
+    const prevBalance = checkingAccount.balance;
 
     banking
       .merge({

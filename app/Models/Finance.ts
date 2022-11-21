@@ -58,6 +58,9 @@ export default class Finance extends BaseModel {
   public document: string;
 
   @column()
+  public reconciled: boolean;
+
+  @column()
   public installment: number;
 
   @column()

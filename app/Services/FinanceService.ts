@@ -298,7 +298,7 @@ export default class FinanceService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const checkingAccount = await CheckingAccount.findOrFail(
+    const checkingAccount = await CheckingAccount.find(
       finance.checking_account_id,
     );
 
@@ -332,8 +332,8 @@ export default class FinanceService {
           originFlag: BankingOriginFlag.F,
           observation: finance.observation,
           status: BankingStatus.B,
-          prevBalance: checkingAccount.balance,
-          balance: checkingAccount.balance + finance.value,
+          prevBalance: checkingAccount?.balance ?? 0,
+          balance: checkingAccount?.balance ?? 0 + finance.value,
         },
         {
           client: trx,

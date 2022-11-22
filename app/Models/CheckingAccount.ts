@@ -68,15 +68,15 @@ export default class CheckingAccount extends BaseModel {
   })
   public managerEmail: string;
 
-  // decimal :)
   @column({
     serialize: parseFloat,
+    consume: parseFloat,
   })
   public limit: number;
 
-  // decimal :)
   @column({
     serialize: parseFloat,
+    consume: parseFloat,
   })
   public balance: number;
 

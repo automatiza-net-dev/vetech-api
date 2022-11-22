@@ -158,4 +158,9 @@ export default class FinanceReversal extends BaseModel {
     serializeAs: null,
   })
   public payment_method_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public banking_id: string;
 }

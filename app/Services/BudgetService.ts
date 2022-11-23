@@ -172,8 +172,6 @@ export default class BudgetService {
       qb.where('referenceCode', 'ilike', `%${data.reference}%`);
     }
 
-    console.log(qb.toQuery());
-
     qb.preload('variations', query => {
       query.preload('businessUnitProducts', query => {
         query.where('businness_unit_id', unitId);

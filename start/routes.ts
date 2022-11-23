@@ -670,3 +670,17 @@ Route.group(() => {
 })
   .prefix('bankings')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/products', 'BudgetsController.searchProducts');
+  Route.get('/partial', 'BudgetsController.partialIndex');
+  Route.get('/complete', 'BudgetsController.completeIndex');
+  Route.post('/create', 'BudgetsController.createBudget');
+  Route.post('/create-item', 'BudgetsController.createBudgetItem');
+  Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');
+  Route.put('/cancel/:id', 'BudgetsController.cancelBudget');
+  Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
+  // Route.put('/update/:id', 'BankingsController.updateBanking');
+})
+  .prefix('budgets')
+  .middleware('auth');

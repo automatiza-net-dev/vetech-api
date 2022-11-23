@@ -13,6 +13,21 @@ export default class extends BaseSeeder {
       type: 'RA',
       requiresObservation: true,
     },
+    {
+      reason: 'Cliente desistiu do Orçamento',
+      type: 'OR',
+      requiresObservation: false,
+    },
+    {
+      reason: 'Orçamento ficou muito Caro',
+      type: 'OR',
+      requiresObservation: false,
+    },
+    {
+      reason: 'Outros',
+      type: 'OR',
+      requiresObservation: true,
+    },
   ];
   public async run() {
     await Reason.fetchOrCreateMany('reason', this.BASE);

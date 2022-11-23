@@ -49,7 +49,9 @@ export default class ProductVariation extends BaseModel {
   @column()
   public product_id: string;
 
-  @belongsTo(() => Product, {})
+  @belongsTo(() => Product, {
+    foreignKey: 'product_id',
+  })
   public product: BelongsTo<typeof Product>;
 
   @hasMany(() => BusinessUnitProduct, {

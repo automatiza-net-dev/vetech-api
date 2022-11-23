@@ -26,6 +26,10 @@ export interface IUpdateBudgetItemData {
   discountValue: number;
 }
 
+export interface IConfirmBudgetData {
+  finishedAt: DateTime;
+}
+
 export interface ICancelBudgetData {
   reasonId: string;
   finishedAt: DateTime;

@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BudgetService from 'App/Services/BudgetService';
 import SharedService from 'App/Services/SharedService';
 import CancelBudgetValidator from 'App/Validators/Budget/CancelBudgetValidator';
+import ConfirmBudgetValidator from 'App/Validators/Budget/ConfirmBudgetValidator';
 import CreateBudgetItemValidator from 'App/Validators/Budget/CreateBudgetItemValidator';
 import CreateBudgetValidator from 'App/Validators/Budget/CreateBudgetValidator';
 import UpdateBudgetItemValidator from 'App/Validators/Budget/UpdateBudgetItemValidator';
@@ -102,6 +103,20 @@ export default class BudgetsController {
     );
 
     return response.ok(result);
+  }
+
+  public async confirmBudget({
+    params,
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(ConfirmBudgetValidator);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    await this.service.confirmBudget(unit_id, params.id, user, payload);
+
+    return response.noContent();
   }
 
   public async cancelBudget({

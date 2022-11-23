@@ -166,6 +166,23 @@ test.group('Budget resource', group => {
     assert.notEqual(response.body().total_value, budgetItem.totalValue);
   });
 
+  test('should confirm budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/confirm/${budget.id}`)
+      .json({
+        finishedAt: new Date(),
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should cancel budget', async ({ assert, client }) => {
     const { user, budget } = await createData();
     const token = await generateJwtToken(client, {

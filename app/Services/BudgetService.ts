@@ -6,6 +6,7 @@ import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import {
   ICancelBudgetData,
+  IConfirmBudgetData,
   ICreateBudgetData,
   ICreateBudgetItemData,
   IUpdateBudgetItemData,
@@ -266,6 +267,30 @@ export default class BudgetService {
         discountValue: data.discountValue,
         quantity: data.quantity,
         totalValue: data.quantity * data.unitaryValue - data.discountValue,
+      })
+      .save();
+  }
+
+  public async confirmBudget(
+    unitId: string,
+    id: string,
+    user: User,
+    data: IConfirmBudgetData,
+  ) {
+    const model = await Budget.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!model) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return model
+      .merge({
+        conclusion_user_id: user.id,
+        finishedAt: data.finishedAt,
+        status: BudgetStatus.C,
       })
       .save();
   }

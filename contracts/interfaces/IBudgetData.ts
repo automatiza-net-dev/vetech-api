@@ -28,6 +28,6 @@ export interface IUpdateBudgetItemData {
 
 export interface ICancelBudgetData {
   reasonId: string;
-  canceledAt: DateTime;
+  finishedAt: DateTime;
   canceledObservation: string;
 }

@@ -63,9 +63,9 @@ export default class Budget extends BaseModel {
   public observation: string;
 
   @column.dateTime({
-    columnName: 'canceled_at',
+    columnName: 'finished_at',
   })
-  public canceledAt: DateTime;
+  public finishedAt: DateTime;
 
   @column({
     columnName: 'canceled_observation',
@@ -157,12 +157,12 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public cancelation_user_id: string;
+  public conclusion_user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'cancelation_user_id',
+    foreignKey: 'conclusion_user_id',
   })
-  public cancelationUser: BelongsTo<typeof User>;
+  public conclusionUser: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

@@ -14,7 +14,7 @@ export default class extends BaseSchema {
       table.uuid('seller_id').references('users.id');
       table.uuid('daily_movement_id').references('daily_movements.id');
       table.uuid('daily_cashier_id').references('daily_cashiers.id');
-      table.uuid('cancelation_user_id').references('users.id');
+      table.uuid('conclusion_user_id').references('users.id');
       table.uuid('cancelation_reason_id').references('reasons.id');
 
       table.datetime('budget_date');
@@ -24,7 +24,7 @@ export default class extends BaseSchema {
       table.float('discount_value');
       table.float('total_value');
       table.text('observation');
-      table.datetime('canceled_at');
+      table.datetime('finished_at');
       table.text('canceled_observation');
       table.string('status');
 

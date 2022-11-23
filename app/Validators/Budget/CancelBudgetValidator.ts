@@ -9,7 +9,7 @@ export default class CancelBudgetValidator {
       rules.uuid(),
       rules.exists({ table: 'reasons', column: 'id' }),
     ]),
-    canceledAt: schema.date(),
+    finishedAt: schema.date(),
     canceledObservation: schema.string(),
   });
 

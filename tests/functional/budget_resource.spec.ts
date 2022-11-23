@@ -177,7 +177,7 @@ test.group('Budget resource', group => {
       .put(`/budgets/cancel/${budget.id}`)
       .json({
         reasonId: 'e8a489fa-23ca-47f0-865d-5d7f463dd1c2',
-        canceledAt: new Date(),
+        finishedAt: new Date(),
         canceledObservation: 'some observation',
       })
       .bearerToken(token);

@@ -74,7 +74,7 @@ export default class BudgetService {
     qb.preload('seller');
     qb.preload('dailyMovement');
     qb.preload('dailyCashier');
-    qb.preload('cancelationUser');
+    qb.preload('conclusionUser');
     qb.preload('cancelationReason');
 
     return qb;
@@ -94,7 +94,7 @@ export default class BudgetService {
     qb.preload('seller');
     qb.preload('dailyMovement');
     qb.preload('dailyCashier');
-    qb.preload('cancelationUser');
+    qb.preload('conclusionUser');
     qb.preload('cancelationReason');
     qb.preload('items', query => {
       query.preload('productVariation', query => {
@@ -287,8 +287,8 @@ export default class BudgetService {
 
     return model
       .merge({
-        cancelation_user_id: user.id,
-        canceledAt: data.canceledAt,
+        conclusion_user_id: user.id,
+        finishedAt: data.finishedAt,
         cancelation_reason_id: data.reasonId,
         canceledObservation: data.canceledObservation,
         status: BudgetStatus.N,

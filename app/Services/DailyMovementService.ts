@@ -11,12 +11,17 @@ import {
 import { isSameDay } from 'date-fns';
 import { DateTime } from 'luxon';
 
+interface ISearch {
+  from?: string;
+  to?: string;
+}
+
 @inject()
 export default class DailyMovementService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
-  async index(unitId: string) {
-    return DailyMovement.query()
+  async index(unitId: string, data: ISearch) {
+    const qb = DailyMovement.query()
       .where('business_unit_id', unitId)
       .orderBy('openingDate', 'desc')
       .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
@@ -31,6 +36,16 @@ export default class DailyMovementService {
           query.select('id', 'name', 'email');
         });
       });
+
+    if (data.from) {
+      qb.where('created_at', '>=', data.from);
+    }
+
+    if (data.to) {
+      qb.where('created_at', '<=', data.to);
+    }
+
+    return qb;
   }
 
   async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
@@ -208,6 +223,7 @@ export default class DailyMovementService {
     dailyMovement.observations = dailyMovement.observations
       ? `${dailyMovement.observations} - ${data.observations}`
       : data.observations;
+    dailyMovement.checkingDate = DateTime.now();
 
     return dailyMovement.save();
   }

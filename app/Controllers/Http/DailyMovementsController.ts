@@ -11,11 +11,16 @@ export default class DailyMovementsController {
   constructor(
     private sharedService: SharedService,
     private service: DailyMovementService,
-  ) {}
+  ) { }
 
-  public async index({ auth, response }) {
+  public async index({ auth, request, response }) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const dailyMovements = await this.service.index(unit_id);
+
+    const qs = request.qs();
+    const dailyMovements = await this.service.index(unit_id, {
+      from: qs.from,
+      to: qs.to,
+    });
 
     return response.ok(dailyMovements);
   }

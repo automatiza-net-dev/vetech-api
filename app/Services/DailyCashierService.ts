@@ -15,15 +15,18 @@ import {
   IOpenCashierData,
   IReviewCashierData,
 } from 'Contracts/interfaces/IDailyCashierData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
-  movement: string;
-  status: string;
+  movement?: string;
+  status?: string;
+  from?: string;
+  to?: string;
 }
 
 @inject()
 export default class DailyCashierService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const query = DailyCashier.query()
@@ -36,12 +39,20 @@ export default class DailyCashierService {
 
     if (data.movement) {
       query.whereHas('dailyMovement', builder => {
-        builder.where('id', data.movement);
+        builder.where('id', data.movement as string);
       });
     }
 
     if (data.status) {
       query.where('status', data.status);
+    }
+
+    if (data.from) {
+      query.where('created_at', '>=', data.from);
+    }
+
+    if (data.to) {
+      query.where('created_at', '<=', data.to);
     }
 
     return query;
@@ -211,13 +222,16 @@ export default class DailyCashierService {
       );
     }
 
-    dailyCashier.merge({
-      user_who_checked_id: data.userId,
-      status: DailyCashierStatus.C,
-      observations: [dailyCashier.observations, data.observations].join(' - '),
-    });
-
-    return dailyCashier.save();
+    return dailyCashier
+      .merge({
+        user_who_checked_id: data.userId,
+        status: DailyCashierStatus.C,
+        observations: [dailyCashier.observations, data.observations].join(
+          ' - ',
+        ),
+        checkingDate: DateTime.now(),
+      })
+      .save();
   }
 
   async reviewDailyCashier(

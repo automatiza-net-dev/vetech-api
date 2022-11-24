@@ -14,7 +14,7 @@ export default class DailyCashiersController {
   constructor(
     private sharedService: SharedService,
     private service: DailyCashierService,
-  ) {}
+  ) { }
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -22,6 +22,8 @@ export default class DailyCashiersController {
     const dailyMovement = await this.service.index(unit_id, {
       movement: qs.movement,
       status: qs.status,
+      from: qs.from,
+      to: qs.to,
     });
 
     return response.ok(dailyMovement);

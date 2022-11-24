@@ -18,8 +18,10 @@ import {
 import { DateTime } from 'luxon';
 
 interface ISearch {
-  movement: string;
-  status: string;
+  movement?: string;
+  status?: string;
+  from?: string;
+  to?: string;
 }
 
 @inject()
@@ -37,12 +39,20 @@ export default class DailyCashierService {
 
     if (data.movement) {
       query.whereHas('dailyMovement', builder => {
-        builder.where('id', data.movement);
+        builder.where('id', data.movement as string);
       });
     }
 
     if (data.status) {
       query.where('status', data.status);
+    }
+
+    if (data.from) {
+      query.where('created_at', '>=', data.from);
+    }
+
+    if (data.to) {
+      query.where('created_at', '<=', data.to);
     }
 
     return query;

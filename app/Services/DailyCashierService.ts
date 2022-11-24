@@ -15,6 +15,7 @@ import {
   IOpenCashierData,
   IReviewCashierData,
 } from 'Contracts/interfaces/IDailyCashierData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   movement: string;
@@ -23,7 +24,7 @@ interface ISearch {
 
 @inject()
 export default class DailyCashierService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const query = DailyCashier.query()
@@ -211,13 +212,16 @@ export default class DailyCashierService {
       );
     }
 
-    dailyCashier.merge({
-      user_who_checked_id: data.userId,
-      status: DailyCashierStatus.C,
-      observations: [dailyCashier.observations, data.observations].join(' - '),
-    });
-
-    return dailyCashier.save();
+    return dailyCashier
+      .merge({
+        user_who_checked_id: data.userId,
+        status: DailyCashierStatus.C,
+        observations: [dailyCashier.observations, data.observations].join(
+          ' - ',
+        ),
+        checkingDate: DateTime.now(),
+      })
+      .save();
   }
 
   async reviewDailyCashier(

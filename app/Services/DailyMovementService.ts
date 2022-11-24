@@ -13,7 +13,7 @@ import { DateTime } from 'luxon';
 
 @inject()
 export default class DailyMovementService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string) {
     return DailyMovement.query()
@@ -208,6 +208,7 @@ export default class DailyMovementService {
     dailyMovement.observations = dailyMovement.observations
       ? `${dailyMovement.observations} - ${data.observations}`
       : data.observations;
+    dailyMovement.checkingDate = DateTime.now();
 
     return dailyMovement.save();
   }

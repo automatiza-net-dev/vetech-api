@@ -685,3 +685,13 @@ Route.group(() => {
 })
   .prefix('budgets')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/create', 'BillsController.createBill');
+  Route.post('/create-item', 'BillsController.createBillItem');
+  Route.post('/create-payment', 'BillsController.createBillPayment');
+  Route.get('/products', 'BillsController.searchProducts');
+  Route.get('/taxes', 'BillsController.searchTax');
+})
+  .prefix('bills')
+  .middleware('auth');

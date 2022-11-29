@@ -1,5 +1,5 @@
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
-import { ProductType } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductType } from 'App/Models/Product';
 
 interface IPrice {
   maximumStock: number;
@@ -34,6 +34,7 @@ export default interface IProductData {
   cest?: string;
   features?: string;
   unitId?: string;
+  icmsOrigin?: typeof ProductIcmsOrigin[number];
   active: boolean;
   variationGroup: string;
   groupId?: string;

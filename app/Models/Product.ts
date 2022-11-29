@@ -23,6 +23,18 @@ export enum ProductType {
   PRODUCT = 'product',
 }
 
+export const ProductIcmsOrigin = [
+  '0',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+] as const;
+
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -51,6 +63,11 @@ export default class Product extends BaseModel {
 
   @column()
   public features: string;
+
+  @column({
+    columnName: 'icms_origin',
+  })
+  public icmsOrigin: typeof ProductIcmsOrigin[number];
 
   @column()
   public active: boolean;

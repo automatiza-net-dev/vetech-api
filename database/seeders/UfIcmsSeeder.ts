@@ -3747,10 +3747,20 @@ export default class extends BaseSeeder {
     // Cleanup
     await UfIcms.query().delete();
 
-    const payload: Array<Partial<UfIcms>> = [];
-
     const from = DateTime.now().startOf('year');
     const to = DateTime.now().endOf('year');
+
+    const payload: Array<Partial<UfIcms>> = [
+      {
+        validFrom: from,
+        validTo: to,
+        originUf: 'EX',
+        destinationUf: 'EX',
+        icmsPercentage: 4,
+        fcpIcms: 0,
+        active: true,
+      },
+    ];
 
     // eslint-disable-next-line no-restricted-syntax
     for (const key of UFKeys) {

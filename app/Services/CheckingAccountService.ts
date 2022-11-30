@@ -10,12 +10,30 @@ import {
   IUpdateCheckingAccountData,
 } from 'Contracts/interfaces/ICheckingAccountData';
 
+interface ISearch {
+  name?: string;
+  bank?: string;
+  type?: string;
+}
+
 @inject()
 export default class CheckingAccountService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string) {
-    const qb = await CheckingAccount.query().where('business_unit_id', unitId);
+  public async index(unitId: string, data: ISearch) {
+    const qb = CheckingAccount.query().where('business_unit_id', unitId);
+
+    if (data.name) {
+      qb.where('description', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.bank) {
+      qb.where('bankName', 'ilike', `%${data.bank}%`);
+    }
+
+    if (data.type) {
+      qb.where('type', `%${data.type}%`);
+    }
 
     return qb;
   }

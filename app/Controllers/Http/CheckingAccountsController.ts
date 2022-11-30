@@ -13,9 +13,15 @@ export default class CheckingAccountsController {
     private service: CheckingAccountService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const account = await this.service.index(unit_id);
+
+    const qs = request.qs();
+    const account = await this.service.index(unit_id, {
+      name: qs.name,
+      bank: qs.bank,
+      type: qs.type,
+    });
 
     return response.ok(account);
   }

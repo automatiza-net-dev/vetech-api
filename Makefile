@@ -31,3 +31,6 @@ bank:
 	
 tef:
 	node ace db:seed --files "./database/seeders/TefSeeder.ts"
+	
+icms:
+	node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"

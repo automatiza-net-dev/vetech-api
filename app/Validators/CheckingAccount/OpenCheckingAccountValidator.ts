@@ -3,7 +3,7 @@ import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
 import { CheckingAccountType } from 'App/Models/CheckingAccount';
 
 export default class OpenCheckingAccountValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     description: schema.string(),
@@ -12,6 +12,12 @@ export default class OpenCheckingAccountValidator {
     bankName: schema.string(),
     agency: schema.string(),
     type: schema.enum(Object.values(CheckingAccountType)),
+
+    agencyPhone: schema.string.optional(),
+    managerName: schema.string.optional(),
+    managerPhone: schema.string.optional(),
+    managerEmail: schema.string.optional(),
+    limit: schema.number.optional(),
   });
 
   public messages: CustomMessages = {};

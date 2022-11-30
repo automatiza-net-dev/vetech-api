@@ -8,8 +8,13 @@ export interface IOpenCheckingAccountData {
   accountNumber: string;
   bankCode: string;
   bankName: string;
-  agency: string;
   type: CheckingAccountType;
+  agency: string;
+  agencyPhone?: string;
+  managerName?: string;
+  managerPhone?: string;
+  managerEmail?: string;
+  limit?: number;
 }
 
 export interface IUpdateCheckingAccountData {

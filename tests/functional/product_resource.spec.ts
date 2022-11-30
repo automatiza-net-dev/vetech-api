@@ -48,6 +48,7 @@ test.group('Product resource', group => {
       active: true,
       economic_group_id: group.id,
       variation_group_id: variationGroup.id,
+      icmsOrigin: '0',
     });
 
     return {
@@ -95,6 +96,7 @@ test.group('Product resource', group => {
         cest: 'some cest',
         features: 'some features',
         unitId: unit.id,
+        icmsOrigin: '0',
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
@@ -153,6 +155,7 @@ test.group('Product resource', group => {
         cest: 'some cest',
         features: 'some features',
         unitId: unit.id,
+        icmsOrigin: '0',
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
@@ -255,6 +258,7 @@ test.group('Product resource', group => {
         active: true,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
+        icmsOrigin: '0',
       })
       .bearerToken(token);
 

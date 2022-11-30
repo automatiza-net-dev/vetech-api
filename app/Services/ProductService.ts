@@ -142,6 +142,7 @@ export default class ProductService {
           cest: data.cest,
           features: data.features,
           unit_id: data.unitId,
+          icmsOrigin: data.icmsOrigin,
           economic_group_id: group.id,
           variation_group_id: variationGroup.id,
           group_id: data.groupId,

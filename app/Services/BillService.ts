@@ -1,11 +1,14 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BillItem from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
 import Product from 'App/Models/Product';
+import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule from 'App/Models/TaxationGroupRule';
+import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import {
@@ -68,7 +71,36 @@ export default class BillService {
     const rule = await TaxationGroupRule.findOrFail(data.taxationGroupRuleId);
     await rule.load('taxOperation');
 
+    const ufIcms = await UfIcms.query()
+      .where('origin_uf', rule.fromUf)
+      .where('destination_uf', rule.fromUf)
+      .first();
+    if (!ufIcms) {
+      throw new InternalErrorException(
+        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    const productVariation = await ProductVariation.query()
+      .where('id', data.productVariationId)
+      .preload('product')
+      .firstOrFail();
+
     return Database.transaction(async trx => {
+      const totalValue = data.unitaryValue * data.quantity - data.discountValue;
+      const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
+      const icmsStBase =
+        icmsBase *
+        ((100 + rule.ivaIcmsSt) / 100) *
+        ((100 - rule.icmsPercRedBaseCalculo) / 100);
+      const icmsValue =
+        icmsBase *
+        ((rule.icmsPercRedBaseCalculo *
+          ((100 - rule.icmsPercRedAliquota) / 100)) /
+          100);
+
       const billItem = await BillItem.create(
         {
           economic_group_id: group.id,
@@ -82,42 +114,43 @@ export default class BillService {
           saleValue: data.saleValue,
           unitaryValue: data.unitaryValue,
           discountValue: data.discountValue,
-          totalValue: data.unitaryValue * data.quantity - data.discountValue,
+          totalValue,
           status: BillStatus.A,
           createdAt: bill.createdAt,
 
           fiscalOperationCode: rule.taxOperation.code,
+          icmsOriginProduct: productVariation.product.icmsOrigin,
           icmsCst: rule.icmsCst,
-          icmsBase: 0,
+          icmsBase,
           icmsPercentage: rule.icmsPerc,
-          icmsValue: 0,
+          icmsValue,
           icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          icmsStBase: 0,
+          icmsStBase,
           icmsStPercentageRedBase: rule.icmsPercRedAliquota,
           icmsStIva: rule.icmsPercRedAliquota,
           icmsStPercentageUfDestination: 0,
-          icmsStValue: 0,
+          icmsStValue: icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue,
           issCst: '',
-          issBase: 0,
+          issBase: rule.icmsPerc,
           issPercentage: rule.icmsPercRedAliquota,
           issValue: 0,
           pisBase: 0,
-          pisPercentage: rule.icmsPercRedAliquota,
+          pisPercentage: rule.pisPerc,
           pisValue: 0,
           pisRetentionValue: 0,
           cofinsBase: 0,
-          cofinsPercentage: rule.icmsPercRedAliquota,
+          cofinsPercentage: rule.cofinsPerc,
           cofinsValue: 0,
           cofinsRetentionValue: 0,
           ipiBase: 0,
-          ipiPercentage: rule.icmsPercRedAliquota,
+          ipiPercentage: rule.ipiPerc,
           ipiValue: 0,
           icmsDeferredValue: 0,
           icmsPartitionValue: 0,
-          icmsFcpPercentage: rule.icmsPercRedAliquota,
+          icmsFcpPercentage: rule.fcpPerc,
           icmsFcpValue: 0,
-          icmsPartitionOriginUfPercentage: rule.icmsPercRedAliquota,
+          icmsPartitionOriginUfPercentage: rule.icmsPerc,
           icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
           icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
         },

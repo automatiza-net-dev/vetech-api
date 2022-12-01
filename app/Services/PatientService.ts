@@ -334,6 +334,7 @@ export default class PatientService {
       );
 
       await patient.related('tutor').create({
+        residence: data.residence,
         document: data.document,
         inscription: data.inscription,
         corporateName: data.corporate_name,
@@ -447,6 +448,7 @@ export default class PatientService {
 
       await tutorData
         .merge({
+          residence: data.residence,
           document: data.document,
           inscription: data.inscription,
           corporateName: data.corporate_name,

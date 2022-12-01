@@ -12,9 +12,19 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export const TutorResidences = [
+  'CASA',
+  'APARTAMENTO',
+  'CONDOMINIO',
+  'SITIO',
+  'COMERCIAL',
+] as const;
 export default class PatientTutor extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
+
+  @column()
+  public residence: typeof TutorResidences[number];
 
   @column()
   public document?: string;

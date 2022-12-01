@@ -203,6 +203,7 @@ test.group('Patient resource', group => {
       .post('/patient-tutors')
       .json({
         name: 'patient name',
+        residence: 'CASA',
         email: 'mail123123@mail.com',
         cellphone: '123',
         clientOriginId: patientOrigin.id,
@@ -269,6 +270,11 @@ test.group('Patient resource', group => {
       state: '123',
     });
 
+    const origin = await ClientOrigin.create({
+      type: ClientOriginType.C,
+      description: 'some origin',
+    });
+
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -278,6 +284,8 @@ test.group('Patient resource', group => {
       .put(`/patient-tutors/${patient.id}`)
       .json({
         name: 'updated tutor',
+        residence: 'CASA',
+        clientOriginId: origin.id,
         gender: PatientGender.MALE,
         tags: 'tag',
         birthDate: new Date('2000-01-01'),

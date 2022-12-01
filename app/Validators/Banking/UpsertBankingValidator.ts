@@ -34,6 +34,9 @@ export default class UpsertBankingValidator {
     reconciled: schema.boolean(),
     installment: schema.number(),
     originFlag: schema.enum(Object.values(BankingOriginFlag)),
+
+    competenceDate: schema.string.optional({}, [rules.regex(/^\d{2}\/\d{4}$/)]),
+    fiscalNote: schema.string.optional({}),
     observation: schema.string.optional({ trim: true }),
   });
 

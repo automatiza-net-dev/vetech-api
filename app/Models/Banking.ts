@@ -102,6 +102,16 @@ export default class Banking extends BaseModel {
   @column()
   public observation: string;
 
+  @column({
+    columnName: 'competence_date',
+  })
+  public competenceDate: string;
+
+  @column({
+    columnName: 'fiscal_note',
+  })
+  public fiscalNote: string;
+
   @column()
   public status: BankingStatus;
 

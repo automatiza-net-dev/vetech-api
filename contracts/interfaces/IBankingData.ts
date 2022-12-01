@@ -20,4 +20,6 @@ export interface IUpsertBankingData {
   originFlag: BankingOriginFlag;
 
   observation?: string;
+  competenceDate?: string;
+  fiscalNote?: string;
 }

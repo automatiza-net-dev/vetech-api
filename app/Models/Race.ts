@@ -14,6 +14,11 @@ import Specie from 'App/Models/Specie';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
+export enum RaceFur {
+  L = 'PELO_LONGO',
+  C = 'PELO_CURTO',
+}
+
 export default class Race extends BaseModel {
   @column({ isPrimary: true })
   public id: string;
@@ -22,10 +27,7 @@ export default class Race extends BaseModel {
   public description: string;
 
   @column()
-  public specie_id: string;
-
-  @column()
-  public economic_group_id?: string;
+  public fur: RaceFur;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -46,14 +48,22 @@ export default class Race extends BaseModel {
     await softDelete(this, column);
   }
 
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id?: string;
+
+  @belongsTo(() => EconomicGroup, {})
+  public economicGroup: BelongsTo<typeof EconomicGroup>;
+
+  @column()
+  public specie_id: string;
+
   @belongsTo(() => Specie, {
     localKey: 'id',
     foreignKey: 'specie_id',
   })
   public specie: BelongsTo<typeof Specie>;
-
-  @belongsTo(() => EconomicGroup, {})
-  public economicGroup: BelongsTo<typeof EconomicGroup>;
 
   @hasMany(() => Schedule, {
     localKey: 'id',

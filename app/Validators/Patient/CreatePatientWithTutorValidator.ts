@@ -1,12 +1,14 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { PatientGender } from 'App/Models/Patient';
+import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default class CreatePatientWithTutorValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     name: schema.string({}),
+    residence: schema.enum(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],
     }),

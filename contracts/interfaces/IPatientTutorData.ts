@@ -1,9 +1,11 @@
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import { PatientGender } from 'App/Models/Patient';
+import { TutorResidences } from 'App/Models/PatientTutor';
 import { DateTime } from 'luxon';
 
 export default interface IPatientTutorData {
   name: string;
+  residence: typeof TutorResidences[number];
   photo?: MultipartFileContract;
   gender?: PatientGender;
   tags?: string;

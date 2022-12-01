@@ -22,4 +22,7 @@ export interface IUpsertBankingData {
   observation?: string;
   competenceDate?: string;
   fiscalNote?: string;
+  userDocument?: string;
+  nsuDocument?: string;
+  barCode?: string;
 }

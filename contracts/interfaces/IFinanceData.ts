@@ -35,6 +35,12 @@ export interface IUpsertFinance {
   additionalPercentage?: number;
   competenceDate?: string;
   fiscalNote?: string;
+  userDocument?: string;
+  nsuDocument?: string;
+  barCode?: string;
+  bank?: string;
+  agency?: string;
+  account?: string;
 }
 
 export interface IFinanceDownData {

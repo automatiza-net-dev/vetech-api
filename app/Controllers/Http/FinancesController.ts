@@ -11,7 +11,7 @@ export default class FinancesController {
   constructor(
     private readonly sharedService: SharedService,
     private readonly service: FinanceService,
-  ) { }
+  ) {}
 
   async index({ auth, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);

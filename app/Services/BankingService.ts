@@ -89,6 +89,10 @@ export default class BankingService {
           feeDiscountValue: discount,
           observation: data.observation,
           competenceDate: data.competenceDate,
+          fiscalNote: data.fiscalNote,
+          userDocument: data.userDocument,
+          nsuDocument: data.nsuDocument,
+          barCode: data.barCode,
         },
         {
           client: trx,
@@ -133,6 +137,9 @@ export default class BankingService {
           paymentMethodDiscountValue: discount,
           competenceDate: data.competenceDate,
           fiscalNote: data.fiscalNote,
+          userDocument: data.userDocument,
+          nsuDocument: data.nsuDocument,
+          barCode: data.barCode,
         },
         {
           client: trx,
@@ -219,6 +226,9 @@ export default class BankingService {
         observation: data.observation,
         competenceDate: data.competenceDate,
         fiscalNote: data.fiscalNote,
+        userDocument: data.userDocument,
+        nsuDocument: data.nsuDocument,
+        barCode: data.barCode,
 
         totalValue: total,
         status: BankingStatus.B,

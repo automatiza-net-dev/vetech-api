@@ -89,6 +89,12 @@ export default class FinanceService {
       observation: data.observation,
       competenceDate: data.competenceDate,
       fiscalNote: data.fiscalNote,
+      userDocument: data.userDocument,
+      nsuDocument: data.nsuDocument,
+      barCode: data.barCode,
+      bank: data.bank,
+      agency: data.agency,
+      account: data.account,
     });
   }
 
@@ -162,8 +168,14 @@ export default class FinanceService {
         additionPercentage: data.increasePercentage,
         additionValue: data.increaseValue,
         observation: data.observation,
-        competenceDate: finance.competenceDate,
-        fiscalNote: finance.fiscalNote,
+        competenceDate: data.competenceDate,
+        fiscalNote: data.fiscalNote,
+        userDocument: data.userDocument,
+        nsuDocument: data.nsuDocument,
+        barCode: data.barCode,
+        bank: data.bank,
+        agency: data.agency,
+        account: data.account,
       })
       .save();
   }
@@ -236,6 +248,9 @@ export default class FinanceService {
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
+          userDocument: finance.userDocument,
+          nsuDocument: finance.nsuDocument,
+          barCode: finance.barCode,
         },
         {
           client: trx,
@@ -346,6 +361,9 @@ export default class FinanceService {
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
+          userDocument: finance.userDocument,
+          nsuDocument: finance.nsuDocument,
+          barCode: finance.barCode,
         },
         {
           client: trx,

@@ -35,9 +35,12 @@ export default class UpsertBankingValidator {
     installment: schema.number(),
     originFlag: schema.enum(Object.values(BankingOriginFlag)),
 
+    observation: schema.string.optional({ trim: true }),
     competenceDate: schema.string.optional({}, [rules.regex(/^\d{2}\/\d{4}$/)]),
     fiscalNote: schema.string.optional({}),
-    observation: schema.string.optional({ trim: true }),
+    userDocument: schema.string.optional({ trim: true }),
+    nsuDocument: schema.string.optional({ trim: true }),
+    barCode: schema.string.optional({ trim: true }),
   });
 
   public messages: CustomMessages = {};

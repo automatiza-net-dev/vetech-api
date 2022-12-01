@@ -50,6 +50,12 @@ export default class UpsertFinanceValidator {
     observation: schema.string.optional({ trim: true }),
     competenceDate: schema.string.optional({}, [rules.regex(/^\d{2}\/\d{4}$/)]),
     fiscalNote: schema.string.optional({}),
+    userDocument: schema.string.optional({ trim: true }),
+    nsuDocument: schema.string.optional({ trim: true }),
+    barCode: schema.string.optional({ trim: true }),
+    bank: schema.string.optional({ trim: true }),
+    agency: schema.string.optional({ trim: true }),
+    account: schema.string.optional({ trim: true }),
   });
 
   public messages: CustomMessages = {};

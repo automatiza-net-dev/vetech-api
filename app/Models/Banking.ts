@@ -112,6 +112,21 @@ export default class Banking extends BaseModel {
   })
   public fiscalNote: string;
 
+  @column({
+    columnName: 'user_document',
+  })
+  public userDocument: string;
+
+  @column({
+    columnName: 'nsu_document',
+  })
+  public nsuDocument: string;
+
+  @column({
+    columnName: 'bar_code',
+  })
+  public barCode: string;
+
   @column()
   public status: BankingStatus;
 

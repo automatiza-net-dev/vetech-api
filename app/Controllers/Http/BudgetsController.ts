@@ -132,12 +132,4 @@ export default class BudgetsController {
 
     return response.noContent();
   }
-
-  public async deleteBudget({ params, response, auth }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.deleteBudget(unit_id, params.id);
-
-    return response.noContent();
-  }
 }

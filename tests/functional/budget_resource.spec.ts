@@ -1,8 +1,10 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Bill from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
+import Reason from 'App/Models/Reason';
 import PatientFactory from 'Database/factories/PatientFactory';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -14,7 +16,7 @@ test.group('Budget resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
     const client = await PatientFactory.create();
     const dailyMovement = await DailyMovement.create({
@@ -36,7 +38,31 @@ test.group('Budget resource', group => {
       discountValue: 2,
     });
 
-    return { user, client, dailyMovement, dailyCashier, budget, budgetItem };
+    const bill = await Bill.create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      daily_cashier_id: dailyCashier.id,
+    });
+
+    const reason = await Reason.create({
+      economicGroupId: group.id,
+      type: 'OR',
+      reason: 'Test',
+    });
+
+    return {
+      user,
+      client,
+      dailyMovement,
+      dailyCashier,
+      budget,
+      budgetItem,
+      bill,
+      reason,
+    };
   };
 
   test('should return all budgets (partial)', async ({ assert, client }) => {
@@ -108,20 +134,6 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should mark budget as deleted', async ({ assert, client }) => {
-    const { user, budget } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .delete(`/budgets/delete/${budget.id}`)
-      .bearerToken(token);
-
-    assert.equal(204, response.status());
-  });
-
   test('should create budget item', async ({ assert, client }) => {
     const { user, budget } = await createData();
     const token = await generateJwtToken(client, {
@@ -156,6 +168,7 @@ test.group('Budget resource', group => {
         quantity: 200,
         unitaryValue: 200,
         discountValue: 200,
+        status: BudgetStatus.C,
       })
       .bearerToken(token);
 
@@ -166,8 +179,8 @@ test.group('Budget resource', group => {
     assert.notEqual(response.body().total_value, budgetItem.totalValue);
   });
 
-  test('should confirm budget', async ({ assert, client }) => {
-    const { user, budget } = await createData();
+  test('should confirm budget (TOTAL)', async ({ assert, client }) => {
+    const { user, budget, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -176,7 +189,32 @@ test.group('Budget resource', group => {
     const response = await client
       .put(`/budgets/confirm/${budget.id}`)
       .json({
+        billId: bill.id,
+        type: 'TOTAL',
+        notConfirmedItems: [],
         finishedAt: new Date(),
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should confirm budget (PARCIAL)', async ({ assert, client }) => {
+    const { user, budget, bill, reason } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/confirm/${budget.id}`)
+      .json({
+        billId: bill.id,
+        type: 'PARCIAL',
+        notConfirmedItems: [],
+        finishedAt: new Date(),
+        reasonId: reason.id,
+        canceledObservation: 'Test',
       })
       .bearerToken(token);
 

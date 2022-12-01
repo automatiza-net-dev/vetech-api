@@ -1,4 +1,6 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
+import Bill from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import Product from 'App/Models/Product';
@@ -267,6 +269,7 @@ export default class BudgetService {
         discountValue: data.discountValue,
         quantity: data.quantity,
         totalValue: data.quantity * data.unitaryValue - data.discountValue,
+        status: data.status,
       })
       .save();
   }
@@ -286,13 +289,43 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    return model
-      .merge({
-        conclusion_user_id: user.id,
-        finishedAt: data.finishedAt,
-        status: BudgetStatus.C,
-      })
-      .save();
+    const bill = await Bill.findOrFail(data.billId);
+    const items = await model.related('items').query();
+
+    return Database.transaction(async trx => {
+      data.notConfirmedItems.forEach(async item => {
+        const budgetItem = items.find(i => i.id === item);
+
+        if (budgetItem) {
+          await budgetItem
+            .merge({
+              status: BudgetStatus.C,
+            })
+            .useTransaction(trx)
+            .save();
+        }
+      });
+
+      await bill
+        .merge({
+          budget_id: model.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return model
+        .merge({
+          conclusion_user_id: user.id,
+          finishedAt: data.finishedAt,
+          status: data.type === 'PARCIAL' ? BudgetStatus.P : BudgetStatus.C,
+          cancelation_reason_id:
+            data.type === 'PARCIAL' ? data.reasonId : undefined,
+          canceledObservation:
+            data.type === 'PARCIAL' ? data.canceledObservation : undefined,
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   public async cancelBudget(
@@ -317,23 +350,6 @@ export default class BudgetService {
         cancelation_reason_id: data.reasonId,
         canceledObservation: data.canceledObservation,
         status: BudgetStatus.N,
-      })
-      .save();
-  }
-
-  public async deleteBudget(unitId: string, id: string) {
-    const model = await Budget.query()
-      .where('id', id)
-      .where('business_unit_id', unitId)
-      .first();
-
-    if (!model) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    return model
-      .merge({
-        status: BudgetStatus.E,
       })
       .save();
   }

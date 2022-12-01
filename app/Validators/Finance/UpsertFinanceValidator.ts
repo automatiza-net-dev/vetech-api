@@ -31,6 +31,7 @@ export default class UpsertFinanceValidator {
     accept: schema.enum(Object.values(FinanceAccept)),
     installment: schema.number(),
     originFlag: schema.enum(Object.values(FinanceOriginFlag)),
+
     checkingAccountId: schema.string.optional({ trim: true }, [
       rules.uuid(),
       rules.exists({ table: 'checking_accounts', column: 'id' }),
@@ -47,6 +48,8 @@ export default class UpsertFinanceValidator {
     additionalValue: schema.number.optional(),
     additionalPercentage: schema.number.optional(),
     observation: schema.string.optional({ trim: true }),
+    competenceDate: schema.string.optional({}, [rules.regex(/^\d{2}\/\d{4}$/)]),
+    fiscalNote: schema.string.optional({}),
   });
 
   public messages: CustomMessages = {};

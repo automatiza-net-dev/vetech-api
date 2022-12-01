@@ -155,6 +155,16 @@ export default class Finance extends BaseModel {
   })
   public reversalReason: string;
 
+  @column({
+    columnName: 'competence_date',
+  })
+  public competenceDate: string;
+
+  @column({
+    columnName: 'fiscal_note',
+  })
+  public fiscalNote: string;
+
   @column()
   public status: FinanceStatus;
 

@@ -8,6 +8,7 @@ import { v4 } from 'uuid';
 interface ISearch {
   description?: string;
   specie?: string;
+  fur?: string;
 }
 
 @inject()
@@ -29,6 +30,10 @@ export default class RaceService {
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.fur) {
+      qb.where('fur', 'ilike', data.fur);
     }
 
     return qb;
@@ -75,6 +80,7 @@ export default class RaceService {
       id: v4(),
       description: payload.description,
       economic_group_id: group.id,
+      fur: payload.fur,
     });
   }
 

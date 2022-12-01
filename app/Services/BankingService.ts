@@ -88,6 +88,7 @@ export default class BankingService {
           feeDiscountPercentage: paymentMethod.fee,
           feeDiscountValue: discount,
           observation: data.observation,
+          competenceDate: data.competenceDate,
         },
         {
           client: trx,
@@ -130,6 +131,8 @@ export default class BankingService {
               : prevBalance - total,
           paymentMethodDiscountPercentage: paymentMethod.fee,
           paymentMethodDiscountValue: discount,
+          competenceDate: data.competenceDate,
+          fiscalNote: data.fiscalNote,
         },
         {
           client: trx,
@@ -214,6 +217,8 @@ export default class BankingService {
         originFlag: data.originFlag,
 
         observation: data.observation,
+        competenceDate: data.competenceDate,
+        fiscalNote: data.fiscalNote,
 
         totalValue: total,
         status: BankingStatus.B,

@@ -1,3 +1,4 @@
+import { BudgetStatus } from 'App/Models/Budget';
 import { DateTime } from 'luxon';
 
 export interface ICreateBudgetData {
@@ -24,10 +25,16 @@ export interface IUpdateBudgetItemData {
   quantity: number;
   unitaryValue: number;
   discountValue: number;
+  status: BudgetStatus;
 }
 
 export interface IConfirmBudgetData {
+  billId: string;
+  type: 'PARCIAL' | 'TOTAL';
+  notConfirmedItems: string[];
   finishedAt: DateTime;
+  reasonId?: string;
+  canceledObservation?: string;
 }
 
 export interface ICancelBudgetData {

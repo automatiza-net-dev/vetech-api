@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Race from 'App/Models/Race';
+import Race, { RaceFur } from 'App/Models/Race';
 import Specie from 'App/Models/Specie';
 import User from 'App/Models/User';
 import { v4 } from 'uuid';
@@ -25,6 +25,7 @@ test.group('Race resource', group => {
       id: v4(),
       description: 'some race',
       economic_group_id: group.id,
+      fur: RaceFur.C,
     });
 
     return [user, specie, race];
@@ -42,6 +43,7 @@ test.group('Race resource', group => {
       .json({
         description: 'some race',
         specie_id: specie.id,
+        fur: RaceFur.C,
       })
       .bearerToken(token);
 
@@ -113,6 +115,7 @@ test.group('Race resource', group => {
       .json({
         description: 'updated race',
         specie_id: specie.id,
+        fur: RaceFur.C,
       })
       .bearerToken(token);
 

@@ -680,7 +680,7 @@ Route.group(() => {
   Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');
   Route.put('/cancel/:id', 'BudgetsController.cancelBudget');
   Route.put('/confirm/:id', 'BudgetsController.confirmBudget');
-  Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
+  // Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
   // Route.put('/update/:id', 'BankingsController.updateBanking');
 })
   .prefix('budgets')

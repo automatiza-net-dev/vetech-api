@@ -18,7 +18,7 @@ interface ISearch {
 
 @inject()
 export default class CheckingAccountService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const qb = CheckingAccount.query().where('business_unit_id', unitId);
@@ -32,7 +32,7 @@ export default class CheckingAccountService {
     }
 
     if (data.type) {
-      qb.where('type', `%${data.type}%`);
+      qb.where('type', `${data.type}`);
     }
 
     return qb;

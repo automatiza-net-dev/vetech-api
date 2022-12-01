@@ -22,7 +22,7 @@ export enum BudgetStatus {
   A = 'ABERTO',
   C = 'CONFIRMADO',
   N = 'NAO_CONFIRMADO__CANCELADO',
-  E = 'EXCLUIDO',
+  P = 'CONFIRMADO_PARCIAL',
 }
 
 export default class Budget extends BaseModel {

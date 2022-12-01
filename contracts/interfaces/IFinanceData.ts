@@ -33,6 +33,8 @@ export interface IUpsertFinance {
   increasePercentage?: number;
   additionalValue?: number;
   additionalPercentage?: number;
+  competenceDate?: string;
+  fiscalNote?: string;
 }
 
 export interface IFinanceDownData {

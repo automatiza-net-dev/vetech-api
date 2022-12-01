@@ -76,6 +76,7 @@ export default class FinanceService {
       installment: data.installment,
       originFlag: data.originFlag,
       checking_account_id: data.checkingAccountId,
+
       paymentDate: data.paymentDate,
       downDate: data.downDate,
       paymentValue: data.paymentValue,
@@ -86,6 +87,8 @@ export default class FinanceService {
       additionPercentage: data.increasePercentage,
       additionValue: data.increaseValue,
       observation: data.observation,
+      competenceDate: data.competenceDate,
+      fiscalNote: data.fiscalNote,
     });
   }
 
@@ -147,6 +150,7 @@ export default class FinanceService {
         accept: data.accept,
         installment: data.installment,
         originFlag: data.originFlag,
+
         checking_account_id: data.checkingAccountId,
         paymentDate: data.paymentDate,
         downDate: data.downDate,
@@ -158,6 +162,8 @@ export default class FinanceService {
         additionPercentage: data.increasePercentage,
         additionValue: data.increaseValue,
         observation: data.observation,
+        competenceDate: finance.competenceDate,
+        fiscalNote: finance.fiscalNote,
       })
       .save();
   }
@@ -227,6 +233,9 @@ export default class FinanceService {
           status: BankingStatus.B,
           prevBalance: checkingAccount.balance,
           balance: checkingAccount.balance - finance.value,
+
+          competenceDate: finance.competenceDate,
+          fiscalNote: finance.fiscalNote,
         },
         {
           client: trx,
@@ -334,6 +343,9 @@ export default class FinanceService {
           status: BankingStatus.B,
           prevBalance: checkingAccount?.balance ?? 0,
           balance: checkingAccount?.balance ?? 0 + finance.value,
+
+          competenceDate: finance.competenceDate,
+          fiscalNote: finance.fiscalNote,
         },
         {
           client: trx,

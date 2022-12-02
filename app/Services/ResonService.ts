@@ -12,12 +12,15 @@ interface ISearch {
 
 @inject()
 export default class ReasonService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = Reason.query().where('economic_group_id', group.id);
+    const qb = Reason.query().whereRaw(
+      '(economic_group_id is null or economic_group_id = ?)',
+      [group.id],
+    );
 
     if (data.reason) {
       qb.where('reason', 'ilike', `%${data.reason}%`);

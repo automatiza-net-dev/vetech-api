@@ -11,7 +11,7 @@ export default class CreatePaymentMethodValidator {
     description: schema.string(),
     requiresDocument: schema.boolean(),
     tef: schema.enum(Object.values(PaymentMethodTef)),
-    automaticCancelation: schema.boolean(),
+    automaticCancellation: schema.boolean(),
     daysFirstInstallment: schema.number(),
     daysBetweenInstallments: schema.number(),
     allowChangeExpirationDate: schema.boolean(),

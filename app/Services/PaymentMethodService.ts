@@ -18,6 +18,12 @@ interface ISearchPaymentMethods {
   type?: string;
 }
 
+interface ISearchCompletePaymentMethods extends ISearchPaymentMethods {
+  active?: string;
+  cancellation?: string;
+  account?: string;
+}
+
 interface ISearchTefFlags {
   type?: string;
 }
@@ -51,7 +57,7 @@ export default class PaymentMethodService {
 
   async searchCompletePaymentMethods(
     unitId: string,
-    data: ISearchPaymentMethods,
+    data: ISearchCompletePaymentMethods,
   ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
@@ -69,6 +75,20 @@ export default class PaymentMethodService {
 
     if (data.type) {
       qb.where('type', data.type);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active === 'true');
+    }
+
+    if (data.cancellation) {
+      qb.where('automatic_cancellation', data.cancellation === 'true');
+    }
+
+    if (data.account) {
+      qb.whereHas('checkingAccount', query => {
+        query.where('type', data.account as string);
+      });
     }
 
     return qb;
@@ -116,7 +136,7 @@ export default class PaymentMethodService {
       description: data.description,
       requiresDocument: data.requiresDocument,
       tef: data.tef,
-      automaticCancelation: data.automaticCancelation,
+      automaticCancellation: data.automaticCancellation,
       daysFirstInstallment: data.daysFirstInstallment,
       daysBetweenInstallments: data.daysBetweenInstallments,
       allowChangeExpirationDate: data.allowChangeExpirationDate,

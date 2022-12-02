@@ -42,6 +42,9 @@ export default class PaymentMethodsController {
       description: qs.description,
       tef: qs.tef,
       type: qs.type,
+      active: qs.active,
+      cancellation: qs.cancellation,
+      account: qs.account,
     });
 
     return response.ok(result);

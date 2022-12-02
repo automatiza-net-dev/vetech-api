@@ -4,7 +4,7 @@ export interface ICreatePaymentMethodData {
   description: string;
   requiresDocument: boolean;
   tef: PaymentMethodTef;
-  automaticCancelation: boolean;
+  automaticCancellation: boolean;
   daysFirstInstallment: number;
   daysBetweenInstallments: number;
   allowChangeExpirationDate: boolean;

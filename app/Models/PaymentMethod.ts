@@ -2,10 +2,13 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import CheckingAccount from 'App/Models/CheckingAccount';
 import PaymentMethodFee from 'App/Models/PaymentMethodFee';
 import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -47,7 +50,7 @@ export default class PaymentMethod extends BaseModel {
   @column({
     columnName: 'automatic_cancellation',
   })
-  public automaticCancelation: boolean;
+  public automaticCancellation: boolean;
 
   @column({
     columnName: 'days_first_installment',
@@ -117,6 +120,11 @@ export default class PaymentMethod extends BaseModel {
     serializeAs: null,
   })
   public checkingAccountId: string;
+
+  @belongsTo(() => CheckingAccount, {
+    foreignKey: 'checkingAccountId',
+  })
+  public checkingAccount: BelongsTo<typeof CheckingAccount>;
 
   @hasMany(() => PaymentMethodFlag, {
     foreignKey: 'payment_method_id',

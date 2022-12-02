@@ -6,6 +6,7 @@ import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
 import Reason from 'App/Models/Reason';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -89,6 +90,36 @@ test.group('Budget resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(response.body());
+  });
+
+  test('should throw ResourceNoFoundException if no budget was found', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/budgets/${v4()}`).bearerToken(token);
+
+    assert.equal(404, response.status());
+  });
+
+  test('should return complete budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/budgets/${budget.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.equal(budget.id, response.body().id);
   });
 
   test('should return all products', async ({ assert, client }) => {

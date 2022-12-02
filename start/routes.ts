@@ -675,6 +675,7 @@ Route.group(() => {
   Route.get('/products', 'BudgetsController.searchProducts');
   Route.get('/partial', 'BudgetsController.partialIndex');
   Route.get('/complete', 'BudgetsController.completeIndex');
+  Route.get('/:id', 'BudgetsController.show');
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
   Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');

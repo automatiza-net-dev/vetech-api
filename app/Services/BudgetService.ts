@@ -108,6 +108,33 @@ export default class BudgetService {
     return qb;
   }
 
+  public async show(unitId: string, id: string) {
+    const qb = Budget.query().where('business_unit_id', unitId).where('id', id);
+
+    qb.preload('client', query => {
+      query.preload('tutor');
+    });
+    qb.preload('user');
+    qb.preload('seller');
+    qb.preload('dailyMovement');
+    qb.preload('dailyCashier');
+    qb.preload('conclusionUser');
+    qb.preload('cancelationReason');
+    qb.preload('items', query => {
+      query.preload('productVariation', query => {
+        query.preload('product');
+      });
+    });
+
+    const result = await qb.first();
+
+    if (!result) {
+      throw this.sharedService.ResourceNotFound('Orçamento não encontrado');
+    }
+
+    return result;
+  }
+
   public async searchProducts(unitId: string, data: ISearchProduct) {
     const group = await this.sharedService.getUserGroup(unitId);
 

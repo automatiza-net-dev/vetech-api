@@ -42,6 +42,14 @@ export default class BudgetsController {
     return response.ok(result);
   }
 
+  public async show({ params, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.show(unit_id, params.id);
+
+    return response.ok(result);
+  }
+
   public async searchProducts({
     request,
     response,

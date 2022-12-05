@@ -4,6 +4,7 @@ import FinanceService from 'App/Services/FinanceService';
 import SharedService from 'App/Services/SharedService';
 import UpdateFinanceDownValidator from 'App/Validators/Finance/UpdateFinanceDownValidator';
 import UpdateFinanceReversalValidator from 'App/Validators/Finance/UpdateFinanceReversalValidator';
+import UpdateFinanceValidator from 'App/Validators/Finance/UpdateFinanceValidator';
 import UpsertFinanceValidator from 'App/Validators/Finance/UpsertFinanceValidator';
 
 @inject()
@@ -36,7 +37,7 @@ export default class FinancesController {
     response,
   }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
-    const payload = await request.validate(UpsertFinanceValidator);
+    const payload = await request.validate(UpdateFinanceValidator);
 
     const result = await this.service.updateFinance(
       unit_id,
@@ -82,5 +83,13 @@ export default class FinancesController {
     );
 
     return response.ok(result);
+  }
+
+  async deleteFinance({ params, auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.deleteFinance(unit_id, params.id);
+
+    return response.noContent();
   }
 }

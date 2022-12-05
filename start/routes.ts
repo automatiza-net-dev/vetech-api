@@ -659,6 +659,7 @@ Route.group(() => {
   Route.put('/update/:id', 'FinancesController.updateFinance');
   Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
+  Route.delete('/delete/:id', 'FinancesController.deleteFinance');
 })
   .prefix('finances')
   .middleware('auth');

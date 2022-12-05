@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, {
   BankingOriginFlag,
   BankingStatus,
@@ -8,7 +9,11 @@ import Banking, {
 import CheckingAccount from 'App/Models/CheckingAccount';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
+import Finance, {
+  FinanceOriginFlag,
+  FinanceStatus,
+  FinanceType,
+} from 'App/Models/Finance';
 import FinanceReversal, {
   FinanceReversalType,
 } from 'App/Models/FinanceReversal';
@@ -18,6 +23,7 @@ import SharedService from 'App/Services/SharedService';
 import {
   IFinanceDownData,
   IFinanceReversalData,
+  IUpdateFinance,
   IUpsertFinance,
 } from 'Contracts/interfaces/IFinanceData';
 import { DateTime } from 'luxon';
@@ -100,22 +106,11 @@ export default class FinanceService {
 
   async updateFinance(
     unitId: string,
-    user: User,
+    _: User,
     id: string,
-    data: IUpsertFinance,
+    data: IUpdateFinance,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
-    const dailyMovement = await DailyMovement.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .first();
-    const dailyCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .where('user_who_opened_id', user.id)
-      .first();
 
     const discount = data.originalValue * (paymentMethod.fee / 100);
 
@@ -130,37 +125,21 @@ export default class FinanceService {
 
     return finance
       .merge({
-        daily_movement_id: dailyMovement?.id,
-        daily_cashier_id: dailyCashier?.id,
-        status: FinanceStatus.A,
-        feeDiscountPercentage: paymentMethod.fee,
-        feeDiscountValue: discount,
-        economic_group_id: group.id,
-        business_unit_id: unitId,
-        client_id: data.clientId,
-        type: data.type,
         account_plan_id: data.accountPlanId,
         payment_method_id: data.paymentMethodId,
-        document: data.document,
         historic: data.historic,
-        issueDate: data.issueDate,
         expirationDate: data.expirationDate,
         originalValue: data.originalValue,
         value: data.originalValue - discount,
         totalValue:
           data.originalValue +
-          (data.feeValue || 0) +
-          (data.increaseValue || 0) -
-          (data.discountValue || 0) -
+          (data.feeValue || finance.feeValue) +
+          (data.increaseValue || finance.additionValue) -
+          (data.discountValue || finance.discountValue) -
           discount,
-        accept: data.accept,
-        installment: data.installment,
-        originFlag: data.originFlag,
+        reconciled: data.reconciled,
 
         checking_account_id: data.checkingAccountId,
-        paymentDate: data.paymentDate,
-        downDate: data.downDate,
-        paymentValue: data.paymentValue,
         feeValue: data.feeValue,
         feePercentage: data.feePercentage,
         discountValue: data.discountValue,
@@ -415,5 +394,38 @@ export default class FinanceService {
         .useTransaction(trx)
         .save();
     });
+  }
+
+  async deleteFinance(unitId: string, id: string) {
+    const finance = await Finance.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .first();
+
+    if (!finance) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (finance.status !== FinanceStatus.A) {
+      throw new BadRequestException(
+        'Não é possível excluir um lançamento que não está ativo',
+        400,
+        'BAD_REQUEST',
+      );
+    }
+
+    if (finance.originFlag !== FinanceOriginFlag.F) {
+      throw new BadRequestException(
+        'Não é possível excluir um lançamento que foi criado pelo financeiro',
+        400,
+        'BAD_REQUEST',
+      );
+    }
+
+    return finance
+      .merge({
+        status: FinanceStatus.E,
+      })
+      .save();
   }
 }

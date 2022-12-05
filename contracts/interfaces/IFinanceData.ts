@@ -43,6 +43,32 @@ export interface IUpsertFinance {
   account?: string;
 }
 
+export interface IUpdateFinance {
+  accountPlanId: string;
+  paymentMethodId: string;
+  historic: string;
+  expirationDate: DateTime;
+  originalValue: number;
+  reconciled: boolean;
+
+  checkingAccountId?: string;
+  feeValue?: number;
+  feePercentage?: number;
+  discountValue?: number;
+  discountPercentage?: number;
+  increaseValue?: number;
+  increasePercentage?: number;
+  observation?: string;
+  competenceDate?: string;
+  fiscalNote?: string;
+  userDocument?: string;
+  nsuDocument?: string;
+  barCode?: string;
+  bank?: string;
+  agency?: string;
+  account?: string;
+}
+
 export interface IFinanceDownData {
   checkingAccountId: string;
   paymentDate: DateTime;

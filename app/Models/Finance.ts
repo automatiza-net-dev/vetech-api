@@ -35,6 +35,7 @@ export enum FinanceOriginDownFlag {
 export enum FinanceStatus {
   A = 'ABERTO',
   B = 'BAIXADO',
+  E = 'EXCLUIDO',
 }
 
 export default class Finance extends BaseModel {

@@ -26,6 +26,7 @@ export default class BudgetsController {
       toExpiration: qs.toExpiration,
       seller: qs.seller,
       status: qs.status,
+      patient: qs.patient,
     });
 
     return response.ok(result);
@@ -37,6 +38,7 @@ export default class BudgetsController {
     const qs = request.qs();
     const result = await this.service.completeIndex(unit_id, {
       budget: qs.budget,
+      patient: qs.patient,
     });
 
     return response.ok(result);

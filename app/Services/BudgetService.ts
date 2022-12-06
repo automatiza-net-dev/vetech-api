@@ -21,10 +21,12 @@ interface ISearchPartial {
   toExpiration?: string;
   seller?: string;
   status?: string;
+  patient?: string;
 }
 
 interface ISearchComplete {
   budget?: string;
+  patient?: string;
 }
 
 interface ISearchProduct {
@@ -70,6 +72,10 @@ export default class BudgetService {
       qb.where('status', data.status);
     }
 
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
     qb.preload('client', query => {
       query.preload('tutor');
     });
@@ -88,6 +94,10 @@ export default class BudgetService {
 
     if (data.budget) {
       qb.where('id', data.budget);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
     }
 
     qb.preload('client', query => {

@@ -9,6 +9,10 @@ export default class CreateBudgetValidator {
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
+    patientId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'patients', column: 'id' }),
+    ]),
     dailyMovementId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'daily_movements', column: 'id' }),

@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 
 export interface ICreateBudgetData {
   clientId: string;
+  patientId: string;
   dailyMovementId: string;
   dailyCashierId: string;
   budgetDate: DateTime;

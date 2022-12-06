@@ -117,6 +117,16 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public patient_id: string;
+
+  @belongsTo(() => Patient, {
+    foreignKey: 'patient_id',
+  })
+  public patient: BelongsTo<typeof Patient>;
+
+  @column({
+    serializeAs: null,
+  })
   public user_id: string;
 
   @belongsTo(() => User, {

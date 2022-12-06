@@ -93,6 +93,9 @@ export default class BudgetService {
     qb.preload('client', query => {
       query.preload('tutor');
     });
+    qb.preload('patient', query => {
+      query.preload('patientAnimal');
+    });
     qb.preload('user');
     qb.preload('seller');
     qb.preload('dailyMovement');
@@ -113,6 +116,9 @@ export default class BudgetService {
 
     qb.preload('client', query => {
       query.preload('tutor');
+    });
+    qb.preload('patient', query => {
+      query.preload('patientAnimal');
     });
     qb.preload('user');
     qb.preload('seller');
@@ -243,6 +249,7 @@ export default class BudgetService {
       economic_group_id: group.id,
       business_unit_id: unitId,
       client_id: data.clientId,
+      patient_id: data.patientId,
       user_id: user.id,
       seller_id: user.id,
       daily_movement_id: data.dailyMovementId,

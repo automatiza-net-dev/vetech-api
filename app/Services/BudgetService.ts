@@ -11,7 +11,7 @@ import {
   IConfirmBudgetData,
   ICreateBudgetData,
   ICreateBudgetItemData,
-  IUpdateBudgetItemData,
+  IUpdateBudgetItemData
 } from 'Contracts/interfaces/IBudgetData';
 
 interface ISearchPartial {
@@ -79,6 +79,7 @@ export default class BudgetService {
     qb.preload('client', query => {
       query.preload('tutor');
     });
+    qb.preload('patient')
     qb.preload('user');
     qb.preload('seller');
     qb.preload('dailyMovement');

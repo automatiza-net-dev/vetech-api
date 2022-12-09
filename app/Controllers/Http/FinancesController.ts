@@ -14,10 +14,24 @@ export default class FinancesController {
     private readonly service: FinanceService,
   ) {}
 
-  async index({ auth, response }: HttpContextContract) {
+  async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id);
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, {
+      accept: qs.accept,
+      client: qs.client,
+      document: qs.document,
+      expirationDate: qs.expirationDate,
+      fiscalNote: qs.fiscalNote,
+      issueDate: qs.issueDate,
+      nsu: qs.nsu,
+      paymentDate: qs.paymentDate,
+      paymentMethod: qs.paymentMethod,
+      status: qs.status,
+      type: qs.type,
+      reconciled: qs.reconciled,
+    });
 
     return response.ok(result);
   }

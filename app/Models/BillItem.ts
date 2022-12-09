@@ -2,11 +2,15 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import ProductVariation from './ProductVariation';
 
 export default class BillItem extends BaseModel {
   @column({ isPrimary: true })
@@ -288,6 +292,11 @@ export default class BillItem extends BaseModel {
     serializeAs: null,
   })
   public product_variation_id: string;
+
+  @belongsTo(() => ProductVariation, {
+    foreignKey: 'product_variation_id',
+  })
+  public productVariation: BelongsTo<typeof ProductVariation>;
 
   @column({
     serializeAs: null,

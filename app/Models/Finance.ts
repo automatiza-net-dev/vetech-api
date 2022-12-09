@@ -2,11 +2,17 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import AccountPlan from './AccountPlan';
+import Patient from './Patient';
+import PaymentMethod from './PaymentMethod';
 
 export enum FinanceType {
   C = 'CREDITO',
@@ -227,6 +233,11 @@ export default class Finance extends BaseModel {
   })
   public client_id: string;
 
+  @belongsTo(() => Patient, {
+    foreignKey: 'client_id',
+  })
+  public client: BelongsTo<typeof Patient>;
+
   @column({
     serializeAs: null,
   })
@@ -247,10 +258,20 @@ export default class Finance extends BaseModel {
   })
   public account_plan_id: string;
 
+  @belongsTo(() => AccountPlan, {
+    foreignKey: 'account_plan_id',
+  })
+  public accountPlan: BelongsTo<typeof AccountPlan>;
+
   @column({
     serializeAs: null,
   })
   public payment_method_id: string;
+
+  @belongsTo(() => PaymentMethod, {
+    foreignKey: 'payment_method_id',
+  })
+  public paymentMethod: BelongsTo<typeof PaymentMethod>;
 
   @column({
     serializeAs: null,

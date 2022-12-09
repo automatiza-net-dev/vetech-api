@@ -20,20 +20,110 @@ import FinanceReversal, {
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
+import { startOfDay } from 'date-fns';
+import { DateTime } from 'luxon';
+
 import {
   IFinanceDownData,
   IFinanceReversalData,
   IUpdateFinance,
   IUpsertFinance,
-} from 'Contracts/interfaces/IFinanceData';
-import { DateTime } from 'luxon';
+} from '../../contracts/interfaces/IFinanceData';
+
+interface ISearch {
+  issueDate?: string;
+  expirationDate?: string;
+  paymentDate?: string;
+  client?: string;
+  document?: string;
+  fiscalNote?: string;
+  paymentMethod?: string;
+  nsu?: string;
+  status?: string;
+  accept?: string;
+  reconciled?: string;
+  type?: string;
+}
 
 @inject()
 export default class FinanceService {
   constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string) {
+  async index(unitId: string, data: ISearch) {
     const qb = Finance.query().where('business_unit_id', unitId);
+
+    if (data.issueDate) {
+      const startIssue = startOfDay(
+        DateTime.fromISO(data.issueDate).toJSDate(),
+      );
+      const endIssue = startOfDay(
+        DateTime.fromISO(data.issueDate).plus({ days: 1 }).toJSDate(),
+      );
+
+      qb.whereBetween('issueDate', [startIssue, endIssue]);
+    }
+
+    if (data.expirationDate) {
+      const startExp = startOfDay(
+        DateTime.fromISO(data.expirationDate).toJSDate(),
+      );
+      const endExp = startOfDay(
+        DateTime.fromISO(data.expirationDate).plus({ days: 1 }).toJSDate(),
+      );
+
+      qb.whereBetween('expirationDate', [startExp, endExp]);
+    }
+
+    if (data.paymentDate) {
+      const startPayment = startOfDay(
+        DateTime.fromISO(data.paymentDate).toJSDate(),
+      );
+      const endPayment = startOfDay(
+        DateTime.fromISO(data.paymentDate).plus({ days: 1 }).toJSDate(),
+      );
+
+      qb.whereBetween('paymentDate', [startPayment, endPayment]);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
+    }
+
+    if (data.document) {
+      qb.whereILike('document', `%${data.document}%`);
+    }
+
+    if (data.fiscalNote) {
+      qb.whereILike('fiscalNote', `%${data.fiscalNote}%`);
+    }
+
+    if (data.paymentMethod) {
+      qb.where('payment_method_id', data.paymentMethod);
+    }
+
+    if (data.nsu) {
+      qb.where('nsuDocument', data.nsu);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.accept) {
+      qb.where('accept', data.accept);
+    }
+
+    if (data.reconciled) {
+      qb.where('reconciled', data.reconciled === 'true');
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    qb.preload('client');
+    qb.preload('paymentMethod');
+    qb.preload('accountPlan');
 
     return qb;
   }

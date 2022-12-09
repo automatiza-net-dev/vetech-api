@@ -17,6 +17,13 @@ import {
   ICreateBillPaymentData,
 } from 'Contracts/interfaces/IBIllData';
 
+interface ISearch {
+  fromBill?: string;
+  toBill?: string;
+  status?: string;
+  client?: string;
+}
+
 interface ISearchProduct {
   variation?: string;
   reference?: string;
@@ -36,6 +43,32 @@ interface ISearchTax {
 @inject()
 export default class BillService {
   constructor(private sharedService: SharedService) {}
+
+  async index(unitId: string, data: ISearch) {
+    const qb = Bill.query().where('business_unit_id', unitId);
+
+    if (data.fromBill) {
+      qb.where('bill_date', '>=', data.fromBill);
+    }
+
+    if (data.toBill) {
+      qb.where('bill_date', '<=', data.toBill);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
+    }
+
+    qb.preload('client');
+    qb.preload('seller');
+    qb.preload('user');
+
+    return qb;
+  }
 
   async createBill(unitId: string, user: User, data: ICreateBillData) {
     const group = await this.sharedService.getUserGroup(unitId);

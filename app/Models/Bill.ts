@@ -2,6 +2,8 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  belongsTo,
+  BelongsTo,
   column,
   HasMany,
   hasMany,
@@ -10,6 +12,9 @@ import BillItem from 'App/Models/BillItem';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import Patient from './Patient';
+import User from './User';
 
 export enum BillStatus {
   A = 'ATIVA',
@@ -202,15 +207,30 @@ export default class Bill extends BaseModel {
   })
   public client_id: string;
 
+  @belongsTo(() => Patient, {
+    foreignKey: 'client_id',
+  })
+  public client: BelongsTo<typeof Patient>;
+
   @column({
     serializeAs: null,
   })
   public user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public seller_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'seller_id',
+  })
+  public seller: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

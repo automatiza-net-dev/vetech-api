@@ -13,6 +13,20 @@ export default class BillsController {
     private service: BillService,
   ) {}
 
+  public async index({ request, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, {
+      client: qs.client,
+      status: qs.status,
+      fromBill: qs.fromBill,
+      toBill: qs.toBill,
+    });
+
+    return response.ok(result);
+  }
+
   public async createBill({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateBillValidator);
     const { unit_id, user } = this.sharedService.extractUser(auth);

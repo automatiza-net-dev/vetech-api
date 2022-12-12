@@ -22,6 +22,7 @@ interface ISearch {
   toBill?: string;
   status?: string;
   client?: string;
+  patient?: string;
 }
 
 interface ISearchProduct {
@@ -63,7 +64,12 @@ export default class BillService {
       qb.where('client_id', data.client);
     }
 
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
     qb.preload('client');
+    qb.preload('patient');
     qb.preload('seller');
     qb.preload('user');
     qb.preload('items', query => {
@@ -86,6 +92,7 @@ export default class BillService {
 
     await Promise.all([
       bill.load('client'),
+      bill.load('patient'),
       bill.load('seller'),
       bill.load('user'),
       bill.load('payments'),
@@ -112,6 +119,7 @@ export default class BillService {
       budget_id: data.budgetId,
 
       client_id: data.clientId,
+      patient_id: data.patientId,
       billDate: data.billDate,
       productValue: data.productValue,
       serviceValue: data.serviceValue,

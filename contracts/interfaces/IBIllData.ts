@@ -29,5 +29,6 @@ export interface ICreateBillPaymentData {
   billId: string;
   paymentMethodId: string;
   expirationDate: DateTime;
-  installmentValue: number;
+  installmentsValue: number;
+  installments: number;
 }

@@ -38,6 +38,9 @@ export default class BillPayment extends BaseModel {
   })
   public installmentValue: number;
 
+  @column()
+  public installments: number;
+
   @column({
     columnName: 'total_value',
   })

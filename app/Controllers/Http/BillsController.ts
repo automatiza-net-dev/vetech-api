@@ -11,7 +11,7 @@ export default class BillsController {
   constructor(
     private sharedService: SharedService,
     private service: BillService,
-  ) {}
+  ) { }
 
   public async index({ request, response, auth }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -23,6 +23,14 @@ export default class BillsController {
       fromBill: qs.fromBill,
       toBill: qs.toBill,
     });
+
+    return response.ok(result);
+  }
+
+  public async show({ params, auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.show(unit_id, params.id);
 
     return response.ok(result);
   }

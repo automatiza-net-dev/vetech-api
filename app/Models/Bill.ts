@@ -13,6 +13,7 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+import BillPayment from './BillPayment';
 import Patient from './Patient';
 import User from './User';
 
@@ -261,4 +262,9 @@ export default class Bill extends BaseModel {
     foreignKey: 'bill_id',
   })
   public items: HasMany<typeof BillItem>;
+
+  @hasMany(() => BillPayment, {
+    foreignKey: 'bill_id',
+  })
+  public payments: HasMany<typeof BillPayment>;
 }

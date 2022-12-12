@@ -75,6 +75,30 @@ export default class BillService {
     return qb;
   }
 
+  async show(unitId: string, id: string) {
+    const qb = Bill.query().where('business_unit_id', unitId).where('id', id);
+
+    const bill = await qb.first();
+
+    if (!bill) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await Promise.all([
+      bill.load('client'),
+      bill.load('seller'),
+      bill.load('user'),
+      bill.load('payments'),
+      bill.load('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      }),
+    ]);
+
+    return bill;
+  }
+
   async createBill(unitId: string, user: User, data: ICreateBillData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
@@ -280,8 +304,9 @@ export default class BillService {
       feeType: BillPaymentFeeType.N,
       feeValue: 0,
       feePercentage: 0,
-      installmentValue: data.installmentValue,
-      totalValue: data.installmentValue, // TODO: add fee
+      installments: data.installments,
+      installmentValue: data.installmentsValue / data.installments,
+      totalValue: data.installmentsValue, // TODO: add fee
     });
   }
 

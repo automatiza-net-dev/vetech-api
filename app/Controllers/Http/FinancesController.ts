@@ -31,6 +31,8 @@ export default class FinancesController {
       status: qs.status,
       type: qs.type,
       reconciled: qs.reconciled,
+      plan: qs.plan,
+      unit: qs.unit,
     });
 
     return response.ok(result);

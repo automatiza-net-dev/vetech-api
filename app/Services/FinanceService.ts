@@ -43,6 +43,8 @@ interface ISearch {
   accept?: string;
   reconciled?: string;
   type?: string;
+  unit?: string;
+  plan?: string;
 }
 
 @inject()
@@ -50,7 +52,12 @@ export default class FinanceService {
   constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
-    const qb = Finance.query().where('business_unit_id', unitId);
+    const units = [unitId];
+    if (data.unit) {
+      units.push(data.unit);
+    }
+
+    const qb = Finance.query().whereIn('business_unit_id', units);
 
     if (data.issueDate) {
       const startIssue = startOfDay(
@@ -120,6 +127,12 @@ export default class FinanceService {
     if (data.type) {
       qb.where('type', data.type);
     }
+
+    if (data.plan) {
+      qb.where('account_plan_id', data.plan);
+    }
+
+    console.log(qb.toQuery());
 
     qb.preload('client');
     qb.preload('paymentMethod');

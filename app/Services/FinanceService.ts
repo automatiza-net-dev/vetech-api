@@ -132,8 +132,6 @@ export default class FinanceService {
       qb.where('account_plan_id', data.plan);
     }
 
-    console.log(qb.toQuery());
-
     qb.preload('client');
     qb.preload('paymentMethod');
     qb.preload('accountPlan');

@@ -12,7 +12,7 @@ export default class FinancesController {
   constructor(
     private readonly sharedService: SharedService,
     private readonly service: FinanceService,
-  ) {}
+  ) { }
 
   async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -22,11 +22,14 @@ export default class FinancesController {
       accept: qs.accept,
       client: qs.client,
       document: qs.document,
-      expirationDate: qs.expirationDate,
+      fromExpirationDate: qs.fromExpiration,
+      toExpirationDate: qs.toExpiration,
       fiscalNote: qs.fiscalNote,
-      issueDate: qs.issueDate,
+      fromIssueDate: qs.fromIssue,
+      toIssueDate: qs.toIssue,
       nsu: qs.nsu,
-      paymentDate: qs.paymentDate,
+      fromPaymentDate: qs.fromPayment,
+      toPaymentDate: qs.toPayment,
       paymentMethod: qs.paymentMethod,
       status: qs.status,
       type: qs.type,

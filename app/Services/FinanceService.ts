@@ -20,7 +20,6 @@ import FinanceReversal, {
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
-import { startOfDay } from 'date-fns';
 import { DateTime } from 'luxon';
 
 import {
@@ -31,9 +30,15 @@ import {
 } from '../../contracts/interfaces/IFinanceData';
 
 interface ISearch {
-  issueDate?: string;
-  expirationDate?: string;
-  paymentDate?: string;
+  fromIssueDate?: string;
+  toIssueDate?: string;
+
+  fromExpirationDate?: string;
+  toExpirationDate?: string;
+
+  fromPaymentDate?: string;
+  toPaymentDate?: string;
+
   client?: string;
   document?: string;
   fiscalNote?: string;
@@ -49,7 +54,7 @@ interface ISearch {
 
 @inject()
 export default class FinanceService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const units = [unitId];
@@ -59,37 +64,28 @@ export default class FinanceService {
 
     const qb = Finance.query().whereIn('business_unit_id', units);
 
-    if (data.issueDate) {
-      const startIssue = startOfDay(
-        DateTime.fromISO(data.issueDate).toJSDate(),
-      );
-      const endIssue = startOfDay(
-        DateTime.fromISO(data.issueDate).plus({ days: 1 }).toJSDate(),
-      );
-
-      qb.whereBetween('issueDate', [startIssue, endIssue]);
+    if (data.fromIssueDate) {
+      qb.where('issue_date', '>=', data.fromIssueDate);
     }
 
-    if (data.expirationDate) {
-      const startExp = startOfDay(
-        DateTime.fromISO(data.expirationDate).toJSDate(),
-      );
-      const endExp = startOfDay(
-        DateTime.fromISO(data.expirationDate).plus({ days: 1 }).toJSDate(),
-      );
-
-      qb.whereBetween('expirationDate', [startExp, endExp]);
+    if (data.toIssueDate) {
+      qb.where('issue_date', '<=', data.toIssueDate);
     }
 
-    if (data.paymentDate) {
-      const startPayment = startOfDay(
-        DateTime.fromISO(data.paymentDate).toJSDate(),
-      );
-      const endPayment = startOfDay(
-        DateTime.fromISO(data.paymentDate).plus({ days: 1 }).toJSDate(),
-      );
+    if (data.fromExpirationDate) {
+      qb.where('expiration_date', '>=', data.fromExpirationDate);
+    }
 
-      qb.whereBetween('paymentDate', [startPayment, endPayment]);
+    if (data.toExpirationDate) {
+      qb.where('expiration_date', '<=', data.toExpirationDate);
+    }
+
+    if (data.fromPaymentDate) {
+      qb.where('payment_date', '>=', data.fromPaymentDate);
+    }
+
+    if (data.toPaymentDate) {
+      qb.where('payment_date', '<=', data.toPaymentDate);
     }
 
     if (data.client) {

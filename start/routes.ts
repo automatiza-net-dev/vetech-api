@@ -695,6 +695,7 @@ Route.group(() => {
   Route.get('/', 'BillsController.index');
   Route.get('/products', 'BillsController.searchProducts');
   Route.get('/taxes', 'BillsController.searchTax');
+  Route.get('/show/:id', 'BillsController.show');
 })
   .prefix('bills')
   .middleware('auth');

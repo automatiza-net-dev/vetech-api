@@ -4,6 +4,7 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BillItem from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
+import PaymentMethod from 'App/Models/PaymentMethod';
 import Product from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
@@ -43,7 +44,7 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
@@ -95,7 +96,14 @@ export default class BillService {
       bill.load('patient'),
       bill.load('seller'),
       bill.load('user'),
-      bill.load('payments'),
+      bill.load('payments', query => {
+        query.preload('acquirer', query => {
+          query.select('id', 'description');
+        });
+        query.preload('flag', query => {
+          query.select('id', 'description', 'code', 'type');
+        });
+      }),
       bill.load('items', query => {
         query.preload('productVariation', query => {
           query.preload('product');
@@ -293,6 +301,7 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
+    const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
 
     const existingPayments = await BillPayment.query().where(
       'bill_id',
@@ -306,10 +315,13 @@ export default class BillService {
       business_unit_id: unitId,
       bill_id: bill.id,
       payment_method_id: data.paymentMethodId,
+      tef_acquirer_id: data.acquirerId,
+      tef_flag_id: data.flagId,
 
       block: uniqueBlocks.size + 1,
       expirationDate: data.expirationDate,
-      feeType: BillPaymentFeeType.N,
+      feeType:
+        paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
       feeValue: 0,
       feePercentage: 0,
       installments: data.installments,
@@ -330,7 +342,6 @@ export default class BillService {
         if (data.variation) {
           query.where('id', data.variation);
         }
-
         if (data.barcode) {
           query.where('barcode', 'ilike', `%${data.barcode}%`);
         }
@@ -359,7 +370,6 @@ export default class BillService {
       query.where('active', true);
     });
     qb.preload('unit');
-
     return qb;
   }
 

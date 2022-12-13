@@ -20,14 +20,13 @@ import FinanceReversal, {
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
-import { DateTime } from 'luxon';
-
 import {
   IFinanceDownData,
   IFinanceReversalData,
   IUpdateFinance,
   IUpsertFinance,
-} from '../../contracts/interfaces/IFinanceData';
+} from 'Contracts/interfaces/IFinanceData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   fromIssueDate?: string;

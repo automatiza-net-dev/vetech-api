@@ -1,8 +1,11 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag from 'App/Models/TefFlag';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 export enum BillPaymentFeeType {
+  S = 'COM_JUROS',
   N = 'SEM_JUROS',
 }
 
@@ -80,8 +83,18 @@ export default class BillPayment extends BaseModel {
   })
   public tef_flag_id: string;
 
+  @belongsTo(() => TefFlag, {
+    foreignKey: 'tef_flag_id',
+  })
+  public flag: BelongsTo<typeof TefFlag>;
+
   @column({
     serializeAs: null,
   })
   public tef_acquirer_id: string;
+
+  @belongsTo(() => TefAcquirer, {
+    foreignKey: 'tef_acquirer_id',
+  })
+  public acquirer: BelongsTo<typeof TefAcquirer>;
 }

@@ -11,7 +11,7 @@ export default class BillsController {
   constructor(
     private sharedService: SharedService,
     private service: BillService,
-  ) { }
+  ) {}
 
   public async index({ request, response, auth }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);

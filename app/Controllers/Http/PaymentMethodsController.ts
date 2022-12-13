@@ -5,8 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import CreatePaymentMethodFeeValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodFeeValidator';
 import CreatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodFlagValidator';
 import CreatePaymentMethodValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodValidator';
-
-import UpdatePaymentMethodFlagValidator from '../../Validators/PaymentMethod/UpdatePaymentMethodFlagValidator';
+import UpdatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodFlagValidator';
 
 @inject()
 export default class PaymentMethodsController {

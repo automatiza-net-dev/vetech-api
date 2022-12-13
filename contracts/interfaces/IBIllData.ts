@@ -28,6 +28,8 @@ export interface ICreateBillItemData {
 
 export interface ICreateBillPaymentData {
   billId: string;
+  flagId: string;
+  acquirerId: string;
   paymentMethodId: string;
   expirationDate: DateTime;
   installmentsValue: number;

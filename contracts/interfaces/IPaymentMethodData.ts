@@ -25,6 +25,14 @@ export interface ICreatePaymentMethodFlagData {
   maxInstallments?: number;
   fee?: number;
 }
+
+export interface IUpdatePaymentMethodFlagData {
+  tefAcquirerId: string;
+  maxInstallments?: number;
+  fee?: number;
+  active: boolean;
+}
+
 export interface ICreatePaymentMethodFeeData {
   paymentMethodId: string;
   paymentMethodFlagId: string;

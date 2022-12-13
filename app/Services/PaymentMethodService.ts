@@ -62,7 +62,16 @@ export default class PaymentMethodService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = PaymentMethod.query()
-      .preload('flags')
+      .preload('flags', query => {
+        query.preload('acquirer', query => {
+          query.where('active', true);
+          query.select('id', 'description');
+        });
+        query.preload('flag', query => {
+          query.where('active', true);
+          query.select('id', 'description', 'code', 'type');
+        });
+      })
       .preload('fees')
       .preload('checkingAccount');
 

@@ -12,7 +12,7 @@ export default class FinancesController {
   constructor(
     private readonly sharedService: SharedService,
     private readonly service: FinanceService,
-  ) { }
+  ) {}
 
   async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -36,6 +36,7 @@ export default class FinancesController {
       reconciled: qs.reconciled,
       plan: qs.plan,
       unit: qs.unit,
+      competence: qs.competence,
     });
 
     return response.ok(result);

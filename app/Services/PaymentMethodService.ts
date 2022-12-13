@@ -10,6 +10,7 @@ import {
   ICreatePaymentMethodData,
   ICreatePaymentMethodFeeData,
   ICreatePaymentMethodFlagData,
+  IUpdatePaymentMethodFlagData,
 } from 'Contracts/interfaces/IPaymentMethodData';
 
 interface ISearchPaymentMethods {
@@ -64,11 +65,9 @@ export default class PaymentMethodService {
     const qb = PaymentMethod.query()
       .preload('flags', query => {
         query.preload('acquirer', query => {
-          query.where('active', true);
           query.select('id', 'description');
         });
         query.preload('flag', query => {
-          query.where('active', true);
           query.select('id', 'description', 'code', 'type');
         });
       })
@@ -177,6 +176,33 @@ export default class PaymentMethodService {
       fee: data.fee ?? 0,
       maxInstallments: data.maxInstallments,
     });
+  }
+
+  async updatePaymentMethodFlag(
+    unitId: string,
+    id: string,
+    data: IUpdatePaymentMethodFlagData,
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const flag = await PaymentMethodFlag.query()
+      .where('economic_group_id', group.id)
+      .where('id', id)
+      .first();
+
+    if (!flag) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return flag
+      .merge({
+        economic_group_id: group.id,
+        tef_acquirer_id: data.tefAcquirerId,
+        fee: data.fee ?? 0,
+        maxInstallments: data.maxInstallments,
+        active: data.active,
+      })
+      .save();
   }
 
   async createPaymentMethodFee(

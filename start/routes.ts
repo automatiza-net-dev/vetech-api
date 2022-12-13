@@ -648,6 +648,10 @@ Route.group(() => {
     '/create-flag',
     'PaymentMethodsController.createPaymentMethodFlag',
   );
+  Route.put(
+    '/update-flag/:id',
+    'PaymentMethodsController.updatePaymentMethodFlag',
+  );
   Route.post('/create-fee', 'PaymentMethodsController.createPaymentMethodFee');
 })
   .prefix('payment-methods')

@@ -2,11 +2,16 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import TefAcquirer from './TefAcquirer';
+import TefFlag from './TefFlag';
 
 export default class PaymentMethodFlag extends BaseModel {
   @column({ isPrimary: true })
@@ -57,10 +62,20 @@ export default class PaymentMethodFlag extends BaseModel {
   })
   public tef_acquirer_id: string;
 
+  @belongsTo(() => TefAcquirer, {
+    foreignKey: 'tef_acquirer_id',
+  })
+  public acquirer: BelongsTo<typeof TefAcquirer>;
+
   @column({
     serializeAs: null,
   })
   public tef_flag_id: string;
+
+  @belongsTo(() => TefFlag, {
+    foreignKey: 'tef_flag_id',
+  })
+  public flag: BelongsTo<typeof TefFlag>;
 
   @column({
     serializeAs: null,

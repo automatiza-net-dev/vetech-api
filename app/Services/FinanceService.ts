@@ -50,11 +50,12 @@ interface ISearch {
   type?: string;
   unit?: string;
   plan?: string;
+  competence?: string;
 }
 
 @inject()
 export default class FinanceService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const units = [unitId];
@@ -126,6 +127,10 @@ export default class FinanceService {
 
     if (data.plan) {
       qb.where('account_plan_id', data.plan);
+    }
+
+    if (data.competence) {
+      qb.where('competence_date', data.competence);
     }
 
     qb.preload('client');

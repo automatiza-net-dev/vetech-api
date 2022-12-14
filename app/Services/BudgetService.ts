@@ -44,7 +44,7 @@ interface ISearchProduct {
 
 @inject()
 export default class BudgetService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -218,6 +218,8 @@ export default class BudgetService {
     }
 
     qb.preload('variations', query => {
+      query.preload('product');
+
       query.preload('businessUnitProducts', query => {
         query.where('businness_unit_id', unitId);
 

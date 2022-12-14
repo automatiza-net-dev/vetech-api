@@ -4,6 +4,7 @@ import Bill from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import Product from 'App/Models/Product';
+import ProductVariation from 'App/Models/ProductVariation';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import {
@@ -11,7 +12,7 @@ import {
   IConfirmBudgetData,
   ICreateBudgetData,
   ICreateBudgetItemData,
-  IUpdateBudgetItemData
+  IUpdateBudgetItemData,
 } from 'Contracts/interfaces/IBudgetData';
 
 interface ISearchPartial {
@@ -79,11 +80,10 @@ export default class BudgetService {
     qb.preload('client', query => {
       query.preload('tutor');
     });
-    qb.preload('patient')
+    qb.preload('patient');
     qb.preload('user');
     qb.preload('seller');
     qb.preload('dailyMovement');
-    qb.preload('dailyCashier');
     qb.preload('conclusionUser');
     qb.preload('cancelationReason');
 
@@ -110,7 +110,6 @@ export default class BudgetService {
     qb.preload('user');
     qb.preload('seller');
     qb.preload('dailyMovement');
-    qb.preload('dailyCashier');
     qb.preload('conclusionUser');
     qb.preload('cancelationReason');
     qb.preload('items', query => {
@@ -134,7 +133,6 @@ export default class BudgetService {
     qb.preload('user');
     qb.preload('seller');
     qb.preload('dailyMovement');
-    qb.preload('dailyCashier');
     qb.preload('conclusionUser');
     qb.preload('cancelationReason');
     qb.preload('items', query => {
@@ -256,23 +254,84 @@ export default class BudgetService {
   ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Budget.create({
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      client_id: data.clientId,
-      patient_id: data.patientId,
-      user_id: user.id,
-      seller_id: user.id,
-      daily_movement_id: data.dailyMovementId,
-      daily_cashier_id: data.dailyCashierId,
-      budgetDate: data.budgetDate,
-      expirationDate: data.expirationDate,
-      productValue: data.productValue,
-      serviceValue: data.serviceValue,
-      discountValue: data.discountValue,
-      totalValue: data.productValue + data.serviceValue - data.discountValue,
-      observation: data.observation,
-      status: BudgetStatus.A,
+    const items = await ProductVariation.query().whereIn(
+      'id',
+      data.items.map(({ productVariationId }) => productVariationId),
+    );
+
+    return Database.transaction(async trx => {
+      const budget = await Budget.create(
+        {
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          client_id: data.clientId,
+          patient_id: data.patientId,
+          user_id: user.id,
+          seller_id: user.id,
+          daily_movement_id: data.dailyMovementId,
+          budgetDate: data.budgetDate,
+          expirationDate: data.expirationDate,
+          productValue: 0,
+          serviceValue: 0,
+          discountValue: 0,
+          totalValue: 0,
+          observation: data.observation,
+          status: BudgetStatus.A,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      data.items.forEach(async item => {
+        const variation = items.find(
+          variation => variation.id === item.productVariationId,
+        );
+
+        if (!variation) {
+          throw this.sharedService.ResourceNotFound(
+            'Variação do produto não encontrada',
+          );
+        }
+
+        await budget.related('items').create(
+          {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            product_variation_id: variation.id,
+
+            unitaryValue: item.unitaryValue,
+            discountValue: item.discountValue,
+            quantity: item.quantity,
+            totalValue: item.quantity * item.unitaryValue - item.discountValue,
+            status: BudgetStatus.A,
+          },
+          {
+            client: trx,
+          },
+        );
+      });
+
+      const unitarySum = data.items.reduce(
+        (total, item) => total + item.unitaryValue * item.quantity,
+        0,
+      );
+
+      const discountSum = data.items.reduce(
+        (total, item) => total + item.discountValue * item.quantity,
+        0,
+      );
+
+      await budget
+        .merge({
+          productValue: unitarySum,
+          discountValue: discountSum,
+          totalValue: unitarySum - discountSum,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return budget;
     });
   }
 
@@ -280,17 +339,35 @@ export default class BudgetService {
     const budget = await Budget.findOrFail(data.budgetId);
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return BudgetItem.create({
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      budget_id: budget.id,
-      product_variation_id: data.productVariationId,
+    return Database.transaction(async trx => {
+      await budget.related('items').create(
+        {
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          product_variation_id: data.productVariationId,
 
-      unitaryValue: data.unitaryValue,
-      discountValue: data.discountValue,
-      quantity: data.quantity,
-      totalValue: data.quantity * data.unitaryValue - data.discountValue,
-      status: BudgetStatus.A,
+          unitaryValue: data.unitaryValue,
+          discountValue: data.discountValue,
+          quantity: data.quantity,
+          totalValue: data.quantity * data.unitaryValue - data.discountValue,
+          status: BudgetStatus.A,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await budget
+        .merge({
+          productValue: budget.productValue + data.unitaryValue,
+          discountValue: budget.discountValue + data.discountValue,
+          totalValue:
+            budget.totalValue +
+            data.quantity * data.unitaryValue -
+            data.discountValue,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

@@ -9,7 +9,6 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BudgetItem from 'App/Models/BudgetItem';
-import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
 import Patient from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
@@ -34,7 +33,7 @@ export default class Budget extends BaseModel {
   })
   public budgetDate: DateTime;
 
-  @column.dateTime({
+  @column.date({
     columnName: 'expiration_date',
   })
   public expirationDate: DateTime;
@@ -153,16 +152,6 @@ export default class Budget extends BaseModel {
     foreignKey: 'daily_movement_id',
   })
   public dailyMovement: BelongsTo<typeof DailyMovement>;
-
-  @column({
-    serializeAs: null,
-  })
-  public daily_cashier_id: string;
-
-  @belongsTo(() => DailyCashier, {
-    foreignKey: 'daily_cashier_id',
-  })
-  public dailyCashier: BelongsTo<typeof DailyCashier>;
 
   @column({
     serializeAs: null,

@@ -27,7 +27,7 @@ export default class ReasonService {
     }
 
     if (data.type) {
-      qb.where('type', `%${data.type}%`);
+      qb.where('type', data.type);
     }
 
     if (typeof data.requires_observation !== 'undefined') {

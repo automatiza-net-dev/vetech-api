@@ -17,16 +17,20 @@ export default class CreateBudgetValidator {
       rules.uuid(),
       rules.exists({ table: 'daily_movements', column: 'id' }),
     ]),
-    dailyCashierId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'daily_cashiers', column: 'id' }),
-    ]),
     budgetDate: schema.date(),
     expirationDate: schema.date(),
-    productValue: schema.number(),
-    serviceValue: schema.number(),
-    discountValue: schema.number(),
     observation: schema.string(),
+    items: schema.array().members(
+      schema.object().members({
+        productVariationId: schema.string({}, [
+          rules.uuid(),
+          rules.exists({ table: 'product_variations', column: 'id' }),
+        ]),
+        quantity: schema.number(),
+        unitaryValue: schema.number(),
+        discountValue: schema.number(),
+      }),
+    ),
   });
 
   public messages: CustomMessages = {};

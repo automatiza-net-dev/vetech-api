@@ -1,25 +1,22 @@
 import { BudgetStatus } from 'App/Models/Budget';
 import { DateTime } from 'luxon';
 
-export interface ICreateBudgetData {
-  clientId: string;
-  patientId: string;
-  dailyMovementId: string;
-  dailyCashierId: string;
-  budgetDate: DateTime;
-  expirationDate: DateTime;
-  productValue: number;
-  serviceValue: number;
-  discountValue: number;
-  observation: string;
-}
-
 export interface ICreateBudgetItemData {
   budgetId: string;
   productVariationId: string;
   quantity: number;
   unitaryValue: number;
   discountValue: number;
+}
+
+export interface ICreateBudgetData {
+  clientId: string;
+  patientId: string;
+  dailyMovementId: string;
+  budgetDate: DateTime;
+  expirationDate: DateTime;
+  observation: string;
+  items: Array<Omit<ICreateBudgetItemData, 'budgetId'>>;
 }
 
 export interface IUpdateBudgetItemData {

@@ -2,11 +2,15 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import CheckingAccount from './CheckingAccount';
 
 export enum BankingType {
   C = 'CREDITO',
@@ -178,6 +182,11 @@ export default class Banking extends BaseModel {
     serializeAs: null,
   })
   public checking_account_id: string;
+
+  @belongsTo(() => CheckingAccount, {
+    foreignKey: 'checking_account_id',
+  })
+  public checkingAccount: BelongsTo<typeof CheckingAccount>;
 
   @column({
     serializeAs: null,

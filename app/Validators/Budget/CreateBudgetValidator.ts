@@ -2,7 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateBudgetValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     clientId: schema.string({}, [
@@ -19,7 +19,7 @@ export default class CreateBudgetValidator {
     ]),
     budgetDate: schema.date(),
     expirationDate: schema.date(),
-    observation: schema.string(),
+    observation: schema.string.optional(),
     items: schema.array().members(
       schema.object().members({
         productVariationId: schema.string({}, [

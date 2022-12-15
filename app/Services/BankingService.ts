@@ -18,10 +18,12 @@ import { DateTime } from 'luxon';
 
 @inject()
 export default class BankingService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string) {
     const qb = Banking.query().where('business_unit_id', unitId);
+
+    qb.preload('checkingAccount');
 
     return qb;
   }

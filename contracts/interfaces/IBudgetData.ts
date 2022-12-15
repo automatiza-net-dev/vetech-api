@@ -15,7 +15,7 @@ export interface ICreateBudgetData {
   dailyMovementId: string;
   budgetDate: DateTime;
   expirationDate: DateTime;
-  observation: string;
+  observation?: string;
   items: Array<Omit<ICreateBudgetItemData, 'budgetId'>>;
 }
 

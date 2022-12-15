@@ -16,12 +16,51 @@ import SharedService from 'App/Services/SharedService';
 import { IUpsertBankingData } from 'Contracts/interfaces/IBankingData';
 import { DateTime } from 'luxon';
 
+interface ISearch {
+  type?: string;
+  reconciled?: string;
+  account?: string;
+  competence?: string;
+  document?: string;
+
+  from?: string;
+  to?: string;
+}
+
 @inject()
 export default class BankingService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string) {
+  async index(unitId: string, data: ISearch) {
     const qb = Banking.query().where('business_unit_id', unitId);
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.reconciled) {
+      qb.where('reconciled', data.reconciled === 'true');
+    }
+
+    if (data.account) {
+      qb.where('checking_account_id', data.account);
+    }
+
+    if (data.competence) {
+      qb.where('competence_date', data.competence);
+    }
+
+    if (data.document) {
+      qb.whereILike('document', `%${data.document}%`);
+    }
+
+    if (data.from) {
+      qb.where('issue_date', '>=', data.from);
+    }
+
+    if (data.to) {
+      qb.where('issue_date', '<=', data.to);
+    }
 
     qb.preload('checkingAccount');
 

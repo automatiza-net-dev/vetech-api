@@ -11,10 +11,20 @@ export default class BankingsController {
     private service: BankingService,
   ) {}
 
-  async index({ auth, response }: HttpContextContract) {
+  async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id);
+    const qs = request.qs();
+
+    const result = await this.service.index(unit_id, {
+      type: qs.type,
+      reconciled: qs.reconciled,
+      account: qs.account,
+      competence: qs.competence,
+      document: qs.document,
+      from: qs.from,
+      to: qs.to,
+    });
 
     return response.ok(result);
   }

@@ -3,6 +3,7 @@ import { test } from '@japa/runner';
 import Group from 'App/Models/Group';
 import Product, { ProductType } from 'App/Models/Product';
 import Subgroup from 'App/Models/Subgroup';
+import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
@@ -51,6 +52,12 @@ test.group('Product resource', group => {
       icmsOrigin: '0',
     });
 
+    const taxationGroup = await TaxationGroup.create({
+      name: 'some name',
+      active: true,
+      economic_group_id: group.id,
+    });
+
     return {
       user,
       product,
@@ -59,6 +66,7 @@ test.group('Product resource', group => {
       groupEntity,
       subgroupEntity,
       unit,
+      taxationGroup,
     };
   };
 
@@ -78,8 +86,14 @@ test.group('Product resource', group => {
   });
 
   test('should create a product', async ({ client, assert }) => {
-    const { user, variationGroup, groupEntity, subgroupEntity, unit } =
-      await createData();
+    const {
+      user,
+      variationGroup,
+      groupEntity,
+      subgroupEntity,
+      unit,
+      taxationGroup,
+    } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -100,6 +114,7 @@ test.group('Product resource', group => {
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
+        taxationGroupId: taxationGroup.id,
         variations: [
           {
             barcode: 'some bar code',
@@ -136,6 +151,7 @@ test.group('Product resource', group => {
       groupEntity,
       subgroupEntity,
       unit,
+      taxationGroup,
     } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -159,6 +175,7 @@ test.group('Product resource', group => {
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
+        taxationGroupId: taxationGroup.id,
         variations: [
           {
             barcode: 'some bar code',
@@ -237,7 +254,7 @@ test.group('Product resource', group => {
   });
 
   test('should update a product', async ({ client, assert }) => {
-    const { user, product, subgroupEntity, groupEntity, unit } =
+    const { user, product, subgroupEntity, groupEntity, unit, taxationGroup } =
       await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -257,6 +274,7 @@ test.group('Product resource', group => {
         unitId: unit.id,
         active: true,
         groupId: groupEntity.id,
+        taxationGroupId: taxationGroup.id,
         subgroupId: subgroupEntity.id,
         icmsOrigin: '0',
       })

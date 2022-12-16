@@ -12,4 +12,5 @@ export default interface IUpdateProduct {
   active: boolean;
   groupId?: string;
   subgroupId: string;
+  taxationGroupId: string;
 }

@@ -12,6 +12,7 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import Group from 'App/Models/Group';
 import ProductVariation from 'App/Models/ProductVariation';
 import Subgroup from 'App/Models/Subgroup';
+import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit from 'App/Models/Unit';
 import VariationGroup from 'App/Models/VariationGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -144,4 +145,15 @@ export default class Product extends BaseModel {
     foreignKey: 'unit_id',
   })
   public unit: BelongsTo<typeof Unit>;
+
+  @column({
+    serializeAs: null,
+  })
+  public taxation_group_id: string;
+
+  @belongsTo(() => TaxationGroup, {
+    localKey: 'id',
+    foreignKey: 'taxation_group_id',
+  })
+  public taxationGroup: BelongsTo<typeof TaxationGroup>;
 }

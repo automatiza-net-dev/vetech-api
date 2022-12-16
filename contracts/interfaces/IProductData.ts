@@ -37,6 +37,7 @@ export default interface IProductData {
   icmsOrigin?: typeof ProductIcmsOrigin[number];
   active: boolean;
   variationGroup: string;
+  taxationGroupId: string;
   groupId?: string;
   subgroupId: string;
   variations: Array<IProductDataVariation>;

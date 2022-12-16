@@ -145,6 +145,7 @@ export default class ProductService {
           icmsOrigin: data.icmsOrigin,
           economic_group_id: group.id,
           variation_group_id: variationGroup.id,
+          taxation_group_id: data.taxationGroupId,
           group_id: data.groupId,
           subgroup_id: data.subgroupId,
         },

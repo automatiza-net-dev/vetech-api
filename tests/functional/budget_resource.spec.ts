@@ -1,6 +1,5 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Bill from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
@@ -20,6 +19,7 @@ test.group('Budget resource', group => {
     const { user, business, group } = await userBootstrap();
 
     const client = await PatientFactory.create();
+    const patient = await PatientFactory.create();
     const dailyMovement = await DailyMovement.create({
       business_unit_id: business.id,
     });
@@ -39,15 +39,6 @@ test.group('Budget resource', group => {
       discountValue: 2,
     });
 
-    const bill = await Bill.create({
-      economic_group_id: group.id,
-      business_unit_id: business.id,
-      user_id: user.id,
-      seller_id: user.id,
-      daily_movement_id: dailyMovement.id,
-      daily_cashier_id: dailyCashier.id,
-    });
-
     const reason = await Reason.create({
       economicGroupId: group.id,
       type: 'OR',
@@ -57,11 +48,11 @@ test.group('Budget resource', group => {
     return {
       user,
       client,
+      patient,
       dailyMovement,
       dailyCashier,
       budget,
       budgetItem,
-      bill,
       reason,
     };
   };
@@ -141,6 +132,7 @@ test.group('Budget resource', group => {
       client: dbClient,
       dailyCashier,
       dailyMovement,
+      patient,
     } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -151,14 +143,13 @@ test.group('Budget resource', group => {
       .post(`/budgets/create`)
       .json({
         clientId: dbClient.id,
+        patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
         budgetDate: new Date(),
         expirationDate: new Date(),
-        productValue: 100,
-        serviceValue: 200,
-        discountValue: 55,
         observation: 'some',
+        items: [],
       })
       .bearerToken(token);
 
@@ -176,7 +167,7 @@ test.group('Budget resource', group => {
       .post(`/budgets/create-item`)
       .json({
         budgetId: budget.id,
-        productVariationId: '0a6ce842-5c86-4325-9ca3-68727efe908f', // should be a value created in the test
+        productVariationId: '55c09fc1-251f-4fcc-84c3-7207d33eab4c', // should be a value created in the test
         quantity: 5,
         unitaryValue: 10,
         discountValue: 2,
@@ -211,7 +202,7 @@ test.group('Budget resource', group => {
   });
 
   test('should confirm budget (TOTAL)', async ({ assert, client }) => {
-    const { user, budget, bill } = await createData();
+    const { user, budget } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -220,7 +211,6 @@ test.group('Budget resource', group => {
     const response = await client
       .put(`/budgets/confirm/${budget.id}`)
       .json({
-        billId: bill.id,
         type: 'TOTAL',
         notConfirmedItems: [],
         finishedAt: new Date(),
@@ -231,7 +221,7 @@ test.group('Budget resource', group => {
   });
 
   test('should confirm budget (PARCIAL)', async ({ assert, client }) => {
-    const { user, budget, bill, reason } = await createData();
+    const { user, budget, reason } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -240,7 +230,6 @@ test.group('Budget resource', group => {
     const response = await client
       .put(`/budgets/confirm/${budget.id}`)
       .json({
-        billId: bill.id,
         type: 'PARCIAL',
         notConfirmedItems: [],
         finishedAt: new Date(),
@@ -253,7 +242,7 @@ test.group('Budget resource', group => {
   });
 
   test('should cancel budget', async ({ assert, client }) => {
-    const { user, budget } = await createData();
+    const { user, budget, reason } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -262,7 +251,7 @@ test.group('Budget resource', group => {
     const response = await client
       .put(`/budgets/cancel/${budget.id}`)
       .json({
-        reasonId: 'e8a489fa-23ca-47f0-865d-5d7f463dd1c2',
+        reasonId: reason.id,
         finishedAt: new Date(),
         canceledObservation: 'some observation',
       })

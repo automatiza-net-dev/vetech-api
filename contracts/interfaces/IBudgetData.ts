@@ -27,7 +27,6 @@ export interface IUpdateBudgetItemData {
 }
 
 export interface IConfirmBudgetData {
-  billId: string;
   type: 'PARCIAL' | 'TOTAL';
   notConfirmedItems: string[];
   finishedAt: DateTime;

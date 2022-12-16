@@ -57,6 +57,13 @@ export default class CreateProductValidator {
         column: 'id',
       }),
     ]),
+    taxationGroupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'taxation_groups',
+        column: 'id',
+      }),
+    ]),
     variations: schema.array().members(
       schema.object().members({
         barcode: schema.string.optional({}),

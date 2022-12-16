@@ -35,6 +35,13 @@ export default class UpdateProductValidator {
         column: 'id',
       }),
     ]),
+    taxationGroupId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'taxation_groups',
+        column: 'id',
+      }),
+    ]),
     icmsOrigin: schema.enum(Object.values(ProductIcmsOrigin), []),
   });
 

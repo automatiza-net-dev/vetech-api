@@ -156,6 +156,11 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public bill_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public conclusion_user_id: string;
 
   @belongsTo(() => User, {

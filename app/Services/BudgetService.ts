@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
-import Bill from 'App/Models/Bill';
+import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import Product from 'App/Models/Product';
@@ -14,6 +14,7 @@ import {
   ICreateBudgetItemData,
   IUpdateBudgetItemData,
 } from 'Contracts/interfaces/IBudgetData';
+import { DateTime } from 'luxon';
 
 interface ISearchPartial {
   fromCreation?: string;
@@ -44,7 +45,7 @@ interface ISearchProduct {
 
 @inject()
 export default class BudgetService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -404,6 +405,8 @@ export default class BudgetService {
     user: User,
     data: IConfirmBudgetData,
   ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     const model = await Budget.query()
       .where('id', id)
       .where('business_unit_id', unitId)
@@ -413,10 +416,116 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const bill = await Bill.findOrFail(data.billId);
-    const items = await model.related('items').query();
+    // const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+    // const client = await Patient.query()
+    //   .where('id', model.client_id)
+    //   .preload('tutor')
+    //   .firstOrFail();
+
+    const items = await model
+      .related('items')
+      .query()
+      .preload('productVariation', query => {
+        query.preload('product');
+      });
+    const validItems = items.filter(
+      i => !data.notConfirmedItems.includes(i.id),
+    );
 
     return Database.transaction(async trx => {
+      const totalProductValue = validItems.reduce(
+        (total, item) => total + item.totalValue,
+        0,
+      );
+      const totalDiscountValue = validItems.reduce(
+        (total, item) => total + item.discountValue,
+        0,
+      );
+      const totalServiceValue = 0;
+
+      const bill = await Bill.create(
+        {
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          user_id: user.id,
+          seller_id: user.id,
+          daily_movement_id: model.daily_movement_id,
+
+          client_id: model.client_id,
+          patient_id: model.patient_id,
+          billDate: DateTime.now(),
+          productValue: totalProductValue,
+          serviceValue: totalServiceValue,
+          discountValue: totalDiscountValue,
+          totalValue:
+            totalProductValue + totalServiceValue - totalDiscountValue,
+          deliveryValue: 0,
+          additionalInformation: '[Concluído a partir de um orçamento]',
+          status: BillStatus.A,
+
+          otherValue: 0,
+        },
+        { client: trx },
+      );
+
+      await bill.related('items').createMany(
+        validItems.map(item => ({
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          bill_id: bill.id,
+          product_variation_id: item.product_variation_id,
+          // tax_rule_id: rule.id,
+
+          quantity: item.quantity,
+          costValue: 0,
+          saleValue: 0,
+          unitaryValue: item.unitaryValue,
+          discountValue: item.discountValue,
+          totalValue: item.quantity * item.unitaryValue - item.discountValue,
+          status: BillStatus.A,
+          createdAt: bill.createdAt,
+
+          // fiscalOperationCode: rule.taxOperation.code,
+          // icmsOriginProduct: item.productVariation.product.icmsOrigin,
+          // icmsCst: rule.icmsCst,
+          // icmsBase,
+          // icmsPercentage: rule.icmsPerc,
+          // icmsValue,
+          // icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+          // icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+          // icmsStBase,
+          // icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+          // icmsStIva: rule.icmsPercRedAliquota,
+          // icmsStPercentageUfDestination: 0,
+          // icmsStValue: icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue,
+          // issCst: '',
+          // issBase: rule.icmsPerc,
+          // issPercentage: rule.icmsPercRedAliquota,
+          // issValue: 0,
+          // pisBase: 0,
+          // pisPercentage: rule.pisPerc,
+          // pisValue: 0,
+          // pisRetentionValue: 0,
+          // cofinsBase: 0,
+          // cofinsPercentage: rule.cofinsPerc,
+          // cofinsValue: 0,
+          // cofinsRetentionValue: 0,
+          // ipiBase: 0,
+          // ipiPercentage: rule.ipiPerc,
+          // ipiValue: 0,
+          // icmsDeferredValue: 0,
+          // icmsPartitionValue: 0,
+          // icmsFcpPercentage: rule.fcpPerc,
+          // icmsFcpValue: 0,
+          // icmsPartitionOriginUfPercentage: rule.icmsPerc,
+          // icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+          // icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+        })),
+        {
+          client: trx,
+        },
+      );
+
       data.notConfirmedItems.forEach(async item => {
         const budgetItem = items.find(i => i.id === item);
 
@@ -439,6 +548,7 @@ export default class BudgetService {
 
       return model
         .merge({
+          bill_id: bill.id,
           conclusion_user_id: user.id,
           finishedAt: data.finishedAt,
           status: data.type === 'PARCIAL' ? BudgetStatus.P : BudgetStatus.C,

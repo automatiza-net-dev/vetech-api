@@ -12,10 +12,6 @@ export default class ConfirmBudgetValidator {
   ];
 
   public schema = schema.create({
-    billId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'bills', column: 'id' }),
-    ]),
     type: schema.enum(['PARCIAL', 'TOTAL'] as const),
     notConfirmedItems: schema
       .array()

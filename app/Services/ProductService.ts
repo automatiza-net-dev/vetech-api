@@ -21,7 +21,7 @@ interface ISearch {
 
 @inject()
 export default class ProductService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -52,7 +52,8 @@ export default class ProductService {
       })
       .preload('variationGroup', query => {
         query.select('id', 'description', 'active');
-      });
+      })
+      .preload('taxationGroup');
 
     if (data.description) {
       qb.where('description', 'like', `%${data.description}%`);

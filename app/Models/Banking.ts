@@ -6,6 +6,9 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import AccountPlan from 'App/Models/AccountPlan';
+import Patient from 'App/Models/Patient';
+import PaymentMethod from 'App/Models/PaymentMethod';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -168,6 +171,11 @@ export default class Banking extends BaseModel {
   })
   public client_id: string;
 
+  @belongsTo(() => Patient, {
+    foreignKey: 'client_id',
+  })
+  public client: BelongsTo<typeof Patient>;
+
   @column({
     serializeAs: null,
   })
@@ -198,8 +206,18 @@ export default class Banking extends BaseModel {
   })
   public account_plan_id: string;
 
+  @belongsTo(() => AccountPlan, {
+    foreignKey: 'account_plan_id',
+  })
+  public accountPlan: BelongsTo<typeof AccountPlan>;
+
   @column({
     serializeAs: null,
   })
   public payment_method_id: string;
+
+  @belongsTo(() => PaymentMethod, {
+    foreignKey: 'payment_method_id',
+  })
+  public paymentMethod: BelongsTo<typeof PaymentMethod>;
 }

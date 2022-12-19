@@ -62,7 +62,10 @@ export default class BankingService {
       qb.where('issue_date', '<=', data.to);
     }
 
-    qb.preload('checkingAccount');
+    qb.preload('checkingAccount')
+      .preload('paymentMethod')
+      .preload('client')
+      .preload('accountPlan');
 
     return qb;
   }

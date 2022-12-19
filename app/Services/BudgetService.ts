@@ -3,9 +3,14 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Patient from 'App/Models/Patient';
 import Product from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
+import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
+import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
+import BillService from 'App/Services/BillService';
 import SharedService from 'App/Services/SharedService';
 import {
   ICancelBudgetData,
@@ -45,7 +50,10 @@ interface ISearchProduct {
 
 @inject()
 export default class BudgetService {
-  constructor(private sharedService: SharedService) {}
+  constructor(
+    private sharedService: SharedService,
+    private billService: BillService,
+  ) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -416,11 +424,24 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    // const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
-    // const client = await Patient.query()
-    //   .where('id', model.client_id)
-    //   .preload('tutor')
-    //   .firstOrFail();
+    const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+    const client = await Patient.query()
+      .where('id', model.client_id)
+      .preload('tutor')
+      .firstOrFail();
+
+    const rules = await this.billService.searchTax(unitId, {
+      category: MovementCategory.NS,
+      type: MovementType.S,
+      origin: unit.state,
+      destination: client.tutor.state ?? unit.state,
+    });
+    const rule = rules.length > 0 ? rules[0] : null;
+
+    const ufIcms = await UfIcms.query()
+      .where('origin_uf', unit.state ?? '')
+      .where('destination_uf', client.tutor.state ?? unit.state ?? '')
+      .first();
 
     const items = await model
       .related('items')
@@ -469,58 +490,79 @@ export default class BudgetService {
       );
 
       await bill.related('items').createMany(
-        validItems.map(item => ({
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          bill_id: bill.id,
-          product_variation_id: item.product_variation_id,
-          // tax_rule_id: rule.id,
+        validItems.map(item => {
+          const totalValue =
+            item.unitaryValue * item.quantity - item.discountValue;
+          const icmsBase = rule
+            ? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
+            : 0;
+          const icmsStBase = rule
+            ? icmsBase *
+              ((100 + rule.ivaIcmsSt) / 100) *
+              ((100 - rule.icmsPercRedBaseCalculo) / 100)
+            : 0;
+          const icmsValue = rule
+            ? icmsBase *
+              ((rule.icmsPercRedBaseCalculo *
+                ((100 - rule.icmsPercRedAliquota) / 100)) /
+                100)
+            : 0;
 
-          quantity: item.quantity,
-          costValue: 0,
-          saleValue: 0,
-          unitaryValue: item.unitaryValue,
-          discountValue: item.discountValue,
-          totalValue: item.quantity * item.unitaryValue - item.discountValue,
-          status: BillStatus.A,
-          createdAt: bill.createdAt,
+          return {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            bill_id: bill.id,
+            product_variation_id: item.product_variation_id,
+            tax_rule_id: rule?.id,
 
-          // fiscalOperationCode: rule.taxOperation.code,
-          // icmsOriginProduct: item.productVariation.product.icmsOrigin,
-          // icmsCst: rule.icmsCst,
-          // icmsBase,
-          // icmsPercentage: rule.icmsPerc,
-          // icmsValue,
-          // icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-          // icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          // icmsStBase,
-          // icmsStPercentageRedBase: rule.icmsPercRedAliquota,
-          // icmsStIva: rule.icmsPercRedAliquota,
-          // icmsStPercentageUfDestination: 0,
-          // icmsStValue: icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue,
-          // issCst: '',
-          // issBase: rule.icmsPerc,
-          // issPercentage: rule.icmsPercRedAliquota,
-          // issValue: 0,
-          // pisBase: 0,
-          // pisPercentage: rule.pisPerc,
-          // pisValue: 0,
-          // pisRetentionValue: 0,
-          // cofinsBase: 0,
-          // cofinsPercentage: rule.cofinsPerc,
-          // cofinsValue: 0,
-          // cofinsRetentionValue: 0,
-          // ipiBase: 0,
-          // ipiPercentage: rule.ipiPerc,
-          // ipiValue: 0,
-          // icmsDeferredValue: 0,
-          // icmsPartitionValue: 0,
-          // icmsFcpPercentage: rule.fcpPerc,
-          // icmsFcpValue: 0,
-          // icmsPartitionOriginUfPercentage: rule.icmsPerc,
-          // icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-          // icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
-        })),
+            quantity: item.quantity,
+            costValue: 0,
+            saleValue: 0,
+            unitaryValue: item.unitaryValue,
+            discountValue: item.discountValue,
+            totalValue: item.quantity * item.unitaryValue - item.discountValue,
+            status: BillStatus.A,
+            createdAt: bill.createdAt,
+
+            fiscalOperationCode: rule?.taxOperation?.code,
+            icmsOriginProduct: item.productVariation.product.icmsOrigin,
+            icmsCst: rule?.icmsCst,
+            icmsBase,
+            icmsPercentage: rule?.icmsPerc,
+            icmsValue,
+            icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+            icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+            icmsStBase,
+            icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
+            icmsStIva: rule?.icmsPercRedAliquota,
+            icmsStPercentageUfDestination: 0,
+            icmsStValue: ufIcms
+              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+              : undefined,
+            issCst: '',
+            issBase: rule?.icmsPerc,
+            issPercentage: rule?.icmsPercRedAliquota,
+            issValue: 0,
+            pisBase: 0,
+            pisPercentage: rule?.pisPerc,
+            pisValue: 0,
+            pisRetentionValue: 0,
+            cofinsBase: 0,
+            cofinsPercentage: rule?.cofinsPerc,
+            cofinsValue: 0,
+            cofinsRetentionValue: 0,
+            ipiBase: 0,
+            ipiPercentage: rule?.ipiPerc,
+            ipiValue: 0,
+            icmsDeferredValue: 0,
+            icmsPartitionValue: 0,
+            icmsFcpPercentage: rule?.fcpPerc,
+            icmsFcpValue: 0,
+            icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+            icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+            icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
+          };
+        }),
         {
           client: trx,
         },

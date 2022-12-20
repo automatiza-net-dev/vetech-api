@@ -45,9 +45,17 @@ export default class HospitalizationsController {
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const invite = await this.service.show(unit_id, params.id);
+    const hospitalization = await this.service.show(unit_id, params.id);
 
-    return response.ok(invite);
+    return response.ok(hospitalization);
+  }
+
+  public async getScheduling({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const scheduling = await this.service.getScheduling(unit_id, params.id);
+
+    return response.ok(scheduling);
   }
 
   public async update({

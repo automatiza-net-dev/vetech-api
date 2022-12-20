@@ -512,6 +512,7 @@ Route.group(() => {
   Route.get('/', 'HospitalizationsController.index');
   Route.post('/', 'HospitalizationsController.store');
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
+  Route.get('/scheduling/:id', 'HospitalizationsController.getScheduling');
   Route.get('/:id', 'HospitalizationsController.show');
   Route.put('/:id', 'HospitalizationsController.update');
   Route.delete('/:id', 'HospitalizationsController.destroy');

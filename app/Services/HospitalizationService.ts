@@ -4,6 +4,7 @@ import Bed from 'App/Models/Bed';
 import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
@@ -54,7 +55,6 @@ export default class HospitalizationService {
         query.preload('prescription');
         query.preload('attachments');
       })
-      .preload('scheduling')
       .preload('parameters', query => {
         query.preload('parameter');
         query.preload('user');
@@ -101,7 +101,6 @@ export default class HospitalizationService {
         query.preload('prescription');
         query.preload('attachments');
       })
-      .preload('scheduling')
       .preload('parameters', query => {
         query.preload('parameter');
         query.preload('user');
@@ -125,6 +124,23 @@ export default class HospitalizationService {
     return Object.assign(result, {
       weight: (lastWeight?.timeline_info as any)?.weight,
     });
+  }
+
+  public async getScheduling(unitId: string, id: string) {
+    const qb = Hospitalization.query()
+      .where('business_unit_id', unitId)
+      .where('id', id);
+
+    const hospitalization = await qb.first();
+
+    if (!hospitalization) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return HospitalizationMedicalPrescriptionScheduling.query().where(
+      'hospitalization_id',
+      hospitalization.id,
+    );
   }
 
   public async store(unitId: string, user: User, data: IHospitalizationData) {

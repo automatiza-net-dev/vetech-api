@@ -28,6 +28,9 @@ export default class Budget extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
+  @column()
+  public tag: string
+
   @column.dateTime({
     columnName: 'budget_date',
   })

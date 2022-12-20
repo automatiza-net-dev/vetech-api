@@ -457,6 +457,8 @@ export default class BudgetService {
       i => !data.notConfirmedItems.includes(i.id),
     );
 
+    const bills = await Bill.query().select('id');
+
     return Database.transaction(async trx => {
       const totalProductValue = validItems.reduce(
         (total, item) => total + item.totalValue,
@@ -489,6 +491,7 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
+          tag: GenerateTag(bills.length + 1),
         },
         { client: trx },
       );

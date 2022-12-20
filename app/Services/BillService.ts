@@ -12,6 +12,7 @@ import TaxationGroupRule from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
+import { GenerateTag } from 'App/Utils/GenerateTag';
 import {
   ICreateBillData,
   ICreateBillItemData,
@@ -117,6 +118,8 @@ export default class BillService {
   async createBill(unitId: string, user: User, data: ICreateBillData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
+    const bills = await Bill.query().select('id');
+
     return Bill.create({
       economic_group_id: group.id,
       business_unit_id: unitId,
@@ -138,6 +141,7 @@ export default class BillService {
       status: BillStatus.A,
 
       otherValue: data.otherValue,
+      tag: GenerateTag(bills.length + 1),
     });
   }
 

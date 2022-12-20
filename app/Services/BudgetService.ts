@@ -12,6 +12,7 @@ import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import BillService from 'App/Services/BillService';
 import SharedService from 'App/Services/SharedService';
+import { GenerateTag } from 'App/Utils/GenerateTag';
 import {
   ICancelBudgetData,
   IConfirmBudgetData,
@@ -270,6 +271,8 @@ export default class BudgetService {
       data.items.map(({ productVariationId }) => productVariationId),
     );
 
+    const budgets = await Budget.query().select('id');
+
     return Database.transaction(async trx => {
       const budget = await Budget.create(
         {
@@ -288,6 +291,7 @@ export default class BudgetService {
           totalValue: 0,
           observation: data.observation,
           status: BudgetStatus.A,
+          tag: GenerateTag(budgets.length + 1),
         },
         {
           client: trx,
@@ -453,6 +457,8 @@ export default class BudgetService {
       i => !data.notConfirmedItems.includes(i.id),
     );
 
+    const bills = await Bill.query().select('id');
+
     return Database.transaction(async trx => {
       const totalProductValue = validItems.reduce(
         (total, item) => total + item.totalValue,
@@ -485,6 +491,7 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
+          tag: GenerateTag(bills.length + 1),
         },
         { client: trx },
       );

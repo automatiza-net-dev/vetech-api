@@ -247,8 +247,8 @@ export default class PatientService {
     if (patient.type === PatientType.ANIMAL) {
       await patient.load('tutors', query => {
         query.preload('tutor', query => {
-          query.select(['id', 'cellphone', 'telephone', 'email'])
-        })
+          query.select(['id', 'cellphone', 'telephone', 'email']);
+        });
       });
       await patient.load('patientAnimal', query => {
         query.preload('race');
@@ -268,6 +268,13 @@ export default class PatientService {
     if (holder.type !== PatientType.TUTOR) {
       throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
     }
+
+    const patients = await group
+      .related('patients')
+      .query()
+      .where('type', PatientType.ANIMAL)
+      .select('id');
+
     const trx = await Database.transaction();
 
     try {
@@ -282,6 +289,7 @@ export default class PatientService {
           type: PatientType.ANIMAL,
           photo,
           vaccineOrigin: data.vaccineOrigin,
+          tag: (patients.length + 1).toString(),
         },
         {
           client: trx,
@@ -322,6 +330,12 @@ export default class PatientService {
 
     const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
+    const tutors = await group
+      .related('patients')
+      .query()
+      .where('type', PatientType.TUTOR)
+      .select('id');
+
     const trx = await Database.transaction();
 
     try {
@@ -333,6 +347,7 @@ export default class PatientService {
           tags: data.tags,
           photo,
           type: PatientType.TUTOR,
+          tag: (tutors.length + 1).toString(),
         },
         { client: trx },
       );

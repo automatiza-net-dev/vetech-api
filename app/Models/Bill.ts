@@ -26,6 +26,9 @@ export default class Bill extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
+  @column()
+  public tag: string;
+
   @column.dateTime({
     columnName: 'bill_date',
   })

@@ -39,6 +39,9 @@ export default class Patient extends BaseModel {
   public id: string = v4();
 
   @column()
+  public tag: string;
+
+  @column()
   public name: string;
 
   @column()

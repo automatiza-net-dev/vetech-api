@@ -93,7 +93,9 @@ export default class BillService {
     }
 
     await Promise.all([
-      bill.load('client'),
+      bill.load('client', query => {
+        query.preload('tutor');
+      }),
       bill.load('patient'),
       bill.load('seller'),
       bill.load('user'),
@@ -119,29 +121,228 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const bills = await Bill.query().select('id');
+    const taxRules = await TaxationGroupRule.query()
+      .whereIn(
+        'id',
+        data.items.map(item => item.taxationGroupRuleId),
+      )
+      .preload('taxOperation');
 
-    return Bill.create({
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      user_id: user.id,
-      seller_id: user.id,
-      daily_movement_id: data.dailyMovementId,
-      daily_cashier_id: data.dailyCashierId,
-      budget_id: data.budgetId,
+    const productVariations = await ProductVariation.query()
+      .whereIn(
+        'id',
+        data.items.map(item => item.productVariationId),
+      )
+      .preload('product');
 
-      client_id: data.clientId,
-      patient_id: data.patientId,
-      billDate: data.billDate,
-      productValue: data.productValue,
-      serviceValue: data.serviceValue,
-      discountValue: data.discountValue,
-      totalValue: data.productValue + data.serviceValue - data.discountValue,
-      deliveryValue: 0,
-      additionalInformation: data.additionalInformation,
-      status: BillStatus.A,
+    const ufIcms = await UfIcms.query()
+      .whereIn(
+        'origin_uf',
+        taxRules.map(rule => rule.fromUf),
+      )
+      .whereIn(
+        'destination_uf',
+        taxRules.map(rule => rule.toUf),
+      );
 
-      otherValue: data.otherValue,
-      tag: GenerateTag(bills.length + 1),
+    if (ufIcms.length !== taxRules.length) {
+      throw new InternalErrorException(
+        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
+
+    return Database.transaction(async trx => {
+      const bill = await Bill.create(
+        {
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          user_id: user.id,
+          seller_id: user.id,
+          daily_movement_id: data.dailyMovementId,
+          daily_cashier_id: data.dailyCashierId,
+          budget_id: data.budgetId,
+
+          client_id: data.clientId,
+          patient_id: data.patientId,
+          billDate: data.billDate,
+          productValue: 0,
+          serviceValue: 0,
+          discountValue: 0,
+          totalValue: 0,
+          deliveryValue: 0,
+          additionalInformation: data.additionalInformation,
+          status: BillStatus.A,
+
+          otherValue: 0,
+          tag: GenerateTag(bills.length + 1),
+        },
+        {
+          client: trx,
+        },
+      );
+
+      const items = data.items.map(item => {
+        const rule = taxRules.find(
+          rule => rule.id === item.taxationGroupRuleId,
+        ) as TaxationGroupRule;
+
+        const variation = productVariations.find(
+          variation => variation.id === item.productVariationId,
+        ) as ProductVariation;
+
+        const ufIcmsRule = ufIcms.find(
+          ufIcms =>
+            ufIcms.originUf === rule.fromUf &&
+            ufIcms.destinationUf === rule.toUf,
+        ) as UfIcms;
+
+        const totalValue =
+          item.unitaryValue * item.quantity - item.discountValue;
+        const icmsBase =
+          totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
+        const icmsStBase =
+          icmsBase *
+          ((100 + rule.ivaIcmsSt) / 100) *
+          ((100 - rule.icmsPercRedBaseCalculo) / 100);
+        const icmsValue =
+          icmsBase *
+          ((rule.icmsPercRedBaseCalculo *
+            ((100 - rule.icmsPercRedAliquota) / 100)) /
+            100);
+
+        return BillItem.create(
+          {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            bill_id: bill.id,
+            product_variation_id: item.productVariationId,
+            tax_rule_id: rule.id,
+
+            quantity: item.quantity,
+            costValue: item.costValue,
+            saleValue: item.saleValue,
+            unitaryValue: item.unitaryValue,
+            discountValue: item.discountValue,
+            totalValue,
+            status: BillStatus.A,
+            createdAt: bill.createdAt,
+
+            fiscalOperationCode: rule.taxOperation.code,
+            icmsOriginProduct: variation.product.icmsOrigin,
+            icmsCst: rule.icmsCst,
+            icmsBase,
+            icmsPercentage: rule.icmsPerc,
+            icmsValue,
+            icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+            icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+            icmsStBase,
+            icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+            icmsStIva: rule.icmsPercRedAliquota,
+            icmsStPercentageUfDestination: 0,
+            icmsStValue:
+              icmsStBase * (ufIcmsRule.icmsPercentage / 100) - icmsValue,
+            issCst: '',
+            issBase: rule.icmsPerc,
+            issPercentage: rule.icmsPercRedAliquota,
+            issValue: 0,
+            pisBase: 0,
+            pisPercentage: rule.pisPerc,
+            pisValue: 0,
+            pisRetentionValue: 0,
+            cofinsBase: 0,
+            cofinsPercentage: rule.cofinsPerc,
+            cofinsValue: 0,
+            cofinsRetentionValue: 0,
+            ipiBase: 0,
+            ipiPercentage: rule.ipiPerc,
+            ipiValue: 0,
+            icmsDeferredValue: 0,
+            icmsPartitionValue: 0,
+            icmsFcpPercentage: rule.fcpPerc,
+            icmsFcpValue: 0,
+            icmsPartitionOriginUfPercentage: rule.icmsPerc,
+            icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+            icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+          },
+          {
+            client: trx,
+          },
+        );
+      });
+
+      const validItems = await Promise.all(items);
+
+      const totalProductValue = validItems.reduce(
+        (acc, item) => acc + item.totalValue,
+        0,
+      );
+
+      const totalDiscountValue = validItems.reduce(
+        (acc, item) => acc + item.discountValue,
+        0,
+      );
+
+      await bill
+        .merge({
+          productValue: totalProductValue,
+          serviceValue: 0,
+          discountValue: totalDiscountValue,
+          totalValue: totalProductValue - totalDiscountValue,
+          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
+          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems.reduce(
+            (acc, item) => acc + item.icmsStBase,
+            0,
+          ),
+          icmsStValue: validItems.reduce(
+            (acc, item) => acc + item.icmsStValue,
+            0,
+          ),
+          issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
+          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
+          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
+          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          pisRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.pisRetentionValue,
+            0,
+          ),
+          cofinsBase: validItems.reduce(
+            (acc, item) => acc + item.cofinsBase,
+            0,
+          ),
+          cofinsValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsValue,
+            0,
+          ),
+          cofinsRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsRetentionValue,
+            0,
+          ),
+          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
+          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          icmsDeferredValue: validItems.reduce(
+            (acc, item) => acc + item.icmsDeferredValue,
+            0,
+          ),
+          icmsFcpValue: validItems.reduce(
+            (acc, item) => acc + item.icmsFcpValue,
+            0,
+          ),
+          icmsUfDestinationValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+            0,
+          ),
+          icmsUfOriginValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+            0,
+          ),
+        })
+        .useTransaction(trx)
+        .save();
+
+      return bill;
     });
   }
 
@@ -372,6 +573,10 @@ export default class BillService {
 
     qb.preload('variations', query => {
       query.where('active', true);
+      query.preload('product');
+      query.preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
     });
     qb.preload('unit');
     return qb;

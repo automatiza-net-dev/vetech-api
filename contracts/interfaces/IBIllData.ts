@@ -6,11 +6,17 @@ export interface ICreateBillData {
   dailyMovementId: string;
   dailyCashierId: string;
   billDate: DateTime;
-  productValue: number;
-  serviceValue: number;
-  discountValue: number;
 
-  otherValue?: number;
+  items: Array<{
+    productVariationId: string;
+    taxationGroupRuleId: string;
+    quantity: number;
+    costValue: number;
+    saleValue: number;
+    unitaryValue: number;
+    discountValue: number;
+  }>;
+
   additionalInformation?: string;
   budgetId?: string;
 }

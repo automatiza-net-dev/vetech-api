@@ -485,7 +485,7 @@ export default class ScheduleService {
         query.select(['id', 'description', 'color']);
       })
       .preload('patient', query => {
-        query.select(['id', 'name', 'photo']);
+        query.select(['id', 'name', 'photo', 'tag']);
 
         query.preload('patientAnimal', subquery => {
           subquery.select(['id', 'race_id']);

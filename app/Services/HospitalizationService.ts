@@ -23,7 +23,7 @@ interface ISearch {
 
 @inject()
 export default class HospitalizationService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async timeline(unitId: string, id: string) {
     const hospitalization = await Hospitalization.find(id);
@@ -40,11 +40,17 @@ export default class HospitalizationService {
   public async index(unitId: string, data: ISearch) {
     const qb = Hospitalization.query()
       .preload('bed')
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
       .preload('tutor', query => {
         query.preload('tutor', query => {
-          query.select(['cellphone'])
-        })
+          query.select(['cellphone']);
+        });
       })
       .preload('technician')
       .preload('medicalPrescriptions', query => {
@@ -179,8 +185,9 @@ export default class HospitalizationService {
     if (occurrence) {
       await ent.related('occurrences').create({
         occurrence_id: occurrence.id,
-        description: `Internação do paciente ${patient?.name} por ${user.name
-          } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
+        description: `Internação do paciente ${patient?.name} por ${
+          user.name
+        } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
         executedAt: DateTime.now(),
         user_id: user.id,
       });

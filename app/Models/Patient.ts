@@ -107,6 +107,7 @@ export default class Patient extends BaseModel {
     pivotForeignKey: 'dependent_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'holder_id',
+    pivotColumns: ['is_main'],
   })
   // eslint-disable-next-line no-use-before-define
   public tutors: ManyToMany<typeof Patient>;
@@ -118,6 +119,7 @@ export default class Patient extends BaseModel {
     pivotForeignKey: 'holder_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'dependent_id',
+    pivotColumns: ['is_main'],
   })
   // eslint-disable-next-line no-use-before-define
   public dependents: ManyToMany<typeof Patient>;

@@ -91,4 +91,11 @@ export default class PatientsController {
 
     return response.noContent();
   }
+
+  public async setMainTutor({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    await this.service.setMainTutor(unit_id, params.patient, params.tutor);
+
+    return response.noContent();
+  }
 }

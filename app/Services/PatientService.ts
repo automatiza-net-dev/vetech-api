@@ -212,7 +212,19 @@ export default class PatientService {
   }
 
   public async tutorNonPatients(unitId: string, id: string) {
-    const tutor = await this.show(unitId, id);
+    const tutor = await Patient.query()
+      .where('id', id)
+      .preload('dependents')
+      .first();
+
+    if (!tutor) {
+      throw new ResourceNotFoundException(
+        'Tutor não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
     const animalsIndex = await this.animalsIndex(unitId, {});
 
     const dependents = tutor.dependents.map(d => d.id);
@@ -220,7 +232,7 @@ export default class PatientService {
     return animalsIndex.filter(f => !dependents.includes(f.id));
   }
 
-  public async show(unitId: string, patientId: string): Promise<Patient> {
+  public async show(unitId: string, patientId: string) {
     const group = await this.getEconomicGroup(unitId);
 
     const patient = await group
@@ -237,22 +249,31 @@ export default class PatientService {
       );
     }
 
+    if (patient.type === PatientType.ANIMAL) {
+      const tutors = await patient
+        .related('tutors')
+        .query()
+        .pivotColumns(['is_main'])
+        .preload('tutor', query => {
+          query.select(['id', 'cellphone', 'telephone', 'email']);
+        });
+
+      await patient.load('patientAnimal', query => {
+        query.preload('race');
+      });
+
+      const mapped = tutors.map(t => {
+        return { ...t.toJSON(), is_main: Boolean(t.$extras.is_main) };
+      });
+
+      return { ...patient.toJSON(), tutors: mapped };
+    }
+
     if (patient.type === PatientType.TUTOR) {
       await patient.load('tutor', query => {
         query.preload('clientOrigin');
       });
       await patient.load('dependents');
-    }
-
-    if (patient.type === PatientType.ANIMAL) {
-      await patient.load('tutors', query => {
-        query.preload('tutor', query => {
-          query.select(['id', 'cellphone', 'telephone', 'email']);
-        });
-      });
-      await patient.load('patientAnimal', query => {
-        query.preload('race');
-      });
     }
 
     return patient;
@@ -390,11 +411,22 @@ export default class PatientService {
   }
 
   public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    const tutor = await this.show(unitId, data.holder);
-    const patient = await this.show(unitId, data.patient);
+    const _ = await this.getEconomicGroup(unitId);
+
+    const tutor = await Patient.query()
+      .where('id', data.holder)
+      .where('type', PatientType.TUTOR)
+      .preload('dependents')
+      .first();
+
+    if (!tutor) {
+      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+    }
 
     const dependents = tutor.dependents.map(d => d.id);
-    const updatedDependents = Array.from(new Set([...dependents, patient.id]));
+    const updatedDependents = Array.from(
+      new Set([...dependents, data.patient]),
+    );
 
     await tutor.related('dependents').sync(updatedDependents);
   }
@@ -404,7 +436,21 @@ export default class PatientService {
     id: string,
     data: Omit<IPatientData, 'holderId'>,
   ): Promise<Patient> {
-    const patient = await this.show(unitId, id);
+    const group = await this.getEconomicGroup(unitId);
+
+    const patient = await group
+      .related('patients')
+      .query()
+      .where('patient_id', id)
+      .first();
+
+    if (!patient) {
+      throw new ResourceNotFoundException(
+        'Paciente não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
 
     const trx = await Database.transaction();
 
@@ -455,17 +501,26 @@ export default class PatientService {
     id: string,
     data: IPatientTutorData,
   ): Promise<Patient> {
-    const patient = await this.show(unitId, id);
-    const tutorData = await patient.related('tutor').query().firstOrFail();
+    const _ = await this.getEconomicGroup(unitId);
+
+    const tutor = await Patient.query()
+      .where('id', id)
+      .where('type', PatientType.TUTOR)
+      .preload('tutor')
+      .first();
+
+    if (!tutor) {
+      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+    }
 
     const trx = await Database.transaction();
 
     try {
       const photo = data.photo
         ? await this.uploadPhoto(data.photo)
-        : patient.photo;
+        : tutor.photo;
 
-      await tutorData
+      await tutor.tutor
         .merge({
           residence: data.residence,
           document: data.document,
@@ -488,7 +543,7 @@ export default class PatientService {
         .useTransaction(trx)
         .save();
 
-      await patient
+      await tutor
         .merge({
           name: data.name,
           photo,
@@ -502,7 +557,7 @@ export default class PatientService {
 
       await trx.commit();
 
-      return patient;
+      return tutor;
     } catch (e) {
       Logger.error(e.message);
       await trx.rollback();
@@ -517,7 +572,12 @@ export default class PatientService {
 
   public async destroy(unitId: string, patientId: string): Promise<void> {
     const group = await this.getEconomicGroup(unitId);
-    const patient = await this.show(unitId, patientId);
+    const patient = await Patient.query().where('id', patientId).first();
+
+    if (!patient) {
+      throw new BadRequestException('Paciente inválido', 400, 'E_BAD_REQUEST');
+    }
+
     const groups = await patient.related('economicGroup').query();
 
     await patient.related('economicGroup').detach([group.id]);
@@ -527,6 +587,59 @@ export default class PatientService {
     }
 
     await patient.softDelete();
+  }
+
+  public async setMainTutor(_: string, patient: string, tutor: string) {
+    const db_patient = await Patient.query()
+      .where('id', patient)
+      .where('type', PatientType.ANIMAL)
+      .first();
+
+    if (!db_patient) {
+      throw new BadRequestException('Paciente inválido', 400, 'E_BAD_REQUEST');
+    }
+
+    const db_tutor = await Patient.query()
+      .where('id', tutor)
+      .where('type', PatientType.TUTOR)
+      .first();
+
+    if (!db_tutor) {
+      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+    }
+
+    const patientTutors = await db_patient
+      .related('tutors')
+      .query()
+      .where('dependent_id', patient);
+
+    const client = Database.connection();
+
+    const trx = await Database.transaction();
+
+    try {
+      const promises = patientTutors.map(t => {
+        return client
+          .from('holder_dependents')
+          .where('dependent_id', patient)
+          .where('holder_id', t.id)
+          .update({ is_main: t.id === tutor })
+          .useTransaction(trx);
+      });
+
+      await Promise.all(promises);
+
+      await trx.commit();
+    } catch (error) {
+      console.log(error);
+
+      await trx.rollback();
+      throw new InternalErrorException(
+        'Erro na execução',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
   }
 
   private async getEconomicGroup(unitId: string) {

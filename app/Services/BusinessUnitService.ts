@@ -12,6 +12,9 @@ import User from 'App/Models/User';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
+import { v4 } from 'uuid'
+import { addDays } from 'date-fns'
+import { LicenceType } from 'App/Models/Licence';
 
 interface ISearchBusinessUnit {
   identification?: string;
@@ -58,6 +61,13 @@ export default class BusinessUnitService {
     try {
       const unit = await economicGroup.related('businessUnits').create({
         ...data,
+      });
+
+      await unit.related('licences').create({
+        id: v4(),
+        expirationDate: addDays(new Date(), 1000),
+        type: LicenceType.TRIAL,
+        active: true,
       });
 
       // eslint-disable-next-line no-restricted-syntax

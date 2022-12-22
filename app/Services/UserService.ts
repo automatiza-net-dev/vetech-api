@@ -31,7 +31,7 @@ interface ISearch {
 
 @inject()
 export default class UserService {
-  constructor(private readonly unitService: BusinessUnitService) {}
+  constructor(private readonly unitService: BusinessUnitService) { }
 
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
@@ -106,7 +106,7 @@ export default class UserService {
 
       await newBusinessUnit.related('licences').create({
         id: v4(),
-        expirationDate: addDays(new Date(), trialPlan.trialDays),
+        expirationDate: addDays(new Date(), 1000),
         type: LicenceType.TRIAL,
         active: true,
       });

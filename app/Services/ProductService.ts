@@ -234,6 +234,8 @@ export default class ProductService {
         active: data.active,
         group_id: data.groupId,
         subgroup_id: data.subgroupId,
+        icmsOrigin: data.icmsOrigin,
+        taxation_group_id: data.taxationGroupId
       })
       .save();
   }

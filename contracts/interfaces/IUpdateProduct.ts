@@ -1,4 +1,4 @@
-import { ProductType } from 'App/Models/Product';
+import { ProductType, ProductIcmsOrigin } from 'App/Models/Product';
 
 export default interface IUpdateProduct {
   description: string;
@@ -13,4 +13,5 @@ export default interface IUpdateProduct {
   groupId?: string;
   subgroupId: string;
   taxationGroupId: string;
+  icmsOrigin: typeof ProductIcmsOrigin[number];
 }

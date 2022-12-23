@@ -410,9 +410,7 @@ export default class PatientService {
     }
   }
 
-  public async assignPatientTutor(unitId: string, data: IAssignPatientTutor) {
-    await this.getEconomicGroup(unitId);
-
+  public async assignPatientTutor(_: string, data: IAssignPatientTutor) {
     const tutor = await Patient.query()
       .where('id', data.holder)
       .where('type', PatientType.TUTOR)
@@ -497,12 +495,10 @@ export default class PatientService {
   }
 
   public async updateTutor(
-    unitId: string,
+    _: string,
     id: string,
     data: IPatientTutorData,
   ): Promise<Patient> {
-    await this.getEconomicGroup(unitId);
-
     const tutor = await Patient.query()
       .where('id', id)
       .where('type', PatientType.TUTOR)

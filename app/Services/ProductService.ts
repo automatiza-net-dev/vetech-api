@@ -82,6 +82,7 @@ export default class ProductService {
       .query()
       .where('id', id)
       .preload('unit')
+      .preload('taxationGroup')
       .preload('group', query => {
         query.select('id', 'name', 'active');
       })

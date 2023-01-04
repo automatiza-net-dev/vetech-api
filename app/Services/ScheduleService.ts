@@ -468,8 +468,8 @@ export default class ScheduleService {
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
       .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
-      .andWhere('start_date', '<', start)
-      .andWhere('end_date', '>', end);
+      .andWhereRaw('(start_date < ? or start_date is null)', [start])
+      .andWhereRaw('(end_date > ? or end_date is null)', [end]);
 
     const schedules = await Schedule.query()
       .where('business_unit_id', unitId)
@@ -557,8 +557,8 @@ export default class ScheduleService {
 
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
-      .andWhere('start_date', '<', start)
-      .andWhere('end_date', '>', end)
+      .andWhereRaw('(start_date < ? or start_date is null)', [start])
+      .andWhereRaw('(end_date > ? or end_date is null)', [end])
       .preload('user');
 
     const schedules = await Schedule.query()
@@ -599,8 +599,8 @@ export default class ScheduleService {
     const unavailableDays = await UnavailableDay.query()
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
-      .andWhere('start_date', '<', start)
-      .andWhere('end_date', '>', end)
+      .andWhereRaw('(start_date < ? or start_date is null)', [start])
+      .andWhereRaw('(end_date > ? or end_date is null)', [end])
       .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
       .preload('user');
 
@@ -650,7 +650,10 @@ export default class ScheduleService {
       .related('unavailableDays')
       .query()
       .where('business_unit_id', unitId)
-      .whereRaw('start_date <= ? or end_date >= ?', [data.start, data.end]);
+      .whereRaw(
+        '(start_date <= ? or start_date is null) or (end_date >= ? or end_date is null)',
+        [data.start, data.end],
+      );
 
     const uFiltered = unavailableDays
       .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))

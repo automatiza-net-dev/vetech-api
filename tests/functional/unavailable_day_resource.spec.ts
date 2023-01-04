@@ -44,7 +44,6 @@ test.group('Unavailable day resource', group => {
         title: 'any title',
         userId: newUser.id,
         startDate: DateTime.now(),
-        endDate: DateTime.now(),
         startHour: '09:00',
         endHour: '21:00',
         frequency: [WeekDay.SEGUNDA],

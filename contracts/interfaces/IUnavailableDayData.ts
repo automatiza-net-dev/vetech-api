@@ -5,8 +5,8 @@ export default interface IUnavailableDayData {
   title: string;
   userId: string;
   frequency: Array<WeekDay>;
-  startDate: DateTime;
-  endDate: DateTime;
+  startDate?: DateTime;
+  endDate?: DateTime;
   startHour: string;
   endHour: string;
   active: boolean;

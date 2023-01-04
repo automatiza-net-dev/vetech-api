@@ -13,11 +13,11 @@ export default class WorkingDayService {
   ): Promise<Array<WorkingDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    if (!user) {
-      return unit.related('workingDays').query();
-    }
+    const qb = unit.related('workingDays').query();
 
-    return unit.related('workingDays').query().where('user_id', user);
+    const days = !user ? await qb : await qb.where('user_id', user);
+
+    return this.sortDaysOfWeek(days);
   }
 
   public async show(unitId: string, id: string): Promise<WorkingDay> {
@@ -69,5 +69,19 @@ export default class WorkingDayService {
     const workingDay = await this.show(unitId, id);
 
     await workingDay.delete();
+  }
+
+  sortDaysOfWeek(days: Array<WorkingDay>): Array<WorkingDay> {
+    return days.sort((a, b) => {
+      if (a.weekDay < b.weekDay) {
+        return -1;
+      }
+
+      if (a.weekDay > b.weekDay) {
+        return 1;
+      }
+
+      return 0;
+    });
   }
 }

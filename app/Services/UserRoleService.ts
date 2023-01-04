@@ -7,6 +7,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import UserUnitRole from 'App/Models/UserUnitRole';
+import SharedService from 'App/Services/SharedService';
 
 interface ISearchBusinessUnitUsers {
   name?: string;
@@ -17,6 +18,8 @@ interface ISearchBusinessUnitUsers {
 
 @inject()
 export default class UserRoleService {
+  constructor(private readonly sharedService: SharedService) {}
+
   public async assignUnitRoleToUser(
     unit: BusinessUnit,
     role: Role,
@@ -40,10 +43,18 @@ export default class UserRoleService {
   }
 
   public async getUnitUsers(id: string, data: ISearchBusinessUnitUsers) {
+    const group = await this.sharedService.getUserGroup(id);
+    await group.load('businessUnits');
+
     const entities = await UserUnitRole.query()
-      .where('unit_id', id)
+      .whereIn(
+        'unit_id',
+        group.businessUnits.map(bu => bu.id),
+      )
       .whereHas('user', subquery => {
-        subquery.whereILike('name', `%${data.name ?? ''}%`);
+        if (data.name) {
+          subquery.whereILike('name', `%${data.name}%`);
+        }
 
         if (data.document) {
           subquery.whereILike('document', `%${data.document}%`);
@@ -54,8 +65,11 @@ export default class UserRoleService {
         }
       })
       .whereHas('role', subquery => {
-        subquery.whereILike('name', `%${data.role ?? ''}%`);
+        if (data.role) {
+          subquery.whereILike('name', `%${data.role}%`);
+        }
       })
+      .preload('unit')
       .preload('user')
       .preload('role');
 
@@ -69,8 +83,13 @@ export default class UserRoleService {
         roles: entities
           .filter(f => f.user.id === ent.id)
           .map(f => ({
+            id: f.role.id,
             name: f.role.name,
             active: f.active,
+            unit: {
+              id: f.unit.id,
+              name: f.unit.companyName ?? '-',
+            },
           })),
       };
     });

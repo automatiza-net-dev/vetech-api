@@ -8,13 +8,13 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount, {
   CheckingAccountType,
 } from 'App/Models/CheckingAccount';
+import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
-import { v4 } from 'uuid'
-import { addDays } from 'date-fns'
-import { LicenceType } from 'App/Models/Licence';
+import { addDays } from 'date-fns';
+import { v4 } from 'uuid';
 
 interface ISearchBusinessUnit {
   identification?: string;

@@ -15,12 +15,12 @@ export default class UnavailableDay extends BaseModel {
   @column({
     columnName: 'start_date',
   })
-  public startDate: DateTime;
+  public startDate: DateTime | null;
 
   @column({
     columnName: 'end_date',
   })
-  public endDate: DateTime;
+  public endDate: DateTime | null;
 
   @column({
     columnName: 'start_hour',

@@ -8,7 +8,7 @@ export default class CreatePatientWithTutorValidator {
 
   public schema = schema.create({
     name: schema.string({}),
-    residence: schema.enum(TutorResidences),
+    residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],
     }),
@@ -30,7 +30,7 @@ export default class CreatePatientWithTutorValidator {
     district: schema.string.optional({}, []),
     city: schema.string.optional({}, []),
     state: schema.string.optional({}, []),
-    clientOriginId: schema.string({}, [
+    clientOriginId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),

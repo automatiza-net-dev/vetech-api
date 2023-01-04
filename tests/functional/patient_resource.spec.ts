@@ -2,11 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, {
-  PatientGender,
-  PatientType,
-  PatientVaccineOrigin,
-} from 'App/Models/Patient';
+import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import Race from 'App/Models/Race';
 import User from 'App/Models/User';
 import PatientFactory from 'Database/factories/PatientFactory';
@@ -175,7 +171,6 @@ test.group('Patient resource', group => {
         active: true,
         holderId: holder.id,
         raceId: race.id,
-        vaccineOrigin: PatientVaccineOrigin.C,
       })
       .bearerToken(token);
 
@@ -193,19 +188,12 @@ test.group('Patient resource', group => {
       password: '102030',
     });
 
-    const patientOrigin = await ClientOrigin.create({
-      type: ClientOriginType.C,
-      description: 'some origin',
-    });
-
     const response = await client
       .post('/patient-tutors')
       .json({
         name: 'patient name',
-        residence: 'CASA',
         email: 'mail123123@mail.com',
         cellphone: '123',
-        clientOriginId: patientOrigin.id,
       })
       .bearerToken(token);
 
@@ -283,7 +271,6 @@ test.group('Patient resource', group => {
       .put(`/patient-tutors/${tutor.id}`)
       .json({
         name: 'updated tutor',
-        residence: 'CASA',
         clientOriginId: origin.id,
         gender: PatientGender.MALE,
         tags: 'tag',

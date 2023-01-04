@@ -5,7 +5,7 @@ import { DateTime } from 'luxon';
 
 export default interface IPatientTutorData {
   name: string;
-  residence: typeof TutorResidences[number];
+  residence?: typeof TutorResidences[number];
   photo?: MultipartFileContract;
   gender?: PatientGender;
   tags?: string;
@@ -26,5 +26,5 @@ export default interface IPatientTutorData {
   district?: string;
   city?: string;
   state?: string;
-  clientOriginId: string;
+  clientOriginId?: string;
 }

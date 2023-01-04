@@ -23,7 +23,10 @@ export default class UpdatePatientValidator {
       rules.uuid(),
       rules.exists({ table: 'races', column: 'id' }),
     ]),
-    vaccineOrigin: schema.enum(Object.values(PatientVaccineOrigin), []),
+    vaccineOrigin: schema.enum.optional(
+      Object.values(PatientVaccineOrigin),
+      [],
+    ),
   });
 
   public messages: CustomMessages = {};

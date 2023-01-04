@@ -11,5 +11,5 @@ export default interface IPatientData {
   active: boolean;
   holderId: string;
   raceId: string;
-  vaccineOrigin: PatientVaccineOrigin;
+  vaccineOrigin?: PatientVaccineOrigin;
 }

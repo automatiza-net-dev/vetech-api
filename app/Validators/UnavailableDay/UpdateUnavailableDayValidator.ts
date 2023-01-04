@@ -8,8 +8,8 @@ export default class UpdateUnavailableDayValidator {
   public schema = schema.create({
     title: schema.string(),
     frequency: schema.array().members(schema.enum(Object.values(WeekDay), [])),
-    startDate: schema.date({}),
-    endDate: schema.date({}),
+    startDate: schema.date.optional({}),
+    endDate: schema.date.optional({}),
     startHour: schema.string({}),
     endHour: schema.string({}),
     active: schema.boolean([]),

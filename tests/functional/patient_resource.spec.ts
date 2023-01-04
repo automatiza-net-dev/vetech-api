@@ -72,7 +72,6 @@ test.group('Patient resource', group => {
         gender: PatientGender.MALE,
         holderId: holder.id,
         raceId: race.id,
-        vaccineOrigin: PatientVaccineOrigin.C,
       })
       .bearerToken(token);
 
@@ -250,8 +249,8 @@ test.group('Patient resource', group => {
   });
 
   test('should update a tutor', async ({ client, assert }) => {
-    const [user, patient] = await createData();
-    await patient.related('tutor').create({
+    const [user, _, tutor] = await createData();
+    await tutor.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',
@@ -281,7 +280,7 @@ test.group('Patient resource', group => {
     });
 
     const response = await client
-      .put(`/patient-tutors/${patient.id}`)
+      .put(`/patient-tutors/${tutor.id}`)
       .json({
         name: 'updated tutor',
         residence: 'CASA',
@@ -311,7 +310,7 @@ test.group('Patient resource', group => {
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal(patient.id, body.id);
+    assert.equal(tutor.id, body.id);
   });
 
   test('should search for patient', async ({ client, assert }) => {

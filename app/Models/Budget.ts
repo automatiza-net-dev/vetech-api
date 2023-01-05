@@ -29,7 +29,7 @@ export default class Budget extends BaseModel {
   public id: string = v4();
 
   @column()
-  public tag: string
+  public tag: string;
 
   @column.dateTime({
     columnName: 'budget_date',

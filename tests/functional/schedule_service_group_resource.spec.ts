@@ -50,6 +50,26 @@ test.group('Schedule service group resource', group => {
     assert.equal('some schedule', body.description);
   });
 
+  test('should create schedule group service 2', async ({ assert, client }) => {
+    const [user] = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/schedule-service-groups')
+      .json({
+        description: 'some schedule',
+      })
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(201, response.status());
+    assert.equal('some schedule', body.description);
+  });
+
   test('should return a list of schedule service groups', async ({
     assert,
     client,

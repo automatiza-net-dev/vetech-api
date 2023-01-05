@@ -7,7 +7,7 @@ export default class UpdateScheduleServiceGroupValidator {
 
   public schema = schema.create({
     description: schema.string({}, []),
-    type: schema.enum(Object.values(ScheduleServiceGroupType)),
+    type: schema.enum.optional(Object.values(ScheduleServiceGroupType)),
     active: schema.boolean([]),
   });
 

@@ -97,6 +97,8 @@ export default class BudgetService {
     qb.preload('conclusionUser');
     qb.preload('cancelationReason');
 
+    qb.orderBy('created_at', 'desc');
+
     return qb;
   }
 
@@ -127,6 +129,8 @@ export default class BudgetService {
         query.preload('product');
       });
     });
+
+    qb.orderBy('created_at', 'desc');
 
     return qb;
   }
@@ -394,21 +398,55 @@ export default class BudgetService {
     const budgetItem = await BudgetItem.query()
       .where('id', id)
       .where('business_unit_id', unitId)
+      .preload('budget')
       .first();
 
     if (!budgetItem) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    return budgetItem
-      .merge({
-        unitaryValue: data.unitaryValue,
-        discountValue: data.discountValue,
-        quantity: data.quantity,
-        totalValue: data.quantity * data.unitaryValue - data.discountValue,
-        status: data.status,
-      })
-      .save();
+    const existingItems = await BudgetItem.query().where(
+      'budget_id',
+      budgetItem.budget_id,
+    );
+
+    return Database.transaction(async trx => {
+      const updatedItem = await budgetItem
+        .merge({
+          unitaryValue: data.unitaryValue,
+          discountValue: data.discountValue,
+          quantity: data.quantity,
+          totalValue: data.quantity * data.unitaryValue - data.discountValue,
+          status: data.status,
+        })
+        .useTransaction(trx)
+        .save();
+
+      const unitarySum =
+        existingItems
+          .filter(item => item.id !== updatedItem.id)
+          .filter(item => item.status === BudgetStatus.A)
+          .reduce((total, item) => total + item.totalValue, 0) +
+        (data.status === BudgetStatus.A ? updatedItem.totalValue : 0);
+
+      const discountSum =
+        existingItems
+          .filter(item => item.id !== updatedItem.id)
+          .filter(item => item.status === BudgetStatus.A)
+          .reduce((total, item) => total + item.discountValue, 0) +
+        (data.status === BudgetStatus.A ? data.discountValue : 0);
+
+      await budgetItem.budget
+        .merge({
+          productValue: unitarySum,
+          discountValue: discountSum,
+          totalValue: unitarySum - discountSum,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return updatedItem;
+    });
   }
 
   public async confirmBudget(
@@ -428,7 +466,12 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+    const unit = await BusinessUnit.query().where('id', unitId).first();
+    if (!unit) {
+      // Não deveria acontecer em hipótese alguma
+      throw this.sharedService.ResourceNotFound();
+    }
+
     const client = await Patient.query()
       .where('id', model.client_id)
       .preload('tutor')
@@ -438,13 +481,13 @@ export default class BudgetService {
       category: MovementCategory.NS,
       type: MovementType.S,
       origin: unit.state,
-      destination: client.tutor.state ?? unit.state,
+      destination: client.tutor?.state ?? unit.state,
     });
     const rule = rules.length > 0 ? rules[0] : null;
 
     const ufIcms = await UfIcms.query()
       .where('origin_uf', unit.state ?? '')
-      .where('destination_uf', client.tutor.state ?? unit.state ?? '')
+      .where('destination_uf', client.tutor?.state ?? unit.state ?? '')
       .first();
 
     const items = await model
@@ -453,21 +496,16 @@ export default class BudgetService {
       .preload('productVariation', query => {
         query.preload('product');
       });
-    const validItems = items.filter(
-      i => !data.notConfirmedItems.includes(i.id),
-    );
 
     const bills = await Bill.query().select('id');
 
     return Database.transaction(async trx => {
-      const totalProductValue = validItems.reduce(
-        (total, item) => total + item.totalValue,
-        0,
-      );
-      const totalDiscountValue = validItems.reduce(
-        (total, item) => total + item.discountValue,
-        0,
-      );
+      const totalProductValue = items
+        .filter(item => data.notConfirmedItems.includes(item.id))
+        .reduce((total, item) => total + item.totalValue, 0);
+      const totalDiscountValue = items
+        .filter(item => data.notConfirmedItems.includes(item.id))
+        .reduce((total, item) => total + item.discountValue, 0);
       const totalServiceValue = 0;
 
       const bill = await Bill.create(
@@ -497,95 +535,96 @@ export default class BudgetService {
       );
 
       await bill.related('items').createMany(
-        validItems.map(item => {
-          const totalValue =
-            item.unitaryValue * item.quantity - item.discountValue;
-          const icmsBase = rule
-            ? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
-            : 0;
-          const icmsStBase = rule
-            ? icmsBase *
-              ((100 + rule.ivaIcmsSt) / 100) *
-              ((100 - rule.icmsPercRedBaseCalculo) / 100)
-            : 0;
-          const icmsValue = rule
-            ? icmsBase *
-              ((rule.icmsPercRedBaseCalculo *
-                ((100 - rule.icmsPercRedAliquota) / 100)) /
-                100)
-            : 0;
+        items
+          .filter(item => data.notConfirmedItems.includes(item.id))
+          .map(item => {
+            const totalValue =
+              item.unitaryValue * item.quantity - item.discountValue;
+            const icmsBase = rule
+              ? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
+              : 0;
+            const icmsStBase = rule
+              ? icmsBase *
+                ((100 + rule.ivaIcmsSt) / 100) *
+                ((100 - rule.icmsPercRedBaseCalculo) / 100)
+              : 0;
+            const icmsValue = rule
+              ? icmsBase *
+                ((rule.icmsPercRedBaseCalculo *
+                  ((100 - rule.icmsPercRedAliquota) / 100)) /
+                  100)
+              : 0;
 
-          return {
-            economic_group_id: group.id,
-            business_unit_id: unitId,
-            bill_id: bill.id,
-            product_variation_id: item.product_variation_id,
-            tax_rule_id: rule?.id,
+            return {
+              economic_group_id: group.id,
+              business_unit_id: unitId,
+              bill_id: bill.id,
+              product_variation_id: item.product_variation_id,
+              tax_rule_id: rule?.id,
 
-            quantity: item.quantity,
-            costValue: 0,
-            saleValue: 0,
-            unitaryValue: item.unitaryValue,
-            discountValue: item.discountValue,
-            totalValue: item.quantity * item.unitaryValue - item.discountValue,
-            status: BillStatus.A,
-            createdAt: bill.createdAt,
+              quantity: item.quantity,
+              costValue: 0,
+              saleValue: 0,
+              unitaryValue: item.unitaryValue,
+              discountValue: item.discountValue,
+              totalValue:
+                item.quantity * item.unitaryValue - item.discountValue,
+              status: BillStatus.A,
+              createdAt: bill.createdAt,
 
-            fiscalOperationCode: rule?.taxOperation?.code,
-            icmsOriginProduct: item.productVariation.product.icmsOrigin,
-            icmsCst: rule?.icmsCst,
-            icmsBase,
-            icmsPercentage: rule?.icmsPerc,
-            icmsValue,
-            icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-            icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-            icmsStBase,
-            icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
-            icmsStIva: rule?.icmsPercRedAliquota,
-            icmsStPercentageUfDestination: 0,
-            icmsStValue: ufIcms
-              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
-              : undefined,
-            issCst: '',
-            issBase: rule?.icmsPerc,
-            issPercentage: rule?.icmsPercRedAliquota,
-            issValue: 0,
-            pisBase: 0,
-            pisPercentage: rule?.pisPerc,
-            pisValue: 0,
-            pisRetentionValue: 0,
-            cofinsBase: 0,
-            cofinsPercentage: rule?.cofinsPerc,
-            cofinsValue: 0,
-            cofinsRetentionValue: 0,
-            ipiBase: 0,
-            ipiPercentage: rule?.ipiPerc,
-            ipiValue: 0,
-            icmsDeferredValue: 0,
-            icmsPartitionValue: 0,
-            icmsFcpPercentage: rule?.fcpPerc,
-            icmsFcpValue: 0,
-            icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-            icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
-            icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
-          };
-        }),
+              fiscalOperationCode: rule?.taxOperation?.code,
+              icmsOriginProduct: item.productVariation.product.icmsOrigin,
+              icmsCst: rule?.icmsCst,
+              icmsBase,
+              icmsPercentage: rule?.icmsPerc,
+              icmsValue,
+              icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+              icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+              icmsStBase,
+              icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
+              icmsStIva: rule?.icmsPercRedAliquota,
+              icmsStPercentageUfDestination: 0,
+              icmsStValue: ufIcms
+                ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+                : undefined,
+              issCst: '',
+              issBase: rule?.icmsPerc,
+              issPercentage: rule?.icmsPercRedAliquota,
+              issValue: 0,
+              pisBase: 0,
+              pisPercentage: rule?.pisPerc,
+              pisValue: 0,
+              pisRetentionValue: 0,
+              cofinsBase: 0,
+              cofinsPercentage: rule?.cofinsPerc,
+              cofinsValue: 0,
+              cofinsRetentionValue: 0,
+              ipiBase: 0,
+              ipiPercentage: rule?.ipiPerc,
+              ipiValue: 0,
+              icmsDeferredValue: 0,
+              icmsPartitionValue: 0,
+              icmsFcpPercentage: rule?.fcpPerc,
+              icmsFcpValue: 0,
+              icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+              icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+              icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
+            };
+          }),
         {
           client: trx,
         },
       );
 
-      data.notConfirmedItems.forEach(async item => {
-        const budgetItem = items.find(i => i.id === item);
-
-        if (budgetItem) {
-          await budgetItem
-            .merge({
-              status: BudgetStatus.C,
-            })
-            .useTransaction(trx)
-            .save();
-        }
+      items.forEach(async item => {
+        await item
+          .merge({
+            status: data.notConfirmedItems.includes(item.id)
+              ? BudgetStatus.N
+              : BudgetStatus.C,
+          })
+          .useTransaction(trx)
+          .save();
       });
 
       await bill

@@ -8,6 +8,7 @@ import {
   MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
+import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
 
@@ -37,7 +38,14 @@ test.group('Hospitalization medical prescription resource', group => {
       expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
-    return { user, drug, hospitalization };
+    const unit = await Unit.create({
+      name: 'some unit',
+      economic_group_id: group.id,
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
+    return { user, drug, hospitalization, unit };
   };
 
   test('should create medical prescriptions (PR)', async ({
@@ -74,7 +82,7 @@ test.group('Hospitalization medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user, hospitalization } = await createData();
+    const { user, hospitalization, drug, unit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -94,9 +102,9 @@ test.group('Hospitalization medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
       })
       .bearerToken(token);
 
@@ -107,7 +115,7 @@ test.group('Hospitalization medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user, hospitalization } = await createData();
+    const { user, hospitalization, drug, unit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -127,12 +135,12 @@ test.group('Hospitalization medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        fluidUnitId: unit.id,
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -144,7 +152,7 @@ test.group('Hospitalization medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user, hospitalization } = await createData();
+    const { user, hospitalization, drug, unit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -160,12 +168,12 @@ test.group('Hospitalization medical prescription resource', group => {
         description: 'some description',
         resume: 'some resume',
         executionStart: new Date(),
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        fluidUnitId: unit.id,
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -177,7 +185,7 @@ test.group('Hospitalization medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user, hospitalization } = await createData();
+    const { user, hospitalization, drug, unit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -193,9 +201,9 @@ test.group('Hospitalization medical prescription resource', group => {
         description: 'some description',
         resume: 'some resume',
         executionStart: new Date(),
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
       })
       .bearerToken(token);
 

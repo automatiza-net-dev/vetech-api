@@ -8,7 +8,7 @@ export default class UpdateProductValidator {
   public schema = schema.create({
     description: schema.string({}, []),
     type: schema.enum(Object.values(ProductType), []),
-    referenceCode: schema.string({}, []),
+    referenceCode: schema.string.optional({}, []),
     collectionYear: schema.number.optional([rules.unsigned()]),
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),

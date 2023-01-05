@@ -4,7 +4,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
 
-import { userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Business unit resource', group => {
   group.each.setup(async () => {
@@ -48,8 +48,14 @@ test.group('Business unit resource', group => {
     assert,
   }) => {
     const [_, __, user] = await createBusinessUnit();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.get(`/business-units/users`).loginAs(user);
+    const response = await client
+      .get(`/business-units/users`)
+      .bearerToken(token);
 
     const userList = response.body();
 

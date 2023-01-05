@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import Budget from 'App/Models/Budget';
 import ProductVariation from 'App/Models/ProductVariation';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -69,6 +70,11 @@ export default class BudgetItem extends BaseModel {
     serializeAs: null,
   })
   public budget_id: string;
+
+  @belongsTo(() => Budget, {
+    foreignKey: 'budget_id',
+  })
+  public budget: BelongsTo<typeof Budget>;
 
   @column({
     serializeAs: null,

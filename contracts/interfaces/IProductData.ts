@@ -28,7 +28,7 @@ export interface IProductDataVariation {
 export default interface IProductData {
   description: string;
   type: ProductType;
-  referenceCode: string;
+  referenceCode?: string;
   collectionYear?: number;
   ncm?: string;
   cest?: string;
@@ -36,7 +36,7 @@ export default interface IProductData {
   unitId?: string;
   icmsOrigin?: typeof ProductIcmsOrigin[number];
   active: boolean;
-  variationGroup: string;
+  variationGroup?: string;
   taxationGroupId: string;
   groupId?: string;
   subgroupId: string;

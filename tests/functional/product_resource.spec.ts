@@ -103,18 +103,62 @@ test.group('Product resource', group => {
       .post('/products')
       .json({
         description: 'product 1',
+        subgroupId: subgroupEntity.id,
+        taxationGroupId: taxationGroup.id,
+        icmsOrigin: '0',
+        unitId: unit.id,
         type: ProductType.PRODUCT,
+
         referenceCode: '00001',
         collectionYear: 2022,
         ncm: 'some ncm',
         cest: 'some cest',
         features: 'some features',
-        unitId: unit.id,
-        icmsOrigin: '0',
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
+
+        variations: [
+          {
+            barcode: 'some bar code',
+            variation_options: [],
+            price: {
+              price: 10,
+              costPrice: 10,
+              maximumStock: 10,
+              minimumStock: 10,
+              maximumDiscountPercentage: 10,
+              maximumDiscountValue: 10,
+              profitMargin: 10,
+              commission: 10,
+              meta: 10,
+              metaType: 'q',
+              commissionMeta: 10,
+            },
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create a product 2', async ({ client, assert }) => {
+    const { user, subgroupEntity, unit, taxationGroup } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/products')
+      .json({
+        description: 'product 1',
         subgroupId: subgroupEntity.id,
         taxationGroupId: taxationGroup.id,
+        icmsOrigin: '0',
+        unitId: unit.id,
+        type: ProductType.PRODUCT,
+
         variations: [
           {
             barcode: 'some bar code',

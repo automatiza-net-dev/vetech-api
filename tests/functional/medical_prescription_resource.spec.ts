@@ -56,7 +56,7 @@ test.group('Medical prescription resource', group => {
       supplement: 'some supplement',
     });
 
-    return { user, drug, prescription };
+    return { user, drug, prescription, unit };
   };
 
   test('should return all medical prescriptions', async ({
@@ -110,7 +110,7 @@ test.group('Medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user } = await createData();
+    const { user, unit, drug } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -129,9 +129,9 @@ test.group('Medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
       })
       .bearerToken(token);
 
@@ -142,7 +142,7 @@ test.group('Medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user } = await createData();
+    const { user, unit, drug } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -161,12 +161,12 @@ test.group('Medical prescription resource', group => {
         frequencyUnit: 'HOUR',
         frequencyQuantity: 10,
         frequencyQuantityUnit: 'HOUR',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        fluidUnitId: unit.id,
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -178,7 +178,7 @@ test.group('Medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user } = await createData();
+    const { user, unit, drug } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -193,12 +193,12 @@ test.group('Medical prescription resource', group => {
         frequency: 'WHEN_NEEDED',
         description: 'some description',
         resume: 'some resume',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
         fluidSet: 'MACRODROPS',
         fluidSpeed: 10,
-        fluidUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        fluidUnitId: unit.id,
         supplement: 'some supplement',
       })
       .bearerToken(token);
@@ -210,7 +210,7 @@ test.group('Medical prescription resource', group => {
     assert,
     client,
   }) => {
-    const { user } = await createData();
+    const { user, unit, drug } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -225,9 +225,9 @@ test.group('Medical prescription resource', group => {
         frequency: 'ONCE',
         description: 'some description',
         resume: 'some resume',
-        prescriptionUnitId: '75f142de-75fb-4277-9c4f-1a27eb7b60e3',
+        prescriptionUnitId: unit.id,
         dose: 10,
-        drugAdministrationId: 'ec3a2212-bbe5-4274-8836-bc8d99ef66e7',
+        drugAdministrationId: drug.id,
       })
       .bearerToken(token);
 

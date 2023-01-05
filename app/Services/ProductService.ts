@@ -21,7 +21,7 @@ interface ISearch {
 
 @inject()
 export default class ProductService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -129,7 +129,9 @@ export default class ProductService {
       group.id,
     );
 
-    const variationGroup = await VariationGroup.findOrFail(data.variationGroup);
+    const variationGroup = data.variationGroup
+      ? await VariationGroup.find(data.variationGroup)
+      : null;
 
     const trx = await Database.transaction();
 
@@ -146,7 +148,7 @@ export default class ProductService {
           unit_id: data.unitId,
           icmsOrigin: data.icmsOrigin,
           economic_group_id: group.id,
-          variation_group_id: variationGroup.id,
+          variation_group_id: variationGroup?.id,
           taxation_group_id: data.taxationGroupId,
           group_id: data.groupId,
           subgroup_id: data.subgroupId,
@@ -236,7 +238,7 @@ export default class ProductService {
         group_id: data.groupId,
         subgroup_id: data.subgroupId,
         icmsOrigin: data.icmsOrigin,
-        taxation_group_id: data.taxationGroupId
+        taxation_group_id: data.taxationGroupId,
       })
       .save();
   }

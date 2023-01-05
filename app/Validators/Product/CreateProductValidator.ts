@@ -23,7 +23,7 @@ export default class CreateProductValidator {
   public schema = schema.create({
     description: schema.string({}, []),
     type: schema.enum(Object.values(ProductType), []),
-    referenceCode: schema.string({}, []),
+    referenceCode: schema.string.optional({}, []),
     collectionYear: schema.number.optional([rules.unsigned()]),
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),
@@ -36,7 +36,7 @@ export default class CreateProductValidator {
       }),
     ]),
     icmsOrigin: schema.enum(Object.values(ProductIcmsOrigin), []),
-    variationGroup: schema.string({}, [
+    variationGroup: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'variation_groups',

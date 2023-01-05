@@ -1,9 +1,9 @@
-import { ProductType, ProductIcmsOrigin } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductType } from 'App/Models/Product';
 
 export default interface IUpdateProduct {
   description: string;
   type: ProductType;
-  referenceCode: string;
+  referenceCode?: string;
   collectionYear?: number;
   ncm?: string;
   cest?: string;

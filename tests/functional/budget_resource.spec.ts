@@ -3,7 +3,10 @@ import { test } from '@japa/runner';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
+import { ProductType } from 'App/Models/Product';
+import ProductVariation from 'App/Models/ProductVariation';
 import Reason from 'App/Models/Reason';
+import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
 
@@ -27,9 +30,34 @@ test.group('Budget resource', group => {
       business_unit_id: business.id,
     });
 
+    const unit = await Unit.create({
+      name: 'some name',
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
+    const product = await group.related('products').create({
+      description: 'some product',
+      type: ProductType.PRODUCT,
+      referenceCode: 'some reference code',
+      collectionYear: 2022,
+      ncm: 'some ncm',
+      cest: 'some cest',
+      features: 'some features',
+      unit_id: unit.id,
+      active: true,
+      icmsOrigin: '0',
+    });
+
+    const variation = await ProductVariation.create({
+      barcode: '123',
+      product_id: product.id,
+    });
+
     const budget = await Budget.create({
       business_unit_id: business.id,
       status: BudgetStatus.A,
+      client_id: client.id,
     });
 
     const budgetItem = await budget.related('items').create({
@@ -37,6 +65,7 @@ test.group('Budget resource', group => {
       quantity: 12,
       unitaryValue: 10,
       discountValue: 2,
+      product_variation_id: variation.id,
     });
 
     const reason = await Reason.create({
@@ -54,6 +83,7 @@ test.group('Budget resource', group => {
       budget,
       budgetItem,
       reason,
+      variation,
     };
   };
 
@@ -157,7 +187,7 @@ test.group('Budget resource', group => {
   });
 
   test('should create budget item', async ({ assert, client }) => {
-    const { user, budget } = await createData();
+    const { user, budget, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -167,7 +197,7 @@ test.group('Budget resource', group => {
       .post(`/budgets/create-item`)
       .json({
         budgetId: budget.id,
-        productVariationId: '55c09fc1-251f-4fcc-84c3-7207d33eab4c', // should be a value created in the test
+        productVariationId: variation.id,
         quantity: 5,
         unitaryValue: 10,
         discountValue: 2,

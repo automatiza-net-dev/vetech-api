@@ -627,8 +627,6 @@ export default class PatientService {
 
       await trx.commit();
     } catch (error) {
-      console.log(error);
-
       await trx.rollback();
       throw new InternalErrorException(
         'Erro na execução',

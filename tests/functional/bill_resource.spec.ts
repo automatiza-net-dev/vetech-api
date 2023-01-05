@@ -12,6 +12,8 @@ import TaxationGroupRule, {
   MovementType,
 } from 'App/Models/TaxationGroupRule';
 import TaxOperation from 'App/Models/TaxOperation';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
@@ -115,6 +117,18 @@ test.group('Bill resource', group => {
       economicGroupId: group.id,
     });
 
+    const tefAcq = await TefAcquirer.create({
+      economic_group_id: group.id,
+      description: 'any description',
+    });
+
+    const tefFlag = await TefFlag.create({
+      economic_group_id: group.id,
+      description: 'any description',
+      code: 'any code',
+      type: TefFlagType.A,
+    });
+
     return {
       user,
       patient,
@@ -124,6 +138,8 @@ test.group('Bill resource', group => {
       rule,
       variation,
       paymentMethod,
+      tefAcq,
+      tefFlag,
     };
   };
 
@@ -164,12 +180,14 @@ test.group('Bill resource', group => {
       .post(`/bills/create`)
       .json({
         clientId: patient.id,
+        patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
         billDate: new Date(),
         productValue: 100,
         serviceValue: 200,
         discountValue: 55,
+        items: [],
       })
       .bearerToken(token);
 
@@ -201,7 +219,7 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill payment', async ({ assert, client }) => {
-    const { user, bill, paymentMethod } = await createData();
+    const { user, bill, paymentMethod, tefAcq, tefFlag } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -214,6 +232,10 @@ test.group('Bill resource', group => {
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
         installmentValue: 20,
+        installments: 1,
+        installmentsValue: 10,
+        acquirerId: tefAcq.id,
+        flagId: tefFlag.id,
       })
       .bearerToken(token);
 

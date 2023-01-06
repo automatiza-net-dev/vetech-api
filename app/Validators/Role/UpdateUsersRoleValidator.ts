@@ -5,7 +5,7 @@ export default class UpdateUsersRoleValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    data: schema.array().members(
+    data: schema.array([rules.minLength(1)]).members(
       schema.object().members({
         user_id: schema.string({}, [
           rules.uuid(),

@@ -130,10 +130,10 @@ export default class UserRoleService {
       .preload('businessUnits')
       .firstOrFail();
 
-    const nonValidUnit = group.businessUnits.some(
+    const allValid = group.businessUnits.some(
       bu => !data.some(d => d.unit_id === bu.id),
     );
-    if (nonValidUnit) {
+    if (!allValid) {
       throw new BadRequestException(
         'Unidade não pertence ao grupo',
         400,

@@ -145,7 +145,7 @@ export default class UserRoleService {
       // eslint-disable-next-line no-restricted-syntax
       for await (const entity of data) {
         const userUnitRole = await UserUnitRole.query()
-          .where('unit_id', unitId)
+          .where('unit_id', entity.unit_id)
           .andWhere('user_id', entity.user_id)
           .first();
 
@@ -154,7 +154,7 @@ export default class UserRoleService {
             {
               user_id: entity.user_id,
               role_id: entity.role_id,
-              unit_id: unitId,
+              unit_id: entity.unit_id,
               active: entity.active,
             },
             {
@@ -165,7 +165,7 @@ export default class UserRoleService {
           await userUnitRole
             .merge({ role_id: entity.role_id, active: entity.active })
             .useTransaction(trx)
-            .save();  
+            .save();
         }
       }
     });

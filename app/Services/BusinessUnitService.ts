@@ -257,6 +257,7 @@ export default class BusinessUnitService {
     await user.load('roles', q => {
       q.where('unit_id', unitId);
       q.preload('role');
+      q.preload('unit');
     });
 
     if (user.roles.length === 0) {
@@ -265,7 +266,15 @@ export default class BusinessUnitService {
 
     return {
       ...user.toJSON(),
-      roles: user.roles.map(f => f.role.name),
+      roles: user.roles.map(f => ({
+        id: f.role.id,
+        name: f.role.name,
+        active: f.active,
+        unit: {
+          id: f.unit.id,
+          name: f.unit.companyName ?? '-',
+        },
+      })),
     };
   }
 }

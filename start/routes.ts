@@ -75,6 +75,10 @@ Route.group(() => {
   Route.put('/user/:id', 'BusinessUnitsController.updateUser').middleware(
     'auth',
   );
+  Route.put('/roles', 'BusinessUnitsController.updateUsersRole').middleware(
+    'auth',
+  );
+
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 

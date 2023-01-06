@@ -4,10 +4,12 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import UserUnitRole from 'App/Models/UserUnitRole';
 import SharedService from 'App/Services/SharedService';
+import IUpdateUserRole from 'Contracts/interfaces/IUpdateUserRole';
 
 interface ISearchBusinessUnitUsers {
   name?: string;
@@ -119,5 +121,54 @@ export default class UserRoleService {
         'E_INTERNAL_ERROR',
       );
     }
+  }
+
+  public async updateUserRoles(unitId: string, data: Array<IUpdateUserRole>) {
+    const unit = await BusinessUnit.findOrFail(unitId);
+    const group = await EconomicGroup.query()
+      .where('id', unit.economicGroupId)
+      .preload('businessUnits')
+      .firstOrFail();
+
+    const nonValidUnit = group.businessUnits.some(
+      bu => !data.some(d => d.unit_id === bu.id),
+    );
+    if (nonValidUnit) {
+      throw new BadRequestException(
+        'Unidade não pertence ao grupo',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    return Database.transaction(async trx => {
+      // eslint-disable-next-line no-restricted-syntax
+      for await (const entity of data) {
+        const userUnitRole = await UserUnitRole.query()
+          .where('unit_id', unitId)
+          .andWhere('user_id', entity.user_id)
+          .first();
+
+        if (!userUnitRole) {
+          // create
+          await UserUnitRole.create(
+            {
+              user_id: entity.user_id,
+              role_id: entity.role_id,
+              unit_id: unitId,
+              active: entity.active,
+            },
+            {
+              client: trx,
+            },
+          );
+        } else {
+          await userUnitRole
+            .useTransaction(trx)
+            .merge({ active: entity.active })
+            .save();
+        }
+      }
+    });
   }
 }

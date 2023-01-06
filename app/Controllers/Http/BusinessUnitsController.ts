@@ -6,6 +6,7 @@ import UserRoleService from 'App/Services/UserRoleService';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
 import UpdateUnitUserValidator from 'App/Validators/BusinessUnit/UpdateUnitUserValidator';
+import UpdateUsersRoleValidator from 'App/Validators/Role/UpdateUsersRoleValidator';
 
 @inject()
 export default class BusinessUnitsController {
@@ -100,6 +101,19 @@ export default class BusinessUnitsController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.userRoleService.deleteUserFromBusiness(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async updateUsersRole({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const { data } = await request.validate(UpdateUsersRoleValidator);
+
+    await this.userRoleService.updateUserRoles(unit_id, data);
 
     return response.noContent();
   }

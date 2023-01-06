@@ -30,6 +30,7 @@ interface ISearchPartial {
   seller?: string;
   status?: string;
   patient?: string;
+  tag?: string;
 }
 
 interface ISearchComplete {
@@ -85,6 +86,10 @@ export default class BudgetService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.tag) {
+      qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
     qb.preload('client', query => {

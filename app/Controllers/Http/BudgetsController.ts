@@ -27,6 +27,7 @@ export default class BudgetsController {
       seller: qs.seller,
       status: qs.status,
       patient: qs.patient,
+      tag: qs.tag,
     });
 
     return response.ok(result);

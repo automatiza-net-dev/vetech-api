@@ -22,6 +22,8 @@ export default class BillsController {
       status: qs.status,
       fromBill: qs.fromBill,
       toBill: qs.toBill,
+      patient: qs.patient,
+      tag: qs.tag,
     });
 
     return response.ok(result);

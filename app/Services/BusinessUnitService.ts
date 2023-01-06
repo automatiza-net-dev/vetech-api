@@ -243,7 +243,7 @@ export default class BusinessUnitService {
     return entities.map(ent => ent.businessUnits).flat();
   }
 
-  async searchUser(unitId: string, id: string) {
+  async searchUser(_: string, id: string) {
     const user = await User.find(id);
 
     if (!user) {
@@ -255,14 +255,9 @@ export default class BusinessUnitService {
     }
 
     await user.load('roles', q => {
-      q.where('unit_id', unitId);
       q.preload('role');
       q.preload('unit');
     });
-
-    if (user.roles.length === 0) {
-      throw new BadRequestException('Você não tem permissão para acessar');
-    }
 
     return {
       ...user.toJSON(),

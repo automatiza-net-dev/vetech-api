@@ -150,7 +150,6 @@ export default class UserRoleService {
           .first();
 
         if (!userUnitRole) {
-          // create
           await UserUnitRole.create(
             {
               user_id: entity.user_id,
@@ -164,9 +163,9 @@ export default class UserRoleService {
           );
         } else {
           await userUnitRole
+            .merge({ role_id: entity.role_id, active: entity.active })
             .useTransaction(trx)
-            .merge({ active: entity.active })
-            .save();
+            .save();  
         }
       }
     });

@@ -604,6 +604,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/info/:id', 'DailyCashiersController.check');
   Route.get('/', 'DailyCashiersController.index');
   Route.post('/open', 'DailyCashiersController.openDailyCashier');
   Route.post('/close/:id', 'DailyCashiersController.closeDailyCashier');

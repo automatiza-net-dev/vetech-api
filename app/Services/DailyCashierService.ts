@@ -7,6 +7,7 @@ import {
   DailyCashierEntryType,
 } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import SharedService from 'App/Services/SharedService';
 import {
   ICheckCashierData,
@@ -28,6 +29,176 @@ interface ISearch {
 @inject()
 export default class DailyCashierService {
   constructor(private readonly sharedService: SharedService) {}
+
+  async listSaleItems(unitId: string, id: string) {
+    const dailyCashier = await DailyCashier.query()
+      .where('id', id)
+      .where('business_unit_id', unitId)
+      .preload('businessUnit')
+      .preload('userWhoOpened')
+      .preload('userWhoClosed')
+      .preload('userWhoChecked')
+      .preload('userWhoRevised')
+      .preload('entries')
+      .preload('bills', query => {
+        query.preload('client');
+        query.preload('payments', query => {
+          query.preload('paymentMethod');
+        });
+      })
+      .first();
+
+    if (!dailyCashier) {
+      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
+    }
+
+    return {
+      cashier: {
+        id: dailyCashier.id,
+        unit: {
+          id: dailyCashier.businessUnit.id,
+          name: dailyCashier.businessUnit.fantasyName,
+          company: dailyCashier.businessUnit.companyName,
+        },
+        tag: dailyCashier.tag,
+
+        opening_user: dailyCashier.userWhoOpened
+          ? {
+              id: dailyCashier.userWhoOpened.id,
+              name: dailyCashier.userWhoOpened.name,
+            }
+          : null,
+        opening_date: dailyCashier.openingDate,
+
+        closing_user: dailyCashier.userWhoClosed
+          ? {
+              id: dailyCashier.userWhoClosed.id,
+              name: dailyCashier.userWhoClosed.name,
+            }
+          : null,
+        closing_date: dailyCashier.closingDate,
+
+        checking_user: dailyCashier.userWhoChecked
+          ? {
+              id: dailyCashier.userWhoChecked.id,
+              name: dailyCashier.userWhoChecked.name,
+            }
+          : null,
+        checking_date: dailyCashier.checkingDate,
+
+        revision_user: dailyCashier.userWhoRevised
+          ? {
+              id: dailyCashier.userWhoRevised.id,
+              name: dailyCashier.userWhoRevised.name,
+            }
+          : null,
+        revision_date: dailyCashier.revisionDate,
+
+        opening_balance: dailyCashier.openingBalance,
+        sales_total: dailyCashier.salesTotal,
+        expenses_total: dailyCashier.expensesTotal,
+        receipts_total: dailyCashier.receiptsTotal,
+
+        cashier_funds: dailyCashier.cashierFunds,
+        cashier_balance: dailyCashier.cashierBalance,
+        observations: dailyCashier.observations,
+        status: dailyCashier.status,
+      },
+      expenses: dailyCashier.entries
+        .filter(e => e.type === DailyCashierEntryType.D)
+        .map(e => {
+          return {
+            id: e.id,
+            entry_date: e.entryDate,
+            description: e.description,
+            value: e.value,
+            status: e.status,
+            created_at: e.createdAt,
+          };
+        }),
+      receipts: dailyCashier.entries
+        .filter(e => e.type === DailyCashierEntryType.C)
+        .map(e => {
+          return {
+            id: e.id,
+            entry_date: e.entryDate,
+            description: e.description,
+            value: e.value,
+            status: e.status,
+            created_at: e.createdAt,
+          };
+        }),
+      bill_payments: {
+        tef_pos: dailyCashier.bills
+          .reduce((acc, bill) => {
+            const tefs = bill.payments.filter(p =>
+              [PaymentMethodTef.P, PaymentMethodTef.T].includes(
+                p.paymentMethod.tef,
+              ),
+            );
+            return [...acc, ...tefs];
+          }, [])
+          .reduce((acc, curr) => {
+            if (acc[curr.payment_method_id]) {
+              acc[curr.payment_method_id][curr.flag.id] = {
+                flag: {
+                  id: curr.flag.id,
+                  description: curr.flag.description,
+                },
+                payments: [curr],
+              };
+            }
+
+            const elem = acc[curr.payment_method_id];
+            const subelem = elem[curr.flag.id];
+            if (subelem) {
+              subelem.payments.push(curr);
+            } else {
+              subelem.payments = [curr];
+            }
+
+            return acc;
+          }, {}),
+        no_tef: dailyCashier.bills
+          .reduce((acc, bill) => {
+            const no_tefs = bill.payments.filter(p =>
+              [PaymentMethodTef.N].includes(p.paymentMethod.tef),
+            );
+            return [...acc, ...no_tefs];
+          }, [])
+          .reduce((acc, curr) => {
+            if (acc[curr.payment_method_id]) {
+              acc[curr.payment_method_id].payments.push(curr);
+              return acc;
+            }
+
+            acc[curr.payment_method_id] = {
+              payments: [curr],
+            };
+            return acc;
+          }, {}),
+      },
+      // 2.10.5
+      payments: dailyCashier.bills.map(bill => {
+        return bill.payments.map(p => ({
+          id: p.id,
+          description: p.paymentMethod.description,
+          flag: {
+            id: p.flag.id,
+            description: p.flag.id,
+          },
+          type: p.paymentMethod.type,
+          created_at: p.createdAt,
+          installments: p.installments,
+          client: {
+            id: bill.client.id,
+            name: bill.client.name,
+          },
+          installment_value: p.installmentValue,
+        }));
+      }),
+    };
+  }
 
   async index(unitId: string, data: ISearch) {
     const query = DailyCashier.query()
@@ -310,6 +481,7 @@ export default class DailyCashierService {
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
+      tag: dailyCashier.tag,
     });
   }
 
@@ -342,6 +514,7 @@ export default class DailyCashierService {
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
+      tag: dailyCashier.tag,
     });
   }
 }

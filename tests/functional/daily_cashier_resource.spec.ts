@@ -1,6 +1,10 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
+import {
+  DailyCashierEntryStatus,
+  DailyCashierEntryType,
+} from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import { DateTime } from 'luxon';
 
@@ -33,6 +37,49 @@ test.group('Daily cashier resource', group => {
     });
 
     const response = await client.get('/daily-cashiers').bearerToken(token);
+
+    assert.equal(response.status(), 200);
+  });
+
+  test('should return daily cashier info', async ({ client, assert }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+      tag: 1,
+    });
+
+    await cashier.related('entries').createMany([
+      {
+        type: DailyCashierEntryType.D,
+        business_unit_id: dailyMovement.business_unit_id,
+        description: 'some description',
+        value: 100,
+        status: DailyCashierEntryStatus.A,
+        entryDate: DateTime.now(),
+        tag: cashier.tag,
+      },
+      {
+        type: DailyCashierEntryType.C,
+        business_unit_id: dailyMovement.business_unit_id,
+        description: 'some description',
+        value: 100,
+        status: DailyCashierEntryStatus.A,
+        entryDate: DateTime.now(),
+        tag: cashier.tag,
+      },
+    ]);
+
+    const response = await client
+      .get(`/daily-cashiers/info/${cashier.id}`)
+      .bearerToken(token);
 
     assert.equal(response.status(), 200);
   });

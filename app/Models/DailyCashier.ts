@@ -8,6 +8,8 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import Bill from 'App/Models/Bill';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashierEntry from 'App/Models/DailyCashierEntry';
 import DailyCashierLog from 'App/Models/DailyCashierLog';
 import DailyMovement from 'App/Models/DailyMovement';
@@ -121,6 +123,11 @@ export default class DailyCashier extends BaseModel {
   })
   public business_unit_id: string;
 
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
+
   @column({
     serializeAs: null,
   })
@@ -180,4 +187,9 @@ export default class DailyCashier extends BaseModel {
     foreignKey: 'daily_cashier_id',
   })
   public entries: HasMany<typeof DailyCashierEntry>;
+
+  @hasMany(() => Bill, {
+    foreignKey: 'daily_cashier_id',
+  })
+  public bills: HasMany<typeof Bill>;
 }

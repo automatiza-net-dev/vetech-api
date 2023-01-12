@@ -1,4 +1,5 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import PaymentMethod from 'App/Models/PaymentMethod';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import { DateTime } from 'luxon';
@@ -77,6 +78,11 @@ export default class BillPayment extends BaseModel {
     serializeAs: null,
   })
   public payment_method_id: string;
+
+  @belongsTo(() => PaymentMethod, {
+    foreignKey: 'payment_method_id',
+  })
+  public paymentMethod: BelongsTo<typeof PaymentMethod>;
 
   @column({
     serializeAs: null,

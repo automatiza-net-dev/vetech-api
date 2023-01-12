@@ -40,6 +40,9 @@ export default class DailyCashierEntry extends BaseModel {
   @column()
   public status: DailyCashierEntryStatus;
 
+  @column()
+  public tag: number;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

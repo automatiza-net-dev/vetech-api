@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
@@ -184,29 +185,38 @@ export default class DailyCashierService {
       );
     }
 
-    await dailyCashier.related('logs').create({
-      business_unit_id: unitId,
-      user_who_closed_id: dailyCashier.user_who_closed_id,
-      user_who_reopened_id: userId,
-      openingBalance: dailyCashier.openingBalance,
-      cashierFunds: dailyCashier.cashierFunds,
-      salesTotal: dailyCashier.salesTotal,
-      receiptsTotal: dailyCashier.receiptsTotal,
-      cashierTotal: dailyCashier.cashierTotal,
-      cashierBalance: dailyCashier.cashierBalance,
-      observations: dailyCashier.observations,
-    });
+    return Database.transaction(async trx => {
+      await dailyCashier.related('logs').create(
+        {
+          business_unit_id: unitId,
+          user_who_closed_id: dailyCashier.user_who_closed_id,
+          user_who_reopened_id: userId,
+          openingBalance: dailyCashier.openingBalance,
+          cashierFunds: dailyCashier.cashierFunds,
+          salesTotal: dailyCashier.salesTotal,
+          receiptsTotal: dailyCashier.receiptsTotal,
+          cashierTotal: dailyCashier.cashierTotal,
+          cashierBalance: dailyCashier.cashierBalance,
+          observations: dailyCashier.observations,
+          tag: dailyCashier.tag,
+        },
+        {
+          client: trx,
+        },
+      );
 
-    dailyCashier.merge({
-      status: DailyCashierStatus.A,
-      salesTotal: 0,
-      expensesTotal: 0,
-      receiptsTotal: 0,
-      cashierTotal: 0,
-      cashierBalance: 0,
+      return dailyCashier
+        .merge({
+          status: DailyCashierStatus.A,
+          salesTotal: 0,
+          expensesTotal: 0,
+          receiptsTotal: 0,
+          cashierTotal: 0,
+          cashierBalance: 0,
+        })
+        .useTransaction(trx)
+        .save();
     });
-
-    return dailyCashier.save();
   }
 
   async checkDailyCashier(unitId: string, id: string, data: ICheckCashierData) {

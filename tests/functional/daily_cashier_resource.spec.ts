@@ -267,6 +267,7 @@ test.group('Daily cashier resource', group => {
       user_who_opened_id: user.id,
       openingDate: DateTime.now(),
       status: DailyCashierStatus.F,
+      tag: 1,
     });
 
     const response = await client

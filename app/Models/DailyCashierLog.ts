@@ -69,6 +69,9 @@ export default class DailyCashierLog extends BaseModel {
   public cashierBalance: number;
 
   @column()
+  public tag: number;
+
+  @column()
   public observations: string;
 
   @column.dateTime({ autoCreate: true })

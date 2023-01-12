@@ -94,6 +94,9 @@ export default class DailyCashier extends BaseModel {
   @column()
   public status: DailyCashierStatus;
 
+  @column()
+  public tag: number;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

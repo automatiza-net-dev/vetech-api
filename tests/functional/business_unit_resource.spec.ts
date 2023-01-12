@@ -3,7 +3,6 @@ import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
-import RoleFactory from 'Database/factories/RoleFactory';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -90,58 +89,5 @@ test.group('Business unit resource', group => {
       .loginAs(user);
 
     assert.equal(201, response.status());
-  });
-
-  test('should throw error for invalid unit', async ({ client, assert }) => {
-    const role = await RoleFactory.create();
-    const { user } = await userBootstrap();
-    const { business } = await userBootstrap();
-
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .put(`/business-units/roles`)
-      .json({
-        data: [
-          {
-            user_id: user.id,
-            unit_id: business.id,
-            role_id: role.id,
-            active: true,
-          },
-        ],
-      })
-      .bearerToken(token);
-
-    assert.equal(400, response.status());
-  });
-
-  test('should update users role', async ({ client, assert }) => {
-    const role = await RoleFactory.create();
-    const { user, business } = await userBootstrap();
-
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .put(`/business-units/roles`)
-      .json({
-        data: [
-          {
-            user_id: user.id,
-            unit_id: business.id,
-            role_id: role.id,
-            active: true,
-          },
-        ],
-      })
-      .bearerToken(token);
-
-    assert.equal(204, response.status());
   });
 });

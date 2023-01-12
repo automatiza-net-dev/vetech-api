@@ -26,7 +26,7 @@ interface ISearch {
 
 @inject()
 export default class DailyCashierService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const query = DailyCashier.query()
@@ -85,11 +85,16 @@ export default class DailyCashierService {
       );
     }
 
+    const count = await DailyCashier.query()
+      .where('business_unit_id', unitId)
+      .select(['id']);
+
     return dailyMovement.related('cashiers').create({
       business_unit_id: unitId,
       user_who_opened_id: data.userId,
       openingDate: data.openingDate,
       status: DailyCashierStatus.A,
+      tag: count.length + 1,
     });
   }
 

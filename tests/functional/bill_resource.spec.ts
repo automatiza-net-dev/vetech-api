@@ -3,7 +3,7 @@ import { test } from '@japa/runner';
 import Bill from 'App/Models/Bill';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import PaymentMethod from 'App/Models/PaymentMethod';
+import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
@@ -115,6 +115,7 @@ test.group('Bill resource', group => {
 
     const paymentMethod = await PaymentMethod.create({
       economicGroupId: group.id,
+      tef: PaymentMethodTef.T,
     });
 
     const tefAcq = await TefAcquirer.create({
@@ -231,11 +232,31 @@ test.group('Bill resource', group => {
         billId: bill.id,
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
-        installmentValue: 20,
         installments: 1,
         installmentsValue: 10,
         acquirerId: tefAcq.id,
         flagId: tefFlag.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill payment (no card)', async ({ assert, client }) => {
+    const { user, bill, paymentMethod } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-payment`)
+      .json({
+        billId: bill.id,
+        paymentMethodId: paymentMethod.id,
+        expirationDate: new Date(),
+        installments: 1,
+        installmentsValue: 10,
       })
       .bearerToken(token);
 

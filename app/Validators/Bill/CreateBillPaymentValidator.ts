@@ -13,11 +13,11 @@ export default class CreateBillPaymentValidator {
       rules.uuid(),
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
-    acquirerId: schema.string({ trim: true }, [
+    acquirerId: schema.string.optional({ trim: true }, [
       rules.uuid(),
       rules.exists({ table: 'tef_acquirers', column: 'id' }),
     ]),
-    flagId: schema.string({ trim: true }, [
+    flagId: schema.string.optional({ trim: true }, [
       rules.uuid(),
       rules.exists({ table: 'tef_flags', column: 'id' }),
     ]),

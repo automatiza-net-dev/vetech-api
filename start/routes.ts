@@ -716,6 +716,11 @@ Route.group(() => {
   Route.post('/create', 'TemplateReplacementsController.store');
   Route.put('/update/:id', 'TemplateReplacementsController.update');
   Route.delete('/delete/:id', 'TemplateReplacementsController.destroy');
+
+  Route.post(
+    '/replace-user',
+    'TemplateReplacementsController.userTemplateReplacement',
+  );
 })
   .prefix('template-replacements')
   .middleware('auth');

@@ -22,7 +22,7 @@ test.group('Template replacement resource', group => {
       replacer: '[[SOME_1]]',
     });
 
-    return { user, template };
+    return { user, template, ecoGroup };
   };
 
   test('should return all template replacements', async ({
@@ -93,5 +93,31 @@ test.group('Template replacement resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should replace user data', async ({ assert, client }) => {
+    const { user, ecoGroup } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const nameTemplate = await TemplateReplacement.create({
+      economic_group_id: ecoGroup.id,
+      origin: TemplateReplacementOrigin.USERS,
+      attribute: 'name',
+      replacer: '[[NAME]]',
+    });
+
+    const response = await client
+      .post(`/template-replacements/replace-user`)
+      .json({
+        base: `${nameTemplate.replacer}`,
+        user: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.equal(`${user.name}`, response.body().result);
   });
 });

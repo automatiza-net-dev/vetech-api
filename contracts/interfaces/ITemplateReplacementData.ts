@@ -5,3 +5,8 @@ export default interface ITemplateReplacementData {
   attribute: string;
   replacer: string;
 }
+
+export interface ITemplateReplacementUser {
+  base: string;
+  user: string;
+}

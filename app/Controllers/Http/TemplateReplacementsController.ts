@@ -4,6 +4,7 @@ import SharedService from 'App/Services/SharedService';
 import TemplateReplacementService from 'App/Services/TemplateReplacementService';
 import CreateTemplateReplacementValidator from 'App/Validators/TemplateReplacement/CreateTemplateReplacementValidator';
 import UpdateTemplateReplacementValidator from 'App/Validators/TemplateReplacement/UpdateTemplateReplacementValidator';
+import UserTemplateReplacementValidator from 'App/Validators/TemplateReplacement/UserTemplateReplacementValidator';
 
 @inject()
 export default class TemplateReplacementsController {
@@ -54,5 +55,18 @@ export default class TemplateReplacementsController {
     await this.service.destroy(unit_id, params.id);
 
     return response.noContent();
+  }
+
+  public async userTemplateReplacement({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UserTemplateReplacementValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.replaceUser(unit_id, payload);
+
+    return response.ok({ result });
   }
 }

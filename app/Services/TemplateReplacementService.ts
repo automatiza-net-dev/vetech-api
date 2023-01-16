@@ -1,7 +1,13 @@
 import { inject } from '@adonisjs/fold';
-import TemplateReplacement from 'App/Models/TemplateReplacement';
+import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
+import TemplateReplacement, {
+  TemplateReplacementOrigin,
+} from 'App/Models/TemplateReplacement';
+import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
-import ITemplateReplacementData from 'Contracts/interfaces/ITemplateReplacementData';
+import ITemplateReplacementData, {
+  ITemplateReplacementUser,
+} from 'Contracts/interfaces/ITemplateReplacementData';
 
 interface ISearch {
   origin?: string;
@@ -79,5 +85,58 @@ export default class TemplateReplacementService {
     }
 
     return template.delete();
+  }
+
+  async replaceUser(unitId: string, data: ITemplateReplacementUser) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const user = await User.findOrFail(data.user);
+
+    const templates = await TemplateReplacement.query()
+      .where('economic_group_id', group.id)
+      .whereIn('origin', [TemplateReplacementOrigin.USERS]);
+
+    const obj = user.toObject();
+
+    return this.parseTemplate(data.base, obj, templates);
+  }
+
+  parseTemplate(
+    raw: string,
+    obj: ModelObject,
+    templates: TemplateReplacement[],
+  ): string {
+    if (templates.length === 0) {
+      return raw;
+    }
+
+    const [head, ...tail] = templates;
+
+    const value = obj[head.attribute];
+    const value$ = value ? this.$toString(value) : 'Valor inválido';
+
+    const updated = raw.replace(head.replacer, value$);
+
+    return this.parseTemplate(updated, obj, tail);
+  }
+
+  $toString(data: unknown): string {
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    if (typeof data === 'number' || typeof data === 'bigint') {
+      return data.toString();
+    }
+
+    if (typeof data === 'boolean') {
+      return data ? 'Sim' : 'Não';
+    }
+
+    if (data instanceof Date) {
+      return data.toDateString();
+    }
+
+    return 'Valor inválido';
   }
 }

@@ -1,4 +1,5 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Bill from 'App/Models/Bill';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
@@ -73,6 +74,11 @@ export default class BillPayment extends BaseModel {
     serializeAs: null,
   })
   public bill_id: string;
+
+  @belongsTo(() => Bill, {
+    foreignKey: 'bill_id',
+  })
+  public bill: BelongsTo<typeof Bill>;
 
   @column({
     serializeAs: null,

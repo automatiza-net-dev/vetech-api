@@ -252,6 +252,7 @@ test.group('Bill resource', group => {
         installmentsValue: 10,
         acquirerId: tefAcq.id,
         flagId: tefFlag.id,
+        nsuDocument: 'some document',
       })
       .bearerToken(token);
 
@@ -273,6 +274,7 @@ test.group('Bill resource', group => {
         expirationDate: new Date(),
         installments: 1,
         installmentsValue: 10,
+        nsuDocument: 'some document',
       })
       .bearerToken(token);
 

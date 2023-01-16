@@ -54,6 +54,11 @@ export default class BillPayment extends BaseModel {
   @column()
   public status: string;
 
+  @column({
+    columnName: 'nsu_document',
+  })
+  public nsuDocument: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

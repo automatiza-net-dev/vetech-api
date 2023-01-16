@@ -540,6 +540,21 @@ export default class BillService {
     });
   }
 
+  async deleteBillPayment(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const payment = await BillPayment.query()
+      .where('id', id)
+      .preload('bill')
+      .first();
+
+    if (!payment || payment.bill.economic_group_id !== group.id) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await payment.delete();
+  }
+
   public async searchProducts(unitId: string, data: ISearchProduct) {
     const group = await this.sharedService.getUserGroup(unitId);
 

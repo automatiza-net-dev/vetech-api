@@ -707,6 +707,8 @@ Route.group(() => {
   Route.get('/products', 'BillsController.searchProducts');
   Route.get('/taxes', 'BillsController.searchTax');
   Route.get('/show/:id', 'BillsController.show');
+
+  Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
 })
   .prefix('bills')
   .middleware('auth');

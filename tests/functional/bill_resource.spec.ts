@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bill from 'App/Models/Bill';
+import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
@@ -17,6 +18,7 @@ import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -50,6 +52,19 @@ test.group('Bill resource', group => {
       seller_id: user.id,
       daily_movement_id: dailyMovement.id,
       daily_cashier_id: dailyCashier.id,
+    });
+
+    const payment = await bill.related('payments').create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      block: 1,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.S,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10, // TODO: add fee
     });
 
     const taxation = await TaxationGroup.create({
@@ -141,6 +156,7 @@ test.group('Bill resource', group => {
       paymentMethod,
       tefAcq,
       tefFlag,
+      payment,
     };
   };
 
@@ -261,5 +277,56 @@ test.group('Bill resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should return NotFoundException when deleting invalid bill payment ', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment/${v4()}`)
+
+      .bearerToken(token);
+
+    assert.equal(404, response.status());
+  });
+
+  test('should return NotFoundException when deleting unauthorized bill payment ', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const { payment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment/${payment.id}`)
+
+      .bearerToken(token);
+
+    assert.equal(404, response.status());
+  });
+
+  test('should delete bill payment', async ({ assert, client }) => {
+    const { user, payment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment/${payment.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

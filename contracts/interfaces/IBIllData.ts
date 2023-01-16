@@ -40,4 +40,5 @@ export interface ICreateBillPaymentData {
   expirationDate: DateTime;
   installmentsValue: number;
   installments: number;
+  nsuDocument: string;
 }

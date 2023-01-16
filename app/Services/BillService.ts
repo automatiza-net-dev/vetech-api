@@ -537,6 +537,7 @@ export default class BillService {
       installments: data.installments,
       installmentValue: data.installmentsValue / data.installments,
       totalValue: data.installmentsValue, // TODO: add fee
+      nsuDocument: data.nsuDocument,
     });
   }
 

@@ -1,12 +1,15 @@
 import { inject } from '@adonisjs/fold';
 import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Patient from 'App/Models/Patient';
+import Schedule from 'App/Models/Schedule';
 import TemplateReplacement, {
   TemplateReplacementOrigin,
 } from 'App/Models/TemplateReplacement';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import ITemplateReplacementData, {
-  ITemplateReplacementUser,
+  ITemplateReplacementParser,
 } from 'Contracts/interfaces/ITemplateReplacementData';
 
 interface ISearch {
@@ -15,6 +18,7 @@ interface ISearch {
   replacer?: string;
 }
 
+type RenderTextData = Record<TemplateReplacementOrigin, ModelObject | null>;
 @inject()
 export default class TemplateReplacementService {
   constructor(private readonly sharedService: SharedService) {}
@@ -47,7 +51,7 @@ export default class TemplateReplacementService {
 
       attribute: data.attribute,
       origin: data.origin,
-      replacer: data.origin,
+      replacer: data.replacer,
     });
   }
 
@@ -67,7 +71,7 @@ export default class TemplateReplacementService {
       .merge({
         attribute: data.attribute,
         origin: data.origin,
-        replacer: data.origin,
+        replacer: data.replacer,
       })
       .save();
   }
@@ -87,23 +91,53 @@ export default class TemplateReplacementService {
     return template.delete();
   }
 
-  async replaceUser(unitId: string, data: ITemplateReplacementUser) {
+  async renderText(unitId: string, data: ITemplateReplacementParser) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const user = await User.findOrFail(data.user);
+    const textData: RenderTextData = {
+      BUSINESS: null,
+      USER: null,
+      SCHEDULE: null,
+      TUTOR: null,
+      PATIENT: null,
+    };
 
-    const templates = await TemplateReplacement.query()
-      .where('economic_group_id', group.id)
-      .whereIn('origin', [TemplateReplacementOrigin.USERS]);
+    if (data.businessUnitId) {
+      const business = await BusinessUnit.findOrFail(data.businessUnitId);
+      textData.BUSINESS = business.toObject();
+    }
 
-    const obj = user.toObject();
+    if (data.userId) {
+      const user = await User.findOrFail(data.userId);
+      textData.USER = user.toObject();
+    }
 
-    return this.parseTemplate(data.base, obj, templates);
+    if (data.scheduleId) {
+      const schedule = await Schedule.findOrFail(data.scheduleId);
+      textData.SCHEDULE = schedule.toObject();
+    }
+
+    if (data.tutorId) {
+      const tutor = await Patient.findOrFail(data.tutorId);
+      textData.TUTOR = tutor.toObject();
+    }
+
+    if (data.dependentId) {
+      const patient = await Patient.findOrFail(data.dependentId);
+      textData.PATIENT = patient.toObject();
+    }
+
+    const templates = await TemplateReplacement.query().where(
+      'economic_group_id',
+      group.id,
+    );
+
+    return this.parseTemplate(data.base, textData, templates);
   }
 
   parseTemplate(
     raw: string,
-    obj: ModelObject,
+    data: RenderTextData,
     templates: TemplateReplacement[],
   ): string {
     if (templates.length === 0) {
@@ -112,12 +146,17 @@ export default class TemplateReplacementService {
 
     const [head, ...tail] = templates;
 
-    const value = obj[head.attribute];
+    const elem = data[head.origin];
+    if (!elem) {
+      return this.parseTemplate(raw, data, tail);
+    }
+
+    const value = elem[head.attribute];
     const value$ = value ? this.$toString(value) : 'Valor inválido';
 
     const updated = raw.replace(head.replacer, value$);
 
-    return this.parseTemplate(updated, obj, tail);
+    return this.parseTemplate(updated, data, tail);
   }
 
   $toString(data: unknown): string {

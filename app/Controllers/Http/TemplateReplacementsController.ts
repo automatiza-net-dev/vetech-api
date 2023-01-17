@@ -3,8 +3,8 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import TemplateReplacementService from 'App/Services/TemplateReplacementService';
 import CreateTemplateReplacementValidator from 'App/Validators/TemplateReplacement/CreateTemplateReplacementValidator';
+import RenderTemplateReplacementValidator from 'App/Validators/TemplateReplacement/RenderTemplateReplacementValidator';
 import UpdateTemplateReplacementValidator from 'App/Validators/TemplateReplacement/UpdateTemplateReplacementValidator';
-import UserTemplateReplacementValidator from 'App/Validators/TemplateReplacement/UserTemplateReplacementValidator';
 
 @inject()
 export default class TemplateReplacementsController {
@@ -57,15 +57,15 @@ export default class TemplateReplacementsController {
     return response.noContent();
   }
 
-  public async userTemplateReplacement({
+  public async renderTemplateReplacement({
     auth,
     request,
     response,
   }: HttpContextContract) {
-    const payload = await request.validate(UserTemplateReplacementValidator);
+    const payload = await request.validate(RenderTemplateReplacementValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.replaceUser(unit_id, payload);
+    const result = await this.service.renderText(unit_id, payload);
 
     return response.ok({ result });
   }

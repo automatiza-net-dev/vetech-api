@@ -6,7 +6,11 @@ export default interface ITemplateReplacementData {
   replacer: string;
 }
 
-export interface ITemplateReplacementUser {
+export interface ITemplateReplacementParser {
   base: string;
-  user: string;
+  businessUnitId?: string;
+  userId?: string;
+  scheduleId?: string;
+  tutorId?: string;
+  dependentId?: string;
 }

@@ -720,8 +720,8 @@ Route.group(() => {
   Route.delete('/delete/:id', 'TemplateReplacementsController.destroy');
 
   Route.post(
-    '/replace-user',
-    'TemplateReplacementsController.userTemplateReplacement',
+    '/replace-text',
+    'TemplateReplacementsController.renderTemplateReplacement',
   );
 })
   .prefix('template-replacements')

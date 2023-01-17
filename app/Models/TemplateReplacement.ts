@@ -3,11 +3,11 @@ import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 export enum TemplateReplacementOrigin {
-  PATIENTS = 'PATIENTS',
-  RACES = 'RACES',
-  USERS = 'USERS',
-  BUSINESS_UNITS = 'BUSINESS_UNITS',
-  SYSTEM = 'SYSTEM',
+  BUSINESS = 'BUSINESS',
+  USER = 'USER',
+  SCHEDULE = 'SCHEDULE',
+  TUTOR = 'TUTOR',
+  PATIENT = 'PATIENT',
 }
 
 export default class TemplateReplacement extends BaseModel {

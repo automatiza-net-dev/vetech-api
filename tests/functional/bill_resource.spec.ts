@@ -10,7 +10,7 @@ import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
   MovementCategory,
-  MovementType
+  MovementType,
 } from 'App/Models/TaxationGroupRule';
 import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
@@ -250,9 +250,9 @@ test.group('Bill resource', group => {
       costPrice: 10,
       stock: 10,
       maximumStock: 10,
-      minimumStock: 10,,
+      minimumStock: 10,
       maximumDiscountPercentage: 10,
-      maximumDiscountValue: 10
+      maximumDiscountValue: 10,
     });
 
     const response = await client

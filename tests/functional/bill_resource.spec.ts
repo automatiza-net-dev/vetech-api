@@ -216,7 +216,7 @@ test.group('Bill resource', group => {
     assert,
     client,
   }) => {
-    const { user, bill, variation, rule } = await createData();
+    const { user, bill, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -227,7 +227,6 @@ test.group('Bill resource', group => {
       .json({
         billId: bill.id,
         productVariationId: variation.id,
-        taxationGroupRuleId: rule.id,
         quantity: 10,
         unitaryValue: 20,
         discountValue: 20,
@@ -238,7 +237,7 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill item', async ({ assert, client }) => {
-    const { user, bill, variation, rule, business } = await createData();
+    const { user, bill, variation, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -260,7 +259,6 @@ test.group('Bill resource', group => {
       .json({
         billId: bill.id,
         productVariationId: variation.id,
-        taxationGroupRuleId: rule.id,
         quantity: 10,
         unitaryValue: 20,
         discountValue: 20,

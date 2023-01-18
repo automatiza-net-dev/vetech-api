@@ -13,10 +13,6 @@ export default class CreateBillItemValidator {
       rules.uuid(),
       rules.exists({ table: 'product_variations', column: 'id' }),
     ]),
-    taxationGroupRuleId: schema.string({ trim: true }, [
-      rules.uuid(),
-      rules.exists({ table: 'taxation_group_rules', column: 'id' }),
-    ]),
     quantity: schema.number(),
     unitaryValue: schema.number(),
     discountValue: schema.number(),

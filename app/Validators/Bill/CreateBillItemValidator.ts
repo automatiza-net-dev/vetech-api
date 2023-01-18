@@ -18,8 +18,6 @@ export default class CreateBillItemValidator {
       rules.exists({ table: 'taxation_group_rules', column: 'id' }),
     ]),
     quantity: schema.number(),
-    costValue: schema.number(),
-    saleValue: schema.number(),
     unitaryValue: schema.number(),
     discountValue: schema.number(),
   });

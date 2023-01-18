@@ -24,10 +24,7 @@ export interface ICreateBillData {
 export interface ICreateBillItemData {
   billId: string;
   productVariationId: string;
-  taxationGroupRuleId: string;
   quantity: number;
-  costValue: number;
-  saleValue: number;
   unitaryValue: number;
   discountValue: number;
 }

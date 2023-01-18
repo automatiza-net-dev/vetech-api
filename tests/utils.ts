@@ -45,6 +45,7 @@ export const userBootstrap = async () => {
     phone: user.phone,
     email: user.email,
     origin: 'TESTING',
+    state: 'PB',
   });
 
   const licence = await business.related('licences').create({

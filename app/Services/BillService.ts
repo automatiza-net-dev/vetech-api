@@ -1,14 +1,16 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BillItem from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import Product from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
-import TaxationGroupRule from 'App/Models/TaxationGroupRule';
+import TaxationGroupRule, { MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -353,11 +355,25 @@ export default class BillService {
 
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
+    const unit = await BusinessUnit.findOrFail(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const items = await bill.related('items').query();
-    const rule = await TaxationGroupRule.findOrFail(data.taxationGroupRuleId);
-    await rule.load('taxOperation');
+
+    const rule = await TaxationGroupRule.query()
+      .where('movement_type', MovementType.S)
+      .where('from_uf', unit.state ?? '')
+      .where('to_uf', unit.state ?? '')
+      .preload('taxOperation')
+      .first();
+
+    if (!rule) {
+      throw new BadRequestException(
+        'Não existe regra de imposto válida',
+        400,
+        'E_NO_RULE',
+      );
+    }
 
     const ufIcms = await UfIcms.query()
       .where('origin_uf', rule.fromUf)
@@ -373,8 +389,30 @@ export default class BillService {
 
     const productVariation = await ProductVariation.query()
       .where('id', data.productVariationId)
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
       .preload('product')
-      .firstOrFail();
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .first();
+    if (!productVariation) {
+      throw new BadRequestException(
+        'Não foi possível encontrar um preço para esse produto',
+        400,
+        'E_NO_VARIATION',
+      );
+    }
+
+    const [price] = productVariation.businessUnitProducts;
+    if (!price) {
+      throw new InternalErrorException(
+        'Não foi possível encontrar um preço para esse produto',
+        500,
+        'E_INTERNAL_ERROR',
+      );
+    }
 
     return Database.transaction(async trx => {
       const totalValue = data.unitaryValue * data.quantity - data.discountValue;
@@ -398,8 +436,8 @@ export default class BillService {
           tax_rule_id: rule.id,
 
           quantity: data.quantity,
-          costValue: data.costValue,
-          saleValue: data.saleValue,
+          costValue: price.costPrice,
+          saleValue: price.price,
           unitaryValue: data.unitaryValue,
           discountValue: data.discountValue,
           totalValue,

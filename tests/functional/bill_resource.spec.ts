@@ -10,7 +10,7 @@ import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
   MovementCategory,
-  MovementType,
+  MovementType
 } from 'App/Models/TaxationGroupRule';
 import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
@@ -157,6 +157,7 @@ test.group('Bill resource', group => {
       tefAcq,
       tefFlag,
       payment,
+      business,
     };
   };
 
@@ -211,7 +212,10 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should create bill item', async ({ assert, client }) => {
+  test('should throw BadRequestException if no Taxation Rule is found', async ({
+    assert,
+    client,
+  }) => {
     const { user, bill, variation, rule } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -225,8 +229,39 @@ test.group('Bill resource', group => {
         productVariationId: variation.id,
         taxationGroupRuleId: rule.id,
         quantity: 10,
-        costValue: 20,
-        saleValue: 20,
+        unitaryValue: 20,
+        discountValue: 20,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should create bill item', async ({ assert, client }) => {
+    const { user, bill, variation, rule, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      costPrice: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,,
+      maximumDiscountPercentage: 10,
+      maximumDiscountValue: 10
+    });
+
+    const response = await client
+      .post(`/bills/create-item`)
+      .json({
+        billId: bill.id,
+        productVariationId: variation.id,
+        taxationGroupRuleId: rule.id,
+        quantity: 10,
         unitaryValue: 20,
         discountValue: 20,
       })

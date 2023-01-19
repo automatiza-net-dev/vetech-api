@@ -44,11 +44,12 @@ interface ISearchTax {
   variation?: string;
   type?: string;
   category?: string;
+  groups?: Array<string>
 }
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
@@ -672,6 +673,12 @@ export default class BillService {
       });
     }
 
+    if (data.groups) {
+      qb.whereHas('rules', query => {
+        query.whereIn('taxation_group_id', data.groups ?? [])
+      })
+    }
+
     qb.preload('rules', query => {
       query.where('active', true);
 
@@ -689,6 +696,10 @@ export default class BillService {
 
       if (data.category) {
         query.where('movement_category', data.category);
+      }
+
+      if (data.groups) {
+        query.whereIn('taxation_group_id', data.groups)
       }
     });
 

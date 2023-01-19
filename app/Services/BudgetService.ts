@@ -55,7 +55,7 @@ export default class BudgetService {
   constructor(
     private sharedService: SharedService,
     private billService: BillService,
-  ) {}
+  ) { }
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -337,12 +337,12 @@ export default class BudgetService {
       });
 
       const unitarySum = data.items.reduce(
-        (total, item) => total + item.unitaryValue * item.quantity,
+        (total, item) => total + ((item.unitaryValue * item.quantity) - item.discountValue),
         0,
       );
 
       const discountSum = data.items.reduce(
-        (total, item) => total + item.discountValue * item.quantity,
+        (total, item) => total + item.discountValue,
         0,
       );
 
@@ -350,7 +350,7 @@ export default class BudgetService {
         .merge({
           productValue: unitarySum,
           discountValue: discountSum,
-          totalValue: unitarySum - discountSum,
+          totalValue: unitarySum,
         })
         .useTransaction(trx)
         .save();
@@ -364,7 +364,7 @@ export default class BudgetService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
-      await budget.related('items').create(
+      const item = await budget.related('items').create(
         {
           economic_group_id: group.id,
           business_unit_id: unitId,
@@ -383,12 +383,9 @@ export default class BudgetService {
 
       await budget
         .merge({
-          productValue: budget.productValue + data.unitaryValue,
-          discountValue: budget.discountValue + data.discountValue,
-          totalValue:
-            budget.totalValue +
-            data.quantity * data.unitaryValue -
-            data.discountValue,
+          productValue: budget.productValue + (item.unitaryValue * item.quantity),
+          discountValue: budget.discountValue + item.discountValue,
+          totalValue: budget.totalValue + item.totalValue
         })
         .useTransaction(trx)
         .save();
@@ -482,14 +479,6 @@ export default class BudgetService {
       .preload('tutor')
       .firstOrFail();
 
-    const rules = await this.billService.searchTax(unitId, {
-      category: MovementCategory.NS,
-      type: MovementType.S,
-      origin: unit.state,
-      destination: client.tutor?.state ?? unit.state,
-    });
-    const rule = rules.length > 0 ? rules[0] : null;
-
     const ufIcms = await UfIcms.query()
       .where('origin_uf', unit.state ?? '')
       .where('destination_uf', client.tutor?.state ?? unit.state ?? '')
@@ -502,14 +491,22 @@ export default class BudgetService {
         query.preload('product');
       });
 
+    const rules = await this.billService.searchTax(unitId, {
+      category: MovementCategory.NS,
+      type: MovementType.S,
+      origin: unit.state,
+      destination: client.tutor?.state ?? unit.state,
+      groups: items.map((item) => item.productVariation.product.taxation_group_id)
+    });
+
     const bills = await Bill.query().select('id');
 
     return Database.transaction(async trx => {
       const totalProductValue = items
-        .filter(item => data.notConfirmedItems.includes(item.id))
+        .filter(item => !data.notConfirmedItems.includes(item.id))
         .reduce((total, item) => total + item.totalValue, 0);
       const totalDiscountValue = items
-        .filter(item => data.notConfirmedItems.includes(item.id))
+        .filter(item => !data.notConfirmedItems.includes(item.id))
         .reduce((total, item) => total + item.discountValue, 0);
       const totalServiceValue = 0;
 
@@ -527,8 +524,7 @@ export default class BudgetService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue:
-            totalProductValue + totalServiceValue - totalDiscountValue,
+          totalValue: totalProductValue,
           deliveryValue: 0,
           additionalInformation: '[Concluído a partir de um orçamento]',
           status: BillStatus.A,
@@ -543,6 +539,7 @@ export default class BudgetService {
         items
           .filter(item => data.notConfirmedItems.includes(item.id))
           .map(item => {
+            const rule = rules.find((r) => r.taxation_group_id === item.productVariation.product.taxation_group_id);
             const totalValue =
               item.unitaryValue * item.quantity - item.discountValue;
             const icmsBase = rule
@@ -550,14 +547,14 @@ export default class BudgetService {
               : 0;
             const icmsStBase = rule
               ? icmsBase *
-                ((100 + rule.ivaIcmsSt) / 100) *
-                ((100 - rule.icmsPercRedBaseCalculo) / 100)
+              ((100 + rule.ivaIcmsSt) / 100) *
+              ((100 - rule.icmsPercRedBaseCalculo) / 100)
               : 0;
             const icmsValue = rule
               ? icmsBase *
-                ((rule.icmsPercRedBaseCalculo *
-                  ((100 - rule.icmsPercRedAliquota) / 100)) /
-                  100)
+              ((rule.icmsPercRedBaseCalculo *
+                ((100 - rule.icmsPercRedAliquota) / 100)) /
+                100)
               : 0;
 
             return {

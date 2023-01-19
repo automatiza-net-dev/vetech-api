@@ -114,6 +114,7 @@ export default class BillService {
         query.preload('flag', query => {
           query.select('id', 'description', 'code', 'type');
         });
+        query.preload('paymentMethod')
       }),
       bill.load('items', query => {
         query.preload('productVariation', query => {

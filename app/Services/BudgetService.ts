@@ -646,6 +646,9 @@ export default class BudgetService {
             data.type === 'PARCIAL' ? data.reasonId : undefined,
           canceledObservation:
             data.type === 'PARCIAL' ? data.canceledObservation : undefined,
+          productValue: totalProductValue,
+          serviceValue: totalServiceValue,
+          discountValue: totalDiscountValue
         })
         .useTransaction(trx)
         .save();

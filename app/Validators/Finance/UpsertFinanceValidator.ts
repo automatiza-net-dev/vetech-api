@@ -56,6 +56,14 @@ export default class UpsertFinanceValidator {
     bank: schema.string.optional({ trim: true }),
     agency: schema.string.optional({ trim: true }),
     account: schema.string.optional({ trim: true }),
+    tefAcquirerId: schema.string.optional({ trim: true }, [
+      rules.uuid(),
+      rules.exists({ table: 'tef_acquirers', column: 'id' }),
+    ]),
+    tefFlagId: schema.string.optional({ trim: true }, [
+      rules.uuid(),
+      rules.exists({ table: 'tef_flags', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

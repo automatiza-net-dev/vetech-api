@@ -139,6 +139,7 @@ export default class FinanceService {
     return qb;
   }
 
+  // 2.1
   async createFinance(unitId: string, user: User, data: IUpsertFinance) {
     const group = await this.sharedService.getUserGroup(unitId);
 
@@ -202,9 +203,12 @@ export default class FinanceService {
       bank: data.bank,
       agency: data.agency,
       account: data.account,
+      tef_acquirer_id: data.tefAcquirerId,
+      tef_flag_id: data.tefFlagId,
     });
   }
 
+  // 2.2
   async updateFinance(
     unitId: string,
     _: User,
@@ -256,10 +260,14 @@ export default class FinanceService {
         bank: data.bank,
         agency: data.agency,
         account: data.account,
+        tef_acquirer_id: data.tefAcquirerId,
+        tef_flag_id: data.tefFlagId,
       })
       .save();
   }
 
+  // 2.4 ?
+  // 2.6 ?
   async updateFinanceDown(unitId: string, id: string, data: IFinanceDownData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
@@ -292,6 +300,17 @@ export default class FinanceService {
         additionPercentage: data.increasePercentage,
         additionValue: data.increaseValue,
         observation: data.observation,
+
+        competenceDate: data.competenceDate,
+        fiscalNote: data.fiscalNote,
+        userDocument: data.userDocument,
+        nsuDocument: data.nsuDocument,
+        barCode: data.barCode,
+        bank: data.bank,
+        agency: data.agency,
+        account: data.account,
+        tef_acquirer_id: data.tefAcquirerId,
+        tef_flag_id: data.tefFlagId,
       });
 
       const banking = await Banking.create(
@@ -371,6 +390,17 @@ export default class FinanceService {
           discountPercentage: finance.discountPercentage,
           additionPercentage: finance.additionPercentage,
           additionValue: finance.additionValue,
+
+          competenceDate: finance.competenceDate,
+          fiscalNote: finance.fiscalNote,
+          userDocument: finance.userDocument,
+          nsuDocument: finance.nsuDocument,
+          barCode: finance.barCode,
+          bank: finance.bank,
+          agency: finance.agency,
+          account: finance.account,
+          tef_flag_id: finance.tef_flag_id,
+          tef_acquirer_id: finance.tef_acquirer_id,
         },
         {
           client: trx,
@@ -386,6 +416,7 @@ export default class FinanceService {
     });
   }
 
+  // 2.7
   async updateFinanceReversal(
     unitId: string,
     id: string,
@@ -477,6 +508,17 @@ export default class FinanceService {
           discountPercentage: finance.discountPercentage,
           additionPercentage: finance.additionPercentage,
           additionValue: finance.additionValue,
+
+          competenceDate: finance.competenceDate,
+          fiscalNote: finance.fiscalNote,
+          userDocument: finance.userDocument,
+          nsuDocument: finance.nsuDocument,
+          barCode: finance.barCode,
+          bank: finance.bank,
+          agency: finance.agency,
+          account: finance.account,
+          tef_flag_id: finance.tef_flag_id,
+          tef_acquirer_id: finance.tef_acquirer_id,
         },
         {
           client: trx,
@@ -497,6 +539,7 @@ export default class FinanceService {
     });
   }
 
+  // 2.3
   async deleteFinance(unitId: string, id: string) {
     const finance = await Finance.query()
       .where('id', id)

@@ -41,6 +41,8 @@ export interface IUpsertFinance {
   bank?: string;
   agency?: string;
   account?: string;
+  tefFlagId?: string;
+  tefAcquirerId?: string;
 }
 
 export interface IUpdateFinance {
@@ -67,6 +69,8 @@ export interface IUpdateFinance {
   bank?: string;
   agency?: string;
   account?: string;
+  tefFlagId?: string;
+  tefAcquirerId?: string;
 }
 
 export interface IFinanceDownData {
@@ -81,6 +85,17 @@ export interface IFinanceDownData {
   increaseValue?: number;
   increasePercentage?: number;
   observation?: string;
+
+  competenceDate?: string;
+  fiscalNote?: string;
+  userDocument?: string;
+  nsuDocument?: string;
+  barCode?: string;
+  bank?: string;
+  agency?: string;
+  account?: string;
+  tefFlagId?: string;
+  tefAcquirerId?: string;
 }
 
 export interface IFinanceReversalData {

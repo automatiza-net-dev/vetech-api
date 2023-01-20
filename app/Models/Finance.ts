@@ -6,6 +6,8 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag from 'App/Models/TefFlag';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -277,4 +279,24 @@ export default class Finance extends BaseModel {
     serializeAs: null,
   })
   public banking_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public tef_flag_id: string;
+
+  @belongsTo(() => TefFlag, {
+    foreignKey: 'tef_flag_id',
+  })
+  public flag: BelongsTo<typeof TefFlag>;
+
+  @column({
+    serializeAs: null,
+  })
+  public tef_acquirer_id: string;
+
+  @belongsTo(() => TefAcquirer, {
+    foreignKey: 'tef_acquirer_id',
+  })
+  public acquirer: BelongsTo<typeof TefAcquirer>;
 }

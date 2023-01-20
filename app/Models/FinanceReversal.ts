@@ -2,8 +2,12 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  belongsTo,
+  BelongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag from 'App/Models/TefFlag';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -95,6 +99,40 @@ export default class FinanceReversal extends BaseModel {
   })
   public reversalReason: string;
 
+  @column({
+    columnName: 'competence_date',
+  })
+  public competenceDate: string;
+
+  @column({
+    columnName: 'fiscal_note',
+  })
+  public fiscalNote: string;
+
+  @column({
+    columnName: 'user_document',
+  })
+  public userDocument: string;
+
+  @column({
+    columnName: 'nsu_document',
+  })
+  public nsuDocument: string;
+
+  @column({
+    columnName: 'bar_code',
+  })
+  public barCode: string;
+
+  @column()
+  public bank: string;
+
+  @column()
+  public agency: string;
+
+  @column()
+  public account: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
@@ -163,4 +201,24 @@ export default class FinanceReversal extends BaseModel {
     serializeAs: null,
   })
   public banking_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public tef_flag_id: string;
+
+  @belongsTo(() => TefFlag, {
+    foreignKey: 'tef_flag_id',
+  })
+  public flag: BelongsTo<typeof TefFlag>;
+
+  @column({
+    serializeAs: null,
+  })
+  public tef_acquirer_id: string;
+
+  @belongsTo(() => TefAcquirer, {
+    foreignKey: 'tef_acquirer_id',
+  })
+  public acquirer: BelongsTo<typeof TefAcquirer>;
 }

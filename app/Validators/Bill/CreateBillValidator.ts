@@ -35,15 +35,9 @@ export default class CreateBillValidator {
           rules.uuid(),
           rules.exists({ table: 'product_variations', column: 'id' }),
         ]),
-        taxationGroupRuleId: schema.string({ trim: true }, [
-          rules.uuid(),
-          rules.exists({ table: 'taxation_group_rules', column: 'id' }),
-        ]),
-        quantity: schema.number([rules.range(1, 999999)]),
-        costValue: schema.number([rules.range(0.01, 999999)]),
-        saleValue: schema.number([rules.range(0.01, 999999)]),
-        unitaryValue: schema.number([rules.range(0.01, 999999)]),
-        discountValue: schema.number([rules.range(0.01, 999999)]),
+        quantity: schema.number([]),
+        unitaryValue: schema.number([]),
+        discountValue: schema.number([]),
       }),
     ),
   });

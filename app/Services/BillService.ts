@@ -44,12 +44,12 @@ interface ISearchTax {
   variation?: string;
   type?: string;
   category?: string;
-  groups?: Array<string>
+  groups?: Array<string>;
 }
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
@@ -114,7 +114,7 @@ export default class BillService {
         query.preload('flag', query => {
           query.select('id', 'description', 'code', 'type');
         });
-        query.preload('paymentMethod')
+        query.preload('paymentMethod');
       }),
       bill.load('items', query => {
         query.preload('productVariation', query => {
@@ -130,19 +130,25 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const bills = await Bill.query().select('id');
-    const taxRules = await TaxationGroupRule.query()
-      .whereIn(
-        'id',
-        data.items.map(item => item.taxationGroupRuleId),
-      )
-      .preload('taxOperation');
 
     const productVariations = await ProductVariation.query()
       .whereIn(
         'id',
         data.items.map(item => item.productVariationId),
       )
-      .preload('product');
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
+
+    const taxRules = await TaxationGroupRule.query()
+      .whereHas('taxationGroup', query => {
+        query.whereIn(
+          'id',
+          productVariations.map(item => item.product.taxation_group_id),
+        );
+      })
+      .preload('taxOperation');
 
     const ufIcms = await UfIcms.query()
       .whereIn(
@@ -193,32 +199,36 @@ export default class BillService {
       );
 
       const items = data.items.map(item => {
-        const rule = taxRules.find(
-          rule => rule.id === item.taxationGroupRuleId,
-        ) as TaxationGroupRule;
-
         const variation = productVariations.find(
           variation => variation.id === item.productVariationId,
         ) as ProductVariation;
 
+        const rule = taxRules.find(
+          rule => rule.taxationGroup.id === variation.product.taxation_group_id,
+        );
+
+        const price = variation.businessUnitProducts.find(
+          bup => bup.businness_unit_id === unitId,
+        );
+
         const ufIcmsRule = ufIcms.find(
           ufIcms =>
-            ufIcms.originUf === rule.fromUf &&
-            ufIcms.destinationUf === rule.toUf,
-        ) as UfIcms;
+            ufIcms.originUf === rule?.fromUf &&
+            ufIcms.destinationUf === rule?.toUf,
+        );
 
         const totalValue =
           item.unitaryValue * item.quantity - item.discountValue;
         const icmsBase =
-          totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
+          totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsStBase =
           icmsBase *
-          ((100 + rule.ivaIcmsSt) / 100) *
-          ((100 - rule.icmsPercRedBaseCalculo) / 100);
+          ((100 + (rule?.ivaIcmsSt ?? 0)) / 100) *
+          ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsValue =
           icmsBase *
-          ((rule.icmsPercRedBaseCalculo *
-            ((100 - rule.icmsPercRedAliquota) / 100)) /
+          (((rule?.icmsPercRedBaseCalculo ?? 1) *
+            ((100 - (rule?.icmsPercRedAliquota ?? 0)) / 100)) /
             100);
 
         return BillItem.create(
@@ -227,53 +237,54 @@ export default class BillService {
             business_unit_id: unitId,
             bill_id: bill.id,
             product_variation_id: item.productVariationId,
-            tax_rule_id: rule.id,
+            tax_rule_id: rule?.id,
 
             quantity: item.quantity,
-            costValue: item.costValue,
-            saleValue: item.saleValue,
+            costValue: price?.costPrice,
+            saleValue: price?.costPrice,
             unitaryValue: item.unitaryValue,
             discountValue: item.discountValue,
             totalValue,
             status: BillStatus.A,
             createdAt: bill.createdAt,
 
-            fiscalOperationCode: rule.taxOperation.code,
+            fiscalOperationCode: rule?.taxOperation.code,
             icmsOriginProduct: variation.product.icmsOrigin,
-            icmsCst: rule.icmsCst,
+            icmsCst: rule?.icmsCst,
             icmsBase,
-            icmsPercentage: rule.icmsPerc,
+            icmsPercentage: rule?.icmsPerc,
             icmsValue,
-            icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-            icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+            icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+            icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
             icmsStBase,
-            icmsStPercentageRedBase: rule.icmsPercRedAliquota,
-            icmsStIva: rule.icmsPercRedAliquota,
+            icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
+            icmsStIva: rule?.icmsPercRedAliquota,
             icmsStPercentageUfDestination: 0,
             icmsStValue:
-              icmsStBase * (ufIcmsRule.icmsPercentage / 100) - icmsValue,
+              icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+              icmsValue,
             issCst: '',
-            issBase: rule.icmsPerc,
-            issPercentage: rule.icmsPercRedAliquota,
+            issBase: rule?.icmsPerc,
+            issPercentage: rule?.icmsPercRedAliquota,
             issValue: 0,
             pisBase: 0,
-            pisPercentage: rule.pisPerc,
+            pisPercentage: rule?.pisPerc,
             pisValue: 0,
             pisRetentionValue: 0,
             cofinsBase: 0,
-            cofinsPercentage: rule.cofinsPerc,
+            cofinsPercentage: rule?.cofinsPerc,
             cofinsValue: 0,
             cofinsRetentionValue: 0,
             ipiBase: 0,
-            ipiPercentage: rule.ipiPerc,
+            ipiPercentage: rule?.ipiPerc,
             ipiValue: 0,
             icmsDeferredValue: 0,
             icmsPartitionValue: 0,
-            icmsFcpPercentage: rule.fcpPerc,
+            icmsFcpPercentage: rule?.fcpPerc,
             icmsFcpValue: 0,
-            icmsPartitionOriginUfPercentage: rule.icmsPerc,
-            icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-            icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+            icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+            icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+            icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
           },
           {
             client: trx,
@@ -676,8 +687,8 @@ export default class BillService {
 
     if (data.groups) {
       qb.whereHas('rules', query => {
-        query.whereIn('taxation_group_id', data.groups ?? [])
-      })
+        query.whereIn('taxation_group_id', data.groups ?? []);
+      });
     }
 
     qb.preload('rules', query => {
@@ -700,7 +711,7 @@ export default class BillService {
       }
 
       if (data.groups) {
-        query.whereIn('taxation_group_id', data.groups)
+        query.whereIn('taxation_group_id', data.groups);
       }
     });
 

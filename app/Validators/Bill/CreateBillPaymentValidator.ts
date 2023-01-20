@@ -22,8 +22,8 @@ export default class CreateBillPaymentValidator {
       rules.exists({ table: 'tef_flags', column: 'id' }),
     ]),
     expirationDate: schema.date(),
-    installmentsValue: schema.number([rules.unsigned()]),
-    installments: schema.number([rules.unsigned()]),
+    installmentsValue: schema.number([]),
+    installments: schema.number([]),
     nsuDocument: schema.string(),
   });
 

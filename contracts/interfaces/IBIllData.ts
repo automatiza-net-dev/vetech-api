@@ -9,10 +9,7 @@ export interface ICreateBillData {
 
   items: Array<{
     productVariationId: string;
-    taxationGroupRuleId: string;
     quantity: number;
-    costValue: number;
-    saleValue: number;
     unitaryValue: number;
     discountValue: number;
   }>;

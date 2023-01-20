@@ -314,6 +314,27 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create bill payment (no nsu)', async ({ assert, client }) => {
+    const { user, bill, paymentMethod } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-payment`)
+      .json({
+        billId: bill.id,
+        paymentMethodId: paymentMethod.id,
+        expirationDate: new Date(),
+        installments: 1,
+        installmentsValue: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should return NotFoundException when deleting invalid bill payment ', async ({
     assert,
     client,

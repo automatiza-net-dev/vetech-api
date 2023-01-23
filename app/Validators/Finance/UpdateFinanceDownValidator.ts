@@ -19,6 +19,23 @@ export default class UpdateFinanceDownValidator {
     discountPercentage: schema.number.optional(),
     increaseValue: schema.number.optional(),
     increasePercentage: schema.number.optional(),
+
+    competenceDate: schema.string.optional({}, [rules.regex(/^\d{2}\/\d{4}$/)]),
+    fiscalNote: schema.string.optional({}),
+    userDocument: schema.string.optional({ trim: true }),
+    nsuDocument: schema.string.optional({ trim: true }),
+    barCode: schema.string.optional({ trim: true }),
+    bank: schema.string.optional({ trim: true }),
+    agency: schema.string.optional({ trim: true }),
+    account: schema.string.optional({ trim: true }),
+    tefAcquirerId: schema.string.optional({ trim: true }, [
+      rules.uuid(),
+      rules.exists({ table: 'tef_acquirers', column: 'id' }),
+    ]),
+    tefFlagId: schema.string.optional({ trim: true }, [
+      rules.uuid(),
+      rules.exists({ table: 'tef_flags', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

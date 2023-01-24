@@ -293,10 +293,10 @@ export default class Finance extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public tef_acquirer_id: string;
+  public acquirer_id: string;
 
   @belongsTo(() => TefAcquirer, {
-    foreignKey: 'tef_acquirer_id',
+    foreignKey: 'acquirer_id',
   })
   public acquirer: BelongsTo<typeof TefAcquirer>;
 }

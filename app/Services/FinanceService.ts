@@ -203,7 +203,7 @@ export default class FinanceService {
       bank: data.bank,
       agency: data.agency,
       account: data.account,
-      tef_acquirer_id: data.tefAcquirerId,
+      acquirer_id: data.tefAcquirerId,
       tef_flag_id: data.tefFlagId,
     });
   }

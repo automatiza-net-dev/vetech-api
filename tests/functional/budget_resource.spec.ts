@@ -53,6 +53,10 @@ test.group('Budget resource', group => {
       barcode: '123',
       product_id: product.id,
     });
+    await variation.related('variationOptions').create({
+      description: 'some variation option',
+      active: true,
+    });
 
     const budget = await Budget.create({
       business_unit_id: business.id,

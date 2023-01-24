@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Bill, { BillStatus } from 'App/Models/Bill';
+import Bill from 'App/Models/Bill';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';

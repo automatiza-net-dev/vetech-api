@@ -260,7 +260,7 @@ export default class FinanceService {
         bank: data.bank,
         agency: data.agency,
         account: data.account,
-        tef_acquirer_id: data.tefAcquirerId,
+        acquirer_id: data.tefAcquirerId,
         tef_flag_id: data.tefFlagId,
       })
       .save();
@@ -309,7 +309,7 @@ export default class FinanceService {
         bank: data.bank,
         agency: data.agency,
         account: data.account,
-        tef_acquirer_id: data.tefAcquirerId,
+        acquirer_id: data.tefAcquirerId,
         tef_flag_id: data.tefFlagId,
       });
 
@@ -400,7 +400,7 @@ export default class FinanceService {
           agency: finance.agency,
           account: finance.account,
           tef_flag_id: finance.tef_flag_id,
-          tef_acquirer_id: finance.tef_acquirer_id,
+          acquirer_id: finance.acquirer_id,
         },
         {
           client: trx,
@@ -518,7 +518,7 @@ export default class FinanceService {
           agency: finance.agency,
           account: finance.account,
           tef_flag_id: finance.tef_flag_id,
-          tef_acquirer_id: finance.tef_acquirer_id,
+          acquirer_id: finance.acquirer_id,
         },
         {
           client: trx,

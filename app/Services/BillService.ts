@@ -20,6 +20,7 @@ import {
   ICreateBillItemData,
   ICreateBillPaymentData,
 } from 'Contracts/interfaces/IBIllData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   fromBill?: string;
@@ -721,5 +722,31 @@ export default class BillService {
     const result = await qb;
 
     return result.map(tax => tax.rules).flat();
+  }
+
+  public async closeBill(unitId: string, user: User, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const bill = await Bill.query()
+      .where('economic_group_id', group.id)
+      .where('id', id)
+      .first();
+
+    if (!bill) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (bill.status !== BillStatus.A) {
+      throw new BadRequestException(
+        'Apenas notas de saídas abertas podem ser fechadas',
+        400,
+        'E_NOT_OPEN'
+      );
+    }
+
+    await bill.merge({
+      user_who_closed_id: user.id,
+      closingDate: DateTime.now(),
+    }).save()
   }
 }

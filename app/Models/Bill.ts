@@ -20,6 +20,7 @@ import User from './User';
 export enum BillStatus {
   A = 'ATIVA',
   E = 'EXTORNADA',
+  F = 'FECHADA'
 }
 
 export default class Bill extends BaseModel {
@@ -33,6 +34,11 @@ export default class Bill extends BaseModel {
     columnName: 'bill_date',
   })
   public billDate: DateTime;
+
+  @column.dateTime({
+    columnName: 'closing_date',
+  })
+  public closingDate: DateTime;
 
   @column({
     columnName: 'product_value',
@@ -239,6 +245,16 @@ export default class Bill extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public user_who_closed_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_who_closed_id',
+  })
+
+  public userWhoClosed: BelongsTo<typeof User>;
+  @column({
+    serializeAs: null,
+  })
   public seller_id: string;
 
   @belongsTo(() => User, {
@@ -280,4 +296,5 @@ export default class Bill extends BaseModel {
     foreignKey: 'bill_id',
   })
   public payments: HasMany<typeof BillPayment>;
+
 }

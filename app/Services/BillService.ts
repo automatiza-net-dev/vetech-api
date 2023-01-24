@@ -747,6 +747,34 @@ export default class BillService {
     await bill.merge({
       user_who_closed_id: user.id,
       closingDate: DateTime.now(),
+      status: BillStatus.F
+    }).save()
+  }
+
+  public async reopenBill(unitId: string, _: User, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const bill = await Bill.query()
+      .where('economic_group_id', group.id)
+      .where('id', id)
+      .first();
+
+    if (!bill) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (bill.status !== BillStatus.F) {
+      throw new BadRequestException(
+        'Apenas notas de saídas fechadas podem ser abertas',
+        400,
+        'E_NOT_CLOSED'
+      );
+    }
+
+    await bill.merge({
+      user_who_closed_id: undefined,
+      closingDate: undefined,
+      status: BillStatus.A
     }).save()
   }
 }

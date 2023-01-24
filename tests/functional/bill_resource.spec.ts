@@ -16,7 +16,6 @@ import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import Unit, { UnitType } from 'App/Models/Unit';
-import { assert } from 'chai';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -421,7 +420,7 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should return NotFoundException if no bill was found', async ({ assert, client }) => {
+  test('should return NotFoundException if no bill was found when closing', async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -435,7 +434,7 @@ test.group('Bill resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should return BadRequestException if bill is not open', async ({ assert, client }) => {
+  test('should return BadRequestException if bill is not open when closing', async ({ assert, client }) => {
     const { user, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -460,6 +459,50 @@ test.group('Bill resource', group => {
 
     const response = await client
       .put(`/bills/close-bill/${bill.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should return NotFoundException if no bill was found when reopening', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/reopen-bill/${v4()}`)
+      .bearerToken(token);
+
+    assert.equal(404, response.status());
+  });
+
+  test('should return BadRequestException if bill is not closed when reopening', async ({ assert, client }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/reopen-bill/${bill.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should reopen bill', async ({ assert, client }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await bill.merge({ status: BillStatus.F }).save()
+
+    const response = await client
+      .put(`/bills/reopen-bill/${bill.id}`)
       .bearerToken(token);
 
     assert.equal(204, response.status());

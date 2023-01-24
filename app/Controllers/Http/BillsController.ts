@@ -125,4 +125,11 @@ export default class BillsController {
     await this.service.closeBill(unit_id, user, params.id);
     return response.noContent();
   }
+
+  public async reopenBill({ params, auth, response }: HttpContextContract) {
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    await this.service.reopenBill(unit_id, user, params.id);
+    return response.noContent();
+  }
 }

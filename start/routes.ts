@@ -709,6 +709,7 @@ Route.group(() => {
   Route.get('/show/:id', 'BillsController.show');
 
   Route.put('/close-bill/:id', 'BillsController.closeBill');
+  Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
 })
   .prefix('bills')

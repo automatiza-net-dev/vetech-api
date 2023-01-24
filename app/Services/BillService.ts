@@ -49,7 +49,7 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
@@ -84,6 +84,7 @@ export default class BillService {
     qb.preload('user');
     qb.preload('items', query => {
       query.preload('productVariation', query => {
+        query.preload('variationOptions');
         query.preload('product');
       });
     });
@@ -118,6 +119,7 @@ export default class BillService {
       }),
       bill.load('items', query => {
         query.preload('productVariation', query => {
+          query.preload('variationOptions');
           query.preload('product');
         });
       }),
@@ -645,6 +647,7 @@ export default class BillService {
 
     qb.preload('variations', query => {
       query.where('active', true);
+      query.preload('variationOptions');
       query.preload('product');
       query.preload('businessUnitProducts', query => {
         query.where('businness_unit_id', unitId);

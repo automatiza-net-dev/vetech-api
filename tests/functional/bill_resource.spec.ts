@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Bill from 'App/Models/Bill';
+import Bill, { BillStatus } from 'App/Models/Bill';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
@@ -127,6 +127,27 @@ test.group('Bill resource', group => {
     const variation = await product.related('variations').create({
       barcode: '123',
     });
+    await variation.related('variationOptions').create({
+      description: 'some variation option',
+      active: true,
+    });
+
+    /*
+    await bill.related('items').create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      bill_id: bill.id,
+      product_variation_id: variation.id,
+
+      quantity: 10,
+      costValue: 10,
+      saleValue: 10,
+      unitaryValue: 10,
+      discountValue: 10,
+      totalValue: 10,
+      status: BillStatus.A,
+      createdAt: DateTime.now(),
+    })*/
 
     const paymentMethod = await PaymentMethod.create({
       economicGroupId: group.id,
@@ -211,6 +232,18 @@ test.group('Bill resource', group => {
 
     assert.equal(201, response.status());
   });
+
+  test('should display bill', async ({ assert, client }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/bills/show/${bill.id}`).bearerToken(token)
+
+    assert.equal(200, response.status());
+  })
 
   test('should throw BadRequestException if no Taxation Rule is found', async ({
     assert,

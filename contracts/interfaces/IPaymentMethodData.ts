@@ -15,6 +15,7 @@ export interface ICreatePaymentMethodData {
   daysUntilTransfer?: number;
   installmentsWithoutPassword?: number;
   maxInstallments?: number;
+  active: boolean;
 }
 
 export interface ICreatePaymentMethodFlagData {

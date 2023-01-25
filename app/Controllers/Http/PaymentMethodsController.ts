@@ -6,6 +6,7 @@ import CreatePaymentMethodFeeValidator from 'App/Validators/PaymentMethod/Create
 import CreatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodFlagValidator';
 import CreatePaymentMethodValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodValidator';
 import UpdatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodFlagValidator';
+import UpdatePaymentMethodValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodValidator';
 
 @inject()
 export default class PaymentMethodsController {
@@ -84,6 +85,22 @@ export default class PaymentMethodsController {
     const result = await this.service.createPaymentMethod(unit_id, payload);
 
     return response.created(result);
+  }
+  public async updatePaymentMethod({
+    auth,
+    request,
+    response,
+    params,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const payload = await request.validate(UpdatePaymentMethodValidator);
+    const result = await this.service.updatePaymentMethod(
+      unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(result);
   }
 
   public async createPaymentMethodFlag({

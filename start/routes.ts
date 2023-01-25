@@ -655,6 +655,8 @@ Route.group(() => {
     '/create-flag',
     'PaymentMethodsController.createPaymentMethodFlag',
   );
+
+  Route.put('/update/:id', 'PaymentMethodsController.updatePaymentMethod');
   Route.put(
     '/update-flag/:id',
     'PaymentMethodsController.updatePaymentMethodFlag',

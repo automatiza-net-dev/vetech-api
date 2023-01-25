@@ -139,7 +139,10 @@ export default class PaymentMethodService {
     return qb;
   }
 
-  async createPaymentMethod(unitId: string, data: ICreatePaymentMethodData) {
+  async createPaymentMethod(
+    unitId: string,
+    data: Omit<ICreatePaymentMethodData, 'active'>,
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return PaymentMethod.create({
@@ -159,6 +162,41 @@ export default class PaymentMethodService {
       installmentsWithoutPassword: data.installmentsWithoutPassword,
       maxInstallments: data.maxInstallments,
     });
+  }
+  async updatePaymentMethod(
+    unitId: string,
+    id: string,
+    data: ICreatePaymentMethodData,
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const paymentMethod = await PaymentMethod.query()
+      .where('economic_group_id', group.id)
+      .where('id', id)
+      .first();
+    if (!paymentMethod) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return paymentMethod
+      .merge({
+        description: data.description,
+        requiresDocument: data.requiresDocument,
+        tef: data.tef,
+        automaticCancellation: data.automaticCancellation,
+        daysFirstInstallment: data.daysFirstInstallment,
+        daysBetweenInstallments: data.daysBetweenInstallments,
+        allowChangeExpirationDate: data.allowChangeExpirationDate,
+        minimumInstallmentValue: data.minimumInstallmentValue,
+        type: data.type,
+        checkingAccountId: data.checkingAccountId,
+        fee: data.fee ?? 0,
+        daysUntilTransfer: data.daysUntilTransfer ?? 0,
+        installmentsWithoutPassword: data.installmentsWithoutPassword,
+        maxInstallments: data.maxInstallments,
+        active: data.active,
+      })
+      .save();
   }
 
   async createPaymentMethodFlag(

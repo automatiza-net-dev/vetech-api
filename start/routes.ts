@@ -728,3 +728,16 @@ Route.group(() => {
 })
   .prefix('template-replacements')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'FiscalDocumentsController.index');
+
+  Route.post(
+    '/business-unit/store',
+    'BusinessUnitFiscalDocumentsController.store',
+  );
+
+  Route.get('/issued-documents', 'IssuedFiscalDocumentsController.index');
+})
+  .prefix('fiscal-documents')
+  .middleware('auth');

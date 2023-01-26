@@ -37,6 +37,8 @@ export default class AccountPlanService {
       description: data.description,
       type: data.type,
       business_unit_id: unitId,
+      account_plan_group_id: data.accountPlanGroupId,
+      parent_id: data.parentId,
     });
   }
 
@@ -57,9 +59,16 @@ export default class AccountPlanService {
   async update(unitId: string, id: string, data: IAccountPlanData) {
     const model = await this.show(unitId, id);
 
-    model.merge(data);
-
-    return model.save();
+    return model
+      .merge({
+        code: data.code,
+        description: data.description,
+        type: data.type,
+        active: data.active,
+        account_plan_group_id: data.accountPlanGroupId,
+        parent_id: data.parentId,
+      })
+      .save();
   }
 
   async destroy(unitId: string, id: string) {

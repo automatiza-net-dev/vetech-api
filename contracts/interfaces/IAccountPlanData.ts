@@ -5,4 +5,6 @@ export default interface IAccountPlanData {
   description: string;
   type: AccountPlanType;
   active: boolean;
+  accountPlanGroupId: number;
+  parentId?: string;
 }

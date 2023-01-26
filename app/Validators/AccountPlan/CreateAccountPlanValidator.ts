@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { AccountPlanType } from 'App/Models/AccountPlan';
 
 export default class CreateAccountPlanValidator {
@@ -9,6 +9,18 @@ export default class CreateAccountPlanValidator {
     code: schema.string(),
     description: schema.string(),
     type: schema.enum(Object.values(AccountPlanType)),
+    accountPlanGroupId: schema.number([
+      rules.exists({
+        table: 'account_plan_groups',
+        column: 'id',
+      }),
+    ]),
+    parentId: schema.string.optional([
+      rules.exists({
+        table: 'account_plans',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

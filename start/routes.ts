@@ -743,3 +743,9 @@ Route.group(() => {
 })
   .prefix('fiscal-documents')
   .middleware('auth');
+
+Route.resource('account-plan-groups', 'AccountPlanGroupsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

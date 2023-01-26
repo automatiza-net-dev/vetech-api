@@ -52,4 +52,14 @@ export default class AccountPlan extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public parent_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public account_plan_group_id: number;
 }

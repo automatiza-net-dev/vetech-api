@@ -28,6 +28,8 @@ export default class AccountPlanService {
       qb.where('ilike', data.type);
     }
 
+    qb.preload('parent');
+
     return qb;
   }
 
@@ -45,7 +47,8 @@ export default class AccountPlanService {
   async show(unitId: string, id: string) {
     const qb = AccountPlan.query()
       .where('business_unit_id', unitId)
-      .where('id', id);
+      .where('id', id)
+      .preload('parent');
 
     const model = await qb.first();
 

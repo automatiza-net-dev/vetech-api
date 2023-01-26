@@ -2,6 +2,8 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -57,6 +59,13 @@ export default class AccountPlan extends BaseModel {
     serializeAs: null,
   })
   public parent_id: string;
+
+  @belongsTo(() => AccountPlan, {
+    localKey: 'id',
+    foreignKey: 'parent_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public parent: BelongsTo<typeof AccountPlan>;
 
   @column({
     serializeAs: null,

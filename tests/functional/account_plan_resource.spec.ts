@@ -22,11 +22,19 @@ test.group('Account plan resource', group => {
       type: AccountPlanGroupType.A,
     });
 
+    const ap_parent = await AccountPlan.create({
+      business_unit_id: business.id,
+      description: 'some description',
+      code: 'some code',
+      account_plan_group_id: apg.id,
+    });
+
     const ap = await AccountPlan.create({
       business_unit_id: business.id,
       description: 'some description',
       code: 'some code',
       account_plan_group_id: apg.id,
+      parent_id: ap_parent.id,
     });
 
     return { user, ap, apg };
@@ -84,5 +92,31 @@ test.group('Account plan resource', group => {
       .bearerToken(token);
 
     assert.equal(201, result.status());
+  });
+
+  test('should return account plans', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const result = await client.get('/account-plans').bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
+  test('should return single account plans', async ({ assert, client }) => {
+    const { user, ap } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const result = await client
+      .get(`/account-plans/${ap.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
   });
 });

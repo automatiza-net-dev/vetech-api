@@ -3,17 +3,24 @@ import AccountPlanGroup from 'App/Models/AccountPlanGroup';
 import SharedService from 'App/Services/SharedService';
 import IAccountPlanGroupData from 'Contracts/interfaces/IAccountPlanGroupData';
 
+interface ISearch {
+  description?: string;
+}
 @inject()
 export default class AccountPlanGroupService {
   constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string) {
+  async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = AccountPlanGroup.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
       [group.id],
     );
+
+    if (data.description) {
+      qb.whereILike('description', `$%{data.description}%`);
+    }
 
     return qb;
   }

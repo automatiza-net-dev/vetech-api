@@ -12,10 +12,13 @@ export default class AccountPlanGroupsController {
     private service: AccountPlanGroupService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.index(unit_id);
+    const qs = request.qs();
+    const data = await this.service.index(unit_id, {
+      description: qs.description,
+    });
 
     return response.ok(data);
   }

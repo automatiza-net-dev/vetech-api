@@ -7,11 +7,13 @@ interface ISearch {
   description?: string;
   code?: string;
   type?: string;
+  group?: string
+  parent?: string
 }
 
 @inject()
 export default class AccountPlanService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const qb = AccountPlan.query().where('business_unit_id', unitId);
@@ -26,6 +28,14 @@ export default class AccountPlanService {
 
     if (data.type) {
       qb.where('ilike', data.type);
+    }
+
+    if (data.group) {
+      qb.where('account_plan_group_id', data.group);
+    }
+
+    if (data.parent) {
+      qb.where('parent_id', data.parent);
     }
 
     qb.preload('parent');

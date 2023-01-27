@@ -10,7 +10,7 @@ export default class AccountPlansController {
   constructor(
     private sharedService: SharedService,
     private service: AccountPlanService,
-  ) {}
+  ) { }
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -20,6 +20,8 @@ export default class AccountPlansController {
       description: qs.description,
       code: qs.code,
       type: qs.type,
+      group: qs.group,
+      parent: qs.parent
     });
 
     return response.ok(data);

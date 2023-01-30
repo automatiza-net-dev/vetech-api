@@ -2,6 +2,8 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
+import ConfirmConfirmationTokenValidator from 'App/Validators/User/ConfirmConfirmationTokenValidator';
+import CreateConfirmationTokenValidator from 'App/Validators/User/CreateConfirmationTokenValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
@@ -32,12 +34,39 @@ export default class UsersController {
 
   public async checkEmail({ params, response }: HttpContextContract) {
     const { email } = params;
-    const existing = await this.service.checkExistingEmail(email);
+    const result = await this.service.checkExistingEmail(email);
 
-    return response.ok({
-      success: true,
-      inUse: existing,
-    });
+    return response.ok(result);
+  }
+
+  public async resendConfirmationToken({
+    params,
+    response,
+  }: HttpContextContract) {
+    const { email } = params;
+    await this.service.resendConfirmationToken(email);
+
+    return response.noContent();
+  }
+
+  public async createConfirmationToken({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateConfirmationTokenValidator);
+    await this.service.createConfirmationToken(payload);
+
+    return response.noContent();
+  }
+
+  public async confirmConfirmationToken({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(ConfirmConfirmationTokenValidator);
+    await this.service.confirmConfirmationToken(payload);
+
+    return response.noContent();
   }
 
   public async update({ auth, request, response }: HttpContextContract) {

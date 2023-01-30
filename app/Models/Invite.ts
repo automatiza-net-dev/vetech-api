@@ -10,10 +10,11 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class Invite extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @belongsTo(() => BusinessUnit, {
     foreignKey: 'business_unit_id',

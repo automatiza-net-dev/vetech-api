@@ -62,29 +62,42 @@ export default class InviteService {
       );
     }
 
+    const existingInvite = await Invite.query()
+      .where('role_id', role.id)
+      .andWhere('email', data.email)
+      .andWhere('user_id', existingUser.id)
+      .andWhere('active', true)
+      .first();
+    if (existingInvite) {
+      throw new BadRequestException(
+        'Convite ativo já existe',
+        400,
+        'E_BAD_INVITE',
+      );
+    }
+
     await existingUser.related('roles').create({
       role_id: role.id,
       unit_id: businessUnit.id,
       active: false,
     });
 
-    const inviteId = v4();
+    const invite = await businessUnit.related('invites').create({
+      role_id: role.id,
+      email: data.email,
+      active: true,
+      user_id: existingUser.id,
+    });
 
     await Mail.send(message => {
       message
         .from('support@vetech.com')
         .to('gfreitasneto18@gmail.com') // TODO correct email for prod
         .subject('Convite - Vetech')
-        .htmlView('emails/invite', { id: inviteId });
+        .htmlView('emails/invite', { id: invite.id });
     });
 
-    return businessUnit.related('invites').create({
-      id: inviteId,
-      role_id: role.id,
-      email: data.email,
-      active: true,
-      user_id: existingUser.id,
-    });
+    return invite;
   }
 
   public async show(id: string): Promise<Invite> {
@@ -118,6 +131,37 @@ export default class InviteService {
       active: invite.active,
       user: user.name !== DEFAULT_USER_NAME,
     };
+  }
+
+  public async resendInvite(unitId: string, id: string) {
+    const invite = await Invite.query()
+      .where('id', id)
+      .andWhere('business_unit_id', unitId)
+      .first();
+
+    if (!invite) {
+      throw new ResourceNotFoundException(
+        'Convite não existe',
+        404,
+        'E_NO_INVITE',
+      );
+    }
+
+    if (!invite.active) {
+      throw new BadRequestException(
+        'Convite não está ativo',
+        400,
+        'E_INVITE_NOT_ACTIVE',
+      );
+    }
+
+    await Mail.send(message => {
+      message
+        .from('support@vetech.com')
+        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .subject('Convite - Vetech')
+        .htmlView('emails/invite', { id: invite.id });
+    });
   }
 
   public async update(

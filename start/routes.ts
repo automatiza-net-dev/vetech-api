@@ -36,6 +36,12 @@ Route.group(() => {
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');
   Route.get('/check-email/:email', 'UsersController.checkEmail');
+  Route.get(
+    '/resend-confirmation/:email',
+    'UsersController.resendConfirmationToken',
+  );
+  Route.post('/send-confirmation', 'UsersController.createConfirmationToken');
+  Route.post('/confirm-token', 'UsersController.confirmConfirmationToken');
 
   Route.put('/', 'UsersController.update').middleware('auth');
   Route.delete('/', 'UsersController.destroy').middleware('auth');
@@ -112,6 +118,7 @@ Route.group(() => {
   );
 
   Route.group(() => {
+    Route.get('/resend/:id', 'InvitesController.resendInvite');
     Route.get('/', 'InvitesController.index');
     Route.post('/', 'InvitesController.store');
     Route.put('/:id', 'InvitesController.update');

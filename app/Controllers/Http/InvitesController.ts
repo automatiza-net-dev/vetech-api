@@ -31,6 +31,13 @@ export default class InvitesController {
     return response.created(invite);
   }
 
+  public async resendInvite({ params, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    await this.service.resendInvite(unit_id, params.id);
+
+    return response.noContent();
+  }
+
   public async show({ params, response }: HttpContextContract) {
     const invite = await this.service.show(params.id);
 

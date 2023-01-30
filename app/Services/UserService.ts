@@ -3,11 +3,13 @@ import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import { CheckingAccountType } from 'App/Models/CheckingAccount';
+import ConfirmationToken from 'App/Models/ConfirmationToken';
 import { LicenceType } from 'App/Models/Licence';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
@@ -15,11 +17,16 @@ import User from 'App/Models/User';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
+  IConfirmConfirmationToken,
+  ICreateConfirmationToken,
+} from 'Contracts/interfaces/IConfirmationToken';
+import {
   IForgotPassword,
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
 import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
 import { addDays } from 'date-fns';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 interface ISearch {
@@ -31,7 +38,7 @@ interface ISearch {
 
 @inject()
 export default class UserService {
-  constructor(private readonly unitService: BusinessUnitService) { }
+  constructor(private readonly unitService: BusinessUnitService) {}
 
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
@@ -144,9 +151,112 @@ export default class UserService {
     return user;
   }
 
-  public async checkExistingEmail(email: string): Promise<boolean> {
+  public async checkExistingEmail(email: string) {
     const user = await User.findBy('email', email);
-    return Boolean(user);
+    if (!user) {
+      return {
+        exists: false,
+        has_token: false,
+      };
+    }
+    const token = await ConfirmationToken.query()
+      .where('email', email)
+      .where('expires_at', '>', new Date())
+      .where('active', true)
+      .first();
+
+    return {
+      exists: true,
+      has_token: Boolean(token),
+    };
+  }
+
+  public async resendConfirmationToken(email: string) {
+    const user = await User.findBy('email', email);
+    if (user) {
+      throw new BadRequestException('Email cadastrado', 400, 'E_USER_EXISTS');
+    }
+
+    const token = await ConfirmationToken.query()
+      .where('email', email)
+      .where('expires_at', '>', new Date())
+      .where('active', true)
+      .first();
+
+    if (!token) {
+      throw new BadRequestException(
+        'Sem token válido',
+        400,
+        'E_NO_VALID_TOKEN',
+      );
+    }
+
+    await Mail.send(message => {
+      message
+        .from('support@vetech.com')
+        .to(token.email)
+        .subject('Confirmação de email')
+        .htmlView('emails/confirmation_code', {
+          name: token.name,
+          code: token.code,
+        });
+    });
+  }
+
+  public async createConfirmationToken(
+    data: ICreateConfirmationToken,
+  ): Promise<number> {
+    const code = Math.ceil(Math.random() * 10000)
+      .toString()
+      .padStart(6, '0');
+
+    const existing = await ConfirmationToken.findBy('code', code);
+    if (!existing) {
+      await ConfirmationToken.create({
+        name: data.name,
+        phone: data.phone,
+        code,
+        email: data.email,
+        expiresAt: DateTime.now().plus({ hour: 1 }),
+      });
+      await Mail.send(message => {
+        message
+          .from('support@vetech.com')
+          .to(data.email)
+          .subject('Confirmação de email')
+          .htmlView('emails/confirmation_code', {
+            name: data.name,
+            code,
+          });
+      });
+
+      return 1;
+    }
+
+    return this.createConfirmationToken(data);
+  }
+
+  public async confirmConfirmationToken(
+    data: IConfirmConfirmationToken,
+  ): Promise<void> {
+    const token = await ConfirmationToken.query()
+      .where('code', data.code)
+      .andWhere('email', data.email)
+      .first();
+
+    if (!token) {
+      throw new BadRequestException('Token não encontrado', 400, 'E_NO_TOKEN');
+    }
+
+    if (!token.active || token.expiresAt.diffNow('seconds').seconds < 0) {
+      throw new BadRequestException('Token expirado', 400, 'E_EXPIRED_TOKEN');
+    }
+
+    token
+      .merge({
+        active: false,
+      })
+      .save();
   }
 
   public async update(user: User, data: IUpdatePassword): Promise<User> {

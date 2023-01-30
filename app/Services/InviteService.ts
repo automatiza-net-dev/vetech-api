@@ -91,8 +91,8 @@ export default class InviteService {
 
     await Mail.send(message => {
       message
-        .from('support@vetech.com')
-        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .from('sysvetech@gmail.com')
+        .to(data.email)
         .subject('Convite - Vetech')
         .htmlView('emails/invite', { id: invite.id });
     });
@@ -157,8 +157,8 @@ export default class InviteService {
 
     await Mail.send(message => {
       message
-        .from('support@vetech.com')
-        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .from('sysvetech@gmail.com')
+        .to(invite.email)
         .subject('Convite - Vetech')
         .htmlView('emails/invite', { id: invite.id });
     });
@@ -205,8 +205,8 @@ export default class InviteService {
 
     await Mail.send(message => {
       message
-        .from('support@vetech.com')
-        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .from('sysvetech@gmail.com')
+        .to(data.email)
         .subject('Convite - Vetech')
         .htmlView('emails/invite', { id });
     });

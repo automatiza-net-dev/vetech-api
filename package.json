@@ -48,6 +48,7 @@
     "@adonisjs/mail": "^8.1.2",
     "@adonisjs/repl": "^3.1.0",
     "@adonisjs/view": "^6.1.5",
+    "aws-sdk": "^2.1304.0",
     "date-fns": "^2.28.0",
     "luxon": "^2.4.0",
     "mongoose": "^6.5.1",

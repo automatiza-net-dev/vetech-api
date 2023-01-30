@@ -193,7 +193,7 @@ export default class UserService {
 
     await Mail.send(message => {
       message
-        .from('support@vetech.com')
+        .from('sysvetech@gmail.com')
         .to(token.email)
         .subject('Confirmação de email')
         .htmlView('emails/confirmation_code', {
@@ -221,7 +221,7 @@ export default class UserService {
       });
       await Mail.send(message => {
         message
-          .from('support@vetech.com')
+          .from('sysvetech@gmail.com')
           .to(data.email)
           .subject('Confirmação de email')
           .htmlView('emails/confirmation_code', {
@@ -271,8 +271,8 @@ export default class UserService {
     const encryptedEmail = Encryption.encrypt(email, '30min');
     await Mail.send(message => {
       message
-        .from('support@vetech.com')
-        .to('gfreitasneto18@gmail.com') // TODO correct email for prod
+        .from('sysvetech@gmail.com')
+        .to(email)
         .subject('Recuperação de Senha')
         .htmlView('emails/reset_password', { hash: encryptedEmail });
     });

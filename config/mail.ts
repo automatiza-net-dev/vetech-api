@@ -18,7 +18,7 @@ export default mailConfig({
   | a mailer
   |
   */
-  mailer: 'mailgun',
+  mailer: 'ses',
 
   /*
   |--------------------------------------------------------------------------
@@ -50,6 +50,13 @@ export default mailConfig({
       baseUrl: 'https://api.mailgun.net/v3',
       key: Env.get('MAILGUN_API_KEY'),
       domain: Env.get('MAILGUN_DOMAIN'),
+    },
+    ses: {
+      driver: 'ses',
+      apiVersion: '2010-21-01',
+      key: Env.get('AWS_SES_KEY'),
+      secret: Env.get('AWS_SES_SECRET'),
+      region: Env.get('AWS_SES_REGION'),
     },
   },
 });

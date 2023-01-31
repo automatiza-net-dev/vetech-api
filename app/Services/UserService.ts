@@ -38,7 +38,7 @@ interface ISearch {
 
 @inject()
 export default class UserService {
-  constructor(private readonly unitService: BusinessUnitService) {}
+  constructor(private readonly unitService: BusinessUnitService) { }
 
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
@@ -255,6 +255,7 @@ export default class UserService {
     token
       .merge({
         active: false,
+        confirmedAt: DateTime.now()
       })
       .save();
   }

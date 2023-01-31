@@ -12,6 +12,18 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export enum BusinessUnitFiscalDocumentMovementType {
+  E = 'ENTRADA',
+  S = 'SAIDA',
+}
+
+export const BusinessUnitFiscalDocumentFinality = {
+  '1': 'NORMAL',
+  '2': 'COMPLEMENTAR',
+  '3': 'NOTA_DE_AJUSTE',
+  '4': 'DEVOLUCAO',
+} as const;
+
 export default class BusinessUnitFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

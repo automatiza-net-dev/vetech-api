@@ -3,10 +3,18 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import { BusinessUnitFiscalDocumentMovementType } from 'App/Models/BusinessUnitFiscalDocument';
+import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+export enum IssuedFiscalDocumentContingency {
+  N = 'NÃO',
+}
 
 export default class IssuedFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
@@ -15,7 +23,7 @@ export default class IssuedFiscalDocument extends BaseModel {
   @column({
     columnName: 'movement_type',
   })
-  public movementType: string;
+  public movementType: BusinessUnitFiscalDocumentMovementType;
 
   @column()
   model: string;
@@ -48,6 +56,11 @@ export default class IssuedFiscalDocument extends BaseModel {
     columnName: 'authorization_receipt',
   })
   authorizationReceipt: string;
+
+  @column.dateTime({
+    columnName: 'authorization_receipt_date',
+  })
+  public authorizationReceiptDate: DateTime;
 
   // cancellation
   @column.dateTime({
@@ -93,7 +106,7 @@ export default class IssuedFiscalDocument extends BaseModel {
   //
 
   @column()
-  contingency: string;
+  contingency: IssuedFiscalDocumentContingency;
 
   @column.dateTime({
     columnName: 'contingency_date',
@@ -109,6 +122,42 @@ export default class IssuedFiscalDocument extends BaseModel {
     columnName: 'contingency_delivery_date',
   })
   public contingencyDeliveryDate: DateTime;
+
+  // sefaz
+  @column({
+    columnName: 'sefaz_status_code',
+  })
+  sefazStatusCode: string;
+
+  @column({
+    columnName: 'sefaz_status',
+  })
+  sefazStatus: string;
+
+  @column({
+    columnName: 'sefaz_message',
+  })
+  sefazMessage: string;
+
+  @column({
+    columnName: 'authorization_xml_path',
+  })
+  authorizationXmlPath: string;
+
+  @column({
+    columnName: 'authorization_pdf_path',
+  })
+  authorizationPdfPath: string;
+
+  @column({
+    columnName: 'cancellation_xml_path',
+  })
+  cancellationXmlPath: string;
+
+  @column({
+    columnName: 'disabling_xml_path',
+  })
+  disablingXmlPath: string;
 
   //
   @column()
@@ -162,4 +211,19 @@ export default class IssuedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public user_who_did_contingency_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public bill_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public fiscal_document_id: string;
+
+  @hasMany(() => CorrectedFiscalDocument, {
+    foreignKey: 'fiscal_document_id',
+  })
+  public corrections: HasMany<typeof CorrectedFiscalDocument>;
 }

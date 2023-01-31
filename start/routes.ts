@@ -741,9 +741,29 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/', 'FiscalDocumentsController.index');
 
+  Route.get(
+    '/business-unit/search',
+    'BusinessUnitFiscalDocumentsController.index',
+  );
   Route.post(
     '/business-unit/store',
     'BusinessUnitFiscalDocumentsController.store',
+  );
+  Route.post(
+    '/business-unit/authorize',
+    'BusinessUnitFiscalDocumentsController.authorize',
+  );
+  Route.post(
+    '/business-unit/cancel',
+    'BusinessUnitFiscalDocumentsController.cancel',
+  );
+  Route.post(
+    '/business-unit/disable',
+    'BusinessUnitFiscalDocumentsController.disable',
+  );
+  Route.post(
+    '/business-unit/correct',
+    'BusinessUnitFiscalDocumentsController.correct',
   );
 
   Route.get('/issued-documents', 'IssuedFiscalDocumentsController.index');

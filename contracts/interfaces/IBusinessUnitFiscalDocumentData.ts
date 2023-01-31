@@ -1,3 +1,4 @@
+import { BusinessUnitFiscalDocumentMovementType } from 'App/Models/BusinessUnitFiscalDocument';
 import {
   FiscalDocumentMovementType,
   FiscalDocumentType,
@@ -10,4 +11,26 @@ export default interface IBusinessUnitFiscalDocumentData {
   model: string;
   series: string;
   sequence: number;
+}
+
+export interface IAuthorizeFiscalDocument {
+  billId: string;
+  unitFiscalDocumentId: string;
+  type: BusinessUnitFiscalDocumentMovementType;
+  accessKeyRef: string;
+}
+
+export interface ICancelFiscalDocument {
+  issuedDocumentId: string;
+  reason: string;
+}
+
+export interface IDisableFiscalDocument {
+  issuedDocumentId: string;
+  reason: string;
+}
+
+export interface ICorrectFiscalDocument {
+  issuedDocumentId: string;
+  reason: string;
 }

@@ -6,10 +6,11 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class CorrectedFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
-  public id: number;
+  public id: string = v4();
 
   @column.dateTime({
     columnName: 'corrected_date',
@@ -29,6 +30,22 @@ export default class CorrectedFiscalDocument extends BaseModel {
 
   @column()
   public active: boolean;
+
+  //
+  @column({
+    columnName: 'correction_number',
+  })
+  correctionNumber: string;
+
+  @column({
+    columnName: 'correction_xml_path',
+  })
+  correctionXmlPath: string;
+
+  @column({
+    columnName: 'correction_pdf_path',
+  })
+  correctionPdfPath: string;
 
   // timestamps
   @column.dateTime({ autoCreate: true })

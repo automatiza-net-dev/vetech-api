@@ -73,6 +73,8 @@ interface ISendNfe {
 }
 
 const nfeResponseSchema = z.object({
+  cnpj_emitente: z.string(),
+  ref: z.string(),
   status: z.enum([
     'processando_autorizacao',
     'autorizado',
@@ -82,11 +84,10 @@ const nfeResponseSchema = z.object({
   ]),
   status_sefaz: z.string(),
   mensagem_sefaz: z.string(),
-  serie: z.string().optional(),
-  numero: z.string().optional(),
-  cnpj_emitente: z.string(),
-  ref: z.string(),
   chave_nfe: z.string().optional(),
+  numero: z.string().optional(),
+  serie: z.string().optional(),
+  protocolo: z.string().optional(), // check
   caminho_xml_nota_fiscal: z.string().optional(),
   caminho_danfe: z.string().optional(),
   caminho_xml_carta_correcao: z.string().optional(),
@@ -94,12 +95,81 @@ const nfeResponseSchema = z.object({
   numero_carta_correcao: z.string().optional(),
   caminho_xml_cancelamento: z.string().optional(),
 
-  requisicao_nota_fiscal: z.string(),
-  protocolo_nota_fiscal: z.string(),
-  requisicao_cancelamento: z.string(),
-  protocolo_cancelamento: z.string(),
-  requisicao_carta_correcao: z.string(),
-  protocolo_carta_correcao: z.string(),
+  protocolo_nota_fiscal: z.optional(
+    z.object({
+      versao: z.string(),
+      ambiente: z.string(),
+      versao_aplicativo: z.string(),
+      chave_nfe: z.string(),
+      data_recebimento: z.string(),
+      numero_protocolo: z.string(),
+      digest_value: z.string(),
+      status: z.string(),
+      motivo: z.string(),
+    }),
+  ),
+  requisicao_cancelamento: z.optional(
+    z.object({
+      versao: z.string(),
+      ambiente: z.string(),
+      versao_aplicativo: z.string(),
+      codigo_orgao: z.string(),
+      status: z.string(),
+      motivo: z.string(),
+      chave_nfe: z.string(),
+      tipo_evento: z.string(),
+      descricao_evento: z.string(),
+      data_evento: z.string(),
+      numero_protocolo: z.string(),
+    }),
+  ),
+  protocolo_cancelamento: z.optional(
+    z.object({
+      versao: z.string(),
+      ambiente: z.string(),
+      versao_aplicativo: z.string(),
+      codigo_orgao: z.string(),
+      status: z.string(),
+      motivo: z.string(),
+      chave_nfe: z.string(),
+      tipo_evento: z.string(),
+      descricao_evento: z.string(),
+      data_evento: z.string(),
+      numero_protocolo: z.string(),
+    }),
+  ),
+  requisicao_carta_correcao: z.optional(
+    z.object({
+      versao: z.string(),
+      id_tag: z.string(),
+      codigo_orgao: z.string(),
+      ambiente: z.string(),
+      cnpj: z.string(),
+      chave_nfe: z.string(),
+      data_evento: z.string(),
+      tipo_evento: z.string(),
+      numero_sequencial_evento: z.string(),
+      versao_evento: z.string(),
+      descricao_evento: z.string(),
+      correcao: z.string(),
+      condicoes_uso: z.string(),
+    }),
+  ),
+  protocolo_carta_correcao: z.optional(
+    z.object({
+      versao: z.string(),
+      ambiente: z.string(),
+      versao_aplicativo: z.string(),
+      codigo_orgao: z.string(),
+      status: z.string(),
+      motivo: z.string(),
+      chave_nfe: z.string(),
+      tipo_evento: z.string(),
+      descricao_evento: z.string(),
+      data_evento: z.string(),
+      numero_protocolo: z.string(),
+    }),
+  ),
 });
 
 @inject()
@@ -208,7 +278,10 @@ export default class FocusNfeService {
     }
   }
 
-  public async getNfe(ref: string, complete = true): Promise<unknown | null> {
+  public async getNfe(
+    ref: string,
+    complete = true,
+  ): Promise<z.infer<typeof nfeResponseSchema> | null> {
     try {
       const { data } = await this.ax.get(`/v2/nfe/${ref}`, {
         params: {
@@ -216,10 +289,17 @@ export default class FocusNfeService {
         },
       });
 
-      console.log({ data });
-      return 1;
+      const zodResponse = nfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        console.log('invalid schema');
+        return null;
+      }
+
+      return zodResponse.data;
     } catch (error) {
-      console.log((error as AxiosError).response?.data);
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      console.log((error as T).response?.data);
+
       return null;
     }
   }

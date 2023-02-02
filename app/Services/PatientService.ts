@@ -117,10 +117,7 @@ export default class PatientService {
     });
   }
 
-  public async animalsIndex(
-    unitId: string,
-    data: ISearchAnimals,
-  ): Promise<Array<Patient>> {
+  public async animalsIndex(unitId: string, data: ISearchAnimals) {
     const group = await this.getEconomicGroup(unitId);
 
     const qb = group
@@ -143,9 +140,11 @@ export default class PatientService {
     }
 
     qb.preload('tutors', query => {
-      query.preload('tutor', query => {
-        query.preload('clientOrigin');
-      });
+      query
+        .preload('tutor', query => {
+          query.preload('clientOrigin');
+        })
+        .pivotColumns(['is_main']);
     });
 
     qb.preload('patientAnimal', query => {
@@ -160,39 +159,47 @@ export default class PatientService {
 
     const result = await qb;
 
-    return result.filter(r => {
-      if (data.document) {
-        const matches = r.tutors.some(t =>
-          t.tutor.document?.includes(data.document ?? ''),
-        );
+    return result
+      .filter(r => {
+        if (data.document) {
+          const matches = r.tutors.some(t =>
+            t.tutor.document?.includes(data.document ?? ''),
+          );
 
-        if (!matches) {
-          return false;
+          if (!matches) {
+            return false;
+          }
         }
-      }
 
-      if (data.phone) {
-        const matches = r.tutors.some(t =>
-          t.tutor.cellphone?.includes(data.phone ?? ''),
-        );
+        if (data.phone) {
+          const matches = r.tutors.some(t =>
+            t.tutor.cellphone?.includes(data.phone ?? ''),
+          );
 
-        if (!matches) {
-          return false;
+          if (!matches) {
+            return false;
+          }
         }
-      }
 
-      if (data.specie) {
-        const matches = r.patientAnimal?.race?.specie.description
-          .toLocaleLowerCase()
-          .includes(data.specie.toLowerCase());
+        if (data.specie) {
+          const matches = r.patientAnimal?.race?.specie.description
+            .toLocaleLowerCase()
+            .includes(data.specie.toLowerCase());
 
-        if (!matches) {
-          return false;
+          if (!matches) {
+            return false;
+          }
         }
-      }
 
-      return true;
-    });
+        return true;
+      })
+      .map(patient => {
+        const mapped = patient.tutors.map(t => {
+          return { ...t.toJSON(), is_main: Boolean(t.$extras.pivot_is_main) };
+        });
+
+        return { ...patient.toJSON(), tutors: mapped };
+      });
   }
 
   public async search(unitId: string, data: ISearchPatient) {
@@ -229,7 +236,10 @@ export default class PatientService {
 
     const dependents = tutor.dependents.map(d => d.id);
 
-    return animalsIndex.filter(f => !dependents.includes(f.id));
+    return animalsIndex.filter(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      f => !dependents.includes((f as unknown as Patient).id!),
+    );
   }
 
   public async show(unitId: string, patientId: string) {

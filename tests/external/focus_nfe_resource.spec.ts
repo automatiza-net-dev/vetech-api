@@ -80,6 +80,15 @@ test.group('Focus nfe resource', () => {
   test('should get nfe', async ({ assert }) => {
     const result = await service.getNfe('388ef09a-5fb4-4249-8762-3ace567cd55f');
 
+    assert.isNotNull(result);
+  });
+
+  test('should cancel nfe', async ({ assert }) => {
+    const result = await service.cancel(
+      '388ef09a-5fb4-4249-8762-3ace567cd55g',
+      'Justificativa para teste',
+    );
+
     console.log(result);
 
     assert.isNotNull(result);

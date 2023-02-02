@@ -72,6 +72,13 @@ interface ISendNfe {
   }>;
 }
 
+interface IDisableNfe {
+  cnpj: string;
+  series: string;
+  sequence: string;
+  reason: string;
+}
+
 const nfeResponseSchema = z.object({
   cnpj_emitente: z.string(),
   ref: z.string(),
@@ -170,6 +177,13 @@ const nfeResponseSchema = z.object({
       numero_protocolo: z.string(),
     }),
   ),
+});
+
+const cancelNfeResponseSchema = z.object({
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  status: z.string(),
+  caminho_xml_cancelamento: z.string(),
 });
 
 @inject()
@@ -304,11 +318,61 @@ export default class FocusNfeService {
     }
   }
 
+  // hora do evento?
+  // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
   public async cancel(ref: string, reason: string) {
-    // TODO something
+    try {
+      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+        data: {
+          justificativa: reason,
+        },
+      });
+
+      console.log({ data });
+
+      const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        console.log('invalid schema');
+        return null;
+      }
+
+      return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      console.log((error as T).response?.data);
+
+      return null;
+    }
   }
 
-  public async disable(ref: string, reason: string) {
-    // TODO something
+  // não é possível inutilizar nfe já autorizada
+  // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
+  public async disable(ref: string, disableData: IDisableNfe) {
+    try {
+      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+        data: {
+          cnpj: disableData.cnpj,
+          serie: disableData.series,
+          numero_inicial: disableData.sequence,
+          numero_final: disableData.sequence,
+          justificativa: disableData.reason,
+        },
+      });
+
+      console.log({ data });
+
+      const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        console.log('invalid schema');
+        return null;
+      }
+
+      return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      console.log((error as T).response?.data);
+
+      return null;
+    }
   }
 }

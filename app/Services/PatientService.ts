@@ -263,7 +263,7 @@ export default class PatientService {
       });
 
       const mapped = tutors.map(t => {
-        return { ...t.toJSON(), is_main: Boolean(t.$extras.is_main) };
+        return { ...t.toJSON(), is_main: Boolean(t.$extras.pivot_is_main) };
       });
 
       return { ...patient.toJSON(), tutors: mapped };

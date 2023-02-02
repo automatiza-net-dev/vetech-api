@@ -19,6 +19,7 @@ export default class PatientExamsController {
     const qs = request.qs();
     const exams = await this.service.index(unit_id, {
       patient: qs.patient,
+      exam: qs.exam,
     });
 
     return response.ok(exams);

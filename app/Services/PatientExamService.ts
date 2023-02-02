@@ -12,6 +12,7 @@ import { v4 } from 'uuid';
 
 interface ISearch {
   patient?: string;
+  exam?: string;
 }
 @inject()
 export default class PatientExamService {
@@ -20,6 +21,10 @@ export default class PatientExamService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.exam) {
+      qb.where('exam_id', data.exam);
     }
 
     qb.preload('exam')

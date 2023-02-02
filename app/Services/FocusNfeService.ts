@@ -304,11 +304,11 @@ export default class FocusNfeService {
     }
   }
 
-  public async cancel(ref: string, reason: string) {
-    // TODO something
-  }
+  // public async cancel(ref: string, reason: string) {
+  //   // TODO something
+  // }
 
-  public async disable(ref: string, reason: string) {
-    // TODO something
-  }
+  // public async disable(ref: string, reason: string) {
+  //   // TODO something
+  // }
 }

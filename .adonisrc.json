@@ -14,10 +14,7 @@
     "Database": "database",
     "Contracts": "contracts"
   },
-  "preloads": [
-    "./start/routes",
-    "./start/kernel"
-  ],
+  "preloads": ["./start/routes", "./start/kernel"],
   "providers": [
     "./providers/AppProvider",
     "./providers/MongoProvider",
@@ -28,30 +25,27 @@
     "@adonisjs/view",
     "@adonisjs/i18n"
   ],
-  "aceProviders": [
-    "@adonisjs/repl"
-  ],
+  "aceProviders": ["@adonisjs/repl"],
   "tests": {
     "suites": [
       {
         "name": "functional",
-        "files": [
-          "tests/functional/**/*.spec(.ts|.js)"
-        ],
+        "files": ["tests/functional/**/*.spec(.ts|.js)"],
         "timeout": 60000
       },
       {
         "name": "unit",
-        "files": [
-          "tests/unit/**/*.spec(.ts|.js)"
-        ],
+        "files": ["tests/unit/**/*.spec(.ts|.js)"],
+        "timeout": 60000
+      },
+      {
+        "name": "external",
+        "files": ["tests/external/**/*.spec(.ts|.js)"],
         "timeout": 60000
       }
     ]
   },
-  "testProviders": [
-    "@japa/preset-adonis/TestsProvider"
-  ],
+  "testProviders": ["@japa/preset-adonis/TestsProvider"],
   "metaFiles": [
     {
       "pattern": "resources/views/**/*.edge",

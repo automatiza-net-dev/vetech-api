@@ -25,4 +25,6 @@ export default Env.rules({
   AWS_SES_REGION: Env.schema.string(),
   AWS_SES_SECRET: Env.schema.string(),
   MONGO_URI: Env.schema.string(),
+  FOCUS_NFE_URL: Env.schema.string(),
+  FOCUS_NFE_KEY: Env.schema.string(),
 });

@@ -15,7 +15,7 @@ export default class CreateAnimalWeightValidator {
         column: 'id',
       }),
     ]),
-    observation: schema.string({}, []),
+    observation: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

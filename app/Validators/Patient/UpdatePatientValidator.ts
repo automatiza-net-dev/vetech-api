@@ -16,7 +16,7 @@ export default class UpdatePatientValidator {
       extnames: ['jpg', 'gif', 'png'],
     }),
     gender: schema.enum(Object.values(PatientGender), []),
-    tags: schema.string({}, []),
+    tags: schema.string.optional({}, []),
     birthDate: schema.date({}),
     active: schema.boolean([]),
     raceId: schema.string({}, [

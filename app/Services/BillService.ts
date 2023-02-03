@@ -50,7 +50,7 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
@@ -730,6 +730,7 @@ export default class BillService {
     const bill = await Bill.query()
       .where('economic_group_id', group.id)
       .where('id', id)
+      .preload('payments')
       .first();
 
     if (!bill) {
@@ -740,15 +741,29 @@ export default class BillService {
       throw new BadRequestException(
         'Apenas notas de saídas abertas podem ser fechadas',
         400,
-        'E_NOT_OPEN'
+        'E_NOT_OPEN',
       );
     }
 
-    await bill.merge({
-      user_who_closed_id: user.id,
-      closingDate: DateTime.now(),
-      status: BillStatus.F
-    }).save()
+    const paymentsSum = bill.payments.reduce(
+      (acc, curr) => acc + curr.totalValue,
+      0,
+    );
+    if (paymentsSum < bill.totalValue) {
+      throw new BadRequestException(
+        'Valor de pagamentos é menor que o valor da nota',
+        400,
+        'E_NOT_OPEN',
+      );
+    }
+
+    await bill
+      .merge({
+        user_who_closed_id: user.id,
+        closingDate: DateTime.now(),
+        status: BillStatus.F,
+      })
+      .save();
   }
 
   public async reopenBill(unitId: string, _: User, id: string) {
@@ -767,14 +782,16 @@ export default class BillService {
       throw new BadRequestException(
         'Apenas notas de saídas fechadas podem ser abertas',
         400,
-        'E_NOT_CLOSED'
+        'E_NOT_CLOSED',
       );
     }
 
-    await bill.merge({
-      user_who_closed_id: undefined,
-      closingDate: undefined,
-      status: BillStatus.A
-    }).save()
+    await bill
+      .merge({
+        user_who_closed_id: undefined,
+        closingDate: undefined,
+        status: BillStatus.A,
+      })
+      .save();
   }
 }

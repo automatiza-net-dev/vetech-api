@@ -521,12 +521,13 @@ Route.resource('occurrences', 'OccurrencesController')
   });
 
 Route.group(() => {
+  Route.get('/completed', 'HospitalizationsController.completedIndex');
   Route.get('/', 'HospitalizationsController.index');
   Route.post('/', 'HospitalizationsController.store');
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
   Route.get('/scheduling/:id', 'HospitalizationsController.getScheduling');
   Route.get('/:id', 'HospitalizationsController.show');
-  Route.put('/close/:id', 'HospitalizationsController.close');
+  Route.put('/complete/:id', 'HospitalizationsController.complete');
   Route.put('/:id', 'HospitalizationsController.update');
   Route.delete('/:id', 'HospitalizationsController.destroy');
 })

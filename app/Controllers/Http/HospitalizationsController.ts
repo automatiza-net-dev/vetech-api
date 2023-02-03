@@ -25,6 +25,23 @@ export default class HospitalizationsController {
     return response.ok(entity);
   }
 
+  public async completedIndex({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const entity = await this.service.completedIndex(unit_id, {
+      bed: qs.bed,
+      patient: qs.patient,
+      tutor: qs.tutor,
+    });
+
+    return response.ok(entity);
+  }
+
   public async showTimeline({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
@@ -50,10 +67,10 @@ export default class HospitalizationsController {
     return response.ok(hospitalization);
   }
 
-  public async close({ auth, params, response }: HttpContextContract) {
+  public async complete({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    await this.service.closeHospitalization(unit_id, params.id);
+    await this.service.completeHospitalization(unit_id, params.id);
 
     return response.noContent();
   }

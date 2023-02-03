@@ -72,7 +72,63 @@ export default class HospitalizationService {
         query.preload('user');
       });
 
-    qb.where('business_unit_id', unitId);
+    qb.where('business_unit_id', unitId).where(
+      'status',
+      HospitalizationStatus.ACTIVE,
+    );
+
+    if (data.tutor) {
+      qb.where('tutor_id', data.tutor);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    if (data.bed) {
+      qb.where('bed_id', data.bed);
+    }
+
+    return qb;
+  }
+
+  public async completedIndex(unitId: string, data: ISearch) {
+    const qb = Hospitalization.query()
+      .preload('bed')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
+      .preload('tutor', query => {
+        query.preload('tutor', query => {
+          query.select(['cellphone']);
+        });
+      })
+      .preload('technician')
+      .preload('medicalPrescriptions', query => {
+        query.preload('prescriptionUnit');
+        query.preload('fluidUnit');
+        query.preload('drugAdministration');
+        query.preload('user');
+      })
+      .preload('occurrences', query => {
+        query.preload('occurrence');
+        query.preload('user');
+        query.preload('prescription');
+        query.preload('attachments');
+      })
+      .preload('parameters', query => {
+        query.preload('parameter');
+        query.preload('user');
+      });
+
+    qb.where('business_unit_id', unitId).where(
+      'status',
+      HospitalizationStatus.COMPLETE,
+    );
 
     if (data.tutor) {
       qb.where('tutor_id', data.tutor);
@@ -286,7 +342,7 @@ export default class HospitalizationService {
     await hospitalization.softDelete();
   }
 
-  public async closeHospitalization(unitId: string, id: string) {
+  public async completeHospitalization(unitId: string, id: string) {
     const hospitalization = await Hospitalization.query()
       .where('business_unit_id', unitId)
       .where('id', id)

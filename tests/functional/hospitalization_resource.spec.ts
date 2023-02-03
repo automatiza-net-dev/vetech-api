@@ -55,6 +55,24 @@ test.group('Hospitalization resource', group => {
     assert.isArray(response.body());
   });
 
+  test('should return a list of completedhospitalizations', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/hospitalizations/completed`)
+      .bearerToken(token);
+
+    response.assertStatus(200);
+    assert.isArray(response.body());
+  });
+
   test('should throw BadRequestException if patient is already hospitalized', async ({
     assert,
     client,
@@ -147,7 +165,7 @@ test.group('Hospitalization resource', group => {
     assert.equal(200, response.status());
   });
 
-  test('should throw BadRequestException if closing already closed hospitalization', async ({
+  test('should throw BadRequestException if completing already completed hospitalization', async ({
     client,
     assert,
   }) => {
@@ -164,13 +182,13 @@ test.group('Hospitalization resource', group => {
       .save();
 
     const response = await client
-      .put(`/hospitalizations/close/${hospitalization.id}`)
+      .put(`/hospitalizations/complete/${hospitalization.id}`)
       .bearerToken(token);
 
     assert.equal(400, response.status());
   });
 
-  test('should close hospitalization', async ({ client, assert }) => {
+  test('should complete hospitalization', async ({ client, assert }) => {
     const { user, hospitalization } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -184,7 +202,7 @@ test.group('Hospitalization resource', group => {
       .save();
 
     const response = await client
-      .put(`/hospitalizations/close/${hospitalization.id}`)
+      .put(`/hospitalizations/complete/${hospitalization.id}`)
       .bearerToken(token);
 
     assert.equal(204, response.status());

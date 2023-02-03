@@ -147,6 +147,49 @@ test.group('Hospitalization resource', group => {
     assert.equal(200, response.status());
   });
 
+  test('should throw BadRequestException if closing already closed hospitalization', async ({
+    client,
+    assert,
+  }) => {
+    const { user, hospitalization } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await hospitalization
+      .merge({
+        status: HospitalizationStatus.COMPLETE,
+      })
+      .save();
+
+    const response = await client
+      .put(`/hospitalizations/close/${hospitalization.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should close hospitalization', async ({ client, assert }) => {
+    const { user, hospitalization } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await hospitalization
+      .merge({
+        status: HospitalizationStatus.ACTIVE,
+      })
+      .save();
+
+    const response = await client
+      .put(`/hospitalizations/close/${hospitalization.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should update hospitalization', async ({ client, assert }) => {
     const { user, hospitalization, patient, bed } = await createData();
     const token = await generateJwtToken(client, {

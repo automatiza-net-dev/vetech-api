@@ -188,7 +188,7 @@ export default class HospitalizationService {
       expectedDischarge: data.expectedDischarge,
       diagnosis: data.diagnosis,
       prognosis: data.prognosis,
-      status: data.status,
+      status: HospitalizationStatus.ACTIVE,
       economic_group_id: group.id,
       business_unit_id: unitId,
       patient_id: data.patientId,
@@ -284,5 +284,28 @@ export default class HospitalizationService {
     }
 
     await hospitalization.softDelete();
+  }
+
+  public async closeHospitalization(unitId: string, id: string) {
+    const hospitalization = await Hospitalization.query()
+      .where('business_unit_id', unitId)
+      .where('id', id)
+      .first();
+
+    if (!hospitalization) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (hospitalization.status === HospitalizationStatus.COMPLETE) {
+      throw new BadRequestException(
+        'Internação já finalizada',
+        400,
+        'E_CLOSED_ALREADY',
+      );
+    }
+
+    await hospitalization
+      .merge({ status: HospitalizationStatus.COMPLETE })
+      .save();
   }
 }

@@ -50,6 +50,14 @@ export default class HospitalizationsController {
     return response.ok(hospitalization);
   }
 
+  public async close({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.closeHospitalization(unit_id, params.id);
+
+    return response.noContent();
+  }
+
   public async getScheduling({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

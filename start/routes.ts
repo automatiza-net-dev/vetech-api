@@ -526,6 +526,7 @@ Route.group(() => {
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
   Route.get('/scheduling/:id', 'HospitalizationsController.getScheduling');
   Route.get('/:id', 'HospitalizationsController.show');
+  Route.put('/close/:id', 'HospitalizationsController.close');
   Route.put('/:id', 'HospitalizationsController.update');
   Route.delete('/:id', 'HospitalizationsController.destroy');
 })

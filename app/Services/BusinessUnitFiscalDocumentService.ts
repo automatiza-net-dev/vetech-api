@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Bill, { BillStatus } from 'App/Models/Bill';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
 } from 'App/Models/BusinessUnitFiscalDocument';
@@ -9,6 +11,7 @@ import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
 import User from 'App/Models/User';
+import FocusNfeService, { ISendNfe } from 'App/Services/FocusNfeService';
 import SharedService from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
@@ -28,7 +31,10 @@ interface ISearch {
 
 @inject()
 export default class BusinessUnitFiscalDocumentService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(
+    private sharedService: SharedService,
+    private focusNfe: FocusNfeService,
+  ) {}
 
   async index(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where(
@@ -77,6 +83,26 @@ export default class BusinessUnitFiscalDocumentService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId, {
+        client: trx,
+      });
+      const bill = await Bill.query()
+        .where('id', data.billId)
+        .preload('client', query => {
+          query.preload('tutor');
+        })
+        .preload('items', query => {
+          query.where('status', BillStatus.A);
+
+          query.preload('productVariation', query => {
+            query.preload('product', query => {
+              query.preload('unit');
+            });
+          });
+        })
+        .useTransaction(trx)
+        .firstOrFail();
+
       const issuedDocumentAlready = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -85,7 +111,6 @@ export default class BusinessUnitFiscalDocumentService {
         .where('bill_id', data.billId)
         .first();
 
-      // TODO where fiscal document ???
       if (issuedDocumentAlready) {
         throw new BadRequestException(
           'Documento já emitido',
@@ -130,9 +155,122 @@ export default class BusinessUnitFiscalDocumentService {
         },
       );
 
-      // TODO call external service
+      const nfePayload: ISendNfe = {
+        issuedAt: issuedDocument.authorizationDate.toISO(),
+        purpose: '1',
+        cnpj: unit.document ?? '',
+        ie: '9097826436', // TODO fix
+        seller: {
+          location: {
+            street: unit.address ?? '',
+            number: unit.number ?? '',
+            district: unit.district ?? '',
+            city: unit.city ?? '',
+            uf: unit.state ?? '',
+            code: unit.postalCode ?? '',
+          },
+        },
+        buyer: {
+          name: bill.patient.name,
+          document: bill.patient.tutor.document ?? '',
+          phone: bill.patient.tutor.cellphone,
+          location: {
+            street: bill.patient.tutor.street ?? '',
+            number: bill.patient.tutor.number ?? '',
+            district: bill.patient.tutor.district ?? '',
+            city: bill.patient.tutor.city ?? '',
+            uf: bill.patient.tutor.state ?? '',
+            code: bill.patient.tutor.postalCode ?? '',
+          },
+        },
+        values: {
+          base_icms: bill.icmsBase.toString(),
+          icms_value: bill.icmsValue.toString(),
+          icms_base_st: bill.icmsStBase.toString(),
+          icms_total_value_st: bill.icmsStValue.toString(),
+
+          ipi: bill.ipiValue.toString(),
+          pis: bill.pisValue.toString(),
+          cofins: bill.cofinsValue.toString(),
+
+          product: bill.productValue.toString(),
+          delivery: '0.0',
+          discount: bill.discountValue.toString(),
+          total: bill.totalValue.toString(),
+          other: bill.otherValue.toString(),
+        },
+        items: bill.items.map((item, idx) => ({
+          index: (idx + 1).toString(),
+          code: item.product_variation_id,
+          description: item.productVariation.product.description,
+          cfop: item.fiscalOperationCode,
+
+          quantity: item.quantity.toString(),
+
+          value: item.unitaryValue.toString(),
+
+          unity: item.productVariation.product.unit.name,
+
+          total: item.totalValue.toString(),
+          ncm: item.productVariation.product.ncm ?? '',
+          icms_origin: item.productVariation.product.icmsOrigin,
+          icms_base: item.icmsBase.toString(),
+          icms_total_value: item.icmsValue.toString(),
+          icms_base_st: item.icmsStBase.toString(),
+          icms_total_value_st: item.icmsStValue.toString(),
+
+          cst_icms: item.icmsCst,
+          cst_pis: item.pisCst,
+          cst_cofins: item.cofinsCst,
+        })),
+      };
+      const error = await this.focusNfe.sendNfe(document.id, nfePayload);
+      if (error) {
+        throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
+      }
 
       return issuedDocument;
+    });
+  }
+
+  async updateFromFocus(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const document = await IssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('economic_group_id', group.id)
+        .where('business_unit_id', unitId)
+        .where('id', id)
+        .first();
+
+      if (!document) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await this.focusNfe.getNfe(document.id);
+      if (!result) {
+        throw new BadRequestException(
+          'Erro ao atualizar nova',
+          400,
+          'E_NO_NOTE',
+        );
+      }
+
+      return document
+        .merge({
+          sefazStatus: result.status_sefaz,
+          sefazMessage: result.mensagem_sefaz,
+          accessKey: result.chave_nfe,
+
+          authorizationXmlPath: result.caminho_xml_nota_fiscal,
+          authorizationPdfPath: result.caminho_danfe,
+
+          cancellationXmlPath: result.caminho_xml_cancelamento,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

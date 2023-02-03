@@ -180,6 +180,11 @@ export default class BillItem extends BaseModel {
   public issValue: number;
 
   @column({
+    columnName: 'pis_cst',
+  })
+  public pisCst: string;
+
+  @column({
     columnName: 'pis_base',
   })
   public pisBase: number;
@@ -198,6 +203,11 @@ export default class BillItem extends BaseModel {
     columnName: 'pis_retention_value',
   })
   public pisRetentionValue: number;
+
+  @column({
+    columnName: 'cofins_cst',
+  })
+  public cofinsCst: string;
 
   @column({
     columnName: 'cofins_base',

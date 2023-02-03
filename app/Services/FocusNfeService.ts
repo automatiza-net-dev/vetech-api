@@ -5,7 +5,7 @@ import { z } from 'zod';
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
 
-interface ISendNfe {
+export interface ISendNfe {
   issuedAt: string;
   purpose: string;
   cnpj: string;
@@ -36,8 +36,8 @@ interface ISendNfe {
   values: {
     base_icms: string;
     icms_value: string;
-    icms_base: string;
-    icms_total_value: string;
+    icms_base_st: string;
+    icms_total_value_st: string;
 
     ipi: string;
     pis: string;
@@ -197,7 +197,7 @@ export default class FocusNfeService {
     },
   });
 
-  public async sendNfe(ref: string, data: ISendNfe): Promise<unknown | null> {
+  public async sendNfe(ref: string, data: ISendNfe): Promise<string | null> {
     const payload = {
       natureza_operacao: 'Venda',
       data_emissao: data.issuedAt,
@@ -237,8 +237,8 @@ export default class FocusNfeService {
 
       icms_base_calculo: data.values.base_icms,
       icms_valor_: data.values.icms_value,
-      icms_base_calculo_st: data.values.icms_base,
-      icms_valor_total_st: data.values.icms_total_value,
+      icms_base_calculo_st: data.values.icms_base_st,
+      icms_valor_total_st: data.values.icms_total_value_st,
 
       valor_frete: data.values.delivery,
       valor_seguro: '0',
@@ -358,8 +358,6 @@ export default class FocusNfeService {
           justificativa: disableData.reason,
         },
       });
-
-      console.log({ data });
 
       const zodResponse = cancelNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {

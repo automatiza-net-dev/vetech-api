@@ -20,7 +20,7 @@ import User from './User';
 export enum BillStatus {
   A = 'ATIVA',
   E = 'EXTORNADA',
-  F = 'FECHADA'
+  F = 'FECHADA',
 }
 
 export default class Bill extends BaseModel {
@@ -250,7 +250,6 @@ export default class Bill extends BaseModel {
   @belongsTo(() => User, {
     foreignKey: 'user_who_closed_id',
   })
-
   public userWhoClosed: BelongsTo<typeof User>;
   @column({
     serializeAs: null,
@@ -296,5 +295,4 @@ export default class Bill extends BaseModel {
     foreignKey: 'bill_id',
   })
   public payments: HasMany<typeof BillPayment>;
-
 }

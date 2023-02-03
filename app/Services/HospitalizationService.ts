@@ -1,7 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import Logger from '@ioc:Adonis/Core/Logger';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bed from 'App/Models/Bed';
 import Hospitalization, {
+  HospitalizationStatus,
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
@@ -158,6 +160,19 @@ export default class HospitalizationService {
     const patient = await Patient.findOrFail(data.patientId);
     const tutor = await Patient.findOrFail(data.tutorId);
     const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
+
+    const existingInternation = await Hospitalization.query()
+      .where('business_unit_id', unitId)
+      .where('patient_id', data.patientId)
+      .where('status', HospitalizationStatus.ACTIVE)
+      .first();
+    if (existingInternation) {
+      throw new BadRequestException(
+        'Paciente já internado',
+        400,
+        'E_ALREADY_HOSPITALIZED',
+      );
+    }
 
     const occurrence = await Occurrence.query()
       .where('type', OccurrenceType.ADMISSAO_INTERNACAO)

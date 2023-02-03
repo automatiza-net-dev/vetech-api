@@ -148,7 +148,7 @@ test.group('Bill resource', group => {
       totalValue: 10,
       status: BillStatus.A,
       createdAt: DateTime.now(),
-    })*/
+    }) */
 
     const paymentMethod = await PaymentMethod.create({
       economicGroupId: group.id,
@@ -241,10 +241,12 @@ test.group('Bill resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/bills/show/${bill.id}`).bearerToken(token)
+    const response = await client
+      .get(`/bills/show/${bill.id}`)
+      .bearerToken(token);
 
     assert.equal(200, response.status());
-  })
+  });
 
   test('should throw BadRequestException if no Taxation Rule is found', async ({
     assert,
@@ -420,7 +422,10 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should return NotFoundException if no bill was found when closing', async ({ assert, client }) => {
+  test('should return NotFoundException if no bill was found when closing', async ({
+    assert,
+    client,
+  }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -434,7 +439,10 @@ test.group('Bill resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should return BadRequestException if bill is not open when closing', async ({ assert, client }) => {
+  test('should return BadRequestException if bill is not open when closing', async ({
+    assert,
+    client,
+  }) => {
     const { user, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -442,6 +450,34 @@ test.group('Bill resource', group => {
     });
 
     await bill.merge({ status: BillStatus.E }).save();
+
+    const response = await client
+      .put(`/bills/close-bill/${bill.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should return BadRequestException if bill is not fully paid when closing', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyCashier, dailyMovement, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const bill = await Bill.create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      daily_cashier_id: dailyCashier.id,
+      status: BillStatus.A,
+      totalValue: 100,
+    });
 
     const response = await client
       .put(`/bills/close-bill/${bill.id}`)
@@ -464,7 +500,10 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should return NotFoundException if no bill was found when reopening', async ({ assert, client }) => {
+  test('should return NotFoundException if no bill was found when reopening', async ({
+    assert,
+    client,
+  }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -478,7 +517,10 @@ test.group('Bill resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should return BadRequestException if bill is not closed when reopening', async ({ assert, client }) => {
+  test('should return BadRequestException if bill is not closed when reopening', async ({
+    assert,
+    client,
+  }) => {
     const { user, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -499,7 +541,7 @@ test.group('Bill resource', group => {
       password: '102030',
     });
 
-    await bill.merge({ status: BillStatus.F }).save()
+    await bill.merge({ status: BillStatus.F }).save();
 
     const response = await client
       .put(`/bills/reopen-bill/${bill.id}`)

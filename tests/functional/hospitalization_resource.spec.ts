@@ -1,8 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bed, { BedType } from 'App/Models/Bed';
-import Hospitalization from 'App/Models/Hospitalization';
+import Hospitalization, {
+  HospitalizationStatus,
+} from 'App/Models/Hospitalization';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -33,7 +36,7 @@ test.group('Hospitalization resource', group => {
       type: BedType.HOSPITALIZATION,
     });
 
-    return { user, patient, hospitalization, bed };
+    return { user, patient, hospitalization, bed, business };
   };
 
   test('should return a list of hospitalizations', async ({
@@ -50,6 +53,43 @@ test.group('Hospitalization resource', group => {
 
     response.assertStatus(200);
     assert.isArray(response.body());
+  });
+
+  test('should throw BadRequestException if patient is already hospitalized', async ({
+    assert,
+    client,
+  }) => {
+    const { user, patient, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await Hospitalization.create({
+      type: 2,
+      risk: 1,
+      complaint: 'some complaint',
+      expectedDischarge: DateTime.now(),
+      diagnosis: 'some diagnosis',
+      prognosis: 'some prognosis',
+      status: HospitalizationStatus.ACTIVE,
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      patient_id: patient.id,
+      tutor_id: patient.id,
+    });
+
+    const response = await client
+      .post('/hospitalizations')
+      .json({
+        tutorId: patient.id,
+        patientId: patient.id,
+        type: 2,
+        complaint: 'Test',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should create new hospitalization', async ({ assert, client }) => {

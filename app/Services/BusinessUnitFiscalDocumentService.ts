@@ -333,7 +333,7 @@ export default class BusinessUnitFiscalDocumentService {
           cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
           cancellationReceiptDate: getResult.protocolo_cancelamento
             ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
-            : null,
+            : undefined,
           cancellationReceipt:
             getResult.protocolo_cancelamento?.numero_protocolo,
         })

@@ -186,6 +186,19 @@ const cancelNfeResponseSchema = z.object({
   caminho_xml_cancelamento: z.string(),
 });
 
+const disableNfeResponseSchema = z.object({
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  serie: z.string(),
+  numero_inicial: z.string(),
+  numero_final: z.string(),
+  modelo: z.string(),
+  cnpj: z.string(),
+  status: z.string(),
+  caminho_xml: z.string(),
+  protocolo_sefaz: z.string(),
+});
+
 @inject()
 export default class FocusNfeService {
   private ax = axios.create({
@@ -359,7 +372,7 @@ export default class FocusNfeService {
         },
       });
 
-      const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      const zodResponse = disableNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
         console.log('invalid schema');
         return null;

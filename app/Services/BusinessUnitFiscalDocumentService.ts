@@ -304,16 +304,41 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
+      const cancelResult = await this.focusNfe.cancel(document.id, data.reason);
+      if (!cancelResult) {
+        throw new BadRequestException(
+          'Erro ao cancelar nota fiscal',
+          400,
+          'E_EXTERNAL_ERROR',
+        );
+      }
+
+      const getResult = await this.focusNfe.getNfe(document.id);
+      if (!getResult) {
+        throw new BadRequestException(
+          'Erro ao atualizar nova',
+          400,
+          'E_NO_NOTE',
+        );
+      }
+
       await document
         .merge({
           user_who_cancelled_id: user.id,
           cancellationDate: DateTime.now(),
           cancellationReason: data.reason,
+
+          sefazStatus: cancelResult.status_sefaz,
+          sefazMessage: cancelResult.mensagem_sefaz,
+          cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
+          cancellationReceiptDate: getResult.protocolo_cancelamento
+            ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
+            : null,
+          cancellationReceipt:
+            getResult.protocolo_cancelamento?.numero_protocolo,
         })
         .useTransaction(trx)
         .save();
-
-      // TODO call external service
     });
   }
 
@@ -321,6 +346,7 @@ export default class BusinessUnitFiscalDocumentService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId);
       const document = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -348,16 +374,34 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
+      const result = await this.focusNfe.disable(document.id, {
+        cnpj: unit.document ?? '',
+        series: document.series,
+        sequence: document.sequence.toString(),
+        reason: data.reason,
+      });
+
+      if (!result) {
+        throw new BadRequestException(
+          'Erro ao cancelar nota fiscal',
+          400,
+          'E_EXTERNAL_ERROR',
+        );
+      }
+
       await document
         .merge({
           user_who_disabled_id: user.id,
           disablingDate: DateTime.now(),
           disablingReason: data.reason,
+
+          sefazStatus: result.status_sefaz,
+          sefazMessage: result.mensagem_sefaz,
+          disablingXmlPath: result.caminho_xml,
+          disablingReceipt: result.protocolo_sefaz,
         })
         .useTransaction(trx)
         .save();
-
-      // TODO call external service
     });
   }
 

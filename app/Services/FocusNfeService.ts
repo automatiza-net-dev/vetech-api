@@ -5,7 +5,7 @@ import { z } from 'zod';
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
 
-interface ISendNfe {
+export interface ISendNfe {
   issuedAt: string;
   purpose: string;
   cnpj: string;
@@ -36,8 +36,8 @@ interface ISendNfe {
   values: {
     base_icms: string;
     icms_value: string;
-    icms_base: string;
-    icms_total_value: string;
+    icms_base_st: string;
+    icms_total_value_st: string;
 
     ipi: string;
     pis: string;
@@ -70,6 +70,13 @@ interface ISendNfe {
     cst_pis: string;
     cst_cofins: string;
   }>;
+}
+
+interface IDisableNfe {
+  cnpj: string;
+  series: string;
+  sequence: string;
+  reason: string;
 }
 
 const nfeResponseSchema = z.object({
@@ -172,6 +179,26 @@ const nfeResponseSchema = z.object({
   ),
 });
 
+const cancelNfeResponseSchema = z.object({
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  status: z.string(),
+  caminho_xml_cancelamento: z.string(),
+});
+
+const disableNfeResponseSchema = z.object({
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  serie: z.string(),
+  numero_inicial: z.string(),
+  numero_final: z.string(),
+  modelo: z.string(),
+  cnpj: z.string(),
+  status: z.string(),
+  caminho_xml: z.string(),
+  protocolo_sefaz: z.string(),
+});
+
 @inject()
 export default class FocusNfeService {
   private ax = axios.create({
@@ -183,7 +210,7 @@ export default class FocusNfeService {
     },
   });
 
-  public async sendNfe(ref: string, data: ISendNfe): Promise<unknown | null> {
+  public async sendNfe(ref: string, data: ISendNfe): Promise<string | null> {
     const payload = {
       natureza_operacao: 'Venda',
       data_emissao: data.issuedAt,
@@ -223,8 +250,8 @@ export default class FocusNfeService {
 
       icms_base_calculo: data.values.base_icms,
       icms_valor_: data.values.icms_value,
-      icms_base_calculo_st: data.values.icms_base,
-      icms_valor_total_st: data.values.icms_total_value,
+      icms_base_calculo_st: data.values.icms_base_st,
+      icms_valor_total_st: data.values.icms_total_value_st,
 
       valor_frete: data.values.delivery,
       valor_seguro: '0',
@@ -304,11 +331,59 @@ export default class FocusNfeService {
     }
   }
 
-  // public async cancel(ref: string, reason: string) {
-  //   // TODO something
-  // }
+  // hora do evento?
+  // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
+  public async cancel(ref: string, reason: string) {
+    try {
+      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+        data: {
+          justificativa: reason,
+        },
+      });
 
-  // public async disable(ref: string, reason: string) {
-  //   // TODO something
-  // }
+      console.log({ data });
+
+      const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        console.log('invalid schema');
+        return null;
+      }
+
+      return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      console.log((error as T).response?.data);
+
+      return null;
+    }
+  }
+
+  // não é possível inutilizar nfe já autorizada
+  // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
+  public async disable(ref: string, disableData: IDisableNfe) {
+    try {
+      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+        data: {
+          cnpj: disableData.cnpj,
+          serie: disableData.series,
+          numero_inicial: disableData.sequence,
+          numero_final: disableData.sequence,
+          justificativa: disableData.reason,
+        },
+      });
+
+      const zodResponse = disableNfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        console.log('invalid schema');
+        return null;
+      }
+
+      return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      console.log((error as T).response?.data);
+
+      return null;
+    }
+  }
 }

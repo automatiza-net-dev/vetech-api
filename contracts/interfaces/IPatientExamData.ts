@@ -7,7 +7,7 @@ export default interface IPatientExamData {
   report: string;
   examId: string;
   patientId: string;
-  scheduleId: string;
+  scheduleId?: string;
   solicitorId?: string;
   executionerId?: string;
   executedAt?: DateTime;

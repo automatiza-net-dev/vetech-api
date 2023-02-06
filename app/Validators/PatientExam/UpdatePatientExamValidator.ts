@@ -12,7 +12,7 @@ export default class UpdatePatientExamValidator {
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    scheduleId: schema.string({}, [
+    scheduleId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),

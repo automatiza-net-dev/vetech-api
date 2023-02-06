@@ -4,7 +4,7 @@ export default interface IPatientVaccineData {
   vaccineId: string;
   vaccineProtocolId: string;
   patientId: string;
-  scheduleId: string;
+  scheduleId?: string;
   userId?: string;
   applications?: Array<{ dose: number; date: DateTime }>;
 }

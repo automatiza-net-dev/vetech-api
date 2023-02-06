@@ -109,6 +109,31 @@ test.group('Patient exam resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create new patient exam (no schedule)', async ({
+    client,
+    assert,
+  }) => {
+    const { user, exam, patient } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/patient-exams')
+      .json({
+        laboratory: 'some lab',
+        report: 'some report',
+        examId: exam.id,
+        patientId: patient.id,
+        solicitorId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should update patient exam', async ({ client, assert }) => {
     const { user, exam, patient, schedule, patientExam } = await createData();
 

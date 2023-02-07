@@ -785,3 +785,9 @@ Route.resource('brands', 'BrandsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('patient-animal-hairs', 'PatientAnimalHairsController')
+  .only(['index'])
+  .middleware({
+    '*': ['auth'],
+  });

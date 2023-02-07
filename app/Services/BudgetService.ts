@@ -55,7 +55,7 @@ export default class BudgetService {
   constructor(
     private sharedService: SharedService,
     private billService: BillService,
-  ) { }
+  ) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -542,7 +542,7 @@ export default class BudgetService {
 
       await bill.related('items').createMany(
         items
-          .filter(item => data.notConfirmedItems.includes(item.id))
+          .filter(item => !data.notConfirmedItems.includes(item.id))
           .map(item => {
             const rule = rules.find(
               r =>
@@ -556,14 +556,14 @@ export default class BudgetService {
               : 0;
             const icmsStBase = rule
               ? icmsBase *
-              ((100 + rule.ivaIcmsSt) / 100) *
-              ((100 - rule.icmsPercRedBaseCalculo) / 100)
+                ((100 + rule.ivaIcmsSt) / 100) *
+                ((100 - rule.icmsPercRedBaseCalculo) / 100)
               : 0;
             const icmsValue = rule
               ? icmsBase *
-              ((rule.icmsPercRedBaseCalculo *
-                ((100 - rule.icmsPercRedAliquota) / 100)) /
-                100)
+                ((rule.icmsPercRedBaseCalculo *
+                  ((100 - rule.icmsPercRedAliquota) / 100)) /
+                  100)
               : 0;
 
             return {

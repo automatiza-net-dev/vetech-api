@@ -14,10 +14,11 @@ import Schedule from 'App/Models/Schedule';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class ScheduleServiceType extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id: string = v4();
 
   @column({
     columnName: 'reserved_minutes',

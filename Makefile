@@ -34,3 +34,14 @@ tef:
 	
 icms:
 	node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"
+
+initial:
+		# node ace db:seed --files "./database/seeders/Subgroup.ts"
+		# node ace db:seed --files "./database/seeders/ServiceSchedule.ts"
+		# node ace db:seed --files "./database/seeders/ScheduleServiceTypesSeeder.ts"
+		# node ace db:seed --files "./database/seeders/ScheduleStatus.ts"
+		# node ace db:seed --files "./database/seeders/ClientOrigin.ts"
+		# node ace db:seed --files "./database/seeders/DocumentTemplateSeeder.ts"
+		# node ace db:seed --files "./database/seeders/MedicalDocumentTemplateSeeder.ts"
+		node ace db:seed --files "./database/seeders/Species.ts"
+		node ace db:seed --files "./database/seeders/Race.ts"

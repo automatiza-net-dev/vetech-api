@@ -18,7 +18,6 @@ import {
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
-import BusinessUnitService from 'App/Services/BusinessUnitService';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IConfirmConfirmationToken,
@@ -42,8 +41,6 @@ interface ISearch {
 
 @inject()
 export default class UserService {
-  constructor(private readonly unitService: BusinessUnitService) {}
-
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
 

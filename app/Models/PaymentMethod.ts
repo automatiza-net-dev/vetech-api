@@ -26,6 +26,12 @@ export enum PaymentMethodType {
   D = 'DEBITO',
 }
 
+export enum PaymentMethodUsage {
+  ENTRADA = 'ENTRADA',
+  SAIDA = 'SAIDA',
+  AMBOS = 'AMBOS',
+}
+
 export default class PaymentMethod extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -43,6 +49,9 @@ export default class PaymentMethod extends BaseModel {
 
   @column()
   public type: PaymentMethodType;
+
+  @column()
+  public usage: PaymentMethodUsage;
 
   @column()
   public fee: number;

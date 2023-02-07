@@ -7,10 +7,14 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import { CheckingAccountType } from 'App/Models/CheckingAccount';
 import ConfirmationToken from 'App/Models/ConfirmationToken';
 import { LicenceType } from 'App/Models/Licence';
+import {
+  PaymentMethodTef,
+  PaymentMethodType,
+  PaymentMethodUsage,
+} from 'App/Models/PaymentMethod';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
@@ -38,7 +42,7 @@ interface ISearch {
 
 @inject()
 export default class UserService {
-  constructor(private readonly unitService: BusinessUnitService) { }
+  constructor(private readonly unitService: BusinessUnitService) {}
 
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
@@ -62,7 +66,7 @@ export default class UserService {
     return qb;
   }
 
-  public async store(data: ICreateUser): Promise<[User, BusinessUnit]> {
+  public async store(data: ICreateUser) {
     const adminRole = await Role.findBy('name', 'admin');
     if (!adminRole) {
       Logger.error('No admin role');
@@ -85,56 +89,142 @@ export default class UserService {
       );
     }
 
-    await Database.transaction(async trx => {
+    return Database.transaction(async trx => {
       const user = await User.create(data, {
         client: trx,
       });
 
-      const newGroup = await user.related('economicGroups').create({
-        id: v4(),
-        document: data.document,
-        responsibleEmail: data.email,
-        responsiblePhone: data.phone,
-      });
+      const newGroup = await user.related('economicGroups').create(
+        {
+          id: v4(),
+          document: data.document,
+          responsibleEmail: data.email,
+          responsiblePhone: data.phone,
+        },
+        {},
+        {
+          client: trx,
+        },
+      );
 
-      const newBusinessUnit = await newGroup.related('businessUnits').create({
-        id: v4(),
-        companyName: `Clínica do(a) ${user.name}`,
-        document: data.document,
-        phone: data.phone,
-        email: data.email,
-        origin: 'CADASTRO SELF-SERVICE',
-      });
+      await newGroup.related('paymentMethods').createMany(
+        [
+          {
+            description: 'Boleto',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.ENTRADA,
+          },
+          {
+            description: 'Transferência / PIX',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.AMBOS,
+          },
+          {
+            description: 'Cheque',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.ENTRADA,
+          },
+          {
+            description: 'Dinheiro',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.AMBOS,
+          },
+          {
+            description: 'Débito em Conta',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.ENTRADA,
+          },
+          {
+            description: 'Crédito devolução',
+            requiresDocument: true,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.SAIDA,
+          },
+          {
+            description: 'Cartão de Débito (POS)',
+            requiresDocument: true,
+            tef: PaymentMethodTef.P,
+            type: PaymentMethodType.D,
+            fee: 0,
+            usage: PaymentMethodUsage.AMBOS,
+          },
+          {
+            description: 'Cartão de Crédito (POS)',
+            requiresDocument: true,
+            tef: PaymentMethodTef.P,
+            type: PaymentMethodType.C,
+            fee: 0,
+            usage: PaymentMethodUsage.AMBOS,
+          },
+        ],
+        { client: trx },
+      );
 
-      await user.related('roles').create({
-        role_id: adminRole.id,
-        unit_id: newBusinessUnit.id,
-      });
+      const newBusinessUnit = await newGroup.related('businessUnits').create(
+        {
+          id: v4(),
+          companyName: `Clínica do(a) ${user.name}`,
+          document: data.document,
+          phone: data.phone,
+          email: data.email,
+          origin: 'CADASTRO SELF-SERVICE',
+        },
+        {
+          client: trx,
+        },
+      );
 
-      await newBusinessUnit.related('licences').create({
-        id: v4(),
-        expirationDate: addDays(new Date(), 1000),
-        type: LicenceType.TRIAL,
-        active: true,
-      });
+      await user.related('roles').create(
+        {
+          role_id: adminRole.id,
+          unit_id: newBusinessUnit.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
-      await newBusinessUnit.related('checkingAccounts').create({
-        description: `Cofre - Matriz`,
-        accountNumber: 'Cofre',
-        bankCode: 'Cofre',
-        bankName: 'Cofre',
-        agency: '001',
-        type: CheckingAccountType.CX,
-        balance: 0,
-        active: true,
-      });
+      await newBusinessUnit.related('licences').create(
+        {
+          id: v4(),
+          expirationDate: addDays(new Date(), 1000),
+          type: LicenceType.TRIAL,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await newBusinessUnit.related('checkingAccounts').create(
+        {
+          description: `Cofre - Matriz`,
+          accountNumber: 'Cofre',
+          bankCode: 'Cofre',
+          bankName: 'Cofre',
+          agency: '001',
+          type: CheckingAccountType.CX,
+          balance: 0,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      return { user, unit: newBusinessUnit };
     });
-
-    const createdUser = await User.findByOrFail('email', data.email);
-    const [createdUnit] = await this.unitService.getUserBusinessUnits(
-      createdUser,
-    );
-    return [createdUser, createdUnit];
   }
 
   public async show(id: string): Promise<User> {
@@ -255,7 +345,7 @@ export default class UserService {
     token
       .merge({
         active: false,
-        confirmedAt: DateTime.now()
+        confirmedAt: DateTime.now(),
       })
       .save();
   }

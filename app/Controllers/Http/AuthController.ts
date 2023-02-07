@@ -28,11 +28,11 @@ export default class AuthController {
 
   public async register({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUserValidator);
-    const [createdUser, createdBusiness] = await this.service.store(payload);
+    const { user, unit } = await this.service.store(payload);
 
-    const token = await auth.use('api').generate(createdUser, {
+    const token = await auth.use('api').generate(user, {
       expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
-      unit_id: createdBusiness.id,
+      unit_id: unit.id,
     });
 
     return response.created(token);

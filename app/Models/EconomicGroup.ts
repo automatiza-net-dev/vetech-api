@@ -12,6 +12,7 @@ import Group from 'App/Models/Group';
 import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import Pathology from 'App/Models/Pathology';
 import Patient from 'App/Models/Patient';
+import PaymentMethod from 'App/Models/PaymentMethod';
 import Product from 'App/Models/Product';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -145,7 +146,6 @@ export default class EconomicGroup extends BaseModel {
   })
   public pathologies: HasMany<typeof Pathology>;
 
-
   @hasMany(() => MedicalDocumentTemplate, {
     localKey: 'id',
     foreignKey: 'economic_group_id',
@@ -158,4 +158,9 @@ export default class EconomicGroup extends BaseModel {
   })
   public documentTemplates: HasMany<typeof DocumentTemplate>;
 
+  @hasMany(() => PaymentMethod, {
+    localKey: 'id',
+    foreignKey: 'economicGroupId',
+  })
+  public paymentMethods: HasMany<typeof PaymentMethod>;
 }

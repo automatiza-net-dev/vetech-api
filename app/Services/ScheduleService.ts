@@ -52,7 +52,6 @@ export default class ScheduleService {
         data.confirmed === 'true' ? SS_CONFIRMED : SS_NOT_CONFIRMED,
       )
       .where('business_unit_id', data.unit ?? unitId)
-      .where('start_hour', '>', new Date())
       .preload('patient', query => {
         query.preload('patientAnimal', query => {
           query.preload('race', query => {

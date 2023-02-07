@@ -19,7 +19,17 @@ export default class extends BaseSeeder {
       active: true,
     },
     {
-      description: 'Indicação',
+      description: 'Indicação de amigo',
+      type: ClientOriginType.C,
+      active: true,
+    },
+    {
+      description: 'Indicação de colega veterinário',
+      type: ClientOriginType.C,
+      active: true,
+    },
+    {
+      description: 'Indicação de Petshop',
       type: ClientOriginType.C,
       active: true,
     },

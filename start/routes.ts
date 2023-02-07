@@ -779,3 +779,15 @@ Route.resource('account-plan-groups', 'AccountPlanGroupsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.resource('brands', 'BrandsController')
+  .only(['index'])
+  .middleware({
+    '*': ['auth'],
+  });
+
+Route.resource('patient-animal-hairs', 'PatientAnimalHairsController')
+  .only(['index'])
+  .middleware({
+    '*': ['auth'],
+  });

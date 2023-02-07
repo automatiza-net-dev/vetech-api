@@ -39,6 +39,7 @@ export default class AccountPlanService {
     }
 
     qb.preload('parent');
+    qb.preload('group');
 
     return qb;
   }

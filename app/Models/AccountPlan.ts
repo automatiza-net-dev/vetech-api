@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import AccountPlanGroup from 'App/Models/AccountPlanGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -71,4 +72,10 @@ export default class AccountPlan extends BaseModel {
     serializeAs: null,
   })
   public account_plan_group_id: number;
+
+  @belongsTo(() => AccountPlanGroup, {
+    localKey: 'id',
+    foreignKey: 'account_plan_group_id',
+  })
+  public group: BelongsTo<typeof AccountPlanGroup>;
 }

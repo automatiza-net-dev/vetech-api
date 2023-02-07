@@ -14,8 +14,18 @@ export default class extends BaseSeeder {
       type: UnitType.PRODUCT,
     },
     {
+      name: 'Caixa',
+      tag: 'cx',
+      type: UnitType.PRODUCT,
+    },
+    {
       name: 'Unidade',
       tag: 'un',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Unidade',
+      tag: 'unid',
       type: UnitType.PRODUCT,
     },
     {
@@ -88,9 +98,44 @@ export default class extends BaseSeeder {
       tag: 'ml/dia',
       type: UnitType.FLUID_VELOCITY,
     },
+    {
+      name: 'Peça',
+      tag: 'Pc',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Pacote',
+      tag: 'Pct',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Ampola',
+      tag: 'Amp',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Par',
+      tag: 'par',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Cartela',
+      tag: 'Cart',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Fração',
+      tag: 'Fr',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Rolo',
+      tag: 'Rl',
+      type: UnitType.PRODUCT,
+    },
   ];
 
   public async run() {
-    await Unit.fetchOrCreateMany('name', this.BASE);
+    await Unit.fetchOrCreateMany('tag', this.BASE);
   }
 }

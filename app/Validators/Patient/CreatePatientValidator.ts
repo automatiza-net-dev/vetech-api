@@ -25,6 +25,10 @@ export default class CreatePatientValidator {
       Object.values(PatientVaccineOrigin),
       [],
     ),
+    hairId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'patient_animal_hairs', column: 'id' }),
+    ]),
   });
 
   public messages: CustomMessages = {};

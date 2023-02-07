@@ -151,6 +151,7 @@ export default class PatientService {
       query.preload('race', q => {
         q.preload('specie');
       });
+      query.preload('hair');
     });
 
     if (data.name) {
@@ -270,6 +271,7 @@ export default class PatientService {
 
       await patient.load('patientAnimal', query => {
         query.preload('race');
+        query.preload('hair');
       });
 
       const mapped = tutors.map(t => {
@@ -334,6 +336,7 @@ export default class PatientService {
       await patient.related('patientAnimal').create(
         {
           race_id: data.raceId,
+          hair_id: data.hairId,
         },
         trx,
       );
@@ -484,6 +487,7 @@ export default class PatientService {
         await patient.patientAnimal
           .merge({
             race_id: data.raceId,
+            hair_id: data.hairId,
           })
           .useTransaction(trx)
           .save();

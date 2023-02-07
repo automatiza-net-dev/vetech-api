@@ -12,4 +12,5 @@ export default interface IPatientData {
   holderId: string;
   raceId: string;
   vaccineOrigin?: PatientVaccineOrigin;
+  hairId?: string;
 }

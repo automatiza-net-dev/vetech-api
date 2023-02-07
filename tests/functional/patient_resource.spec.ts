@@ -2,9 +2,8 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import EconomicGroup from 'App/Models/EconomicGroup';
-import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
-import Race from 'App/Models/Race';
-import User from 'App/Models/User';
+import { PatientGender, PatientType } from 'App/Models/Patient';
+import PatientAnimalHair from 'App/Models/PatientAnimalHair';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
 
@@ -16,9 +15,7 @@ test.group('Patient resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (): Promise<
-    [User, Patient, Patient, EconomicGroup, Race]
-  > => {
+  const createData = async () => {
     const { user, group } = await userBootstrap();
 
     const patient = await PatientFactory.create();
@@ -39,7 +36,11 @@ test.group('Patient resource', group => {
       economic_group_id: group.id,
     });
 
-    return [user, patient, holder, group, race];
+    const hair = await PatientAnimalHair.create({
+      description: 'some hair',
+    });
+
+    return { user, patient, holder, group, race, hair };
   };
 
   const createGroupData = async (group: EconomicGroup) => {
@@ -53,7 +54,7 @@ test.group('Patient resource', group => {
   };
 
   test('should create new patient', async ({ client, assert }) => {
-    const [user, holder, _, __, race] = await createData();
+    const { user, holder, race, hair } = await createData();
     await holder.merge({ type: PatientType.TUTOR }).save();
 
     const token = await generateJwtToken(client, {
@@ -68,6 +69,7 @@ test.group('Patient resource', group => {
         gender: PatientGender.MALE,
         holderId: holder.id,
         raceId: race.id,
+        hairId: hair.id,
       })
       .bearerToken(token);
 
@@ -78,10 +80,10 @@ test.group('Patient resource', group => {
     client,
     assert,
   }) => {
-    const [user1, patient1] = await createData();
-    const [_, patient2] = await createData();
+    const { user, patient: patient1 } = await createData();
+    const { patient: patient2 } = await createData();
     const token = await generateJwtToken(client, {
-      email: user1.email,
+      email: user.email,
       password: '102030',
     });
 
@@ -98,15 +100,15 @@ test.group('Patient resource', group => {
     client,
     assert,
   }) => {
-    const [user1] = await createData();
-    const [_, patient2] = await createData();
+    const { user } = await createData();
+    const { patient } = await createData();
     const token = await generateJwtToken(client, {
-      email: user1.email,
+      email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .get(`/patients/${patient2.id}`)
+      .get(`/patients/${patient.id}`)
       .bearerToken(token);
 
     const body = response.body();
@@ -116,7 +118,7 @@ test.group('Patient resource', group => {
   });
 
   test('should return a valid patient', async ({ client, assert }) => {
-    const [user, patient] = await createData();
+    const { user, patient } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -136,7 +138,7 @@ test.group('Patient resource', group => {
     client,
     assert,
   }) => {
-    const [user, patient] = await createData();
+    const { user, patient } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -152,7 +154,7 @@ test.group('Patient resource', group => {
   });
 
   test('should update a patient', async ({ client, assert }) => {
-    const [user, patient, holder, _, race] = await createData();
+    const { user, patient, holder, race } = await createData();
     await patient.merge({ type: PatientType.ANIMAL }).save();
 
     const token = await generateJwtToken(client, {
@@ -182,7 +184,7 @@ test.group('Patient resource', group => {
   });
 
   test('should create new tutor', async ({ client, assert }) => {
-    const [user] = await createData();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -201,7 +203,7 @@ test.group('Patient resource', group => {
   });
 
   test('should show tutor', async ({ client, assert }) => {
-    const [user, _, patient] = await createData();
+    const { user, patient } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -237,8 +239,8 @@ test.group('Patient resource', group => {
   });
 
   test('should update a tutor', async ({ client, assert }) => {
-    const [user, _, tutor] = await createData();
-    await tutor.related('tutor').create({
+    const { user, holder } = await createData();
+    await holder.related('tutor').create({
       id: v4(),
       document: '123',
       inscription: '123',
@@ -268,7 +270,7 @@ test.group('Patient resource', group => {
     });
 
     const response = await client
-      .put(`/patient-tutors/${tutor.id}`)
+      .put(`/patient-tutors/${holder.id}`)
       .json({
         name: 'updated tutor',
         clientOriginId: origin.id,
@@ -297,11 +299,11 @@ test.group('Patient resource', group => {
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal(tutor.id, body.id);
+    assert.equal(holder.id, body.id);
   });
 
   test('should search for patient', async ({ client, assert }) => {
-    const [user, patient] = await createData();
+    const { user, patient } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -317,7 +319,7 @@ test.group('Patient resource', group => {
   });
 
   test('should get non related patients', async ({ client, assert }) => {
-    const [user, _, holder, group] = await createData();
+    const { user, holder, group } = await createData();
     await createGroupData(group);
     const token = await generateJwtToken(client, {
       email: user.email,

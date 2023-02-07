@@ -7,6 +7,7 @@ import {
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import Patient from 'App/Models/Patient';
+import PatientAnimalHair from 'App/Models/PatientAnimalHair';
 import Race from 'App/Models/Race';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -35,7 +36,9 @@ export default class PatientAnimal extends BaseModel {
     await softDelete(this, column);
   }
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public patient_id: string;
 
   @belongsTo(() => Patient, {
@@ -44,7 +47,9 @@ export default class PatientAnimal extends BaseModel {
   })
   public patient: BelongsTo<typeof Patient>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public race_id: string;
 
   @belongsTo(() => Race, {
@@ -52,4 +57,15 @@ export default class PatientAnimal extends BaseModel {
     foreignKey: 'race_id',
   })
   public race: BelongsTo<typeof Race>;
+
+  @column({
+    serializeAs: null,
+  })
+  public hair_id: string;
+
+  @belongsTo(() => PatientAnimalHair, {
+    localKey: 'id',
+    foreignKey: 'hair_id',
+  })
+  public hair: BelongsTo<typeof PatientAnimalHair>;
 }

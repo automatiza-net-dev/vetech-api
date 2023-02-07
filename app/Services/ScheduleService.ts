@@ -46,11 +46,7 @@ interface IHomeSearch {
 export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
   public async homeContent(unitId: string, data: IHomeSearch) {
-    const result = await Schedule.query()
-      .where(
-        'schedule_status_id',
-        data.confirmed === 'true' ? SS_CONFIRMED : SS_NOT_CONFIRMED,
-      )
+    const qb = Schedule.query()
       .where('business_unit_id', data.unit ?? unitId)
       .preload('patient', query => {
         query.preload('patientAnimal', query => {
@@ -65,8 +61,15 @@ export default class ScheduleService {
       .preload('serviceType')
       .preload('serviceStatus')
       .preload('user')
-      .orderBy('start_hour', 'asc')
-      .paginate(data.page ?? 1, data.per_page ?? 10);
+      .orderBy('start_hour', 'asc');
+
+    if (data.confirmed === 'true') {
+      qb.where('schedule_status_id', SS_CONFIRMED);
+    } else {
+      qb.whereNotIn('schedule_status_id', [SS_CONFIRMED]);
+    }
+
+    const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
 
     return result;
   }

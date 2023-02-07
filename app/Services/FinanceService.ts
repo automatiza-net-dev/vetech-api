@@ -486,6 +486,7 @@ export default class FinanceService {
           type: FinanceReversalType.E,
           downDate: DateTime.now(),
           reversalOrigin: data.originDownFlag,
+          reversalReason: data.reason,
 
           economic_group_id: finance.economic_group_id,
           business_unit_id: finance.business_unit_id,
@@ -527,10 +528,10 @@ export default class FinanceService {
 
       return finance
         .merge({
-          checking_account_id: undefined,
-          paymentDate: undefined,
-          downDate: undefined,
-          paymentValue: undefined,
+          checking_account_id: null,
+          paymentDate: null,
+          downDate: null,
+          paymentValue: null,
           status: FinanceStatus.A,
           reversalReason: data.reason,
         })

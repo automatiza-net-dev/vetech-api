@@ -88,12 +88,12 @@ export default class Finance extends BaseModel {
   @column.dateTime({
     columnName: 'payment_date',
   })
-  public paymentDate: DateTime;
+  public paymentDate: DateTime | null;
 
   @column.dateTime({
     columnName: 'down_date',
   })
-  public downDate: DateTime;
+  public downDate: DateTime | null;
 
   @column({
     columnName: 'original_value',
@@ -111,7 +111,7 @@ export default class Finance extends BaseModel {
   @column({
     columnName: 'payment_value',
   })
-  public paymentValue: number;
+  public paymentValue: number | null;
 
   @column({
     columnName: 'fee_value',
@@ -253,7 +253,7 @@ export default class Finance extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public checking_account_id: string;
+  public checking_account_id: string | null;
 
   @column({
     serializeAs: null,

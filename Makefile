@@ -43,5 +43,6 @@ initial:
 		# node ace db:seed --files "./database/seeders/ClientOrigin.ts"
 		# node ace db:seed --files "./database/seeders/DocumentTemplateSeeder.ts"
 		# node ace db:seed --files "./database/seeders/MedicalDocumentTemplateSeeder.ts"
-		node ace db:seed --files "./database/seeders/Species.ts"
-		node ace db:seed --files "./database/seeders/Race.ts"
+		# node ace db:seed --files "./database/seeders/Species.ts"
+		# node ace db:seed --files "./database/seeders/Race.ts"
+		node ace db:seed --files "./database/seeders/BrandSeeder.ts"

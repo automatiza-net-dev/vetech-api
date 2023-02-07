@@ -70,7 +70,7 @@ export default class extends BaseSeeder {
         };
       });
 
-      const products = await Product.createMany(pData, { client: trx });
+      await Product.createMany(pData, { client: trx });
     });
   }
 }

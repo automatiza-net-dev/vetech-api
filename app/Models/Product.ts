@@ -8,6 +8,7 @@ import {
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import Brand from 'App/Models/Brand';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Group from 'App/Models/Group';
 import ProductVariation from 'App/Models/ProductVariation';
@@ -156,4 +157,15 @@ export default class Product extends BaseModel {
     foreignKey: 'taxation_group_id',
   })
   public taxationGroup: BelongsTo<typeof TaxationGroup>;
+
+  @column({
+    serializeAs: null,
+  })
+  public brand_id: string;
+
+  @belongsTo(() => Brand, {
+    localKey: 'id',
+    foreignKey: 'brand_id',
+  })
+  public brand: BelongsTo<typeof Brand>;
 }

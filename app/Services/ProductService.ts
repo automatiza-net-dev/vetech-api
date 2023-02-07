@@ -29,6 +29,7 @@ export default class ProductService {
     const qb = group
       .related('products')
       .query()
+      .preload('brand')
       .preload('unit')
       .preload('group', query => {
         query.select('id', 'name', 'active');
@@ -81,6 +82,7 @@ export default class ProductService {
       .related('products')
       .query()
       .where('id', id)
+      .preload('brand')
       .preload('unit')
       .preload('taxationGroup')
       .preload('group', query => {
@@ -152,6 +154,7 @@ export default class ProductService {
           taxation_group_id: data.taxationGroupId,
           group_id: data.groupId,
           subgroup_id: data.subgroupId,
+          brand_id: data.brandId,
         },
         {
           client: trx,
@@ -239,6 +242,7 @@ export default class ProductService {
         subgroup_id: data.subgroupId,
         icmsOrigin: data.icmsOrigin,
         taxation_group_id: data.taxationGroupId,
+        brand_id: data.brandId,
       })
       .save();
   }

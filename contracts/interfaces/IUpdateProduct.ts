@@ -14,4 +14,5 @@ export default interface IUpdateProduct {
   subgroupId: string;
   taxationGroupId: string;
   icmsOrigin: typeof ProductIcmsOrigin[number];
+  brandId?: string;
 }

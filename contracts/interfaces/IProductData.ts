@@ -34,6 +34,7 @@ export default interface IProductData {
   cest?: string;
   features?: string;
   unitId?: string;
+  brandId?: string;
   icmsOrigin?: typeof ProductIcmsOrigin[number];
   active: boolean;
   variationGroup?: string;

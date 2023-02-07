@@ -3,7 +3,11 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import { SS_NOT_CONFIRMED, VALID_CHANGES } from 'App/Models/ScheduleStatus';
+import {
+  SS_CONFIRMED,
+  SS_NOT_CONFIRMED,
+  VALID_CHANGES,
+} from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -31,9 +35,36 @@ interface ISearch {
   complaint?: string;
 }
 
+interface IHomeSearch {
+  confirmed?: string;
+  unit?: string;
+  page?: number;
+  per_page?: number;
+}
+
 @inject()
 export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
+  public async homeContent(unitId: string, data: IHomeSearch) {
+    const result = await Schedule.query()
+      .where(
+        'schedule_status_id',
+        data.confirmed === 'true' ? SS_CONFIRMED : SS_NOT_CONFIRMED,
+      )
+      .where('business_unit_id', data.unit ?? unitId)
+      .preload('patient', query => {
+        query.preload('patientAnimal');
+      })
+      .preload('holder', query => {
+        query.preload('tutor');
+      })
+      .preload('serviceType')
+      .preload('serviceStatus')
+      .preload('user')
+      .paginate(data.page ?? 1, data.per_page ?? 10);
+
+    return result;
+  }
 
   public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
     const qb = Schedule.query()

@@ -221,6 +221,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/home', 'SchedulesController.homeContent');
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');

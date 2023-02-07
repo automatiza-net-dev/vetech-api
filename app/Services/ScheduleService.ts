@@ -6,7 +6,7 @@ import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import {
   SS_CONFIRMED,
   SS_NOT_CONFIRMED,
-  VALID_CHANGES
+  VALID_CHANGES,
 } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
@@ -14,7 +14,7 @@ import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
 import SharedService, { DateSet } from 'App/Services/SharedService';
 import IScheduleData, {
-  IRescheduleData
+  IRescheduleData,
 } from 'Contracts/interfaces/IScheduleData';
 import IUpdateScheduleStatus from 'Contracts/interfaces/IUpdateScheduleStatus';
 import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRequest';
@@ -26,7 +26,7 @@ import {
   format,
   intervalToDuration,
   isSameDay,
-  startOfDay
+  startOfDay,
 } from 'date-fns';
 import { DateTime } from 'luxon';
 
@@ -52,6 +52,7 @@ export default class ScheduleService {
         data.confirmed === 'true' ? SS_CONFIRMED : SS_NOT_CONFIRMED,
       )
       .where('business_unit_id', data.unit ?? unitId)
+      .where('start_hour', '>', new Date())
       .preload('patient', query => {
         query.preload('patientAnimal', query => {
           query.preload('race', query => {
@@ -65,6 +66,7 @@ export default class ScheduleService {
       .preload('serviceType')
       .preload('serviceStatus')
       .preload('user')
+      .orderBy('start_hour', 'asc')
       .paginate(data.page ?? 1, data.per_page ?? 10);
 
     return result;

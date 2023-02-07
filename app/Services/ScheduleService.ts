@@ -3,11 +3,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import {
-  SS_CONFIRMED,
-  SS_NOT_CONFIRMED,
-  VALID_CHANGES,
-} from 'App/Models/ScheduleStatus';
+import { SS_NOT_CONFIRMED, VALID_CHANGES } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -63,10 +59,10 @@ export default class ScheduleService {
       .preload('user')
       .orderBy('start_hour', 'asc');
 
-    if (data.confirmed === 'true') {
-      qb.where('schedule_status_id', SS_CONFIRMED);
+    if (data.confirmed === 'false') {
+      qb.where('schedule_status_id', SS_NOT_CONFIRMED);
     } else {
-      qb.whereNotIn('schedule_status_id', [SS_CONFIRMED]);
+      qb.whereNotIn('schedule_status_id', [SS_NOT_CONFIRMED]);
     }
 
     const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);

@@ -109,6 +109,7 @@ export default class BillService {
       bill.load('patient'),
       bill.load('seller'),
       bill.load('user'),
+      bill.load('businessUnit'),
       bill.load('payments', query => {
         query.preload('acquirer', query => {
           query.select('id', 'description');

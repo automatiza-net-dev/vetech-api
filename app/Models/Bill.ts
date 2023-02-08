@@ -9,6 +9,7 @@ import {
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BillItem from 'App/Models/BillItem';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -211,6 +212,11 @@ export default class Bill extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

@@ -60,6 +60,7 @@ export default class HospitalizationService {
         query.preload('fluidUnit');
         query.preload('drugAdministration');
         query.preload('user');
+        query.preload('scheduling');
       })
       .preload('occurrences', query => {
         query.preload('occurrence');

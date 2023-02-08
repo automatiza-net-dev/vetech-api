@@ -25,8 +25,7 @@ import CreateProcedureRecurrentValidator from 'App/Validators/MedicalPrescriptio
 import IHospitalizationMedicalPrescriptionData, {
   IHospitalizationMedicalPrescriptionSchedulingData,
 } from 'Contracts/interfaces/IHospitalizationMedicalPrescriptionData';
-import { addMinutes, differenceInMinutes, format } from 'date-fns';
-import { DateTime } from 'luxon';
+import { differenceInMinutes, format } from 'date-fns';
 
 type HospitalizationMedicalPrescriptionKeys = 'PR' | 'MR' | 'FR' | 'F_' | 'M_';
 
@@ -364,17 +363,6 @@ export default class HospitalizationMedicalPrescriptionService {
   ) {
     await prescription.load('hospitalization');
 
-    const rawDifference = differenceInMinutes(
-      prescription.hospitalization.expectedDischarge.toJSDate(),
-      prescription.executionStart.toJSDate(),
-    );
-
-    if (rawDifference < 0) {
-      throw new BadRequestException(
-        'A data de início da execução não pode ser maior que a data de alta esperada',
-      );
-    }
-
     if (prescription.frequency === MedicalPrescriptionFrequency.WHEN_NEEDED) {
       return;
     }
@@ -398,20 +386,34 @@ export default class HospitalizationMedicalPrescriptionService {
       prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.DAY
         ? 60 * 24
         : 60;
-    const parsedDifference = rawDifference / offset;
+
+    const diff =
+      differenceInMinutes(
+        this.calculateEndDate(prescription),
+        prescription.prescribedAt.toJSDate(),
+      ) /
+      offset /
+      prescription.frequencyInterval;
 
     const data: Array<Partial<HospitalizationMedicalPrescriptionScheduling>> =
       Array.from<Partial<HospitalizationMedicalPrescriptionScheduling>>({
-        length: parsedDifference,
+        length: Math.ceil(diff),
       }).map((_, index) => {
+        const scheduledAt =
+          prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.HOUR
+            ? prescription.prescribedAt.plus({
+                hours: prescription.frequencyInterval * index,
+              })
+            : prescription.prescribedAt.plus({
+                days: prescription.frequencyInterval * index,
+              });
+
         return {
           type: prescription.type,
           frequency: prescription.frequency,
           description,
           resume: prescription.resume,
-          scheduledAt: DateTime.fromJSDate(
-            addMinutes(prescription.executionStart.toJSDate(), index * offset),
-          ),
+          scheduledAt,
           status: HospitalizationSchedulingStatus.ACTIVE,
           hospitalization_id: prescription.hospitalization_id,
           user_id: user.id,
@@ -452,5 +454,27 @@ export default class HospitalizationMedicalPrescriptionService {
       (lastWeight as any)?.createdAt ?? new Date(),
       'dd/MM/yyyy HH:mm',
     )})`;
+  }
+
+  calculateEndDate(prescription: HospitalizationMedicalPrescription) {
+    if (
+      prescription.frequencyQuantityUnit ===
+      MedicalPrescriptionFrequencyQuantityUnit.DAY
+    ) {
+      return prescription.prescribedAt
+        .plus({ days: prescription.frequencyQuantity })
+        .toJSDate();
+    }
+
+    if (
+      prescription.frequencyQuantityUnit ===
+      MedicalPrescriptionFrequencyQuantityUnit.HOUR
+    ) {
+      return prescription.prescribedAt
+        .plus({ hours: prescription.frequencyQuantity })
+        .toJSDate();
+    }
+
+    return prescription.prescribedAt.toJSDate();
   }
 }

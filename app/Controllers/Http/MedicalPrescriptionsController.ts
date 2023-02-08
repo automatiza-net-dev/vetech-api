@@ -33,6 +33,7 @@ export default class MedicalPrescriptionsController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateMedicalPrescriptionValidator);
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
+
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
     const { unit_id } = this.sharedService.extractUser(auth);

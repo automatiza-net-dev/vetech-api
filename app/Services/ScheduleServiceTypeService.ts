@@ -100,6 +100,7 @@ export default class ScheduleServiceTypeService {
       reservedMinutes: data.reservedMinutes,
       product_id: data.productId,
       allowReturn: data.allowReturn,
+      active: true,
     });
   }
 

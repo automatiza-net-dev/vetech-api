@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import Bill, { BillStatus } from 'App/Models/Bill';
+import { BillItemStatus } from 'App/Models/BillItem';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
@@ -580,7 +581,7 @@ export default class BudgetService {
               discountValue: item.discountValue,
               totalValue:
                 item.quantity * item.unitaryValue - item.discountValue,
-              status: BillStatus.A,
+              status: BillItemStatus.A,
               createdAt: bill.createdAt,
 
               fiscalOperationCode: rule?.taxOperation?.code,

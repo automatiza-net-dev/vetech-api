@@ -3,9 +3,16 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import BillItem from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
+import Finance, {
+  FinanceAccept,
+  FinanceOriginFlag,
+  FinanceStatus,
+  FinanceType,
+} from 'App/Models/Finance';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import Product from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
@@ -249,7 +256,7 @@ export default class BillService {
             unitaryValue: item.unitaryValue,
             discountValue: item.discountValue,
             totalValue,
-            status: BillStatus.A,
+            status: BillItemStatus.A,
             createdAt: bill.createdAt,
 
             fiscalOperationCode: rule?.taxOperation.code,
@@ -458,7 +465,7 @@ export default class BillService {
           unitaryValue: data.unitaryValue,
           discountValue: data.discountValue,
           totalValue,
-          status: BillStatus.A,
+          status: BillItemStatus.A,
           createdAt: bill.createdAt,
 
           fiscalOperationCode: rule.taxOperation.code,
@@ -758,13 +765,62 @@ export default class BillService {
       );
     }
 
-    await bill
-      .merge({
-        user_who_closed_id: user.id,
-        closingDate: DateTime.now(),
-        status: BillStatus.F,
-      })
-      .save();
+    const dailyCashier = await DailyCashier.query()
+      .where('business_unit_id', unitId)
+      .where('user_who_opened_id', user.id)
+      .where('status', DailyCashierStatus.A)
+      .first();
+    if (!dailyCashier) {
+      throw new BadRequestException(
+        'Usuário não tem caixa diário aberto',
+        400,
+        'E_NOT_OPEN',
+      );
+    }
+
+    await Database.transaction(async trx => {
+      await bill
+        .merge({
+          user_who_closed_id: user.id,
+          closingDate: DateTime.now(),
+          status: BillStatus.F,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await Finance.createMany(
+        bill.payments.map(payment => ({
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          daily_movement_id: dailyCashier.daily_movement_id,
+          daily_cashier_id: dailyCashier.id,
+          client_id: bill.client_id,
+          type: FinanceType.C,
+          payment_method_id: payment.payment_method_id,
+          installment: payment.block,
+          originFlag: FinanceOriginFlag.S,
+          document: `NFS-${bill.tag}`,
+          historic: `NFS-${bill.tag}`,
+          issueDate: DateTime.now(),
+          expirationDate: payment.expirationDate,
+          originalValue: bill.totalValue, // TODO check 2.20.2.16.
+          value: payment.installmentValue, // 2.17
+          totalValue: payment.totalValue, // 2.18
+          feeValue: payment.feeValue, // 2.19
+          feePercentage: payment.feePercentage, // 2.20
+          accept: FinanceAccept.S,
+          reconciled: true,
+          competenceDate: DateTime.now().toFormat('MM/yyyy'),
+          nsuDocument: payment.nsuDocument,
+          tef_flag_id: payment.tef_flag_id,
+          acquirer_id: payment.tef_acquirer_id,
+          status: FinanceStatus.A,
+        })),
+        {
+          client: trx,
+        },
+      );
+    });
   }
 
   public async reopenBill(unitId: string, _: User, id: string) {
@@ -794,5 +850,97 @@ export default class BillService {
         status: BillStatus.A,
       })
       .save();
+  }
+
+  async disableBillItem(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const item = await BillItem.query().where('id', id).preload('bill').first();
+
+    if (!item || item.bill.economic_group_id !== group.id) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await Database.transaction(async trx => {
+      await item
+        .merge({
+          status: BillItemStatus.I,
+          disabledAt: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+
+      const validItems = await BillItem.query()
+        .whereNot('id', id)
+        .where('status', BillItemStatus.A);
+
+      const totalProductValue = validItems.reduce(
+        (acc, item) => acc + item.totalValue,
+        0,
+      );
+
+      const totalDiscountValue = validItems.reduce(
+        (acc, item) => acc + item.discountValue,
+        0,
+      );
+
+      await item.bill
+        .merge({
+          productValue: totalProductValue,
+          serviceValue: 0,
+          discountValue: totalDiscountValue,
+          totalValue: totalProductValue - totalDiscountValue,
+          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
+          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems.reduce(
+            (acc, item) => acc + item.icmsStBase,
+            0,
+          ),
+          icmsStValue: validItems.reduce(
+            (acc, item) => acc + item.icmsStValue,
+            0,
+          ),
+          issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
+          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
+          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
+          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          pisRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.pisRetentionValue,
+            0,
+          ),
+          cofinsBase: validItems.reduce(
+            (acc, item) => acc + item.cofinsBase,
+            0,
+          ),
+          cofinsValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsValue,
+            0,
+          ),
+          cofinsRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsRetentionValue,
+            0,
+          ),
+          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
+          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          icmsDeferredValue: validItems.reduce(
+            (acc, item) => acc + item.icmsDeferredValue,
+            0,
+          ),
+          icmsFcpValue: validItems.reduce(
+            (acc, item) => acc + item.icmsFcpValue,
+            0,
+          ),
+          icmsUfDestinationValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+            0,
+          ),
+          icmsUfOriginValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+            0,
+          ),
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 }

@@ -5,9 +5,12 @@ import {
   column,
   HasMany,
   hasMany,
+  HasOne,
+  hasOne,
 } from '@ioc:Adonis/Lucid/Orm';
 import Attendance from 'App/Models/Attendance';
 import AttendanceStatus from 'App/Models/AttendanceStatus';
+import BusinessUnitConfig from 'App/Models/BusinessUnitConfig';
 import BusinessUnitProduct from 'App/Models/BusinessUnitProduct';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import EconomicGroup from 'App/Models/EconomicGroup';
@@ -148,4 +151,9 @@ export default class BusinessUnit extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public checkingAccounts: HasMany<typeof CheckingAccount>;
+
+  @hasOne(() => BusinessUnitConfig, {
+    foreignKey: 'business_unit_id',
+  })
+  public unitConfig: HasOne<typeof BusinessUnitConfig>;
 }

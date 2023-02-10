@@ -1,16 +1,14 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Bill from 'App/Models/Bill';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import ProductVariation from './ProductVariation';
+
+export enum BillItemStatus {
+  A = 'ATIVA',
+  I = 'INATIVA',
+}
 
 export default class BillItem extends BaseModel {
   @column({ isPrimary: true })
@@ -262,26 +260,18 @@ export default class BillItem extends BaseModel {
   @column({
     columnName: 'status',
   })
-  public status: string;
+  public status: BillItemStatus;
+
+  @column.dateTime({
+    columnName: 'disabled_at',
+  })
+  public disabledAt: DateTime;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
-
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
-
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
-
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
-
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
 
   @column({
     serializeAs: null,
@@ -297,6 +287,11 @@ export default class BillItem extends BaseModel {
     serializeAs: null,
   })
   public bill_id: string;
+
+  @belongsTo(() => Bill, {
+    foreignKey: 'bill_id',
+  })
+  public bill: BelongsTo<typeof Bill>;
 
   @column({
     serializeAs: null,

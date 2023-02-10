@@ -11,7 +11,7 @@ export default class BillsController {
   constructor(
     private sharedService: SharedService,
     private service: BillService,
-  ) { }
+  ) {}
 
   public async index({ request, response, auth }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -118,7 +118,6 @@ export default class BillsController {
     return response.ok(result);
   }
 
-
   public async closeBill({ params, auth, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
@@ -130,6 +129,17 @@ export default class BillsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
     await this.service.reopenBill(unit_id, user, params.id);
+    return response.noContent();
+  }
+
+  public async disableBillItem({
+    params,
+    auth,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.disableBillItem(unit_id, params.id);
     return response.noContent();
   }
 }

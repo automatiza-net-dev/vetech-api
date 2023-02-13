@@ -30,6 +30,7 @@ test.group('Schedule service type resource', group => {
       description: 'some schedule',
       reservedMinutes: 90,
       allowReturn: true,
+      resume: 'some resume',
     });
 
     const variationGroup = await group.related('variationGroups').create({
@@ -73,6 +74,7 @@ test.group('Schedule service type resource', group => {
         reversedMinutes: 90,
         scheduleServiceGroupId: schedule.id,
         productId: product.id,
+        resume: 'some resume',
         type: ScheduleServiceGroupType.R,
       })
       .bearerToken(token);

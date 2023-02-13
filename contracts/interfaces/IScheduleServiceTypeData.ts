@@ -1,5 +1,6 @@
 export default interface IScheduleServiceTypeData {
-  description: string;
+  description?: string;
+  resume: string;
   active: boolean;
   reservedMinutes: number;
   scheduleServiceGroupId: string;

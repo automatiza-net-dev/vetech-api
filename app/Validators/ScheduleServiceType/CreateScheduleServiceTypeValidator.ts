@@ -19,7 +19,8 @@ export default class CreateScheduleServiceTypeValidator {
         column: 'id',
       }),
     ]),
-    description: schema.string({}),
+    description: schema.string.optional({}),
+    resume: schema.string({}),
     reservedMinutes: schema.number([rules.unsigned()]),
     allowReturn: schema.boolean(),
   });

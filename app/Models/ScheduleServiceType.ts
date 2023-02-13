@@ -28,6 +28,9 @@ export default class ScheduleServiceType extends BaseModel {
   @column()
   public description: string;
 
+  @column()
+  public resume: string;
+
   @column({
     columnName: 'allow_return',
   })

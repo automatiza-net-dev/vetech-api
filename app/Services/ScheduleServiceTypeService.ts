@@ -101,6 +101,7 @@ export default class ScheduleServiceTypeService {
       product_id: data.productId,
       allowReturn: data.allowReturn,
       active: true,
+      resume: data.resume,
     });
   }
 
@@ -124,6 +125,7 @@ export default class ScheduleServiceTypeService {
         description: data.description,
         product_id: data.productId,
         allowReturn: data.allowReturn,
+        resume: data.resume,
       })
       .save();
   }

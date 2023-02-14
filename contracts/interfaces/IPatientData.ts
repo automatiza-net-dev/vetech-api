@@ -14,3 +14,13 @@ export default interface IPatientData {
   vaccineOrigin?: PatientVaccineOrigin;
   hairId?: string;
 }
+
+export interface IFastStorePatient {
+  tutorName: string;
+  tutorEmail: string;
+  tutorPhone: string;
+
+  patientName: string;
+  patientRaceId: string;
+  patientGender: PatientGender;
+}

@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PatientService from 'App/Services/PatientService';
 import SharedService from 'App/Services/SharedService';
 import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidator';
+import FastCreatePatientValidator from 'App/Validators/Patient/FastCreatePatientValidator';
 import UpdatePatientValidator from 'App/Validators/Patient/UpdatePatientValidator';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 
@@ -97,5 +98,14 @@ export default class PatientsController {
     await this.service.setMainTutor(unit_id, params.patient, params.tutor);
 
     return response.noContent();
+  }
+
+  public async fastStore({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(FastCreatePatientValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.fastStore(unit_id, payload);
+
+    return response.created(result);
   }
 }

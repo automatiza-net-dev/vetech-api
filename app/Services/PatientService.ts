@@ -10,7 +10,9 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
-import IPatientData from 'Contracts/interfaces/IPatientData';
+import IPatientData, {
+  IFastStorePatient,
+} from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { v4 } from 'uuid';
@@ -289,6 +291,77 @@ export default class PatientService {
     }
 
     return patient;
+  }
+
+  public async fastStore(unitId: string, data: IFastStorePatient) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const client = Database.connection();
+    return Database.transaction(async trx => {
+      const tutors = await group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('type', PatientType.TUTOR)
+        .select('id');
+
+      const patients = await group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('type', PatientType.ANIMAL)
+        .select('id');
+
+      const tutor = await Patient.create(
+        {
+          name: data.tutorName,
+          type: PatientType.TUTOR,
+          tag: (tutors.length + 1).toString(),
+        },
+        { client: trx },
+      );
+
+      await tutor.related('tutor').create({
+        email: data.tutorEmail,
+        cellphone: data.tutorPhone,
+        telephone: data.tutorPhone,
+      });
+
+      await group.related('patients').attach([tutor.id], trx);
+
+      const patient = await Patient.create(
+        {
+          name: data.patientName,
+          gender: data.patientGender,
+          type: PatientType.ANIMAL,
+          tag: (patients.length + 1).toString(),
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await tutor.related('dependents').attach([patient.id], trx);
+      await group.related('patients').attach([patient.id], trx);
+      await patient.related('patientAnimal').create(
+        {
+          race_id: data.patientRaceId,
+        },
+        trx,
+      );
+
+      await client
+        .from('holder_dependents')
+        .where('dependent_id', patient.id)
+        .where('holder_id', tutor.id)
+        .update({ is_main: true })
+        .useTransaction(trx);
+
+      return {
+        tutor,
+        patient,
+      };
+    });
   }
 
   public async store(

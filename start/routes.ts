@@ -131,7 +131,10 @@ Route.group(() => {
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');
   Route.get('/:id', 'PatientsController.show');
+
+  Route.post('/fast', 'PatientsController.fastStore');
   Route.post('/', 'PatientsController.store');
+
   Route.put('/main/:patient/:tutor', 'PatientsController.setMainTutor');
   Route.put('/:id', 'PatientsController.update');
   Route.delete('/:id', 'PatientsController.destroy');

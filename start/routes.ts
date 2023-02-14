@@ -796,3 +796,14 @@ Route.resource('patient-animal-hairs', 'PatientAnimalHairsController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.get('/', 'TreatmentsController.index');
+  Route.get('/show/:id', 'TreatmentsController.show');
+
+  Route.post('/open', 'TreatmentsController.open');
+  Route.put('/update/:id', 'TreatmentsController.update');
+  Route.put('/close/:id', 'TreatmentsController.close');
+})
+  .prefix('treatments')
+  .middleware('auth');

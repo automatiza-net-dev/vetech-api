@@ -477,7 +477,7 @@ export default class TimelineService {
   }
 
   public async storeAppointment(data: ICreateAppointment) {
-    const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+    const timelineInfo = await TimelineType.findOrFail(APPOINTMENT_UUID);
 
     const technician = await User.findOrFail(data.technicianId);
 
@@ -490,7 +490,6 @@ export default class TimelineService {
       },
       timeline_info: {
         tag: data.tag,
-        name: data.name,
         realized: data.realizedAt,
         description: data.description,
         technician: {

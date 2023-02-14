@@ -22,6 +22,7 @@ test.group('Invite resource', group => {
       email: fakeUser.email,
       role_id: role.id,
       active: true,
+      user_id: user.id,
     });
 
     return { user, business, role, invite };

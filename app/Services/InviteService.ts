@@ -76,28 +76,44 @@ export default class InviteService {
       );
     }
 
-    await existingUser.related('roles').create({
-      role_id: role.id,
-      unit_id: businessUnit.id,
-      active: false,
-    });
+    return Database.transaction(async trx => {
+      await existingUser.related('roles').create(
+        {
+          role_id: role.id,
+          unit_id: businessUnit.id,
+          active: false,
+        },
+        {
+          client: trx,
+        },
+      );
 
-    const invite = await businessUnit.related('invites').create({
-      role_id: role.id,
-      email: data.email,
-      active: true,
-      user_id: existingUser.id,
-    });
+      await existingUser
+        .related('economicGroups')
+        .attach([businessUnit.economicGroupId], trx);
 
-    await Mail.send(message => {
-      message
-        .from('sysvetech@gmail.com')
-        .to(data.email)
-        .subject('Convite - Vetech')
-        .htmlView('emails/invite', { id: invite.id });
-    });
+      const invite = await businessUnit.related('invites').create(
+        {
+          role_id: role.id,
+          email: data.email,
+          active: true,
+          user_id: existingUser.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
-    return invite;
+      await Mail.send(message => {
+        message
+          .from('sysvetech@gmail.com')
+          .to(data.email)
+          .subject('Convite - Vetech')
+          .htmlView('emails/invite', { id: invite.id });
+      });
+
+      return invite;
+    });
   }
 
   public async show(id: string): Promise<Invite> {
@@ -256,6 +272,7 @@ export default class InviteService {
       .where('role_id', invite.role_id)
       .where('unit_id', invite.business_unit_id)
       .where('active', false)
+      .preload('unit')
       .first();
 
     if (!role) {
@@ -271,6 +288,10 @@ export default class InviteService {
     try {
       await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
+      const result = await user
+        .related('economicGroups')
+        .attach([role.unit.economicGroupId], trx);
+      console.log({ result });
 
       await trx.commit();
     } catch (e) {
@@ -305,6 +326,7 @@ export default class InviteService {
       .where('role_id', invite.role_id)
       .where('unit_id', invite.business_unit_id)
       .where('active', false)
+      .preload('unit')
       .first();
 
     if (!role) {
@@ -324,6 +346,10 @@ export default class InviteService {
         .save();
       await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
+      const result = await user
+        .related('economicGroups')
+        .attach([role.unit.economicGroupId], trx);
+      console.log({ result });
 
       await trx.commit();
     } catch (e) {

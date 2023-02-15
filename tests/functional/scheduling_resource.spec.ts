@@ -44,6 +44,7 @@ test.group('Scheduling resource', group => {
       weekDay: ScheduleService.GetWD(new Date()),
       startHour: start,
       endHour: end,
+      weekday_index: 0,
     });
   };
 

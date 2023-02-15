@@ -15,6 +15,11 @@ export default class WorkingDay extends BaseModel {
   public weekDay: WeekDay;
 
   @column({
+    serializeAs: null,
+  })
+  public weekday_index: number;
+
+  @column({
     columnName: 'start_hour',
   })
   public startHour: string;

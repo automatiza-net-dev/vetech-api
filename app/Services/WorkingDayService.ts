@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import WeekDay from 'App/Models/shared/WeekDay';
 import WorkingDay from 'App/Models/WorkingDay';
 import IWorkingDayData from 'Contracts/interfaces/IWorkingDayData';
 import { v4 } from 'uuid';
@@ -13,7 +14,10 @@ export default class WorkingDayService {
   ): Promise<Array<WorkingDay>> {
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    const qb = unit.related('workingDays').query();
+    const qb = unit
+      .related('workingDays')
+      .query()
+      .orderBy('weekday_index', 'desc');
 
     const days = !user ? await qb : await qb.where('user_id', user);
 
@@ -46,6 +50,7 @@ export default class WorkingDayService {
       weekDay: data.dayOfWeek,
       startHour: data.startHour,
       endHour: data.endHour,
+      weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
     });
   }
 
@@ -61,6 +66,7 @@ export default class WorkingDayService {
         weekDay: data.dayOfWeek,
         startHour: data.startHour,
         endHour: data.endHour,
+        weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
       })
       .save();
   }

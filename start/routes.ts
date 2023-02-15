@@ -130,6 +130,8 @@ Route.group(() => {
   Route.get('/search', 'PatientsController.search');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');
+  Route.get('/metadata/:id', 'PatientsController.metadata');
+  Route.get('/sales-metadata/:id', 'PatientsController.salesMetadata');
   Route.get('/:id', 'PatientsController.show');
 
   Route.post('/fast', 'PatientsController.fastStore');

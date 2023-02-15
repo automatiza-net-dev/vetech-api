@@ -6,6 +6,8 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Bill, { BillStatus } from 'App/Models/Bill';
+import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
@@ -291,6 +293,118 @@ export default class PatientService {
     }
 
     return patient;
+  }
+
+  public async metadata(unitId: string, patientId: string) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const patient = await group
+      .related('patients')
+      .query()
+      .where('patient_id', patientId)
+      .first();
+
+    if (!patient) {
+      throw new ResourceNotFoundException(
+        'Paciente não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    const sales = await Bill.query()
+      .where('patient_id', patient.id)
+      .where('status', BillStatus.A)
+      .preload('payments');
+
+    const missingFromBills = sales.reduce((acc, curr) => {
+      return (
+        acc +
+        curr.payments.reduce((accPaySum, currPaySum) => {
+          return accPaySum + currPaySum.totalValue;
+        }, 0)
+      );
+    }, 0);
+
+    return {
+      missingFromBills,
+    };
+  }
+
+  public async salesMetadata(unitId: string, patientId: string) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const patient = await group
+      .related('patients')
+      .query()
+      .where('patient_id', patientId)
+      .first();
+
+    if (!patient) {
+      throw new ResourceNotFoundException(
+        'Paciente não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    const sales = await Bill.query()
+      .where('patient_id', patient.id)
+      .preload('payments')
+      .preload('seller')
+      .preload('client');
+
+    const budgets = await Budget.query()
+      .where('patient_id', patient.id)
+      .where('status', BudgetStatus.A)
+      .preload('seller')
+      .preload('client');
+
+    const result: Array<unknown> = [];
+
+    sales.forEach(sale => {
+      const getStrStatus = (s: Bill) => {
+        if (s.status === BillStatus.A) {
+          return 'Venda em Aberto';
+        }
+
+        if (s.status === BillStatus.F) {
+          return 'Venda Finalizada';
+        }
+
+        return '';
+      };
+
+      result.push({
+        id: sale.id,
+        _type: 'sale' as const,
+        tag: sale.tag,
+        date: sale.billDate.toJSDate(),
+        seller: sale.seller.name,
+        client: sale.client.name,
+        total_value: sale.totalValue,
+        missing_value:
+          sale.totalValue -
+          sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+        status: getStrStatus(sale),
+      });
+    });
+
+    budgets.forEach(item => {
+      result.push({
+        id: item.id,
+        _type: 'budget' as const,
+        tag: item.tag,
+        date: item.budgetDate.toJSDate(),
+        seller: item.seller.name,
+        client: item.client.name,
+        total_value: item.totalValue,
+        missing_value: null,
+        status: 'Orçamento em aberto',
+      });
+    });
+
+    return result;
   }
 
   public async fastStore(unitId: string, data: IFastStorePatient) {

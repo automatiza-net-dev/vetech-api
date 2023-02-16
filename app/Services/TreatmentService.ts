@@ -140,6 +140,9 @@ export default class TreatmentService {
             id: user.id,
             name: user.name,
           },
+          treatment: {
+            id: treatment.id,
+          },
           service: {
             id: serviceType.id,
             resume: serviceType.resume,

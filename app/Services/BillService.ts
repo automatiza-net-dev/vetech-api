@@ -697,7 +697,7 @@ export default class BillService {
         .merge({
           paidValue:
             payment.bill.paidValue -
-            updatedFinances.reduce((acc, curr) => acc + curr.totalValue, 0),
+            updatedFinances.reduce((acc, curr) => acc + curr.value, 0),
         })
         .useTransaction(trx)
         .save();

@@ -6,7 +6,6 @@ export default class CreateAnimalAppointmentValidator {
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
-    name: schema.string({}, []),
     realizedAt: schema.date({}),
     technicianId: schema.string({}, [
       rules.uuid(),
@@ -15,7 +14,15 @@ export default class CreateAnimalAppointmentValidator {
         column: 'id',
       }),
     ]),
-    description: schema.string({}, []),
+    scheduleServiceId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'schedule_service_types',
+        column: 'id',
+      }),
+    ]),
+    resume: schema.string({}, []),
+    protocol: schema.string({}, []),
   });
 
   public messages: CustomMessages = {};

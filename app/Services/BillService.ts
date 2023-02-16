@@ -670,7 +670,7 @@ export default class BillService {
 
       const finances = await Finance.query()
         .where('origin_flag', FinanceOriginFlag.S)
-        .where('document', payment.bill.tag)
+        .whereILike('document', `%${payment.bill.tag}%`)
         .where('block', payment.block);
       if (finances.some(p => p.status === FinanceStatus.B)) {
         throw new BadRequestException(

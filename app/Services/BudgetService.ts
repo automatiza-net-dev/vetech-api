@@ -387,7 +387,7 @@ export default class BudgetService {
 
       await budget
         .merge({
-          productValue: budget.productValue + item.unitaryValue * item.quantity,
+          productValue: budget.productValue + item.totalValue,
           discountValue: budget.discountValue + item.discountValue,
           totalValue: budget.totalValue + item.totalValue,
         })

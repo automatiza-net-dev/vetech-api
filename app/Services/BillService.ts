@@ -581,41 +581,127 @@ export default class BillService {
     );
 
     const uniqueBlocks = new Set(existingPayments.map(p => p.block));
+    const singleValue = data.installmentsValue / data.installments;
 
-    return BillPayment.create({
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      bill_id: bill.id,
-      payment_method_id: data.paymentMethodId,
-      tef_acquirer_id: data.acquirerId,
-      tef_flag_id: data.flagId,
+    return Database.transaction(async trx => {
+      const payment = await BillPayment.create(
+        {
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          bill_id: bill.id,
+          payment_method_id: data.paymentMethodId,
+          tef_acquirer_id: data.acquirerId,
+          tef_flag_id: data.flagId,
 
-      block: uniqueBlocks.size + 1,
-      expirationDate: data.expirationDate,
-      feeType:
-        paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-      feeValue: 0,
-      feePercentage: 0,
-      installments: data.installments,
-      installmentValue: data.installmentsValue / data.installments,
-      totalValue: data.installmentsValue, // TODO: add fee
-      nsuDocument: data.nsuDocument,
+          block: uniqueBlocks.size + 1,
+          expirationDate: data.expirationDate,
+          feeType:
+            paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+          feeValue: 0,
+          feePercentage: 0,
+          installments: data.installments,
+          installmentValue: singleValue,
+          totalValue: data.installmentsValue, // TODO: add fee
+          nsuDocument: data.nsuDocument,
+          paymentMethodDiscountPercentage: paymentMethod.fee,
+          paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await bill
+        .merge({
+          paidValue: bill.paidValue + payment.totalValue,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await Finance.createMany(
+        Array.from({ length: data.installments }, (_, v) => ({
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          daily_movement_id: bill.daily_movement_id,
+          daily_cashier_id: bill.daily_cashier_id,
+          client_id: bill.client_id,
+          type: FinanceType.C,
+          payment_method_id: payment.payment_method_id,
+          installment: v + 1,
+          block: payment.block,
+          originFlag: FinanceOriginFlag.S,
+          document: `NFS-${bill.tag}`,
+          historic: `NFS-${bill.tag}`,
+          issueDate: DateTime.now(),
+          expirationDate: payment.expirationDate,
+          originalValue: bill.totalValue, // TODO check 2.20.2.16.
+          value: payment.installmentValue, // 2.17
+          totalValue: payment.totalValue, // 2.18
+          feeValue: payment.feeValue, // 2.19
+          feePercentage: payment.feePercentage, // 2.20
+          accept: FinanceAccept.S,
+          reconciled: true,
+          competenceDate: DateTime.now().toFormat('MM/yyyy'),
+          nsuDocument: payment.nsuDocument,
+          tef_flag_id: payment.tef_flag_id,
+          acquirer_id: payment.tef_acquirer_id,
+          status: FinanceStatus.A,
+        })),
+        {
+          client: trx,
+        },
+      );
     });
   }
 
   async deleteBillPayment(unitId: string, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const payment = await BillPayment.query()
-      .where('id', id)
-      .preload('bill')
-      .first();
+    await Database.transaction(async trx => {
+      const payment = await BillPayment.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('bill')
+        .first();
 
-    if (!payment || payment.bill.economic_group_id !== group.id) {
-      throw this.sharedService.ResourceNotFound();
-    }
+      if (!payment || payment.bill.economic_group_id !== group.id) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-    await payment.delete();
+      const finances = await Finance.query()
+        .where('origin_flag', FinanceOriginFlag.S)
+        .where('document', payment.bill.tag)
+        .where('block', payment.block);
+      if (finances.some(p => p.status === FinanceStatus.B)) {
+        throw new BadRequestException(
+          'Já foi dado baixa em algum pagamento',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const updatedFinances = await Promise.all(
+        finances
+          .filter(p => p.status === FinanceStatus.A)
+          .map(async p => {
+            return p
+              .merge({
+                status: FinanceStatus.E,
+              })
+              .useTransaction(trx)
+              .save();
+          }),
+      );
+      await payment.useTransaction(trx).delete();
+      await payment.bill
+        .merge({
+          paidValue:
+            payment.bill.paidValue -
+            updatedFinances.reduce((acc, curr) => acc + curr.totalValue, 0),
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   public async searchProducts(unitId: string, data: ISearchProduct) {
@@ -788,38 +874,38 @@ export default class BillService {
         .useTransaction(trx)
         .save();
 
-      await Finance.createMany(
-        bill.payments.map(payment => ({
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          daily_movement_id: dailyCashier.daily_movement_id,
-          daily_cashier_id: dailyCashier.id,
-          client_id: bill.client_id,
-          type: FinanceType.C,
-          payment_method_id: payment.payment_method_id,
-          installment: payment.block,
-          originFlag: FinanceOriginFlag.S,
-          document: `NFS-${bill.tag}`,
-          historic: `NFS-${bill.tag}`,
-          issueDate: DateTime.now(),
-          expirationDate: payment.expirationDate,
-          originalValue: bill.totalValue, // TODO check 2.20.2.16.
-          value: payment.installmentValue, // 2.17
-          totalValue: payment.totalValue, // 2.18
-          feeValue: payment.feeValue, // 2.19
-          feePercentage: payment.feePercentage, // 2.20
-          accept: FinanceAccept.S,
-          reconciled: true,
-          competenceDate: DateTime.now().toFormat('MM/yyyy'),
-          nsuDocument: payment.nsuDocument,
-          tef_flag_id: payment.tef_flag_id,
-          acquirer_id: payment.tef_acquirer_id,
-          status: FinanceStatus.A,
-        })),
-        {
-          client: trx,
-        },
-      );
+      // await Finance.createMany(
+      //   bill.payments.map(payment => ({
+      //     economic_group_id: group.id,
+      //     business_unit_id: unitId,
+      //     daily_movement_id: dailyCashier.daily_movement_id,
+      //     daily_cashier_id: dailyCashier.id,
+      //     client_id: bill.client_id,
+      //     type: FinanceType.C,
+      //     payment_method_id: payment.payment_method_id,
+      //     installment: payment.block,
+      //     originFlag: FinanceOriginFlag.S,
+      //     document: `NFS-${bill.tag}`,
+      //     historic: `NFS-${bill.tag}`,
+      //     issueDate: DateTime.now(),
+      //     expirationDate: payment.expirationDate,
+      //     originalValue: bill.totalValue, // TODO check 2.20.2.16.
+      //     value: payment.installmentValue, // 2.17
+      //     totalValue: payment.totalValue, // 2.18
+      //     feeValue: payment.feeValue, // 2.19
+      //     feePercentage: payment.feePercentage, // 2.20
+      //     accept: FinanceAccept.S,
+      //     reconciled: true,
+      //     competenceDate: DateTime.now().toFormat('MM/yyyy'),
+      //     nsuDocument: payment.nsuDocument,
+      //     tef_flag_id: payment.tef_flag_id,
+      //     acquirer_id: payment.tef_acquirer_id,
+      //     status: FinanceStatus.A,
+      //   })),
+      //   {
+      //     client: trx,
+      //   },
+      // );
     });
   }
 

@@ -73,6 +73,9 @@ export default class Finance extends BaseModel {
   public installment: number;
 
   @column()
+  public block: number;
+
+  @column()
   public historic: string;
 
   @column.dateTime({

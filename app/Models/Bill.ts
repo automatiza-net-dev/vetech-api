@@ -67,6 +67,11 @@ export default class Bill extends BaseModel {
   public deliveryValue: number;
 
   @column({
+    columnName: 'paid_value',
+  })
+  public paidValue: number;
+
+  @column({
     columnName: 'total_value',
   })
   public totalValue: number;

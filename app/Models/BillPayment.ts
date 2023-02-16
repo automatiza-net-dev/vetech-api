@@ -43,6 +43,16 @@ export default class BillPayment extends BaseModel {
   })
   public installmentValue: number;
 
+  @column({
+    columnName: 'payment_method_discount_percentage',
+  })
+  public paymentMethodDiscountPercentage: number;
+
+  @column({
+    columnName: 'payment_method_discount_value',
+  })
+  public paymentMethodDiscountValue: number;
+
   @column()
   public installments: number;
 

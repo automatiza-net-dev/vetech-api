@@ -5,6 +5,7 @@ import { BillItemStatus } from 'App/Models/BillItem';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
 import TaxationGroup from 'App/Models/TaxationGroup';
@@ -68,6 +69,7 @@ test.group('Bill resource', group => {
       installments: 1,
       installmentValue: 10,
       totalValue: 10, // TODO: add fee
+      bill_id: bill.id,
     });
 
     const taxation = await TaxationGroup.create({
@@ -385,7 +387,6 @@ test.group('Bill resource', group => {
 
     const response = await client
       .delete(`/bills/delete-payment/${v4()}`)
-
       .bearerToken(token);
 
     assert.equal(404, response.status());
@@ -410,11 +411,45 @@ test.group('Bill resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should delete bill payment', async ({ assert, client }) => {
-    const { user, payment } = await createData();
+  test('should return BadRequestException when deleting bill payment with existing finance down', async ({
+    assert,
+    client,
+  }) => {
+    const { user, payment, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
+    });
+
+    await Finance.create({
+      originFlag: FinanceOriginFlag.S,
+      document: bill.tag,
+      block: payment.block,
+      status: FinanceStatus.B,
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment/${payment.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should delete bill payment', async ({ assert, client }) => {
+    const { user, payment, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await payment.merge({ status: FinanceStatus.A }).save();
+    await bill.merge({ paidValue: 1000 }).save();
+    await Finance.create({
+      originFlag: FinanceOriginFlag.S,
+      document: bill.tag,
+      block: payment.block,
+      status: FinanceStatus.A,
+      totalValue: 100,
     });
 
     const response = await client

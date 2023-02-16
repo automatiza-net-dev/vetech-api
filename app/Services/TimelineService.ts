@@ -8,6 +8,7 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType, {
   APPOINTMENT_UUID,
   DOCUMENT_UUID,
@@ -478,6 +479,9 @@ export default class TimelineService {
 
   public async storeAppointment(data: ICreateAppointment) {
     const timelineInfo = await TimelineType.findOrFail(APPOINTMENT_UUID);
+    const serviceType = await ScheduleServiceType.findOrFail(
+      data.scheduleServiceId,
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
@@ -491,10 +495,16 @@ export default class TimelineService {
       timeline_info: {
         tag: data.tag,
         realized: data.realizedAt,
-        description: data.description,
+        resume: data.resume,
+        protocol: data.protocol,
         technician: {
           id: technician.id,
           name: technician.name,
+        },
+        service: {
+          id: serviceType.id,
+          resume: serviceType.resume,
+          description: serviceType.description,
         },
       },
     });

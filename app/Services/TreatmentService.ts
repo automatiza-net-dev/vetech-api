@@ -4,6 +4,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType, { APPOINTMENT_UUID } from 'App/Models/TimelineType';
 import Treatment from 'App/Models/Treatment';
 import User from 'App/Models/User';
@@ -79,6 +80,10 @@ export default class TreatmentService {
     };
 
     await Database.transaction(async trx => {
+      const serviceType = await ScheduleServiceType.findOrFail(
+        data.scheduleServiceId,
+      );
+
       if (data.scheduleId) {
         const schedule = await Schedule.findOrFail(data.scheduleId, {
           client: trx,
@@ -129,10 +134,16 @@ export default class TreatmentService {
         timeline_info: {
           tag: treatment.patient_id,
           realized: DateTime.now(),
-          description: data.resume,
+          resume: data.resume,
+          protocol: data.protocol,
           technician: {
             id: user.id,
             name: user.name,
+          },
+          service: {
+            id: serviceType.id,
+            resume: serviceType.resume,
+            description: serviceType.description,
           },
         },
       });

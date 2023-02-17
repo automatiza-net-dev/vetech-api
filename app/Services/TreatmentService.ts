@@ -89,6 +89,7 @@ export default class TreatmentService {
           client: trx,
         });
 
+        parsedData.schedule_id = data.scheduleId;
         parsedData.patient_id = schedule.patient_id;
         parsedData.tutor_id = schedule.holder_id;
       } else {
@@ -160,9 +161,32 @@ export default class TreatmentService {
   ) {
     const treatment = await this.show(unitId, id);
 
-    await treatment
-      .merge({ resume: data.resume, protocol: data.protocol })
-      .save();
+    await Database.transaction(async trx => {
+      await treatment
+        .useTransaction(trx)
+        .merge({ resume: data.resume, protocol: data.protocol })
+        .save();
+
+      await AnimalTimeline.updateOne(
+        {
+          timeline_id: APPOINTMENT_UUID,
+          timeline_info: {
+            treatment: {
+              id: treatment.id,
+            },
+          },
+        },
+        {
+          $set: {
+            timeline_info: {
+              resume: data.resume,
+              protocol: data.protocol,
+            },
+          },
+        },
+        {},
+      );
+    });
   }
 
   public async close(unitId: string, user: User, id: string) {

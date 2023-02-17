@@ -314,20 +314,18 @@ export default class PatientService {
 
     const sales = await Bill.query()
       .where('patient_id', patient.id)
-      .where('status', BillStatus.A)
-      .preload('payments');
+      .where('status', BillStatus.A);
 
-    const missingFromBills = sales.reduce((acc, curr) => {
-      return (
-        acc +
-        curr.payments.reduce((accPaySum, currPaySum) => {
-          return accPaySum + currPaySum.totalValue;
-        }, 0)
-      );
-    }, 0);
+    let total_sum = 0;
+    let paid_sum = 0;
+
+    sales.forEach(sale => {
+      total_sum += sale.totalValue;
+      paid_sum += sale.paidValue;
+    });
 
     return {
-      missingFromBills,
+      missingFromBills: total_sum - paid_sum,
     };
   }
 

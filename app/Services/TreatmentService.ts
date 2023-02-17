@@ -170,18 +170,12 @@ export default class TreatmentService {
       await AnimalTimeline.updateOne(
         {
           timeline_id: APPOINTMENT_UUID,
-          timeline_info: {
-            treatment: {
-              id: treatment.id,
-            },
-          },
+          'timeline_info.treatment.id': treatment.id,
         },
         {
           $set: {
-            timeline_info: {
-              resume: data.resume,
-              protocol: data.protocol,
-            },
+            'timeline_info.resume': data.resume,
+            'timeline_info.protocol': data.protocol,
           },
         },
         {},

@@ -646,7 +646,7 @@ export default class BudgetService {
         .useTransaction(trx)
         .save();
 
-      return model
+      await model
         .merge({
           bill_id: bill.id,
           conclusion_user_id: user.id,
@@ -663,6 +663,8 @@ export default class BudgetService {
         })
         .useTransaction(trx)
         .save();
+
+      return bill;
     });
   }
 

@@ -125,9 +125,14 @@ export default class BudgetsController {
     const payload = await request.validate(ConfirmBudgetValidator);
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    await this.service.confirmBudget(unit_id, params.id, user, payload);
+    const result = await this.service.confirmBudget(
+      unit_id,
+      params.id,
+      user,
+      payload,
+    );
 
-    return response.noContent();
+    return response.ok(result);
   }
 
   public async cancelBudget({

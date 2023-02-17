@@ -251,7 +251,7 @@ test.group('Budget resource', group => {
       })
       .bearerToken(token);
 
-    assert.equal(204, response.status());
+    assert.equal(200, response.status());
   });
 
   test('should confirm budget (PARCIAL)', async ({ assert, client }) => {
@@ -272,7 +272,7 @@ test.group('Budget resource', group => {
       })
       .bearerToken(token);
 
-    assert.equal(204, response.status());
+    assert.equal(200, response.status());
   });
 
   test('should cancel budget', async ({ assert, client }) => {

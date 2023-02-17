@@ -584,36 +584,45 @@ export default class BillService {
     const singleValue = data.installmentsValue / data.installments;
 
     return Database.transaction(async trx => {
-      const payment = await BillPayment.create(
-        {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          bill_id: bill.id,
-          payment_method_id: data.paymentMethodId,
-          tef_acquirer_id: data.acquirerId,
-          tef_flag_id: data.flagId,
+      const payments = await BillPayment.createMany(
+        Array.from(
+          { length: data.installments },
+          (_, v) => ({
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            bill_id: bill.id,
+            payment_method_id: data.paymentMethodId,
+            tef_acquirer_id: data.acquirerId,
+            tef_flag_id: data.flagId,
 
-          block: uniqueBlocks.size + 1,
-          expirationDate: data.expirationDate,
-          feeType:
-            paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-          feeValue: 0,
-          feePercentage: 0,
-          installments: data.installments,
-          installmentValue: singleValue,
-          totalValue: data.installmentsValue, // TODO: add fee
-          nsuDocument: data.nsuDocument,
-          paymentMethodDiscountPercentage: paymentMethod.fee,
-          paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,
-        },
-        {
-          client: trx,
-        },
+            block: uniqueBlocks.size + 1,
+            expirationDate: data.expirationDate.plus({
+              days:
+                paymentMethod.daysFirstInstallment +
+                paymentMethod.daysBetweenInstallments * v,
+            }),
+            feeType:
+              paymentMethod.fee > 0
+                ? BillPaymentFeeType.S
+                : BillPaymentFeeType.N,
+            feeValue: 0,
+            feePercentage: 0,
+            installments: data.installments,
+            installmentValue: singleValue,
+            totalValue: data.installmentsValue, // TODO: add fee
+            nsuDocument: data.nsuDocument,
+            paymentMethodDiscountPercentage: paymentMethod.fee,
+            paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,
+          }),
+          {
+            client: trx,
+          },
+        ),
       );
 
       await bill
         .merge({
-          paidValue: bill.paidValue + payment.totalValue,
+          paidValue: bill.paidValue + data.installmentsValue,
         })
         .useTransaction(trx)
         .save();
@@ -626,25 +635,27 @@ export default class BillService {
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.client_id,
           type: FinanceType.C,
-          payment_method_id: payment.payment_method_id,
+          payment_method_id: paymentMethod.id,
           installment: v + 1,
-          block: payment.block,
+          block: uniqueBlocks.size + 1,
           originFlag: FinanceOriginFlag.S,
           document: `NFS-${bill.tag}`,
           historic: `NFS-${bill.tag}`,
           issueDate: DateTime.now(),
-          expirationDate: payment.expirationDate,
-          originalValue: bill.totalValue, // TODO check 2.20.2.16.
-          value: payment.installmentValue, // 2.17
-          totalValue: payment.totalValue, // 2.18
-          feeValue: payment.feeValue, // 2.19
-          feePercentage: payment.feePercentage, // 2.20
+          expirationDate: payments.at(v)?.expirationDate,
+          originalValue: singleValue, // TODO check 2.20.2.16.
+          value: payments.at(v)?.installmentValue, // 2.17
+          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100, // 2.18
+          feeValue:
+            (payments.at(v)?.installmentValue ?? 0) -
+            (singleValue - (singleValue * paymentMethod.fee) / 100), // 2.19
+          feePercentage: paymentMethod.fee, // 2.20
           accept: FinanceAccept.S,
           reconciled: true,
           competenceDate: DateTime.now().toFormat('MM/yyyy'),
-          nsuDocument: payment.nsuDocument,
-          tef_flag_id: payment.tef_flag_id,
-          acquirer_id: payment.tef_acquirer_id,
+          nsuDocument: payments.at(v)?.nsuDocument,
+          tef_flag_id: payments.at(v)?.tef_flag_id,
+          acquirer_id: payments.at(v)?.tef_acquirer_id,
           status: FinanceStatus.A,
         })),
         {
@@ -687,6 +698,7 @@ export default class BillService {
             return p
               .merge({
                 status: FinanceStatus.E,
+                deletedAt: DateTime.now(),
               })
               .useTransaction(trx)
               .save();
@@ -704,7 +716,7 @@ export default class BillService {
     });
   }
 
-  public async searchProducts(unitId: string, data: ISearchProduct) {
+  async searchProducts(unitId: string, data: ISearchProduct) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Product.query()
@@ -752,7 +764,7 @@ export default class BillService {
     return qb;
   }
 
-  public async searchTax(unitId: string, data: ISearchTax) {
+  async searchTax(unitId: string, data: ISearchTax) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = TaxationGroup.query()
@@ -818,7 +830,7 @@ export default class BillService {
     return result.map(tax => tax.rules).flat();
   }
 
-  public async closeBill(unitId: string, user: User, id: string) {
+  async closeBill(unitId: string, user: User, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const bill = await Bill.query()
@@ -909,7 +921,7 @@ export default class BillService {
     });
   }
 
-  public async reopenBill(unitId: string, _: User, id: string) {
+  async reopenBill(unitId: string, _: User, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const bill = await Bill.query()

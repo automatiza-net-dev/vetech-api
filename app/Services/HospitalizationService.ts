@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Logger from '@ioc:Adonis/Core/Logger';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bed from 'App/Models/Bed';
 import Hospitalization, {
@@ -11,7 +12,10 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
-import { WEIGHT_UUID } from 'App/Models/TimelineType';
+import TimelineType, {
+  HOSPITALIZATION_UUID,
+  WEIGHT_UUID,
+} from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
@@ -191,7 +195,7 @@ export default class HospitalizationService {
     const result = hospitalization.toJSON();
 
     return Object.assign(result, {
-      weight: (lastWeight?.timeline_info as any)?.weight,
+      weight: lastWeight ? (lastWeight.timeline_info as any)?.weight : '-',
     });
   }
 
@@ -214,92 +218,144 @@ export default class HospitalizationService {
 
   public async store(unitId: string, user: User, data: IHospitalizationData) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const patient = await Patient.findOrFail(data.patientId);
-    const tutor = await Patient.findOrFail(data.tutorId);
-    const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
 
-    const existingInternation = await Hospitalization.query()
-      .where('business_unit_id', unitId)
-      .where('patient_id', data.patientId)
-      .where('status', HospitalizationStatus.ACTIVE)
-      .first();
-    if (existingInternation) {
-      throw new BadRequestException(
-        'Paciente já internado',
-        400,
-        'E_ALREADY_HOSPITALIZED',
+    return Database.transaction(async trx => {
+      const patient = await Patient.findOrFail(data.patientId);
+      const tutor = await Patient.findOrFail(data.tutorId);
+      const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
+      const technician = data.userId
+        ? await User.findOrFail(data.userId)
+        : user;
+
+      const existingInternation = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('patient_id', data.patientId)
+        .where('status', HospitalizationStatus.ACTIVE)
+        .first();
+      if (existingInternation) {
+        throw new BadRequestException(
+          'Paciente já internado',
+          400,
+          'E_ALREADY_HOSPITALIZED',
+        );
+      }
+
+      const occurrence = await Occurrence.query()
+        .useTransaction(trx)
+        .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
+        .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+          group.id,
+        ])
+        .first();
+
+      const ent = await Hospitalization.create(
+        {
+          type: data.type,
+          risk: data.risk,
+          complaint: data.complaint,
+          expectedDischarge: data.expectedDischarge,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
+          status: HospitalizationStatus.ACTIVE,
+          economic_group_id: group.id,
+          business_unit_id: unitId,
+          patient_id: data.patientId,
+          tutor_id: data.tutorId,
+          bed_id: data.bedId,
+          technician_id: technician.id,
+        },
+        {
+          client: trx,
+        },
       );
-    }
 
-    const occurrence = await Occurrence.query()
-      .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
-      ])
-      .first();
+      if (occurrence) {
+        await ent.related('occurrences').create(
+          {
+            occurrence_id: occurrence.id,
+            description: `Internação do paciente ${patient?.name} por ${
+              user.name
+            } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
+            executedAt: DateTime.now(),
+            user_id: user.id,
+          },
+          {
+            client: trx,
+          },
+        );
+      } else {
+        Logger.error(
+          'Não existe ocorrência de internação cadastrada para o grupo econômico',
+        );
+      }
 
-    const ent = await Hospitalization.create({
-      type: data.type,
-      risk: data.risk,
-      complaint: data.complaint,
-      expectedDischarge: data.expectedDischarge,
-      diagnosis: data.diagnosis,
-      prognosis: data.prognosis,
-      status: HospitalizationStatus.ACTIVE,
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      patient_id: data.patientId,
-      tutor_id: data.tutorId,
-      bed_id: data.bedId,
-      technician_id: data.userId ?? user.id,
-    });
-
-    if (occurrence) {
-      await ent.related('occurrences').create({
-        occurrence_id: occurrence.id,
-        description: `Internação do paciente ${patient?.name} por ${
-          user.name
-        } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
-        executedAt: DateTime.now(),
-        user_id: user.id,
+      await HospitalizationTimeline.create({
+        data: {
+          hospitalization_id: ent.id,
+          patient: {
+            id: patient.id,
+            name: patient.name,
+          },
+          tutor: {
+            id: tutor.id,
+            name: tutor.name,
+          },
+          user: {
+            id: user.id,
+            name: user.name,
+          },
+          type: HospitalizationType[data.type],
+          risk: data.risk,
+          complaint: data.complaint,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
+          expectedDischarge: data.expectedDischarge,
+          bed: {
+            id: bed?.id,
+            name: bed?.name,
+            tag: bed?.tag,
+          },
+          status: data.status,
+        },
       });
-    } else {
-      Logger.error(
-        'Não existe ocorrência de internação cadastrada para o grupo econômico',
-      );
-    }
 
-    await HospitalizationTimeline.create({
-      data: {
-        hospitalization_id: ent.id,
-        patient: {
-          id: patient.id,
-          name: patient.name,
+      const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
+        client: trx,
+      });
+
+      await AnimalTimeline.create({
+        timeline_id: HOSPITALIZATION_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
         },
-        tutor: {
-          id: tutor.id,
-          name: tutor.name,
+        timeline_info: {
+          hospitalization: {
+            id: ent.id,
+            type: HospitalizationType[data.type],
+            risk: data.risk,
+          },
+          realized: DateTime.now(),
+          expectedDischarge: data.expectedDischarge,
+          bed: {
+            id: bed?.id,
+            name: bed?.name,
+            tag: bed?.tag,
+          },
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          complaint: data.complaint,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
         },
-        user: {
-          id: user.id,
-          name: user.name,
-        },
-        type: HospitalizationType[data.type],
-        risk: data.risk,
-        complaint: data.complaint,
-        diagnosis: data.diagnosis,
-        prognosis: data.prognosis,
-        expectedDischarge: data.expectedDischarge,
-        bed: {
-          id: bed?.id,
-          name: bed?.name,
-          tag: bed?.tag,
-        },
-        status: data.status,
-      },
+      });
+
+      return this.show(unitId, ent.id);
     });
-
-    return this.show(unitId, ent.id);
   }
 
   public async update(

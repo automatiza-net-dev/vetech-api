@@ -638,6 +638,7 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('patient_id', id)
+      .preload('patientAnimal')
       .first();
 
     if (!patient) {

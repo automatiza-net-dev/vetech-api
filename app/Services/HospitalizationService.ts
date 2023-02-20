@@ -332,6 +332,7 @@ export default class HospitalizationService {
           requires_observation: timelineInfo.requiresObservation,
         },
         timeline_info: {
+          tag: patient.id,
           hospitalization: {
             id: ent.id,
             type: HospitalizationType[data.type],

@@ -219,7 +219,7 @@ export default class HospitalizationService {
   public async store(unitId: string, user: User, data: IHospitalizationData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Database.transaction(async trx => {
+    const ent = await Database.transaction(async trx => {
       const patient = await Patient.findOrFail(data.patientId);
       const tutor = await Patient.findOrFail(data.tutorId);
       const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
@@ -354,8 +354,10 @@ export default class HospitalizationService {
         },
       });
 
-      return this.show(unitId, ent.id);
+      return ent;
     });
+
+    return this.show(unitId, ent.id);
   }
 
   public async update(

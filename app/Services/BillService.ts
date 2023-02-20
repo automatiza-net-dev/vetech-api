@@ -607,9 +607,9 @@ export default class BillService {
                 : BillPaymentFeeType.N,
             feeValue: 0,
             feePercentage: 0,
-            installments: data.installments,
+            installments: v + 1,
             installmentValue: singleValue,
-            totalValue: data.installmentsValue, // TODO: add fee
+            totalValue: singleValue, // TODO: add fee
             nsuDocument: data.nsuDocument,
             paymentMethodDiscountPercentage: paymentMethod.fee,
             paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,

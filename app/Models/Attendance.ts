@@ -1,39 +1,22 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import AttendanceStatus from 'App/Models/AttendanceStatus';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import Schedule from 'App/Models/Schedule';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
 
 export default class Attendance extends BaseModel {
   @column({ isPrimary: true })
-  public id: string = v4();
+  public id: number;
 
   @column()
-  public complaint: string;
+  public resume: string;
 
-  @column({
-    columnName: 'start_date',
-  })
-  public startDate: Date;
+  @column()
+  public protocol: string;
 
-  @column({
-    columnName: 'end_date',
-  })
-  public endDate: Date;
+  @column.dateTime()
+  public startDate: DateTime;
 
-  @column({
-    columnName: 'clinical_examination',
-  })
-  public clinicalExamination: string;
+  @column.dateTime()
+  public endDate: DateTime;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -41,34 +24,48 @@ export default class Attendance extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
-
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
-
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
-
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
-
-  @column()
-  public schedule_id: string;
-
-  @belongsTo(() => Schedule)
-  public schedule: BelongsTo<typeof Schedule>;
-
-  @column()
-  public attendance_status_id: string;
-
-  @belongsTo(() => AttendanceStatus)
-  public status: BelongsTo<typeof AttendanceStatus>;
-
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public business_unit_id: string;
 
-  @belongsTo(() => BusinessUnit)
-  public businessUnit: BelongsTo<typeof BusinessUnit>;
+  @column({
+    serializeAs: null,
+  })
+  public schedule_service_id: string;
+
+  @belongsTo(() => ScheduleServiceType, {
+    foreignKey: 'schedule_service_id',
+  })
+  public scheduleService: BelongsTo<typeof ScheduleServiceType>;
+
+  @column({
+    serializeAs: null,
+  })
+  public service_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public schedule_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public open_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public close_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public tutor_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public patient_id: string;
 }

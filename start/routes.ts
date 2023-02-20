@@ -327,16 +327,6 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
-  Route.get('/', 'AttendanceStatusesController.index');
-  Route.post('/', 'AttendanceStatusesController.store');
-  Route.get('/:id', 'AttendanceStatusesController.show');
-  Route.put('/:id', 'AttendanceStatusesController.update');
-  Route.delete('/:id', 'AttendanceStatusesController.destroy');
-})
-  .prefix('attendance-statuses')
-  .middleware('auth');
-
-Route.group(() => {
   Route.get('/', 'TimelineTypesController.index');
   Route.post('/', 'TimelineTypesController.store');
   Route.get('/:id', 'TimelineTypesController.show');
@@ -346,10 +336,11 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/', 'AttendancesController.index');
-  Route.post('/', 'AttendancesController.store');
-  Route.get('/:id', 'AttendancesController.show');
-  Route.put('/:id', 'AttendancesController.update');
-  Route.delete('/:id', 'AttendancesController.destroy');
+  Route.get('/show/:id', 'AttendancesController.show');
+
+  Route.post('/open', 'AttendancesController.open');
+  Route.put('/update/:id', 'AttendancesController.update');
+  Route.put('/close/:id', 'AttendancesController.close');
 })
   .prefix('attendances')
   .middleware('auth');
@@ -798,14 +789,3 @@ Route.resource('patient-animal-hairs', 'PatientAnimalHairsController')
   .middleware({
     '*': ['auth'],
   });
-
-Route.group(() => {
-  Route.get('/', 'TreatmentsController.index');
-  Route.get('/show/:id', 'TreatmentsController.show');
-
-  Route.post('/open', 'TreatmentsController.open');
-  Route.put('/update/:id', 'TreatmentsController.update');
-  Route.put('/close/:id', 'TreatmentsController.close');
-})
-  .prefix('treatments')
-  .middleware('auth');

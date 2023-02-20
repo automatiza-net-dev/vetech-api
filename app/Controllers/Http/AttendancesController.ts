@@ -2,8 +2,8 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import AttendanceService from 'App/Services/AttendanceService';
 import SharedService from 'App/Services/SharedService';
-import CreateAttendanceValidator from 'App/Validators/Attendance/CreateAttendanceValidator';
-import UpdateAttendanceValidator from 'App/Validators/Attendance/UpdateAttendanceValidator';
+import OpenAttendanceValidator from 'App/Validators/Attendances/OpenAttendanceValidator';
+import UpdateAttendanceValidator from 'App/Validators/Attendances/UpdateAttendanceValidator';
 
 @inject()
 export default class AttendancesController {
@@ -15,9 +15,8 @@ export default class AttendancesController {
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.index(unit_id, {
-      complaint: request.qs().complaint,
-    });
+    const qs = request.qs();
+    const result = await this.service.index(unit_id, qs);
 
     return response.ok(result);
   }
@@ -30,13 +29,13 @@ export default class AttendancesController {
     return response.ok(result);
   }
 
-  public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(CreateAttendanceValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+  public async open({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(OpenAttendanceValidator);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, payload);
+    await this.service.open(unit_id, user, payload);
 
-    return response.created(result);
+    return response.created();
   }
 
   public async update({
@@ -48,15 +47,15 @@ export default class AttendancesController {
     const payload = await request.validate(UpdateAttendanceValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.update(unit_id, params.id, payload);
+    await this.service.update(unit_id, params.id, payload);
 
-    return response.ok(result);
+    return response.noContent();
   }
 
-  public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+  public async close({ auth, params, response }: HttpContextContract) {
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    await this.service.destroy(unit_id, params.id);
+    await this.service.close(unit_id, user, params.id);
 
     return response.noContent();
   }

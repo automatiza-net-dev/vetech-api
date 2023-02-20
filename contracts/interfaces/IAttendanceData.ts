@@ -1,10 +1,8 @@
-import { DateTime } from 'luxon';
+export interface IAttendanceData {
+  scheduleServiceId: string;
+  patientId?: string;
+  resume: string;
+  protocol: string;
 
-export default interface IAttendanceData {
-  schedule: string;
-  status: string;
-  complaint: string;
-  clinicalExamination: string;
-  startDate: DateTime;
-  endDate: DateTime;
+  scheduleId?: string;
 }

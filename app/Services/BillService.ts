@@ -573,6 +573,7 @@ export default class BillService {
 
   async createBillPayment(unitId: string, data: ICreateBillPaymentData) {
     const group = await this.sharedService.getUserGroup(unitId);
+    const unit = await this.sharedService.getBUnit(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
@@ -636,6 +637,7 @@ export default class BillService {
           daily_movement_id: bill.daily_movement_id,
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.client_id,
+          checking_account_id: unit.unitConfig?.sale_exit_account_plan_id,
           type: FinanceType.C,
           payment_method_id: paymentMethod.id,
           installment: v + 1,

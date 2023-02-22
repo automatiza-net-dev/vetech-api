@@ -646,7 +646,7 @@ export default class BillService {
           issueDate: DateTime.now(),
           expirationDate: payments.at(v)?.expirationDate,
           originalValue: singleValue,
-          value: payments.at(v)?.installmentValue,
+          value: singleValue - (singleValue * paymentMethod.fee) / 100,
           totalValue: singleValue - (singleValue * paymentMethod.fee) / 100,
           feeDiscountValue:
             (payments.at(v)?.installmentValue ?? 0) -

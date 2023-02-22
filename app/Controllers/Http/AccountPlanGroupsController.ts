@@ -18,6 +18,7 @@ export default class AccountPlanGroupsController {
     const qs = request.qs();
     const data = await this.service.index(unit_id, {
       description: qs.description,
+      type: qs.type,
     });
 
     return response.ok(data);

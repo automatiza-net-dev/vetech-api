@@ -4,6 +4,7 @@ import SharedService from 'App/Services/SharedService';
 import IAccountPlanData from 'Contracts/interfaces/IAccountPlanData';
 
 interface ISearch {
+  unit?: string;
   description?: string;
   code?: string;
   type?: string;
@@ -16,7 +17,15 @@ export default class AccountPlanService {
   constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
-    const qb = AccountPlan.query().where('business_unit_id', unitId);
+    const unit = await this.sharedService.getBUnit(unitId);
+    const qb = AccountPlan.query().where(
+      'economic_group_id',
+      unit.economicGroupId,
+    );
+
+    if (data.unit) {
+      qb.where('business_unit_id', data.unit);
+    }
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
@@ -27,7 +36,7 @@ export default class AccountPlanService {
     }
 
     if (data.type) {
-      qb.whereILike('type', data.type);
+      qb.where('type', data.type);
     }
 
     if (data.group) {
@@ -45,11 +54,14 @@ export default class AccountPlanService {
   }
 
   async store(unitId: string, data: Omit<IAccountPlanData, 'active'>) {
+    const unit = await this.sharedService.getBUnit(unitId);
+
     return AccountPlan.create({
       code: data.code,
       description: data.description,
       type: data.type,
-      business_unit_id: unitId,
+      business_unit_id: unit.id,
+      economic_group_id: unit.economicGroupId,
       account_plan_group_id: data.accountPlanGroupId,
       parent_id: data.parentId,
     });

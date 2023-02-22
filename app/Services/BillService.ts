@@ -643,13 +643,15 @@ export default class BillService {
           historic: `NFS-${bill.tag}`,
           issueDate: DateTime.now(),
           expirationDate: payments.at(v)?.expirationDate,
-          originalValue: singleValue, // TODO check 2.20.2.16.
-          value: payments.at(v)?.installmentValue, // 2.17
-          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100, // 2.18
-          feeValue:
+          originalValue: singleValue,
+          value: payments.at(v)?.installmentValue,
+          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100,
+          feeDiscountValue:
             (payments.at(v)?.installmentValue ?? 0) -
-            (singleValue - (singleValue * paymentMethod.fee) / 100), // 2.19
-          feePercentage: paymentMethod.fee, // 2.20
+            (singleValue - (singleValue * paymentMethod.fee) / 100),
+          feeValue: 0,
+          feeDiscountPercentage: paymentMethod.fee,
+          feePercentage: 0,
           accept: FinanceAccept.S,
           reconciled: true,
           competenceDate: DateTime.now().toFormat('MM/yyyy'),

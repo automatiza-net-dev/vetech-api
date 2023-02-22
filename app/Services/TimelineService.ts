@@ -10,7 +10,7 @@ import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType, {
-  APPOINTMENT_UUID,
+  ATTENDANCE_UUID,
   DOCUMENT_UUID,
   EXAM_UUID,
   HOSPITALIZATION_UUID,
@@ -472,13 +472,13 @@ export default class TimelineService {
 
   public async appointmentIndex(tag: string) {
     return AnimalTimeline.find({
-      timeline_id: APPOINTMENT_UUID,
+      timeline_id: ATTENDANCE_UUID,
       'timeline_info.tag': tag,
     });
   }
 
   public async storeAppointment(data: ICreateAppointment) {
-    const timelineInfo = await TimelineType.findOrFail(APPOINTMENT_UUID);
+    const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID);
     const serviceType = await ScheduleServiceType.findOrFail(
       data.scheduleServiceId,
     );
@@ -486,7 +486,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: APPOINTMENT_UUID,
+      timeline_id: ATTENDANCE_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -523,7 +523,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: APPOINTMENT_UUID,
+      timeline_id: ATTENDANCE_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -553,7 +553,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: APPOINTMENT_UUID,
+      timeline_id: ATTENDANCE_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,

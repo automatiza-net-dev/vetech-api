@@ -6,7 +6,7 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import TimelineType, { APPOINTMENT_UUID } from 'App/Models/TimelineType';
+import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { ICreateTreatment } from 'Contracts/interfaces/ITreatmentData';
@@ -121,12 +121,12 @@ export default class AttendanceService {
         client: trx,
       });
 
-      const timelineInfo = await TimelineType.findOrFail(APPOINTMENT_UUID, {
+      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
         client: trx,
       });
 
       await AnimalTimeline.create({
-        timeline_id: APPOINTMENT_UUID,
+        timeline_id: ATTENDANCE_UUID,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -169,7 +169,7 @@ export default class AttendanceService {
 
       await AnimalTimeline.updateOne(
         {
-          timeline_id: APPOINTMENT_UUID,
+          timeline_id: ATTENDANCE_UUID,
           'timeline_info.appointment.id': model.id,
         },
         {

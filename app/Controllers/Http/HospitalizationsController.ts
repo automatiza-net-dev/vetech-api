@@ -68,9 +68,9 @@ export default class HospitalizationsController {
   }
 
   public async complete({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    await this.service.completeHospitalization(unit_id, params.id);
+    await this.service.completeHospitalization(unit_id, params.id, user);
 
     return response.noContent();
   }

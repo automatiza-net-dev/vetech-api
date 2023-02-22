@@ -171,13 +171,13 @@ export default class BillService {
         taxRules.map(rule => rule.toUf),
       );
 
-    if (ufIcms.length !== taxRules.length) {
-      throw new InternalErrorException(
-        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    // if (ufIcms.length !== taxRules.length) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
 
     return Database.transaction(async trx => {
       const bill = await Bill.create(
@@ -403,13 +403,13 @@ export default class BillService {
       .where('origin_uf', rule.fromUf)
       .where('destination_uf', rule.fromUf)
       .first();
-    if (!ufIcms) {
-      throw new InternalErrorException(
-        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    // if (!ufIcms) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
 
     const productVariation = await ProductVariation.query()
       .where('id', data.productVariationId)
@@ -480,7 +480,9 @@ export default class BillService {
           icmsStPercentageRedBase: rule.icmsPercRedAliquota,
           icmsStIva: rule.icmsPercRedAliquota,
           icmsStPercentageUfDestination: 0,
-          icmsStValue: icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue,
+          icmsStValue: ufIcms
+            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+            : undefined,
           issCst: '',
           issBase: rule.icmsPerc,
           issPercentage: rule.icmsPercRedAliquota,

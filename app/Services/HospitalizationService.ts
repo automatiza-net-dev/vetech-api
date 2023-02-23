@@ -291,33 +291,35 @@ export default class HospitalizationService {
       }
 
       await HospitalizationTimeline.create({
-        data: {
-          hospitalization_id: ent.id,
-          patient: {
-            id: patient.id,
-            name: patient.name,
-          },
-          tutor: {
-            id: tutor.id,
-            name: tutor.name,
-          },
-          user: {
-            id: technician.id,
-            name: technician.name,
-          },
-          type: HospitalizationType[data.type],
-          risk: data.risk,
-          complaint: data.complaint,
-          diagnosis: data.diagnosis,
-          prognosis: data.prognosis,
-          expectedDischarge: data.expectedDischarge,
-          bed: {
-            id: bed?.id,
-            name: bed?.name,
-            tag: bed?.tag,
-          },
-          status: data.status,
+        meta: {
+          hospitalization: ent.id,
+          group: group.id,
+          unit: unitId,
         },
+        tutor: {
+          id: tutor.id,
+          name: tutor.name,
+        },
+        patient: {
+          id: patient.id,
+          name: patient.name,
+        },
+        user: {
+          id: technician.id,
+          name: technician.name,
+        },
+        type: HospitalizationType[data.type],
+        risk: data.risk,
+        complaint: data.complaint,
+        diagnosis: data.diagnosis,
+        prognosis: data.prognosis,
+        expectedDischarge: data.expectedDischarge,
+        bed: {
+          id: bed?.id,
+          name: bed?.name,
+          tag: bed?.tag,
+        },
+        status: data.status,
       });
 
       const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
@@ -375,6 +377,7 @@ export default class HospitalizationService {
     user: User,
     data: IHospitalizationData,
   ) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const hospitalization = await Hospitalization.query()
       .where('id', id)
       .preload('patient')
@@ -438,6 +441,29 @@ export default class HospitalizationService {
             },
           },
         });
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          tutor: {
+            id: hospitalization.tutor.id,
+            name: hospitalization.tutor.name,
+          },
+          patient: {
+            id: hospitalization.patient.id,
+            name: hospitalization.patient.name,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          completedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+        });
       }
     });
 
@@ -455,11 +481,14 @@ export default class HospitalizationService {
   }
 
   public async completeHospitalization(unitId: string, id: string, user: User) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     const hospitalization = await Hospitalization.query()
       .where('business_unit_id', unitId)
       .where('id', id)
       .preload('patient')
       .preload('bed')
+      .preload('tutor')
       .first();
 
     if (!hospitalization) {
@@ -482,6 +511,29 @@ export default class HospitalizationService {
 
       const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
         client: trx,
+      });
+
+      await HospitalizationTimeline.create({
+        meta: {
+          hospitalization: hospitalization.id,
+          group: group.id,
+          unit: unitId,
+        },
+        tutor: {
+          id: hospitalization.tutor.id,
+          name: hospitalization.tutor.name,
+        },
+        patient: {
+          id: hospitalization.patient.id,
+          name: hospitalization.patient.name,
+        },
+        type: HospitalizationType[hospitalization.type],
+        hospitalizedAt: hospitalization.createdAt,
+        completedAt: DateTime.now(),
+        technician: {
+          id: user.id,
+          name: user.name,
+        },
       });
 
       await AnimalTimeline.create({

@@ -34,9 +34,9 @@ export default class HospitalizationMedicalPrescriptionsController {
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
-    const { user } = this.sharedService.extractUser(auth);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(payload, payload2);
+    const result = await this.service.store(payload, payload2, unit_id, user);
     await this.service.createScheduling(result, user);
 
     return response.created(result);

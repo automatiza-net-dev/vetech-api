@@ -1,8 +1,6 @@
 import { inject } from '@adonisjs/fold';
-import ClinicParameter from 'App/Models/ClinicParameter';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationClinicParameter from 'App/Models/HospitalizationClinicParameter';
-import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationClinicParameterData } from 'Contracts/interfaces/IHospitalizationClinicParameterData';
@@ -20,26 +18,6 @@ export default class HospitalizationClinicParameterService {
       unitId,
       data.hospitalizationId,
     );
-
-    const parameter = await ClinicParameter.findOrFail(data.clinicParameterId);
-
-    await HospitalizationTimeline.create({
-      data: {
-        hospitalization_id: data.hospitalizationId,
-        user: {
-          id: user.id,
-          name: user.name,
-        },
-        releasedAt: data.releasedAt,
-        executedAt: data.executedAt,
-        clinic_parameter: {
-          id: parameter.id,
-          name: parameter.name,
-        },
-        resume: data.resume,
-        status: data.status,
-      },
-    });
 
     return hospitalization.related('parameters').create({
       value: data.value,

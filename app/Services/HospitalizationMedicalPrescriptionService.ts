@@ -1,6 +1,10 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
-import Hospitalization from 'App/Models/Hospitalization';
+import DrugAdministration from 'App/Models/DrugAdministration';
+import Hospitalization, {
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling, {
   HospitalizationSchedulingStatus,
@@ -15,6 +19,7 @@ import {
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import { WEIGHT_UUID } from 'App/Models/TimelineType';
+import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import CreateFluidOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateFluidOnceOrNeededValidator';
@@ -26,6 +31,7 @@ import IHospitalizationMedicalPrescriptionData, {
   IHospitalizationMedicalPrescriptionSchedulingData,
 } from 'Contracts/interfaces/IHospitalizationMedicalPrescriptionData';
 import { differenceInMinutes, format } from 'date-fns';
+import { DateTime } from 'luxon';
 
 type HospitalizationMedicalPrescriptionKeys = 'PR' | 'MR' | 'FR' | 'F_' | 'M_';
 
@@ -85,99 +91,293 @@ export default class HospitalizationMedicalPrescriptionService {
   public async store(
     data: IHospitalizationMedicalPrescriptionData,
     body: Record<string, unknown>,
+    unitId: string,
+    user: User,
   ) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const { key } = this.matchSchema(data.type, data.frequency);
 
-    const validatedData: Partial<HospitalizationMedicalPrescription> = {
-      hospitalization_id: data.hospitalizationId,
-      type: data.type,
-      prescribedAt: data.prescribedAt,
-      frequency: data.frequency,
-      description: data.description,
-      resume: data.resume,
-      executionStart: data.executionStart,
-      user_id: data.userId,
-    };
+    return Database.transaction(async trx => {
+      const hospitalization = await Hospitalization.query()
+        .where('id', data.hospitalizationId)
+        .firstOrFail();
 
-    await HospitalizationTimeline.create({
-      data: {
+      const validatedData: Partial<HospitalizationMedicalPrescription> = {
         hospitalization_id: data.hospitalizationId,
         type: data.type,
         prescribedAt: data.prescribedAt,
-        executionStart: data.executionStart,
         frequency: data.frequency,
-        resume: data.resume,
         description: data.description,
-        active: true,
-      },
+        resume: data.resume,
+        executionStart: data.executionStart,
+        user_id: data.userId,
+      };
+
+      if (key === 'PR') {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+
+          prescription_type: 'Procedimento',
+          frequency: data.frequency,
+          frequencyUnit: body.frequencyUnit,
+          frequencyQuantityUnit: body.frequencyQuantityUnit,
+          executionStart: data.executionStart,
+          description: data.description,
+          resume: data.resume,
+        });
+
+        return HospitalizationMedicalPrescription.create({
+          ...validatedData,
+          frequencyInterval: body.frequencyInterval as number,
+          frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+          frequencyQuantity: body.frequencyQuantity as number,
+          frequencyQuantityUnit:
+            body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+        });
+      }
+
+      if (key === 'MR') {
+        const drug = await DrugAdministration.query()
+          .where('id', body.drugAdministrationId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        const unit = await Unit.query()
+          .where('id', body.prescriptionUnitId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          prescription_type: 'Medicamento',
+          frequency: data.frequency,
+          frequencyUnit: body.frequencyUnit,
+          frequencyQuantityUnit: body.frequencyQuantityUnit,
+          executionStart: data.executionStart,
+          description: data.description,
+          resume: data.resume,
+          drug: drug.description,
+          dose: body.dose as number,
+          unit: unit.name,
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            frequencyInterval: body.frequencyInterval as number,
+            frequencyUnit:
+              body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+            frequencyQuantity: body.frequencyQuantity as number,
+            frequencyQuantityUnit:
+              body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      if (key === 'M_') {
+        const drug = await DrugAdministration.query()
+          .where('id', body.drugAdministrationId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        const unit = await Unit.query()
+          .where('id', body.prescriptionUnitId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          prescription_type: 'Medicamento',
+          frequency: {
+            type: data.frequency,
+            unit: body.frequencyUnit,
+            quantity: body.frequencyQuantityUnit,
+          },
+          executionStart: data.executionStart,
+          description: data.description,
+          resume: data.resume,
+          drug: drug.description,
+          dose: body.dose as number,
+          unit: unit.name,
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      if (key === 'FR') {
+        const drug = await DrugAdministration.query()
+          .where('id', body.drugAdministrationId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        const unit = await Unit.query()
+          .where('id', body.prescriptionUnitId as string)
+          .useTransaction(trx)
+          .firstOrFail();
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          prescription_type: 'Fluidoterapia',
+          frequencyType: data.frequency,
+          frequencyUnit: body.frequencyUnit,
+          frequencyQuantityUnit: body.frequencyQuantityUnit,
+          executionStart: data.executionStart,
+          description: data.description,
+          resume: data.resume,
+          fluidSet: body.fluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          drug: drug.description,
+          dose: body.dose as number,
+          unit: unit.name,
+          supplement: body.supplement as string,
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            frequencyInterval: body.frequencyInterval as number,
+            frequencyUnit:
+              body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+            frequencyQuantity: body.frequencyQuantity as number,
+            frequencyQuantityUnit:
+              body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+            fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            fluid_unit_id: body.fluidUnitId as string,
+            supplement: body.supplement as string,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      if (key === 'F_') {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          prescription_type: 'Fluidoterapia',
+          frequencyType: data.frequency,
+          frequencyUnit: body.frequencyUnit,
+          frequencyQuantityUnit: body.frequencyQuantityUnit,
+          executionStart: data.executionStart,
+          description: data.description,
+          resume: data.resume,
+          fluidSet: body.fluidSet,
+          fluidSpeed: body.fluidSpeed as number,
+          dose: body.dose as number,
+          supplement: body.supplement as string,
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+            fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            fluid_unit_id: body.fluidUnitId as string,
+            supplement: body.supplement as string,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      throw new BadRequestException('Combinação de tipo e frequência inválida');
+
+      // await HospitalizationTimeline.create({
+      //   meta: {
+      //     hospitalization: hospitalization.id,
+      //     group: group.id,
+      //     unit: unitId,
+      //   },
+      //   type: HospitalizationType[hospitalization.type],
+      //   hospitalizedAt: hospitalization.createdAt,
+      //   realizedAt: data.executedAt,
+      //   issuedAt: DateTime.now(),
+      //   technician: {
+      //     id: user.id,
+      //     name: user.name,
+      //   },
+      //   attachments: ent.attachments.map(a => a.attachment),
+      // });
     });
-
-    if (key === 'PR') {
-      return HospitalizationMedicalPrescription.create({
-        ...validatedData,
-        frequencyInterval: body.frequencyInterval as number,
-        frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
-        frequencyQuantity: body.frequencyQuantity as number,
-        frequencyQuantityUnit:
-          body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
-      });
-    }
-
-    if (key === 'MR') {
-      return HospitalizationMedicalPrescription.create({
-        ...validatedData,
-        frequencyInterval: body.frequencyInterval as number,
-        frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
-        frequencyQuantity: body.frequencyQuantity as number,
-        frequencyQuantityUnit:
-          body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
-        dose: body.dose as number,
-        prescription_unit_id: body.prescriptionUnitId as string,
-        drug_administration_id: body.drugAdministrationId as string,
-      });
-    }
-
-    if (key === 'M_') {
-      return HospitalizationMedicalPrescription.create({
-        ...validatedData,
-        dose: body.dose as number,
-        prescription_unit_id: body.prescriptionUnitId as string,
-        drug_administration_id: body.drugAdministrationId as string,
-      });
-    }
-
-    if (key === 'FR') {
-      return HospitalizationMedicalPrescription.create({
-        ...validatedData,
-        frequencyInterval: body.frequencyInterval as number,
-        frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
-        frequencyQuantity: body.frequencyQuantity as number,
-        frequencyQuantityUnit:
-          body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
-        dose: body.dose as number,
-        prescription_unit_id: body.prescriptionUnitId as string,
-        drug_administration_id: body.drugAdministrationId as string,
-        fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
-        fluidSpeed: body.fluidSpeed as number,
-        fluid_unit_id: body.fluidUnitId as string,
-        supplement: body.supplement as string,
-      });
-    }
-
-    if (key === 'F_') {
-      return HospitalizationMedicalPrescription.create({
-        ...validatedData,
-        dose: body.dose as number,
-        prescription_unit_id: body.prescriptionUnitId as string,
-        drug_administration_id: body.drugAdministrationId as string,
-        fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
-        fluidSpeed: body.fluidSpeed as number,
-        fluid_unit_id: body.fluidUnitId as string,
-        supplement: body.supplement as string,
-      });
-    }
-
-    throw new BadRequestException('Combinação de tipo e frequência inválida');
   }
 
   public async update(
@@ -275,44 +475,52 @@ export default class HospitalizationMedicalPrescriptionService {
     user: User,
     data: IHospitalizationMedicalPrescriptionSchedulingData,
   ) {
-    const scheduling = await HospitalizationMedicalPrescriptionScheduling.find(
-      id,
-    );
+    const scheduling =
+      await HospitalizationMedicalPrescriptionScheduling.query()
+        .where('id', id)
+        .preload('hospitalization')
+        .preload('prescription')
+        .first();
 
     if (!scheduling) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    await scheduling
-      .merge({
+    await Database.transaction(async trx => {
+      await scheduling
+        .merge({
+          description: data.description,
+          resume: data.resume,
+          executedAt: data.executedAt,
+          scheduledAt: data.scheduledAt,
+          status: data.status,
+          type: data.type,
+          frequency: data.frequency,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await HospitalizationTimeline.create({
+        meta: {
+          hospitalization: scheduling.hospitalization_id,
+          group: scheduling.hospitalization.economic_group_id,
+          unit: scheduling.hospitalization.business_unit_id,
+        },
+        type: HospitalizationType[scheduling.hospitalization.type],
+        hospitalizedAt: scheduling.hospitalization.createdAt,
+        scheduledAt: data.scheduledAt,
+        executedAt: data.executedAt,
+        issuedAt: DateTime.now(),
+        technician: {
+          id: user.id,
+          name: user.name,
+        },
         description: data.description,
         resume: data.resume,
-        executedAt: data.executedAt,
-        scheduledAt: data.scheduledAt,
-        status: data.status,
-        type: data.type,
-        frequency: data.frequency,
-      })
-      .save();
-
-    if (data.executedAt) {
-      await HospitalizationTimeline.create({
-        data: {
-          hospitalization_id: scheduling.hospitalization_id,
-          user: {
-            id: user.id,
-            name: user.name,
-          },
-          type: scheduling.type,
-          frequency: scheduling.frequency,
-          executedAt: scheduling.executedAt,
-          scheduledAt: scheduling.scheduledAt,
-          description: scheduling.description,
-          resume: scheduling.resume,
-          status: scheduling.status,
-        },
+        prescription: scheduling.prescription.description,
+        prescription_type: data.type,
       });
-    }
+    });
   }
 
   public async delete(id: string) {

@@ -2,11 +2,16 @@ import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
-import Hospitalization from 'App/Models/Hospitalization';
+import Hospitalization, {
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
-import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
+import Occurrence, {
+  OccurrenceType,
+  OccurrenceTypeLabels,
+} from 'App/Models/Occurrence';
 import TimelineType, {
   HOSPITALIZATION_UUID,
   WEIGHT_UUID,
@@ -28,6 +33,7 @@ export default class HospitalizationOccurrencesService {
     user: User,
     data: Omit<IHospitalizationOccurrenceData, 'active'>,
   ) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const hospitalization = await this.getHospitalization(
       unitId,
       data.hospitalizationId,
@@ -65,6 +71,8 @@ export default class HospitalizationOccurrencesService {
         );
       }
 
+      await ent.refresh();
+
       const occurrence = await Occurrence.findOrFail(data.occurrenceId, {
         client: trx,
       });
@@ -92,34 +100,82 @@ export default class HospitalizationOccurrencesService {
         });
       }
 
-      if (
-        [
-          OccurrenceType.ALTA_INTERNACAO,
-          OccurrenceType.ALTA_OBSERVACAO,
-          OccurrenceType.ALTA_UTI,
-          OccurrenceType.OBITO,
-          OccurrenceType.PESO,
-          OccurrenceType.RELATORIO_MEDICO,
-          OccurrenceType.OCORRENCIA,
-        ].includes(occurrence.type)
-      ) {
+      if (occurrence.type === OccurrenceType.OCORRENCIA) {
         await HospitalizationTimeline.create({
-          data: {
-            hospitalization_id: hospitalization.id,
-            type: {
-              id: occurrence.id,
-              description: occurrence.description,
-            },
-            user: {
-              id: user.id,
-              name: user.name,
-            },
-            previewedAt: data.previewedAt,
-            executedAt: data.executedAt,
-            resume: data.resume,
-            description: data.description,
-            active: true,
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
           },
+          type: OccurrenceTypeLabels[OccurrenceType.OCORRENCIA],
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+          attachments: ent.attachments.map(a => a.attachment),
+        });
+      }
+
+      if (occurrence.type === OccurrenceType.RELATORIO_MEDICO) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+          attachments: ent.attachments.map(a => a.attachment),
+        });
+      }
+
+      if (occurrence.type === OccurrenceType.OBITO) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          attachments: ent.attachments.map(a => a.attachment),
+        });
+      }
+
+      if (occurrence.type === OccurrenceType.PESO) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
         });
       }
 

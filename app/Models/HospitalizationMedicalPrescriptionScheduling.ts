@@ -2,8 +2,12 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import Hospitalization from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
@@ -76,10 +80,20 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   })
   public hospitalization_medical_prescription_id: string;
 
+  @belongsTo(() => HospitalizationMedicalPrescription, {
+    foreignKey: 'hospitalization_medical_prescription_id',
+  })
+  public prescription: BelongsTo<typeof HospitalizationMedicalPrescription>;
+
   @column({
     serializeAs: null,
   })
   public hospitalization_id: string;
+
+  @belongsTo(() => Hospitalization, {
+    foreignKey: 'hospitalization_id',
+  })
+  public hospitalization: BelongsTo<typeof Hospitalization>;
 
   @column({
     serializeAs: null,

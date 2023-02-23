@@ -24,6 +24,22 @@ export enum OccurrenceType {
   RELATORIO_MEDICO = 'RM',
 }
 
+export const OccurrenceTypeLabels: Record<OccurrenceType, string> = {
+  [OccurrenceType.PESO]: 'Peso',
+  [OccurrenceType.ADMISSAO_INTERNACAO]: 'Admissão Internção',
+  [OccurrenceType.ALTA_INTERNACAO]: 'Alta Internação',
+  [OccurrenceType.ADMISSAO_OBSERVACAO]: 'Admissão Observação',
+  [OccurrenceType.ALTA_OBSERVACAO]: 'Alta Observação',
+  [OccurrenceType.ADMISSAO_UTI]: 'Admissão UTI',
+  [OccurrenceType.ALTA_UTI]: 'Alta URI',
+  [OccurrenceType.PROCEDIMENTO_MEDICO]: 'Procedimento Médico',
+  [OccurrenceType.MEDICACAO]: 'Medicação',
+  [OccurrenceType.FLUIDOTERAPIA]: 'Fluidoterapia',
+  [OccurrenceType.OBITO]: 'Óbito',
+  [OccurrenceType.OCORRENCIA]: 'Ocorrência',
+  [OccurrenceType.RELATORIO_MEDICO]: 'Relatório Médico',
+};
+
 export default class Occurrence extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

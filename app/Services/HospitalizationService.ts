@@ -291,33 +291,35 @@ export default class HospitalizationService {
       }
 
       await HospitalizationTimeline.create({
-        data: {
-          hospitalization_id: ent.id,
-          patient: {
-            id: patient.id,
-            name: patient.name,
-          },
-          tutor: {
-            id: tutor.id,
-            name: tutor.name,
-          },
-          user: {
-            id: user.id,
-            name: user.name,
-          },
-          type: HospitalizationType[data.type],
-          risk: data.risk,
-          complaint: data.complaint,
-          diagnosis: data.diagnosis,
-          prognosis: data.prognosis,
-          expectedDischarge: data.expectedDischarge,
-          bed: {
-            id: bed?.id,
-            name: bed?.name,
-            tag: bed?.tag,
-          },
-          status: data.status,
+        meta: {
+          hospitalization: ent.id,
+          group: group.id,
+          unit: unitId,
         },
+        tutor: {
+          id: tutor.id,
+          name: tutor.name,
+        },
+        patient: {
+          id: patient.id,
+          name: patient.name,
+        },
+        user: {
+          id: technician.id,
+          name: technician.name,
+        },
+        type: HospitalizationType[data.type],
+        risk: data.risk,
+        complaint: data.complaint,
+        diagnosis: data.diagnosis,
+        prognosis: data.prognosis,
+        expectedDischarge: data.expectedDischarge,
+        bed: {
+          id: bed?.id,
+          name: bed?.name,
+          tag: bed?.tag,
+        },
+        status: data.status,
       });
 
       const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
@@ -349,6 +351,14 @@ export default class HospitalizationService {
             id: technician.id,
             name: technician.name,
           },
+          patient: {
+            id: patient.id,
+            name: patient.name,
+          },
+          tutor: {
+            id: tutor.id,
+            name: tutor.name,
+          },
           complaint: data.complaint,
           diagnosis: data.diagnosis,
           prognosis: data.prognosis,
@@ -367,27 +377,95 @@ export default class HospitalizationService {
     user: User,
     data: IHospitalizationData,
   ) {
-    const hospitalization = await Hospitalization.find(id);
+    const group = await this.sharedService.getUserGroup(unitId);
+    const hospitalization = await Hospitalization.query()
+      .where('id', id)
+      .preload('patient')
+      .preload('bed')
+      .first();
 
     if (!hospitalization || hospitalization.business_unit_id !== unitId) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    await hospitalization
-      .merge({
-        type: data.type,
-        risk: data.risk,
-        complaint: data.complaint,
-        expectedDischarge: data.expectedDischarge,
-        diagnosis: data.diagnosis,
-        prognosis: data.prognosis,
-        status: data.status,
-        patient_id: data.patientId,
-        tutor_id: data.tutorId,
-        bed_id: data.bedId,
-        technician_id: data.userId ?? user.id,
-      })
-      .save();
+    await Database.transaction(async trx => {
+      const updatedHospitalization = await hospitalization
+        .merge({
+          type: data.type,
+          risk: data.risk,
+          complaint: data.complaint,
+          expectedDischarge: data.expectedDischarge,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
+          status: data.status,
+          patient_id: data.patientId,
+          tutor_id: data.tutorId,
+          bed_id: data.bedId,
+          technician_id: data.userId ?? user.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      if (data.status === HospitalizationStatus.COMPLETE) {
+        const timelineInfo = await TimelineType.findOrFail(
+          HOSPITALIZATION_UUID,
+          {
+            client: trx,
+          },
+        );
+
+        await AnimalTimeline.create({
+          timeline_id: HOSPITALIZATION_UUID,
+          timeline_type: {
+            description: timelineInfo.description,
+            color: timelineInfo.color,
+            requires_observation: timelineInfo.requiresObservation,
+          },
+          timeline_info: {
+            tag: updatedHospitalization.patient_id,
+            hospitalization: {
+              id: updatedHospitalization.id,
+              type: updatedHospitalization.type,
+            },
+            complaint: updatedHospitalization.complaint,
+            bed: {
+              id: updatedHospitalization.bed?.id,
+              name: updatedHospitalization.bed?.name,
+              tag: updatedHospitalization.bed?.tag,
+            },
+            hospitalizedAt: updatedHospitalization.createdAt,
+            completedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+          },
+        });
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+          },
+          tutor: {
+            id: hospitalization.tutor.id,
+            name: hospitalization.tutor.name,
+          },
+          patient: {
+            id: hospitalization.patient.id,
+            name: hospitalization.patient.name,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          completedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+        });
+      }
+    });
 
     return this.show(unitId, hospitalization.id);
   }
@@ -402,10 +480,15 @@ export default class HospitalizationService {
     await hospitalization.softDelete();
   }
 
-  public async completeHospitalization(unitId: string, id: string) {
+  public async completeHospitalization(unitId: string, id: string, user: User) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     const hospitalization = await Hospitalization.query()
       .where('business_unit_id', unitId)
       .where('id', id)
+      .preload('patient')
+      .preload('bed')
+      .preload('tutor')
       .first();
 
     if (!hospitalization) {
@@ -420,8 +503,66 @@ export default class HospitalizationService {
       );
     }
 
-    await hospitalization
-      .merge({ status: HospitalizationStatus.COMPLETE })
-      .save();
+    await Database.transaction(async trx => {
+      await hospitalization
+        .merge({ status: HospitalizationStatus.COMPLETE })
+        .useTransaction(trx)
+        .save();
+
+      const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
+        client: trx,
+      });
+
+      await HospitalizationTimeline.create({
+        meta: {
+          hospitalization: hospitalization.id,
+          group: group.id,
+          unit: unitId,
+        },
+        tutor: {
+          id: hospitalization.tutor.id,
+          name: hospitalization.tutor.name,
+        },
+        patient: {
+          id: hospitalization.patient.id,
+          name: hospitalization.patient.name,
+        },
+        type: HospitalizationType[hospitalization.type],
+        hospitalizedAt: hospitalization.createdAt,
+        completedAt: DateTime.now(),
+        technician: {
+          id: user.id,
+          name: user.name,
+        },
+      });
+
+      await AnimalTimeline.create({
+        timeline_id: HOSPITALIZATION_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: hospitalization.patient_id,
+          hospitalization: {
+            id: hospitalization.id,
+            type: hospitalization.type,
+          },
+          complaint: hospitalization.complaint,
+          bed: {
+            id: hospitalization.bed?.id,
+            name: hospitalization.bed?.name,
+            tag: hospitalization.bed?.tag,
+          },
+          hospitalizedAt: hospitalization.createdAt,
+          completedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+        },
+      });
+    });
   }
 }

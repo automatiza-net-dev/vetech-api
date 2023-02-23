@@ -5,6 +5,7 @@ import IAccountPlanGroupData from 'Contracts/interfaces/IAccountPlanGroupData';
 
 interface ISearch {
   description?: string;
+  type?: string;
 }
 @inject()
 export default class AccountPlanGroupService {
@@ -19,7 +20,11 @@ export default class AccountPlanGroupService {
     );
 
     if (data.description) {
-      qb.whereILike('description', `$%{data.description}%`);
+      qb.whereILike('description', `%${data.description}%`);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
     }
 
     return qb;

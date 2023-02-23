@@ -171,13 +171,13 @@ export default class BillService {
         taxRules.map(rule => rule.toUf),
       );
 
-    if (ufIcms.length !== taxRules.length) {
-      throw new InternalErrorException(
-        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    // if (ufIcms.length !== taxRules.length) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
 
     return Database.transaction(async trx => {
       const bill = await Bill.create(
@@ -403,13 +403,13 @@ export default class BillService {
       .where('origin_uf', rule.fromUf)
       .where('destination_uf', rule.fromUf)
       .first();
-    if (!ufIcms) {
-      throw new InternalErrorException(
-        'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    // if (!ufIcms) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
 
     const productVariation = await ProductVariation.query()
       .where('id', data.productVariationId)
@@ -480,7 +480,9 @@ export default class BillService {
           icmsStPercentageRedBase: rule.icmsPercRedAliquota,
           icmsStIva: rule.icmsPercRedAliquota,
           icmsStPercentageUfDestination: 0,
-          icmsStValue: icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue,
+          icmsStValue: ufIcms
+            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+            : undefined,
           issCst: '',
           issBase: rule.icmsPerc,
           issPercentage: rule.icmsPercRedAliquota,
@@ -571,6 +573,7 @@ export default class BillService {
 
   async createBillPayment(unitId: string, data: ICreateBillPaymentData) {
     const group = await this.sharedService.getUserGroup(unitId);
+    const unit = await this.sharedService.getBUnit(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
@@ -634,6 +637,7 @@ export default class BillService {
           daily_movement_id: bill.daily_movement_id,
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.client_id,
+          checking_account_id: unit.unitConfig?.sale_exit_account_plan_id,
           type: FinanceType.C,
           payment_method_id: paymentMethod.id,
           installment: v + 1,
@@ -643,13 +647,15 @@ export default class BillService {
           historic: `NFS-${bill.tag}`,
           issueDate: DateTime.now(),
           expirationDate: payments.at(v)?.expirationDate,
-          originalValue: singleValue, // TODO check 2.20.2.16.
-          value: payments.at(v)?.installmentValue, // 2.17
-          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100, // 2.18
-          feeValue:
+          originalValue: singleValue,
+          value: singleValue - (singleValue * paymentMethod.fee) / 100,
+          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100,
+          feeDiscountValue:
             (payments.at(v)?.installmentValue ?? 0) -
-            (singleValue - (singleValue * paymentMethod.fee) / 100), // 2.19
-          feePercentage: paymentMethod.fee, // 2.20
+            (singleValue - (singleValue * paymentMethod.fee) / 100),
+          feeValue: 0,
+          feeDiscountPercentage: paymentMethod.fee,
+          feePercentage: 0,
           accept: FinanceAccept.S,
           reconciled: true,
           competenceDate: DateTime.now().toFormat('MM/yyyy'),

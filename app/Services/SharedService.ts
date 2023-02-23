@@ -18,6 +18,13 @@ export default class SharedService {
     return unit.related('economicGroup').query().firstOrFail();
   }
 
+  public async getBUnit(unitId: string) {
+    return BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
+  }
+
   public async isSuperAdmin(user: User): Promise<boolean> {
     const roles = await user.related('roles').query().preload('role');
     return Boolean(roles.find(r => r.role?.name === 'super-admin'));

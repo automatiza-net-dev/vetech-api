@@ -16,9 +16,7 @@ import {
   MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
-import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
-import { WEIGHT_UUID } from 'App/Models/TimelineType';
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -638,16 +636,16 @@ export default class HospitalizationMedicalPrescriptionService {
 
     await prescription.load('drugAdministration');
     await prescription.load('hospitalization');
-    const [lastWeight] = await AnimalTimeline.find({
-      'timeline_info.tag': prescription.hospitalization.patient_id,
-      timeline_id: WEIGHT_UUID,
+    await prescription.load('hospitalization', query => {
+      query.preload('patient');
     });
 
     if (prescription.type === MedicalPrescriptionType.MEDICATION) {
       return `${prescription.description}, ${prescription.dose}, ${
         prescription.drugAdministration?.description
-      } (${(lastWeight?.timeline_info as any)?.weight ?? ''} kg em ${format(
-        (lastWeight as any)?.createdAt ?? new Date(),
+      } (${prescription.hospitalization.patient.weight ?? ''} kg em ${format(
+        prescription.hospitalization.patient.weightDate?.toJSDate() ??
+          new Date(),
         'dd/MM/yyyy HH:mm',
       )})`;
     }
@@ -657,9 +655,9 @@ export default class HospitalizationMedicalPrescriptionService {
     return `${prescription.description}, ${prescription.fluidSpeed} ${
       prescription.fluidUnit?.name ?? ''
     }, ${prescription.dose}, ${prescription.supplement ?? ''} (${
-      (lastWeight?.timeline_info as any)?.weight ?? ''
+      prescription.hospitalization.patient.weight ?? ''
     } kg em ${format(
-      (lastWeight as any)?.createdAt ?? new Date(),
+      prescription.hospitalization.patient.weightDate?.toJSDate() ?? new Date(),
       'dd/MM/yyyy HH:mm',
     )})`;
   }

@@ -1,11 +1,13 @@
 import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
+import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
+import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -31,6 +33,7 @@ import {
   ICreateTimelineDischarge,
   ICreateTimelineHospitalization,
 } from 'Contracts/interfaces/ICreateTimelineHospitalization';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
@@ -53,25 +56,41 @@ export default class TimelineService {
   public async storeWeight(data: IAnimalWeight) {
     const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
 
-    const technician = await User.findOrFail(data.technicianId);
+    return Database.transaction(async trx => {
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+      const patient = await Patient.findOrFail(data.tag, {
+        client: trx,
+      });
 
-    return AnimalTimeline.create({
-      timeline_id: WEIGHT_UUID,
-      timeline_type: {
-        description: timelineInfo.description,
-        color: timelineInfo.color,
-        requires_observation: timelineInfo.requiresObservation,
-      },
-      timeline_info: {
-        weight: data.weight,
-        tag: data.tag,
-        realizedAt: data.realizedAt.toJSDate(),
-        technician: {
-          id: technician.id,
-          name: technician.name,
+      await patient
+        .merge({
+          weight: data.weight,
+          weightDate: DateTime.now(),
+          weightOrigin: PatientWeightOrigin.A,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return AnimalTimeline.create({
+        timeline_id: WEIGHT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
         },
-        observation: data.observation,
-      },
+        timeline_info: {
+          weight: data.weight,
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          observation: data.observation,
+        },
+      });
     });
   }
 

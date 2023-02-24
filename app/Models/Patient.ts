@@ -34,6 +34,11 @@ export enum PatientVaccineOrigin {
   N = 'NAO_VACINADO',
 }
 
+export enum PatientWeightOrigin {
+  A = 'ATENDIMENTO',
+  I = 'INTERNACAO',
+}
+
 export default class Patient extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -65,6 +70,19 @@ export default class Patient extends BaseModel {
     columnName: 'birth_date',
   })
   public birthDate?: Date;
+
+  @column()
+  public weight: number;
+
+  @column.dateTime({
+    columnName: 'weight_date',
+  })
+  public weightDate?: DateTime;
+
+  @column({
+    columnName: 'weight_origin',
+  })
+  public weightOrigin?: PatientWeightOrigin;
 
   @column()
   public active: boolean;

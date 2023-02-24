@@ -12,6 +12,7 @@ import Occurrence, {
   OccurrenceType,
   OccurrenceTypeLabels,
 } from 'App/Models/Occurrence';
+import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import TimelineType, {
   HOSPITALIZATION_UUID,
   WEIGHT_UUID,
@@ -80,6 +81,19 @@ export default class HospitalizationOccurrencesService {
         const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID, {
           client: trx,
         });
+
+        const patient = await Patient.findOrFail(hospitalization.patient_id, {
+          client: trx,
+        });
+
+        await patient
+          .merge({
+            weight: parseFloat(data.resume),
+            weightDate: DateTime.now(),
+            weightOrigin: PatientWeightOrigin.I,
+          })
+          .useTransaction(trx)
+          .save();
 
         await AnimalTimeline.create({
           timeline_id: WEIGHT_UUID,

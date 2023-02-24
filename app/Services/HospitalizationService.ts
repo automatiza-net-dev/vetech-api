@@ -378,6 +378,7 @@ export default class HospitalizationService {
           hospitalization: ent.id,
           group: group.id,
           unit: unitId,
+          origin: 'hospitalization',
         },
         tutor: {
           id: tutor.id,
@@ -539,6 +540,7 @@ export default class HospitalizationService {
             hospitalization: hospitalization.id,
             group: group.id,
             unit: unitId,
+            origin: 'hospitalization_completed',
           },
           tutor: {
             id: hospitalization.tutor.id,
@@ -613,6 +615,7 @@ export default class HospitalizationService {
           hospitalization: hospitalization.id,
           group: group.id,
           unit: unitId,
+          origin: 'hospitalization_completed',
         },
         tutor: {
           id: hospitalization.tutor.id,

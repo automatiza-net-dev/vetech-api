@@ -45,6 +45,16 @@ export default class Hospitalization extends BaseModel {
   })
   public expectedDischarge: DateTime;
 
+  @column.dateTime({
+    columnName: 'released_at',
+  })
+  public releasedAt: DateTime;
+
+  @column.dateTime({
+    columnName: 'death_at',
+  })
+  public deathAt: DateTime;
+
   @column()
   public diagnosis: string;
 

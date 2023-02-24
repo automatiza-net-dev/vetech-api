@@ -12,10 +12,7 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
-import TimelineType, {
-  HOSPITALIZATION_UUID,
-  WEIGHT_UUID,
-} from 'App/Models/TimelineType';
+import TimelineType, { HOSPITALIZATION_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
@@ -27,9 +24,104 @@ interface ISearch {
   bed?: string;
 }
 
+interface IHome {
+  hospitalized_from?: string;
+  hospitalized_to?: string;
+
+  death_from?: string;
+  death_to?: string;
+
+  released_from?: string;
+  released_to?: string;
+
+  type?: number;
+  status?: string;
+  patient?: string;
+}
+
 @inject()
 export default class HospitalizationService {
   constructor(private readonly sharedService: SharedService) {}
+
+  public async parsedIndex(unitId: string, data: IHome) {
+    const qb = Hospitalization.query()
+      .where('business_unit_id', unitId)
+      .preload('patient')
+      .preload('tutor')
+      .preload('technician')
+      .preload('bed');
+
+    if (data.hospitalized_from) {
+      qb.where('created_at', '>=', data.hospitalized_from);
+    }
+
+    if (data.hospitalized_to) {
+      qb.where('created_at', '<=', data.hospitalized_to);
+    }
+
+    if (data.death_from) {
+      qb.where('deathAt', '>=', data.death_from);
+    }
+
+    if (data.death_to) {
+      qb.where('deathAt', '<=', data.death_to);
+    }
+
+    if (data.released_from) {
+      qb.where('releasedAt', '>=', data.released_from);
+    }
+
+    if (data.released_to) {
+      qb.where('releasedAt', '<=', data.released_to);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    const result = await qb;
+
+    return result.map(r => ({
+      id: r.id,
+      patient: {
+        id: r.patient.id,
+        name: r.patient.name,
+      },
+      tutor: {
+        id: r.tutor.id,
+        name: r.tutor.name,
+      },
+      technician: {
+        id: r.technician.id,
+        name: r.technician.name,
+      },
+      type: r.type,
+      risk: r.risk,
+      bed: r.bed
+        ? {
+            id: r.bed.id,
+            name: r.bed.name,
+            tag: r.bed.tag,
+          }
+        : null,
+      complaint: r.complaint,
+      diagnosis: r.diagnosis,
+      prognosis: r.prognosis,
+      expectedDischarge: r.expectedDischarge,
+      hospitalizedAt: r.createdAt,
+      releasedAt: r.releasedAt,
+      deathAt: r.deathAt,
+      status: r.status,
+    }));
+  }
 
   public async timeline(unitId: string, id: string) {
     const hospitalization = await Hospitalization.find(id);
@@ -187,16 +279,7 @@ export default class HospitalizationService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const [lastWeight] = await AnimalTimeline.find({
-      'timeline_info.tag': hospitalization.patient_id,
-      timeline_id: WEIGHT_UUID,
-    });
-
-    const result = hospitalization.toJSON();
-
-    return Object.assign(result, {
-      weight: lastWeight ? (lastWeight.timeline_info as any)?.weight : '-',
-    });
+    return hospitalization;
   }
 
   public async getScheduling(unitId: string, id: string) {
@@ -314,6 +397,9 @@ export default class HospitalizationService {
         diagnosis: data.diagnosis,
         prognosis: data.prognosis,
         expectedDischarge: data.expectedDischarge,
+        hospitalizedAt: ent.createdAt,
+        releasedAt: null,
+        deathAt: null,
         bed: {
           id: bed?.id,
           name: bed?.name,
@@ -402,6 +488,10 @@ export default class HospitalizationService {
           tutor_id: data.tutorId,
           bed_id: data.bedId,
           technician_id: data.userId ?? user.id,
+          releasedAt:
+            data.status === HospitalizationStatus.COMPLETE
+              ? DateTime.now()
+              : undefined,
         })
         .useTransaction(trx)
         .save();
@@ -434,6 +524,8 @@ export default class HospitalizationService {
               tag: updatedHospitalization.bed?.tag,
             },
             hospitalizedAt: updatedHospitalization.createdAt,
+            releasedAt: updatedHospitalization.releasedAt,
+            deathAt: updatedHospitalization.deathAt,
             completedAt: DateTime.now(),
             technician: {
               id: user.id,
@@ -504,8 +596,11 @@ export default class HospitalizationService {
     }
 
     await Database.transaction(async trx => {
-      await hospitalization
-        .merge({ status: HospitalizationStatus.COMPLETE })
+      const updatedHospitalization = await hospitalization
+        .merge({
+          releasedAt: DateTime.now(),
+          status: HospitalizationStatus.COMPLETE,
+        })
         .useTransaction(trx)
         .save();
 
@@ -555,7 +650,9 @@ export default class HospitalizationService {
             name: hospitalization.bed?.name,
             tag: hospitalization.bed?.tag,
           },
-          hospitalizedAt: hospitalization.createdAt,
+          hospitalizedAt: updatedHospitalization.createdAt,
+          releasedAt: updatedHospitalization.releasedAt,
+          deathAt: updatedHospitalization.deathAt,
           completedAt: DateTime.now(),
           technician: {
             id: user.id,

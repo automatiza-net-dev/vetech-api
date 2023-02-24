@@ -518,6 +518,7 @@ Route.resource('occurrences', 'OccurrencesController')
   });
 
 Route.group(() => {
+  Route.get('/parsed-index', 'HospitalizationsController.parsedIndex');
   Route.get('/completed', 'HospitalizationsController.completedIndex');
   Route.get('/', 'HospitalizationsController.index');
   Route.post('/', 'HospitalizationsController.store');

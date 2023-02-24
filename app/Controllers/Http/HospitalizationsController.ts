@@ -12,6 +12,15 @@ export default class HospitalizationsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async parsedIndex({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.parsedIndex(unit_id, qs);
+
+    return response.ok(result);
+  }
+
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

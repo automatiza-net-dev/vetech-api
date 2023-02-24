@@ -3,6 +3,7 @@ import { test } from '@japa/runner';
 import Bed, { BedType } from 'App/Models/Bed';
 import Hospitalization, {
   HospitalizationStatus,
+  HospitalizationType,
 } from 'App/Models/Hospitalization';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
@@ -55,7 +56,36 @@ test.group('Hospitalization resource', group => {
     assert.isArray(response.body());
   });
 
-  test('should return a list of completedhospitalizations', async ({
+  test('should return the parsed index', async ({ assert, client }) => {
+    const { user, patient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const urlParams = new URLSearchParams();
+    urlParams.append('hospitalized_from', new Date().toISOString());
+    urlParams.append('hospitalized_to', new Date().toISOString());
+
+    urlParams.append('death_from', new Date().toISOString());
+    urlParams.append('death_to', new Date().toISOString());
+
+    urlParams.append('released_from', new Date().toISOString());
+    urlParams.append('released_to', new Date().toISOString());
+
+    urlParams.append('type', HospitalizationType.Internação.toString());
+    urlParams.append('status', HospitalizationStatus.ACTIVE);
+    urlParams.append('patient', patient.id);
+
+    const response = await client
+      .get(`/hospitalizations/parsed-index?${urlParams.toString()}`)
+      .bearerToken(token);
+
+    response.assertStatus(200);
+    assert.isArray(response.body());
+  });
+
+  test('should return a list of completed hospitalizations', async ({
     assert,
     client,
   }) => {

@@ -160,6 +160,11 @@ export default class HospitalizationOccurrencesService {
       }
 
       if (occurrence.type === OccurrenceType.PESO) {
+        await hospitalization
+          .merge({ deathAt: DateTime.now() })
+          .useTransaction(trx)
+          .save();
+
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,

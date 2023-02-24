@@ -617,6 +617,7 @@ export default class TimelineService {
       timeline_info: {
         observation: data.observation,
         tag: data.tag,
+        resume: data.resume,
         technician: {
           id: technician.id,
           name: technician.name,
@@ -652,6 +653,7 @@ export default class TimelineService {
         timeline_info: {
           observation: data.observation,
           tag: data.tag,
+          resume: data.resume,
           technician: {
             id: technician.id,
             name: technician.name,

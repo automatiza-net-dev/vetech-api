@@ -35,4 +35,9 @@ export default class BusinessUnitConfig extends BaseModel {
     serializeAs: null,
   })
   public other_entry_account_plan_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public service_variation_group_id: string;
 }

@@ -28,6 +28,7 @@ import {
   IResetPassword,
 } from 'Contracts/interfaces/ResetPassword';
 import { IUpdatePassword } from 'Contracts/interfaces/UpdateUser';
+import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
 import { addDays } from 'date-fns';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -219,6 +220,10 @@ export default class UserService {
           client: trx,
         },
       );
+
+      await newBusinessUnit.related('unitConfig').create({
+        service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
+      });
 
       return { user, unit: newBusinessUnit };
     });

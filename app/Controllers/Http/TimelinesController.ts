@@ -172,7 +172,10 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.hospizationIndex(params.id));
   }
 
-  public async hospitalizaionStore({ request, response }: HttpContextContract) {
+  public async hospitalizationStore({
+    request,
+    response,
+  }: HttpContextContract) {
     const payload = await request.validate(
       CreateAnimalHospitalizationValidator,
     );

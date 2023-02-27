@@ -437,9 +437,8 @@ Route.group(() => {
   }).prefix('appointments');
 
   Route.group(() => {
-    Route.get('/:id', 'TimelinesController.appointmentsIndex');
-    Route.post('/discharge', 'TimelinesController.dischargeStore');
-    Route.post('/', 'TimelinesController.hospitalizaionStore');
+    Route.get('/:id', 'TimelinesController.hospitalizationIndex');
+    Route.post('/', 'TimelinesController.hospitalizationStore');
   }).prefix('hospitalizations');
 
   Route.group(() => {

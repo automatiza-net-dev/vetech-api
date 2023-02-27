@@ -159,6 +159,7 @@ export default class BillService {
           productVariations.map(item => item.product.taxation_group_id),
         );
       })
+      .preload('taxationGroup')
       .preload('taxOperation');
 
     const ufIcms = await UfIcms.query()

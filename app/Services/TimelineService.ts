@@ -536,7 +536,7 @@ export default class TimelineService {
     });
   }
 
-  public async storeHospization(data: ICreateTimelineHospitalization) {
+  public async storeHospitalization(data: ICreateTimelineHospitalization) {
     const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
 
     const technician = await User.findOrFail(data.technicianId);

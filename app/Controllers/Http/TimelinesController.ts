@@ -181,7 +181,7 @@ export default class TimelinesController {
     const payload = await request.validate(
       CreateAnimalHospitalizationValidator,
     );
-    await this.timelineService.storeHospization(payload);
+    await this.timelineService.storeHospitalization(payload);
     return response.created();
   }
 

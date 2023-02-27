@@ -131,7 +131,7 @@ export default class HospitalizationOccurrencesService {
           },
           description: data.description,
           resume: data.resume,
-          attachments: ent.attachments.map(a => a.attachment),
+          attachments: ent.attachments?.map(a => a.attachment) ?? [],
         });
       }
 
@@ -152,7 +152,7 @@ export default class HospitalizationOccurrencesService {
           },
           description: data.description,
           resume: data.resume,
-          attachments: ent.attachments.map(a => a.attachment),
+          attachments: ent.attachments?.map(a => a.attachment) ?? [],
         });
       }
 
@@ -172,7 +172,7 @@ export default class HospitalizationOccurrencesService {
             id: user.id,
             name: user.name,
           },
-          attachments: ent.attachments.map(a => a.attachment),
+          attachments: ent.attachments?.map(a => a.attachment) ?? [],
         });
       }
 

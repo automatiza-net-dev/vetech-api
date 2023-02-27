@@ -529,7 +529,7 @@ export default class TimelineService {
     });
   }
 
-  public async hospizationIndex(tag: string) {
+  public async hospitalizationIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: HOSPITALIZATION_UUID,
       'timeline_info.tag': tag,

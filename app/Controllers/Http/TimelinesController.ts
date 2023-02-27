@@ -169,7 +169,9 @@ export default class TimelinesController {
   }
 
   public async hospitalizationIndex({ params, response }: HttpContextContract) {
-    return response.ok(await this.timelineService.hospizationIndex(params.id));
+    return response.ok(
+      await this.timelineService.hospitalizationIndex(params.id),
+    );
   }
 
   public async hospitalizationStore({

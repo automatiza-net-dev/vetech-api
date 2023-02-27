@@ -1,4 +1,5 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import VariationGroup from 'App/Models/VariationGroup';
 import { DateTime } from 'luxon';
 
 export default class BusinessUnitConfig extends BaseModel {
@@ -40,4 +41,9 @@ export default class BusinessUnitConfig extends BaseModel {
     serializeAs: null,
   })
   public service_variation_group_id: string;
+
+  @belongsTo(() => VariationGroup, {
+    foreignKey: 'service_variation_group_id',
+  })
+  serviceVariationGroup: BelongsTo<typeof VariationGroup>;
 }

@@ -3,6 +3,7 @@ import { LicenceType } from 'App/Models/Licence';
 import Role from 'App/Models/Role';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
+import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
@@ -46,6 +47,10 @@ export const userBootstrap = async () => {
     email: user.email,
     origin: 'TESTING',
     state: 'PB',
+  });
+
+  await business.related('unitConfig').create({
+    service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
   });
 
   const licence = await business.related('licences').create({

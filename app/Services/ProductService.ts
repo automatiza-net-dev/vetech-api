@@ -141,7 +141,7 @@ export default class ProductService {
       const product = await Product.create(
         {
           description: data.description,
-          type: data.type,
+          type: ProductType.PRODUCT,
           referenceCode: data.referenceCode,
           collectionYear: data.collectionYear,
           ncm: data.ncm,

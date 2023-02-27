@@ -27,6 +27,23 @@ export default class HospitalizationMedicalPrescriptionsController {
     return response.ok(result);
   }
 
+  public async schedulingIndex({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const qs = request.qs();
+
+    const result = await this.service.schedulingIndex(unit_id, {
+      hospitalization: qs.hospitalization,
+      fromScheduledDate: qs.from,
+      toScheduledDate: qs.to,
+    });
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(
       CreateHospitalizationMedicalPrescriptionValidator,

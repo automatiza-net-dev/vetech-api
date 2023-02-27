@@ -49,6 +49,13 @@ interface ISearch {
   fromExecutionDate?: string;
   toExecutionDate?: string;
 }
+
+interface ISearchScheduling {
+  hospitalization?: string;
+  fromScheduledDate?: string;
+  toScheduledDate?: string;
+}
+
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
@@ -81,6 +88,39 @@ export default class HospitalizationMedicalPrescriptionService {
 
     if (data.toExecutionDate) {
       query.where('execution_start', '<=', new Date(data.toExecutionDate));
+    }
+
+    return query;
+  }
+
+  public async schedulingIndex(unitId: string, data: ISearchScheduling) {
+    const query = HospitalizationMedicalPrescriptionScheduling.query()
+      .debug(true)
+      .preload('hospitalization', query => {
+        query.select('id', 'patient_id', 'technician_id');
+        query.preload('patient');
+        query.preload('technician');
+      });
+
+    if (data.hospitalization) {
+      query.where('hospitalization_id', data.hospitalization);
+    } else {
+      const hospitalizations = await Hospitalization.query()
+        .where('business_unit_id', unitId)
+        .select('id');
+
+      query.whereIn(
+        'hospitalization_id',
+        hospitalizations.map(h => h.id),
+      );
+    }
+
+    if (data.fromScheduledDate) {
+      query.where('scheduled_at', '>=', new Date(data.fromScheduledDate));
+    }
+
+    if (data.toScheduledDate) {
+      query.where('scheduled_at', '<=', new Date(data.toScheduledDate));
     }
 
     return query;
@@ -489,13 +529,18 @@ export default class HospitalizationMedicalPrescriptionService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (scheduling.executedAt) {
+      throw new BadRequestException('Agendamento já executado', 400, 'E_ERR');
+    }
+
     await Database.transaction(async trx => {
       await scheduling
         .merge({
           description: data.description,
           resume: data.resume,
-          executedAt: data.executedAt,
+          executedAt: DateTime.now(),
           scheduledAt: data.scheduledAt,
+          prescribedAt: data.executedAt,
           status: data.status,
           type: data.type,
           frequency: data.frequency,
@@ -592,6 +637,8 @@ export default class HospitalizationMedicalPrescriptionService {
         status: HospitalizationSchedulingStatus.ACTIVE,
         user_id: user.id,
       });
+
+      return;
     }
 
     const offset =
@@ -613,10 +660,10 @@ export default class HospitalizationMedicalPrescriptionService {
       }).map((_, index) => {
         const scheduledAt =
           prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.HOUR
-            ? prescription.prescribedAt.plus({
+            ? prescription.executionStart.plus({
                 hours: prescription.frequencyInterval * index,
               })
-            : prescription.prescribedAt.plus({
+            : prescription.executionStart.plus({
                 days: prescription.frequencyInterval * index,
               });
 

@@ -6,6 +6,7 @@ import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
+import HospitalizationOccurrenceAttachment from 'App/Models/HospitalizationOccurrenceAttachment';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, {
@@ -41,6 +42,8 @@ export default class HospitalizationOccurrencesService {
     );
 
     return Database.transaction(async trx => {
+      const hospAttachments: Array<HospitalizationOccurrenceAttachment> = [];
+
       const ent = await hospitalization.related('occurrences').create(
         {
           occurrence_id: data.occurrenceId,
@@ -62,7 +65,7 @@ export default class HospitalizationOccurrencesService {
           data.attachments.map(this.uploadFile),
         );
 
-        await ent.related('attachments').createMany(
+        const createdAttachments = await ent.related('attachments').createMany(
           attachments.map(url => ({
             attachment: url,
           })),
@@ -70,13 +73,76 @@ export default class HospitalizationOccurrencesService {
             client: trx,
           },
         );
-      }
 
-      await ent.refresh();
+        createdAttachments.forEach(a => hospAttachments.push(a));
+      }
 
       const occurrence = await Occurrence.findOrFail(data.occurrenceId, {
         client: trx,
       });
+
+      if (occurrence.type === OccurrenceType.OCORRENCIA) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'occurrence',
+          },
+          type: OccurrenceTypeLabels[OccurrenceType.OCORRENCIA],
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+          attachments: hospAttachments.map(a => a.attachment),
+        });
+      }
+
+      if (occurrence.type === OccurrenceType.RELATORIO_MEDICO) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'occurrence',
+          },
+          type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+          attachments: hospAttachments.map(a => a.attachment),
+        });
+      }
+
+      if (occurrence.type === OccurrenceType.OBITO) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'occurrence',
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          attachments: hospAttachments.map(a => a.attachment),
+        });
+      }
+
       if (occurrence.type === OccurrenceType.PESO) {
         const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID, {
           client: trx,
@@ -112,94 +178,25 @@ export default class HospitalizationOccurrencesService {
             },
           },
         });
-      }
 
-      if (occurrence.type === OccurrenceType.OCORRENCIA) {
-        await HospitalizationTimeline.create({
-          meta: {
-            hospitalization: hospitalization.id,
-            group: group.id,
-            unit: unitId,
-            origin: 'occurrence',
-          },
-          type: OccurrenceTypeLabels[OccurrenceType.OCORRENCIA],
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-          description: data.description,
-          resume: data.resume,
-          attachments: ent.attachments?.map(a => a.attachment) ?? [],
-        });
-      }
-
-      if (occurrence.type === OccurrenceType.RELATORIO_MEDICO) {
-        await HospitalizationTimeline.create({
-          meta: {
-            hospitalization: hospitalization.id,
-            group: group.id,
-            unit: unitId,
-            origin: 'occurrence',
-          },
-          type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-          description: data.description,
-          resume: data.resume,
-          attachments: ent.attachments?.map(a => a.attachment) ?? [],
-        });
-      }
-
-      if (occurrence.type === OccurrenceType.OBITO) {
-        await HospitalizationTimeline.create({
-          meta: {
-            hospitalization: hospitalization.id,
-            group: group.id,
-            unit: unitId,
-            origin: 'occurrence',
-          },
-          type: HospitalizationType[hospitalization.type],
-          hospitalizedAt: hospitalization.createdAt,
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-          attachments: ent.attachments?.map(a => a.attachment) ?? [],
-        });
-      }
-
-      if (occurrence.type === OccurrenceType.PESO) {
-        await hospitalization
-          .merge({ deathAt: DateTime.now() })
-          .useTransaction(trx)
-          .save();
-
-        await HospitalizationTimeline.create({
-          meta: {
-            hospitalization: hospitalization.id,
-            group: group.id,
-            unit: unitId,
-            origin: 'occurrence',
-          },
-          type: HospitalizationType[hospitalization.type],
-          hospitalizedAt: hospitalization.createdAt,
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-          description: data.description,
-          resume: data.resume,
-        });
+        // await HospitalizationTimeline.create({
+        //   meta: {
+        //     hospitalization: hospitalization.id,
+        //     group: group.id,
+        //     unit: unitId,
+        //     origin: 'occurrence',
+        //   },
+        //   type: HospitalizationType[hospitalization.type],
+        //   hospitalizedAt: hospitalization.createdAt,
+        //   realizedAt: data.executedAt,
+        //   issuedAt: DateTime.now(),
+        //   technician: {
+        //     id: user.id,
+        //     name: user.name,
+        //   },
+        //   description: data.description,
+        //   resume: data.resume,
+        // });
       }
 
       const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {

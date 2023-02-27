@@ -23,7 +23,6 @@ export default class UpdateHospitalizationOccurrenceValidator {
         }),
       ],
     ),
-    previewedAt: schema.date.optional(),
     executedAt: schema.date(),
     description: schema.string({ trim: true }),
     resume: schema.string({ trim: true }),

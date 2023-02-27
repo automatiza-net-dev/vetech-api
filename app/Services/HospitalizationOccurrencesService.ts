@@ -51,7 +51,7 @@ export default class HospitalizationOccurrencesService {
           executedAt: data.executedAt,
           hospitalization_medical_prescription_id:
             data.hospitalizationMedicalPrescriptionId,
-          previewedAt: data.previewedAt,
+          previewedAt: data.executedAt,
           resume: data.resume,
           user_id: user.id,
         },
@@ -285,7 +285,7 @@ export default class HospitalizationOccurrencesService {
         executedAt: data.executedAt,
         hospitalization_medical_prescription_id:
           data.hospitalizationMedicalPrescriptionId,
-        previewedAt: data.previewedAt,
+        previewedAt: data.executedAt,
         resume: data.resume,
         active: data.active,
       })

@@ -268,9 +268,7 @@ export default class BillService {
             icmsOriginProduct: variation.product.icmsOrigin,
             icmsCst: rule?.icmsCst,
             icmsBase,
-            icmsPercentage: rule
-              ? parseFloat(rule.icmsPerc as unknown as string)
-              : 0,
+            icmsPercentage: rule?.icmsPerc,
             icmsValue,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
@@ -282,7 +280,7 @@ export default class BillService {
               icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
               icmsValue,
             issCst: '',
-            issBase: rule?.icmsPerc,
+            issBase: rule ? parseFloat(rule.icmsPerc as unknown as string) : 0,
             issPercentage: rule?.icmsPercRedAliquota,
             issValue: 0,
             pisBase: 0,

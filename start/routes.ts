@@ -720,6 +720,7 @@ Route.group(() => {
   Route.get('/taxes', 'BillsController.searchTax');
   Route.get('/show/:id', 'BillsController.show');
 
+  Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
 
   Route.put('/close-bill/:id', 'BillsController.closeBill');

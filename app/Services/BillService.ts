@@ -1052,4 +1052,119 @@ export default class BillService {
         .save();
     });
   }
+
+  async recalculateItemsTaxes(unitId: string, id: string) {
+    await Database.transaction(async trx => {
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('id', id)
+        .preload('items', query => {
+          query.preload('productVariation', query => {
+            query.preload('product');
+          });
+        })
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const itemsWithoutTaxes = bill.items.filter(i => !i.tax_rule_id);
+      if (itemsWithoutTaxes.length > 0) {
+        const productVariations = await ProductVariation.query()
+          .useTransaction(trx)
+          .whereIn(
+            'id',
+            itemsWithoutTaxes.map(i => i.product_variation_id),
+          )
+          .preload('product')
+          .preload('businessUnitProducts', query => {
+            query.where('businness_unit_id', unitId);
+          });
+
+        const taxRules = await TaxationGroupRule.query()
+          .useTransaction(trx)
+          .whereHas('taxationGroup', query => {
+            query.whereIn(
+              'id',
+              productVariations.map(item => item.product.taxation_group_id),
+            );
+          })
+          .preload('taxationGroup')
+          .preload('taxOperation');
+
+        const ufIcms = await UfIcms.query()
+          .whereIn(
+            'origin_uf',
+            taxRules.map(rule => rule.fromUf),
+          )
+          .whereIn(
+            'destination_uf',
+            taxRules.map(rule => rule.toUf),
+          );
+
+        itemsWithoutTaxes.forEach(async item => {
+          const rule = taxRules.find(
+            rule =>
+              rule.taxationGroup.id ===
+              item.productVariation.product.taxation_group_id,
+          );
+
+          if (!rule) {
+            return;
+          }
+
+          const ufIcmsRule = ufIcms.find(
+            ufIcms =>
+              ufIcms.originUf === rule.fromUf &&
+              ufIcms.destinationUf === rule.toUf,
+          );
+
+          const totalValue =
+            item.unitaryValue * item.quantity - item.discountValue;
+          const icmsBase =
+            totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
+          const icmsStBase =
+            icmsBase *
+            ((100 + (rule.ivaIcmsSt ?? 0)) / 100) *
+            ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
+          const icmsValue =
+            icmsBase *
+            (((rule.icmsPercRedBaseCalculo ?? 1) *
+              ((100 - (rule.icmsPercRedAliquota ?? 0)) / 100)) /
+              100);
+
+          await item
+            .merge({
+              tax_rule_id: rule.id,
+              fiscalOperationCode: rule.taxOperation.code,
+              icmsCst: rule.icmsCst,
+              icmsBase,
+              icmsPercentage: rule.icmsPerc,
+              icmsValue,
+              icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+              icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+              icmsStBase,
+              icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+              icmsStIva: rule.icmsPercRedAliquota,
+              icmsStValue:
+                icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+                icmsValue,
+              issBase: rule.icmsPerc,
+              issPercentage: rule.icmsPercRedAliquota,
+              pisPercentage: rule.pisPerc,
+              cofinsPercentage: rule.cofinsPerc,
+              ipiPercentage: rule.ipiPerc,
+              icmsFcpPercentage: rule.fcpPerc,
+              icmsPartitionOriginUfPercentage: rule.icmsPerc,
+              icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+              icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+            })
+            .useTransaction(trx)
+            .save();
+        });
+      }
+    });
+  }
 }

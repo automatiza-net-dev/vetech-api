@@ -37,6 +37,14 @@ export default class BillsController {
     return response.ok(result);
   }
 
+  public async recalculate({ params, auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.recalculateItemsTaxes(unit_id, params.id);
+
+    return response.noContent();
+  }
+
   public async createBill({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateBillValidator);
     const { unit_id, user } = this.sharedService.extractUser(auth);

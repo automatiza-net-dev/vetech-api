@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
@@ -541,6 +542,59 @@ export default class BillService {
       );
 
       const validItems = [billItem, ...items];
+
+      Logger.info(
+        JSON.stringify({
+          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
+          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems.reduce(
+            (acc, item) => acc + item.icmsStBase,
+            0,
+          ),
+          icmsStValue: validItems.reduce(
+            (acc, item) => acc + item.icmsStValue,
+            0,
+          ),
+          issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
+          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
+          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
+          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          pisRetentionValue: validItems.reduce(
+            (acc, item) => acc + (item.pisRetentionValue ?? 0),
+            0,
+          ),
+          cofinsBase: validItems.reduce(
+            (acc, item) => acc + item.cofinsBase,
+            0,
+          ),
+          cofinsValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsValue,
+            0,
+          ),
+          cofinsRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsRetentionValue,
+            0,
+          ),
+          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
+          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          icmsDeferredValue: validItems.reduce(
+            (acc, item) => acc + item.icmsDeferredValue,
+            0,
+          ),
+          icmsFcpValue: validItems.reduce(
+            (acc, item) => acc + item.icmsFcpValue,
+            0,
+          ),
+          icmsUfDestinationValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+            0,
+          ),
+          icmsUfOriginValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+            0,
+          ),
+        }),
+      );
 
       await bill
         .merge({

@@ -12,7 +12,10 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
-import TimelineType, { HOSPITALIZATION_UUID } from 'App/Models/TimelineType';
+import TimelineType, {
+  ATTENDANCE_UUID,
+  HOSPITALIZATION_UUID,
+} from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
@@ -409,16 +412,19 @@ export default class HospitalizationService {
         status: data.status,
       });
 
-      const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
-        client: trx,
-      });
+      const hospitalizationTimelineInfo = await TimelineType.findOrFail(
+        HOSPITALIZATION_UUID,
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
         timeline_id: HOSPITALIZATION_UUID,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: hospitalizationTimelineInfo.description,
+          color: hospitalizationTimelineInfo.color,
+          requires_observation: hospitalizationTimelineInfo.requiresObservation,
         },
         timeline_info: {
           tag: ent.id,
@@ -449,6 +455,35 @@ export default class HospitalizationService {
           complaint: data.complaint,
           diagnosis: data.diagnosis,
           prognosis: data.prognosis,
+        },
+      });
+
+      const attendanceTimelineInfo = await TimelineType.findOrFail(
+        ATTENDANCE_UUID,
+        {
+          client: trx,
+        },
+      );
+
+      await AnimalTimeline.create({
+        timeline_id: ATTENDANCE_UUID,
+        timeline_type: {
+          description: attendanceTimelineInfo.description,
+          color: attendanceTimelineInfo.color,
+          requires_observation: attendanceTimelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: ent.patient_id,
+          event: 'INTERNACAO',
+          realized: DateTime.now(),
+          complaint: data.complaint,
+          expectedDischarge: data.expectedDischarge,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
         },
       });
 

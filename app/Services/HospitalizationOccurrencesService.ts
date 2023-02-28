@@ -14,7 +14,10 @@ import Occurrence, {
   OccurrenceTypeLabels,
 } from 'App/Models/Occurrence';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
-import TimelineType, { WEIGHT_UUID } from 'App/Models/TimelineType';
+import TimelineType, {
+  ATTENDANCE_UUID,
+  WEIGHT_UUID,
+} from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
@@ -121,6 +124,10 @@ export default class HospitalizationOccurrencesService {
       }
 
       if (occurrence.type === OccurrenceType.OBITO) {
+        const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+          client: trx,
+        });
+
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
@@ -137,6 +144,26 @@ export default class HospitalizationOccurrencesService {
             name: user.name,
           },
           attachments: hospAttachments.map(a => a.attachment),
+        });
+
+        await AnimalTimeline.create({
+          timeline_id: ATTENDANCE_UUID,
+          timeline_type: {
+            description: timelineInfo.description,
+            color: timelineInfo.color,
+            requires_observation: timelineInfo.requiresObservation,
+          },
+          timeline_info: {
+            tag: hospitalization.patient_id,
+            event: 'OBITO',
+            realized: DateTime.now(),
+            resume: data.resume,
+            description: data.description,
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+          },
         });
       }
 
@@ -194,6 +221,50 @@ export default class HospitalizationOccurrencesService {
         //   description: data.description,
         //   resume: data.resume,
         // });
+      }
+
+      if (occurrence.type === OccurrenceType.ALTA_INTERNACAO) {
+        const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+          client: trx,
+        });
+
+        // await HospitalizationTimeline.create({
+        //   meta: {
+        //     hospitalization: hospitalization.id,
+        //     group: group.id,
+        //     unit: unitId,
+        //     origin: 'occurrence',
+        //   },
+        //   type: HospitalizationType[hospitalization.type],
+        //   hospitalizedAt: hospitalization.createdAt,
+        //   realizedAt: data.executedAt,
+        //   issuedAt: DateTime.now(),
+        //   technician: {
+        //     id: user.id,
+        //     name: user.name,
+        //   },
+        //   attachments: hospAttachments.map(a => a.attachment),
+        // });
+
+        await AnimalTimeline.create({
+          timeline_id: ATTENDANCE_UUID,
+          timeline_type: {
+            description: timelineInfo.description,
+            color: timelineInfo.color,
+            requires_observation: timelineInfo.requiresObservation,
+          },
+          timeline_info: {
+            tag: hospitalization.patient_id,
+            event: 'ALTA',
+            realized: DateTime.now(),
+            resume: data.resume,
+            description: data.description,
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+          },
+        });
       }
 
       // const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {

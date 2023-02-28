@@ -127,6 +127,10 @@ export default class BillService {
         query.preload('paymentMethod');
       }),
       bill.load('items', query => {
+        query.preload('taxRule', query => {
+          query.select(['id']);
+        });
+
         query.preload('productVariation', query => {
           query.preload('variationOptions');
           query.preload('product');

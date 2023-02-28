@@ -1,5 +1,6 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import Bill from 'App/Models/Bill';
+import TaxationGroupRule from 'App/Models/TaxationGroupRule';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
@@ -307,4 +308,9 @@ export default class BillItem extends BaseModel {
     serializeAs: null,
   })
   public tax_rule_id: string;
+
+  @belongsTo(() => TaxationGroupRule, {
+    foreignKey: 'tax_rule_id',
+  })
+  public taxRule: BelongsTo<typeof TaxationGroupRule>;
 }

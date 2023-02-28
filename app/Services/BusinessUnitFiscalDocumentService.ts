@@ -119,6 +119,14 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
+      if (bill.items.some(i => !i.tax_rule_id)) {
+        throw new BadRequestException(
+          'Item da Nota não tem imposto definido',
+          400,
+          'E_NO_TAX_RULE',
+        );
+      }
+
       const document = await BusinessUnitFiscalDocument.findOrFail(
         data.unitFiscalDocumentId,
         {

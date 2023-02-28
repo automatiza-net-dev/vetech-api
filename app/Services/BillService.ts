@@ -311,12 +311,12 @@ export default class BillService {
       const validItems = await Promise.all(items);
 
       const totalProductValue = validItems.reduce(
-        (acc, item) => acc + item.totalValue,
+        (acc, item) => acc + (item.totalValue ?? 0),
         0,
       );
 
       const totalDiscountValue = validItems.reduce(
-        (acc, item) => acc + item.discountValue,
+        (acc, item) => acc + (item.discountValue ?? 0),
         0,
       );
 
@@ -326,44 +326,68 @@ export default class BillService {
           serviceValue: 0,
           discountValue: totalDiscountValue,
           totalValue: totalProductValue - totalDiscountValue,
-          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
-          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsBase: validItems.reduce(
+            (acc, item) => acc + (item.icmsBase ?? 0),
+            0,
+          ),
+          icmsValue: validItems.reduce(
+            (acc, item) => acc + (item.icmsValue ?? 0),
+            0,
+          ),
           icmsStBase: validItems.reduce(
-            (acc, item) => acc + item.icmsStBase,
+            (acc, item) => acc + (item.icmsStBase ?? 0),
             0,
           ),
           icmsStValue: validItems.reduce(
-            (acc, item) => acc + item.icmsStValue,
+            (acc, item) => acc + (item.icmsStValue ?? 0),
             0,
           ),
-          issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
-          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
-          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
-          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          issBase: validItems.reduce(
+            (acc, item) => acc + (item.issBase ?? 0),
+            0,
+          ),
+          issValue: validItems.reduce(
+            (acc, item) => acc + (item.issValue ?? 0),
+            0,
+          ),
+          pisBase: validItems.reduce(
+            (acc, item) => acc + (item.pisBase ?? 0),
+            0,
+          ),
+          pisValue: validItems.reduce(
+            (acc, item) => acc + (item.pisValue ?? 0),
+            0,
+          ),
           pisRetentionValue: validItems.reduce(
-            (acc, item) => acc + item.pisRetentionValue,
+            (acc, item) => acc + (item.pisRetentionValue ?? 0),
             0,
           ),
           cofinsBase: validItems.reduce(
-            (acc, item) => acc + item.cofinsBase,
+            (acc, item) => acc + (item.cofinsBase ?? 0),
             0,
           ),
           cofinsValue: validItems.reduce(
-            (acc, item) => acc + item.cofinsValue,
+            (acc, item) => acc + (item.cofinsValue ?? 0),
             0,
           ),
           cofinsRetentionValue: validItems.reduce(
-            (acc, item) => acc + item.cofinsRetentionValue,
+            (acc, item) => acc + (item.cofinsRetentionValue ?? 0),
             0,
           ),
-          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
-          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          ipiBase: validItems.reduce(
+            (acc, item) => acc + (item.ipiBase ?? 0),
+            0,
+          ),
+          ipiValue: validItems.reduce(
+            (acc, item) => acc + (item.ipiValue ?? 0),
+            0,
+          ),
           icmsDeferredValue: validItems.reduce(
-            (acc, item) => acc + item.icmsDeferredValue,
+            (acc, item) => acc + (item.icmsDeferredValue ?? 0),
             0,
           ),
           icmsFcpValue: validItems.reduce(
-            (acc, item) => acc + item.icmsFcpValue,
+            (acc, item) => acc + (item.icmsFcpValue ?? 0),
             0,
           ),
           icmsUfDestinationValue: validItems.reduce(
@@ -535,7 +559,7 @@ export default class BillService {
           pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
           pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
           pisRetentionValue: validItems.reduce(
-            (acc, item) => acc + item.pisRetentionValue,
+            (acc, item) => acc + (item.pisRetentionValue ?? 0),
             0,
           ),
           cofinsBase: validItems.reduce(
@@ -642,7 +666,7 @@ export default class BillService {
           daily_movement_id: bill.daily_movement_id,
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.client_id,
-          checking_account_id: unit.unitConfig?.sale_exit_account_plan_id,
+          checking_account_id: unit?.unitConfig?.sale_exit_account_plan_id,
           type: FinanceType.C,
           payment_method_id: paymentMethod.id,
           installment: v + 1,

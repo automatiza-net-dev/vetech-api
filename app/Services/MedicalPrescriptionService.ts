@@ -49,7 +49,6 @@ export default class MedicalPrescriptionService {
 
     const validatedData: Partial<MedicalPrescription> = {
       business_unit_id: unitId,
-      name: data.name,
       type: data.type,
       prescribedAt: data.prescribedAt,
       frequency: data.frequency,
@@ -162,7 +161,6 @@ export default class MedicalPrescriptionService {
     const { key } = this.matchSchema(data.type, data.frequency);
 
     entity.merge({
-      name: data.name,
       type: data.type,
       prescribedAt: data.prescribedAt,
       frequency: data.frequency,

@@ -11,6 +11,7 @@ import HospitalizationMedicalPrescriptionScheduling, {
 } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFluidSet,
+  MedicalPrescriptionFluidSetLabel,
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
   MedicalPrescriptionFrequencyUnit,
@@ -624,14 +625,13 @@ export default class HospitalizationMedicalPrescriptionService {
       return;
     }
 
-    const description = await this.createDescription(prescription);
+    const resume = await this.createResume(prescription);
 
     if (prescription.frequency === MedicalPrescriptionFrequency.ONCE) {
       await prescription.related('scheduling').create({
         type: prescription.type,
         frequency: prescription.frequency,
-        description,
-        resume: prescription.resume,
+        resume,
         scheduledAt: prescription.executionStart,
         hospitalization_id: prescription.hospitalization_id,
         status: HospitalizationSchedulingStatus.ACTIVE,
@@ -670,8 +670,7 @@ export default class HospitalizationMedicalPrescriptionService {
         return {
           type: prescription.type,
           frequency: prescription.frequency,
-          description,
-          resume: prescription.resume,
+          resume,
           scheduledAt,
           status: HospitalizationSchedulingStatus.ACTIVE,
           hospitalization_id: prescription.hospitalization_id,
@@ -682,21 +681,24 @@ export default class HospitalizationMedicalPrescriptionService {
     await prescription.related('scheduling').createMany(data);
   }
 
-  async createDescription(prescription: HospitalizationMedicalPrescription) {
+  async createResume(prescription: HospitalizationMedicalPrescription) {
     if (prescription.type === MedicalPrescriptionType.PROCEDURE) {
       return prescription.description;
     }
 
     await prescription.load('drugAdministration');
+    await prescription.load('prescriptionUnit');
     await prescription.load('hospitalization');
     await prescription.load('hospitalization', query => {
       query.preload('patient');
     });
 
     if (prescription.type === MedicalPrescriptionType.MEDICATION) {
-      return `${prescription.description}, ${prescription.dose}, ${
-        prescription.drugAdministration?.description
-      } (${prescription.hospitalization.patient.weight ?? ''} kg em ${format(
+      return `${prescription.description}, ${prescription.dose} ${
+        prescription.prescriptionUnit.name
+      }, ${prescription.drugAdministration?.description} (${
+        prescription.hospitalization.patient.weight ?? ''
+      } kg em ${format(
         prescription.hospitalization.patient.weightDate?.toJSDate() ??
           new Date(),
         'dd/MM/yyyy HH:mm',
@@ -705,14 +707,23 @@ export default class HospitalizationMedicalPrescriptionService {
 
     await prescription.load('fluidUnit');
 
-    return `${prescription.description}, ${prescription.fluidSpeed} ${
-      prescription.fluidUnit?.name ?? ''
-    }, ${prescription.dose}, ${prescription.supplement ?? ''} (${
-      prescription.hospitalization.patient.weight ?? ''
-    } kg em ${format(
-      prescription.hospitalization.patient.weightDate?.toJSDate() ?? new Date(),
-      'dd/MM/yyyy HH:mm',
-    )})`;
+    return `${prescription.description}, ${
+      prescription.drugAdministration.description
+    }, ${prescription.fluidSpeed} ${prescription.fluidUnit?.name ?? ''}, ${
+      MedicalPrescriptionFluidSetLabel[prescription.fluidSet]
+    }, ${prescription.dose}, ${prescription.prescriptionUnit?.name ?? ''}, ${
+      prescription.supplement ?? ''
+    }  (${prescription.hospitalization.patient.weight ?? ''} ${
+      prescription.hospitalization.patient.weightDate
+        ? [
+            'kg em ',
+            format(
+              prescription.hospitalization.patient.weightDate?.toJSDate(),
+              'dd/MM/yyyy HH:mm',
+            ),
+          ].join(' ')
+        : 'Não informado'
+    })`;
   }
 
   calculateEndDate(prescription: HospitalizationMedicalPrescription) {

@@ -14,10 +14,7 @@ import Occurrence, {
   OccurrenceTypeLabels,
 } from 'App/Models/Occurrence';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
-import TimelineType, {
-  HOSPITALIZATION_UUID,
-  WEIGHT_UUID,
-} from 'App/Models/TimelineType';
+import TimelineType, { WEIGHT_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
@@ -199,37 +196,37 @@ export default class HospitalizationOccurrencesService {
         // });
       }
 
-      const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
-        client: trx,
-      });
+      // const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
+      //   client: trx,
+      // });
 
-      await AnimalTimeline.create({
-        timeline_id: HOSPITALIZATION_UUID,
-        timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
-        },
-        timeline_info: {
-          tag: hospitalization.id,
-          hospitalization: {
-            id: hospitalization.id,
-            type: hospitalization.type,
-          },
-          complaint: hospitalization.complaint,
-          bed: {
-            id: hospitalization.bed?.id,
-            name: hospitalization.bed?.name,
-            tag: hospitalization.bed?.tag,
-          },
-          hospitalizedAt: hospitalization.createdAt,
-          completedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-        },
-      });
+      // await AnimalTimeline.create({
+      //   timeline_id: HOSPITALIZATION_UUID,
+      //   timeline_type: {
+      //     description: timelineInfo.description,
+      //     color: timelineInfo.color,
+      //     requires_observation: timelineInfo.requiresObservation,
+      //   },
+      //   timeline_info: {
+      //     tag: hospitalization.id,
+      //     hospitalization: {
+      //       id: hospitalization.id,
+      //       type: hospitalization.type,
+      //     },
+      //     complaint: hospitalization.complaint,
+      //     bed: {
+      //       id: hospitalization.bed?.id,
+      //       name: hospitalization.bed?.name,
+      //       tag: hospitalization.bed?.tag,
+      //     },
+      //     hospitalizedAt: hospitalization.createdAt,
+      //     completedAt: DateTime.now(),
+      //     technician: {
+      //       id: user.id,
+      //       name: user.name,
+      //     },
+      //   },
+      // });
 
       return ent;
     });

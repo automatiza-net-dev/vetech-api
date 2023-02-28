@@ -9,7 +9,6 @@ export default class UpdateMedicalPrescriptionValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    name: schema.string(),
     type: schema.enum(Object.values(MedicalPrescriptionType)),
     prescribedAt: schema.date(),
     frequency: schema.enum(Object.values(MedicalPrescriptionFrequency)),

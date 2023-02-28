@@ -542,7 +542,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: ATTENDANCE_UUID,
+      timeline_id: HOSPITALIZATION_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -572,7 +572,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: ATTENDANCE_UUID,
+      timeline_id: HOSPITALIZATION_UUID,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,

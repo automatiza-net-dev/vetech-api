@@ -5,7 +5,6 @@ import {
 import { DateTime } from 'luxon';
 
 export default interface IMedicalPrescriptionData {
-  name: string;
   type: MedicalPrescriptionType;
   prescribedAt: DateTime;
   frequency: MedicalPrescriptionFrequency;

@@ -40,6 +40,14 @@ export enum MedicalPrescriptionFluidSet {
   'MICRODROPS' = 'MICRODROPS',
 }
 
+export const MedicalPrescriptionFluidSetLabel: Record<
+  MedicalPrescriptionFluidSet,
+  string
+> = {
+  [MedicalPrescriptionFluidSet.MACRODROPS]: 'MacroGotas',
+  [MedicalPrescriptionFluidSet.MICRODROPS]: 'MicroGotas',
+};
+
 export default class MedicalPrescription extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

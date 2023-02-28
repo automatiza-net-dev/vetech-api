@@ -602,7 +602,6 @@ export default class BillService {
 
   async createBillPayment(unitId: string, data: ICreateBillPaymentData) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const unit = await this.sharedService.getBUnit(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);

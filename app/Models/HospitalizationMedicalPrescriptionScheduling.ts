@@ -12,6 +12,7 @@ import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
+import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -99,4 +100,9 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
     serializeAs: null,
   })
   public user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public technician: BelongsTo<typeof User>;
 }

@@ -96,12 +96,12 @@ export default class HospitalizationMedicalPrescriptionService {
 
   public async schedulingIndex(unitId: string, data: ISearchScheduling) {
     const query = HospitalizationMedicalPrescriptionScheduling.query()
-      .debug(true)
       .preload('hospitalization', query => {
         query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');
         query.preload('technician');
-      });
+      })
+      .preload('technician');
 
     if (data.hospitalization) {
       query.where('hospitalization_id', data.hospitalization);
@@ -545,6 +545,7 @@ export default class HospitalizationMedicalPrescriptionService {
           status: data.status,
           type: data.type,
           frequency: data.frequency,
+          user_id: user.id,
         })
         .useTransaction(trx)
         .save();

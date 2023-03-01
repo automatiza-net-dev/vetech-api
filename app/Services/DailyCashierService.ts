@@ -384,6 +384,7 @@ export default class DailyCashierService {
           receiptsTotal: 0,
           cashierTotal: 0,
           cashierBalance: 0,
+          closingDate: undefined,
         })
         .useTransaction(trx)
         .save();

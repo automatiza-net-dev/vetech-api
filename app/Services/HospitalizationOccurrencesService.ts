@@ -81,6 +81,25 @@ export default class HospitalizationOccurrencesService {
         client: trx,
       });
 
+      await HospitalizationTimeline.create({
+        meta: {
+          hospitalization: hospitalization.id,
+          group: group.id,
+          unit: unitId,
+          origin: 'occurrence',
+        },
+        realizedAt: data.executedAt,
+        issuedAt: DateTime.now(),
+        technician: {
+          id: user.id,
+          name: user.name,
+        },
+        description: data.description,
+        resume: data.resume,
+
+        attachments: hospAttachments.map(a => a.attachment),
+      });
+
       if (occurrence.type === OccurrenceType.OCORRENCIA) {
         await HospitalizationTimeline.create({
           meta: {
@@ -108,7 +127,7 @@ export default class HospitalizationOccurrencesService {
             hospitalization: hospitalization.id,
             group: group.id,
             unit: unitId,
-            origin: 'occurrence',
+            origin: 'report_occurrence',
           },
           type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
           realizedAt: data.executedAt,
@@ -133,7 +152,7 @@ export default class HospitalizationOccurrencesService {
             hospitalization: hospitalization.id,
             group: group.id,
             unit: unitId,
-            origin: 'occurrence',
+            origin: 'death_occurrence',
           },
           type: HospitalizationType[hospitalization.type],
           hospitalizedAt: hospitalization.createdAt,
@@ -203,24 +222,24 @@ export default class HospitalizationOccurrencesService {
           },
         });
 
-        // await HospitalizationTimeline.create({
-        //   meta: {
-        //     hospitalization: hospitalization.id,
-        //     group: group.id,
-        //     unit: unitId,
-        //     origin: 'occurrence',
-        //   },
-        //   type: HospitalizationType[hospitalization.type],
-        //   hospitalizedAt: hospitalization.createdAt,
-        //   realizedAt: data.executedAt,
-        //   issuedAt: DateTime.now(),
-        //   technician: {
-        //     id: user.id,
-        //     name: user.name,
-        //   },
-        //   description: data.description,
-        //   resume: data.resume,
-        // });
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'weight_occurrence',
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+        });
       }
 
       if (occurrence.type === OccurrenceType.ALTA_INTERNACAO) {

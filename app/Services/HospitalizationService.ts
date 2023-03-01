@@ -381,7 +381,7 @@ export default class HospitalizationService {
           hospitalization: ent.id,
           group: group.id,
           unit: unitId,
-          origin: 'hospitalization',
+          type: 'begin_hospitalization',
         },
         tutor: {
           id: tutor.id,
@@ -410,52 +410,6 @@ export default class HospitalizationService {
           tag: bed?.tag,
         },
         status: data.status,
-      });
-
-      const hospitalizationTimelineInfo = await TimelineType.findOrFail(
-        HOSPITALIZATION_UUID,
-        {
-          client: trx,
-        },
-      );
-
-      await AnimalTimeline.create({
-        timeline_id: HOSPITALIZATION_UUID,
-        timeline_type: {
-          description: hospitalizationTimelineInfo.description,
-          color: hospitalizationTimelineInfo.color,
-          requires_observation: hospitalizationTimelineInfo.requiresObservation,
-        },
-        timeline_info: {
-          tag: ent.id,
-          hospitalization: {
-            id: ent.id,
-            type: HospitalizationType[data.type],
-            risk: data.risk,
-          },
-          realized: DateTime.now(),
-          expectedDischarge: data.expectedDischarge,
-          bed: {
-            id: bed?.id,
-            name: bed?.name,
-            tag: bed?.tag,
-          },
-          technician: {
-            id: technician.id,
-            name: technician.name,
-          },
-          patient: {
-            id: patient.id,
-            name: patient.name,
-          },
-          tutor: {
-            id: tutor.id,
-            name: tutor.name,
-          },
-          complaint: data.complaint,
-          diagnosis: data.diagnosis,
-          prognosis: data.prognosis,
-        },
       });
 
       const attendanceTimelineInfo = await TimelineType.findOrFail(
@@ -641,10 +595,6 @@ export default class HospitalizationService {
         .useTransaction(trx)
         .save();
 
-      const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
-        client: trx,
-      });
-
       await HospitalizationTimeline.create({
         meta: {
           hospitalization: hospitalization.id,
@@ -669,29 +619,28 @@ export default class HospitalizationService {
         },
       });
 
+      const attendanceTimelineInfo = await TimelineType.findOrFail(
+        ATTENDANCE_UUID,
+        {
+          client: trx,
+        },
+      );
+
       await AnimalTimeline.create({
-        timeline_id: HOSPITALIZATION_UUID,
+        timeline_id: ATTENDANCE_UUID,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: attendanceTimelineInfo.description,
+          color: attendanceTimelineInfo.color,
+          requires_observation: attendanceTimelineInfo.requiresObservation,
         },
         timeline_info: {
-          tag: hospitalization.id,
-          hospitalization: {
-            id: hospitalization.id,
-            type: hospitalization.type,
-          },
-          complaint: hospitalization.complaint,
-          bed: {
-            id: hospitalization.bed?.id,
-            name: hospitalization.bed?.name,
-            tag: hospitalization.bed?.tag,
-          },
-          hospitalizedAt: updatedHospitalization.createdAt,
-          releasedAt: updatedHospitalization.releasedAt,
-          deathAt: updatedHospitalization.deathAt,
-          completedAt: DateTime.now(),
+          tag: updatedHospitalization.patient_id,
+          event: 'ALTA',
+          realized: DateTime.now(),
+          complaint: updatedHospitalization.complaint,
+          expectedDischarge: updatedHospitalization.expectedDischarge,
+          diagnosis: updatedHospitalization.diagnosis,
+          prognosis: updatedHospitalization.prognosis,
           technician: {
             id: user.id,
             name: user.name,

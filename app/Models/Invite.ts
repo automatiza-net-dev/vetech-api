@@ -22,8 +22,15 @@ export default class Invite extends BaseModel {
   })
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
 
   @column()
   public role_id: number;

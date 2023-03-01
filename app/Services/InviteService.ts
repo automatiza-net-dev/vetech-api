@@ -23,6 +23,7 @@ export default class InviteService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(user: User, unitId: string): Promise<Array<Invite>> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
     const qb = Invite.query().where('active', true);
@@ -31,7 +32,7 @@ export default class InviteService {
       return qb;
     }
 
-    return qb.where('business_unit_id', unitId);
+    return qb.where('economic_group_id', group.id);
   }
 
   public async store(user: User, data: IInviteData): Promise<Invite> {

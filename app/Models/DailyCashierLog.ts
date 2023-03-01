@@ -90,7 +90,7 @@ export default class DailyCashierLog extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_reopened_id: string;
+  public user_who_reopened_id: string | null;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_reopened_id',
@@ -100,7 +100,7 @@ export default class DailyCashierLog extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_closed_id: string;
+  public user_who_closed_id: string | null;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_closed_id',

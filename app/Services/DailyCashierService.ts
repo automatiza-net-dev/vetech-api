@@ -384,7 +384,8 @@ export default class DailyCashierService {
           receiptsTotal: 0,
           cashierTotal: 0,
           cashierBalance: 0,
-          closingDate: undefined,
+          closingDate: null,
+          user_who_closed_id: null,
         })
         .useTransaction(trx)
         .save();

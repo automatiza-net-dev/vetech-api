@@ -37,17 +37,17 @@ export default class DailyCashier extends BaseModel {
   @column.dateTime({
     columnName: 'closing_date',
   })
-  public closingDate: DateTime;
+  public closingDate: DateTime | null;
 
   @column.dateTime({
     columnName: 'revision_date',
   })
-  public revisionDate: DateTime;
+  public revisionDate: DateTime | null;
 
   @column.dateTime({
     columnName: 'checking_date',
   })
-  public checkingDate: DateTime;
+  public checkingDate: DateTime | null;
 
   @column({
     columnName: 'opening_balance',
@@ -151,7 +151,7 @@ export default class DailyCashier extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_closed_id: string;
+  public user_who_closed_id: string | null;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_closed_id',
@@ -161,7 +161,7 @@ export default class DailyCashier extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_checked_id: string;
+  public user_who_checked_id: string | null;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_checked_id',
@@ -171,7 +171,7 @@ export default class DailyCashier extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public user_who_revised_id: string;
+  public user_who_revised_id: string | null;
 
   @belongsTo(() => User, {
     foreignKey: 'user_who_revised_id',

@@ -17,7 +17,7 @@ export default class WorkingDayService {
     const qb = unit
       .related('workingDays')
       .query()
-      .orderBy('weekday_index', 'desc');
+      .orderBy('weekday_index', 'asc');
 
     const days = !user ? await qb : await qb.where('user_id', user);
 

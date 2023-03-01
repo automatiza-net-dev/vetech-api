@@ -1,9 +1,9 @@
 import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import User from 'App/Models/User';
-import ScheduleServiceGroupService from 'App/Services/ScheduleServiceGroupService';
 import SharedService from 'App/Services/SharedService';
 import IScheduleServiceTypeData from 'Contracts/interfaces/IScheduleServiceTypeData';
 import { v4 } from 'uuid';
@@ -15,10 +15,7 @@ interface ISearch {
 
 @inject()
 export default class ScheduleServiceTypeService {
-  constructor(
-    private readonly sharedService: SharedService,
-    private readonly groupService: ScheduleServiceGroupService,
-  ) {}
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(
     user: User,
@@ -82,14 +79,12 @@ export default class ScheduleServiceTypeService {
   }
 
   public async store(
-    user: User,
+    _: User,
     unitId: string,
     data: Omit<IScheduleServiceTypeData, 'active'>,
   ): Promise<ScheduleServiceType> {
     const group = await this.sharedService.getUserGroup(unitId);
-    const serviceGroup = await this.groupService.show(
-      user,
-      unitId,
+    const serviceGroup = await ScheduleServiceGroup.findOrFail(
       data.scheduleServiceGroupId,
     );
 
@@ -106,15 +101,27 @@ export default class ScheduleServiceTypeService {
   }
 
   public async update(
-    user: User,
-    unitId: string,
+    _: User,
+    __: string,
     id: string,
     data: IScheduleServiceTypeData,
   ): Promise<ScheduleServiceType> {
-    const schedule = await this.show(user, unitId, id);
+    const schedule = await ScheduleServiceType.find(id);
 
-    if (data.scheduleServiceGroupId !== schedule.schedule_service_group_id) {
-      await this.groupService.show(user, unitId, data.scheduleServiceGroupId);
+    if (!schedule) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    if (!schedule.economic_group_id) {
+      throw new BadRequestException(
+        'Recurso do sistema',
+        400,
+        'E_SYSTEM_RESOURCE',
+      );
     }
 
     return schedule
@@ -130,8 +137,24 @@ export default class ScheduleServiceTypeService {
       .save();
   }
 
-  public async destroy(user: User, unitId: string, id: string): Promise<void> {
-    const schedule = await this.show(user, unitId, id);
+  public async destroy(_: User, __: string, id: string): Promise<void> {
+    const schedule = await ScheduleServiceType.find(id);
+
+    if (!schedule) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    if (!schedule.economic_group_id) {
+      throw new BadRequestException(
+        'Recurso do sistema',
+        400,
+        'E_SYSTEM_RESOURCE',
+      );
+    }
 
     await schedule.softDelete();
   }

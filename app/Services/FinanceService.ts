@@ -65,27 +65,27 @@ export default class FinanceService {
     const qb = Finance.query().whereIn('business_unit_id', units);
 
     if (data.fromIssueDate) {
-      qb.where('issue_date', '>=', data.fromIssueDate);
+      qb.where('issue_date', '>=', new Date(data.fromIssueDate));
     }
 
     if (data.toIssueDate) {
-      qb.where('issue_date', '<=', data.toIssueDate);
+      qb.where('issue_date', '<=', new Date(data.toIssueDate));
     }
 
     if (data.fromExpirationDate) {
-      qb.where('expiration_date', '>=', data.fromExpirationDate);
+      qb.where('expiration_date', '>=', new Date(data.fromExpirationDate));
     }
 
     if (data.toExpirationDate) {
-      qb.where('expiration_date', '<=', data.toExpirationDate);
+      qb.where('expiration_date', '<=', new Date(data.toExpirationDate));
     }
 
     if (data.fromPaymentDate) {
-      qb.where('payment_date', '>=', data.fromPaymentDate);
+      qb.where('payment_date', '>=', new Date(data.fromPaymentDate));
     }
 
     if (data.toPaymentDate) {
-      qb.where('payment_date', '<=', data.toPaymentDate);
+      qb.where('payment_date', '<=', new Date(data.toPaymentDate));
     }
 
     if (data.client) {

@@ -7,6 +7,7 @@ import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
@@ -29,10 +30,7 @@ import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
 import ICreateAppointment from 'Contracts/interfaces/ICreateAppointment';
 import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
-import {
-  ICreateTimelineDischarge,
-  ICreateTimelineHospitalization,
-} from 'Contracts/interfaces/ICreateTimelineHospitalization';
+import { ICreateTimelineDischarge } from 'Contracts/interfaces/ICreateTimelineHospitalization';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
@@ -530,41 +528,41 @@ export default class TimelineService {
   }
 
   public async hospitalizationIndex(tag: string) {
-    return AnimalTimeline.find({
+    return HospitalizationTimeline.find({
       timeline_id: HOSPITALIZATION_UUID,
-      'timeline_info.tag': tag,
+      'patient.id': tag,
     });
   }
 
-  public async storeHospitalization(data: ICreateTimelineHospitalization) {
-    const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
+  // public async storeHospitalization(data: ICreateTimelineHospitalization) {
+  //   const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
 
-    const technician = await User.findOrFail(data.technicianId);
+  //   const technician = await User.findOrFail(data.technicianId);
 
-    return AnimalTimeline.create({
-      timeline_id: HOSPITALIZATION_UUID,
-      timeline_type: {
-        description: timelineInfo.description,
-        color: timelineInfo.color,
-        requires_observation: timelineInfo.requiresObservation,
-      },
-      timeline_info: {
-        tag: data.tag,
-        type: 'hospitalization',
-        technician: {
-          id: technician.id,
-          name: technician.name,
-        },
-        situation: data.situation,
-        box: data.box,
-        risk: data.risk,
-        expectedDate: data.expectedDate.toJSDate(),
-        complaint: data.complaint,
-        diagnosis: data.diagnosis,
-        prognosis: data.prognosis,
-      },
-    });
-  }
+  //   return AnimalTimeline.create({
+  //     timeline_id: HOSPITALIZATION_UUID,
+  //     timeline_type: {
+  //       description: timelineInfo.description,
+  //       color: timelineInfo.color,
+  //       requires_observation: timelineInfo.requiresObservation,
+  //     },
+  //     timeline_info: {
+  //       tag: data.tag,
+  //       type: 'hospitalization',
+  //       technician: {
+  //         id: technician.id,
+  //         name: technician.name,
+  //       },
+  //       situation: data.situation,
+  //       box: data.box,
+  //       risk: data.risk,
+  //       expectedDate: data.expectedDate.toJSDate(),
+  //       complaint: data.complaint,
+  //       diagnosis: data.diagnosis,
+  //       prognosis: data.prognosis,
+  //     },
+  //   });
+  // }
 
   public async storeDischarge(data: ICreateTimelineDischarge) {
     const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);

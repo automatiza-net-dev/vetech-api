@@ -5,7 +5,6 @@ import CreateAnimalAppointmentValidator from 'App/Validators/Timeline/CreateAnim
 import CreateAnimalDischargeValidator from 'App/Validators/Timeline/CreateAnimalDischargeValidator';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
 import CreateAnimalExamValidator from 'App/Validators/Timeline/CreateAnimalExamValidator';
-import CreateAnimalHospitalizationValidator from 'App/Validators/Timeline/CreateAnimalHospitalization';
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
@@ -174,16 +173,16 @@ export default class TimelinesController {
     );
   }
 
-  public async hospitalizationStore({
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      CreateAnimalHospitalizationValidator,
-    );
-    await this.timelineService.storeHospitalization(payload);
-    return response.created();
-  }
+  // public async hospitalizationStore({
+  //   request,
+  //   response,
+  // }: HttpContextContract) {
+  //   const payload = await request.validate(
+  //     CreateAnimalHospitalizationValidator,
+  //   );
+  //   await this.timelineService.storeHospitalization(payload);
+  //   return response.created();
+  // }
 
   public async dischargeStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalDischargeValidator);

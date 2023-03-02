@@ -54,26 +54,24 @@ export default class ScheduleServiceTypeService {
     unitId: string,
     id: string,
   ): Promise<ScheduleServiceType> {
-    const type = await ScheduleServiceType.find(id);
-
-    const exception = new ResourceNotFoundException(
-      'Recurso não encontrado',
-      404,
-      'E_NOT_FOUND',
-    );
-
-    if (!type) throw exception;
-
+    const group = await this.sharedService.getUserGroup(unitId);
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    await type.load('product');
-
-    if (isSuperAdmin) {
-      return type;
+    const qb = ScheduleServiceType.query().where('id', id);
+    if (!isSuperAdmin) {
+      qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ]);
     }
 
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (type.economic_group_id !== group.id) throw exception;
+    const type = await qb.first();
+    if (!type) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
 
     return type;
   }

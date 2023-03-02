@@ -1,8 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
+import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Exam from 'App/Models/Exam';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import PatientExam from 'App/Models/PatientExam';
+import TimelineType, { EXAM_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import IPatientExamData, {
   IPatientExamAttachmentData,
@@ -57,16 +61,51 @@ export default class PatientExamService {
   }
 
   public async store(unitId: string, user: User, data: IPatientExamData) {
-    return PatientExam.create({
-      realizedAt: data.realizedAt,
-      laboratory: data.laboratory,
-      report: data.report,
-      business_id: unitId,
-      exam_id: data.examId,
-      patient_id: data.patientId,
-      schedule_id: data.scheduleId,
-      user_id: user.id,
-      solicitor_id: data.solicitorId,
+    return Database.transaction(async trx => {
+      const exam = await Exam.findOrFail(data.examId, {
+        client: trx,
+      });
+
+      const patientExam = await PatientExam.create(
+        {
+          realizedAt: data.realizedAt,
+          laboratory: data.laboratory,
+          report: data.report,
+          business_id: unitId,
+          exam_id: data.examId,
+          patient_id: data.patientId,
+          schedule_id: data.scheduleId,
+          user_id: user.id,
+          solicitor_id: data.solicitorId,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+
+      await AnimalTimeline.create({
+        timeline_id: EXAM_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: patientExam.patient_id,
+          realizedAt: DateTime.now(),
+          laboratory: data.laboratory,
+          report: data.report,
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          exam: {
+            id: exam.id,
+          },
+        },
+      });
     });
   }
 
@@ -84,22 +123,40 @@ export default class PatientExamService {
       throw new ResourceNotFoundException('Recurso não encontrado');
     }
 
-    ent.merge({
-      realizedAt: data.realizedAt,
-      laboratory: data.laboratory,
-      report: data.report,
-      business_id: unitId,
-      patient_id: data.patientId,
-      schedule_id: data.scheduleId,
-      executedAt: data.executedAt,
-      executioner_id: data.executionerId,
-      resultDate: data.resultDate,
-      solicitor_id: data.solicitorId,
-      status: data.status,
-      releasedAt: data.releasedAt,
-    });
+    return Database.transaction(async trx => {
+      const updatedExam = await ent
+        .merge({
+          realizedAt: data.realizedAt,
+          laboratory: data.laboratory,
+          report: data.report,
+          business_id: unitId,
+          patient_id: data.patientId,
+          schedule_id: data.scheduleId,
+          executedAt: data.executedAt,
+          executioner_id: data.executionerId,
+          resultDate: data.resultDate,
+          solicitor_id: data.solicitorId,
+          status: data.status,
+          releasedAt: data.releasedAt,
+        })
+        .useTransaction(trx)
+        .save();
 
-    return ent.save();
+      await AnimalTimeline.updateOne(
+        {
+          timeline_id: EXAM_UUID,
+          'exam.id': updatedExam.exam_id,
+        },
+        {
+          $set: {
+            laboratory: data.laboratory,
+            report: data.report,
+          },
+        },
+      );
+
+      return updatedExam;
+    });
   }
 
   public async destroy(unitId: string, id: string) {

@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 
 export default interface IPatientExamData {
   realizedAt?: DateTime;
-  laboratory: string;
+  laboratory?: string;
   report: string;
   examId: string;
   patientId: string;

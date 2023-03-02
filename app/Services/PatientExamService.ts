@@ -94,7 +94,7 @@ export default class PatientExamService {
         },
         timeline_info: {
           tag: patientExam.patient_id,
-          realizedAt: DateTime.now(),
+          realizedAt: data.realizedAt,
           laboratory: data.laboratory,
           report: data.report,
           technician: {
@@ -103,6 +103,7 @@ export default class PatientExamService {
           },
           exam: {
             id: exam.id,
+            name: exam.name,
           },
         },
       });

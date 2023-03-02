@@ -170,7 +170,7 @@ export default class AttendanceService {
       await AnimalTimeline.updateOne(
         {
           timeline_id: ATTENDANCE_UUID,
-          'timeline_info.appointment.id': model.id,
+          'timeline_info.tag': model.patient_id,
         },
         {
           $set: {

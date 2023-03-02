@@ -88,16 +88,17 @@ export default class HospitalizationOccurrencesService {
           unit: unitId,
           origin: 'occurrence',
         },
-        realizedAt: data.executedAt,
-        issuedAt: DateTime.now(),
-        technician: {
-          id: user.id,
-          name: user.name,
+        data: {
+          realizedAt: data.executedAt,
+          issuedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          description: data.description,
+          resume: data.resume,
+          attachments: hospAttachments.map(a => a.attachment),
         },
-        description: data.description,
-        resume: data.resume,
-
-        attachments: hospAttachments.map(a => a.attachment),
       });
 
       if (occurrence.type === OccurrenceType.OCORRENCIA) {
@@ -108,16 +109,18 @@ export default class HospitalizationOccurrencesService {
             unit: unitId,
             origin: 'occurrence',
           },
-          type: OccurrenceTypeLabels[OccurrenceType.OCORRENCIA],
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
+          data: {
+            type: OccurrenceTypeLabels[OccurrenceType.OCORRENCIA],
+            realizedAt: data.executedAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            description: data.description,
+            resume: data.resume,
+            attachments: hospAttachments.map(a => a.attachment),
           },
-          description: data.description,
-          resume: data.resume,
-          attachments: hospAttachments.map(a => a.attachment),
         });
       }
 
@@ -129,16 +132,18 @@ export default class HospitalizationOccurrencesService {
             unit: unitId,
             origin: 'report_occurrence',
           },
-          type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
+          data: {
+            type: OccurrenceTypeLabels[OccurrenceType.RELATORIO_MEDICO],
+            realizedAt: data.executedAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            description: data.description,
+            resume: data.resume,
+            attachments: hospAttachments.map(a => a.attachment),
           },
-          description: data.description,
-          resume: data.resume,
-          attachments: hospAttachments.map(a => a.attachment),
         });
       }
 
@@ -154,15 +159,17 @@ export default class HospitalizationOccurrencesService {
             unit: unitId,
             origin: 'death_occurrence',
           },
-          type: HospitalizationType[hospitalization.type],
-          hospitalizedAt: hospitalization.createdAt,
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            realizedAt: data.executedAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            attachments: hospAttachments.map(a => a.attachment),
           },
-          attachments: hospAttachments.map(a => a.attachment),
         });
 
         await AnimalTimeline.create({
@@ -229,16 +236,18 @@ export default class HospitalizationOccurrencesService {
             unit: unitId,
             origin: 'weight_occurrence',
           },
-          type: HospitalizationType[hospitalization.type],
-          hospitalizedAt: hospitalization.createdAt,
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            realizedAt: data.executedAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            description: data.description,
+            resume: data.resume,
           },
-          description: data.description,
-          resume: data.resume,
         });
       }
 

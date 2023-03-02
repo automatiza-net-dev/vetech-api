@@ -383,33 +383,35 @@ export default class HospitalizationService {
           unit: unitId,
           type: 'begin_hospitalization',
         },
-        tutor: {
-          id: tutor.id,
-          name: tutor.name,
+        data: {
+          tutor: {
+            id: tutor.id,
+            name: tutor.name,
+          },
+          patient: {
+            id: patient.id,
+            name: patient.name,
+          },
+          user: {
+            id: technician.id,
+            name: technician.name,
+          },
+          type: HospitalizationType[data.type],
+          risk: data.risk,
+          complaint: data.complaint,
+          diagnosis: data.diagnosis,
+          prognosis: data.prognosis,
+          expectedDischarge: data.expectedDischarge,
+          hospitalizedAt: ent.createdAt,
+          releasedAt: null,
+          deathAt: null,
+          bed: {
+            id: bed?.id,
+            name: bed?.name,
+            tag: bed?.tag,
+          },
+          status: data.status,
         },
-        patient: {
-          id: patient.id,
-          name: patient.name,
-        },
-        user: {
-          id: technician.id,
-          name: technician.name,
-        },
-        type: HospitalizationType[data.type],
-        risk: data.risk,
-        complaint: data.complaint,
-        diagnosis: data.diagnosis,
-        prognosis: data.prognosis,
-        expectedDischarge: data.expectedDischarge,
-        hospitalizedAt: ent.createdAt,
-        releasedAt: null,
-        deathAt: null,
-        bed: {
-          id: bed?.id,
-          name: bed?.name,
-          tag: bed?.tag,
-        },
-        status: data.status,
       });
 
       const attendanceTimelineInfo = await TimelineType.findOrFail(

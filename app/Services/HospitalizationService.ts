@@ -392,7 +392,7 @@ export default class HospitalizationService {
             id: patient.id,
             name: patient.name,
           },
-          user: {
+          technician: {
             id: technician.id,
             name: technician.name,
           },
@@ -533,20 +533,22 @@ export default class HospitalizationService {
             unit: unitId,
             origin: 'hospitalization_completed',
           },
-          tutor: {
-            id: hospitalization.tutor.id,
-            name: hospitalization.tutor.name,
-          },
-          patient: {
-            id: hospitalization.patient.id,
-            name: hospitalization.patient.name,
-          },
-          type: HospitalizationType[hospitalization.type],
-          hospitalizedAt: hospitalization.createdAt,
-          completedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
+          data: {
+            tutor: {
+              id: hospitalization.tutor.id,
+              name: hospitalization.tutor.name,
+            },
+            patient: {
+              id: hospitalization.patient.id,
+              name: hospitalization.patient.name,
+            },
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            completedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
           },
         });
       }
@@ -604,20 +606,22 @@ export default class HospitalizationService {
           unit: unitId,
           origin: 'hospitalization_completed',
         },
-        tutor: {
-          id: hospitalization.tutor.id,
-          name: hospitalization.tutor.name,
-        },
-        patient: {
-          id: hospitalization.patient.id,
-          name: hospitalization.patient.name,
-        },
-        type: HospitalizationType[hospitalization.type],
-        hospitalizedAt: hospitalization.createdAt,
-        completedAt: DateTime.now(),
-        technician: {
-          id: user.id,
-          name: user.name,
+        data: {
+          tutor: {
+            id: hospitalization.tutor.id,
+            name: hospitalization.tutor.name,
+          },
+          patient: {
+            id: hospitalization.patient.id,
+            name: hospitalization.patient.name,
+          },
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          completedAt: DateTime.now(),
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
         },
       });
 

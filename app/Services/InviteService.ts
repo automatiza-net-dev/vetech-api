@@ -95,6 +95,7 @@ export default class InviteService {
 
       const invite = await businessUnit.related('invites').create(
         {
+          economic_group_id: businessUnit.economicGroupId,
           role_id: role.id,
           email: data.email,
           active: true,

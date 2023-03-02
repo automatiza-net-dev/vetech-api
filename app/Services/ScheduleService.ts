@@ -117,10 +117,10 @@ export default class ScheduleService {
       .whereHas('workingDays', query => {
         query.where('weekday_index', now.getDay());
       })
-      .whereHas('unavailableDays', query => {
+      .orWhereHas('unavailableDays', _ => {
         // query.where('frequency', ScheduleService.GetWD(now));
       })
-      .whereHas('schedules', query => {
+      .orWhereHas('schedules', _ => {
         // query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
       });
   }

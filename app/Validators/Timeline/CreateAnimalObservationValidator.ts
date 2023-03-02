@@ -15,7 +15,7 @@ export default class CreateAnimalObservationValidator {
     ]),
     medias: schema.array.optional().members(schema.file({})),
     observation: schema.string({}, []),
-    resume: schema.string({}, []),
+    resume: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

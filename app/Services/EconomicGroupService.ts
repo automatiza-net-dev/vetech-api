@@ -8,14 +8,21 @@ interface ISearch {
   name?: string;
 }
 
+interface ISearchUser {
+  name?: string;
+  document?: string;
+  phone?: string;
+  role?: number;
+}
+
 @inject()
 export default class EconomicGroupService {
   public async index(data: ISearch): Promise<Array<EconomicGroup>> {
     const qb = EconomicGroup.query();
 
     if (data.name) {
-      qb.where('fantasy_name', 'like', `%${data.name}%`);
-      qb.orWhere('company_name', 'like', `%${data.name}%`);
+      qb.where('fantasy_name', 'ilike', `%${data.name}%`);
+      qb.orWhere('company_name', 'ilike', `%${data.name}%`);
     }
 
     return qb;
@@ -39,14 +46,51 @@ export default class EconomicGroupService {
     id: string,
     data: IUpdateEconomicGroup,
   ): Promise<EconomicGroup> {
-    const group = await this.show(id);
+    const group = await EconomicGroup.find(id);
+
+    if (!group) {
+      throw new ResourceNotFoundException(
+        'O grupo econômico não foi encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
 
     return group.merge(data).save();
   }
 
-  public async getUsers(id: string): Promise<Array<User>> {
-    const group = await this.show(id);
-    return group.related('users').query();
+  public async getUsers(id: string, data: ISearchUser): Promise<Array<User>> {
+    const group = await EconomicGroup.find(id);
+
+    if (!group) {
+      throw new ResourceNotFoundException(
+        'O grupo econômico não foi encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    const qb = group.related('users').query().debug(true);
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    if (data.document) {
+      qb.where('document', 'ilike', `%${data.document}%`);
+    }
+
+    if (data.phone) {
+      qb.where('phone', 'ilike', `%${data.phone}%`);
+    }
+
+    if (data.role) {
+      qb.whereHas('roles', query => {
+        query.where('role_id', data.role ?? '');
+      });
+    }
+
+    return qb;
   }
 
   public async userEconomicGroups(user: User): Promise<Array<EconomicGroup>> {

@@ -134,7 +134,8 @@ export default class AttendanceService {
         },
         timeline_info: {
           tag: model.patient_id,
-          realized: DateTime.now(),
+          realizedAt: DateTime.now(),
+          finishedAt: null,
           resume: data.resume,
           protocol: data.protocol,
           technician: {
@@ -171,6 +172,7 @@ export default class AttendanceService {
         {
           timeline_id: ATTENDANCE_UUID,
           'timeline_info.tag': model.patient_id,
+          'timeline_info.attendance.id': model.id,
         },
         {
           $set: {
@@ -190,8 +192,25 @@ export default class AttendanceService {
       throw new BadRequestException('Atendimento já finalizado', 400, 'E_ERR');
     }
 
-    await model
-      .merge({ endDate: DateTime.now(), close_user_id: user.id })
-      .save();
+    await Database.transaction(async trx => {
+      await model
+        .merge({ endDate: DateTime.now(), close_user_id: user.id })
+        .useTransaction(trx)
+        .save();
+
+      await AnimalTimeline.updateOne(
+        {
+          timeline_id: ATTENDANCE_UUID,
+          'timeline_info.tag': model.patient_id,
+          'timeline_info.finishedAt': null,
+        },
+        {
+          $set: {
+            'timeline_info.finishedAt': DateTime.now().toJSDate(),
+          },
+        },
+        {},
+      );
+    });
   }
 }

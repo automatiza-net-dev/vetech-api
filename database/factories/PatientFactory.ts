@@ -21,5 +21,6 @@ export default Factory.define(Patient, ({ faker }) => {
     weight: 10,
     weightDate: DateTime.now(),
     weightOrigin: PatientWeightOrigin.A,
+    tag: '2023_00001',
   };
 }).build();

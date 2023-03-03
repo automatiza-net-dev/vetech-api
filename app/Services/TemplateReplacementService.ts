@@ -15,7 +15,7 @@ import SharedService from 'App/Services/SharedService';
 import ITemplateReplacementData, {
   ITemplateReplacementParser,
 } from 'Contracts/interfaces/ITemplateReplacementData';
-import { format } from 'date-fns';
+import { differenceInYears, format } from 'date-fns';
 import * as Locales from 'date-fns/locale';
 
 interface ISearch {
@@ -222,6 +222,7 @@ export default class TemplateReplacementService {
       document: tutor.tutor.document,
       cellphone: tutor.tutor.cellphone,
       email: tutor.tutor.email,
+      inscription: tutor.tutor.inscription,
     };
   }
 
@@ -263,6 +264,14 @@ export default class TemplateReplacementService {
       race: patient.patientAnimal.race?.description,
       specie: patient.patientAnimal.race?.specie?.description,
       vaccinated: calculateVaccine(patient.vaccineOrigin),
+      numeric_age: patient.birthDate
+        ? differenceInYears(new Date(), patient.birthDate)
+        : null,
+      birthDate: patient.birthDate
+        ? format(patient.birthDate, 'dd/MM/yyyy', {
+            locale: Locales.ptBR,
+          })
+        : null,
     };
   }
 

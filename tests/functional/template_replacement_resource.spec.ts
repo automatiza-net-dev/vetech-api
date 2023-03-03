@@ -38,6 +38,7 @@ test.group('Template replacement resource', group => {
       document: '|DOCUMENT',
       cellphone: '|CELLPHONE|',
       email: '|EMAIL|',
+      inscription: '|INSCRIPTION|',
     });
 
     const specie = await Specie.create({
@@ -210,8 +211,6 @@ test.group('Template replacement resource', group => {
       })
       .bearerToken(token);
 
-    console.log(response.body());
-
     assert.equal(200, response.status());
   });
 
@@ -251,7 +250,7 @@ test.group('Template replacement resource', group => {
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[TUTOR_NOME] [TUTOR_PRIMEIRONOME] [TUTOR_ENDERECO] [TUTOR_BAIRRO] [TUTOR_CIDADE] [TUTOR_UF] [TUTOR_CEP] [TUTOR_CPF] [TUTOR_TELEFONE] [TUTOR_EMAIL]`,
+        base: `[TUTOR_NOME] [TUTOR_PRIMEIRONOME] [TUTOR_ENDERECO] [TUTOR_BAIRRO] [TUTOR_CIDADE] [TUTOR_UF] [TUTOR_CEP] [TUTOR_CPF] [TUTOR_TELEFONE] [TUTOR_EMAIL] [TUTOR_RG]`,
         tutorId: tutor.id,
       })
       .bearerToken(token);
@@ -266,17 +265,10 @@ test.group('Template replacement resource', group => {
       password: '102030',
     });
 
-    // const patientTemplate = await TemplateReplacement.create({
-    //   economic_group_id: ecoGroup.id,
-    //   origin: TemplateReplacementOrigin.PATIENT,
-    //   attribute: 'name',
-    //   replacer: '[[NAME]]',
-    // });
-
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO]`,
+        base: `[PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO] [PACIENTE_ID] [PACIENTE_IDADE] [PACIENTE_NASCIMENTO]`,
         dependentId: patient.id,
       })
       .bearerToken(token);

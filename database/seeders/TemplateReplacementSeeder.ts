@@ -10,26 +10,26 @@ export default class extends BaseSeeder {
       attribute: 'name',
       replacer: '[PACIENTE_NOME]',
     },
-    // {
-    //   origin: TemplateReplacementOrigin.PATIENT,
-    //   attribute: 'rg',
-    //   replacer: '[PACIENTE_ID]',
-    // },
+    {
+      origin: TemplateReplacementOrigin.PATIENT,
+      attribute: 'tag',
+      replacer: '[PACIENTE_ID]',
+    },
     {
       origin: TemplateReplacementOrigin.PATIENT,
       attribute: 'gender',
       replacer: '[PACIENTE_SEXO]',
     },
-    // {
-    //   origin: TemplateReplacementOrigin.PATIENT,
-    //   attribute: 'numeric_age',
-    //   replacer: '[PACIENTE_IDADE]',
-    // },
-    // {
-    //   origin: TemplateReplacementOrigin.PATIENT,
-    //   attribute: 'age',
-    //   replacer: '[PACIENTE_NASCIMENTO]',
-    // },
+    {
+      origin: TemplateReplacementOrigin.PATIENT,
+      attribute: 'numeric_age',
+      replacer: '[PACIENTE_IDADE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.PATIENT,
+      attribute: 'birthDate',
+      replacer: '[PACIENTE_NASCIMENTO]',
+    },
     {
       origin: TemplateReplacementOrigin.PATIENT,
       attribute: 'hair',
@@ -95,6 +95,11 @@ export default class extends BaseSeeder {
       origin: TemplateReplacementOrigin.TUTOR,
       attribute: 'document',
       replacer: '[TUTOR_CPF]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'inscription',
+      replacer: '[TUTOR_RG]',
     },
     {
       origin: TemplateReplacementOrigin.TUTOR,

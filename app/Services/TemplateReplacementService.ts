@@ -32,7 +32,10 @@ export default class TemplateReplacementService {
   async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = TemplateReplacement.query().where('economic_group_id', group.id);
+    const qb = TemplateReplacement.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
+    );
 
     if (data.origin) {
       qb.where('origin', data.origin);

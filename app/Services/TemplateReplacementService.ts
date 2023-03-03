@@ -133,8 +133,7 @@ export default class TemplateReplacementService {
     }
 
     if (data.userId) {
-      const user = await User.findOrFail(data.userId);
-      textData.USER = user.toObject();
+      textData.USER = await this.fetchUser(data.userId, data.businessUnitId);
     }
 
     if (data.scheduleId) {
@@ -276,5 +275,24 @@ export default class TemplateReplacementService {
       companyName: model.companyName,
       postalCode: model.postalCode,
     };
+  }
+
+  async fetchUser(id: string, unitId: string | undefined) {
+    const model = await User.query().where('id', id).firstOrFail();
+    const related = {
+      ...model.toJSON(),
+    };
+
+    if (unitId) {
+      const userRole = await model
+        .related('roles')
+        .query()
+        .where('unit_id', unitId)
+        .preload('role')
+        .first();
+      related.role = userRole?.role?.name;
+    }
+
+    return related;
   }
 }

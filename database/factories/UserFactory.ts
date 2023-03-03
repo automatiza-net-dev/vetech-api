@@ -7,5 +7,6 @@ export default Factory.define(User, ({ faker }) => {
     email: faker.internet.email(),
     password: '102030',
     document: '123456789',
+    phone: '|PHONE|',
   };
 }).build();

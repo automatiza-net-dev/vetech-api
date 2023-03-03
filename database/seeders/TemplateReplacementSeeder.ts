@@ -157,6 +157,27 @@ export default class extends BaseSeeder {
       attribute: 'email',
       replacer: '[CLINICA_EMAIL]',
     },
+
+    {
+      origin: TemplateReplacementOrigin.USER,
+      attribute: 'name',
+      replacer: '[USUARIO_NOME]',
+    },
+    {
+      origin: TemplateReplacementOrigin.USER,
+      attribute: 'treatment',
+      replacer: '[USUARIO_TRATAMENTO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.USER,
+      attribute: 'phone',
+      replacer: '[USUARIO_CELULAR]',
+    },
+    {
+      origin: TemplateReplacementOrigin.USER,
+      attribute: 'role',
+      replacer: '[USUARIO_CARGO]',
+    },
   ];
   public async run() {
     await TemplateReplacement.fetchOrCreateMany('replacer', this.BASE);

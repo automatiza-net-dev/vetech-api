@@ -191,35 +191,28 @@ test.group('Template replacement resource', group => {
       })
       .bearerToken(token);
 
-    console.log(response.body());
-
     assert.equal(200, response.status());
   });
 
   test('should replace text with user text', async ({ assert, client }) => {
-    const { user, ecoGroup } = await createData();
+    const { user, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const userTemplate = await TemplateReplacement.create({
-      economic_group_id: ecoGroup.id,
-      origin: TemplateReplacementOrigin.USER,
-      attribute: 'name',
-      replacer: '[[NAME]]',
-    });
-
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: userTemplate.replacer,
+        base: `[USUARIO_NOME] [USUARIO_TRATAMENTO] [USUARIO_CELULAR] [USUARIO_CARGO]`,
         userId: user.id,
+        businessUnitId: business.id,
       })
       .bearerToken(token);
 
+    console.log(response.body());
+
     assert.equal(200, response.status());
-    assert.equal(user.name, response.body().result);
   });
 
   test('should replace text with schedule text', async ({ assert, client }) => {

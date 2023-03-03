@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
@@ -11,6 +12,8 @@ import SharedService from 'App/Services/SharedService';
 import ITemplateReplacementData, {
   ITemplateReplacementParser,
 } from 'Contracts/interfaces/ITemplateReplacementData';
+import { format } from 'date-fns';
+import * as Locales from 'date-fns/locale';
 
 interface ISearch {
   origin?: string;
@@ -45,6 +48,14 @@ export default class TemplateReplacementService {
 
   async store(unitId: string, data: ITemplateReplacementData) {
     const group = await this.sharedService.getUserGroup(unitId);
+
+    if (data.origin === TemplateReplacementOrigin.SYSTEM) {
+      throw new BadRequestException(
+        'Você não pode criar esse tipo',
+        400,
+        'E_ERR',
+      );
+    }
 
     return TemplateReplacement.create({
       economic_group_id: group.id,
@@ -94,12 +105,24 @@ export default class TemplateReplacementService {
   async renderText(unitId: string, data: ITemplateReplacementParser) {
     const group = await this.sharedService.getUserGroup(unitId);
 
+    const date = new Date();
     const textData: RenderTextData = {
       BUSINESS: null,
       USER: null,
       SCHEDULE: null,
       TUTOR: null,
       PATIENT: null,
+      SYSTEM: {
+        date: format(date, 'dd/MM/yyyy', {
+          locale: Locales.ptBR,
+        }),
+        dateextension: format(date, "dd 'de' MMMM 'de' yyyy", {
+          locale: Locales.ptBR,
+        }),
+        time: format(date, 'HH:mm', {
+          locale: Locales.ptBR,
+        }),
+      },
     };
 
     if (data.businessUnitId) {

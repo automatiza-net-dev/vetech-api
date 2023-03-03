@@ -53,6 +53,28 @@ test.group('Template replacement resource', group => {
     assert.isArray(response.body());
   });
 
+  test('should throw BadRequestException creating system origin', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/template-replacements/create`)
+      .json({
+        origin: TemplateReplacementOrigin.SYSTEM,
+        attribute: 'SOME',
+        replacer: '[[SOME]]',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should create template replacement', async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
@@ -251,5 +273,43 @@ test.group('Template replacement resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(patient.name, response.body().result);
+  });
+
+  test('should replace text with system date', async ({ assert, client }) => {
+    const { user, ecoGroup } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const templates = await TemplateReplacement.createMany([
+      {
+        economic_group_id: ecoGroup.id,
+        origin: TemplateReplacementOrigin.SYSTEM,
+        attribute: 'date',
+        replacer: '[SISTEMA_DATA]',
+      },
+      {
+        economic_group_id: ecoGroup.id,
+        origin: TemplateReplacementOrigin.SYSTEM,
+        attribute: 'dateextension',
+        replacer: '[SISTEMA_DATAEXTENSO]',
+      },
+      {
+        economic_group_id: ecoGroup.id,
+        origin: TemplateReplacementOrigin.SYSTEM,
+        attribute: 'time',
+        replacer: '[SISTEMA_HORA]',
+      },
+    ]);
+
+    const response = await client
+      .post(`/template-replacements/replace-text`)
+      .json({
+        base: templates.map(t => t.replacer).join(' '),
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 });

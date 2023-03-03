@@ -8,6 +8,7 @@ export enum TemplateReplacementOrigin {
   SCHEDULE = 'SCHEDULE',
   TUTOR = 'TUTOR',
   PATIENT = 'PATIENT',
+  SYSTEM = 'SYSTEM',
 }
 
 export default class TemplateReplacement extends BaseModel {

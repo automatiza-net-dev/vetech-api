@@ -1,14 +1,13 @@
 import { inject } from '@adonisjs/fold';
-import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
-import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import TimelineType, { VACCINE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import VaccineCalendar from 'App/Models/VaccineCalendar';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
 import IPatientVaccineData from 'Contracts/interfaces/IPatientVaccineData';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
 
 import PatientVaccine from '../Models/PatientVaccine';
 
@@ -54,16 +53,14 @@ export default class PatientVaccineService {
   }
 
   public async store(unitId: string, user: User, data: IPatientVaccineData) {
-    const trx = await Database.transaction();
+    return Database.transaction(async trx => {
+      const protocol = await VaccineProtocol.query()
+        .where('id', data.vaccineProtocolId)
+        .preload('vaccine')
+        .firstOrFail();
 
-    const protocol = await VaccineProtocol.findOrFail(data.vaccineProtocolId);
-
-    const id = v4();
-
-    try {
       const entity = await PatientVaccine.create(
         {
-          id,
           business_unit_id: unitId,
           user_id: data.userId ?? user.id,
           patient_id: data.patientId,
@@ -96,21 +93,46 @@ export default class PatientVaccineService {
         },
       );
 
-      await entity.related('calendars').createMany(calendars, trx);
+      const dbCalendars = await entity
+        .related('calendars')
+        .createMany(calendars, trx);
 
-      await trx.commit();
-    } catch (error) {
-      await trx.rollback();
-      Logger.error(error.message);
+      const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID, {
+        client: trx,
+      });
 
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+      await AnimalTimeline.create({
+        timeline_id: VACCINE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: entity.patient_id,
+          origin: 'new_vaccine',
+          patient_vaccine: {
+            id: entity.id,
+          },
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          vaccine: {
+            id: protocol.vaccine.id,
+            name: protocol.vaccine.name,
+            description: protocol.vaccine.description,
+          },
+          protocol: {
+            id: protocol.id,
+          },
+          issuedAt: new Date(),
+          startsAt: dbCalendars.at(0)?.schedulingDate,
+        },
+      });
 
-    return this.show(unitId, id);
+      return entity;
+    });
   }
 
   public async show(unitId: string, id: string) {

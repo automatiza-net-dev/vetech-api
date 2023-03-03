@@ -222,36 +222,26 @@ export default class TimelineService {
     });
   }
 
-  public async updatePathology(id: string, data: IAnimalPathology) {
+  public async updatePathology(
+    id: string,
+    data: Omit<IAnimalPathology, 'tag'>,
+  ) {
     const record = await AnimalTimeline.findById(id);
 
     if (!record) {
       throw new ResourceNotFoundException('Recurso não encontrado');
     }
 
-    const timelineInfo = await TimelineType.findOrFail(PATHOLOGY_UUID);
-
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {
-        timeline_id: PATHOLOGY_UUID,
-        timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
-        },
-        timeline_info: {
-          tag: data.tag,
-          pathology: data.pathology,
-          realizedAt: data.realizedAt.toJSDate(),
-          technician: {
-            id: technician.id,
-            name: technician.name,
-          },
-          description: data.description,
-          defaultProtocol: data.defaultProtocol,
-        },
+        'timeline_info.pathology': data.pathology,
+        'timeline_info.realizedAt': data.realizedAt.toJSDate(),
+        'timeline_info.technician.id': technician.id,
+        'timeline_info.technician.name': technician.name,
+        'timeline_info.description': data.description,
+        'timeline_info.defaultProtocol': data.defaultProtocol,
       },
     });
   }

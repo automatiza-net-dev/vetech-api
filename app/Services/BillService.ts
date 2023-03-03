@@ -5,7 +5,6 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Finance, {
   FinanceAccept,
@@ -17,7 +16,7 @@ import PaymentMethod from 'App/Models/PaymentMethod';
 import Product from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
-import TaxationGroupRule, { MovementType } from 'App/Models/TaxationGroupRule';
+import TaxationGroupRule from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -257,7 +256,7 @@ export default class BillService {
 
             quantity: item.quantity,
             costValue: price?.costPrice,
-            saleValue: price?.costPrice,
+            saleValue: price?.price,
             unitaryValue: item.unitaryValue,
             discountValue: item.discountValue,
             totalValue,
@@ -325,7 +324,7 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: 0,
           discountValue: totalDiscountValue,
-          totalValue: totalProductValue - totalDiscountValue,
+          totalValue: totalProductValue,
           icmsBase: validItems.reduce(
             (acc, item) => acc + (item.icmsBase ?? 0),
             0,
@@ -408,15 +407,34 @@ export default class BillService {
 
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const unit = await BusinessUnit.findOrFail(unitId);
+    // const unit = await BusinessUnit.findOrFail(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const items = await bill.related('items').query();
 
+    const productVariation = await ProductVariation.query()
+      .where('id', data.productVariationId)
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .first();
+    if (!productVariation) {
+      throw new BadRequestException(
+        'Não foi possível encontrar um preço para esse produto',
+        400,
+        'E_NO_VARIATION',
+      );
+    }
+
     const rule = await TaxationGroupRule.query()
-      .where('movement_type', MovementType.S)
-      .where('from_uf', unit.state ?? '')
-      .where('to_uf', unit.state ?? '')
+      .whereHas('taxationGroup', query => {
+        query.where('id', productVariation.product.taxation_group_id);
+      })
+      .preload('taxationGroup')
       .preload('taxOperation')
       .first();
 
@@ -439,24 +457,6 @@ export default class BillService {
     //     'E_INTERNAL_ERROR',
     //   );
     // }
-
-    const productVariation = await ProductVariation.query()
-      .where('id', data.productVariationId)
-      .whereHas('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
-      })
-      .preload('product')
-      .preload('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
-      })
-      .first();
-    if (!productVariation) {
-      throw new BadRequestException(
-        'Não foi possível encontrar um preço para esse produto',
-        400,
-        'E_NO_VARIATION',
-      );
-    }
 
     const [price] = productVariation.businessUnitProducts;
     if (!price) {
@@ -542,8 +542,22 @@ export default class BillService {
 
       const validItems = [billItem, ...items];
 
+      const totalProductValue = validItems.reduce(
+        (acc, item) => acc + (item.totalValue ?? 0),
+        0,
+      );
+
+      const totalDiscountValue = validItems.reduce(
+        (acc, item) => acc + (item.discountValue ?? 0),
+        0,
+      );
+
       await bill
         .merge({
+          productValue: totalProductValue,
+          serviceValue: 0,
+          discountValue: totalDiscountValue,
+          totalValue: totalProductValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems.reduce(
@@ -554,7 +568,10 @@ export default class BillService {
             (acc, item) => acc + item.icmsStValue,
             0,
           ),
-          issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
+          issBase: validItems.reduce(
+            (acc, item) => acc + (item.issBase ?? 0),
+            0,
+          ),
           issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
           pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
           pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),

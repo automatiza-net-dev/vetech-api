@@ -94,6 +94,9 @@ export default class PatientExamService {
         },
         timeline_info: {
           tag: patientExam.patient_id,
+          patient_exam: {
+            id: patientExam.id,
+          },
           realizedAt: data.realizedAt,
           laboratory: data.laboratory,
           report: data.report,
@@ -138,7 +141,6 @@ export default class PatientExamService {
           resultDate: data.resultDate,
           solicitor_id: data.solicitorId,
           status: data.status,
-          releasedAt: data.releasedAt,
         })
         .useTransaction(trx)
         .save();
@@ -146,12 +148,14 @@ export default class PatientExamService {
       await AnimalTimeline.updateOne(
         {
           timeline_id: EXAM_UUID,
-          'exam.id': updatedExam.exam_id,
+          'timeline_info.patient_exam.id': updatedExam.id,
         },
         {
           $set: {
-            laboratory: data.laboratory,
-            report: data.report,
+            'timeline_info.realizedAt': data.realizedAt,
+            'timeline_info.laboratory': data.laboratory,
+            'timeline_info.report': data.report,
+            'timeline_info.executedAt': data.executedAt,
           },
         },
       );

@@ -14,10 +14,7 @@ import Occurrence, {
   OccurrenceTypeLabels,
 } from 'App/Models/Occurrence';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
-import TimelineType, {
-  ATTENDANCE_UUID,
-  WEIGHT_UUID,
-} from 'App/Models/TimelineType';
+import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
@@ -194,10 +191,6 @@ export default class HospitalizationOccurrencesService {
       }
 
       if (occurrence.type === OccurrenceType.PESO) {
-        const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID, {
-          client: trx,
-        });
-
         const patient = await Patient.findOrFail(hospitalization.patient_id, {
           client: trx,
         });
@@ -210,24 +203,6 @@ export default class HospitalizationOccurrencesService {
           })
           .useTransaction(trx)
           .save();
-
-        await AnimalTimeline.create({
-          timeline_id: WEIGHT_UUID,
-          timeline_type: {
-            description: timelineInfo.description,
-            color: timelineInfo.color,
-            requires_observation: timelineInfo.requiresObservation,
-          },
-          timeline_info: {
-            weight: data.resume,
-            tag: hospitalization.patient_id,
-            realizedAt: data.executedAt,
-            technician: {
-              id: user.id,
-              name: user.name,
-            },
-          },
-        });
 
         await HospitalizationTimeline.create({
           meta: {

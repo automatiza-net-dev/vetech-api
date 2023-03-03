@@ -591,7 +591,7 @@ export default class HospitalizationService {
     }
 
     await Database.transaction(async trx => {
-      const updatedHospitalization = await hospitalization
+      await hospitalization
         .merge({
           releasedAt: DateTime.now(),
           status: HospitalizationStatus.COMPLETE,
@@ -625,34 +625,34 @@ export default class HospitalizationService {
         },
       });
 
-      const attendanceTimelineInfo = await TimelineType.findOrFail(
-        ATTENDANCE_UUID,
-        {
-          client: trx,
-        },
-      );
+      // const attendanceTimelineInfo = await TimelineType.findOrFail(
+      //   ATTENDANCE_UUID,
+      //   {
+      //     client: trx,
+      //   },
+      // );
 
-      await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
-        timeline_type: {
-          description: attendanceTimelineInfo.description,
-          color: attendanceTimelineInfo.color,
-          requires_observation: attendanceTimelineInfo.requiresObservation,
-        },
-        timeline_info: {
-          tag: updatedHospitalization.patient_id,
-          event: 'ALTA',
-          realized: DateTime.now(),
-          complaint: updatedHospitalization.complaint,
-          expectedDischarge: updatedHospitalization.expectedDischarge,
-          diagnosis: updatedHospitalization.diagnosis,
-          prognosis: updatedHospitalization.prognosis,
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-        },
-      });
+      // await AnimalTimeline.create({
+      //   timeline_id: ATTENDANCE_UUID,
+      //   timeline_type: {
+      //     description: attendanceTimelineInfo.description,
+      //     color: attendanceTimelineInfo.color,
+      //     requires_observation: attendanceTimelineInfo.requiresObservation,
+      //   },
+      //   timeline_info: {
+      //     tag: updatedHospitalization.patient_id,
+      //     event: 'ALTA',
+      //     realized: DateTime.now(),
+      //     complaint: updatedHospitalization.complaint,
+      //     expectedDischarge: updatedHospitalization.expectedDischarge,
+      //     diagnosis: updatedHospitalization.diagnosis,
+      //     prognosis: updatedHospitalization.prognosis,
+      //     technician: {
+      //       id: user.id,
+      //       name: user.name,
+      //     },
+      //   },
+      // });
     });
   }
 }

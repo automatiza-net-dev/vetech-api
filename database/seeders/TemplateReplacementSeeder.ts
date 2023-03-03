@@ -106,6 +106,57 @@ export default class extends BaseSeeder {
       attribute: 'email',
       replacer: '[TUTOR_EMAIL]',
     },
+
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'fantasyName',
+      replacer: '[CLINICA_FANTASIA]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'companyName',
+      replacer: '[CLINICA_RAZAOSOCIAL]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'document',
+      replacer: '[CLINICA_CNPJ]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'address',
+      replacer: '[CLINICA_ENDERECO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'district',
+      replacer: '[CLINICA_BAIRRO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'city',
+      replacer: '[CLINICA_CIDADE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'state',
+      replacer: '[CLINICA_UF]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'postalCode',
+      replacer: '[CLINICA_CEP]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'phone',
+      replacer: '[CLINICA_TELEFONE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.BUSINESS,
+      attribute: 'email',
+      replacer: '[CLINICA_EMAIL]',
+    },
   ];
   public async run() {
     await TemplateReplacement.fetchOrCreateMany('replacer', this.BASE);

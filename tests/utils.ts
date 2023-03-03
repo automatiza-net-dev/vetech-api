@@ -42,11 +42,17 @@ export const userBootstrap = async () => {
 
   const business = await group.related('businessUnits').create({
     id: v4(),
-    document: user.document,
-    phone: user.phone,
-    email: user.email,
-    origin: 'TESTING',
-    state: 'PB',
+    document: '|CNPJ|',
+    phone: '|PHONE|',
+    email: '|EMAIL|',
+    fantasyName: '|FANTASY_NAME|',
+    companyName: '|COMPANY_NAME|',
+    address: '|STREET|',
+    number: '|10|',
+    district: '|DISTRICT|',
+    state: '|STATE|',
+    city: '|CITY|',
+    postalCode: '|POSTAL_CODE|',
   });
 
   await business.related('unitConfig').create({

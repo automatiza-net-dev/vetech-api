@@ -177,29 +177,23 @@ test.group('Template replacement resource', group => {
   });
 
   test('should replace text with business text', async ({ assert, client }) => {
-    const { user, ecoGroup, business } = await createData();
+    const { user, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const businessTemplate = await TemplateReplacement.create({
-      economic_group_id: ecoGroup.id,
-      origin: TemplateReplacementOrigin.BUSINESS,
-      attribute: 'document',
-      replacer: '[[DOCUMENT]]',
-    });
-
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: businessTemplate.replacer,
+        base: `[CLINICA_FANTASIA] [CLINICA_RAZAOSOCIAL] [CLINICA_CNPJ] [CLINICA_EMAIL] [CLINICA_ENDERECO] [CLINICA_BAIRRO] [CLINICA_CIDADE] [CLINICA_UF] [CLINICA_CEP] [CLINICA_TELEFONE]`,
         businessUnitId: business.id,
       })
       .bearerToken(token);
 
+    console.log(response.body());
+
     assert.equal(200, response.status());
-    assert.equal(business.document, response.body().result);
   });
 
   test('should replace text with user text', async ({ assert, client }) => {

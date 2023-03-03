@@ -129,8 +129,7 @@ export default class TemplateReplacementService {
     };
 
     if (data.businessUnitId) {
-      const business = await BusinessUnit.findOrFail(data.businessUnitId);
-      textData.BUSINESS = business.toObject();
+      textData.BUSINESS = await this.fetchUnit(data.businessUnitId);
     }
 
     if (data.userId) {
@@ -265,6 +264,17 @@ export default class TemplateReplacementService {
       race: patient.patientAnimal.race?.description,
       specie: patient.patientAnimal.race?.specie?.description,
       vaccinated: calculateVaccine(patient.vaccineOrigin),
+    };
+  }
+
+  async fetchUnit(id: string) {
+    const model = await BusinessUnit.query().where('id', id).firstOrFail();
+
+    return {
+      ...model.toJSON(),
+      fantasyName: model.fantasyName,
+      companyName: model.companyName,
+      postalCode: model.postalCode,
     };
   }
 }

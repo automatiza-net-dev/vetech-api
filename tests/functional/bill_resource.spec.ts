@@ -127,6 +127,7 @@ test.group('Bill resource', group => {
       features: 'some features',
       unit_id: unit.id,
       active: true,
+      taxation_group_id: taxation.id,
     });
 
     const variation = await product.related('variations').create({

@@ -319,13 +319,13 @@ export default class HospitalizationService {
         .where('patient_id', data.patientId)
         .where('status', HospitalizationStatus.ACTIVE)
         .first();
-      if (existingInternation) {
-        throw new BadRequestException(
-          'Paciente já internado',
-          400,
-          'E_ALREADY_HOSPITALIZED',
-        );
-      }
+      // if (existingInternation) {
+      //   throw new BadRequestException(
+      //     'Paciente já internado',
+      //     400,
+      //     'E_ALREADY_HOSPITALIZED',
+      //   );
+      // }
 
       const occurrence = await Occurrence.query()
         .useTransaction(trx)
@@ -405,11 +405,13 @@ export default class HospitalizationService {
           hospitalizedAt: ent.createdAt,
           releasedAt: null,
           deathAt: null,
-          bed: {
-            id: bed?.id,
-            name: bed?.name,
-            tag: bed?.tag,
-          },
+          bed: bed
+            ? {
+                id: bed?.id,
+                name: bed?.name,
+                tag: bed?.tag,
+              }
+            : null,
           status: data.status,
         },
       });
@@ -436,10 +438,19 @@ export default class HospitalizationService {
           expectedDischarge: data.expectedDischarge,
           diagnosis: data.diagnosis,
           prognosis: data.prognosis,
+          type: HospitalizationType[data.type],
+          risk: data.risk,
           technician: {
             id: user.id,
             name: user.name,
           },
+          bed: bed
+            ? {
+                id: bed?.id,
+                name: bed?.name,
+                tag: bed?.tag,
+              }
+            : null,
         },
       });
 

@@ -6,7 +6,6 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import TimelineType, { VACCINE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import VaccineCalendar from 'App/Models/VaccineCalendar';
-import TimelineService from 'App/Services/TimelineService';
 import { IVaccineCalendarData } from 'Contracts/interfaces/IVaccineCalendarData';
 import { DateTime } from 'luxon';
 
@@ -21,8 +20,6 @@ type ISearch = {
 
 @inject()
 export default class VaccineCalendarService {
-  constructor(private timeline: TimelineService) {}
-
   async index(data: ISearch) {
     const qb = VaccineCalendar.query();
 

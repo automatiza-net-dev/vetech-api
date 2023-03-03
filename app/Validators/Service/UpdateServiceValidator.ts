@@ -22,7 +22,7 @@ export default class UpdateServiceValidator {
         column: 'id',
       }),
     ]),
-    unitId: schema.string({}, [
+    unitId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'units',

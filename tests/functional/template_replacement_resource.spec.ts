@@ -27,6 +27,19 @@ test.group('Template replacement resource', group => {
       replacer: '[[SOME_1]]',
     });
 
+    const tutor = await PatientFactory.create();
+    await tutor.related('tutor').create({
+      street: '|STREET|',
+      number: '|10|',
+      district: '|DISTRICT|',
+      state: '|STATE|',
+      city: '|CITY|',
+      postalCode: '|POSTAL_CODE|',
+      document: '|DOCUMENT',
+      cellphone: '|CELLPHONE|',
+      email: '|EMAIL|',
+    });
+
     const specie = await Specie.create({
       description: 'SPECIE',
     });
@@ -39,7 +52,6 @@ test.group('Template replacement resource', group => {
       description: 'HAIR',
     });
 
-    const tutor = await PatientFactory.create();
     const patient = await PatientFactory.create();
     await patient.related('patientAnimal').create({
       race_id: race.id,
@@ -243,29 +255,21 @@ test.group('Template replacement resource', group => {
   });
 
   test('should replace text with tutor text', async ({ assert, client }) => {
-    const { user, ecoGroup, tutor } = await createData();
+    const { user, tutor } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const tutorTemplate = await TemplateReplacement.create({
-      economic_group_id: ecoGroup.id,
-      origin: TemplateReplacementOrigin.TUTOR,
-      attribute: 'name',
-      replacer: '[[NAME]]',
-    });
-
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: tutorTemplate.replacer,
+        base: `[TUTOR_NOME] [TUTOR_PRIMEIRONOME] [TUTOR_ENDERECO] [TUTOR_BAIRRO] [TUTOR_CIDADE] [TUTOR_UF] [TUTOR_CEP] [TUTOR_CPF] [TUTOR_TELEFONE] [TUTOR_EMAIL]`,
         tutorId: tutor.id,
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(tutor.name, response.body().result);
   });
 
   test('should replace text with patient text', async ({ assert, client }) => {

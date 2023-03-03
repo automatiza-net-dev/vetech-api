@@ -144,8 +144,7 @@ export default class TemplateReplacementService {
     }
 
     if (data.tutorId) {
-      const tutor = await Patient.findOrFail(data.tutorId);
-      textData.TUTOR = tutor.toObject();
+      textData.TUTOR = await this.fetchTutor(data.tutorId);
     }
 
     if (data.dependentId) {
@@ -204,6 +203,28 @@ export default class TemplateReplacementService {
     }
 
     return null;
+  }
+
+  async fetchTutor(id: string) {
+    const tutor = await Patient.query()
+      .where('id', id)
+      .preload('tutor')
+      .firstOrFail();
+
+    return {
+      ...tutor.toJSON(),
+      firstName: tutor.name.split(' ').at(0),
+      address: [tutor.tutor?.street, tutor.tutor?.number]
+        .filter(Boolean)
+        .join(' - '),
+      district: tutor.tutor.district,
+      city: tutor.tutor.city,
+      state: tutor.tutor.state,
+      postalCode: tutor.tutor.postalCode,
+      document: tutor.tutor.document,
+      cellphone: tutor.tutor.cellphone,
+      email: tutor.tutor.email,
+    };
   }
 
   async fetchPatient(id: string) {

@@ -55,6 +55,57 @@ export default class extends BaseSeeder {
       attribute: 'vaccinated',
       replacer: '[PACIENTE_VACINADO]',
     },
+
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'name',
+      replacer: '[TUTOR_NOME]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'firstName',
+      replacer: '[TUTOR_PRIMEIRONOME]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'address',
+      replacer: '[TUTOR_ENDERECO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'district',
+      replacer: '[TUTOR_BAIRRO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'city',
+      replacer: '[TUTOR_CIDADE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'state',
+      replacer: '[TUTOR_UF]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'postalCode',
+      replacer: '[TUTOR_CEP]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'document',
+      replacer: '[TUTOR_CPF]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'cellphone',
+      replacer: '[TUTOR_TELEFONE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'email',
+      replacer: '[TUTOR_EMAIL]',
+    },
   ];
   public async run() {
     await TemplateReplacement.fetchOrCreateMany('replacer', this.BASE);

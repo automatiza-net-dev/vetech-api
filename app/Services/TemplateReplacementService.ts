@@ -2,7 +2,10 @@ import { inject } from '@adonisjs/fold';
 import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import Patient from 'App/Models/Patient';
+import Patient, {
+  PatientGender,
+  PatientVaccineOrigin,
+} from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import TemplateReplacement, {
   TemplateReplacementOrigin,
@@ -146,13 +149,12 @@ export default class TemplateReplacementService {
     }
 
     if (data.dependentId) {
-      const patient = await Patient.findOrFail(data.dependentId);
-      textData.PATIENT = patient.toObject();
+      textData.PATIENT = await this.fetchPatient(data.dependentId);
     }
 
-    const templates = await TemplateReplacement.query().where(
-      'economic_group_id',
-      group.id,
+    const templates = await TemplateReplacement.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
     );
 
     return this.parseTemplate(data.base, textData, templates);
@@ -175,14 +177,16 @@ export default class TemplateReplacementService {
     }
 
     const value = elem[head.attribute];
-    const value$ = value ? this.$toString(value) : 'Valor inválido';
+    const value$ = value
+      ? this.$toString(value) ?? head.attribute
+      : head.attribute;
 
     const updated = raw.replace(head.replacer, value$);
 
     return this.parseTemplate(updated, data, tail);
   }
 
-  $toString(data: unknown): string {
+  $toString(data: unknown) {
     if (typeof data === 'string') {
       return data;
     }
@@ -199,6 +203,47 @@ export default class TemplateReplacementService {
       return data.toDateString();
     }
 
-    return 'Valor inválido';
+    return null;
+  }
+
+  async fetchPatient(id: string) {
+    const patient = await Patient.query()
+      .where('id', id)
+      .preload('patientAnimal', query => {
+        query.preload('hair');
+        query.preload('race', query => {
+          query.preload('specie');
+        });
+      })
+      .firstOrFail();
+
+    const calculateGender = (data: Patient) => {
+      if (!data.gender) {
+        return 'não informado';
+      }
+
+      return data.gender === PatientGender.MALE ? 'macho' : 'fêmea';
+    };
+
+    const calculateVaccine = (data: PatientVaccineOrigin) => {
+      if (data === PatientVaccineOrigin.C) {
+        return 'Própria clinica';
+      }
+
+      if (data === PatientVaccineOrigin.F) {
+        return 'Fora da clinica';
+      }
+
+      return 'Não vacinado';
+    };
+
+    return {
+      ...patient.toJSON(),
+      gender: calculateGender(patient),
+      hair: patient.patientAnimal?.hair?.description,
+      race: patient.patientAnimal.race?.description,
+      specie: patient.patientAnimal.race?.specie?.description,
+      vaccinated: calculateVaccine(patient.vaccineOrigin),
+    };
   }
 }

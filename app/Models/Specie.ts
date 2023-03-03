@@ -12,10 +12,11 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import Race from 'App/Models/Race';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export default class Specie extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id = v4();
 
   @column()
   public description: string;

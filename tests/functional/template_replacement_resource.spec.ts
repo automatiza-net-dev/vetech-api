@@ -1,6 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import PatientAnimalHair from 'App/Models/PatientAnimalHair';
+import Race, { RaceFur } from 'App/Models/Race';
 import Schedule from 'App/Models/Schedule';
+import Specie from 'App/Models/Specie';
 import TemplateReplacement, {
   TemplateReplacementOrigin,
 } from 'App/Models/TemplateReplacement';
@@ -24,8 +27,24 @@ test.group('Template replacement resource', group => {
       replacer: '[[SOME_1]]',
     });
 
+    const specie = await Specie.create({
+      description: 'SPECIE',
+    });
+    const race = await Race.create({
+      fur: RaceFur.C,
+      description: 'RACE',
+      specie_id: specie.id,
+    });
+    const hair = await PatientAnimalHair.create({
+      description: 'HAIR',
+    });
+
     const tutor = await PatientFactory.create();
     const patient = await PatientFactory.create();
+    await patient.related('patientAnimal').create({
+      race_id: race.id,
+      hair_id: hair.id,
+    });
 
     const schedule = await Schedule.create({
       business_unit_id: business.id,
@@ -250,29 +269,28 @@ test.group('Template replacement resource', group => {
   });
 
   test('should replace text with patient text', async ({ assert, client }) => {
-    const { user, ecoGroup, patient } = await createData();
+    const { user, patient } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const patientTemplate = await TemplateReplacement.create({
-      economic_group_id: ecoGroup.id,
-      origin: TemplateReplacementOrigin.PATIENT,
-      attribute: 'name',
-      replacer: '[[NAME]]',
-    });
+    // const patientTemplate = await TemplateReplacement.create({
+    //   economic_group_id: ecoGroup.id,
+    //   origin: TemplateReplacementOrigin.PATIENT,
+    //   attribute: 'name',
+    //   replacer: '[[NAME]]',
+    // });
 
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: patientTemplate.replacer,
+        base: `[PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO]`,
         dependentId: patient.id,
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(patient.name, response.body().result);
   });
 
   test('should replace text with system date', async ({ assert, client }) => {

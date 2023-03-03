@@ -1,5 +1,9 @@
 import Factory from '@ioc:Adonis/Lucid/Factory';
-import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
+import Patient, {
+  PatientGender,
+  PatientType,
+  PatientWeightOrigin,
+} from 'App/Models/Patient';
 import { DateTime } from 'luxon';
 
 export default Factory.define(Patient, ({ faker }) => {
@@ -14,5 +18,8 @@ export default Factory.define(Patient, ({ faker }) => {
     birthDate: new Date('2022-01-01'),
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
+    weight: 10,
+    weightDate: DateTime.now(),
+    weightOrigin: PatientWeightOrigin.A,
   };
 }).build();

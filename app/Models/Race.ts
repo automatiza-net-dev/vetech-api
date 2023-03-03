@@ -13,6 +13,7 @@ import Schedule from 'App/Models/Schedule';
 import Specie from 'App/Models/Specie';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export enum RaceFur {
   L = 'PELO_LONGO',
@@ -21,7 +22,7 @@ export enum RaceFur {
 
 export default class Race extends BaseModel {
   @column({ isPrimary: true })
-  public id: string;
+  public id = v4();
 
   @column()
   public description: string;

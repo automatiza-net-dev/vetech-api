@@ -240,11 +240,7 @@ export default class BillService {
           icmsBase *
           ((100 + (rule?.ivaIcmsSt ?? 0)) / 100) *
           ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-        const icmsValue =
-          icmsBase *
-          (((rule?.icmsPercRedBaseCalculo ?? 1) *
-            ((100 - (rule?.icmsPercRedAliquota ?? 0)) / 100)) /
-            100);
+        const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
         return BillItem.create(
           {
@@ -474,11 +470,7 @@ export default class BillService {
         icmsBase *
         ((100 + rule.ivaIcmsSt) / 100) *
         ((100 - rule.icmsPercRedBaseCalculo) / 100);
-      const icmsValue =
-        icmsBase *
-        ((rule.icmsPercRedBaseCalculo *
-          ((100 - rule.icmsPercRedAliquota) / 100)) /
-          100);
+      const icmsValue = (icmsBase * rule.icmsPerc) / 100;
 
       const billItem = await BillItem.create(
         {
@@ -1168,11 +1160,7 @@ export default class BillService {
             icmsBase *
             ((100 + (rule.ivaIcmsSt ?? 0)) / 100) *
             ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-          const icmsValue =
-            icmsBase *
-            (((rule.icmsPercRedBaseCalculo ?? 1) *
-              ((100 - (rule.icmsPercRedAliquota ?? 0)) / 100)) /
-              100);
+          const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
           await item
             .merge({

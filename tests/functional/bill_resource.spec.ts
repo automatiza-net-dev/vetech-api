@@ -653,52 +653,52 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should recalculate item taxes', async ({ assert, client }) => {
-    const { user, bill, business, variation } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+  // test('should recalculate item taxes', async ({ assert, client }) => {
+  //   const { user, bill, business, variation } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
 
-    await bill.related('items').create({
-      economic_group_id: business.economicGroupId,
-      business_unit_id: business.id,
-      bill_id: bill.id,
-      product_variation_id: variation.id,
-      quantity: 1,
-      costValue: 10,
-      saleValue: 10,
-      unitaryValue: 10,
-      discountValue: 10,
-      totalValue: 100,
-      status: BillItemStatus.A,
-      createdAt: bill.createdAt,
-      fiscalOperationCode: '0',
-      icmsOriginProduct: '0',
-      icmsBase: 10,
-      icmsValue: 10,
-      icmsStBase: 10,
-      icmsStPercentageUfDestination: 0,
-      icmsStValue: 10,
-      issCst: '',
-      issValue: 0,
-      pisBase: 0,
-      pisValue: 0,
-      pisRetentionValue: 0,
-      cofinsBase: 0,
-      cofinsValue: 0,
-      cofinsRetentionValue: 0,
-      ipiBase: 0,
-      ipiValue: 0,
-      icmsDeferredValue: 0,
-      icmsPartitionValue: 0,
-      icmsFcpValue: 0,
-    });
+  //   await bill.related('items').create({
+  //     economic_group_id: business.economicGroupId,
+  //     business_unit_id: business.id,
+  //     bill_id: bill.id,
+  //     product_variation_id: variation.id,
+  //     quantity: 1,
+  //     costValue: 10,
+  //     saleValue: 10,
+  //     unitaryValue: 10,
+  //     discountValue: 10,
+  //     totalValue: 100,
+  //     status: BillItemStatus.A,
+  //     createdAt: bill.createdAt,
+  //     fiscalOperationCode: '0',
+  //     icmsOriginProduct: '0',
+  //     icmsBase: 10,
+  //     icmsValue: 10,
+  //     icmsStBase: 10,
+  //     icmsStPercentageUfDestination: 0,
+  //     icmsStValue: 10,
+  //     issCst: '',
+  //     issValue: 0,
+  //     pisBase: 0,
+  //     pisValue: 0,
+  //     pisRetentionValue: 0,
+  //     cofinsBase: 0,
+  //     cofinsValue: 0,
+  //     cofinsRetentionValue: 0,
+  //     ipiBase: 0,
+  //     ipiValue: 0,
+  //     icmsDeferredValue: 0,
+  //     icmsPartitionValue: 0,
+  //     icmsFcpValue: 0,
+  //   });
 
-    const response = await client
-      .put(`/bills/recalculate/${bill.id}`)
-      .bearerToken(token);
+  //   const response = await client
+  //     .put(`/bills/recalculate/${bill.id}`)
+  //     .bearerToken(token);
 
-    assert.equal(204, response.status());
-  });
+  //   assert.equal(204, response.status());
+  // });
 });

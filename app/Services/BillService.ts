@@ -13,7 +13,7 @@ import Finance, {
   FinanceType,
 } from 'App/Models/Finance';
 import PaymentMethod from 'App/Models/PaymentMethod';
-import Product from 'App/Models/Product';
+import Product, { ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule from 'App/Models/TaxationGroupRule';
@@ -261,10 +261,22 @@ export default class BillService {
 
             fiscalOperationCode: rule?.taxOperation.code,
             icmsOriginProduct: variation.product.icmsOrigin,
-            icmsCst: rule?.icmsCst,
-            icmsBase,
-            icmsPercentage: rule?.icmsPerc,
-            icmsValue,
+            icmsCst:
+              variation.product.type === ProductType.PRODUCT
+                ? rule?.icmsCst
+                : undefined,
+            icmsBase:
+              variation.product.type === ProductType.PRODUCT
+                ? icmsBase
+                : undefined,
+            icmsPercentage:
+              variation.product.type === ProductType.PRODUCT
+                ? rule?.icmsPerc
+                : undefined,
+            icmsValue:
+              variation.product.type === ProductType.PRODUCT
+                ? icmsValue
+                : undefined,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
             icmsStBase,
@@ -274,10 +286,22 @@ export default class BillService {
             icmsStValue:
               icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
               icmsValue,
-            issCst: '',
-            issBase: rule ? parseFloat(rule.icmsPerc as unknown as string) : 0,
-            issPercentage: rule?.icmsPercRedAliquota,
-            issValue: 0,
+            issCst:
+              variation.product.type === ProductType.SERVICE
+                ? rule?.icmsCst
+                : undefined,
+            issBase:
+              variation.product.type === ProductType.SERVICE
+                ? icmsBase
+                : undefined,
+            issPercentage:
+              variation.product.type === ProductType.SERVICE
+                ? rule?.icmsPercRedAliquota
+                : undefined,
+            issValue:
+              variation.product.type === ProductType.SERVICE
+                ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
+                : undefined,
             pisBase: icmsBase,
             pisPercentage: rule?.pisPerc,
             pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
@@ -305,10 +329,25 @@ export default class BillService {
 
       const validItems = await Promise.all(items);
 
-      const totalProductValue = validItems.reduce(
-        (acc, item) => acc + (item.totalValue ?? 0),
-        0,
-      );
+      let totalProductValue = 0;
+      let totalServiceValue = 0;
+      validItems.forEach(item => {
+        const variation = productVariations.find(
+          p => p.id === item.product_variation_id,
+        );
+
+        if (variation?.product.type === ProductType.PRODUCT) {
+          totalProductValue += item.totalValue;
+        }
+        if (variation?.product.type === ProductType.SERVICE) {
+          totalServiceValue += item.totalValue;
+        }
+      });
+
+      // const totalProductValue = validItems.reduce(
+      //   (acc, item) => acc + (item.totalValue ?? 0),
+      //   0,
+      // );
 
       const totalDiscountValue = validItems.reduce(
         (acc, item) => acc + (item.discountValue ?? 0),
@@ -318,21 +357,18 @@ export default class BillService {
       await bill
         .merge({
           productValue: totalProductValue,
-          serviceValue: 0,
+          serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
           totalValue: totalProductValue,
-          icmsBase: validItems.reduce(
-            (acc, item) => acc + (item.icmsBase ?? 0),
-            0,
-          ),
-          icmsValue: validItems.reduce(
-            (acc, item) => acc + (item.icmsValue ?? 0),
-            0,
-          ),
-          icmsStBase: validItems.reduce(
-            (acc, item) => acc + (item.icmsStBase ?? 0),
-            0,
-          ),
+          icmsBase: validItems
+            .filter(i => Boolean(i.icmsBase))
+            .reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
+          icmsValue: validItems
+            .filter(i => Boolean(i.icmsValue))
+            .reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems
+            .filter(i => Boolean(i.icmsStBase))
+            .reduce((acc, item) => acc + item.icmsStBase, 0),
           icmsStValue: validItems.reduce(
             (acc, item) => acc + (item.icmsStValue ?? 0),
             0,
@@ -406,7 +442,12 @@ export default class BillService {
     // const unit = await BusinessUnit.findOrFail(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
-    const items = await bill.related('items').query();
+    const items = await bill
+      .related('items')
+      .query()
+      .preload('productVariation', query => {
+        query.preload('product');
+      });
 
     const productVariation = await ProductVariation.query()
       .where('id', data.productVariationId)
@@ -491,10 +532,22 @@ export default class BillService {
 
           fiscalOperationCode: rule.taxOperation.code,
           icmsOriginProduct: productVariation.product.icmsOrigin,
-          icmsCst: rule.icmsCst,
-          icmsBase,
-          icmsPercentage: rule.icmsPerc,
-          icmsValue,
+          icmsCst:
+            productVariation.product.type === ProductType.PRODUCT
+              ? rule.icmsCst
+              : undefined,
+          icmsBase:
+            productVariation.product.type === ProductType.PRODUCT
+              ? icmsBase
+              : undefined,
+          icmsPercentage:
+            productVariation.product.type === ProductType.PRODUCT
+              ? rule.icmsPerc
+              : undefined,
+          icmsValue:
+            productVariation.product.type === ProductType.PRODUCT
+              ? icmsValue
+              : undefined,
           icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
           icmsStBase,
@@ -504,10 +557,22 @@ export default class BillService {
           icmsStValue: ufIcms
             ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
             : undefined,
-          issCst: '',
-          issBase: rule.icmsPerc,
-          issPercentage: rule.icmsPercRedAliquota,
-          issValue: 0,
+          issCst:
+            productVariation.product.type === ProductType.SERVICE
+              ? rule.icmsCst
+              : undefined,
+          issBase:
+            productVariation.product.type === ProductType.SERVICE
+              ? icmsBase
+              : undefined,
+          issPercentage:
+            productVariation.product.type === ProductType.SERVICE
+              ? rule.icmsPercRedAliquota
+              : undefined,
+          issValue:
+            productVariation.product.type === ProductType.SERVICE
+              ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
+              : undefined,
           pisBase: icmsBase,
           pisPercentage: rule.pisPerc,
           pisValue: (totalValue * rule.pisPerc) / 100,
@@ -534,10 +599,26 @@ export default class BillService {
 
       const validItems = [billItem, ...items];
 
-      const totalProductValue = validItems.reduce(
-        (acc, item) => acc + (item.totalValue ?? 0),
-        0,
-      );
+      let totalProductValue = 0;
+      let totalServiceValue = 0;
+      items.forEach(item => {
+        if (item.productVariation.product.type === ProductType.PRODUCT) {
+          totalProductValue += item.totalValue;
+        }
+        if (item.productVariation.product.type === ProductType.SERVICE) {
+          totalServiceValue += item.totalValue;
+        }
+      });
+      if (productVariation.product.type === ProductType.PRODUCT) {
+        totalProductValue += billItem.totalValue;
+      } else {
+        totalServiceValue += billItem.totalValue;
+      }
+
+      // const totalProductValue = validItems.reduce(
+      //   (acc, item) => acc + (item.totalValue ?? 0),
+      //   0,
+      // );
 
       const totalDiscountValue = validItems.reduce(
         (acc, item) => acc + (item.discountValue ?? 0),
@@ -547,7 +628,7 @@ export default class BillService {
       await bill
         .merge({
           productValue: totalProductValue,
-          serviceValue: 0,
+          serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
           totalValue: totalProductValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
@@ -1012,12 +1093,26 @@ export default class BillService {
 
       const validItems = await BillItem.query()
         .whereNot('id', id)
-        .where('status', BillItemStatus.A);
+        .where('status', BillItemStatus.A)
+        .preload('productVariation', query => {
+          query.preload('product');
+        });
 
-      const totalProductValue = validItems.reduce(
-        (acc, item) => acc + item.totalValue,
-        0,
-      );
+      let totalProductValue = 0;
+      let totalServiceValue = 0;
+      validItems.forEach(item => {
+        if (item.productVariation.product.type === ProductType.PRODUCT) {
+          totalProductValue += item.totalValue;
+        }
+        if (item.productVariation.product.type === ProductType.SERVICE) {
+          totalServiceValue += item.totalValue;
+        }
+      });
+
+      // const totalProductValue = validItems.reduce(
+      //   (acc, item) => acc + item.totalValue,
+      //   0,
+      // );
 
       const totalDiscountValue = validItems.reduce(
         (acc, item) => acc + item.discountValue,
@@ -1027,7 +1122,7 @@ export default class BillService {
       await item.bill
         .merge({
           productValue: totalProductValue,
-          serviceValue: 0,
+          serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
           totalValue: totalProductValue - totalDiscountValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
@@ -1142,54 +1237,52 @@ export default class BillService {
               item.productVariation.product.taxation_group_id,
           );
 
-          if (!rule) {
-            return;
-          }
+          if (rule) {
+            const ufIcmsRule = ufIcms.find(
+              ufIcms =>
+                ufIcms.originUf === rule.fromUf &&
+                ufIcms.destinationUf === rule.toUf,
+            );
 
-          const ufIcmsRule = ufIcms.find(
-            ufIcms =>
-              ufIcms.originUf === rule.fromUf &&
-              ufIcms.destinationUf === rule.toUf,
-          );
+            const totalValue =
+              item.unitaryValue * item.quantity - item.discountValue;
+            const icmsBase =
+              totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
+            const icmsStBase =
+              icmsBase *
+              ((100 + (rule.ivaIcmsSt ?? 0)) / 100) *
+              ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
+            const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
-          const totalValue =
-            item.unitaryValue * item.quantity - item.discountValue;
-          const icmsBase =
-            totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-          const icmsStBase =
-            icmsBase *
-            ((100 + (rule.ivaIcmsSt ?? 0)) / 100) *
-            ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-          const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
-
-          await item
-            .merge({
-              tax_rule_id: rule.id,
-              fiscalOperationCode: rule.taxOperation.code,
-              icmsCst: rule.icmsCst,
-              icmsBase,
-              icmsPercentage: rule.icmsPerc,
-              icmsValue,
-              icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-              icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-              icmsStBase,
-              icmsStPercentageRedBase: rule.icmsPercRedAliquota,
-              icmsStIva: rule.icmsPercRedAliquota,
-              icmsStValue:
-                icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+            await item
+              .merge({
+                tax_rule_id: rule.id,
+                fiscalOperationCode: rule.taxOperation.code,
+                icmsCst: rule.icmsCst,
+                icmsBase,
+                icmsPercentage: rule.icmsPerc,
                 icmsValue,
-              issBase: rule.icmsPerc,
-              issPercentage: rule.icmsPercRedAliquota,
-              pisPercentage: rule.pisPerc,
-              cofinsPercentage: rule.cofinsPerc,
-              ipiPercentage: rule.ipiPerc,
-              icmsFcpPercentage: rule.fcpPerc,
-              icmsPartitionOriginUfPercentage: rule.icmsPerc,
-              icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-              icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
-            })
-            .useTransaction(trx)
-            .save();
+                icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+                icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+                icmsStBase,
+                icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+                icmsStIva: rule.icmsPercRedAliquota,
+                icmsStValue:
+                  icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+                  icmsValue,
+                issBase: rule.icmsPerc,
+                issPercentage: rule.icmsPercRedAliquota,
+                pisPercentage: rule.pisPerc,
+                cofinsPercentage: rule.cofinsPerc,
+                ipiPercentage: rule.ipiPerc,
+                icmsFcpPercentage: rule.fcpPerc,
+                icmsPartitionOriginUfPercentage: rule.icmsPerc,
+                icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+                icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+              })
+              .useTransaction(trx)
+              .save();
+          }
         });
       }
     });

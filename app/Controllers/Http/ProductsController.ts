@@ -18,7 +18,6 @@ export default class ProductsController {
     const qs = request.qs();
     const result = await this.service.index(unit_id, {
       description: qs.description,
-      type: qs.type,
       reference: qs.reference,
       collection: qs.collection,
     });

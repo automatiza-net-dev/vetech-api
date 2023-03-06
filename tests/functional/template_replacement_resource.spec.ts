@@ -268,7 +268,7 @@ test.group('Template replacement resource', group => {
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO] [PACIENTE_ID] [PACIENTE_IDADE] [PACIENTE_NASCIMENTO]`,
+        base: `[PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO] [PACIENTE_ID] [PACIENTE_IDADE] [PACIENTE_NASCIMENTO]`,
         dependentId: patient.id,
       })
       .bearerToken(token);

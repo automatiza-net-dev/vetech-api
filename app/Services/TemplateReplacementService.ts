@@ -181,7 +181,7 @@ export default class TemplateReplacementService {
       ? this.$toString(value) ?? head.attribute
       : head.attribute;
 
-    const updated = raw.replace(head.replacer, value$);
+    const updated = raw.replaceAll(head.replacer, value$);
 
     return this.parseTemplate(updated, data, tail);
   }

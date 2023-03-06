@@ -319,13 +319,13 @@ export default class HospitalizationService {
         .where('patient_id', data.patientId)
         .where('status', HospitalizationStatus.ACTIVE)
         .first();
-      // if (existingInternation) {
-      //   throw new BadRequestException(
-      //     'Paciente já internado',
-      //     400,
-      //     'E_ALREADY_HOSPITALIZED',
-      //   );
-      // }
+      if (existingInternation) {
+        throw new BadRequestException(
+          'Paciente já internado',
+          400,
+          'E_ALREADY_HOSPITALIZED',
+        );
+      }
 
       const occurrence = await Occurrence.query()
         .useTransaction(trx)

@@ -185,6 +185,9 @@ test.group('Bill resource', group => {
       tefFlag,
       payment,
       business,
+      group,
+      taxation,
+      unit,
     };
   };
 
@@ -277,13 +280,65 @@ test.group('Bill resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should create bill item', async ({ assert, client }) => {
+  test('should create bill item (product)', async ({ assert, client }) => {
     const { user, bill, variation, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      costPrice: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      maximumDiscountValue: 10,
+    });
+
+    const response = await client
+      .post(`/bills/create-item`)
+      .json({
+        billId: bill.id,
+        productVariationId: variation.id,
+        quantity: 10,
+        unitaryValue: 20,
+        discountValue: 20,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill item (service)', async ({ assert, client }) => {
+    const { user, bill, taxation, group, unit, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const service = await group.related('products').create({
+      description: 'some service',
+      type: ProductType.SERVICE,
+      referenceCode: 'some reference code',
+      collectionYear: 2022,
+      ncm: 'some ncm',
+      cest: 'some cest',
+      features: 'some features',
+      unit_id: unit.id,
+      active: true,
+      taxation_group_id: taxation.id,
+    });
+
+    const variation = await service.related('variations').create({
+      barcode: '123',
+    });
+    await variation.related('variationOptions').create({
+      description: 'some variation option',
+      active: true,
+    });
     await variation.related('businessUnitProducts').create({
       businness_unit_id: business.id,
       price: 10,

@@ -359,7 +359,7 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue: totalProductValue,
+          totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems
             .filter(i => Boolean(i.icmsBase))
             .reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
@@ -630,7 +630,7 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue: totalProductValue,
+          totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems.reduce(
@@ -1124,7 +1124,8 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue: totalProductValue - totalDiscountValue,
+          totalValue:
+            totalProductValue + totalServiceValue - totalDiscountValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems.reduce(

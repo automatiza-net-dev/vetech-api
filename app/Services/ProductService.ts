@@ -14,7 +14,6 @@ import IUpdateProduct from 'Contracts/interfaces/IUpdateProduct';
 
 interface ISearch {
   description?: string;
-  type?: ProductType;
   reference?: string;
   collection?: number;
 }
@@ -54,14 +53,11 @@ export default class ProductService {
       .preload('variationGroup', query => {
         query.select('id', 'description', 'active');
       })
-      .preload('taxationGroup');
+      .preload('taxationGroup')
+      .where('type', ProductType.PRODUCT);
 
     if (data.description) {
       qb.where('description', 'like', `%${data.description}%`);
-    }
-
-    if (data.type) {
-      qb.where('type', data.type);
     }
 
     if (data.reference) {

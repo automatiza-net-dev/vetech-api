@@ -145,6 +145,18 @@ export default class HospitalizationOccurrencesService {
       }
 
       if (occurrence.type === OccurrenceType.OBITO) {
+        const patient = await Patient.query()
+          .where('id', hospitalization.patient_id)
+          .preload('patientAnimal')
+          .firstOrFail();
+        await patient.patientAnimal
+          .merge({
+            death: true,
+            deathDate: data.executedAt,
+          })
+          .useTransaction(trx)
+          .save();
+
         const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
           client: trx,
         });

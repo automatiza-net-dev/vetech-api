@@ -10,6 +10,9 @@ export default interface IPatientData {
   birthDate?: DateTime;
   active: boolean;
   holderId: string;
+  registered: boolean;
+  microchip: string;
+
   raceId: string;
   vaccineOrigin?: PatientVaccineOrigin;
   hairId?: string;

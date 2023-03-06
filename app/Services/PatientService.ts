@@ -17,6 +17,7 @@ import IPatientData, {
 } from 'Contracts/interfaces/IPatientData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 interface ISearch {
@@ -522,6 +523,8 @@ export default class PatientService {
         {
           race_id: data.raceId,
           hair_id: data.hairId,
+          microchip: data.microchip,
+          registered: data.registered,
         },
         trx,
       );
@@ -630,7 +633,10 @@ export default class PatientService {
   public async update(
     unitId: string,
     id: string,
-    data: Omit<IPatientData, 'holderId'>,
+    data: Omit<IPatientData, 'holderId'> & {
+      death: boolean;
+      deathDate?: DateTime;
+    },
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -674,6 +680,10 @@ export default class PatientService {
           .merge({
             race_id: data.raceId,
             hair_id: data.hairId,
+            microchip: data.microchip,
+            registered: data.registered,
+            death: data.death,
+            deathDate: data.deathDate,
           })
           .useTransaction(trx)
           .save();

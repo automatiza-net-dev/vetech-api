@@ -17,6 +17,20 @@ export default class PatientAnimal extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
+  @column()
+  public registered: boolean;
+
+  @column()
+  public death: boolean;
+
+  @column.dateTime({
+    columnName: 'death_date',
+  })
+  public deathDate?: DateTime;
+
+  @column()
+  public microchip: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

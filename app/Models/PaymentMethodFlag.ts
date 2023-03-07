@@ -23,9 +23,6 @@ export default class PaymentMethodFlag extends BaseModel {
   public maxInstallments: number;
 
   @column()
-  public fee: number;
-
-  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

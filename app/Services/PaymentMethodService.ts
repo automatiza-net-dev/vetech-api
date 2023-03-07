@@ -211,7 +211,6 @@ export default class PaymentMethodService {
       tef_flag_id: data.tefFlagId,
       tef_acquirer_id: data.tefAcquirerId,
       checking_account_id: data.checkingAccountId,
-      fee: data.fee ?? 0,
       maxInstallments: data.maxInstallments,
     });
   }
@@ -236,7 +235,6 @@ export default class PaymentMethodService {
       .merge({
         economic_group_id: group.id,
         tef_acquirer_id: data.tefAcquirerId,
-        fee: data.fee ?? 0,
         maxInstallments: data.maxInstallments,
         active: data.active,
       })

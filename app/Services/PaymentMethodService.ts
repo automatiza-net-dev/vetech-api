@@ -231,6 +231,7 @@ export default class PaymentMethodService {
           tef_acquirer_id: data.tefAcquirerId,
           checking_account_id: data.checkingAccountId,
           maxInstallments: data.maxInstallments,
+          daysUntilTransfer: data.daysUntilTransfer,
         },
         {
           client: trx,
@@ -275,6 +276,7 @@ export default class PaymentMethodService {
           economic_group_id: group.id,
           tef_acquirer_id: data.tefAcquirerId,
           maxInstallments: data.maxInstallments,
+          daysUntilTransfer: data.daysUntilTransfer,
           active: data.active,
         })
         .useTransaction(trx)

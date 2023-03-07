@@ -151,6 +151,7 @@ test.group('Payment method resource', group => {
         tefAcquirerId: tefAcq.id,
         checkingAccountId: checkingAccount.id,
         maxInstallments: 10,
+        daysUntilTransfer: 10,
       })
       .bearerToken(token);
 
@@ -186,6 +187,7 @@ test.group('Payment method resource', group => {
         tefAcquirerId: tefAcq.id,
         checkingAccountId: checkingAccount.id,
         maxInstallments: 10,
+        daysUntilTransfer: 10,
       })
       .bearerToken(token);
 

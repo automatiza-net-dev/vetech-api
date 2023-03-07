@@ -25,6 +25,11 @@ export default class PaymentMethodFlag extends BaseModel {
   })
   public maxInstallments: number;
 
+  @column({
+    columnName: 'days_until_transfer',
+  })
+  public daysUntilTransfer: number;
+
   @column()
   public active: boolean;
 

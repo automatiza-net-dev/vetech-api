@@ -4,6 +4,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFee from 'App/Models/PaymentMethodFee';
 import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
+import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import SharedService from 'App/Services/SharedService';
@@ -71,6 +72,7 @@ export default class PaymentMethodService {
         query.preload('flag', query => {
           query.select('id', 'description', 'code', 'type');
         });
+        query.preload('installments');
       })
       .preload('fees')
       .preload('checkingAccount');
@@ -221,7 +223,7 @@ export default class PaymentMethodService {
         );
       }
 
-      return PaymentMethodFlag.create(
+      const flag = await PaymentMethodFlag.create(
         {
           economic_group_id: group.id,
           payment_method_id: data.paymentMethodId,
@@ -234,6 +236,18 @@ export default class PaymentMethodService {
           client: trx,
         },
       );
+
+      await flag.related('installments').createMany(
+        Array.from({ length: data.maxInstallments ?? 0 }, (_, k) => ({
+          installment: k + 1,
+          fee: 0,
+        })),
+        {
+          client: trx,
+        },
+      );
+
+      return flag;
     });
   }
 
@@ -249,13 +263,14 @@ export default class PaymentMethodService {
         .useTransaction(trx)
         .where('economic_group_id', group.id)
         .where('id', id)
+        .preload('installments')
         .first();
 
       if (!flag) {
         throw this.sharedService.ResourceNotFound();
       }
 
-      return flag
+      const updatedFlag = await flag
         .merge({
           economic_group_id: group.id,
           tef_acquirer_id: data.tefAcquirerId,
@@ -264,6 +279,37 @@ export default class PaymentMethodService {
         })
         .useTransaction(trx)
         .save();
+
+      if (updatedFlag.maxInstallments > flag.installments.length) {
+        await flag.related('installments').createMany(
+          Array.from(
+            {
+              length:
+                (updatedFlag.maxInstallments ?? 0) -
+                updatedFlag.installments.length,
+            },
+            (_, k) => ({
+              installment: updatedFlag.installments.length + k + 1,
+              fee: 0,
+            }),
+          ),
+          {
+            client: trx,
+          },
+        );
+      }
+
+      if (updatedFlag.maxInstallments < flag.installments.length) {
+        await Promise.all(
+          flag.installments
+            .filter(i => i.installment > (updatedFlag.maxInstallments ?? 0))
+            .map(async installment => {
+              return installment.useTransaction(trx).delete();
+            }),
+        );
+      }
+
+      return updatedFlag;
     });
   }
 
@@ -280,6 +326,33 @@ export default class PaymentMethodService {
       payment_method_flag_id: data.paymentMethodFlagId,
       installments: data.installments,
       fee: data.fee,
+    });
+  }
+
+  async updatePaymentMethodFlagInstallment(
+    unitId: string,
+    id: number,
+    data: { fee: number },
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const installment = await PaymentMethodFlagInstallment.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('flag')
+        .first();
+
+      if (!installment || installment.flag.economic_group_id !== group.id) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      return installment
+        .merge({
+          fee: data.fee,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 }

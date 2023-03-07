@@ -672,6 +672,10 @@ Route.group(() => {
     'PaymentMethodsController.updatePaymentMethodFlag',
   );
   Route.post('/create-fee', 'PaymentMethodsController.createPaymentMethodFee');
+  Route.put(
+    '/update-flag-installment/:id',
+    'PaymentMethodsController.updatePaymentMethodFlagInstallment',
+  );
 })
   .prefix('payment-methods')
   .middleware('auth');

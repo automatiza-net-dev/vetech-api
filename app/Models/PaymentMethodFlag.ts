@@ -5,7 +5,10 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -78,4 +81,9 @@ export default class PaymentMethodFlag extends BaseModel {
     serializeAs: null,
   })
   public checking_account_id: string;
+
+  @hasMany(() => PaymentMethodFlagInstallment, {
+    foreignKey: 'payment_method_flag_id',
+  })
+  public installments: HasMany<typeof PaymentMethodFlagInstallment>;
 }

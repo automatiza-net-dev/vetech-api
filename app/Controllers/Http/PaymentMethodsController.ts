@@ -5,6 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import CreatePaymentMethodFeeValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodFeeValidator';
 import CreatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodFlagValidator';
 import CreatePaymentMethodValidator from 'App/Validators/PaymentMethod/CreatePaymentMethodValidator';
+import UpdatePaymentMethodFlagInstallmentValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodFlagInstallmentValidator';
 import UpdatePaymentMethodFlagValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodFlagValidator';
 import UpdatePaymentMethodValidator from 'App/Validators/PaymentMethod/UpdatePaymentMethodValidator';
 
@@ -138,5 +139,24 @@ export default class PaymentMethodsController {
     const result = await this.service.createPaymentMethodFee(unit_id, payload);
 
     return response.created(result);
+  }
+
+  public async updatePaymentMethodFlagInstallment({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const payload = await request.validate(
+      UpdatePaymentMethodFlagInstallmentValidator,
+    );
+    const result = await this.service.updatePaymentMethodFlagInstallment(
+      unit_id,
+      params.id,
+      payload,
+    );
+
+    return response.ok(result);
   }
 }

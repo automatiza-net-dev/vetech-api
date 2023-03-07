@@ -209,6 +209,16 @@ test.group('Payment method resource', group => {
       checking_account_id: checkingAccount.id,
       maxInstallments: 10,
     });
+    await flag.related('installments').createMany([
+      {
+        installment: 1,
+        fee: 0,
+      },
+      {
+        installment: 2,
+        fee: 0,
+      },
+    ]);
 
     const response = await client
       .put(`/payment-methods/update-flag/${flag.id}`)
@@ -217,7 +227,7 @@ test.group('Payment method resource', group => {
         tefFlagId: tefFlag.id,
         tefAcquirerId: tefAcq.id,
         checkingAccountId: checkingAccount.id,
-        maxInstallments: 10,
+        maxInstallments: 1,
         active: true,
       })
       .bearerToken(token);

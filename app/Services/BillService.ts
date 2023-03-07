@@ -25,7 +25,7 @@ import {
   ICreateBillData,
   ICreateBillItemData,
   ICreateBillPaymentData,
-} from 'Contracts/interfaces/IBIllData';
+} from 'Contracts/interfaces/IBillData';
 import { DateTime } from 'luxon';
 
 interface ISearch {

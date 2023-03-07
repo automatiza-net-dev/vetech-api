@@ -122,6 +122,7 @@ export default class PatientVaccineService {
             id: protocol.vaccine.id,
             name: protocol.vaccine.name,
             description: protocol.vaccine.description,
+            origin: 'new',
           },
           protocol: {
             id: protocol.id,

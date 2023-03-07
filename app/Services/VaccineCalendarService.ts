@@ -121,6 +121,7 @@ export default class VaccineCalendarService {
             id: calendar.patientVaccine.vaccine.id,
             name: calendar.patientVaccine.vaccine.name,
             description: calendar.patientVaccine.vaccine.description,
+            origin: 'application',
           },
           protocol: {
             id: calendar.patientVaccine.protocol.id,

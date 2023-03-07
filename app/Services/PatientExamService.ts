@@ -108,6 +108,7 @@ export default class PatientExamService {
             id: exam.id,
             name: exam.name,
           },
+          attachments: [],
         },
       });
     });
@@ -183,18 +184,41 @@ export default class PatientExamService {
     user: User,
     data: IPatientExamAttachmentData,
   ) {
-    const ent = await PatientExam.query()
-      .where('business_id', unitId)
-      .where('id', id)
-      .first();
+    return Database.transaction(async trx => {
+      const ent = await PatientExam.query()
+        .useTransaction(trx)
+        .where('business_id', unitId)
+        .where('id', id)
+        .first();
 
-    if (!ent) {
-      throw new ResourceNotFoundException('Recurso não encontrado');
-    }
+      if (!ent) {
+        throw new ResourceNotFoundException('Recurso não encontrado');
+      }
 
-    return ent.related('attachments').create({
-      attachment: await this.uploadAttachment(data.attachment),
-      user_id: user.id,
+      const attachment = await this.uploadAttachment(data.attachment);
+      const result = ent.related('attachments').create(
+        {
+          attachment,
+          user_id: user.id,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await AnimalTimeline.updateOne(
+        {
+          timeline_id: EXAM_UUID,
+          'timeline_info.patient_exam.id': ent.id,
+        },
+        {
+          $push: {
+            'timeline_info.attachments': attachment,
+          },
+        },
+      );
+
+      return result;
     });
   }
 

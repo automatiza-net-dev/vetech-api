@@ -259,6 +259,6 @@ export default class PatientExamService {
       'local',
     );
 
-    return Drive.getUrl(`patient-exam-attachments/${key}`);
+    return Drive.getUrl(`patients/${key}`);
   }
 }

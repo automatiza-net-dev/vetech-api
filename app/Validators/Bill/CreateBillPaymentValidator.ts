@@ -13,6 +13,9 @@ export default class CreateBillPaymentValidator {
       rules.uuid(),
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
+    paymentMethodFlagInstallmentId: schema.number([
+      rules.exists({ table: 'payment_method_flag_installments', column: 'id' }),
+    ]),
     acquirerId: schema.string.optional({ trim: true }, [
       rules.uuid(),
       rules.exists({ table: 'tef_acquirers', column: 'id' }),
@@ -23,7 +26,6 @@ export default class CreateBillPaymentValidator {
     ]),
     expirationDate: schema.date(),
     installmentsValue: schema.number([]),
-    installments: schema.number([]),
     nsuDocument: schema.string.optional(),
   });
 

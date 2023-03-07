@@ -155,11 +155,6 @@ test.group('Bill resource', group => {
       createdAt: DateTime.now(),
     }) */
 
-    const paymentMethod = await PaymentMethod.create({
-      economicGroupId: group.id,
-      tef: PaymentMethodTef.T,
-    });
-
     const tefAcq = await TefAcquirer.create({
       economic_group_id: group.id,
       description: 'any description',
@@ -171,6 +166,25 @@ test.group('Bill resource', group => {
       code: 'any code',
       type: TefFlagType.A,
     });
+
+    const paymentMethod = await PaymentMethod.create({
+      economicGroupId: group.id,
+      tef: PaymentMethodTef.T,
+    });
+
+    const paymentMethodFlag = await paymentMethod.related('flags').create({
+      economic_group_id: group.id,
+      tef_flag_id: tefFlag.id,
+      tef_acquirer_id: tefAcq.id,
+      maxInstallments: 10,
+    });
+
+    const flagInstallment = await paymentMethodFlag
+      .related('installments')
+      .create({
+        installment: 1,
+        fee: 10,
+      });
 
     return {
       user,
@@ -188,6 +202,8 @@ test.group('Bill resource', group => {
       group,
       taxation,
       unit,
+      paymentMethodFlag,
+      flagInstallment,
     };
   };
 
@@ -365,7 +381,8 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill payment', async ({ assert, client }) => {
-    const { user, bill, paymentMethod, tefAcq, tefFlag } = await createData();
+    const { user, bill, paymentMethod, tefAcq, tefFlag, flagInstallment } =
+      await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -377,7 +394,7 @@ test.group('Bill resource', group => {
         billId: bill.id,
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
-        installments: 1,
+        paymentMethodFlagInstallmentId: flagInstallment.id,
         installmentsValue: 10,
         acquirerId: tefAcq.id,
         flagId: tefFlag.id,
@@ -389,7 +406,7 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill payment (no card)', async ({ assert, client }) => {
-    const { user, bill, paymentMethod } = await createData();
+    const { user, bill, paymentMethod, flagInstallment } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -401,7 +418,7 @@ test.group('Bill resource', group => {
         billId: bill.id,
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
-        installments: 1,
+        paymentMethodFlagInstallmentId: flagInstallment.id,
         installmentsValue: 10,
         nsuDocument: 'some document',
       })
@@ -411,7 +428,7 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill payment (no nsu)', async ({ assert, client }) => {
-    const { user, bill, paymentMethod } = await createData();
+    const { user, bill, paymentMethod, flagInstallment } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -423,7 +440,7 @@ test.group('Bill resource', group => {
         billId: bill.id,
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
-        installments: 1,
+        paymentMethodFlagInstallmentId: flagInstallment.id,
         installmentsValue: 10,
       })
       .bearerToken(token);

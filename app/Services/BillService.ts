@@ -13,6 +13,7 @@ import Finance, {
   FinanceType,
 } from 'App/Models/Finance';
 import PaymentMethod from 'App/Models/PaymentMethod';
+import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
@@ -693,21 +694,32 @@ export default class BillService {
   async createBillPayment(unitId: string, data: ICreateBillPaymentData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const bill = await Bill.findOrFail(data.billId);
-    const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
-
-    const existingPayments = await BillPayment.query().where(
-      'bill_id',
-      bill.id,
-    );
-
-    const uniqueBlocks = new Set(existingPayments.map(p => p.block));
-    const singleValue = data.installmentsValue / data.installments;
-
     return Database.transaction(async trx => {
+      const bill = await Bill.findOrFail(data.billId);
+      const paymentMethod = await PaymentMethod.findOrFail(
+        data.paymentMethodId,
+        {
+          client: trx,
+        },
+      );
+      const flagInstallment = await PaymentMethodFlagInstallment.findOrFail(
+        data.paymentMethodFlagInstallmentId,
+        {
+          client: trx,
+        },
+      );
+
+      const existingPayments = await BillPayment.query().where(
+        'bill_id',
+        bill.id,
+      );
+
+      const uniqueBlocks = new Set(existingPayments.map(p => p.block));
+      const singleValue = data.installmentsValue / flagInstallment.installment;
+
       const payments = await BillPayment.createMany(
         Array.from(
-          { length: data.installments },
+          { length: flagInstallment.installment },
           (_, v) => ({
             economic_group_id: group.id,
             business_unit_id: unitId,
@@ -749,7 +761,7 @@ export default class BillService {
         .save();
 
       await Finance.createMany(
-        Array.from({ length: data.installments }, (_, v) => ({
+        Array.from({ length: flagInstallment.installment }, (_, v) => ({
           economic_group_id: group.id,
           business_unit_id: unitId,
           daily_movement_id: bill.daily_movement_id,

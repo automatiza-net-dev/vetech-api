@@ -524,7 +524,7 @@ export default class PatientService {
           race_id: data.raceId,
           hair_id: data.hairId,
           microchip: data.microchip,
-          registered: data.registered,
+          castrated: data.castrated,
         },
         trx,
       );
@@ -681,7 +681,7 @@ export default class PatientService {
             race_id: data.raceId,
             hair_id: data.hairId,
             microchip: data.microchip,
-            registered: data.registered,
+            castrated: data.castrated,
             death: data.death,
             deathDate: data.deathDate,
           })

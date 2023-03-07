@@ -70,7 +70,7 @@ test.group('Patient resource', group => {
         holderId: holder.id,
         raceId: race.id,
         hairId: hair.id,
-        registered: true,
+        castrated: true,
         microchip: 'any microchip',
       })
       .bearerToken(token);
@@ -175,7 +175,7 @@ test.group('Patient resource', group => {
         active: true,
         holderId: holder.id,
         raceId: race.id,
-        registered: true,
+        castrated: true,
         microchip: 'any microchip',
         death: false,
         deathDate: null,

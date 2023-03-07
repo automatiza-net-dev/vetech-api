@@ -29,7 +29,7 @@ export default class CreatePatientValidator {
       rules.uuid(),
       rules.exists({ table: 'patient_animal_hairs', column: 'id' }),
     ]),
-    registered: schema.boolean(),
+    castrated: schema.boolean(),
     microchip: schema.string(),
   });
 

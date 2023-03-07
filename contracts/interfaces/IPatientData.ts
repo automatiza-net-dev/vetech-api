@@ -10,7 +10,7 @@ export default interface IPatientData {
   birthDate?: DateTime;
   active: boolean;
   holderId: string;
-  registered: boolean;
+  castrated: boolean;
   microchip: string;
 
   raceId: string;

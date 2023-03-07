@@ -18,7 +18,7 @@ export default class PatientAnimal extends BaseModel {
   public id: string = v4();
 
   @column()
-  public registered: boolean;
+  public castrated: boolean;
 
   @column()
   public death: boolean;

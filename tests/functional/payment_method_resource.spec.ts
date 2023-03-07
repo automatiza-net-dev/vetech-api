@@ -7,6 +7,9 @@ import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodType,
 } from 'App/Models/PaymentMethod';
+import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
+import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -54,8 +57,50 @@ test.group('Payment method resource', group => {
       managerPhone: 'some',
     });
 
-    return { user, paymentMethod, checkingAccount };
+    const tefAcq = await TefAcquirer.create({
+      economic_group_id: group.id,
+      description: 'any description',
+    });
+
+    const tefFlag = await TefFlag.create({
+      economic_group_id: group.id,
+      description: 'any description',
+      code: 'any code',
+      type: TefFlagType.A,
+    });
+
+    return { user, paymentMethod, checkingAccount, tefAcq, tefFlag };
   };
+
+  test('should create a payment method', async ({ client, assert }) => {
+    const { user, checkingAccount } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/payment-methods/create`)
+      .json({
+        description: 'some description',
+        requiresDocument: true,
+        tef: 'TEF',
+        automaticCancellation: true,
+        daysFirstInstallment: 10,
+        daysBetweenInstallments: 30,
+        allowChangeExpirationDate: true,
+        minimumInstallmentValue: 10,
+        type: PaymentMethodType.C,
+        checkingAccountId: checkingAccount.id,
+        daysUntilTransfer: 10,
+        installmentsWithoutPassword: 2,
+        maxInstallments: 12,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
 
   test('should update a payment method', async ({ client, assert }) => {
     const { user, paymentMethod, checkingAccount } = await createData();
@@ -87,5 +132,127 @@ test.group('Payment method resource', group => {
       .bearerToken(token);
 
     assert.equal(200, response.status());
+  });
+
+  test('should create a payment method flag', async ({ client, assert }) => {
+    const { user, paymentMethod, checkingAccount, tefAcq, tefFlag } =
+      await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/payment-methods/create-flag`)
+      .json({
+        paymentMethodId: paymentMethod.id,
+        tefFlagId: tefFlag.id,
+        tefAcquirerId: tefAcq.id,
+        checkingAccountId: checkingAccount.id,
+        maxInstallments: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException when creating a payment method flag with existing flag', async ({
+    client,
+    assert,
+  }) => {
+    const { user, paymentMethod, checkingAccount, tefAcq, tefFlag } =
+      await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await PaymentMethodFlag.create({
+      economic_group_id: paymentMethod.economicGroupId,
+      payment_method_id: paymentMethod.id,
+      tef_flag_id: tefFlag.id,
+      tef_acquirer_id: tefAcq.id,
+      checking_account_id: checkingAccount.id,
+      maxInstallments: 10,
+    });
+
+    const response = await client
+      .post(`/payment-methods/create-flag`)
+      .json({
+        paymentMethodId: paymentMethod.id,
+        tefFlagId: tefFlag.id,
+        tefAcquirerId: tefAcq.id,
+        checkingAccountId: checkingAccount.id,
+        maxInstallments: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should update a payment method flag', async ({ client, assert }) => {
+    const { user, paymentMethod, checkingAccount, tefAcq, tefFlag } =
+      await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const flag = await PaymentMethodFlag.create({
+      economic_group_id: paymentMethod.economicGroupId,
+      payment_method_id: paymentMethod.id,
+      tef_flag_id: tefFlag.id,
+      tef_acquirer_id: tefAcq.id,
+      checking_account_id: checkingAccount.id,
+      maxInstallments: 10,
+    });
+
+    const response = await client
+      .put(`/payment-methods/update-flag/${flag.id}`)
+      .json({
+        paymentMethodId: paymentMethod.id,
+        tefFlagId: tefFlag.id,
+        tefAcquirerId: tefAcq.id,
+        checkingAccountId: checkingAccount.id,
+        maxInstallments: 10,
+        active: true,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should create a payment method fee', async ({ client, assert }) => {
+    const { user, paymentMethod, checkingAccount, tefAcq, tefFlag } =
+      await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const flag = await PaymentMethodFlag.create({
+      economic_group_id: paymentMethod.economicGroupId,
+      payment_method_id: paymentMethod.id,
+      tef_flag_id: tefFlag.id,
+      tef_acquirer_id: tefAcq.id,
+      checking_account_id: checkingAccount.id,
+      maxInstallments: 10,
+    });
+
+    const response = await client
+      .post(`/payment-methods/create-fee`)
+      .json({
+        paymentMethodId: paymentMethod.id,
+        paymentMethodFlagId: flag.id,
+        installments: 10,
+        fee: 3,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
   });
 });

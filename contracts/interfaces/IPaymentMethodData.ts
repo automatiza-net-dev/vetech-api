@@ -24,13 +24,11 @@ export interface ICreatePaymentMethodFlagData {
   tefAcquirerId: string;
   checkingAccountId?: string;
   maxInstallments?: number;
-  fee?: number;
 }
 
 export interface IUpdatePaymentMethodFlagData {
   tefAcquirerId: string;
   maxInstallments?: number;
-  fee?: number;
   active: boolean;
 }
 

@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFee from 'App/Models/PaymentMethodFee';
@@ -205,13 +206,34 @@ export default class PaymentMethodService {
   ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return PaymentMethodFlag.create({
-      economic_group_id: group.id,
-      payment_method_id: data.paymentMethodId,
-      tef_flag_id: data.tefFlagId,
-      tef_acquirer_id: data.tefAcquirerId,
-      checking_account_id: data.checkingAccountId,
-      maxInstallments: data.maxInstallments,
+    return Database.transaction(async trx => {
+      const existingFlag = await PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .where('economic_group_id', group.id)
+        .where('tef_flag_id', data.tefFlagId)
+        .first();
+
+      if (existingFlag) {
+        throw new BadRequestException(
+          'Não é possível ter uma mesma bandeira duas vezes',
+          400,
+          'E_ERR',
+        );
+      }
+
+      return PaymentMethodFlag.create(
+        {
+          economic_group_id: group.id,
+          payment_method_id: data.paymentMethodId,
+          tef_flag_id: data.tefFlagId,
+          tef_acquirer_id: data.tefAcquirerId,
+          checking_account_id: data.checkingAccountId,
+          maxInstallments: data.maxInstallments,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 
@@ -222,23 +244,27 @@ export default class PaymentMethodService {
   ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const flag = await PaymentMethodFlag.query()
-      .where('economic_group_id', group.id)
-      .where('id', id)
-      .first();
+    return Database.transaction(async trx => {
+      const flag = await PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .where('economic_group_id', group.id)
+        .where('id', id)
+        .first();
 
-    if (!flag) {
-      throw this.sharedService.ResourceNotFound();
-    }
+      if (!flag) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-    return flag
-      .merge({
-        economic_group_id: group.id,
-        tef_acquirer_id: data.tefAcquirerId,
-        maxInstallments: data.maxInstallments,
-        active: data.active,
-      })
-      .save();
+      return flag
+        .merge({
+          economic_group_id: group.id,
+          tef_acquirer_id: data.tefAcquirerId,
+          maxInstallments: data.maxInstallments,
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   async createPaymentMethodFee(

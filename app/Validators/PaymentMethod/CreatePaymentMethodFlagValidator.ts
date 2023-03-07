@@ -22,7 +22,6 @@ export default class CreatePaymentMethodFlagValidator {
       rules.exists({ table: 'checking_accounts', column: 'id' }),
     ]),
     maxInstallments: schema.number.optional(),
-    fee: schema.number.optional(),
   });
 
   public messages: CustomMessages = {};

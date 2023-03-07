@@ -11,7 +11,6 @@ export default class UpdatePaymentMethodFlagValidator {
     ]),
     active: schema.boolean(),
     maxInstallments: schema.number.optional(),
-    fee: schema.number.optional(),
   });
 
   public messages: CustomMessages = {};

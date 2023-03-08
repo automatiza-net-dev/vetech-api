@@ -24,7 +24,7 @@ export default class PatientExam extends BaseModel {
   @column({
     columnName: 'realized_at',
   })
-  public realizedAt: DateTime = DateTime.now();
+  public realizedAt: DateTime;
 
   @column()
   public laboratory: string;

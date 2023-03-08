@@ -131,7 +131,6 @@ export default class PatientExamService {
     return Database.transaction(async trx => {
       const updatedExam = await ent
         .merge({
-          realizedAt: data.realizedAt,
           laboratory: data.laboratory,
           report: data.report,
           business_id: unitId,
@@ -141,7 +140,9 @@ export default class PatientExamService {
           executioner_id: data.executionerId,
           resultDate: data.resultDate,
           solicitor_id: data.solicitorId,
+          realizedAt: data.realizedAt,
           status: data.status,
+          releasedAt: data.releasedAt,
         })
         .useTransaction(trx)
         .save();

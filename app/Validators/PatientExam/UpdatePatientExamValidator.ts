@@ -5,7 +5,6 @@ export default class UpdatePatientExamValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    realizedAt: schema.date.optional(),
     laboratory: schema.string.optional(),
     report: schema.string(),
     patientId: schema.string({}, [
@@ -23,6 +22,7 @@ export default class UpdatePatientExamValidator {
     executedAt: schema.date.optional({}),
     resultDate: schema.date.optional({}),
     releasedAt: schema.date.optional({}),
+    realizedAt: schema.date.optional({}),
     status: schema.string.optional({}),
   });
 

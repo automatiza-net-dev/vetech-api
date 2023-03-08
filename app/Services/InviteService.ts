@@ -290,10 +290,9 @@ export default class InviteService {
     try {
       await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
-      const result = await user
+      await user
         .related('economicGroups')
         .attach([role.unit.economicGroupId], trx);
-      console.log({ result });
 
       await trx.commit();
     } catch (e) {
@@ -348,10 +347,9 @@ export default class InviteService {
         .save();
       await role.merge({ active: true }).useTransaction(trx).save();
       await invite.merge({ active: false }).useTransaction(trx).save();
-      const result = await user
+      await user
         .related('economicGroups')
         .attach([role.unit.economicGroupId], trx);
-      console.log({ result });
 
       await trx.commit();
     } catch (e) {

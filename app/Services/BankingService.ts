@@ -73,29 +73,41 @@ export default class BankingService {
   async storeBanking(unitId: string, user: User, data: IUpsertBankingData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
-    const dailyMovement = await DailyMovement.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .first();
-    const dailyCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .where('user_who_opened_id', user.id)
-      .first();
-    const checkingAccount = await CheckingAccount.findOrFail(
-      data.checkingAccountId,
-    );
-
-    const discount = data.documentValue * (paymentMethod.fee / 100);
-
     return Database.transaction(async trx => {
+      const paymentMethod = await PaymentMethod.findOrFail(
+        data.paymentMethodId,
+        {
+          client: trx,
+        },
+      );
+
+      const dailyMovement = await DailyMovement.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('status', DailyMovementStatus.A)
+        .first();
+
+      const dailyCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('status', DailyMovementStatus.A)
+        .where('user_who_opened_id', user.id)
+        .first();
+
+      const checkingAccount = await CheckingAccount.findOrFail(
+        data.checkingAccountId,
+        {
+          client: trx,
+        },
+      );
+
+      const discount = data.documentValue * (paymentMethod.fee / 100);
+
       const total =
         data.documentValue +
         (data.feeValue || 0) -
         (data.discountValue || 0) -
         discount;
-      const prevBalance = checkingAccount.balance;
 
       const finance = await Finance.create(
         {
@@ -142,6 +154,40 @@ export default class BankingService {
           client: trx,
         },
       );
+
+      const existingBankingsBefore = await Banking.query()
+        .where('economic_group_id', group.id)
+        .where('issue_date', '<', data.issueDate.toJSDate())
+        .orderBy('issue_date', 'desc');
+      const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
+
+      const existingBankingsAfter = await Banking.query()
+        .where('economic_group_id', group.id)
+        .where('issue_date', '>', data.issueDate.toJSDate())
+        .orderBy('issue_date', 'desc');
+
+      if (existingBankingsAfter.length > 0) {
+        const promises = existingBankingsAfter.map(eb => {
+          const newPrevBalance =
+            eb.type === BankingType.C
+              ? eb.prevBalance + total
+              : eb.prevBalance - total;
+          const sum =
+            eb.type === BankingType.C
+              ? newPrevBalance + total
+              : newPrevBalance - total;
+
+          return eb
+            .merge({
+              prevBalance: newPrevBalance,
+              balance: sum,
+            })
+            .useTransaction(trx)
+            .save();
+        });
+
+        await Promise.all(promises);
+      }
 
       const banking = await Banking.create(
         {
@@ -199,7 +245,10 @@ export default class BankingService {
 
       await checkingAccount
         .merge({
-          balance: checkingAccount.balance + total,
+          balance:
+            data.type === BankingType.C
+              ? checkingAccount.balance + total
+              : checkingAccount.balance - total,
         })
         .useTransaction(trx)
         .save();

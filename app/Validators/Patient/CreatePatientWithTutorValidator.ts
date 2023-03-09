@@ -34,6 +34,7 @@ export default class CreatePatientWithTutorValidator {
       rules.uuid(),
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),
+    cityCode: schema.string.optional({}),
   });
 
   public messages: CustomMessages = {};

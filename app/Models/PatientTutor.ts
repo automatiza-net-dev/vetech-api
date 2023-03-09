@@ -37,6 +37,11 @@ export default class PatientTutor extends BaseModel {
   })
   public corporateName?: string;
 
+  @column({
+    columnName: 'city_code',
+  })
+  public cityCode: string;
+
   @column()
   public email: string;
 

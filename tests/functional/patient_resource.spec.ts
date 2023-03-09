@@ -202,6 +202,7 @@ test.group('Patient resource', group => {
         name: 'patient name',
         email: 'mail123123@mail.com',
         cellphone: '123',
+        cityCode: 'some',
       })
       .bearerToken(token);
 
@@ -263,6 +264,7 @@ test.group('Patient resource', group => {
       district: '123',
       city: '123',
       state: '123',
+      cityCode: 'some',
     });
 
     const origin = await ClientOrigin.create({

@@ -592,6 +592,7 @@ export default class PatientService {
         city: data.city,
         state: data.state,
         client_origin_id: data.clientOriginId,
+        cityCode: data.cityCode,
       });
 
       await group.related('patients').attach([patient.id], trx);
@@ -745,6 +746,7 @@ export default class PatientService {
           city: data.city,
           state: data.state,
           client_origin_id: data.clientOriginId,
+          cityCode: data.cityCode,
         })
         .useTransaction(trx)
         .save();

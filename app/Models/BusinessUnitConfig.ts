@@ -6,6 +6,11 @@ export default class BusinessUnitConfig extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
+  @column({
+    columnName: 'xml_download_authorization',
+  })
+  public xmlDownloadAuthorization: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

@@ -17,6 +17,7 @@ import {
 } from 'App/Models/PaymentMethod';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
+import TefAcquirer from 'App/Models/TefAcquirer';
 import User from 'App/Models/User';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
@@ -197,6 +198,13 @@ export default class UserService {
         {
           client: trx,
         },
+      );
+
+      const tefAcquirers = await TefAcquirer.query().useTransaction(trx);
+      await newBusinessUnit.related('acquirers').createMany(
+        tefAcquirers.map(acq => ({
+          tef_acquirer_id: acq.id,
+        })),
       );
 
       await user.related('roles').create(

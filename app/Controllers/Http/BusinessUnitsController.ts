@@ -4,6 +4,7 @@ import BusinessUnitService from 'App/Services/BusinessUnitService';
 import SharedService from 'App/Services/SharedService';
 import UserRoleService from 'App/Services/UserRoleService';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
+import UpdateBusinessUnitAcquirerValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitAcquirerValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
 import UpdateUnitUserValidator from 'App/Validators/BusinessUnit/UpdateUnitUserValidator';
 import UpdateUsersRoleValidator from 'App/Validators/Role/UpdateUsersRoleValidator';
@@ -45,6 +46,28 @@ export default class BusinessUnitsController {
     const updatedUnit = await this.service.update(id, payload);
 
     return response.ok(updatedUnit);
+  }
+
+  public async updateAcquirer({
+    params,
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const payload = await request.validate(UpdateBusinessUnitAcquirerValidator);
+    await this.service.updateAcquirer(unit_id, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async deleteAcquirer({ params, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.deleteAcquirer(unit_id, params.id);
+
+    return response.noContent();
   }
 
   public async updateUser({

@@ -90,6 +90,15 @@ Route.group(() => {
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
+  Route.put(
+    '/update-acquirer/:id',
+    'BusinessUnitsController.updateAcquirer',
+  ).middleware('auth');
+  Route.delete(
+    '/delete-acquirer/:id',
+    'BusinessUnitsController.deleteAcquirer',
+  ).middleware('auth');
+
   Route.put('/:id', 'BusinessUnitsController.update');
   Route.delete('/user/:id', 'BusinessUnitsController.deleteUser').middleware(
     'auth',

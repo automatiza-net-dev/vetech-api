@@ -10,6 +10,7 @@ import CheckingAccount, {
 } from 'App/Models/CheckingAccount';
 import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
+import { IBusinessUnitAcquirerData } from 'Contracts/interfaces/IBusinessUnitAcquirerData';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { IUpdateBusinessUnit } from 'Contracts/interfaces/UpdateBusinessUnit';
@@ -137,7 +138,10 @@ export default class BusinessUnitService {
   }
 
   public async show(id: string): Promise<BusinessUnit> {
-    const unit = await BusinessUnit.find(id);
+    const unit = await BusinessUnit.query()
+      .where('id', id)
+      .preload('acquirers')
+      .first();
 
     if (!unit) {
       throw new ResourceNotFoundException(
@@ -179,6 +183,63 @@ export default class BusinessUnitService {
         simple: data.simple,
       })
       .save();
+  }
+
+  public async updateAcquirer(
+    unitId: string,
+    id: string,
+    data: IBusinessUnitAcquirerData,
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .where('id', unitId)
+        .useTransaction(trx)
+        .firstOrFail();
+
+      const acquirer = await unit
+        .related('acquirers')
+        .query()
+        .where('id', id)
+        .first();
+
+      if (!acquirer) {
+        throw new ResourceNotFoundException(
+          'Adquirente não encontrado',
+          404,
+          'ERR',
+        );
+      }
+
+      await acquirer
+        .merge({ document: data.document, active: data.active })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async deleteAcquirer(unitId: string, id: string) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .where('id', unitId)
+        .useTransaction(trx)
+        .firstOrFail();
+
+      const acquirer = await unit
+        .related('acquirers')
+        .query()
+        .where('id', id)
+        .first();
+
+      if (!acquirer) {
+        throw new ResourceNotFoundException(
+          'Adquirente não encontrado',
+          404,
+          'ERR',
+        );
+      }
+
+      await acquirer.softDelete();
+    });
   }
 
   public async updateUser(

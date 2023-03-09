@@ -70,7 +70,7 @@ export default class EconomicGroupService {
       );
     }
 
-    const qb = group.related('users').query().debug(true);
+    const qb = group.related('users').query();
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);

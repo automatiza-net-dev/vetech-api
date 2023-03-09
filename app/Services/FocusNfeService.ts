@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import Logger from '@ioc:Adonis/Core/Logger';
 import axios, { AxiosError } from 'axios';
 import { z } from 'zod';
 
@@ -266,7 +265,7 @@ export default class FocusNfeService {
       data_entrada_saida: data.authorizedAt,
       tipo_documento: '1',
       local_destino: '1', // doc
-      finalidade_emissao: data.purpose,
+      finalidade_emissao: '1',
       consumidor_final: '1',
       presenca_comprador: '1',
       indicador_intermediario: '0',
@@ -288,8 +287,8 @@ export default class FocusNfeService {
       regime_tributario_emitente: data.seller.regime,
 
       nome_destinatario: data.buyer.name,
-      cnpj_destinatario: data.buyer.cpf_document,
-      cpf_destinatario: data.buyer.cnpj_document,
+      // cnpj_destinatario: 'data.buyer.cnpj_document',
+      cpf_destinatario: '51966818092',
       logradouro_destinatario: data.buyer.location.street,
       numero_destinatario: data.buyer.location.number,
       complemento_destinatario: data.buyer.location.complement,
@@ -301,12 +300,7 @@ export default class FocusNfeService {
       inscricao_estadual_destinatario: data.buyer.ie,
       indicador_inscricao_estadual_destinatario: '9',
       email_destinatario: data.buyer.email,
-      pessoas_autorizadas: [
-        {
-          cnpj: '89666834000144',
-          cpf: '98452721005',
-        },
-      ], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS
+      pessoas_autorizadas: [], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS
 
       items: data.items.map(item => ({
         numero_item: item.index,
@@ -332,7 +326,7 @@ export default class FocusNfeService {
         icms_value: item.icms_value,
 
         fcp_percentual: item.fcp_percentage,
-        fcp_base_calculo: item.fcp_base_calc,
+        fcp_base_calculo: item.icms_base,
         fcp_valor: item.fcp_value,
 
         ipi_situacao_tributaria: item.cst_ipi,
@@ -363,7 +357,6 @@ export default class FocusNfeService {
 
       icms_base_calculo: data.totalizers.icms_base,
       icms_valor_total: data.totalizers.icms_total,
-      fcp_valor_total: data.totalizers.fcp_total,
       valor_produtos: data.totalizers.product_value,
       valor_frete: data.totalizers.delivery_value,
       valor_seguro: 0,
@@ -378,12 +371,10 @@ export default class FocusNfeService {
     console.log(payload); // THIS
 
     try {
-      const result = await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
-      Logger.info(JSON.stringify(result, undefined, 2));
+      await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
 
       return null;
     } catch (error) {
-      console.log(JSON.stringify(error.response.data, undefined, 2));
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       return (error as T).response?.data?.mensagem ?? '';
     }

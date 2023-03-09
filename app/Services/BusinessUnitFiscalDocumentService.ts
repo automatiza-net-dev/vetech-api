@@ -111,21 +111,21 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .firstOrFail();
 
-      // const issuedDocumentAlready = await IssuedFiscalDocument.query({
-      //   client: trx,
-      // })
-      //   .where('economic_group_id', group.id)
-      //   .where('business_unit_id', unitId)
-      //   .where('bill_id', data.billId)
-      //   .first();
+      const issuedDocumentAlready = await IssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('economic_group_id', group.id)
+        .where('business_unit_id', unitId)
+        .where('bill_id', data.billId)
+        .first();
 
-      // if (issuedDocumentAlready) {
-      //   throw new BadRequestException(
-      //     'Documento já emitido',
-      //     400,
-      //     'E_ALREADY_ISSUED',
-      //   );
-      // }
+      if (issuedDocumentAlready) {
+        throw new BadRequestException(
+          'Documento já emitido',
+          400,
+          'E_ALREADY_ISSUED',
+        );
+      }
 
       if (bill.items.some(i => !i.tax_rule_id)) {
         throw new BadRequestException(
@@ -200,12 +200,9 @@ export default class BusinessUnitFiscalDocumentService {
         },
         buyer: {
           name: bill.client.name,
-          cpf_document:
-            bill.client.tutor.document?.length === 11
-              ? bill.client.tutor.document
-              : null,
+          cpf_document: bill.client.tutor.document ?? '',
           cnpj_document:
-            bill.client.tutor.document?.length === 11
+            bill.client.tutor.document?.length === 14
               ? bill.client.tutor.document
               : null,
           phone: bill.client.tutor.cellphone,

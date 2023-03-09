@@ -116,6 +116,8 @@ test.group('Product resource', group => {
         features: 'some features',
         variationGroup: variationGroup.id,
         groupId: groupEntity.id,
+        taxBenefitCode: 'some',
+        anvisaCode: 'some',
 
         variations: [
           {
@@ -220,6 +222,9 @@ test.group('Product resource', group => {
         groupId: groupEntity.id,
         subgroupId: subgroupEntity.id,
         taxationGroupId: taxationGroup.id,
+        taxBenefitCode: 'some',
+        anvisaCode: 'some',
+
         variations: [
           {
             barcode: 'some bar code',
@@ -321,6 +326,8 @@ test.group('Product resource', group => {
         taxationGroupId: taxationGroup.id,
         subgroupId: subgroupEntity.id,
         icmsOrigin: '0',
+        taxBenefitCode: 'some',
+        anvisaCode: 'some',
       })
       .bearerToken(token);
 

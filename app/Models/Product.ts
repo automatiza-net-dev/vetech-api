@@ -71,6 +71,16 @@ export default class Product extends BaseModel {
   })
   public icmsOrigin: typeof ProductIcmsOrigin[number];
 
+  @column({
+    columnName: 'tax_benefit_code',
+  })
+  public taxBenefitCode: string | null;
+
+  @column({
+    columnName: 'anvisa_code',
+  })
+  public anvisaCode: string | null;
+
   @column()
   public active: boolean;
 

@@ -151,6 +151,8 @@ export default class ProductService {
           group_id: data.groupId,
           subgroup_id: data.subgroupId,
           brand_id: data.brandId,
+          taxBenefitCode: data.taxBenefitCode,
+          anvisaCode: data.anvisaCode,
         },
         {
           client: trx,
@@ -239,6 +241,8 @@ export default class ProductService {
         icmsOrigin: data.icmsOrigin,
         taxation_group_id: data.taxationGroupId,
         brand_id: data.brandId,
+        taxBenefitCode: data.taxBenefitCode,
+        anvisaCode: data.anvisaCode,
       })
       .save();
   }

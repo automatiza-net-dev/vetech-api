@@ -35,6 +35,8 @@ export default interface IProductData {
   features?: string;
   unitId?: string;
   brandId?: string;
+  taxBenefitCode?: string;
+  anvisaCode?: string;
   icmsOrigin?: typeof ProductIcmsOrigin[number];
   active: boolean;
   variationGroup?: string;

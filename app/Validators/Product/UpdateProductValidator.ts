@@ -13,6 +13,8 @@ export default class UpdateProductValidator {
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),
     features: schema.string.optional({}, []),
+    taxBenefitCode: schema.string.optional({}, []),
+    anvisaCode: schema.string.optional({}, []),
     active: schema.boolean([]),
     groupId: schema.string.optional({}, [
       rules.uuid(),

@@ -15,4 +15,6 @@ export default interface IUpdateProduct {
   taxationGroupId: string;
   icmsOrigin: typeof ProductIcmsOrigin[number];
   brandId?: string;
+  taxBenefitCode?: string;
+  anvisaCode?: string;
 }

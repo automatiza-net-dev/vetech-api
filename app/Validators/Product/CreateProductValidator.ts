@@ -28,6 +28,8 @@ export default class CreateProductValidator {
     ncm: schema.string.optional({}, []),
     cest: schema.string.optional({}, []),
     features: schema.string.optional({}, []),
+    taxBenefitCode: schema.string.optional({}, []),
+    anvisaCode: schema.string.optional({}, []),
     unitId: schema.string({}, [
       rules.uuid(),
       rules.exists({

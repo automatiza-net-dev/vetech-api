@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import axios, { AxiosError } from 'axios';
 import { z } from 'zod';
 
@@ -99,7 +100,7 @@ export interface ISendNfe {
     description: string | null;
     installment: number;
     integration_type: '1' | '2' | null;
-    acquirer: string | null;
+    acquirer: string | null | undefined;
     flag: string;
     nsu: string;
   }>;
@@ -259,7 +260,7 @@ export default class FocusNfeService {
   public async sendNfe(ref: string, data: ISendNfe): Promise<string | null> {
     const payload = {
       natureza_operacao: 'Venda',
-      serie: data.nfe_series,
+      // serie: data.nfe_series, // THIS
       numero: data.nfe_number,
       data_emissao: data.issuedAt,
       data_entrada_saida: data.authorizedAt,
@@ -297,10 +298,15 @@ export default class FocusNfeService {
       uf_destinatario: data.buyer.location.uf,
       cep_destinatario: data.buyer.location.code,
       telefone_destinatario: data.buyer.phone,
-      inscrição_estadual_destinatario: data.buyer.ie,
+      inscricao_estadual_destinatario: data.buyer.ie,
       indicador_inscricao_estadual_destinatario: '9',
       email_destinatario: data.buyer.email,
-      pessoas_autorizadas: data.buyer.authorized,
+      pessoas_autorizadas: [
+        {
+          cnpj: '89666834000144',
+          cpf: '98452721005',
+        },
+      ], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS
 
       items: data.items.map(item => ({
         numero_item: item.index,
@@ -369,11 +375,15 @@ export default class FocusNfeService {
       modalidade_frete: '9',
     };
 
+    console.log(payload); // THIS
+
     try {
-      await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
+      const result = await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
+      Logger.info(JSON.stringify(result, undefined, 2));
 
       return null;
     } catch (error) {
+      console.log(JSON.stringify(error.response.data, undefined, 2));
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       return (error as T).response?.data?.mensagem ?? '';
     }

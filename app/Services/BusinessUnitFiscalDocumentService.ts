@@ -88,6 +88,7 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .where('id', unitId)
         .preload('unitConfig')
+        .preload('acquirers')
         .firstOrFail();
       const bill = await Bill.query()
         .where('id', data.billId)
@@ -110,21 +111,21 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .firstOrFail();
 
-      const issuedDocumentAlready = await IssuedFiscalDocument.query({
-        client: trx,
-      })
-        .where('economic_group_id', group.id)
-        .where('business_unit_id', unitId)
-        .where('bill_id', data.billId)
-        .first();
+      // const issuedDocumentAlready = await IssuedFiscalDocument.query({
+      //   client: trx,
+      // })
+      //   .where('economic_group_id', group.id)
+      //   .where('business_unit_id', unitId)
+      //   .where('bill_id', data.billId)
+      //   .first();
 
-      if (issuedDocumentAlready) {
-        throw new BadRequestException(
-          'Documento já emitido',
-          400,
-          'E_ALREADY_ISSUED',
-        );
-      }
+      // if (issuedDocumentAlready) {
+      //   throw new BadRequestException(
+      //     'Documento já emitido',
+      //     400,
+      //     'E_ALREADY_ISSUED',
+      //   );
+      // }
 
       if (bill.items.some(i => !i.tax_rule_id)) {
         throw new BadRequestException(
@@ -164,6 +165,7 @@ export default class BusinessUnitFiscalDocumentService {
           authorizationDate: DateTime.now(),
           contingency: IssuedFiscalDocumentContingency.N,
           active: true,
+          purpose: 'Emissão', // TODO check
         },
         {
           client: trx,
@@ -197,28 +199,28 @@ export default class BusinessUnitFiscalDocumentService {
           },
         },
         buyer: {
-          name: bill.patient.name,
+          name: bill.client.name,
           cpf_document:
-            bill.patient.tutor.document?.length === 11
-              ? bill.patient.tutor.document
+            bill.client.tutor.document?.length === 11
+              ? bill.client.tutor.document
               : null,
           cnpj_document:
-            bill.patient.tutor.document?.length === 11
-              ? bill.patient.tutor.document
+            bill.client.tutor.document?.length === 11
+              ? bill.client.tutor.document
               : null,
-          phone: bill.patient.tutor.cellphone,
-          ie: bill.patient.tutor.inscription ?? '',
-          email: bill.patient.tutor.email,
+          phone: bill.client.tutor.cellphone,
+          ie: bill.client.tutor.inscription ?? '',
+          email: bill.client.tutor.email,
           authorized: unit.unitConfig.xmlDownloadAuthorization ?? '',
 
           location: {
-            street: bill.patient.tutor.street ?? '',
-            number: bill.patient.tutor.number ?? '',
-            complement: bill.patient.tutor.complement ?? '',
-            district: bill.patient.tutor.district ?? '',
-            city: bill.patient.tutor.city ?? '',
-            uf: bill.patient.tutor.state ?? '',
-            code: bill.patient.tutor.postalCode ?? '',
+            street: bill.client.tutor.street ?? '',
+            number: bill.client.tutor.number ?? '',
+            complement: bill.client.tutor.complement ?? '',
+            district: bill.client.tutor.district ?? '',
+            city: bill.client.tutor.city ?? '',
+            uf: bill.client.tutor.state ?? '',
+            code: bill.client.tutor.postalCode ?? '',
           },
         },
         items: bill.items.map((item, idx) => ({
@@ -230,7 +232,7 @@ export default class BusinessUnitFiscalDocumentService {
           cest: item.productVariation.product.cest ?? '',
           tax_benefit_code: item.productVariation.product.taxBenefitCode,
           cfop: item.fiscalOperationCode,
-          unity: item.productVariation.product.unit.name,
+          unity: item.productVariation.product.unit.tag,
           quantity: item.quantity.toString(),
           value: item.unitaryValue.toString(),
           discount: item.discountValue,
@@ -275,7 +277,11 @@ export default class BusinessUnitFiscalDocumentService {
               : item.paymentMethod.tef === PaymentMethodTef.T
               ? '1'
               : '2',
-          acquirer: item.paymentMethod.tef === PaymentMethodTef.N ? null : '', // TODO fix
+          acquirer:
+            item.paymentMethod.tef === PaymentMethodTef.N
+              ? null
+              : unit.acquirers.find(a => a.id === item.tef_acquirer_id)
+                  ?.document,
           flag: item.flag.nfe_code,
           nsu: item.nsuDocument,
         })),
@@ -293,12 +299,10 @@ export default class BusinessUnitFiscalDocumentService {
         },
       };
 
-      console.log(nfePayload);
-
-      // const error = await this.focusNfe.sendNfe(document.id, nfePayload);
-      // if (error) {
-      //   throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
-      // }
+      const error = await this.focusNfe.sendNfe(document.id, nfePayload);
+      if (error) {
+        throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
+      }
 
       return issuedDocument;
     });

@@ -157,14 +157,15 @@ export default class BankingService {
 
       const existingBankingsBefore = await Banking.query()
         .where('economic_group_id', group.id)
-        .where('issue_date', '<', data.issueDate.toJSDate())
-        .orderBy('issue_date', 'desc');
+        .whereRaw('issue_date::date = ?', [data.issueDate.toJSDate()])
+        .limit(1)
+        .orderBy('created_at', 'desc');
       const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
 
       const existingBankingsAfter = await Banking.query()
         .where('economic_group_id', group.id)
-        .where('issue_date', '>', data.issueDate.toJSDate())
-        .orderBy('issue_date', 'desc');
+        .whereRaw('issue_date::date > ?', [data.issueDate.toJSDate()])
+        .orderBy('created_at', 'asc');
 
       if (existingBankingsAfter.length > 0) {
         const promises = existingBankingsAfter.map(eb => {

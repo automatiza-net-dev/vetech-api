@@ -164,6 +164,7 @@ export default class PaymentMethodService {
       daysUntilTransfer: data.daysUntilTransfer ?? 0,
       installmentsWithoutPassword: data.installmentsWithoutPassword,
       maxInstallments: data.maxInstallments,
+      nfe_code: '99',
     });
   }
   async updatePaymentMethod(

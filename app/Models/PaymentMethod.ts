@@ -57,6 +57,11 @@ export default class PaymentMethod extends BaseModel {
   public fee: number;
 
   @column({
+    columnName: 'nfe_code',
+  })
+  public nfe_code: string;
+
+  @column({
     columnName: 'automatic_cancellation',
   })
   public automaticCancellation: boolean;

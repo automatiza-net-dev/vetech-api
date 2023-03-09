@@ -113,13 +113,23 @@ export default class UserService {
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.ENTRADA,
+            nfe_code: '15',
           },
           {
-            description: 'Transferência / PIX',
+            description: 'PIX',
             requiresDocument: false,
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.AMBOS,
+            nfe_code: '17',
+          },
+          {
+            description: 'Transferência',
+            requiresDocument: false,
+            tef: PaymentMethodTef.N,
+            fee: 0,
+            usage: PaymentMethodUsage.AMBOS,
+            nfe_code: '18',
           },
           {
             description: 'Cheque',
@@ -127,6 +137,7 @@ export default class UserService {
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.ENTRADA,
+            nfe_code: '02',
           },
           {
             description: 'Dinheiro',
@@ -134,6 +145,7 @@ export default class UserService {
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.AMBOS,
+            nfe_code: '01',
           },
           {
             description: 'Débito em Conta',
@@ -141,6 +153,7 @@ export default class UserService {
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.ENTRADA,
+            nfe_code: '99',
           },
           {
             description: 'Crédito devolução',
@@ -148,6 +161,7 @@ export default class UserService {
             tef: PaymentMethodTef.N,
             fee: 0,
             usage: PaymentMethodUsage.SAIDA,
+            nfe_code: '05',
           },
           {
             description: 'Cartão de Débito (POS)',
@@ -156,6 +170,7 @@ export default class UserService {
             type: PaymentMethodType.D,
             fee: 0,
             usage: PaymentMethodUsage.AMBOS,
+            nfe_code: '04',
           },
           {
             description: 'Cartão de Crédito (POS)',
@@ -164,6 +179,7 @@ export default class UserService {
             type: PaymentMethodType.C,
             fee: 0,
             usage: PaymentMethodUsage.AMBOS,
+            nfe_code: '03',
           },
         ],
         { client: trx },

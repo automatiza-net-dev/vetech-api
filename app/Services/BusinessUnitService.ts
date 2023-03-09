@@ -40,81 +40,92 @@ export default class BusinessUnitService {
   }
 
   public async store(user: User, data: ICreateBusinessUnit) {
-    const economicGroups = await user.related('economicGroups').query();
-    const economicGroup = economicGroups.find(
-      eg => eg.id === data.economic_group_id,
-    );
-
-    if (!economicGroup) {
-      throw new BadRequestException('Grupo econômico inválido');
-    }
-
-    const products = await economicGroup
-      .related('products')
-      .query()
-      .preload('variations', query => {
-        query.preload('businessUnitProducts');
-      });
-
-    const trx = await Database.transaction();
-
     try {
-      const unit = await economicGroup.related('businessUnits').create({
-        ...data,
-      });
+      await Database.transaction(async trx => {
+        const economicGroups = await user
+          .related('economicGroups')
+          .query()
+          .useTransaction(trx);
+        const economicGroup = economicGroups.find(
+          eg => eg.id === data.economic_group_id,
+        );
 
-      await unit.related('licences').create({
-        id: v4(),
-        expirationDate: addDays(new Date(), 1000),
-        type: LicenceType.TRIAL,
-        active: true,
-      });
-
-      // eslint-disable-next-line no-restricted-syntax
-      for await (const product of products) {
-        // eslint-disable-next-line no-restricted-syntax
-        for await (const variation of product.variations) {
-          const [unitPrice] = product.variations[0].businessUnitProducts;
-
-          await variation.related('businessUnitProducts').create(
-            {
-              businness_unit_id: unit.id,
-              stock: 0,
-              price: unitPrice.price,
-              costPrice: unitPrice.costPrice,
-              maximumStock: unitPrice.maximumStock,
-              minimumStock: unitPrice.minimumStock,
-              maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
-              maximumDiscountValue: unitPrice.maximumDiscountValue,
-              profitMargin: unitPrice.profitMargin,
-            },
-            {
-              client: trx,
-            },
-          );
+        if (!economicGroup) {
+          throw new BadRequestException('Grupo econômico inválido');
         }
-      }
 
-      await CheckingAccount.create(
-        {
-          business_unit_id: unit.id,
-          description: `Cofre - ${unit.identification ?? 'Não informado'}`,
-          accountNumber: 'Cofre',
-          bankCode: 'Cofre',
-          bankName: 'Cofre',
-          agency: '001',
-          type: CheckingAccountType.CX,
-          balance: 0,
-          active: true,
-        },
-        {
-          client: trx,
-        },
-      );
+        const products = await economicGroup
+          .related('products')
+          .query()
+          .useTransaction(trx)
+          .preload('variations', query => {
+            query.preload('businessUnitProducts');
+          });
 
-      await trx.commit();
+        const unit = await economicGroup.related('businessUnits').create(
+          {
+            ...data,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        await unit.related('licences').create(
+          {
+            id: v4(),
+            expirationDate: addDays(new Date(), 1000),
+            type: LicenceType.TRIAL,
+            active: true,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const product of products) {
+          // eslint-disable-next-line no-restricted-syntax
+          for await (const variation of product.variations) {
+            const [unitPrice] = product.variations[0].businessUnitProducts;
+
+            await variation.related('businessUnitProducts').create(
+              {
+                businness_unit_id: unit.id,
+                stock: 0,
+                price: unitPrice.price,
+                costPrice: unitPrice.costPrice,
+                maximumStock: unitPrice.maximumStock,
+                minimumStock: unitPrice.minimumStock,
+                maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
+                maximumDiscountValue: unitPrice.maximumDiscountValue,
+                profitMargin: unitPrice.profitMargin,
+              },
+              {
+                client: trx,
+              },
+            );
+          }
+        }
+
+        await CheckingAccount.create(
+          {
+            business_unit_id: unit.id,
+            description: `Cofre - ${unit.identification ?? 'Não informado'}`,
+            accountNumber: 'Cofre',
+            bankCode: 'Cofre',
+            bankName: 'Cofre',
+            agency: '001',
+            type: CheckingAccountType.CX,
+            balance: 0,
+            active: true,
+          },
+          {
+            client: trx,
+          },
+        );
+      });
     } catch (error) {
-      await trx.rollback();
       Logger.error(error.message);
 
       throw new InternalErrorException(
@@ -161,6 +172,11 @@ export default class BusinessUnitService {
         city: data.city,
         state: data.state,
         active: data.active,
+
+        stateRegistration: data.stateRegistration,
+        cityRegistration: data.cityRegistration,
+        cnae: data.cnae,
+        simple: data.simple,
       })
       .save();
   }

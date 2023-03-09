@@ -19,6 +19,11 @@ export default class UpdateBusinessUnitValidator {
     city: schema.string.optional({}),
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
+
+    stateRegistration: schema.string.optional({}),
+    cityRegistration: schema.string.optional({}),
+    cnae: schema.string.optional({}),
+    simple: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

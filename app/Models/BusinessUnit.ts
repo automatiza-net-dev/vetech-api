@@ -83,6 +83,22 @@ export default class BusinessUnit extends BaseModel {
   public lng?: boolean;
 
   @column({
+    columnName: 'state_registration',
+  })
+  public stateRegistration?: string;
+
+  @column({
+    columnName: 'city_registration',
+  })
+  public cityRegistration?: string;
+
+  @column()
+  public cnae?: string;
+
+  @column()
+  public simple: boolean;
+
+  @column({
     columnName: 'economic_group_id',
     serializeAs: null,
   })

@@ -13,4 +13,9 @@ export interface IUpdateBusinessUnit {
   city?: string;
   state?: string;
   active?: boolean;
+
+  stateRegistration?: string;
+  cityRegistration?: string;
+  cnae?: string;
+  simple: boolean;
 }

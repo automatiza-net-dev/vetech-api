@@ -35,6 +35,7 @@ test.group('Business unit resource', group => {
     const [unit] = await createBusinessUnit();
     const response = await client.put(`/business-units/${unit.id}`).json({
       identification: 'TESTING',
+      simple: true,
     });
 
     const updatedBusinessUnit = response.body();
@@ -85,6 +86,10 @@ test.group('Business unit resource', group => {
         economic_group_id: economicGroup.id,
         document: '123',
         email: 'mail@mail.com',
+        stateRegistration: 'some',
+        cityRegistration: 'some',
+        cnae: 'some',
+        simple: true,
       })
       .loginAs(user);
 

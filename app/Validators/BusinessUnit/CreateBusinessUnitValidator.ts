@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateBusinessUnitValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -25,6 +25,11 @@ export default class CreateBusinessUnitValidator {
     city: schema.string.optional({}),
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
+
+    stateRegistration: schema.string.optional({}),
+    cityRegistration: schema.string.optional({}),
+    cnae: schema.string.optional({}),
+    simple: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

@@ -10,6 +10,7 @@ import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
+import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
 import FocusNfeService, { ISendNfe } from 'App/Services/FocusNfeService';
 import SharedService from 'App/Services/SharedService';
@@ -83,13 +84,19 @@ export default class BusinessUnitFiscalDocumentService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
-      const unit = await BusinessUnit.findOrFail(unitId, {
-        client: trx,
-      });
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('unitConfig')
+        .firstOrFail();
       const bill = await Bill.query()
         .where('id', data.billId)
         .preload('client', query => {
           query.preload('tutor');
+        })
+        .preload('payments', query => {
+          query.preload('paymentMethod');
+          query.preload('flag');
         })
         .preload('items', query => {
           query.where('status', BillStatus.A);
@@ -164,14 +171,25 @@ export default class BusinessUnitFiscalDocumentService {
       );
 
       const nfePayload: ISendNfe = {
+        nfe_series: issuedDocument.series,
+        nfe_number: issuedDocument.sequence,
         issuedAt: issuedDocument.authorizationDate.toISO(),
-        purpose: '1',
-        cnpj: unit.document ?? '',
-        ie: '9097826436', // TODO fix
+        authorizedAt: issuedDocument.authorizationDate.toISO(),
+        purpose: issuedDocument.purpose,
+
         seller: {
+          cnpj: unit.document,
+          name: unit.companyName,
+          fantasy_name: unit.fantasyName,
+          phone: unit.phone,
+          city_ie: unit.cityRegistration,
+          state_ie: unit.stateRegistration,
+          cnae: unit.cnae,
+          regime: unit.simple ? '1' : '3',
           location: {
             street: unit.address ?? '',
             number: unit.number ?? '',
+            complement: unit.complement ?? '',
             district: unit.district ?? '',
             city: unit.city ?? '',
             uf: unit.state ?? '',
@@ -180,62 +198,107 @@ export default class BusinessUnitFiscalDocumentService {
         },
         buyer: {
           name: bill.patient.name,
-          document: bill.patient.tutor.document ?? '',
+          cpf_document:
+            bill.patient.tutor.document?.length === 11
+              ? bill.patient.tutor.document
+              : null,
+          cnpj_document:
+            bill.patient.tutor.document?.length === 11
+              ? bill.patient.tutor.document
+              : null,
           phone: bill.patient.tutor.cellphone,
+          ie: bill.patient.tutor.inscription ?? '',
+          email: bill.patient.tutor.email,
+          authorized: unit.unitConfig.xmlDownloadAuthorization ?? '',
+
           location: {
             street: bill.patient.tutor.street ?? '',
             number: bill.patient.tutor.number ?? '',
+            complement: bill.patient.tutor.complement ?? '',
             district: bill.patient.tutor.district ?? '',
             city: bill.patient.tutor.city ?? '',
             uf: bill.patient.tutor.state ?? '',
             code: bill.patient.tutor.postalCode ?? '',
           },
         },
-        values: {
-          base_icms: bill.icmsBase.toString(),
-          icms_value: bill.icmsValue.toString(),
-          icms_base_st: bill.icmsStBase.toString(),
-          icms_total_value_st: bill.icmsStValue.toString(),
-
-          ipi: bill.ipiValue.toString(),
-          pis: bill.pisValue.toString(),
-          cofins: bill.cofinsValue.toString(),
-
-          product: bill.productValue.toString(),
-          delivery: '0.0',
-          discount: bill.discountValue.toString(),
-          total: bill.totalValue.toString(),
-          other: bill.otherValue.toString(),
-        },
         items: bill.items.map((item, idx) => ({
           index: (idx + 1).toString(),
           code: item.product_variation_id,
+          barcode: item.productVariation.barcode,
           description: item.productVariation.product.description,
-          cfop: item.fiscalOperationCode,
-
-          quantity: item.quantity.toString(),
-
-          value: item.unitaryValue.toString(),
-
-          unity: item.productVariation.product.unit.name,
-
-          total: item.totalValue.toString(),
           ncm: item.productVariation.product.ncm ?? '',
-          icms_origin: item.productVariation.product.icmsOrigin,
-          icms_base: item.icmsBase.toString(),
-          icms_total_value: item.icmsValue.toString(),
-          icms_base_st: item.icmsStBase.toString(),
-          icms_total_value_st: item.icmsStValue.toString(),
+          cest: item.productVariation.product.cest ?? '',
+          tax_benefit_code: item.productVariation.product.taxBenefitCode,
+          cfop: item.fiscalOperationCode,
+          unity: item.productVariation.product.unit.name,
+          quantity: item.quantity.toString(),
+          value: item.unitaryValue.toString(),
+          discount: item.discountValue,
 
+          icms_origin: item.productVariation.product.icmsOrigin,
           cst_icms: item.icmsCst,
+          icms_base: item.icmsBase,
+          icms_red_calc: item.icmsStPercentageRedBase,
+          icms_percentage: item.icmsPercentage,
+          icms_value: item.icmsValue,
+
+          fcp_percentage: item.icmsFcpPercentage,
+          fcp_base_calc: item.icmsBase,
+          fcp_value: item.icmsFcpValue,
+
+          cst_ipi: item.ipiCst,
+          ipi_base: item.ipiBase,
+          ipi_percentage: item.ipiPercentage,
+          ipi_value: item.ipiValue,
+
           cst_pis: item.pisCst,
+          pis_base: item.pisBase,
+          pis_percentage: item.pisPercentage,
+          pis_value: item.pisValue,
+
           cst_cofins: item.cofinsCst,
+          cofins_base: item.cofinsBase,
+          cofins_percentage: item.cofinsPercentage,
+          cofins_value: item.cofinsValue,
         })),
+        payments: bill.payments.map(item => ({
+          nfe_code: item.paymentMethod.nfe_code,
+          description:
+            item.paymentMethod.nfe_code === '99'
+              ? item.paymentMethod.description
+              : null,
+          installment: item.installmentValue,
+          integration_type:
+            // eslint-disable-next-line no-nested-ternary
+            item.paymentMethod.tef === PaymentMethodTef.N
+              ? null
+              : item.paymentMethod.tef === PaymentMethodTef.T
+              ? '1'
+              : '2',
+          acquirer: item.paymentMethod.tef === PaymentMethodTef.N ? null : '', // TODO fix
+          flag: item.flag.nfe_code,
+          nsu: item.nsuDocument,
+        })),
+        totalizers: {
+          icms_base: bill.icmsBase,
+          icms_total: bill.icmsValue,
+          fcp_total: bill.icmsFcpValue,
+          product_value: bill.productValue,
+          delivery_value: bill.deliveryValue,
+          discount_value: bill.discountValue,
+          ipi_value: bill.ipiValue,
+          pis_value: bill.pisValue,
+          cofins_value: bill.cofinsValue,
+          other_value: bill.otherValue,
+        },
       };
-      const error = await this.focusNfe.sendNfe(document.id, nfePayload);
-      if (error) {
-        throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
-      }
+
+      console.log(nfePayload);
+
+      // const error = await this.focusNfe.sendNfe(document.id, nfePayload);
+      // if (error) {
+      //   throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
+      // }
 
       return issuedDocument;
     });

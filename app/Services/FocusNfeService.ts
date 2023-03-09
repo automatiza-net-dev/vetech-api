@@ -6,11 +6,22 @@ import { z } from 'zod';
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
 
 export interface ISendNfe {
+  nfe_series: string;
+  nfe_number: number;
   issuedAt: string;
+  authorizedAt: string;
   purpose: string;
-  cnpj: string;
-  ie: string;
+
   seller: {
+    name: string | undefined;
+    fantasy_name: string | undefined;
+    phone: string | undefined;
+    cnpj: string | undefined;
+    state_ie: string | undefined;
+    city_ie: string | undefined;
+    cnae: string | undefined;
+    regime: string;
+
     location: {
       street: string; // rua, av, etc
       number: string;
@@ -18,12 +29,17 @@ export interface ISendNfe {
       city: string;
       uf: string;
       code: string;
+      complement: string;
     };
   };
   buyer: {
     name: string;
-    document: string;
+    cpf_document: string | null;
+    cnpj_document: string | null;
     phone: string;
+    email: string;
+    ie: string;
+    authorized: string;
     location: {
       street: string; // rua, av, etc
       number: string;
@@ -31,45 +47,75 @@ export interface ISendNfe {
       city: string;
       uf: string;
       code: string;
+      complement: string | null;
     };
   };
-  values: {
-    base_icms: string;
-    icms_value: string;
-    icms_base_st: string;
-    icms_total_value_st: string;
 
-    ipi: string;
-    pis: string;
-    cofins: string;
-
-    product: string;
-    delivery: string;
-    discount: string;
-    total: string;
-    other: string;
-  };
   items: Array<{
     index: string;
     code: string;
+    barcode: string;
     description: string;
+    ncm: string;
+    cest: string;
+    tax_benefit_code: string | null;
     cfop: string;
     quantity: string;
     value: string;
-    total: string;
     unity: string;
-    ncm: string;
+
+    discount: number;
+    icms_red_calc: number;
+    icms_percentage: number;
+    icms_value: number;
+
+    fcp_percentage: number;
+    fcp_base_calc: number;
+    fcp_value: number;
+
+    cst_ipi: string;
+    ipi_base: number;
+    ipi_percentage: number;
+    ipi_value: number;
+
+    cst_pis: string;
+    pis_base: number;
+    pis_percentage: number;
+    pis_value: number;
 
     icms_origin: string;
-    icms_base: string;
-    icms_total_value: string;
-    icms_base_st: string;
-    icms_total_value_st: string;
+    icms_base: number;
 
     cst_icms: string;
-    cst_pis: string;
+
     cst_cofins: string;
+    cofins_base: number;
+    cofins_percentage: number;
+    cofins_value: number;
   }>;
+
+  payments: Array<{
+    nfe_code: string;
+    description: string | null;
+    installment: number;
+    integration_type: '1' | '2' | null;
+    acquirer: string | null;
+    flag: string;
+    nsu: string;
+  }>;
+
+  totalizers: {
+    icms_base: number;
+    icms_total: number;
+    fcp_total: number;
+    product_value: number;
+    delivery_value: number;
+    discount_value: number;
+    ipi_value: number;
+    pis_value: number;
+    cofins_value: number;
+    other_value: number;
+  };
 }
 
 interface IDisableNfe {
@@ -213,86 +259,114 @@ export default class FocusNfeService {
   public async sendNfe(ref: string, data: ISendNfe): Promise<string | null> {
     const payload = {
       natureza_operacao: 'Venda',
+      serie: data.nfe_series,
+      numero: data.nfe_number,
       data_emissao: data.issuedAt,
-      data_entrada_saida: '2018-03-21T11:00:00', // TODO check
+      data_entrada_saida: data.authorizedAt,
       tipo_documento: '1',
       local_destino: '1', // doc
       finalidade_emissao: data.purpose,
       consumidor_final: '1',
-      presença_comprador: '1',
+      presenca_comprador: '1',
+      indicador_intermediario: '0',
 
-      cnpj_emitente: data.cnpj,
-      inscricao_estadual_emitente: data.ie,
-      // nome_emitente: 'ACME LTDA', // TODO check
-      // nome_fantasia_emitente: 'ACME LTDA', // TODO check
-      nome_emitente: 'ACME LTDA',
-      nome_fantasia_emitente: 'ACME LTDA',
+      cnpj_emitente: data.seller.cnpj,
+      nome_emitente: data.seller.name,
+      nome_fantasia_emitente: data.seller.fantasy_name,
       logradouro_emitente: data.seller.location.street,
       numero_emitente: data.seller.location.number,
+      complemento_emitente: data.seller.location.complement,
       bairro_emitente: data.seller.location.district,
       municipio_emitente: data.seller.location.city,
-      // regime_tributario_emitente: '', // TODO check
       uf_emitente: data.seller.location.uf,
       cep_emitente: data.seller.location.code,
+      telefone_emitente: data.seller.phone,
+      inscricao_estadual_emitente: data.seller.state_ie,
+      inscricao_municipal_emitente: data.seller.city_ie,
+      cnae_fiscal_emitente: data.seller.cnae,
+      regime_tributario_emitente: data.seller.regime,
 
       nome_destinatario: data.buyer.name,
-      cpf_destinatario: data.buyer.document,
-      inscrição_estadual_destinatario: data.buyer.document,
-      telefone_destinatario: data.buyer.phone,
+      cnpj_destinatario: data.buyer.cpf_document,
+      cpf_destinatario: data.buyer.cnpj_document,
       logradouro_destinatario: data.buyer.location.street,
       numero_destinatario: data.buyer.location.number,
+      complemento_destinatario: data.buyer.location.complement,
       bairro_destinatario: data.buyer.location.district,
       municipio_destinatario: data.buyer.location.city,
       uf_destinatario: data.buyer.location.uf,
-      indicador_inscricao_estadual_destinatario: '9',
-      pais_destinatario: 'Brasil',
       cep_destinatario: data.buyer.location.code,
-
-      icms_base_calculo: data.values.base_icms,
-      icms_valor_: data.values.icms_value,
-      icms_base_calculo_st: data.values.icms_base_st,
-      icms_valor_total_st: data.values.icms_total_value_st,
-
-      valor_frete: data.values.delivery,
-      valor_seguro: '0',
-      valor_desconto: data.values.discount,
-      valor_total: data.values.total,
-      valor_produtos: data.values.product,
-      modalidade_frete: '9',
-
-      valor_ipi: data.values.ipi,
-      valor_pis: data.values.pis,
-      valor_cofins: data.values.cofins,
-      valor_outras_despesas: data.values.other,
+      telefone_destinatario: data.buyer.phone,
+      inscrição_estadual_destinatario: data.buyer.ie,
+      indicador_inscricao_estadual_destinatario: '9',
+      email_destinatario: data.buyer.email,
+      pessoas_autorizadas: data.buyer.authorized,
 
       items: data.items.map(item => ({
         numero_item: item.index,
         codigo_produto: item.code,
+        codigo_barras_comercial: item.barcode,
         descricao: item.description,
-        cfop: item.cfop,
-
-        quantidade_comercial: item.quantity,
-        quantidade_tributavel: item.quantity,
-
-        valor_unitario_comercial: item.value,
-        valor_unitario_tributavel: item.value,
-
-        unidade_comercial: item.unity,
-        unidade_tributavel: item.unity,
-
         codigo_ncm: item.ncm,
+        cest: item.cest,
+        codigo_beneficio_fiscal: item.tax_benefit_code,
+        cfop: item.cfop,
+        unidade_comercial: item.unity,
+        quantidade_comercial: item.quantity,
+        valor_unitario_comercial: item.value,
+        valor_desconto: item.discount,
         inclui_no_total: '1',
-        valor_bruto: item.total,
-        icms_origem: item.icms_origin,
-        icms_base_calculo: item.icms_base,
-        icms_valor_total: item.icms_total_value,
-        icms_base_calculo_st: item.icms_base_st,
-        icms_valor_total_st: item.icms_total_value_st,
 
+        icms_origem: item.icms_origin,
         icms_situacao_tributaria: item.cst_icms,
+        icms_modalidade_base_calculo: 3,
+        icms_base_calculo: item.icms_base,
+        icms_reducao_base_calculo: item.icms_red_calc,
+        icms_aliquota: item.icms_percentage,
+        icms_value: item.icms_value,
+
+        fcp_percentual: item.fcp_percentage,
+        fcp_base_calculo: item.fcp_base_calc,
+        fcp_valor: item.fcp_value,
+
+        ipi_situacao_tributaria: item.cst_ipi,
+        ipi_base_calculo: item.ipi_base,
+        ipi_aliquota: item.ipi_percentage,
+        ipi_valor: item.ipi_value,
+
         pis_situacao_tributaria: item.cst_pis,
+        pis_base_calculo: item.pis_base,
+        pis_aliquota_porcentual: item.pis_percentage,
+        pis_valor: item.pis_value,
+
         cofins_situacao_tributaria: item.cst_cofins,
+        cofins_base_calculo: item.cofins_base,
+        cofins_aliquota_porcentual: item.cofins_percentage,
+        cofins_valor: item.cofins_value,
       })),
+
+      formas_pagamento: data.payments.map(payment => ({
+        forma_pagamento: payment.nfe_code,
+        descricao_pagamento: payment.description,
+        valor_pagamento: payment.installment,
+        tipo_integracao: payment.integration_type,
+        cnpj_credenciadora: payment.acquirer,
+        bandeira_operadora: payment.flag,
+        numero_autorizacao: payment.nsu,
+      })),
+
+      icms_base_calculo: data.totalizers.icms_base,
+      icms_valor_total: data.totalizers.icms_total,
+      fcp_valor_total: data.totalizers.fcp_total,
+      valor_produtos: data.totalizers.product_value,
+      valor_frete: data.totalizers.delivery_value,
+      valor_seguro: 0,
+      valor_desconto: data.totalizers.discount_value,
+      valor_ipi: data.totalizers.ipi_value,
+      valor_pis: data.totalizers.pis_value,
+      cofins_value: data.totalizers.cofins_value,
+      valor_outras_despesas: data.totalizers.other_value,
+      modalidade_frete: '9',
     };
 
     try {

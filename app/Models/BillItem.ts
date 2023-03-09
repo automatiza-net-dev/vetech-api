@@ -229,6 +229,11 @@ export default class BillItem extends BaseModel {
   public cofinsRetentionValue: number;
 
   @column({
+    columnName: 'ipi_cst',
+  })
+  public ipiCst: string;
+
+  @column({
     columnName: 'ipi_base',
   })
   public ipiBase: number;

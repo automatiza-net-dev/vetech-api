@@ -25,6 +25,11 @@ export default class TefFlag extends BaseModel {
   @column()
   public code: string;
 
+  @column({
+    columnName: 'nfe_code',
+  })
+  public nfe_code: string;
+
   @column()
   public type: TefFlagType;
 

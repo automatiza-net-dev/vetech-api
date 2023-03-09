@@ -162,33 +162,44 @@ export default class BankingService {
         .orderBy('created_at', 'desc');
       const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
 
-      const existingBankingsAfter = await Banking.query()
-        .where('economic_group_id', group.id)
-        .whereRaw('issue_date::date > ?', [data.issueDate.toJSDate()])
-        .orderBy('created_at', 'asc');
+      await Database.rawQuery(
+        `update bankings set prev_balance = prev_balance ${
+          data.type === BankingType.C ? `+ ${total}` : `- ${total}`
+        }, balance = balance ${
+          data.type === BankingType.C ? `+ ${total}` : `- ${total}`
+        } where checking_account_id = :id and issue_date > ${`'${data.issueDate}'::date`}`,
+        {
+          id: data.checkingAccountId,
+        },
+      ).useTransaction(trx);
 
-      if (existingBankingsAfter.length > 0) {
-        const promises = existingBankingsAfter.map(eb => {
-          const newPrevBalance =
-            eb.type === BankingType.C
-              ? eb.prevBalance + total
-              : eb.prevBalance - total;
-          const sum =
-            eb.type === BankingType.C
-              ? newPrevBalance + total
-              : newPrevBalance - total;
+      // const existingBankingsAfter = await Banking.query()
+      //   .where('economic_group_id', group.id)
+      //   .whereRaw('issue_date::date > ?', [data.issueDate.toJSDate()])
+      //   .orderBy('created_at', 'asc');
 
-          return eb
-            .merge({
-              prevBalance: newPrevBalance,
-              balance: sum,
-            })
-            .useTransaction(trx)
-            .save();
-        });
+      // if (existingBankingsAfter.length > 0) {
+      //   const promises = existingBankingsAfter.map(eb => {
+      //     const newPrevBalance =
+      //       eb.type === BankingType.C
+      //         ? eb.prevBalance + total
+      //         : eb.prevBalance - total;
+      //     const sum =
+      //       eb.type === BankingType.C
+      //         ? newPrevBalance + total
+      //         : newPrevBalance - total;
 
-        await Promise.all(promises);
-      }
+      //     return eb
+      //       .merge({
+      //         prevBalance: newPrevBalance,
+      //         balance: sum,
+      //       })
+      //       .useTransaction(trx)
+      //       .save();
+      //   });
+
+      //   await Promise.all(promises);
+      // }
 
       const banking = await Banking.create(
         {

@@ -93,34 +93,50 @@ export default class TimelineService {
   }
 
   public async updateWeight(id: string, data: IAnimalWeight) {
-    const record = await AnimalTimeline.findById(id);
+    return Database.transaction(async trx => {
+      const record = await AnimalTimeline.findById(id);
 
-    if (!record) {
-      throw new ResourceNotFoundException('Recurso não encontrado');
-    }
+      if (!record) {
+        throw new ResourceNotFoundException('Recurso não encontrado');
+      }
 
-    const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
-    const technician = await User.findOrFail(data.technicianId);
+      const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID, {
+        client: trx,
+      });
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+      const patient = await Patient.findOrFail(data.tag, { client: trx });
 
-    return AnimalTimeline.findByIdAndUpdate(id, {
-      $set: {
-        timeline_id: WEIGHT_UUID,
-        timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
-        },
-        timeline_info: {
+      await patient
+        .merge({
           weight: data.weight,
-          tag: data.tag,
-          realizedAt: data.realizedAt.toJSDate(),
-          technician: {
-            id: technician.id,
-            name: technician.name,
+          weightDate: DateTime.now(),
+          weightOrigin: PatientWeightOrigin.A,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return AnimalTimeline.findByIdAndUpdate(id, {
+        $set: {
+          timeline_id: WEIGHT_UUID,
+          timeline_type: {
+            description: timelineInfo.description,
+            color: timelineInfo.color,
+            requires_observation: timelineInfo.requiresObservation,
           },
-          observation: data.observation,
+          timeline_info: {
+            weight: data.weight,
+            tag: data.tag,
+            realizedAt: data.realizedAt.toJSDate(),
+            technician: {
+              id: technician.id,
+              name: technician.name,
+            },
+            observation: data.observation,
+          },
         },
-      },
+      });
     });
   }
 

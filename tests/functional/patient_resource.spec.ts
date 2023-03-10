@@ -4,6 +4,7 @@ import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import { PatientGender, PatientType } from 'App/Models/Patient';
 import PatientAnimalHair from 'App/Models/PatientAnimalHair';
+import IPatientSupplierData from 'Contracts/interfaces/IPatientSupplierData';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
 
@@ -365,5 +366,117 @@ test.group('Patient resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should search for suppliers', async ({ client, assert }) => {
+    const { user, patient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await patient
+      .merge({
+        type: PatientType.SUPPLIER,
+      })
+      .save();
+
+    const params = new URLSearchParams();
+    params.append('name', 'a');
+    params.append('document', 'a');
+
+    const response = await client
+      .get(`/patient-suppliers?${params.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should show supplier', async ({ client, assert }) => {
+    const { user, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await holder
+      .merge({
+        type: PatientType.SUPPLIER,
+      })
+      .save();
+
+    const response = await client
+      .get(`/patient-suppliers/${holder.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should create new supplier', async ({ client, assert }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/patient-suppliers')
+      .json({
+        name: 'patient name',
+        email: 'mail123123@mail.com',
+        cellphone: '123',
+        cityCode: 'some',
+        document: 'some document',
+      } as IPatientSupplierData)
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should update supplier', async ({ client, assert }) => {
+    const { user, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await holder
+      .merge({
+        type: PatientType.SUPPLIER,
+      })
+      .save();
+    await holder.related('tutor').create({
+      id: v4(),
+      document: '123',
+      inscription: '123',
+      corporateName: '123',
+      email: '123',
+      cellphone: '123',
+      telephone: '123',
+      messagePersonName: '123',
+      messagePersonPhone: '123',
+      postalCode: '123',
+      street: '123',
+      number: '123',
+      complement: '123',
+      district: '123',
+      city: '123',
+      state: '123',
+      cityCode: 'some',
+    });
+
+    const response = await client
+      .put(`/patient-suppliers/${holder.id}`)
+      .json({
+        name: 'patient name',
+        email: 'mail123123@mail.com',
+        cellphone: '123',
+        cityCode: 'some',
+        document: 'some document',
+        active: true,
+      } as IPatientSupplierData)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 });

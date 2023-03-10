@@ -21,6 +21,7 @@ import { v4 } from 'uuid';
 export enum PatientType {
   TUTOR = 'tutor',
   ANIMAL = 'animal',
+  SUPPLIER = 'supplier',
 }
 
 export enum PatientGender {

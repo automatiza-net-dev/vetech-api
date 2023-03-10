@@ -15,6 +15,7 @@ import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData, {
   IFastStorePatient,
 } from 'Contracts/interfaces/IPatientData';
+import IPatientSupplierData from 'Contracts/interfaces/IPatientSupplierData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { DateTime } from 'luxon';
@@ -41,6 +42,11 @@ interface ISearchTutor {
   phone?: string;
   patient?: string;
   race?: string;
+}
+
+interface ISearchSupplier {
+  name?: string;
+  document?: string;
 }
 
 @inject()
@@ -120,6 +126,30 @@ export default class PatientService {
 
       return true;
     });
+  }
+
+  public async supplierIndex(
+    unitId: string,
+    data: ISearchSupplier,
+  ): Promise<Array<Patient>> {
+    const group = await this.getEconomicGroup(unitId);
+
+    const qb = group
+      .related('patients')
+      .query()
+      .where('type', PatientType.SUPPLIER)
+      .preload('tutor', query => {
+        if (data.document) {
+          query.where('document', 'ilike', `%${data.document}%`);
+          query.where('inscription', 'ilike', `%${data.document}%`);
+        }
+      });
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    return qb;
   }
 
   public async animalsIndex(unitId: string, data: ISearchAnimals) {
@@ -291,6 +321,10 @@ export default class PatientService {
         query.preload('clientOrigin');
       });
       await patient.load('dependents');
+    }
+
+    if (patient.type === PatientType.SUPPLIER) {
+      await patient.load('tutor');
     }
 
     return patient;
@@ -631,6 +665,58 @@ export default class PatientService {
     await tutor.related('dependents').sync(updatedDependents);
   }
 
+  public async storeSupplier(
+    unitId: string,
+    data: Omit<IPatientSupplierData, 'active'>,
+  ): Promise<Patient> {
+    const group = await this.getEconomicGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
+
+      const supplier = await group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('type', PatientType.SUPPLIER)
+        .select('id');
+
+      const patient = await Patient.create(
+        {
+          name: data.name,
+          tags: data.tags,
+          photo,
+          type: PatientType.SUPPLIER,
+          tag: (supplier.length + 1).toString(),
+        },
+        { client: trx },
+      );
+
+      await patient.related('tutor').create({
+        residence: data.residence,
+        inscription: data.document,
+        corporateName: data.corporate_name,
+        email: data.email,
+        cellphone: data.cellphone,
+        telephone: data.telephone,
+        messagePersonName: data.message_person_name,
+        messagePersonPhone: data.message_person_phone,
+        postalCode: data.postal_code,
+        street: data.street,
+        number: data.number,
+        complement: data.complement,
+        district: data.district,
+        city: data.city,
+        state: data.state,
+        cityCode: data.cityCode,
+      });
+
+      await group.related('patients').attach([patient.id], trx);
+
+      return patient;
+    });
+  }
+
   public async update(
     unitId: string,
     id: string,
@@ -776,6 +862,67 @@ export default class PatientService {
         'E_INTERNAL_ERROR',
       );
     }
+  }
+
+  public async updateSupplier(
+    _: string,
+    id: string,
+    data: IPatientSupplierData,
+  ): Promise<Patient> {
+    return Database.transaction(async trx => {
+      const supplier = await Patient.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('type', PatientType.SUPPLIER)
+        .preload('tutor')
+        .first();
+
+      if (!supplier) {
+        throw new BadRequestException(
+          'Fornecedor inválido',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      const photo = data.photo
+        ? await this.uploadPhoto(data.photo)
+        : supplier.photo;
+
+      await supplier.tutor
+        .merge({
+          residence: data.residence,
+          inscription: data.document,
+          corporateName: data.corporate_name,
+          email: data.email,
+          cellphone: data.cellphone,
+          telephone: data.telephone,
+          messagePersonName: data.message_person_name,
+          messagePersonPhone: data.message_person_phone,
+          postalCode: data.postal_code,
+          street: data.street,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          cityCode: data.cityCode,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await supplier
+        .merge({
+          name: data.name,
+          photo,
+          tags: data.tags,
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+
+      return supplier;
+    });
   }
 
   public async destroy(unitId: string, patientId: string): Promise<void> {

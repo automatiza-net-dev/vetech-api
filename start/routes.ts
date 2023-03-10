@@ -165,6 +165,15 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/', 'PatientSuppliersController.index');
+  Route.post('/', 'PatientSuppliersController.store');
+  Route.get('/:id', 'PatientSuppliersController.show');
+  Route.put('/:id', 'PatientSuppliersController.update');
+})
+  .prefix('patient-suppliers')
+  .middleware('auth');
+
+Route.group(() => {
   Route.get('/', 'SpeciesController.index');
   Route.post('/', 'SpeciesController.store');
   Route.get('/:id', 'SpeciesController.show');

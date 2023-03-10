@@ -11,7 +11,7 @@ export default interface IPatientData {
   active: boolean;
   holderId: string;
   castrated: boolean;
-  microchip: string;
+  microchip?: string;
 
   raceId: string;
   vaccineOrigin?: PatientVaccineOrigin;

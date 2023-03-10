@@ -32,7 +32,7 @@ export default class UpdatePatientValidator {
       rules.exists({ table: 'patient_animal_hairs', column: 'id' }),
     ]),
     castrated: schema.boolean(),
-    microchip: schema.string(),
+    microchip: schema.string.optional(),
     death: schema.boolean(),
     deathDate: schema.date.optional(),
   });

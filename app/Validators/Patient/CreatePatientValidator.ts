@@ -30,7 +30,7 @@ export default class CreatePatientValidator {
       rules.exists({ table: 'patient_animal_hairs', column: 'id' }),
     ]),
     castrated: schema.boolean(),
-    microchip: schema.string(),
+    microchip: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

@@ -19,6 +19,8 @@ import {
 } from 'Contracts/interfaces/IDailyCashierData';
 import { DateTime } from 'luxon';
 
+import BillPayment from '../Models/BillPayment';
+
 interface ISearch {
   movement?: string;
   status?: string;
@@ -198,6 +200,97 @@ export default class DailyCashierService {
         }));
       }),
     };
+  }
+
+  async dump(unitId: string) {
+    return Database.transaction(async trx => {
+      const result = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .preload('bills')
+        .preload('entries');
+
+      const bills = result.map(r => r.bills.map(b => b.id)).flat();
+      const payments = await BillPayment.query()
+        .useTransaction(trx)
+        .whereIn('bill_id', bills)
+        .preload('acquirer')
+        .preload('flag')
+        .preload('paymentMethod')
+        .preload('bill');
+
+      return result.map(r => ({
+        id: r.id,
+        tag: r.tag,
+        daily_movement_id: r.daily_movement_id,
+        user_who_opened_id: r.user_who_opened_id,
+        opening_date: r.openingDate,
+        user_who_closed_id: r.user_who_closed_id,
+        closing_date: r.closingDate,
+        user_who_revised_id: r.user_who_revised_id,
+        revision_date: r.revisionDate,
+        user_who_checked_id: r.user_who_checked_id,
+        checking_date: r.checkingDate,
+        opening_balance: r.openingBalance,
+        cashier_funds: 0, // FIX
+        sales_total: r.salesTotal,
+        expenses_total: r.expensesTotal,
+        receipts_total: r.receiptsTotal,
+        cashier_total: r.cashierTotal,
+        cashier_balance: r.cashierBalance,
+        observation: r.observations,
+        status: r.status,
+        despesas: r.entries
+          .filter(
+            e =>
+              e.type === DailyCashierEntryType.D &&
+              e.status === DailyCashierEntryStatus.A,
+          )
+          .map(e => ({
+            tag: e.tag,
+            entry_date: e.entryDate,
+            description: e.description,
+            value: e.value,
+          })),
+        recebimentos: r.entries
+          .filter(
+            e =>
+              e.type === DailyCashierEntryType.C &&
+              e.status === DailyCashierEntryStatus.A,
+          )
+          .map(e => ({
+            tag: e.tag,
+            entry_date: e.entryDate,
+            description: e.description,
+            value: e.value,
+          })),
+        bill_payments: payments
+          .sort(
+            (a, b) =>
+              a.acquirer.description.localeCompare(b.acquirer.description) ||
+              a.flag.description.localeCompare(b.flag.description) ||
+              a.bill.tag.localeCompare(b.bill.tag) ||
+              a.expirationDate.toJSDate().getSeconds() -
+                b.expirationDate.toJSDate().getSeconds(),
+          )
+          .map(e => ({
+            id: e.id,
+            payment_method_id: e.payment_method_id,
+            payment_description: {
+              bill_tag: e.bill.tag,
+              tef_flag_id: e.tef_flag_id,
+              tef_flag_description: e.flag.description,
+              tef_aquirer_id: e.tef_acquirer_id,
+              tef_aquirer_description: e.acquirer.description,
+              expiration_date: e.expirationDate,
+              installments: e.installments,
+              installment_value: e.installmentValue,
+              total_value: e.totalValue,
+              nsu_document: e.nsuDocument,
+            },
+          })),
+      }));
+    });
   }
 
   async index(unitId: string, data: ISearch) {

@@ -29,6 +29,13 @@ export default class DailyCashiersController {
     return response.ok(dailyMovement);
   }
 
+  public async dump({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const result = await this.service.dump(unit_id);
+
+    return response.ok(result);
+  }
+
   public async check({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

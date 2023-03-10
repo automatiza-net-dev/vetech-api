@@ -26,6 +26,7 @@ import {
   ICreateBillData,
   ICreateBillItemData,
   ICreateBillPaymentData,
+  IUpdateBillItemData,
 } from 'Contracts/interfaces/IBillData';
 import { DateTime } from 'luxon';
 
@@ -690,6 +691,200 @@ export default class BillService {
         .save();
 
       return billItem;
+    });
+  }
+
+  async updateBillItem(unitId: string, data: IUpdateBillItemData) {
+    return Database.transaction(async trx => {
+      const billItem = await BillItem.query()
+        .where('id', data.billItemId)
+        .preload('taxRule')
+        .preload('bill', query => {
+          query.preload('items', query => {
+            query.whereNotIn('id', [data.billItemId]);
+
+            query.preload('taxRule');
+            query.preload('productVariation', query => {
+              query.preload('product');
+            });
+          });
+        })
+        .preload('productVariation', query => {
+          query.preload('product');
+        })
+        .firstOrFail();
+
+      const ufIcms = await UfIcms.query()
+        .useTransaction(trx)
+        .where('origin_uf', billItem.taxRule.fromUf)
+        .where('destination_uf', billItem.taxRule.fromUf)
+        .first();
+
+      const totalValue =
+        billItem.unitaryValue * billItem.quantity - data.discountValue;
+      const icmsBase =
+        totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
+      const icmsStBase =
+        icmsBase *
+        ((100 + billItem.taxRule.ivaIcmsSt) / 100) *
+        ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
+      const icmsValue = (icmsBase * billItem.taxRule.icmsPerc) / 100;
+
+      const updated = await billItem
+        .merge({
+          discountValue: data.discountValue,
+          totalValue,
+          icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
+          icmsCst:
+            billItem.productVariation.product.type === ProductType.PRODUCT
+              ? billItem.taxRule.icmsCst
+              : undefined,
+          icmsBase:
+            billItem.productVariation.product.type === ProductType.PRODUCT
+              ? icmsBase
+              : undefined,
+          icmsPercentage:
+            billItem.productVariation.product.type === ProductType.PRODUCT
+              ? billItem.taxRule.icmsPerc
+              : undefined,
+          icmsValue:
+            billItem.productVariation.product.type === ProductType.PRODUCT
+              ? icmsValue
+              : undefined,
+          icmsPercentageRedAliquot: billItem.taxRule.icmsPercRedAliquota,
+          icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
+          icmsStBase,
+          icmsStPercentageRedBase: billItem.taxRule.icmsPercRedAliquota,
+          icmsStIva: billItem.taxRule.icmsPercRedAliquota,
+          icmsStPercentageUfDestination: 0,
+          icmsStValue: ufIcms
+            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+            : undefined,
+          issCst:
+            billItem.productVariation.product.type === ProductType.SERVICE
+              ? billItem.taxRule.icmsCst
+              : undefined,
+          issBase:
+            billItem.productVariation.product.type === ProductType.SERVICE
+              ? icmsBase
+              : undefined,
+          issPercentage:
+            billItem.productVariation.product.type === ProductType.SERVICE
+              ? billItem.taxRule.icmsPercRedAliquota
+              : undefined,
+          issValue:
+            billItem.productVariation.product.type === ProductType.SERVICE
+              ? (icmsBase * (billItem.taxRule?.icmsPercRedAliquota ?? 0)) / 100
+              : undefined,
+          pisBase: icmsBase,
+          pisPercentage: billItem.taxRule.pisPerc,
+          pisValue: (totalValue * billItem.taxRule.pisPerc) / 100,
+          pisRetentionValue: 0,
+          cofinsBase: icmsBase,
+          cofinsPercentage: billItem.taxRule.cofinsPerc,
+          cofinsValue: (totalValue * billItem.taxRule.cofinsPerc) / 100,
+          cofinsRetentionValue: 0,
+          ipiCst: billItem.taxRule.ipiCst,
+          ipiBase: icmsBase,
+          ipiPercentage: billItem.taxRule.ipiPerc,
+          ipiValue: (totalValue * billItem.taxRule.ipiPerc) / 100,
+          icmsDeferredValue: 0,
+          icmsPartitionValue: 0,
+          icmsFcpPercentage: billItem.taxRule.fcpPerc,
+          icmsFcpValue: (icmsBase * billItem.taxRule.fcpPerc) / 100,
+          icmsPartitionOriginUfPercentage: billItem.taxRule.icmsPerc,
+          icmsPartitionDestinationUfPercentage:
+            billItem.taxRule.icmsPercRedAliquota,
+          icmsPartitionInterUfPercentage: billItem.taxRule.icmsPercRedAliquota,
+        })
+        .useTransaction(trx)
+        .save();
+
+      const validItems = [updated, ...billItem.bill.items];
+      let totalProductValue = 0;
+      let totalServiceValue = 0;
+      billItem.bill.items.forEach(item => {
+        if (item.productVariation.product.type === ProductType.PRODUCT) {
+          totalProductValue += item.totalValue;
+        }
+        if (item.productVariation.product.type === ProductType.SERVICE) {
+          totalServiceValue += item.totalValue;
+        }
+      });
+      if (billItem.productVariation.product.type === ProductType.PRODUCT) {
+        totalProductValue += updated.totalValue;
+      } else {
+        totalServiceValue += updated.totalValue;
+      }
+
+      const totalDiscountValue = validItems.reduce(
+        (acc, item) => acc + (item.discountValue ?? 0),
+        0,
+      );
+
+      await billItem.bill
+
+        .merge({
+          productValue: totalProductValue,
+          serviceValue: totalServiceValue,
+          discountValue: totalDiscountValue,
+          totalValue: totalProductValue + totalServiceValue,
+          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
+          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems.reduce(
+            (acc, item) => acc + item.icmsStBase,
+            0,
+          ),
+          icmsStValue: validItems.reduce(
+            (acc, item) => acc + item.icmsStValue,
+            0,
+          ),
+          issBase: validItems.reduce(
+            (acc, item) => acc + (item.issBase ?? 0),
+            0,
+          ),
+          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
+          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
+          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          pisRetentionValue: validItems.reduce(
+            (acc, item) => acc + (item.pisRetentionValue ?? 0),
+            0,
+          ),
+          cofinsBase: validItems.reduce(
+            (acc, item) => acc + item.cofinsBase,
+            0,
+          ),
+          cofinsValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsValue,
+            0,
+          ),
+          cofinsRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsRetentionValue,
+            0,
+          ),
+          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
+          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          icmsDeferredValue: validItems.reduce(
+            (acc, item) => acc + item.icmsDeferredValue,
+            0,
+          ),
+          icmsFcpValue: validItems.reduce(
+            (acc, item) => acc + item.icmsFcpValue,
+            0,
+          ),
+          icmsUfDestinationValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+            0,
+          ),
+          icmsUfOriginValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+            0,
+          ),
+        })
+        .useTransaction(trx)
+        .save();
+
+      return updated;
     });
   }
 

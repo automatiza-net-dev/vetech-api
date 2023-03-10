@@ -5,6 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import CreateBillItemValidator from 'App/Validators/Bill/CreateBillItemValidator';
 import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentValidator';
 import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
+import UpdateBillItemValidator from 'App/Validators/Bill/UpdateBillItemValidator';
 
 @inject()
 export default class BillsController {
@@ -65,6 +66,19 @@ export default class BillsController {
     const result = await this.service.createBillItem(unit_id, payload);
 
     return response.created(result);
+  }
+
+  public async updateBillItem({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateBillItemValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.updateBillItem(unit_id, payload);
+
+    return response.ok(result);
   }
 
   public async createBillPayment({

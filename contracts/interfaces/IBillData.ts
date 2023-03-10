@@ -36,3 +36,8 @@ export interface ICreateBillPaymentData {
   installmentsValue: number;
   nsuDocument?: string;
 }
+
+export interface IUpdateBillItemData {
+  billItemId: string;
+  discountValue: number;
+}

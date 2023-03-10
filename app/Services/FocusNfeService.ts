@@ -288,7 +288,7 @@ export default class FocusNfeService {
 
       nome_destinatario: data.buyer.name,
       // cnpj_destinatario: 'data.buyer.cnpj_document',
-      cpf_destinatario: '51966818092',
+      cpf_destinatario: data.buyer.cpf_document,
       logradouro_destinatario: data.buyer.location.street,
       numero_destinatario: data.buyer.location.number,
       complemento_destinatario: data.buyer.location.complement,
@@ -368,13 +368,15 @@ export default class FocusNfeService {
       modalidade_frete: '9',
     };
 
-    console.log(payload); // THIS
+    // console.log(payload); // THIS
 
     try {
       await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
 
       return null;
     } catch (error) {
+      console.log(error.response.data);
+
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       return (error as T).response?.data?.mensagem ?? '';
     }

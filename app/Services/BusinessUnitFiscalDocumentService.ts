@@ -296,7 +296,7 @@ export default class BusinessUnitFiscalDocumentService {
         },
       };
 
-      const error = await this.focusNfe.sendNfe(document.id, nfePayload);
+      const error = await this.focusNfe.sendNfe(issuedDocument.id, nfePayload);
       if (error) {
         throw new BadRequestException(error, 400, 'E_EXTERNAL_ERROR');
       }

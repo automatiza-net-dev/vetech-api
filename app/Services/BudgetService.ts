@@ -556,7 +556,7 @@ export default class BudgetService {
               ? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
               : 0;
             const icmsStBase = rule
-              ? icmsBase + (100 + rule.ivaIcmsSt) / 100
+              ? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
               : 0;
             const icmsValue = rule
               ? icmsBase *

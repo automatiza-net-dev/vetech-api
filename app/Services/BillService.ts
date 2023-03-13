@@ -238,7 +238,7 @@ export default class BillService {
           item.unitaryValue * item.quantity - item.discountValue;
         const icmsBase =
           totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-        const icmsStBase = icmsBase + (100 + (rule?.ivaIcmsSt ?? 0)) / 100;
+        const icmsStBase = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
         const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
         return BillItem.create(
@@ -507,184 +507,7 @@ export default class BillService {
     return Database.transaction(async trx => {
       const totalValue = data.unitaryValue * data.quantity - data.discountValue;
       const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase = icmsBase + (100 + rule.ivaIcmsSt) / 100;
-      const icmsValue = (icmsBase * rule.icmsPerc) / 100;
-
-      const billItem = await BillItem.create(
-        {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          bill_id: bill.id,
-          product_variation_id: data.productVariationId,
-          tax_rule_id: rule.id,
-
-          quantity: data.quantity,
-          costValue: price.costPrice,
-          saleValue: price.price,
-          unitaryValue: data.unitaryValue,
-          discountValue: data.discountValue,
-          totalValue,
-          status: BillItemStatus.A,
-          createdAt: bill.createdAt,
-
-          fiscalOperationCode: rule.taxOperation.code,
-          icmsOriginProduct: productVariation.product.icmsOrigin,
-          icmsCst:
-            productVariation.product.type === ProductType.PRODUCT
-              ? rule.icmsCst
-              : undefined,
-          icmsBase:
-            productVariation.product.type === ProductType.PRODUCT
-              ? icmsBase
-              : undefined,
-          icmsPercentage:
-            productVariation.product.type === ProductType.PRODUCT
-              ? rule.icmsPerc
-              : undefined,
-          icmsValue:
-            productVariation.product.type === ProductType.PRODUCT
-              ? icmsValue
-              : undefined,
-          icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-          icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          icmsStBase,
-          icmsStPercentageRedBase: rule.icmsPercRedAliquota,
-          icmsStIva: rule.ivaIcmsSt,
-          icmsStPercentageUfDestination: 0,
-          icmsStValue: ufIcms
-            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
-            : undefined,
-          issCst:
-            productVariation.product.type === ProductType.SERVICE
-              ? rule.icmsCst
-              : undefined,
-          issBase:
-            productVariation.product.type === ProductType.SERVICE
-              ? icmsBase
-              : undefined,
-          issPercentage:
-            productVariation.product.type === ProductType.SERVICE
-              ? rule.icmsPercRedAliquota
-              : undefined,
-          issValue:
-            productVariation.product.type === ProductType.SERVICE
-              ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
-              : undefined,
-          pisBase: totalValue,
-          pisPercentage: rule.pisPerc,
-          pisValue: (totalValue * rule.pisPerc) / 100,
-          pisRetentionValue: 0,
-          cofinsBase: totalValue,
-          cofinsPercentage: rule.cofinsPerc,
-          cofinsValue: (totalValue * rule.cofinsPerc) / 100,
-          cofinsRetentionValue: 0,
-          ipiCst: rule.ipiCst,
-          ipiBase: totalValue,
-          ipiPercentage: rule.ipiPerc,
-          ipiValue: (totalValue * rule.ipiPerc) / 100,
-          icmsDeferredValue: 0,
-          icmsPartitionValue: 0,
-          icmsFcpPercentage: rule.fcpPerc,
-          icmsFcpValue: (icmsBase * rule.fcpPerc) / 100,
-          icmsPartitionOriginUfPercentage: rule.icmsPerc,
-          icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-          icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
-        },
-        {
-          client: trx,
-        },
-      );
-
-      const validItems = [billItem, ...items];
-
-      let totalProductValue = 0;
-      let totalServiceValue = 0;
-      items.forEach(item => {
-        if (item.productVariation.product.type === ProductType.PRODUCT) {
-          totalProductValue += item.totalValue;
-        }
-        if (item.productVariation.product.type === ProductType.SERVICE) {
-          totalServiceValue += item.totalValue;
-        }
-      });
-      if (productVariation.product.type === ProductType.PRODUCT) {
-        totalProductValue += billItem.totalValue;
-      } else {
-        totalServiceValue += billItem.totalValue;
-      }
-
-      // const totalProductValue = validItems.reduce(
-      //   (acc, item) => acc + (item.totalValue ?? 0),
-      //   0,
-      // );
-
-      const totalDiscountValue = validItems.reduce(
-        (acc, item) => acc + (item.discountValue ?? 0),
-        0,
-      );
-
-      await bill
-        .merge({
-          productValue: totalProductValue,
-          serviceValue: totalServiceValue,
-          discountValue: totalDiscountValue,
-          totalValue: totalProductValue + totalServiceValue,
-          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
-          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
-          icmsStBase: validItems.reduce(
-            (acc, item) => acc + item.icmsStBase,
-            0,
-          ),
-          icmsStValue: validItems.reduce(
-            (acc, item) => acc + item.icmsStValue,
-            0,
-          ),
-          issBase: validItems.reduce(
-            (acc, item) => acc + (item.issBase ?? 0),
-            0,
-          ),
-          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
-          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
-          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
-          pisRetentionValue: validItems.reduce(
-            (acc, item) => acc + (item.pisRetentionValue ?? 0),
-            0,
-          ),
-          cofinsBase: validItems.reduce(
-            (acc, item) => acc + item.cofinsBase,
-            0,
-          ),
-          cofinsValue: validItems.reduce(
-            (acc, item) => acc + item.cofinsValue,
-            0,
-          ),
-          cofinsRetentionValue: validItems.reduce(
-            (acc, item) => acc + item.cofinsRetentionValue,
-            0,
-          ),
-          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
-          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
-          icmsDeferredValue: validItems.reduce(
-            (acc, item) => acc + item.icmsDeferredValue,
-            0,
-          ),
-          icmsFcpValue: validItems.reduce(
-            (acc, item) => acc + item.icmsFcpValue,
-            0,
-          ),
-          icmsUfDestinationValue: validItems.reduce(
-            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
-            0,
-          ),
-          icmsUfOriginValue: validItems.reduce(
-            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
-            0,
-          ),
-        })
-        .useTransaction(trx)
-        .save();
-
-      return billItem;
+      const icmsStBase = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
     });
   }
 
@@ -718,7 +541,8 @@ export default class BillService {
         billItem.unitaryValue * billItem.quantity - data.discountValue;
       const icmsBase =
         totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase = icmsBase + (100 + billItem.taxRule.ivaIcmsSt) / 100;
+      const icmsStBase =
+        icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
       const icmsValue = (icmsBase * billItem.taxRule.icmsPerc) / 100;
 
       const updated = await billItem
@@ -1448,7 +1272,7 @@ export default class BillService {
               item.unitaryValue * item.quantity - item.discountValue;
             const icmsBase =
               totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-            const icmsStBase = icmsBase + (100 + (rule.ivaIcmsSt ?? 0)) / 100;
+            const icmsStBase = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
             await item

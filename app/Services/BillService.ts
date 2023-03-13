@@ -238,10 +238,7 @@ export default class BillService {
           item.unitaryValue * item.quantity - item.discountValue;
         const icmsBase =
           totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-        const icmsStBase =
-          icmsBase *
-          ((100 + (rule?.ivaIcmsSt ?? 0)) / 100) *
-          ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+        const icmsStBase = icmsBase + (100 + (rule?.ivaIcmsSt ?? 0)) / 100;
         const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
         return BillItem.create(
@@ -510,10 +507,7 @@ export default class BillService {
     return Database.transaction(async trx => {
       const totalValue = data.unitaryValue * data.quantity - data.discountValue;
       const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase =
-        icmsBase *
-        ((100 + rule.ivaIcmsSt) / 100) *
-        ((100 - rule.icmsPercRedBaseCalculo) / 100);
+      const icmsStBase = icmsBase + (100 + rule.ivaIcmsSt) / 100;
       const icmsValue = (icmsBase * rule.icmsPerc) / 100;
 
       const billItem = await BillItem.create(
@@ -724,10 +718,7 @@ export default class BillService {
         billItem.unitaryValue * billItem.quantity - data.discountValue;
       const icmsBase =
         totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase =
-        icmsBase *
-        ((100 + billItem.taxRule.ivaIcmsSt) / 100) *
-        ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
+      const icmsStBase = icmsBase + (100 + billItem.taxRule.ivaIcmsSt) / 100;
       const icmsValue = (icmsBase * billItem.taxRule.icmsPerc) / 100;
 
       const updated = await billItem
@@ -1457,10 +1448,7 @@ export default class BillService {
               item.unitaryValue * item.quantity - item.discountValue;
             const icmsBase =
               totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-            const icmsStBase =
-              icmsBase *
-              ((100 + (rule.ivaIcmsSt ?? 0)) / 100) *
-              ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
+            const icmsStBase = icmsBase + (100 + (rule.ivaIcmsSt ?? 0)) / 100;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
             await item

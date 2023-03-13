@@ -13,6 +13,7 @@ import Finance, {
   FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
+import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductType } from 'App/Models/Product';
@@ -149,40 +150,6 @@ export default class BillService {
   async createBill(unitId: string, user: User, data: ICreateBillData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const bills = await Bill.query().select('id');
-
-    const productVariations = await ProductVariation.query()
-      .whereIn(
-        'id',
-        data.items.map(item => item.productVariationId),
-      )
-      .preload('product')
-      .preload('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
-      });
-
-    const taxRules = await TaxationGroupRule.query()
-      .whereHas('taxationGroup', query => {
-        query.whereIn(
-          'id',
-          productVariations.map(item => item.product.taxation_group_id),
-        );
-      })
-      .where('movementType', MovementType.S)
-      .where('movementCategory', MovementCategory.NS)
-      .preload('taxationGroup')
-      .preload('taxOperation');
-
-    const ufIcms = await UfIcms.query()
-      .whereIn(
-        'origin_uf',
-        taxRules.map(rule => rule.fromUf),
-      )
-      .whereIn(
-        'destination_uf',
-        taxRules.map(rule => rule.toUf),
-      );
-
     // if (ufIcms.length !== taxRules.length) {
     //   throw new InternalErrorException(
     //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
@@ -192,6 +159,53 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId, {
+        client: trx,
+      });
+      const client = await Patient.query()
+        .useTransaction(trx)
+        .where('id', data.clientId)
+        .preload('tutor')
+        .firstOrFail();
+
+      const bills = await Bill.query().select('id');
+
+      const productVariations = await ProductVariation.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.items.map(item => item.productVariationId),
+        )
+        .preload('product')
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        });
+
+      const taxRules = await TaxationGroupRule.query()
+        .useTransaction(trx)
+        .whereHas('taxationGroup', query => {
+          query.whereIn(
+            'id',
+            productVariations.map(item => item.product.taxation_group_id),
+          );
+        })
+        .where('movementType', MovementType.S)
+        .where('movementCategory', MovementCategory.NS)
+        .where('fromUf', unit.state ?? '')
+        .where('toUf', client.tutor.state ?? '')
+        .preload('taxationGroup')
+        .preload('taxOperation');
+
+      const ufIcms = await UfIcms.query()
+        .whereIn(
+          'origin_uf',
+          taxRules.map(rule => rule.fromUf),
+        )
+        .whereIn(
+          'destination_uf',
+          taxRules.map(rule => rule.toUf),
+        );
+
       const bill = await Bill.create(
         {
           economic_group_id: group.id,
@@ -1397,6 +1411,10 @@ export default class BillService {
 
   async recalculateItemsTaxes(unitId: string, id: string) {
     await Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(id, {
+        client: trx,
+      });
+
       const bill = await Bill.query()
         .useTransaction(trx)
         .where('business_unit_id', unitId)
@@ -1405,6 +1423,9 @@ export default class BillService {
           query.preload('productVariation', query => {
             query.preload('product');
           });
+        })
+        .preload('client', query => {
+          query.preload('tutor');
         })
         .first();
 
@@ -1435,6 +1456,8 @@ export default class BillService {
           })
           .where('movementType', MovementType.S)
           .where('movementCategory', MovementCategory.NS)
+          .where('fromUf', unit.state ?? '')
+          .where('toUf', bill.client.tutor.state ?? '')
           .preload('taxationGroup')
           .preload('taxOperation');
 

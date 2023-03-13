@@ -594,7 +594,7 @@ export default class BudgetService {
               icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
               icmsStBase,
               icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
-              icmsStIva: rule?.icmsPercRedAliquota,
+              icmsStIva: rule?.ivaIcmsSt,
               icmsStPercentageUfDestination: 0,
               icmsStValue: ufIcms
                 ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue

@@ -281,7 +281,7 @@ export default class BillService {
             icmsStBase,
             icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
             icmsStIva: rule?.ivaIcmsSt,
-            icmsStPercentageUfDestination: 0,
+            icmsStPercentageUfDestination: ufIcmsRule?.icmsPercentage,
             icmsStValue:
               icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
               icmsValue,
@@ -550,7 +550,7 @@ export default class BillService {
           icmsStBase,
           icmsStPercentageRedBase: rule.icmsPercRedAliquota,
           icmsStIva: rule.ivaIcmsSt,
-          icmsStPercentageUfDestination: 0,
+          icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
           icmsStValue: ufIcms
             ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
             : undefined,
@@ -748,7 +748,7 @@ export default class BillService {
           icmsStBase,
           icmsStPercentageRedBase: billItem.taxRule.icmsPercRedAliquota,
           icmsStIva: billItem.taxRule.ivaIcmsSt,
-          icmsStPercentageUfDestination: 0,
+          icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
           icmsStValue: ufIcms
             ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
             : undefined,

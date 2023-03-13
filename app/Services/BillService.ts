@@ -447,7 +447,12 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
     const unit = await BusinessUnit.findOrFail(unitId);
 
-    const bill = await Bill.findOrFail(data.billId);
+    const bill = await Bill.query()
+      .where('id', data.billId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .firstOrFail();
     const items = await bill
       .related('items')
       .query()

@@ -199,7 +199,7 @@ export default class BillService {
       const ufIcms = await UfIcms.query()
         .whereIn(
           'origin_uf',
-          taxRules.map(rule => rule.fromUf),
+          taxRules.map(rule => rule.toUf),
         )
         .whereIn(
           'destination_uf',
@@ -513,7 +513,7 @@ export default class BillService {
     }
 
     const ufIcms = await UfIcms.query()
-      .where('origin_uf', rule.fromUf)
+      .where('origin_uf', rule.toUf)
       .where('destination_uf', rule.toUf)
       .first();
     // if (!ufIcms) {
@@ -739,7 +739,7 @@ export default class BillService {
 
       const ufIcms = await UfIcms.query()
         .useTransaction(trx)
-        .where('origin_uf', billItem.taxRule.fromUf)
+        .where('origin_uf', billItem.taxRule.toUf)
         .where('destination_uf', billItem.taxRule.toUf)
         .first();
 
@@ -1464,7 +1464,7 @@ export default class BillService {
         const ufIcms = await UfIcms.query()
           .whereIn(
             'origin_uf',
-            taxRules.map(rule => rule.fromUf),
+            taxRules.map(rule => rule.toUf),
           )
           .whereIn(
             'destination_uf',

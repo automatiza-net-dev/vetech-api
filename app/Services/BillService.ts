@@ -485,7 +485,7 @@ export default class BillService {
 
     const ufIcms = await UfIcms.query()
       .where('origin_uf', rule.fromUf)
-      .where('destination_uf', rule.fromUf)
+      .where('destination_uf', rule.toUf)
       .first();
     // if (!ufIcms) {
     //   throw new InternalErrorException(
@@ -711,7 +711,7 @@ export default class BillService {
       const ufIcms = await UfIcms.query()
         .useTransaction(trx)
         .where('origin_uf', billItem.taxRule.fromUf)
-        .where('destination_uf', billItem.taxRule.fromUf)
+        .where('destination_uf', billItem.taxRule.toUf)
         .first();
 
       const totalValue =

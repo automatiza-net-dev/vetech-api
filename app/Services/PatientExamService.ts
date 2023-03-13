@@ -197,9 +197,10 @@ export default class PatientExamService {
       }
 
       const attachment = await this.uploadAttachment(data.attachment);
-      const result = ent.related('attachments').create(
+      const result = await ent.related('attachments').create(
         {
           attachment,
+          filename: data.attachment.clientName,
           user_id: user.id,
         },
         {

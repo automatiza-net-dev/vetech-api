@@ -24,6 +24,9 @@ export default class PatientExamAttachment extends BaseModel {
   @column()
   public attachment: string;
 
+  @column()
+  public filename: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

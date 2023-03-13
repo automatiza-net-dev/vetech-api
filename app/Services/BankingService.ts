@@ -157,7 +157,7 @@ export default class BankingService {
 
       const existingBankingsBefore = await Banking.query()
         .where('economic_group_id', group.id)
-        .whereRaw('issue_date::date = ?', [data.issueDate.toJSDate()])
+        .whereRaw('issue_date::date <= ?', [data.issueDate.toJSDate()])
         .limit(1)
         .orderBy('created_at', 'desc');
       const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;

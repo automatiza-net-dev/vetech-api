@@ -694,7 +694,7 @@ export default class BillService {
     });
   }
 
-  async updateBillItem(unitId: string, data: IUpdateBillItemData) {
+  async updateBillItem(_: string, data: IUpdateBillItemData) {
     return Database.transaction(async trx => {
       const billItem = await BillItem.query()
         .where('id', data.billItemId)

@@ -5,6 +5,7 @@ import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Finance, {
   FinanceAccept,
@@ -17,7 +18,10 @@ import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallmen
 import Product, { ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
-import TaxationGroupRule from 'App/Models/TaxationGroupRule';
+import TaxationGroupRule, {
+  MovementCategory,
+  MovementType,
+} from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
@@ -164,6 +168,8 @@ export default class BillService {
           productVariations.map(item => item.product.taxation_group_id),
         );
       })
+      .where('movementType', MovementType.S)
+      .where('movementCategory', MovementCategory.NS)
       .preload('taxationGroup')
       .preload('taxOperation');
 
@@ -439,7 +445,7 @@ export default class BillService {
 
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
-    // const unit = await BusinessUnit.findOrFail(unitId);
+    const unit = await BusinessUnit.findOrFail(unitId);
 
     const bill = await Bill.findOrFail(data.billId);
     const items = await bill
@@ -471,6 +477,10 @@ export default class BillService {
       .whereHas('taxationGroup', query => {
         query.where('id', productVariation.product.taxation_group_id);
       })
+      .where('movementType', MovementType.S)
+      .where('movementCategory', MovementCategory.NS)
+      .where('fromUf', unit.state ?? '')
+      .where('toUf', bill.client.tutor.state ?? '')
       .preload('taxationGroup')
       .preload('taxOperation')
       .first();
@@ -1418,6 +1428,8 @@ export default class BillService {
               productVariations.map(item => item.product.taxation_group_id),
             );
           })
+          .where('movementType', MovementType.S)
+          .where('movementCategory', MovementCategory.NS)
           .preload('taxationGroup')
           .preload('taxOperation');
 

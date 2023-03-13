@@ -304,16 +304,16 @@ export default class BillService {
               variation.product.type === ProductType.SERVICE
                 ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
                 : undefined,
-            pisBase: icmsBase,
+            pisBase: totalValue,
             pisPercentage: rule?.pisPerc,
             pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
             pisRetentionValue: 0,
-            cofinsBase: icmsBase,
+            cofinsBase: totalValue,
             cofinsPercentage: rule?.cofinsPerc,
             cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
             cofinsRetentionValue: 0,
             ipiCst: rule?.ipiCst,
-            ipiBase: icmsBase,
+            ipiBase: totalValue,
             ipiPercentage: rule?.ipiPerc,
             ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
             icmsDeferredValue: 0,
@@ -576,16 +576,16 @@ export default class BillService {
             productVariation.product.type === ProductType.SERVICE
               ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
               : undefined,
-          pisBase: icmsBase,
+          pisBase: totalValue,
           pisPercentage: rule.pisPerc,
           pisValue: (totalValue * rule.pisPerc) / 100,
           pisRetentionValue: 0,
-          cofinsBase: icmsBase,
+          cofinsBase: totalValue,
           cofinsPercentage: rule.cofinsPerc,
           cofinsValue: (totalValue * rule.cofinsPerc) / 100,
           cofinsRetentionValue: 0,
           ipiCst: rule.ipiCst,
-          ipiBase: icmsBase,
+          ipiBase: totalValue,
           ipiPercentage: rule.ipiPerc,
           ipiValue: (totalValue * rule.ipiPerc) / 100,
           icmsDeferredValue: 0,
@@ -776,16 +776,16 @@ export default class BillService {
             billItem.productVariation.product.type === ProductType.SERVICE
               ? (icmsBase * (billItem.taxRule?.icmsPercRedAliquota ?? 0)) / 100
               : undefined,
-          pisBase: icmsBase,
+          pisBase: totalValue,
           pisPercentage: billItem.taxRule.pisPerc,
           pisValue: (totalValue * billItem.taxRule.pisPerc) / 100,
           pisRetentionValue: 0,
-          cofinsBase: icmsBase,
+          cofinsBase: totalValue,
           cofinsPercentage: billItem.taxRule.cofinsPerc,
           cofinsValue: (totalValue * billItem.taxRule.cofinsPerc) / 100,
           cofinsRetentionValue: 0,
           ipiCst: billItem.taxRule.ipiCst,
-          ipiBase: icmsBase,
+          ipiBase: totalValue,
           ipiPercentage: billItem.taxRule.ipiPerc,
           ipiValue: (totalValue * billItem.taxRule.ipiPerc) / 100,
           icmsDeferredValue: 0,
@@ -823,7 +823,6 @@ export default class BillService {
       );
 
       await billItem.bill
-
         .merge({
           productValue: totalProductValue,
           serviceValue: totalServiceValue,

@@ -250,7 +250,7 @@ export default class BillService {
 
         const ufIcmsRule = ufIcms.find(
           ufIcms =>
-            ufIcms.originUf === rule?.fromUf &&
+            ufIcms.originUf === rule?.toUf &&
             ufIcms.destinationUf === rule?.toUf,
         );
 

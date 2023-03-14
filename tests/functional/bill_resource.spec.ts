@@ -6,6 +6,7 @@ import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
+import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
 import TaxationGroup from 'App/Models/TaxationGroup';
@@ -33,6 +34,15 @@ test.group('Bill resource', group => {
   const createData = async () => {
     const { user, business, group } = await userBootstrap();
 
+    const client = await PatientFactory.create();
+    await client.merge({ type: PatientType.TUTOR }).save();
+    await client.related('tutor').create({
+      email: 'some',
+      cellphone: 'some',
+      telephone: 'some',
+      state: 'PR',
+    });
+
     const patient = await PatientFactory.create();
     const dailyMovement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -52,6 +62,7 @@ test.group('Bill resource', group => {
       business_unit_id: business.id,
       user_id: user.id,
       seller_id: user.id,
+      client_id: client.id,
       daily_movement_id: dailyMovement.id,
       daily_cashier_id: dailyCashier.id,
       status: BillStatus.A,

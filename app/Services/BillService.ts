@@ -281,7 +281,7 @@ export default class BillService {
             fiscalOperationCode: rule?.taxOperation.code,
             icmsOriginProduct: variation.product.icmsOrigin,
             icmsCst:
-              variation.product.type === ProductType.PRODUCT
+              rule?.ivaIcmsSt && variation.product.type === ProductType.PRODUCT
                 ? rule?.icmsCst
                 : undefined,
             icmsBase:
@@ -298,13 +298,18 @@ export default class BillService {
                 : undefined,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-            icmsStBase,
-            icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
+            icmsStBase: rule?.ivaIcmsSt ? icmsStBase : undefined,
+            icmsStPercentageRedBase: rule?.ivaIcmsSt
+              ? rule?.icmsPercRedAliquota
+              : undefined,
             icmsStIva: rule?.ivaIcmsSt,
-            icmsStPercentageUfDestination: ufIcmsRule?.icmsPercentage,
-            icmsStValue:
-              icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-              icmsValue,
+            icmsStPercentageUfDestination: rule?.ivaIcmsSt
+              ? ufIcmsRule?.icmsPercentage
+              : undefined,
+            icmsStValue: rule?.ivaIcmsSt
+              ? icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+                icmsValue
+              : undefined,
             issCst:
               variation.product.type === ProductType.SERVICE
                 ? rule?.icmsCst
@@ -559,6 +564,7 @@ export default class BillService {
           fiscalOperationCode: rule.taxOperation.code,
           icmsOriginProduct: productVariation.product.icmsOrigin,
           icmsCst:
+            rule.ivaIcmsSt &&
             productVariation.product.type === ProductType.PRODUCT
               ? rule.icmsCst
               : undefined,
@@ -576,13 +582,18 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          icmsStBase,
-          icmsStPercentageRedBase: rule.icmsPercRedAliquota,
-          icmsStIva: rule.ivaIcmsSt,
-          icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-          icmsStValue: ufIcms
-            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+          icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
+          icmsStPercentageRedBase: rule?.ivaIcmsSt
+            ? rule.icmsPercRedAliquota
             : undefined,
+          icmsStIva: rule.ivaIcmsSt,
+          icmsStPercentageUfDestination: rule.ivaIcmsSt
+            ? ufIcms?.icmsPercentage
+            : undefined,
+          icmsStValue:
+            rule?.ivaIcmsSt && ufIcms
+              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+              : undefined,
           issCst:
             productVariation.product.type === ProductType.SERVICE
               ? rule.icmsCst
@@ -757,6 +768,7 @@ export default class BillService {
           totalValue,
           icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
           icmsCst:
+            billItem.taxRule?.ivaIcmsSt &&
             billItem.productVariation.product.type === ProductType.PRODUCT
               ? billItem.taxRule.icmsCst
               : undefined,
@@ -774,13 +786,18 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: billItem.taxRule.icmsPercRedAliquota,
           icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
-          icmsStBase,
-          icmsStPercentageRedBase: billItem.taxRule.icmsPercRedAliquota,
-          icmsStIva: billItem.taxRule.ivaIcmsSt,
-          icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-          icmsStValue: ufIcms
-            ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+          icmsStBase: billItem.taxRule?.ivaIcmsSt ? icmsStBase : undefined,
+          icmsStPercentageRedBase: billItem.taxRule.ivaIcmsSt
+            ? billItem.taxRule.icmsPercRedAliquota
             : undefined,
+          icmsStIva: billItem.taxRule.ivaIcmsSt,
+          icmsStPercentageUfDestination: billItem.taxRule?.ivaIcmsSt
+            ? ufIcms?.icmsPercentage
+            : undefined,
+          icmsStValue:
+            ufIcms && billItem.taxRule?.ivaIcmsSt
+              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+              : undefined,
           issCst:
             billItem.productVariation.product.type === ProductType.SERVICE
               ? billItem.taxRule.icmsCst
@@ -1237,39 +1254,6 @@ export default class BillService {
         })
         .useTransaction(trx)
         .save();
-
-      // await Finance.createMany(
-      //   bill.payments.map(payment => ({
-      //     economic_group_id: group.id,
-      //     business_unit_id: unitId,
-      //     daily_movement_id: dailyCashier.daily_movement_id,
-      //     daily_cashier_id: dailyCashier.id,
-      //     client_id: bill.client_id,
-      //     type: FinanceType.C,
-      //     payment_method_id: payment.payment_method_id,
-      //     installment: payment.block,
-      //     originFlag: FinanceOriginFlag.S,
-      //     document: `NFS-${bill.tag}`,
-      //     historic: `NFS-${bill.tag}`,
-      //     issueDate: DateTime.now(),
-      //     expirationDate: payment.expirationDate,
-      //     originalValue: bill.totalValue, // TODO check 2.20.2.16.
-      //     value: payment.installmentValue, // 2.17
-      //     totalValue: payment.totalValue, // 2.18
-      //     feeValue: payment.feeValue, // 2.19
-      //     feePercentage: payment.feePercentage, // 2.20
-      //     accept: FinanceAccept.S,
-      //     reconciled: true,
-      //     competenceDate: DateTime.now().toFormat('MM/yyyy'),
-      //     nsuDocument: payment.nsuDocument,
-      //     tef_flag_id: payment.tef_flag_id,
-      //     acquirer_id: payment.tef_acquirer_id,
-      //     status: FinanceStatus.A,
-      //   })),
-      //   {
-      //     client: trx,
-      //   },
-      // );
     });
   }
 
@@ -1496,18 +1480,24 @@ export default class BillService {
               .merge({
                 tax_rule_id: rule.id,
                 fiscalOperationCode: rule.taxOperation.code,
-                icmsCst: rule.icmsCst,
+                icmsCst: rule.ivaIcmsSt ? rule.icmsCst : undefined,
                 icmsBase,
                 icmsPercentage: rule.icmsPerc,
                 icmsValue,
                 icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
                 icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-                icmsStBase,
-                icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+                icmsStPercentageUfDestination: rule?.ivaIcmsSt
+                  ? ufIcmsRule?.icmsPercentage
+                  : undefined,
+                icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
+                icmsStPercentageRedBase: rule.ivaIcmsSt
+                  ? rule.icmsPercRedAliquota
+                  : undefined,
                 icmsStIva: rule.ivaIcmsSt,
-                icmsStValue:
-                  icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-                  icmsValue,
+                icmsStValue: rule.ivaIcmsSt
+                  ? icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+                    icmsValue
+                  : undefined,
                 issBase: rule.icmsPerc,
                 issPercentage: rule.icmsPercRedAliquota,
                 pisPercentage: rule.pisPerc,

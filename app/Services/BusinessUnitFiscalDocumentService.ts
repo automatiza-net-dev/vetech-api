@@ -4,12 +4,12 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
-  BusinessUnitFiscalDocumentMovementType,
+  BusinessUnitFiscalDocumentMovementType
 } from 'App/Models/BusinessUnitFiscalDocument';
 import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import { FiscalDocumentMovementType } from 'App/Models/FiscalDocument';
 import IssuedFiscalDocument, {
-  IssuedFiscalDocumentContingency,
+  IssuedFiscalDocumentContingency
 } from 'App/Models/IssuedFiscalDocument';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
@@ -19,7 +19,7 @@ import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
   ICancelFiscalDocument,
   ICorrectFiscalDocument,
-  IDisableFiscalDocument,
+  IDisableFiscalDocument
 } from 'Contracts/interfaces/IBusinessUnitFiscalDocumentData';
 import { DateTime } from 'luxon';
 
@@ -268,10 +268,10 @@ export default class BusinessUnitFiscalDocumentService {
           fcp_base_calc: item.icmsBase,
           fcp_value: item.icmsFcpValue,
 
-          cst_ipi: item.ipiCst,
-          ipi_base: item.ipiBase,
-          ipi_percentage: item.ipiPercentage,
-          ipi_value: item.ipiValue,
+          cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
+          ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
+          ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
+          ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
 
           cst_pis: item.pisCst,
           pis_base: item.pisBase,

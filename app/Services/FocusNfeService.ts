@@ -73,10 +73,10 @@ export interface ISendNfe {
     fcp_base_calc: number;
     fcp_value: number;
 
-    cst_ipi: string;
-    ipi_base: number;
-    ipi_percentage: number;
-    ipi_value: number;
+    cst_ipi: string | null;
+    ipi_base: number | null;
+    ipi_percentage: number | null;
+    ipi_value: number | null;
 
     cst_pis: string;
     pis_base: number;

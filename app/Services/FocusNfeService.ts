@@ -302,7 +302,7 @@ export default class FocusNfeService {
       email_destinatario: data.buyer.email,
       pessoas_autorizadas: [], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS
 
-      items: data.items.map(item => ({
+      itens: data.items.map(item => ({
         numero_item: item.index,
         codigo_produto: item.code,
         codigo_barras_comercial: item.barcode,

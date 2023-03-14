@@ -416,12 +416,19 @@ export default class BillService {
             .filter(i => Boolean(i.icmsValue))
             .reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems
-            .filter(i => Boolean(i.icmsStBase))
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
             .reduce((acc, item) => acc + item.icmsStBase, 0),
-          icmsStValue: validItems.reduce(
-            (acc, item) => acc + (item.icmsStValue ?? 0),
-            0,
-          ),
+          icmsStValue: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + (item.icmsStValue ?? 0), 0),
           issBase: validItems.reduce(
             (acc, item) => acc + (item.issBase ?? 0),
             0,
@@ -704,14 +711,20 @@ export default class BillService {
           totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
-          icmsStBase: validItems.reduce(
-            (acc, item) => acc + item.icmsStBase,
-            0,
-          ),
-          icmsStValue: validItems.reduce(
-            (acc, item) => acc + item.icmsStValue,
-            0,
-          ),
+          icmsStBase: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStBase, 0),
+          icmsStValue: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStValue, 0),
           issBase: validItems.reduce(
             (acc, item) => acc + (item.issBase ?? 0),
             0,
@@ -931,14 +944,20 @@ export default class BillService {
           totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
-          icmsStBase: validItems.reduce(
-            (acc, item) => acc + item.icmsStBase,
-            0,
-          ),
-          icmsStValue: validItems.reduce(
-            (acc, item) => acc + item.icmsStValue,
-            0,
-          ),
+          icmsStBase: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStBase, 0),
+          icmsStValue: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStValue, 0),
           issBase: validItems.reduce(
             (acc, item) => acc + (item.issBase ?? 0),
             0,
@@ -1402,14 +1421,20 @@ export default class BillService {
             totalProductValue + totalServiceValue - totalDiscountValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
-          icmsStBase: validItems.reduce(
-            (acc, item) => acc + item.icmsStBase,
-            0,
-          ),
-          icmsStValue: validItems.reduce(
-            (acc, item) => acc + item.icmsStValue,
-            0,
-          ),
+          icmsStBase: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStBase, 0),
+          icmsStValue: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStValue, 0),
           issBase: validItems.reduce((acc, item) => acc + item.issBase, 0),
           issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
           pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),

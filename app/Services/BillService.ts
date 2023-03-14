@@ -348,6 +348,8 @@ export default class BillService {
               variation.product.type === ProductType.SERVICE
                 ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
                 : undefined,
+            pisCst: rule?.pisCst,
+            cofinsCst: rule?.cofinsCst,
             pisBase: totalValue,
             pisPercentage: rule?.pisPerc,
             pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
@@ -639,6 +641,8 @@ export default class BillService {
             productVariation.product.type === ProductType.SERVICE
               ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
               : undefined,
+          pisCst: rule.pisCst,
+          cofinsCst: rule.cofinsCst,
           pisBase: totalValue,
           pisPercentage: rule.pisPerc,
           pisValue: (totalValue * rule.pisPerc) / 100,
@@ -859,6 +863,8 @@ export default class BillService {
                 ? (icmsBase * (billItem.taxRule?.icmsPercRedAliquota ?? 0)) /
                   100
                 : undefined,
+            pisCst: billItem.taxRule?.pisCst,
+            cofinsCst: billItem.taxRule?.cofinsCst,
             pisBase: totalValue,
             pisPercentage: billItem.taxRule.pisPerc,
             pisValue: (totalValue * billItem.taxRule.pisPerc) / 100,

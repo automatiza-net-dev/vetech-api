@@ -300,7 +300,7 @@ export default class BillService {
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
             icmsStBase: rule?.ivaIcmsSt ? icmsStBase : undefined,
             icmsStPercentageRedBase: rule?.ivaIcmsSt
-              ? rule?.icmsPercRedAliquota
+              ? rule?.icmsPercRedBaseCalculoST
               : undefined,
             icmsStIva: rule?.ivaIcmsSt,
             icmsStPercentageUfDestination: rule?.ivaIcmsSt
@@ -584,7 +584,7 @@ export default class BillService {
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
           icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
           icmsStPercentageRedBase: rule?.ivaIcmsSt
-            ? rule.icmsPercRedAliquota
+            ? rule.icmsPercRedBaseCalculoST
             : undefined,
           icmsStIva: rule.ivaIcmsSt,
           icmsStPercentageUfDestination: rule.ivaIcmsSt
@@ -788,7 +788,7 @@ export default class BillService {
           icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
           icmsStBase: billItem.taxRule?.ivaIcmsSt ? icmsStBase : undefined,
           icmsStPercentageRedBase: billItem.taxRule.ivaIcmsSt
-            ? billItem.taxRule.icmsPercRedAliquota
+            ? billItem.taxRule.icmsPercRedBaseCalculoST
             : undefined,
           icmsStIva: billItem.taxRule.ivaIcmsSt,
           icmsStPercentageUfDestination: billItem.taxRule?.ivaIcmsSt
@@ -1491,7 +1491,7 @@ export default class BillService {
                   : undefined,
                 icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
                 icmsStPercentageRedBase: rule.ivaIcmsSt
-                  ? rule.icmsPercRedAliquota
+                  ? rule.icmsPercRedBaseCalculoST
                   : undefined,
                 icmsStIva: rule.ivaIcmsSt,
                 icmsStValue: rule.ivaIcmsSt

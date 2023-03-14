@@ -38,6 +38,5 @@ export interface ICreateBillPaymentData {
 }
 
 export interface IUpdateBillItemData {
-  billItemId: string;
-  discountValue: number;
+  items: Array<{ billItemId: string; discountValue: number }>;
 }

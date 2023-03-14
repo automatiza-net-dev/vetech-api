@@ -301,7 +301,6 @@ export default class BillService {
             fiscalOperationCode: rule?.taxOperation.code,
             icmsOriginProduct: variation.product.icmsOrigin,
             icmsCst:
-              this.isValidNumber(rule?.ivaIcmsSt) &&
               variation.product.type === ProductType.PRODUCT
                 ? rule?.icmsCst
                 : undefined,
@@ -593,7 +592,6 @@ export default class BillService {
           fiscalOperationCode: rule.taxOperation.code,
           icmsOriginProduct: productVariation.product.icmsOrigin,
           icmsCst:
-            this.isValidNumber(rule.ivaIcmsSt) &&
             productVariation.product.type === ProductType.PRODUCT
               ? rule.icmsCst
               : undefined,
@@ -806,11 +804,7 @@ export default class BillService {
           discountValue: data.discountValue,
           totalValue,
           icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
-          icmsCst:
-            this.isValidNumber(billItem.taxRule?.ivaIcmsSt) &&
-            billItem.productVariation.product.type === ProductType.PRODUCT
-              ? billItem.taxRule.icmsCst
-              : undefined,
+          icmsCst: billItem.taxRule.icmsCst,
           icmsBase:
             billItem.productVariation.product.type === ProductType.PRODUCT
               ? icmsBase
@@ -1532,7 +1526,7 @@ export default class BillService {
               .merge({
                 tax_rule_id: rule.id,
                 fiscalOperationCode: rule.taxOperation.code,
-                icmsCst: rule.ivaIcmsSt ? rule.icmsCst : undefined,
+                icmsCst: rule.icmsCst,
                 icmsBase,
                 icmsPercentage: rule.icmsPerc,
                 icmsValue,

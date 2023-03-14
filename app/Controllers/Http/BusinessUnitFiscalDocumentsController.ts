@@ -24,6 +24,15 @@ export default class BusinessUnitFiscalDocumentsController {
     return response.ok(result);
   }
 
+  public async search({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.search(unit_id, qs);
+
+    return response.ok(result);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(
       CreateBusinessUnitFiscalDocumentValidator,

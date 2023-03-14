@@ -7,6 +7,7 @@ import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
 } from 'App/Models/BusinessUnitFiscalDocument';
 import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
+import { FiscalDocumentMovementType } from 'App/Models/FiscalDocument';
 import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
@@ -28,6 +29,11 @@ interface ISearch {
   bill?: string;
   active?: string;
   document?: string;
+}
+
+interface ISearchDocument {
+  movement?: BusinessUnitFiscalDocumentMovementType;
+  type?: FiscalDocumentMovementType;
 }
 
 @inject()
@@ -60,6 +66,23 @@ export default class BusinessUnitFiscalDocumentService {
     }
 
     qb.preload('corrections');
+
+    return qb;
+  }
+
+  async search(unitId: string, data: ISearchDocument) {
+    const qb = BusinessUnitFiscalDocument.query()
+      .debug(true)
+      .where('business_unit_id', unitId);
+
+    qb.whereIn('movement_type', [
+      data.movement ? data.movement : '',
+      FiscalDocumentMovementType.A,
+    ]);
+
+    if (data.type) {
+      qb.where('document_type', data.type);
+    }
 
     return qb;
   }

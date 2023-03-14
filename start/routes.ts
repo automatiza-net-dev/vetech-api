@@ -772,9 +772,14 @@ Route.group(() => {
   Route.get('/', 'FiscalDocumentsController.index');
 
   Route.get(
-    '/business-unit/search',
+    '/business-unit/issued',
     'BusinessUnitFiscalDocumentsController.index',
   );
+  Route.get(
+    '/business-unit/search',
+    'BusinessUnitFiscalDocumentsController.search',
+  );
+
   Route.post(
     '/business-unit/store',
     'BusinessUnitFiscalDocumentsController.store',

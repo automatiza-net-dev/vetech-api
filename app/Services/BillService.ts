@@ -766,9 +766,7 @@ export default class BillService {
         )
         .preload('taxRule')
         .preload('bill', query => {
-          query.preload('items', query => {
-            // query.whereNotIn('id', [data.billItemId]);
-          });
+          query.preload('items');
         })
         .preload('productVariation', query => {
           query.preload('product');

@@ -258,8 +258,16 @@ export default class BillService {
           item.unitaryValue * item.quantity - item.discountValue;
         const icmsBase =
           totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-        const icmsStBase = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
         const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+        const icmsStBase_1 = rule?.ivaIcmsSt
+          ? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
+          : 0;
+        const icmsStPercentageRedBase = rule?.ivaIcmsSt
+          ? rule.icmsPercRedBaseCalculoST
+          : undefined;
+        const icmsStBase_2 = rule?.ivaIcmsSt
+          ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+          : 0;
 
         return BillItem.create(
           {
@@ -298,7 +306,7 @@ export default class BillService {
                 : undefined,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-            icmsStBase: rule?.ivaIcmsSt ? icmsStBase : undefined,
+            icmsStBase: rule?.ivaIcmsSt ? icmsStBase_1 : undefined,
             icmsStPercentageRedBase: rule?.ivaIcmsSt
               ? rule?.icmsPercRedBaseCalculoST
               : undefined,
@@ -307,7 +315,7 @@ export default class BillService {
               ? ufIcmsRule?.icmsPercentage
               : undefined,
             icmsStValue: rule?.ivaIcmsSt
-              ? icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+              ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
                 icmsValue
               : undefined,
             issCst:
@@ -541,8 +549,14 @@ export default class BillService {
     return Database.transaction(async trx => {
       const totalValue = data.unitaryValue * data.quantity - data.discountValue;
       const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
       const icmsValue = (icmsBase * rule.icmsPerc) / 100;
+      const icmsStBase_1 = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
+      const icmsStPercentageRedBase = rule.ivaIcmsSt
+        ? rule.icmsPercRedBaseCalculoST
+        : undefined;
+      const icmsStBase_2 = rule.ivaIcmsSt
+        ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+        : 0;
 
       const billItem = await BillItem.create(
         {
@@ -582,7 +596,7 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
+          icmsStBase: rule.ivaIcmsSt ? icmsStBase_1 : undefined,
           icmsStPercentageRedBase: rule?.ivaIcmsSt
             ? rule.icmsPercRedBaseCalculoST
             : undefined,
@@ -592,7 +606,7 @@ export default class BillService {
             : undefined,
           icmsStValue:
             rule?.ivaIcmsSt && ufIcms
-              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+              ? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
               : undefined,
           issCst:
             productVariation.product.type === ProductType.SERVICE
@@ -758,9 +772,15 @@ export default class BillService {
         billItem.unitaryValue * billItem.quantity - data.discountValue;
       const icmsBase =
         totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
-      const icmsStBase =
+      const icmsStBase_1 =
         icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
-      const icmsValue = (icmsBase * billItem.taxRule.icmsPerc) / 100;
+      const icmsStPercentageRedBase = billItem.taxRule.ivaIcmsSt
+        ? billItem.taxRule.icmsPercRedBaseCalculoST
+        : undefined;
+      const icmsStBase_2 = billItem.taxRule.ivaIcmsSt
+        ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+        : 0;
+      const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
 
       const updated = await billItem
         .merge({
@@ -786,7 +806,7 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: billItem.taxRule.icmsPercRedAliquota,
           icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
-          icmsStBase: billItem.taxRule?.ivaIcmsSt ? icmsStBase : undefined,
+          icmsStBase: billItem.taxRule?.ivaIcmsSt ? icmsStBase_1 : undefined,
           icmsStPercentageRedBase: billItem.taxRule.ivaIcmsSt
             ? billItem.taxRule.icmsPercRedBaseCalculoST
             : undefined,
@@ -796,7 +816,7 @@ export default class BillService {
             : undefined,
           icmsStValue:
             ufIcms && billItem.taxRule?.ivaIcmsSt
-              ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+              ? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
               : undefined,
           issCst:
             billItem.productVariation.product.type === ProductType.SERVICE
@@ -1473,7 +1493,14 @@ export default class BillService {
               item.unitaryValue * item.quantity - item.discountValue;
             const icmsBase =
               totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
-            const icmsStBase = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
+            const icmsStBase_1 = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
+            const icmsStPercentageRedBase = rule.ivaIcmsSt
+              ? rule.icmsPercRedBaseCalculoST
+              : undefined;
+            const icmsStBase_2 = rule.ivaIcmsSt
+              ? icmsStBase_1 -
+                (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+              : 0;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
             await item
@@ -1489,13 +1516,11 @@ export default class BillService {
                 icmsStPercentageUfDestination: rule?.ivaIcmsSt
                   ? ufIcmsRule?.icmsPercentage
                   : undefined,
-                icmsStBase: rule.ivaIcmsSt ? icmsStBase : undefined,
-                icmsStPercentageRedBase: rule.ivaIcmsSt
-                  ? rule.icmsPercRedBaseCalculoST
-                  : undefined,
+                icmsStBase: rule.ivaIcmsSt ? icmsStBase_1 : undefined,
+                icmsStPercentageRedBase,
                 icmsStIva: rule.ivaIcmsSt,
                 icmsStValue: rule.ivaIcmsSt
-                  ? icmsStBase * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+                  ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
                     icmsValue
                   : undefined,
                 issBase: rule.icmsPerc,

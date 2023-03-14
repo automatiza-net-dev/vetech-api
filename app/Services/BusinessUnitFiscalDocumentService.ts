@@ -4,12 +4,12 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
-  BusinessUnitFiscalDocumentMovementType
+  BusinessUnitFiscalDocumentMovementType,
 } from 'App/Models/BusinessUnitFiscalDocument';
 import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import { FiscalDocumentMovementType } from 'App/Models/FiscalDocument';
 import IssuedFiscalDocument, {
-  IssuedFiscalDocumentContingency
+  IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
@@ -19,7 +19,7 @@ import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
   ICancelFiscalDocument,
   ICorrectFiscalDocument,
-  IDisableFiscalDocument
+  IDisableFiscalDocument,
 } from 'Contracts/interfaces/IBusinessUnitFiscalDocumentData';
 import { DateTime } from 'luxon';
 
@@ -142,9 +142,9 @@ export default class BusinessUnitFiscalDocumentService {
         .where('bill_id', data.billId)
         .first();
 
-      if (issuedDocumentAlready) {
+      if (issuedDocumentAlready?.authorizationReceipt) {
         throw new BadRequestException(
-          'Documento já emitido',
+          'Documento já autorizado',
           400,
           'E_ALREADY_ISSUED',
         );

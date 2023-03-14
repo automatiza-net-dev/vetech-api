@@ -65,6 +65,18 @@ interface ISearchTax {
 export default class BillService {
   constructor(private sharedService: SharedService) {}
 
+  isValidNumber(data: number | undefined) {
+    if (typeof data !== 'number') {
+      return undefined;
+    }
+
+    if (data === 0) {
+      return undefined;
+    }
+
+    return data;
+  }
+
   async index(unitId: string, data: ISearch) {
     const qb = Bill.query().where('business_unit_id', unitId);
 
@@ -259,13 +271,13 @@ export default class BillService {
         const icmsBase =
           totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
-        const icmsStBase_1 = rule?.ivaIcmsSt
-          ? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
+        const icmsStBase_1 = this.isValidNumber(rule?.ivaIcmsSt)
+          ? icmsBase + (icmsBase * rule!.ivaIcmsSt) / 100
           : 0;
-        const icmsStPercentageRedBase = rule?.ivaIcmsSt
-          ? rule.icmsPercRedBaseCalculoST
+        const icmsStPercentageRedBase = this.isValidNumber(rule?.ivaIcmsSt)
+          ? rule!.icmsPercRedBaseCalculoST
           : undefined;
-        const icmsStBase_2 = rule?.ivaIcmsSt
+        const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
           ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
           : 0;
 
@@ -289,7 +301,8 @@ export default class BillService {
             fiscalOperationCode: rule?.taxOperation.code,
             icmsOriginProduct: variation.product.icmsOrigin,
             icmsCst:
-              rule?.ivaIcmsSt && variation.product.type === ProductType.PRODUCT
+              this.isValidNumber(rule?.ivaIcmsSt) &&
+              variation.product.type === ProductType.PRODUCT
                 ? rule?.icmsCst
                 : undefined,
             icmsBase:
@@ -306,15 +319,17 @@ export default class BillService {
                 : undefined,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-            icmsStBase: rule?.ivaIcmsSt ? icmsStBase_2 : undefined,
-            icmsStPercentageRedBase: rule?.ivaIcmsSt
+            icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
+              ? icmsStBase_2
+              : undefined,
+            icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
               ? rule?.icmsPercRedBaseCalculoST
               : undefined,
-            icmsStIva: rule?.ivaIcmsSt,
-            icmsStPercentageUfDestination: rule?.ivaIcmsSt
+            icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+            icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
               ? ufIcmsRule?.icmsPercentage
               : undefined,
-            icmsStValue: rule?.ivaIcmsSt
+            icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
               ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
                 icmsValue
               : undefined,
@@ -578,7 +593,7 @@ export default class BillService {
           fiscalOperationCode: rule.taxOperation.code,
           icmsOriginProduct: productVariation.product.icmsOrigin,
           icmsCst:
-            rule.ivaIcmsSt &&
+            this.isValidNumber(rule.ivaIcmsSt) &&
             productVariation.product.type === ProductType.PRODUCT
               ? rule.icmsCst
               : undefined,
@@ -596,16 +611,18 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
           icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-          icmsStBase: rule.ivaIcmsSt ? icmsStBase_2 : undefined,
-          icmsStPercentageRedBase: rule?.ivaIcmsSt
+          icmsStBase: this.isValidNumber(rule.ivaIcmsSt)
+            ? icmsStBase_2
+            : undefined,
+          icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
             ? rule.icmsPercRedBaseCalculoST
             : undefined,
-          icmsStIva: rule.ivaIcmsSt,
-          icmsStPercentageUfDestination: rule.ivaIcmsSt
+          icmsStIva: this.isValidNumber(rule.ivaIcmsSt),
+          icmsStPercentageUfDestination: this.isValidNumber(rule.ivaIcmsSt)
             ? ufIcms?.icmsPercentage
             : undefined,
           icmsStValue:
-            rule?.ivaIcmsSt && ufIcms
+            this.isValidNumber(rule?.ivaIcmsSt) && ufIcms
               ? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
               : undefined,
           issCst:
@@ -774,10 +791,12 @@ export default class BillService {
         totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
       const icmsStBase_1 =
         icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
-      const icmsStPercentageRedBase = billItem.taxRule.ivaIcmsSt
+      const icmsStPercentageRedBase = this.isValidNumber(
+        billItem.taxRule.ivaIcmsSt,
+      )
         ? billItem.taxRule.icmsPercRedBaseCalculoST
         : undefined;
-      const icmsStBase_2 = billItem.taxRule.ivaIcmsSt
+      const icmsStBase_2 = this.isValidNumber(billItem.taxRule.ivaIcmsSt)
         ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
         : 0;
       const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
@@ -788,7 +807,7 @@ export default class BillService {
           totalValue,
           icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
           icmsCst:
-            billItem.taxRule?.ivaIcmsSt &&
+            this.isValidNumber(billItem.taxRule?.ivaIcmsSt) &&
             billItem.productVariation.product.type === ProductType.PRODUCT
               ? billItem.taxRule.icmsCst
               : undefined,
@@ -806,16 +825,22 @@ export default class BillService {
               : undefined,
           icmsPercentageRedAliquot: billItem.taxRule.icmsPercRedAliquota,
           icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
-          icmsStBase: billItem.taxRule?.ivaIcmsSt ? icmsStBase_2 : undefined,
-          icmsStPercentageRedBase: billItem.taxRule.ivaIcmsSt
+          icmsStBase: this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
+            ? icmsStBase_2
+            : undefined,
+          icmsStPercentageRedBase: this.isValidNumber(
+            billItem.taxRule.ivaIcmsSt,
+          )
             ? billItem.taxRule.icmsPercRedBaseCalculoST
             : undefined,
-          icmsStIva: billItem.taxRule.ivaIcmsSt,
-          icmsStPercentageUfDestination: billItem.taxRule?.ivaIcmsSt
+          icmsStIva: this.isValidNumber(billItem.taxRule.ivaIcmsSt),
+          icmsStPercentageUfDestination: this.isValidNumber(
+            billItem.taxRule?.ivaIcmsSt,
+          )
             ? ufIcms?.icmsPercentage
             : undefined,
           icmsStValue:
-            ufIcms && billItem.taxRule?.ivaIcmsSt
+            ufIcms && this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
               ? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
               : undefined,
           issCst:

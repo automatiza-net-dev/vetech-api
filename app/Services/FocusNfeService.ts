@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import axios, { AxiosError } from 'axios';
 import { z } from 'zod';
 
@@ -330,18 +331,18 @@ export default class FocusNfeService {
 
         icms_origem: item.icms_origin,
         icms_situacao_tributaria: item.cst_icms,
-        // icms_modalidade_base_calculo: item.icms_modality,
-        // icms_base_calculo: item.icms_base,
-        // icms_reducao_base_calculo: item.icms_red_calc,
-        // icms_aliquota: item.icms_percentage,
-        // icms_valor: item.icms_value,
+        icms_modalidade_base_calculo: item.icms_modality,
+        icms_base_calculo: item.icms_base,
+        icms_reducao_base_calculo: item.icms_red_calc,
+        icms_aliquota: item.icms_percentage,
+        icms_valor: item.icms_value,
 
-        // icms_modalidade_base_calculo_st: item.icms_st_modality,
-        // icms_margem_valor_adicionado_st: item.icms_st_additional,
-        // icms_reducao_base_calculo_st: item.icms_st_red_calc,
-        // icms_base_calculo_st: item.icms_st_base,
-        // icms_aliquota_st: item.icms_st_percentage,
-        // icms_valor_st: item.icms_st_value,
+        icms_modalidade_base_calculo_st: item.icms_st_modality,
+        icms_margem_valor_adicionado_st: item.icms_st_additional,
+        icms_reducao_base_calculo_st: item.icms_st_red_calc,
+        icms_base_calculo_st: item.icms_st_base,
+        icms_aliquota_st: item.icms_st_percentage,
+        icms_valor_st: item.icms_st_value,
 
         fcp_percentual: item.fcp_percentage,
         fcp_base_calculo: item.icms_base,
@@ -409,7 +410,7 @@ export default class FocusNfeService {
         message: data.status as string,
       };
     } catch (error) {
-      console.log(error.response.data);
+      Logger.error(error.response.data);
 
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       return {
@@ -454,16 +455,16 @@ export default class FocusNfeService {
 
       const zodResponse = nfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
-        console.log({ data });
+        Logger.info(JSON.stringify(data, undefined, 2));
 
-        console.log('invalid schema', zodResponse.error.issues);
+        Logger.error('invalid schema', zodResponse.error.issues);
         return null;
       }
 
       return zodResponse.data;
     } catch (error) {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
-      console.log((error as T).response?.data);
+      Logger.error((error as T).response?.data.mensagem ?? '');
 
       return null;
     }
@@ -473,26 +474,27 @@ export default class FocusNfeService {
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
   public async cancel(ref: string, reason: string) {
     try {
-      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+      await this.ax.delete(`/v2/nfe/${ref}`, {
         data: {
           justificativa: reason,
         },
       });
 
-      console.log({ data });
+      // console.log({ data });
 
-      const zodResponse = cancelNfeResponseSchema.safeParse(data);
-      if (!zodResponse.success) {
-        console.log('invalid schema', zodResponse.error.issues);
-        return null;
-      }
+      return true;
+      // const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      // if (!zodResponse.success) {
+      //   console.log('invalid schema', zodResponse.error.issues);
+      //   return null;
+      // }
 
-      return zodResponse.data;
+      // return zodResponse.data;
     } catch (error) {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
-      console.log((error as T).response?.data);
+      Logger.error((error as T).response?.data.mensagem ?? '');
 
-      return null;
+      return false;
     }
   }
 
@@ -500,7 +502,7 @@ export default class FocusNfeService {
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
   public async disable(ref: string, disableData: IDisableNfe) {
     try {
-      const { data } = await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
+      await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
         cnpj: disableData.cnpj,
         serie: disableData.series,
         numero_inicial: disableData.sequence,
@@ -508,18 +510,18 @@ export default class FocusNfeService {
         justificativa: disableData.reason,
       });
 
-      const zodResponse = disableNfeResponseSchema.safeParse(data);
-      if (!zodResponse.success) {
-        console.log('invalid schema', zodResponse.error.issues);
-        return null;
-      }
+      // const zodResponse = disableNfeResponseSchema.safeParse(data);
+      // if (!zodResponse.success) {
+      //   console.log('invalid schema', zodResponse.error.issues);
+      //   return null;
+      // }
 
-      return zodResponse.data;
+      return true;
     } catch (error) {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
-      console.log((error as T).response?.data);
+      Logger.error((error as T).response?.data.mensagem ?? '');
 
-      return null;
+      return false;
     }
   }
 }

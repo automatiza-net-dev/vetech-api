@@ -358,12 +358,12 @@ export default class BusinessUnitFiscalDocumentService {
         throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
       }
 
-      await issuedDocument
-        .merge({
-          sefazMessage: result.message,
-        })
-        .useTransaction(trx)
-        .save();
+      // await issuedDocument
+      //   .merge({
+      //     sefazMessage: result.message,
+      //   })
+      //   .useTransaction(trx)
+      //   .save();
 
       return issuedDocument;
     });
@@ -394,7 +394,7 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      return document
+      await document
         .merge({
           sefazStatus: result.status_sefaz,
           sefazMessage: result.mensagem_sefaz,
@@ -441,7 +441,6 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       const cancelResult = await this.focusNfe.cancel(document.id, data.reason);
-
       if (!cancelResult) {
         throw new BadRequestException(
           'Erro ao cancelar nota fiscal',
@@ -450,14 +449,14 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      const getResult = await this.focusNfe.getNfe(document.id);
-      if (!getResult) {
-        throw new BadRequestException(
-          'Erro ao atualizar nova',
-          400,
-          'E_NO_NOTE',
-        );
-      }
+      // const getResult = await this.focusNfe.getNfe(document.id);
+      // if (!getResult) {
+      //   throw new BadRequestException(
+      //     'Erro ao atualizar nova',
+      //     400,
+      //     'E_NO_NOTE',
+      //   );
+      // }
 
       await document
         .merge({
@@ -465,14 +464,14 @@ export default class BusinessUnitFiscalDocumentService {
           cancellationDate: DateTime.now(),
           cancellationReason: data.reason,
 
-          sefazStatus: cancelResult.status_sefaz,
-          sefazMessage: cancelResult.mensagem_sefaz,
-          cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
-          cancellationReceiptDate: getResult.protocolo_cancelamento
-            ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
-            : undefined,
-          cancellationReceipt:
-            getResult.protocolo_cancelamento?.numero_protocolo,
+          // sefazStatus: cancelResult.status_sefaz,
+          // sefazMessage: cancelResult.mensagem_sefaz,
+          // cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
+          // cancellationReceiptDate: getResult.protocolo_cancelamento
+          //   ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
+          //   : undefined,
+          // cancellationReceipt:
+          //   getResult.protocolo_cancelamento?.numero_protocolo,
         })
         .useTransaction(trx)
         .save();
@@ -532,10 +531,10 @@ export default class BusinessUnitFiscalDocumentService {
           disablingDate: DateTime.now(),
           disablingReason: data.reason,
 
-          sefazStatus: result.status_sefaz,
-          sefazMessage: result.mensagem_sefaz,
-          disablingXmlPath: result.caminho_xml,
-          disablingReceipt: result.protocolo_sefaz,
+          // sefazStatus: result.status_sefaz,
+          // sefazMessage: result.mensagem_sefaz,
+          // disablingXmlPath: result.caminho_xml,
+          // disablingReceipt: result.protocolo_sefaz,
         })
         .useTransaction(trx)
         .save();

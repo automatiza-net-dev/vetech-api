@@ -265,7 +265,7 @@ export default class FocusNfeService {
     },
   });
 
-  public async sendNfe(ref: string, data: ISendNfe): Promise<string | null> {
+  public async sendNfe(ref: string, data: ISendNfe) {
     const payload = {
       natureza_operacao: 'Venda',
       // serie: data.nfe_series, // THIS
@@ -388,14 +388,19 @@ export default class FocusNfeService {
 
     try {
       const { data } = await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
-      console.log({ data });
 
-      return null;
+      return {
+        success: true as const,
+        message: data.status as string,
+      };
     } catch (error) {
       console.log(error.response.data);
 
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
-      return (error as T).response?.data?.mensagem ?? '';
+      return {
+        success: false as const,
+        message: (error as T).response?.data?.mensagem ?? '',
+      };
     }
   }
 

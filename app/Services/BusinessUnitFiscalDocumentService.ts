@@ -258,8 +258,8 @@ export default class BusinessUnitFiscalDocumentService {
             value: item.unitaryValue.toString(),
             discount: item.discountValue,
 
-            // icms_origin: item.productVariation.product.icmsOrigin,
-            // cst_icms: item.icmsCst,
+            icms_origin: item.productVariation.product.icmsOrigin,
+            cst_icms: item.icmsCst,
             // icms_base: item.icmsBase,
             // icms_red_calc: item.icmsStPercentageRedBase,
             // icms_percentage: item.icmsPercentage,

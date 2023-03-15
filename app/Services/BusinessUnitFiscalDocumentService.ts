@@ -198,8 +198,10 @@ export default class BusinessUnitFiscalDocumentService {
       const nfePayload: ISendNfe = {
         nfe_series: issuedDocument.series,
         nfe_number: issuedDocument.sequence,
-        issuedAt: issuedDocument.authorizationDate.toISO(),
-        authorizedAt: issuedDocument.authorizationDate.toISO(),
+        issuedAt: issuedDocument.authorizationDate.minus({ hours: 3 }).toISO(),
+        authorizedAt: issuedDocument.authorizationDate
+          .minus({ hours: 3 })
+          .toISO(),
         purpose: issuedDocument.purpose,
 
         seller: {

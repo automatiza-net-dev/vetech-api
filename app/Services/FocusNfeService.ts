@@ -244,18 +244,18 @@ export const nfeResponseSchema = z.object({
 //   caminho_xml_cancelamento: z.string(),
 // });
 
-// const disableNfeResponseSchema = z.object({
-//   status_sefaz: z.string(),
-//   mensagem_sefaz: z.string(),
-//   serie: z.string(),
-//   numero_inicial: z.string(),
-//   numero_final: z.string(),
-//   modelo: z.string(),
-//   cnpj: z.string(),
-//   status: z.string(),
-//   caminho_xml: z.string(),
-//   protocolo_sefaz: z.string(),
-// });
+const disableNfeResponseSchema = z.object({
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  serie: z.string(),
+  numero_inicial: z.string(),
+  numero_final: z.string(),
+  modelo: z.string(),
+  cnpj: z.string(),
+  status: z.string(),
+  caminho_xml: z.string(),
+  protocolo_sefaz: z.string(),
+});
 
 @inject()
 export default class FocusNfeService {
@@ -502,7 +502,7 @@ export default class FocusNfeService {
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
   public async disable(ref: string, disableData: IDisableNfe) {
     try {
-      await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
+      const { data } = await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
         cnpj: disableData.cnpj,
         serie: disableData.series,
         numero_inicial: disableData.sequence,
@@ -510,18 +510,26 @@ export default class FocusNfeService {
         justificativa: disableData.reason,
       });
 
-      // const zodResponse = disableNfeResponseSchema.safeParse(data);
-      // if (!zodResponse.success) {
-      //   console.log('invalid schema', zodResponse.error.issues);
-      //   return null;
-      // }
+      const zodResponse = disableNfeResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        Logger.error('invalid schema', zodResponse.error.issues);
+        return {
+          success: true,
+          data: null,
+        };
+      }
 
-      return true;
+      return {
+        success: true,
+        data: zodResponse.data,
+      };
     } catch (error) {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       Logger.error((error as T).response?.data.mensagem ?? '');
 
-      return false;
+      return {
+        success: false as const,
+      };
     }
   }
 }

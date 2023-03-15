@@ -533,7 +533,7 @@ export default class BusinessUnitFiscalDocumentService {
         reason: data.reason,
       });
 
-      if (!result) {
+      if (!result.success) {
         throw new BadRequestException(
           'Erro ao cancelar nota fiscal',
           400,
@@ -543,10 +543,12 @@ export default class BusinessUnitFiscalDocumentService {
 
       await document
         .merge({
+          sefazStatus: 'Inutilizado',
           user_who_disabled_id: user.id,
           disablingDate: DateTime.now(),
           disablingReason: data.reason,
-
+          disablingReceiptDate: DateTime.now(),
+          disablingReceipt: result.data?.protocolo_sefaz,
           // sefazStatus: result.status_sefaz,
           // sefazMessage: result.mensagem_sefaz,
           // disablingXmlPath: result.caminho_xml,
@@ -621,7 +623,10 @@ export default class BusinessUnitFiscalDocumentService {
     console.log(data);
 
     return document.merge({
-      sefazStatus: data.status,
+      sefazStatus:
+        document.sefazStatus === 'Inutilizado'
+          ? document.sefazStatus
+          : data.status,
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [

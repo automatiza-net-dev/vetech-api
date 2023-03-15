@@ -417,7 +417,7 @@ export default class FocusNfeService {
 
       const zodResponse = nfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
-        console.log('invalid schema');
+        console.log('invalid schema', zodResponse.error.issues);
         return null;
       }
 

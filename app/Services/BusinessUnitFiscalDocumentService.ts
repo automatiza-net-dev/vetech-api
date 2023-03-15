@@ -441,6 +441,8 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       const cancelResult = await this.focusNfe.cancel(document.id, data.reason);
+      console.log({ cancelResult });
+
       if (!cancelResult) {
         throw new BadRequestException(
           'Erro ao cancelar nota fiscal',

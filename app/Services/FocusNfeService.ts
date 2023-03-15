@@ -51,48 +51,57 @@ export interface ISendNfe {
     };
   };
 
-  items: Array<{
-    index: string;
-    code: string;
-    barcode: string;
-    description: string;
-    ncm: string;
-    cest: string;
-    tax_benefit_code: string | null;
-    cfop: string;
-    quantity: string;
-    value: string;
-    unity: string;
+  items: Array<
+    Partial<{
+      index: string;
+      code: string;
+      barcode: string;
+      description: string;
+      ncm: string;
+      cest: string;
+      tax_benefit_code: string | null;
+      cfop: string;
+      quantity: string;
+      value: string;
+      unity: string;
 
-    discount: number;
-    icms_red_calc: number;
-    icms_percentage: number;
-    icms_value: number;
+      discount: number;
 
-    fcp_percentage: number;
-    fcp_base_calc: number;
-    fcp_value: number;
+      cst_icms: string;
+      icms_red_calc: number;
+      icms_percentage: number;
+      icms_value: number;
+      icms_modality: number;
+      icms_origin: string;
+      icms_base: number;
 
-    cst_ipi: string | null;
-    ipi_base: number | null;
-    ipi_percentage: number | null;
-    ipi_value: number | null;
+      icms_st_modality: number;
+      icms_st_additional: number;
+      icms_st_red_calc: number;
+      icms_st_base: number;
+      icms_st_percentage: number;
+      icms_st_value: number;
 
-    cst_pis: string;
-    pis_base: number;
-    pis_percentage: number;
-    pis_value: number;
+      fcp_percentage: number;
+      fcp_base_calc: number;
+      fcp_value: number;
 
-    icms_origin: string;
-    icms_base: number;
+      cst_ipi: string | null;
+      ipi_base: number | null;
+      ipi_percentage: number | null;
+      ipi_value: number | null;
 
-    cst_icms: string;
+      cst_pis: string;
+      pis_base: number;
+      pis_percentage: number;
+      pis_value: number;
 
-    cst_cofins: string;
-    cofins_base: number;
-    cofins_percentage: number;
-    cofins_value: number;
-  }>;
+      cst_cofins: string;
+      cofins_base: number;
+      cofins_percentage: number;
+      cofins_value: number;
+    }>
+  >;
 
   payments: Array<{
     nfe_code: string;
@@ -319,11 +328,18 @@ export default class FocusNfeService {
 
         icms_origem: item.icms_origin,
         icms_situacao_tributaria: item.cst_icms,
-        icms_modalidade_base_calculo: 3,
+        icms_modalidade_base_calculo: item.icms_modality,
         icms_base_calculo: item.icms_base,
         icms_reducao_base_calculo: item.icms_red_calc,
         icms_aliquota: item.icms_percentage,
-        icms_value: item.icms_value,
+        icms_valor: item.icms_value,
+
+        icms_modalidade_base_calculo_st: item.icms_st_modality,
+        icms_margem_valor_adicionado_st: item.icms_st_additional,
+        icms_reducao_base_calculo_st: item.icms_st_red_calc,
+        icms_base_calculo_st: item.icms_st_base,
+        icms_aliquota_st: item.icms_st_percentage,
+        icms_valor_st: item.icms_st_value,
 
         fcp_percentual: item.fcp_percentage,
         fcp_base_calculo: item.icms_base,

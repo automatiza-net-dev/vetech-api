@@ -243,46 +243,78 @@ export default class BusinessUnitFiscalDocumentService {
             code: bill.client.tutor.postalCode ?? '',
           },
         },
-        items: bill.items.map((item, idx) => ({
-          index: (idx + 1).toString(),
-          code: item.product_variation_id,
-          barcode: item.productVariation.barcode,
-          description: item.productVariation.product.description,
-          ncm: item.productVariation.product.ncm ?? '',
-          cest: item.productVariation.product.cest ?? '',
-          tax_benefit_code: item.productVariation.product.taxBenefitCode,
-          cfop: item.fiscalOperationCode,
-          unity: item.productVariation.product.unit.tag,
-          quantity: item.quantity.toString(),
-          value: item.unitaryValue.toString(),
-          discount: item.discountValue,
+        items: bill.items.map((item, idx) => {
+          const result: ISendNfe['items'][number] = {
+            index: (idx + 1).toString(),
+            code: item.product_variation_id,
+            barcode: item.productVariation.barcode,
+            description: item.productVariation.product.description,
+            ncm: item.productVariation.product.ncm ?? '',
+            cest: item.productVariation.product.cest ?? '',
+            tax_benefit_code: item.productVariation.product.taxBenefitCode,
+            cfop: item.fiscalOperationCode,
+            unity: item.productVariation.product.unit.tag,
+            quantity: item.quantity.toString(),
+            value: item.unitaryValue.toString(),
+            discount: item.discountValue,
 
-          icms_origin: item.productVariation.product.icmsOrigin,
-          cst_icms: item.icmsCst,
-          icms_base: item.icmsBase,
-          icms_red_calc: item.icmsStPercentageRedBase,
-          icms_percentage: item.icmsPercentage,
-          icms_value: item.icmsValue,
+            // icms_origin: item.productVariation.product.icmsOrigin,
+            // cst_icms: item.icmsCst,
+            // icms_base: item.icmsBase,
+            // icms_red_calc: item.icmsStPercentageRedBase,
+            // icms_percentage: item.icmsPercentage,
+            // icms_value: item.icmsValue,
 
-          fcp_percentage: item.icmsFcpPercentage,
-          fcp_base_calc: item.icmsBase,
-          fcp_value: item.icmsFcpValue,
+            fcp_percentage: item.icmsFcpPercentage,
+            fcp_base_calc: item.icmsBase,
+            fcp_value: item.icmsFcpValue,
 
-          cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
-          ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
-          ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
-          ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
+            cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
+            ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
+            ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
+            ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
 
-          cst_pis: item.pisCst,
-          pis_base: item.pisBase,
-          pis_percentage: item.pisPercentage,
-          pis_value: item.pisValue,
+            cst_pis: item.pisCst,
+            pis_base: item.pisBase,
+            pis_percentage: item.pisPercentage,
+            pis_value: item.pisValue,
 
-          cst_cofins: item.cofinsCst,
-          cofins_base: item.cofinsBase,
-          cofins_percentage: item.cofinsPercentage,
-          cofins_value: item.cofinsValue,
-        })),
+            cst_cofins: item.cofinsCst,
+            cofins_base: item.cofinsBase,
+            cofins_percentage: item.cofinsPercentage,
+            cofins_value: item.cofinsValue,
+          };
+
+          if (
+            ['10', '30', '70', '90', '201', '202', '203', '900'].includes(
+              item.icmsCst,
+            )
+          ) {
+            result.icms_st_modality = 4;
+            result.icms_st_additional = item.icmsStIva;
+            result.icms_st_red_calc = item.icmsStPercentageRedBase;
+            result.icms_st_base = item.icmsStBase;
+            result.icms_st_percentage = item.icmsStPercentageUfDestination;
+            result.icms_st_value = item.icmsStValue;
+          }
+
+          if (
+            ['00', '10', '20', '51', '60', '70', '90', '900'].includes(
+              item.icmsCst,
+            )
+          ) {
+            result.icms_modality = 3;
+            result.icms_base = item.icmsBase;
+            result.icms_percentage = item.icmsPercentage;
+            result.icms_value = item.icmsValue;
+          }
+
+          if (['20', '70', '90', '900'].includes(item.icmsCst)) {
+            result.icms_red_calc = item.icmsStPercentageRedBase;
+          }
+
+          return result;
+        }),
         payments: bill.payments.map(item => ({
           nfe_code: item.paymentMethod.nfe_code,
           description:

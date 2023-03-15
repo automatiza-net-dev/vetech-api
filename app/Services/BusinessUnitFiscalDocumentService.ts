@@ -621,7 +621,8 @@ export default class BusinessUnitFiscalDocumentService {
     console.log(data);
 
     return document.merge({
-      sefazStatus: data.status_sefaz,
+      sefazStatus: data.status,
+      sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [
             data.protocolo_cancelamento.descricao_evento,

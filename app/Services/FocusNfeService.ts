@@ -462,13 +462,11 @@ export default class FocusNfeService {
   public async disable(ref: string, disableData: IDisableNfe) {
     try {
       const { data } = await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
-        data: {
-          cnpj: disableData.cnpj,
-          serie: disableData.series,
-          numero_inicial: disableData.sequence,
-          numero_final: disableData.sequence,
-          justificativa: disableData.reason,
-        },
+        cnpj: disableData.cnpj,
+        serie: disableData.series,
+        numero_inicial: disableData.sequence,
+        numero_final: disableData.sequence,
+        justificativa: disableData.reason,
       });
 
       const zodResponse = disableNfeResponseSchema.safeParse(data);

@@ -298,7 +298,7 @@ export default class FocusNfeService {
       regime_tributario_emitente: data.seller.regime,
 
       nome_destinatario: data.buyer.name,
-      // cnpj_destinatario: 'data.buyer.cnpj_document',
+      cnpj_destinatario: data.buyer.cnpj_document,
       cpf_destinatario: data.buyer.cpf_document,
       logradouro_destinatario: data.buyer.location.street,
       numero_destinatario: data.buyer.location.number,
@@ -386,10 +386,23 @@ export default class FocusNfeService {
       modalidade_frete: '9',
     };
 
+    if (payload.cpf_destinatario) {
+      // @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
+      delete payload.cnpj_destinatario;
+    }
+
+    if (payload.cnpj_destinatario) {
+      // @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
+      delete payload.cpf_destinatario;
+    }
+
     // console.log(payload); // THIS
 
     try {
-      const { data } = await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
+      const { data } = await this.ax.post(
+        `/v2/nfe?ref=${ref}`,
+        this.sanitize(payload),
+      );
 
       return {
         success: true as const,
@@ -404,6 +417,28 @@ export default class FocusNfeService {
         message: (error as T).response?.data?.mensagem ?? '',
       };
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private sanitize<T extends {}>(obj: T) {
+    const isArray = Array.isArray(obj);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const k of Object.keys(obj)) {
+      if (obj[k] === null || obj[k] === undefined) {
+        // eslint-disable-next-line no-param-reassign
+        if (isArray) {
+          // @ts-expect-error Erro qualquer
+          obj.splice(k, 1);
+        } else {
+          // eslint-disable-next-line no-param-reassign
+          delete obj[k];
+        }
+      } else if (typeof obj[k] === 'object') {
+        this.sanitize(obj[k]);
+      }
+    }
+
+    return obj;
   }
 
   public async getNfe(

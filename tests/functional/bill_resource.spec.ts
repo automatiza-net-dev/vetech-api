@@ -100,9 +100,9 @@ test.group('Bill resource', group => {
     const rule = await TaxationGroupRule.create({
       companyType: CompanyType.N,
       movementType: MovementType.S,
-      movementCategory: MovementCategory.DE,
-      fromUf: 'PB',
-      toUf: 'PB',
+      movementCategory: MovementCategory.NS,
+      fromUf: business.state,
+      toUf: 'PR',
       icmsCst: '00',
       icmsPerc: 10,
       icmsPercRedAliquota: 10,
@@ -215,6 +215,7 @@ test.group('Bill resource', group => {
       unit,
       paymentMethodFlag,
       flagInstallment,
+      client,
     };
   };
 
@@ -245,7 +246,13 @@ test.group('Bill resource', group => {
   });
 
   test('should create bill', async ({ assert, client }) => {
-    const { user, patient, dailyCashier, dailyMovement } = await createData();
+    const {
+      user,
+      client: holder,
+      patient,
+      dailyCashier,
+      dailyMovement,
+    } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -254,7 +261,7 @@ test.group('Bill resource', group => {
     const response = await client
       .post(`/bills/create`)
       .json({
-        clientId: patient.id,
+        clientId: holder.id,
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
@@ -452,6 +459,29 @@ test.group('Bill resource', group => {
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
         paymentMethodFlagInstallmentId: flagInstallment.id,
+        installmentsValue: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill payment (no flag installment)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, paymentMethod } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-payment`)
+      .json({
+        billId: bill.id,
+        paymentMethodId: paymentMethod.id,
+        expirationDate: new Date(),
         installmentsValue: 10,
       })
       .bearerToken(token);

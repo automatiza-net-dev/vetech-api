@@ -1129,7 +1129,7 @@ export default class BillService {
           client: trx,
         },
       );
-      const flagInstallment = await PaymentMethodFlagInstallment.findOrFail(
+      const flagInstallment = await PaymentMethodFlagInstallment.find(
         data.paymentMethodFlagInstallmentId,
         {
           client: trx,
@@ -1142,11 +1142,12 @@ export default class BillService {
       );
 
       const uniqueBlocks = new Set(existingPayments.map(p => p.block));
-      const singleValue = data.installmentsValue / flagInstallment.installment;
+      const singleValue =
+        data.installmentsValue / (flagInstallment?.installment ?? 1);
 
       const payments = await BillPayment.createMany(
         Array.from(
-          { length: flagInstallment.installment },
+          { length: flagInstallment?.installment ?? 1 },
           (_, v) => ({
             economic_group_id: group.id,
             business_unit_id: unitId,
@@ -1188,7 +1189,7 @@ export default class BillService {
         .save();
 
       await Finance.createMany(
-        Array.from({ length: flagInstallment.installment }, (_, v) => ({
+        Array.from({ length: flagInstallment?.installment ?? 1 }, (_, v) => ({
           economic_group_id: group.id,
           business_unit_id: unitId,
           daily_movement_id: bill.daily_movement_id,

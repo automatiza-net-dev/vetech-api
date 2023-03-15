@@ -114,15 +114,15 @@ export interface ISendNfe {
   }>;
 
   totalizers: {
-    icms_base: number;
-    icms_total: number;
-    fcp_total: number;
-    product_value: number;
+    // icms_base: number;
+    // icms_total: number;
+    // fcp_total: number;
+    // product_value: number;
     delivery_value: number;
-    discount_value: number;
-    ipi_value: number;
-    pis_value: number;
-    cofins_value: number;
+    // discount_value: number;
+    // ipi_value: number;
+    // pis_value: number;
+    // cofins_value: number;
     other_value: number;
   };
 }
@@ -371,15 +371,15 @@ export default class FocusNfeService {
         numero_autorizacao: payment.nsu,
       })),
 
-      icms_base_calculo: data.totalizers.icms_base,
-      icms_valor_total: data.totalizers.icms_total,
-      valor_produtos: data.totalizers.product_value,
+      // icms_base_calculo: data.totalizers.icms_base,
+      // icms_valor_total: data.totalizers.icms_total,
+      // valor_produtos: data.totalizers.product_value,
       valor_frete: data.totalizers.delivery_value,
       valor_seguro: 0,
-      valor_desconto: data.totalizers.discount_value,
-      valor_ipi: data.totalizers.ipi_value,
-      valor_pis: data.totalizers.pis_value,
-      cofins_value: data.totalizers.cofins_value,
+      // valor_desconto: data.totalizers.discount_value,
+      // valor_ipi: data.totalizers.ipi_value,
+      // valor_pis: data.totalizers.pis_value,
+      // cofins_value: data.totalizers.cofins_value,
       valor_outras_despesas: data.totalizers.other_value,
       modalidade_frete: '9',
     };

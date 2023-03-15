@@ -617,6 +617,9 @@ export default class BusinessUnitFiscalDocumentService {
     document: IssuedFiscalDocument,
     data: z.infer<typeof nfeResponseSchema>,
   ) {
+    console.log(document.toJSON());
+    console.log(data);
+
     return document.merge({
       sefazStatus: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento

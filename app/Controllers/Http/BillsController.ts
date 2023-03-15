@@ -81,6 +81,14 @@ export default class BillsController {
     return response.ok(result);
   }
 
+  public async deleteBillItem({ params, auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.deleteBillItem(unit_id, params.id);
+
+    return response.noContent();
+  }
+
   public async createBillPayment({
     request,
     response,

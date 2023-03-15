@@ -738,6 +738,7 @@ Route.group(() => {
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.put('/update-item', 'BillsController.updateBillItem');
+  Route.put('/delete-item/:id', 'BillsController.deleteBillItem');
   Route.post('/create-payment', 'BillsController.createBillPayment');
   Route.get('/', 'BillsController.index');
   Route.get('/products', 'BillsController.searchProducts');

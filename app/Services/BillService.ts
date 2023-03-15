@@ -781,6 +781,7 @@ export default class BillService {
           'id',
           data.items.map(i => i.billItemId),
         )
+        .where('status', BillItemStatus.A)
         .preload('taxRule')
         .preload('bill', query => {
           query.preload('items');
@@ -917,6 +918,118 @@ export default class BillService {
       const validItems = await BillItem.query()
         .useTransaction(trx)
         .where('bill_id', billId)
+        .where('status', BillItemStatus.A)
+        .preload('taxRule')
+        .preload('productVariation', query => query.preload('product'));
+
+      let totalProductValue = 0;
+      let totalServiceValue = 0;
+      validItems.forEach(item => {
+        if (item.productVariation.product.type === ProductType.PRODUCT) {
+          totalProductValue += item.totalValue;
+        }
+        if (item.productVariation.product.type === ProductType.SERVICE) {
+          totalServiceValue += item.totalValue;
+        }
+      });
+
+      const totalDiscountValue = validItems.reduce(
+        (acc, item) => acc + (item.discountValue ?? 0),
+        0,
+      );
+
+      await bill
+        .merge({
+          productValue: totalProductValue,
+          serviceValue: totalServiceValue,
+          discountValue: totalDiscountValue,
+          totalValue: totalProductValue + totalServiceValue,
+          icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
+          icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+          icmsStBase: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStBase, 0),
+          icmsStValue: validItems
+            .filter(
+              i =>
+                typeof i.icmsStValue === 'number' &&
+                !Number.isNaN(i.icmsStValue),
+            )
+            .reduce((acc, item) => acc + item.icmsStValue, 0),
+          issBase: validItems.reduce(
+            (acc, item) => acc + (item.issBase ?? 0),
+            0,
+          ),
+          issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
+          pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
+          pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
+          pisRetentionValue: validItems.reduce(
+            (acc, item) => acc + (item.pisRetentionValue ?? 0),
+            0,
+          ),
+          cofinsBase: validItems.reduce(
+            (acc, item) => acc + item.cofinsBase,
+            0,
+          ),
+          cofinsValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsValue,
+            0,
+          ),
+          cofinsRetentionValue: validItems.reduce(
+            (acc, item) => acc + item.cofinsRetentionValue,
+            0,
+          ),
+          ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
+          ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+          icmsDeferredValue: validItems.reduce(
+            (acc, item) => acc + item.icmsDeferredValue,
+            0,
+          ),
+          icmsFcpValue: validItems.reduce(
+            (acc, item) => acc + item.icmsFcpValue,
+            0,
+          ),
+          icmsUfDestinationValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+            0,
+          ),
+          icmsUfOriginValue: validItems.reduce(
+            (acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+            0,
+          ),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  async deleteBillItem(_: string, id: string) {
+    return Database.transaction(async trx => {
+      const billItem = await BillItem.query().where('id', id).firstOrFail();
+
+      if (billItem.status === BillItemStatus.I) {
+        throw new BadRequestException('Item já removido', 400, 'E_ERR');
+      }
+
+      await billItem
+        .merge({
+          status: BillItemStatus.I,
+        })
+        .useTransaction(trx)
+        .save();
+
+      const bill = await Bill.findOrFail(billItem.bill_id, {
+        client: trx,
+      });
+
+      const validItems = await BillItem.query()
+        .useTransaction(trx)
+        .where('bill_id', billItem.bill_id)
+        .where('status', BillItemStatus.A)
         .preload('taxRule')
         .preload('productVariation', query => query.preload('product'));
 

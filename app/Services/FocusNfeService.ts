@@ -173,16 +173,18 @@ const nfeResponseSchema = z.object({
   requisicao_cancelamento: z.optional(
     z.object({
       versao: z.string(),
-      ambiente: z.string(),
-      versao_aplicativo: z.string(),
+      id_tag: z.string(),
       codigo_orgao: z.string(),
-      status: z.string(),
-      motivo: z.string(),
+      ambiente: z.string(),
+      cnpj: z.string(),
       chave_nfe: z.string(),
-      tipo_evento: z.string(),
-      descricao_evento: z.string(),
       data_evento: z.string(),
-      numero_protocolo: z.string(),
+      tipo_evento: z.string(),
+      numero_sequencial_evento: z.string(),
+      versao_evento: z.string(),
+      descricao_evento: z.string(),
+      protocolo: z.string(),
+      justificativa: z.string(),
     }),
   ),
   protocolo_cancelamento: z.optional(
@@ -417,6 +419,8 @@ export default class FocusNfeService {
 
       const zodResponse = nfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
+        console.log({ data });
+
         console.log('invalid schema', zodResponse.error.issues);
         return null;
       }

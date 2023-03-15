@@ -135,7 +135,7 @@ interface IDisableNfe {
   reason: string;
 }
 
-const nfeResponseSchema = z.object({
+export const nfeResponseSchema = z.object({
   cnpj_emitente: z.string(),
   ref: z.string(),
   status: z.enum([
@@ -237,25 +237,25 @@ const nfeResponseSchema = z.object({
   ),
 });
 
-const cancelNfeResponseSchema = z.object({
-  status_sefaz: z.string(),
-  mensagem_sefaz: z.string(),
-  status: z.string(),
-  caminho_xml_cancelamento: z.string(),
-});
+// const cancelNfeResponseSchema = z.object({
+//   status_sefaz: z.string(),
+//   mensagem_sefaz: z.string(),
+//   status: z.string(),
+//   caminho_xml_cancelamento: z.string(),
+// });
 
-const disableNfeResponseSchema = z.object({
-  status_sefaz: z.string(),
-  mensagem_sefaz: z.string(),
-  serie: z.string(),
-  numero_inicial: z.string(),
-  numero_final: z.string(),
-  modelo: z.string(),
-  cnpj: z.string(),
-  status: z.string(),
-  caminho_xml: z.string(),
-  protocolo_sefaz: z.string(),
-});
+// const disableNfeResponseSchema = z.object({
+//   status_sefaz: z.string(),
+//   mensagem_sefaz: z.string(),
+//   serie: z.string(),
+//   numero_inicial: z.string(),
+//   numero_final: z.string(),
+//   modelo: z.string(),
+//   cnpj: z.string(),
+//   status: z.string(),
+//   caminho_xml: z.string(),
+//   protocolo_sefaz: z.string(),
+// });
 
 @inject()
 export default class FocusNfeService {

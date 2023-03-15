@@ -12,8 +12,12 @@ import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
+import { ProductType } from 'App/Models/Product';
 import User from 'App/Models/User';
-import FocusNfeService, { ISendNfe } from 'App/Services/FocusNfeService';
+import FocusNfeService, {
+  ISendNfe,
+  nfeResponseSchema,
+} from 'App/Services/FocusNfeService';
 import SharedService from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
@@ -22,6 +26,7 @@ import IBusinessUnitFiscalDocumentData, {
   IDisableFiscalDocument,
 } from 'Contracts/interfaces/IBusinessUnitFiscalDocumentData';
 import { DateTime } from 'luxon';
+import { z } from 'zod';
 
 interface ISearch {
   unit?: string;
@@ -245,78 +250,76 @@ export default class BusinessUnitFiscalDocumentService {
             code: bill.client.tutor.postalCode ?? '',
           },
         },
-        items: bill.items.map((item, idx) => {
-          const result: ISendNfe['items'][number] = {
-            index: (idx + 1).toString(),
-            code: item.product_variation_id,
-            barcode: item.productVariation.barcode,
-            description: item.productVariation.product.description,
-            ncm: item.productVariation.product.ncm ?? '',
-            cest: item.productVariation.product.cest ?? '',
-            tax_benefit_code: item.productVariation.product.taxBenefitCode,
-            cfop: item.fiscalOperationCode,
-            unity: item.productVariation.product.unit.tag,
-            quantity: item.quantity.toString(),
-            value: item.unitaryValue.toString(),
-            discount: item.discountValue,
+        items: bill.items
+          .filter(i => i.productVariation.product.type === ProductType.PRODUCT)
+          .map((item, idx) => {
+            const result: ISendNfe['items'][number] = {
+              index: (idx + 1).toString(),
+              code: item.product_variation_id,
+              barcode: item.productVariation.barcode,
+              description: item.productVariation.product.description,
+              ncm: item.productVariation.product.ncm ?? '',
+              cest: item.productVariation.product.cest ?? '',
+              tax_benefit_code: item.productVariation.product.taxBenefitCode,
+              cfop: item.fiscalOperationCode,
+              unity: item.productVariation.product.unit.tag,
+              quantity: item.quantity.toString(),
+              value: item.unitaryValue.toString(),
+              discount: item.discountValue,
 
-            icms_origin: item.productVariation.product.icmsOrigin,
-            cst_icms: item.icmsCst,
-            // icms_base: item.icmsBase,
-            // icms_red_calc: item.icmsStPercentageRedBase,
-            // icms_percentage: item.icmsPercentage,
-            // icms_value: item.icmsValue,
+              icms_origin: item.productVariation.product.icmsOrigin,
+              cst_icms: item.icmsCst,
 
-            fcp_percentage: item.icmsFcpPercentage,
-            fcp_base_calc: item.icmsBase,
-            fcp_value: item.icmsFcpValue,
+              fcp_percentage: item.icmsFcpPercentage,
+              fcp_base_calc: item.icmsBase,
+              fcp_value: item.icmsFcpValue,
 
-            cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
-            ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
-            ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
-            ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
+              cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
+              ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
+              ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
+              ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
 
-            cst_pis: item.pisCst,
-            pis_base: item.pisBase,
-            pis_percentage: item.pisPercentage,
-            pis_value: item.pisValue,
+              cst_pis: item.pisCst,
+              pis_base: item.pisBase,
+              pis_percentage: item.pisPercentage,
+              pis_value: item.pisValue,
 
-            cst_cofins: item.cofinsCst,
-            cofins_base: item.cofinsBase,
-            cofins_percentage: item.cofinsPercentage,
-            cofins_value: item.cofinsValue,
-          };
+              cst_cofins: item.cofinsCst,
+              cofins_base: item.cofinsBase,
+              cofins_percentage: item.cofinsPercentage,
+              cofins_value: item.cofinsValue,
+            };
 
-          if (
-            ['10', '30', '70', '90', '201', '202', '203', '900'].includes(
-              item.icmsCst,
-            )
-          ) {
-            result.icms_st_modality = 4;
-            result.icms_st_additional = item.icmsStIva;
-            result.icms_st_red_calc = item.icmsStPercentageRedBase;
-            result.icms_st_base = item.icmsStBase;
-            result.icms_st_percentage = item.icmsStPercentageUfDestination;
-            result.icms_st_value = item.icmsStValue;
-          }
+            if (
+              ['10', '30', '70', '90', '201', '202', '203', '900'].includes(
+                item.icmsCst,
+              )
+            ) {
+              result.icms_st_modality = 4;
+              result.icms_st_additional = item.icmsStIva;
+              result.icms_st_red_calc = item.icmsStPercentageRedBase;
+              result.icms_st_base = item.icmsStBase;
+              result.icms_st_percentage = item.icmsStPercentageUfDestination;
+              result.icms_st_value = item.icmsStValue;
+            }
 
-          if (
-            ['00', '10', '20', '51', '60', '70', '90', '900'].includes(
-              item.icmsCst,
-            )
-          ) {
-            result.icms_modality = 3;
-            result.icms_base = item.icmsBase;
-            result.icms_percentage = item.icmsPercentage;
-            result.icms_value = item.icmsValue;
-          }
+            if (
+              ['00', '10', '20', '51', '60', '70', '90', '900'].includes(
+                item.icmsCst,
+              )
+            ) {
+              result.icms_modality = 3;
+              result.icms_base = item.icmsBase;
+              result.icms_percentage = item.icmsPercentage;
+              result.icms_value = item.icmsValue;
+            }
 
-          if (['20', '70', '90', '900'].includes(item.icmsCst)) {
-            result.icms_red_calc = item.icmsStPercentageRedBase;
-          }
+            if (['20', '70', '90', '900'].includes(item.icmsCst)) {
+              result.icms_red_calc = item.icmsStPercentageRedBase;
+            }
 
-          return result;
-        }),
+            return result;
+          }),
         payments: bill.payments.map(item => ({
           nfe_code: item.paymentMethod.nfe_code,
           description:
@@ -394,19 +397,32 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      await document
-        .merge({
-          sefazStatus: result.status_sefaz,
-          sefazMessage: result.mensagem_sefaz,
-          accessKey: result.chave_nfe,
+      await this.mergeNfe(document, result).useTransaction(trx).save();
+    });
+  }
 
-          authorizationXmlPath: result.caminho_xml_nota_fiscal,
-          authorizationPdfPath: result.caminho_danfe,
+  async updateFromFocusWithWebhook(id: string) {
+    return Database.transaction(async trx => {
+      const document = await IssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('id', id)
+        .first();
 
-          cancellationXmlPath: result.caminho_xml_cancelamento,
-        })
-        .useTransaction(trx)
-        .save();
+      if (!document) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await this.focusNfe.getNfe(document.id);
+      if (!result) {
+        throw new BadRequestException(
+          'Erro ao atualizar nova',
+          400,
+          'E_NO_NOTE',
+        );
+      }
+
+      await this.mergeNfe(document, result).useTransaction(trx).save();
     });
   }
 
@@ -594,6 +610,35 @@ export default class BusinessUnitFiscalDocumentService {
       );
 
       // TODO call external service
+    });
+  }
+
+  private mergeNfe(
+    document: IssuedFiscalDocument,
+    data: z.infer<typeof nfeResponseSchema>,
+  ) {
+    return document.merge({
+      sefazStatus: data.status_sefaz,
+      sefazMessage: data.protocolo_cancelamento
+        ? [
+            data.protocolo_cancelamento.descricao_evento,
+            data.protocolo_cancelamento.motivo,
+          ].join(' - ')
+        : data.mensagem_sefaz,
+      accessKey: data.chave_nfe,
+      authorizationXmlPath: data.caminho_xml_nota_fiscal,
+      authorizationPdfPath: data.caminho_danfe,
+      cancellationXmlPath: data.caminho_xml_cancelamento,
+
+      authorizationReceipt: data.protocolo_nota_fiscal?.numero_protocolo,
+      authorizationReceiptDate: data.protocolo_nota_fiscal?.data_recebimento
+        ? DateTime.fromISO(data.protocolo_nota_fiscal?.data_recebimento)
+        : undefined,
+
+      cancellationReceipt: data.protocolo_cancelamento?.numero_protocolo,
+      cancellationReceiptDate: data.protocolo_cancelamento?.data_evento
+        ? DateTime.fromISO(data.protocolo_cancelamento?.data_evento)
+        : undefined,
     });
   }
 }

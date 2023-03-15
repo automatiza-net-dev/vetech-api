@@ -834,3 +834,7 @@ Route.group(() => {
 })
   .prefix('services')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/nfe', 'WebhooksController.nfe');
+}).prefix('webhooks');

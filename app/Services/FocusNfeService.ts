@@ -384,10 +384,11 @@ export default class FocusNfeService {
       modalidade_frete: '9',
     };
 
-    console.log(payload); // THIS
+    // console.log(payload); // THIS
 
     try {
-      await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
+      const { data } = await this.ax.post(`/v2/nfe?ref=${ref}`, payload);
+      console.log({ data });
 
       return null;
     } catch (error) {

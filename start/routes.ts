@@ -801,6 +801,10 @@ Route.group(() => {
     '/business-unit/correct',
     'BusinessUnitFiscalDocumentsController.correct',
   );
+  Route.post(
+    '/business-unit/update/:id',
+    'BusinessUnitFiscalDocumentsController.forceUpdate',
+  );
 
   Route.get('/issued-documents', 'IssuedFiscalDocumentsController.index');
 })

@@ -55,6 +55,14 @@ export default class BusinessUnitFiscalDocumentsController {
     return response.created(result);
   }
 
+  public async forceUpdate({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.updateFromFocus(unit_id, params.id);
+
+    return response.noContent();
+  }
+
   public async cancel({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(
       CancelBusinessUnitFiscalDocumentValidator,

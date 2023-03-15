@@ -444,7 +444,7 @@ export default class FocusNfeService {
 
       const zodResponse = cancelNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
-        console.log('invalid schema');
+        console.log('invalid schema', zodResponse.error.issues);
         return null;
       }
 
@@ -461,7 +461,7 @@ export default class FocusNfeService {
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
   public async disable(ref: string, disableData: IDisableNfe) {
     try {
-      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+      const { data } = await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
         data: {
           cnpj: disableData.cnpj,
           serie: disableData.series,
@@ -473,7 +473,7 @@ export default class FocusNfeService {
 
       const zodResponse = disableNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
-        console.log('invalid schema');
+        console.log('invalid schema', zodResponse.error.issues);
         return null;
       }
 

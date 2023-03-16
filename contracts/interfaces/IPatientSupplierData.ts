@@ -3,14 +3,16 @@ import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default interface IPatientSupplierData {
   name: string;
+  document: string;
+  email: string;
+  cellphone: string;
+
+  stateInscription?: string;
   residence?: typeof TutorResidences[number];
   photo?: MultipartFileContract;
   tags?: string;
   active?: boolean;
-  document: string;
   corporate_name?: string;
-  email: string;
-  cellphone: string;
   telephone?: string;
   message_person_name?: string;
   message_person_phone?: string;

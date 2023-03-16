@@ -7,17 +7,19 @@ export default class CreatePatientSupplierValidator {
 
   public schema = schema.create({
     name: schema.string({}),
+    email: schema.string({}, [rules.email()]),
+    cellphone: schema.string({}, []),
+    document: schema.string({}, []),
+
+    stateInscription: schema.string.optional({}),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],
     }),
     tags: schema.string.optional({}, []),
     birthDate: schema.date.optional({}),
-    document: schema.string({}, []),
     inscription: schema.string.optional({}, []),
     corporate_name: schema.string.optional({}, []),
-    email: schema.string({}, [rules.email()]),
-    cellphone: schema.string({}, []),
     telephone: schema.string.optional({}, []),
     message_person_name: schema.string.optional({}, []),
     message_person_phone: schema.string.optional({}, []),

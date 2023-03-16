@@ -512,10 +512,8 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       if (
-        !document.authorizationDate || // 2.16.5.1
         !!document.accessKey || // 2.16.5.2
         !!document.authorizationReceipt || // 2.16.5.3
-        !!document.authorizationReceiptDate || // 2.16.5.4
         !!document.cancellationReceipt || // 2.16.5.5
         !!document.disablingReceipt // 2.16.5.6
       ) {
@@ -619,8 +617,8 @@ export default class BusinessUnitFiscalDocumentService {
     document: IssuedFiscalDocument,
     data: z.infer<typeof nfeResponseSchema>,
   ) {
-    console.log(document.toJSON());
-    console.log(data);
+    console.log('document:', document.toJSON());
+    console.log('focus payload', data);
 
     return document.merge({
       sefazStatus:

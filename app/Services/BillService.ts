@@ -1129,12 +1129,14 @@ export default class BillService {
           client: trx,
         },
       );
-      const flagInstallment = await PaymentMethodFlagInstallment.find(
-        data.paymentMethodFlagInstallmentId,
-        {
-          client: trx,
-        },
-      );
+      const flagInstallment = data.paymentMethodFlagInstallmentId
+        ? await PaymentMethodFlagInstallment.find(
+            data.paymentMethodFlagInstallmentId,
+            {
+              client: trx,
+            },
+          )
+        : null;
 
       const existingPayments = await BillPayment.query().where(
         'bill_id',

@@ -457,7 +457,8 @@ export default class FocusNfeService {
       if (!zodResponse.success) {
         Logger.info(JSON.stringify(data, undefined, 2));
 
-        Logger.error('invalid schema', zodResponse.error.issues);
+        Logger.error('invalid schema');
+        Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
         return null;
       }
 
@@ -512,7 +513,9 @@ export default class FocusNfeService {
 
       const zodResponse = disableNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
-        Logger.error('invalid schema', zodResponse.error.issues);
+        Logger.info(JSON.stringify(data, undefined, 2));
+        Logger.error('invalid schema');
+        Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
         return {
           success: true,
           data: null,

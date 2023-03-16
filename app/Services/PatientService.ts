@@ -138,12 +138,13 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('type', PatientType.SUPPLIER)
-      .preload('tutor', query => {
+      .whereHas('tutor', query => {
         if (data.document) {
           query.where('document', 'ilike', `%${data.document}%`);
           query.where('inscription', 'ilike', `%${data.document}%`);
         }
-      });
+      })
+      .preload('tutor');
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);

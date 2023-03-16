@@ -21,4 +21,10 @@ export default class WebhooksController {
 
     return response.ok(data);
   }
+
+  public async disable({ request, response }: HttpContextContract) {
+    await this.fiscalDocumentService.disableFromWebhook(request.body());
+
+    return response.noContent();
+  }
 }

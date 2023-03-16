@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
@@ -15,6 +16,7 @@ import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
 import User from 'App/Models/User';
 import FocusNfeService, {
+  disableWebhookResponseSchema,
   ISendNfe,
   nfeResponseSchema,
 } from 'App/Services/FocusNfeService';
@@ -423,6 +425,49 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       await this.mergeNfe(document, result).useTransaction(trx).save();
+    });
+  }
+
+  async disableFromWebhook(data: unknown) {
+    const result = disableWebhookResponseSchema.safeParse(data);
+    Logger.info(JSON.stringify(data, undefined, 2));
+
+    if (!result.success) {
+      Logger.error('invalid body');
+      Logger.error(JSON.stringify(result.error.issues, undefined, 2));
+      return;
+    }
+
+    await Database.transaction(async trx => {
+      const issuedDocument = await IssuedFiscalDocument.query()
+        .useTransaction(trx)
+        .where('model', result.data.modelo)
+        .where('series', result.data.serie)
+        .where('sequence', result.data.numero_inicial)
+        .whereHas('unit', query => {
+          query.where('document', result.data.cnpj);
+        })
+        .first();
+      if (!issuedDocument) {
+        Logger.error('documento não encontrado');
+        return;
+      }
+
+      await issuedDocument
+        .merge({
+          sefazStatus: 'Inutilizado',
+          sefazStatusCode: result.data.status_sefaz,
+          sefazMessage: result.data.mensagem_sefaz,
+          disablingXmlPath: result.data.caminho_xml,
+          disablingReceipt: issuedDocument.disablingReceipt
+            ? issuedDocument.disablingReceipt
+            : result.data.protocolo_sefaz,
+          disablingReceiptDate: issuedDocument.disablingReceiptDate
+            ? issuedDocument.disablingReceiptDate
+            : DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

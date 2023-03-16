@@ -841,4 +841,5 @@ Route.group(() => {
 
 Route.group(() => {
   Route.post('/nfe', 'WebhooksController.nfe');
+  Route.post('/disable', 'WebhooksController.disable');
 }).prefix('webhooks');

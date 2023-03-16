@@ -257,6 +257,19 @@ const disableNfeResponseSchema = z.object({
   protocolo_sefaz: z.string(),
 });
 
+export const disableWebhookResponseSchema = z.object({
+  status: z.enum(['autorizado', 'erro_autorizacao']),
+  status_sefaz: z.string(),
+  mensagem_sefaz: z.string(),
+  serie: z.string(),
+  numero_inicial: z.string(),
+  numero_final: z.string(),
+  modelo: z.string(),
+  cnpj: z.string(),
+  caminho_xml: z.string(),
+  protocolo_sefaz: z.string(),
+});
+
 @inject()
 export default class FocusNfeService {
   private ax = axios.create({

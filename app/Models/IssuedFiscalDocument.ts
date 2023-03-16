@@ -2,10 +2,13 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
   HasMany,
   hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import { BusinessUnitFiscalDocumentMovementType } from 'App/Models/BusinessUnitFiscalDocument';
 import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -191,6 +194,11 @@ export default class IssuedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

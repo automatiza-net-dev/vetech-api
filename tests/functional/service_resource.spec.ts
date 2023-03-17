@@ -87,6 +87,7 @@ test.group('Service resource', group => {
         unitId: unit.id,
         referenceCode: '00001',
         features: 'some features',
+        serviceCode: '10',
         price: {
           price: 2121.12,
           profitMargin: '2121',
@@ -156,6 +157,7 @@ test.group('Service resource', group => {
         active: true,
         taxationGroupId: taxationGroup.id,
         subgroupId: subgroupEntity.id,
+        serviceCode: '10',
       })
       .bearerToken(token);
 

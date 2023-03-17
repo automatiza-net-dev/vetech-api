@@ -264,6 +264,11 @@ export default class BillItem extends BaseModel {
   public ibptCountryPercentage: number;
 
   @column({
+    columnName: 'nfe_issued',
+  })
+  public nfeIssued: boolean;
+
+  @column({
     columnName: 'status',
   })
   public status: BillItemStatus;

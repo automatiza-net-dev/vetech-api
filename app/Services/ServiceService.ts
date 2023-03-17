@@ -125,6 +125,7 @@ export default class ServiceService {
           icmsOrigin: '0',
           ncm: '00',
           variation_group_id: someUnitConfig?.service_variation_group_id,
+          serviceCode: data.serviceCode,
         },
         {
           client: trx,
@@ -179,6 +180,7 @@ export default class ServiceService {
         active: data.active,
         subgroup_id: data.subgroupId,
         taxation_group_id: data.taxationGroupId,
+        serviceCode: data.serviceCode,
       })
       .save();
   }

@@ -18,4 +18,5 @@ export interface IUpdateBusinessUnit {
   cityRegistration?: string;
   cnae?: string;
   simple: boolean;
+  cityCode?: string;
 }

@@ -38,6 +38,7 @@ test.group('Business unit resource', group => {
     const response = await client.put(`/business-units/${unit.id}`).json({
       identification: 'TESTING',
       simple: true,
+      cityCode: '123',
     });
 
     const updatedBusinessUnit = response.body();
@@ -92,6 +93,7 @@ test.group('Business unit resource', group => {
         cityRegistration: 'some',
         cnae: 'some',
         simple: true,
+        cityCode: '123',
       })
       .loginAs(user);
 

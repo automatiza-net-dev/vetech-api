@@ -29,6 +29,7 @@ export default class UpdateServiceValidator {
         column: 'id',
       }),
     ]),
+    serviceCode: schema.string(),
     active: schema.boolean(),
   });
 

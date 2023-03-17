@@ -228,7 +228,6 @@ export default class ProductService {
     return product
       .merge({
         description: data.description,
-        type: data.type,
         referenceCode: data.referenceCode,
         collectionYear: data.collectionYear,
         ncm: data.ncm,

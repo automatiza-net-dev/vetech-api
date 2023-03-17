@@ -181,6 +181,7 @@ export default class BusinessUnitService {
         cityRegistration: data.cityRegistration,
         cnae: data.cnae,
         simple: data.simple,
+        cityCode: data.cityCode,
       })
       .save();
   }

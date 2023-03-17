@@ -16,6 +16,7 @@ export default interface IServiceData {
   description: string;
   referenceCode?: string;
   subgroupId: string;
+  serviceCode: string;
 
   features?: string;
   taxationGroupId: string;
@@ -28,6 +29,7 @@ export interface IUpdateService {
   description: string;
   referenceCode?: string;
   subgroupId: string;
+  serviceCode: string;
   active: boolean;
 
   features?: string;

@@ -42,6 +42,11 @@ export default class BusinessUnit extends BaseModel {
   })
   public companyName?: string;
 
+  @column({
+    columnName: 'city_code',
+  })
+  public cityCode?: string;
+
   @column()
   public document?: string;
 

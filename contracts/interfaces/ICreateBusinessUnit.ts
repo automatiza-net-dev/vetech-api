@@ -18,5 +18,6 @@ export interface ICreateBusinessUnit {
   stateRegistration?: string;
   cityRegistration?: string;
   cnae?: string;
+  cityCode?: string;
   simple: boolean;
 }

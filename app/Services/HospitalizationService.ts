@@ -146,6 +146,7 @@ export default class HospitalizationService {
           query.preload('race', query => {
             query.preload('specie');
           });
+          query.preload('hair');
         });
       })
       .preload('tutor', query => {

@@ -2,8 +2,11 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import BillItem from 'App/Models/BillItem';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -124,6 +127,11 @@ export default class ServiceIssuedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public bill_item_id: string;
+
+  @belongsTo(() => BillItem, {
+    foreignKey: 'bill_item_id',
+  })
+  public billItem: BelongsTo<typeof BillItem>;
 
   @column({
     serializeAs: null,

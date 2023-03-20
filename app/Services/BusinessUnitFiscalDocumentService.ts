@@ -409,6 +409,7 @@ export default class BusinessUnitFiscalDocumentService {
       const items = await BillItem.query()
         .useTransaction(trx)
         .where('bill_id', bill.id)
+        .where('nfe_issued', false)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.SERVICE);
@@ -716,6 +717,7 @@ export default class BusinessUnitFiscalDocumentService {
         .where('economic_group_id', group.id)
         .where('business_unit_id', unitId)
         .where('id', data.issuedDocumentId)
+        .preload('billItem')
         .first();
 
       if (!document) {
@@ -734,6 +736,15 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
+      await document.billItem
+        .merge({
+          nfeIssued: cancelResult.status !== 'cancelado',
+        })
+        .useTransaction(trx)
+        .save();
+
+      console.log(cancelResult);
+
       await document
         .merge({
           status: cancelResult.status,
@@ -742,7 +753,8 @@ export default class BusinessUnitFiscalDocumentService {
             cancelResult.status === 'cancelado' ? DateTime.now() : undefined,
           cancellationReason:
             cancelResult.status === 'cancelado' ? data.reason : undefined,
-          errors: cancelResult.errors,
+          // @ts-expect-error json asd
+          errors: JSON.stringify(data.erros),
 
           // sefazStatus: cancelResult.status_sefaz,
           // sefazMessage: cancelResult.mensagem_sefaz,
@@ -927,7 +939,8 @@ export default class BusinessUnitFiscalDocumentService {
       rpsSeries: data.serie_rps,
       rpsType: data.tipo_rps,
       verificationCode: data.codigo_verificacao,
-      errors: data.erros,
+      // @ts-expect-error json asd
+      errors: JSON.stringify(data.erros),
       authorizationDate:
         data.status === 'autorizado' ? DateTime.now() : undefined,
       cancellationDate:

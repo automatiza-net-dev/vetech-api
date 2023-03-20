@@ -342,11 +342,11 @@ export default class BillService {
                 : undefined,
             issPercentage:
               variation.product.type === ProductType.SERVICE
-                ? rule?.icmsPercRedAliquota
+                ? rule?.icmsPerc
                 : undefined,
             issValue:
               variation.product.type === ProductType.SERVICE
-                ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
+                ? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
                 : undefined,
             pisCst: rule?.pisCst,
             cofinsCst: rule?.cofinsCst,
@@ -642,11 +642,11 @@ export default class BillService {
               : undefined,
           issPercentage:
             productVariation.product.type === ProductType.SERVICE
-              ? rule.icmsPercRedAliquota
+              ? rule.icmsPerc
               : undefined,
           issValue:
             productVariation.product.type === ProductType.SERVICE
-              ? (icmsBase * (rule?.icmsPercRedAliquota ?? 0)) / 100
+              ? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
               : undefined,
           pisCst: rule.pisCst,
           cofinsCst: rule.cofinsCst,
@@ -870,12 +870,11 @@ export default class BillService {
                 : undefined,
             issPercentage:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? billItem.taxRule.icmsPercRedAliquota
+                ? billItem.taxRule.icmsPerc
                 : undefined,
             issValue:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? (icmsBase * (billItem.taxRule?.icmsPercRedAliquota ?? 0)) /
-                  100
+                ? (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100
                 : undefined,
             pisCst: billItem.taxRule?.pisCst,
             cofinsCst: billItem.taxRule?.cofinsCst,
@@ -1706,7 +1705,8 @@ export default class BillService {
                     icmsValue
                   : undefined,
                 issBase: rule.icmsPerc,
-                issPercentage: rule.icmsPercRedAliquota,
+                issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
+                issPercentage: rule.icmsPerc,
                 pisPercentage: rule.pisPerc,
                 cofinsPercentage: rule.cofinsPerc,
                 ipiPercentage: rule.ipiPerc,

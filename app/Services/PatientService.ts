@@ -10,7 +10,14 @@ import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import Hospitalization, {
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
+import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
+import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
+import User from 'App/Models/User';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData, {
   IFastStorePatient,
@@ -20,6 +27,8 @@ import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import { HospitalizationStatus } from '../Models/Hospitalization';
 
 interface ISearch {
   name?: string;
@@ -721,6 +730,7 @@ export default class PatientService {
 
   public async update(
     unitId: string,
+    user: User,
     id: string,
     data: Omit<IPatientData, 'holderId'> & {
       death: boolean;
@@ -729,24 +739,78 @@ export default class PatientService {
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
 
-    const patient = await group
-      .related('patients')
-      .query()
-      .where('patient_id', id)
-      .preload('patientAnimal')
-      .first();
+    return Database.transaction(async trx => {
+      const patient = await group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('patient_id', id)
+        .preload('patientAnimal')
+        .first();
 
-    if (!patient) {
-      throw new ResourceNotFoundException(
-        'Paciente não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+      if (!patient) {
+        throw new ResourceNotFoundException(
+          'Paciente não encontrado',
+          404,
+          'E_NOT_FOUND',
+        );
+      }
 
-    const trx = await Database.transaction();
+      if (!patient.patientAnimal.death && data.death) {
+        const hospitalization = await Hospitalization.query()
+          .useTransaction(trx)
+          .where('patient_id', patient.id)
+          .where('status', HospitalizationStatus.ACTIVE)
+          .limit(1)
+          .first();
 
-    try {
+        if (hospitalization) {
+          await HospitalizationTimeline.create({
+            meta: {
+              hospitalization: hospitalization.id,
+              group: group.id,
+              unit: unitId,
+              origin: 'death_occurrence',
+            },
+            data: {
+              type: HospitalizationType[hospitalization.type],
+              hospitalizedAt: hospitalization.createdAt,
+              realizedAt: data.deathDate,
+              issuedAt: DateTime.now(),
+              technician: {
+                id: user.id,
+                name: user.name,
+              },
+              attachments: [],
+            },
+          });
+        } else {
+          const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+            client: trx,
+          });
+
+          await AnimalTimeline.create({
+            timeline_id: ATTENDANCE_UUID,
+            timeline_type: {
+              description: timelineInfo.description,
+              color: timelineInfo.color,
+              requires_observation: timelineInfo.requiresObservation,
+            },
+            timeline_info: {
+              tag: patient.id,
+              event: 'OBITO',
+              realized: DateTime.now(),
+              resume: 'Óbito',
+              description: 'Óbito',
+              technician: {
+                id: user.id,
+                name: user.name,
+              },
+            },
+          });
+        }
+      }
+
       const photo = data.photo
         ? await this.uploadPhoto(data.photo)
         : patient.photo;
@@ -778,19 +842,8 @@ export default class PatientService {
           .save();
       }
 
-      await trx.commit();
-    } catch (e) {
-      Logger.error(e.message);
-      await trx.rollback();
-
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
-
-    return patient;
+      return patient;
+    });
   }
 
   public async updateTutor(

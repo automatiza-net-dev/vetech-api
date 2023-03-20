@@ -21,6 +21,7 @@ import FocusNfeService, {
   disableWebhookResponseSchema,
   ISendNfe,
   nfeResponseSchema,
+  nfseResponseSchema,
 } from 'App/Services/FocusNfeService';
 import SharedService from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
@@ -537,6 +538,35 @@ export default class BusinessUnitFiscalDocumentService {
     });
   }
 
+  async updateNfseFromFocus(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const document = await ServiceIssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('economic_group_id', group.id)
+        .where('business_unit_id', unitId)
+        .where('id', id)
+        .first();
+
+      if (!document) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await this.focusNfe.getNfse(document.id);
+      if (!result) {
+        throw new BadRequestException(
+          'Erro ao atualizar nova',
+          400,
+          'E_NO_NOTE',
+        );
+      }
+
+      await this.mergeNfse(document, result).useTransaction(trx).save();
+    });
+  }
+
   async updateFromFocusWithWebhook(id: string) {
     return Database.transaction(async trx => {
       const document = await IssuedFiscalDocument.query({
@@ -605,7 +635,7 @@ export default class BusinessUnitFiscalDocumentService {
     });
   }
 
-  async cancel(unitId: string, user: User, data: ICancelFiscalDocument) {
+  async cancelNfe(unitId: string, user: User, data: ICancelFiscalDocument) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
@@ -635,7 +665,10 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      const cancelResult = await this.focusNfe.cancel(document.id, data.reason);
+      const cancelResult = await this.focusNfe.cancelNfe(
+        document.id,
+        data.reason,
+      );
       if (!cancelResult) {
         throw new BadRequestException(
           'Erro ao cancelar nota fiscal',
@@ -658,6 +691,58 @@ export default class BusinessUnitFiscalDocumentService {
           user_who_cancelled_id: user.id,
           cancellationDate: DateTime.now(),
           cancellationReason: data.reason,
+
+          // sefazStatus: cancelResult.status_sefaz,
+          // sefazMessage: cancelResult.mensagem_sefaz,
+          // cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
+          // cancellationReceiptDate: getResult.protocolo_cancelamento
+          //   ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
+          //   : undefined,
+          // cancellationReceipt:
+          //   getResult.protocolo_cancelamento?.numero_protocolo,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  async cancelNfse(unitId: string, user: User, data: ICancelFiscalDocument) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const document = await ServiceIssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('economic_group_id', group.id)
+        .where('business_unit_id', unitId)
+        .where('id', data.issuedDocumentId)
+        .first();
+
+      if (!document) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const cancelResult = await this.focusNfe.cancelNfse(
+        document.id,
+        data.reason,
+      );
+      if (!cancelResult) {
+        throw new BadRequestException(
+          'Erro ao cancelar nota fiscal',
+          400,
+          'E_EXTERNAL_ERROR',
+        );
+      }
+
+      await document
+        .merge({
+          status: cancelResult.status,
+          user_who_cancelled_id: user.id,
+          cancellationDate:
+            cancelResult.status === 'cancelado' ? DateTime.now() : undefined,
+          cancellationReason:
+            cancelResult.status === 'cancelado' ? data.reason : undefined,
+          errors: cancelResult.errors,
 
           // sefazStatus: cancelResult.status_sefaz,
           // sefazMessage: cancelResult.mensagem_sefaz,
@@ -825,6 +910,31 @@ export default class BusinessUnitFiscalDocumentService {
       cancellationReceiptDate: data.protocolo_cancelamento?.data_evento
         ? DateTime.fromISO(data.protocolo_cancelamento?.data_evento)
         : undefined,
+    });
+  }
+
+  private mergeNfse(
+    document: ServiceIssuedFiscalDocument,
+    data: z.infer<typeof nfseResponseSchema>,
+  ) {
+    console.log('document:', document.toJSON());
+    console.log('focus nfse payload', data);
+
+    return document.merge({
+      status: data.status,
+      sequence: data.numero,
+      rpsNumber: data.numero_rps,
+      rpsSeries: data.serie_rps,
+      rpsType: data.tipo_rps,
+      verificationCode: data.codigo_verificacao,
+      errors: data.erros,
+      authorizationDate:
+        data.status === 'autorizado' ? DateTime.now() : undefined,
+      cancellationDate:
+        data.status === 'cancelado' ? DateTime.now() : undefined,
+      mirrorPath: data.url,
+      authorizationPdfPath: data.url_danfse,
+      authorizationXmlPath: data.caminho_xml_nota_fiscal,
     });
   }
 }

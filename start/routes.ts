@@ -793,10 +793,16 @@ Route.group(() => {
     '/business-unit/authorize-nfse',
     'BusinessUnitFiscalDocumentsController.authorizeNfse',
   );
+
   Route.post(
-    '/business-unit/cancel',
-    'BusinessUnitFiscalDocumentsController.cancel',
+    '/business-unit/cancel-nfe',
+    'BusinessUnitFiscalDocumentsController.cancelNfe',
   );
+  Route.post(
+    '/business-unit/cancel-nfse',
+    'BusinessUnitFiscalDocumentsController.cancelNfse',
+  );
+
   Route.post(
     '/business-unit/disable',
     'BusinessUnitFiscalDocumentsController.disable',
@@ -806,8 +812,12 @@ Route.group(() => {
     'BusinessUnitFiscalDocumentsController.correct',
   );
   Route.post(
-    '/business-unit/update/:id',
-    'BusinessUnitFiscalDocumentsController.forceUpdate',
+    '/business-unit/update/nfe/:id',
+    'BusinessUnitFiscalDocumentsController.forceUpdateNfe',
+  );
+  Route.post(
+    '/business-unit/update/nfse/:id',
+    'BusinessUnitFiscalDocumentsController.forceUpdateNfse',
   );
 
   Route.get('/issued-documents', 'IssuedFiscalDocumentsController.index');

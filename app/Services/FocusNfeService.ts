@@ -294,10 +294,11 @@ export const nfseResponseSchema = z.object({
   ]),
   cnpj_prestador: z.string(),
   ref: z.string(),
-  numero_rps: z.string(),
-  serie_rps: z.string(),
-  tipo_rps: z.string(),
-  erros: z.array(z.any()),
+  numero: z.optional(z.coerce.number()),
+  numero_rps: z.coerce.number(),
+  serie_rps: z.coerce.number(),
+  tipo_rps: z.optional(z.string()),
+  erros: z.optional(z.array(z.any())),
   url: z.string(),
   url_danfse: z.string(),
   data_emissao: z.coerce.date(),
@@ -554,9 +555,31 @@ export default class FocusNfeService {
     }
   }
 
+  public async getNfse(ref: string) {
+    try {
+      const { data } = await this.ax.get(`/v2/nfse/${ref}`, {
+        params: {},
+      });
+
+      const zodResponse = nfseResponseSchema.safeParse(data);
+      if (!zodResponse.success) {
+        Logger.info(JSON.stringify(data, undefined, 2));
+        Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+        return null;
+      }
+
+      return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      Logger.error((error as T).response?.data.mensagem ?? '');
+
+      return null;
+    }
+  }
+
   // hora do evento?
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
-  public async cancel(ref: string, reason: string) {
+  public async cancelNfe(ref: string, reason: string) {
     try {
       await this.ax.delete(`/v2/nfe/${ref}`, {
         data: {
@@ -719,11 +742,11 @@ export default class FocusNfeService {
         },
       });
 
-      // console.log({ data });
+      Logger.info(JSON.stringify(data, undefined, 2));
 
       return {
         success: true as const,
-        status: data.status as string,
+        status: data.status as 'cancelado',
       };
       // const zodResponse = cancelNfeResponseSchema.safeParse(data);
       // if (!zodResponse.success) {
@@ -733,12 +756,23 @@ export default class FocusNfeService {
 
       // return zodResponse.data;
     } catch (error) {
-      type T = TypedAxiosError<{ mensagem: string }, unknown>;
-      Logger.error((error as T).response?.data.mensagem ?? '');
+      type T = TypedAxiosError<
+        {
+          status: 'erro_cancelamento';
+          erros: Array<{
+            codigo: string;
+            mensagem: string;
+            correcao: string | null;
+          }>;
+        },
+        unknown
+      >;
+      Logger.error((error as T).response?.data.status ?? '');
 
       return {
         success: false as const,
-        status: (error as T).response?.data.mensagem,
+        status: (error as T).response?.data.status,
+        errors: (error as T).response?.data.erros,
       };
     }
   }

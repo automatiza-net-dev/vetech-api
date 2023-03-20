@@ -5,6 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import AuthorizeBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/AuthorizeBusinessUnitFiscalDocumentValidator';
 import AuthorizeBusinessUnitNfseFiscalDocumentValidator from 'App/Validators/FiscalDocument/AuthorizeBusinessUnitNfseFiscalDocumentValidator';
 import CancelBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CancelBusinessUnitFiscalDocumentValidator';
+import CancelBusinessUnitServiceFiscalDocumentValidator from 'App/Validators/FiscalDocument/CancelBusinessUnitServiceFiscalDocumentValidator';
 import CorrectBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CorrectBusinessUnitFiscalDocumentValidator';
 import CreateBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CreateBusinessUnitFiscalDocumentValidator';
 import DisableBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/DisableBusinessUnitFiscalDocumentValidator';
@@ -67,7 +68,7 @@ export default class BusinessUnitFiscalDocumentsController {
     return response.created(result);
   }
 
-  public async forceUpdate({ auth, params, response }: HttpContextContract) {
+  public async forceUpdateNfe({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.updateFromFocus(unit_id, params.id);
@@ -75,13 +76,36 @@ export default class BusinessUnitFiscalDocumentsController {
     return response.noContent();
   }
 
-  public async cancel({ auth, request, response }: HttpContextContract) {
+  public async forceUpdateNfse({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.updateNfseFromFocus(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async cancelNfe({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(
       CancelBusinessUnitFiscalDocumentValidator,
     );
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    await this.service.cancel(unit_id, user, payload);
+    await this.service.cancelNfe(unit_id, user, payload);
+
+    return response.noContent();
+  }
+
+  public async cancelNfse({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(
+      CancelBusinessUnitServiceFiscalDocumentValidator,
+    );
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    await this.service.cancelNfse(unit_id, user, payload);
 
     return response.noContent();
   }

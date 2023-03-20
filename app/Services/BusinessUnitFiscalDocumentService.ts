@@ -593,6 +593,31 @@ export default class BusinessUnitFiscalDocumentService {
     });
   }
 
+  async updateNfseFromFocusWithWebhook(id: string) {
+    return Database.transaction(async trx => {
+      const document = await ServiceIssuedFiscalDocument.query({
+        client: trx,
+      })
+        .where('id', id)
+        .first();
+
+      if (!document) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await this.focusNfe.getNfse(document.id);
+      if (!result) {
+        throw new BadRequestException(
+          'Erro ao atualizar nova',
+          400,
+          'E_NO_NOTE',
+        );
+      }
+
+      await this.mergeNfse(document, result).useTransaction(trx).save();
+    });
+  }
+
   async disableFromWebhook(data: unknown) {
     const result = disableWebhookResponseSchema.safeParse(data);
     Logger.info(JSON.stringify(data, undefined, 2));

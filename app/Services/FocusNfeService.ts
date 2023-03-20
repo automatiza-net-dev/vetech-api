@@ -128,6 +128,44 @@ export interface ISendNfe {
   };
 }
 
+export interface ISendNfse {
+  issuedAt: string;
+  simple: boolean;
+  seller: {
+    document: string;
+    city_ie: string;
+    city_code: string;
+  };
+  buyer: {
+    cpf_document: string | null;
+    cnpj_document: string | null;
+    name: string;
+    email: string;
+    phone: string;
+    address: {
+      street: string; // rua, av, etc
+      number: string;
+      district: string;
+      city_code: string;
+      uf: string;
+      postal_code: string;
+      complement: string | null;
+    };
+  };
+  service: {
+    total_value: number;
+    pis_value: number;
+    cofins_value: number;
+    iss_value: number;
+    base_value: number;
+    percentage_value: number;
+    discount_value: number;
+    service_code: string;
+    cnae: string;
+    description: string;
+    city_code: string;
+  };
+}
 interface IDisableNfe {
   cnpj: string;
   series: string;
@@ -235,6 +273,38 @@ export const nfeResponseSchema = z.object({
       numero_protocolo: z.string(),
     }),
   ),
+});
+
+export const createNfseResponseSchema = z.object({
+  cnpj_prestador: z.string(),
+  ref: z.string(),
+  numero_rps: z.coerce.number(),
+  serie_rps: z.coerce.number(),
+  status: z.enum(['erro_autorizacao', 'processando_autorizacao']),
+  erros: z.optional(z.array(z.any())),
+});
+
+export const nfseResponseSchema = z.object({
+  status: z.enum([
+    'autorizado',
+    'cancelado',
+    'erro_autorizacao',
+    'processando_autorizacao',
+    'substituido',
+  ]),
+  cnpj_prestador: z.string(),
+  ref: z.string(),
+  numero_rps: z.string(),
+  serie_rps: z.string(),
+  tipo_rps: z.string(),
+  erros: z.array(z.any()),
+  url: z.string(),
+  url_danfse: z.string(),
+  data_emissao: z.coerce.date(),
+  caminho_xml_nota_fiscal: z.string(),
+  codigo_verificacao: z.string(),
+  numero_nfse_substituida: z.optional(z.string()),
+  numero_nfse_substituta: z.optional(z.string()),
 });
 
 // const cancelNfeResponseSchema = z.object({
@@ -545,6 +615,130 @@ export default class FocusNfeService {
 
       return {
         success: false as const,
+      };
+    }
+  }
+
+  public async sendNfse(ref: string, data: ISendNfse) {
+    const payload = {
+      data_emissao: data.issuedAt,
+      natureza_operacao: '1',
+      regime_especial_tributacao: '6',
+      optante_simples_nacional: data.simple,
+
+      prestador: {
+        cnpj: data.seller.document,
+        codigo_municipio: data.seller.city_code,
+        inscricao_municipal: data.seller.city_ie,
+      },
+
+      tomador: {
+        cnpj: data.buyer.cnpj_document,
+        cpf: data.buyer.cpf_document,
+        razao_social: data.buyer.name,
+        telefone: data.buyer.phone,
+        email: data.buyer.email,
+        endereco: {
+          logradouro: data.buyer.address.street,
+          numero: data.buyer.address.number,
+          complemento: data.buyer.address.complement,
+          bairro: data.buyer.address.district,
+          codigo_municipio: data.buyer.address.city_code,
+          uf: data.buyer.address.uf,
+          cep: data.buyer.address.postal_code,
+        },
+      },
+
+      servico: {
+        valor_servicos: data.service.total_value,
+        valor_pis: data.service.pis_value,
+        valor_cofins: data.service.cofins_value,
+        iss_retido: 'false',
+        valor_iss: data.service.iss_value,
+        base_calculo: data.service.base_value,
+        aliquota: data.service.percentage_value,
+        desconto_incondicionado: data.service.discount_value,
+        item_lista_servico: data.service.service_code,
+        codigo_cnae: data.service.cnae,
+        discriminacao: data.service.description,
+        codigo_tributario_municipio: data.service.city_code,
+      },
+    };
+
+    if (payload.tomador.cpf) {
+      // @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
+      delete payload.tomador.cnpj;
+    }
+
+    if (payload.tomador.cnpj) {
+      // @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
+      delete payload.tomador.cpf;
+    }
+
+    // Logger.info(JSON.stringify(payload, undefined, 2));
+
+    try {
+      const { data } = await this.ax.post(
+        `/v2/nfse?ref=${ref}`,
+        this.sanitize(payload),
+      );
+
+      const parsedResponse = createNfseResponseSchema.safeParse(data);
+      if (!parsedResponse.success) {
+        Logger.info(JSON.stringify(data, undefined, 2));
+        Logger.error('invalid schema');
+        Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
+        return {
+          success: true,
+          data: null,
+        };
+      }
+
+      return {
+        success: true as const,
+        data: parsedResponse.data,
+      };
+    } catch (error) {
+      Logger.error(error.response.data);
+
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      return {
+        success: false as const,
+        message: (error as T).response?.data?.mensagem ?? '',
+      };
+    }
+  }
+
+  // hora do evento?
+  // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
+  public async cancelNfse(ref: string, reason: string) {
+    try {
+      const { data } = await this.ax.delete(`/v2/nfse/${ref}`, {
+        data: {
+          justificativa: reason,
+        },
+      });
+
+      // console.log({ data });
+
+      return {
+        success: true as const,
+        status: data.status as string,
+      };
+      // const zodResponse = cancelNfeResponseSchema.safeParse(data);
+      // if (!zodResponse.success) {
+      //   console.log('invalid schema', zodResponse.error.issues);
+      //   return null;
+      // }
+
+      // return zodResponse.data;
+    } catch (error) {
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      Logger.error((error as T).response?.data.mensagem ?? '');
+
+      return {
+        success: false as const,
+        status: (error as T).response?.data.mensagem,
       };
     }
   }

@@ -790,6 +790,10 @@ Route.group(() => {
     'BusinessUnitFiscalDocumentsController.authorize',
   );
   Route.post(
+    '/business-unit/authorize-nfse',
+    'BusinessUnitFiscalDocumentsController.authorizeNfse',
+  );
+  Route.post(
     '/business-unit/cancel',
     'BusinessUnitFiscalDocumentsController.cancel',
   );

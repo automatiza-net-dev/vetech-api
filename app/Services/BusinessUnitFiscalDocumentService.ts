@@ -3,6 +3,7 @@ import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
+import BillItem from 'App/Models/BillItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
@@ -14,6 +15,7 @@ import IssuedFiscalDocument, {
 } from 'App/Models/IssuedFiscalDocument';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
+import ServiceIssuedFiscalDocument from 'App/Models/ServiceIssuedFiscalDocument';
 import User from 'App/Models/User';
 import FocusNfeService, {
   disableWebhookResponseSchema,
@@ -23,6 +25,7 @@ import FocusNfeService, {
 import SharedService from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
+  IAuthorizeNfseFiscalDocument,
   ICancelFiscalDocument,
   ICorrectFiscalDocument,
   IDisableFiscalDocument,
@@ -371,6 +374,137 @@ export default class BusinessUnitFiscalDocumentService {
       //   .save();
 
       return issuedDocument;
+    });
+  }
+
+  async authorizeNfse(
+    unitId: string,
+    user: User,
+    data: IAuthorizeNfseFiscalDocument,
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('unitConfig')
+        .firstOrFail();
+
+      const document = await BusinessUnitFiscalDocument.findOrFail(
+        data.unitFiscalDocumentId,
+        {
+          client: trx,
+        },
+      );
+
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('id', data.billId)
+        .preload('client', query => {
+          query.preload('tutor');
+        })
+        .firstOrFail();
+      const items = await BillItem.query()
+        .useTransaction(trx)
+        .where('bill_id', bill.id)
+        .whereHas('productVariation', query => {
+          query.whereHas('product', query => {
+            query.where('type', ProductType.SERVICE);
+          });
+        })
+        .preload('productVariation', query => {
+          query.preload('product');
+        });
+
+      if (items.length === 0) {
+        throw new BadRequestException('Não existe documento para ser emitido');
+      }
+
+      const results = await Promise.all(
+        items.map(async item => {
+          const serviceDocument = await ServiceIssuedFiscalDocument.create(
+            {
+              economic_group_id: group.id,
+              business_unit_id: unitId,
+              bill_id: data.billId,
+              fiscal_document_id: document.id,
+              user_who_authorized_id: user.id,
+              authorizationDate: DateTime.now(),
+              bill_item_id: item.id,
+              model: document.model,
+            },
+            {
+              client: trx,
+            },
+          );
+
+          const result = await this.focusNfe.sendNfse(serviceDocument.id, {
+            issuedAt: DateTime.now().toISO(),
+            simple: unit.simple,
+            seller: {
+              document: unit.document ?? '',
+              city_ie: unit.cityRegistration ?? '',
+              city_code: unit.cityCode ?? '',
+            },
+            buyer: {
+              cpf_document: bill.client.tutor.document ?? '',
+              cnpj_document:
+                bill.client.tutor.document?.length === 14
+                  ? bill.client.tutor.document
+                  : null,
+              name: bill.client.name,
+              email: bill.client.tutor.email,
+              phone: bill.client.tutor.telephone ?? '',
+              address: {
+                street: bill.client.tutor.street ?? '',
+                number: bill.client.tutor.number ?? '',
+                district: bill.client.tutor.district ?? '',
+                city_code: bill.client.tutor.cityCode ?? '',
+                uf: bill.client.tutor.state ?? '',
+                postal_code: bill.client.tutor.postalCode ?? '',
+                complement: bill.client.tutor.complement ?? null,
+              },
+            },
+            service: {
+              total_value: item.totalValue,
+              pis_value: item.pisValue,
+              cofins_value: item.cofinsValue,
+              iss_value: item.issValue,
+              base_value: item.issBase,
+              percentage_value: item.issPercentage,
+              discount_value: item.discountValue,
+              service_code: item.productVariation.product.serviceCode ?? '',
+              cnae: unit.cnae ?? '',
+              description: item.productVariation.product.description,
+              city_code: unit.cityCode ?? '',
+            },
+          });
+
+          await serviceDocument
+            .merge({
+              rpsNumber: result.data?.numero_rps,
+              rpsSeries: result.data?.serie_rps,
+              status: result.data?.status,
+              errors: result.data?.erros,
+            })
+            .useTransaction(trx)
+            .save();
+
+          await item
+            .merge({
+              nfeIssued: result.success,
+            })
+            .useTransaction(trx)
+            .save();
+
+          return result;
+
+          // did not work ? :\
+        }),
+      );
+
+      console.log(JSON.stringify(results, undefined, 2));
     });
   }
 

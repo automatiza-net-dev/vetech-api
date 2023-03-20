@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnitFiscalDocumentService from 'App/Services/BusinessUnitFiscalDocumentService';
 import SharedService from 'App/Services/SharedService';
 import AuthorizeBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/AuthorizeBusinessUnitFiscalDocumentValidator';
+import AuthorizeBusinessUnitNfseFiscalDocumentValidator from 'App/Validators/FiscalDocument/AuthorizeBusinessUnitNfseFiscalDocumentValidator';
 import CancelBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CancelBusinessUnitFiscalDocumentValidator';
 import CorrectBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CorrectBusinessUnitFiscalDocumentValidator';
 import CreateBusinessUnitFiscalDocumentValidator from 'App/Validators/FiscalDocument/CreateBusinessUnitFiscalDocumentValidator';
@@ -51,6 +52,17 @@ export default class BusinessUnitFiscalDocumentsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
     const result = await this.service.authorize(unit_id, user, payload);
+
+    return response.created(result);
+  }
+
+  public async authorizeNfse({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(
+      AuthorizeBusinessUnitNfseFiscalDocumentValidator,
+    );
+    const { unit_id, user } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.authorizeNfse(unit_id, user, payload);
 
     return response.created(result);
   }

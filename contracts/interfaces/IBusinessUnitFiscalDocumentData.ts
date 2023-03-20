@@ -20,6 +20,11 @@ export interface IAuthorizeFiscalDocument {
   accessKeyRef: string;
 }
 
+export interface IAuthorizeNfseFiscalDocument {
+  billId: string;
+  unitFiscalDocumentId: string;
+}
+
 export interface ICancelFiscalDocument {
   issuedDocumentId: string;
   reason: string;

@@ -7,9 +7,9 @@ export default class CreatePatientSupplierValidator {
 
   public schema = schema.create({
     name: schema.string({}),
-    email: schema.string({}, [rules.email()]),
-    cellphone: schema.string({}, []),
-    document: schema.string({}, []),
+    email: schema.string.optional({}, [rules.email()]),
+    cellphone: schema.string.optional({}, []),
+    document: schema.string.optional({}, []),
 
     stateInscription: schema.string.optional({}),
     residence: schema.enum.optional(TutorResidences),
@@ -19,11 +19,11 @@ export default class CreatePatientSupplierValidator {
     tags: schema.string.optional({}, []),
     birthDate: schema.date.optional({}),
     inscription: schema.string.optional({}, []),
-    corporate_name: schema.string.optional({}, []),
+    corporateName: schema.string.optional({}, []),
     telephone: schema.string.optional({}, []),
-    message_person_name: schema.string.optional({}, []),
-    message_person_phone: schema.string.optional({}, []),
-    postal_code: schema.string.optional({}, []),
+    messagePersonName: schema.string.optional({}, []),
+    messagePersonPhone: schema.string.optional({}, []),
+    postalCode: schema.string.optional({}, []),
     street: schema.string.optional({}, []),
     number: schema.string.optional({}, []),
     complement: schema.string.optional({}, []),

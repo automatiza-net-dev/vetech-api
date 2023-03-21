@@ -80,6 +80,18 @@ export default class PatientService {
     return qb;
   }
 
+  public async nonPets(unitId: string) {
+    const group = await this.getEconomicGroup(unitId);
+
+    const qb = group
+      .related('patients')
+      .query()
+      .whereIn('type', [PatientType.TUTOR, PatientType.SUPPLIER])
+      .preload('tutor');
+
+    return qb;
+  }
+
   public async tutorsIndex(
     unitId: string,
     data: ISearchTutor,
@@ -706,13 +718,13 @@ export default class PatientService {
         residence: data.residence,
         document: data.document,
         inscription: data.stateInscription,
-        corporateName: data.corporate_name,
+        corporateName: data.corporateName,
         email: data.email,
         cellphone: data.cellphone,
         telephone: data.telephone,
-        messagePersonName: data.message_person_name,
-        messagePersonPhone: data.message_person_phone,
-        postalCode: data.postal_code,
+        messagePersonName: data.messagePersonName,
+        messagePersonPhone: data.messagePersonPhone,
+        postalCode: data.postalCode,
         street: data.street,
         number: data.number,
         complement: data.complement,
@@ -949,13 +961,13 @@ export default class PatientService {
           residence: data.residence,
           document: data.document,
           inscription: data.stateInscription,
-          corporateName: data.corporate_name,
+          corporateName: data.corporateName,
           email: data.email,
           cellphone: data.cellphone,
           telephone: data.telephone,
-          messagePersonName: data.message_person_name,
-          messagePersonPhone: data.message_person_phone,
-          postalCode: data.postal_code,
+          messagePersonName: data.messagePersonName,
+          messagePersonPhone: data.messagePersonPhone,
+          postalCode: data.postalCode,
           street: data.street,
           number: data.number,
           complement: data.complement,

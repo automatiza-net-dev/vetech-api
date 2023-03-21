@@ -26,6 +26,13 @@ export default class PatientsController {
     return response.ok(patients);
   }
 
+  public async nonPets({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const result = await this.service.nonPets(unit_id);
+
+    return response.ok(result);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const patients = await this.service.show(unit_id, params.id);

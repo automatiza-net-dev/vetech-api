@@ -20,6 +20,7 @@ import {
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
+import { MedicalPrescriptionKeys } from 'App/Services/MedicalPrescriptionService';
 import SharedService from 'App/Services/SharedService';
 import CreateFluidOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateFluidOnceOrNeededValidator';
 import CreateFluidRecurrentValidator from 'App/Validators/MedicalPrescription/CreateFluidRecurrentValidator';
@@ -186,6 +187,100 @@ export default class HospitalizationMedicalPrescriptionService {
           frequencyQuantityUnit:
             body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
         });
+      }
+
+      if (key === 'PO') {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'prescription',
+          },
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            prescription_type: 'Procedimento',
+            frequencyType: data.frequency,
+            frequencyUnit: body.frequencyUnit,
+            frequencyQuantityUnit: body.frequencyQuantityUnit,
+            executionStart: data.executionStart,
+            description: data.description,
+            resume: data.resume,
+            fluidSet: body.fluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            dose: body.dose as number,
+            supplement: body.supplement as string,
+          },
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+            fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            fluid_unit_id: body.fluidUnitId as string,
+            supplement: body.supplement as string,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      if (key === 'P_') {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'prescription',
+          },
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            issuedAt: DateTime.now(),
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            prescription_type: 'Procedimento',
+            frequencyType: data.frequency,
+            frequencyUnit: body.frequencyUnit,
+            frequencyQuantityUnit: body.frequencyQuantityUnit,
+            executionStart: data.executionStart,
+            description: data.description,
+            resume: data.resume,
+            fluidSet: body.fluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            dose: body.dose as number,
+            supplement: body.supplement as string,
+          },
+        });
+
+        return HospitalizationMedicalPrescription.create(
+          {
+            ...validatedData,
+            dose: body.dose as number,
+            prescription_unit_id: body.prescriptionUnitId as string,
+            drug_administration_id: body.drugAdministrationId as string,
+            fluidSet: body.fluidSet as MedicalPrescriptionFluidSet,
+            fluidSpeed: body.fluidSpeed as number,
+            fluid_unit_id: body.fluidUnitId as string,
+            supplement: body.supplement as string,
+          },
+          {
+            client: trx,
+          },
+        );
       }
 
       if (key === 'MR') {
@@ -412,7 +507,11 @@ export default class HospitalizationMedicalPrescriptionService {
         );
       }
 
-      throw new BadRequestException('Combinação de tipo e frequência inválida');
+      throw new BadRequestException(
+        'Combinação de tipo e frequência inválida',
+        400,
+        'E_INVALID',
+      );
 
       // await HospitalizationTimeline.create({
       //   meta: {
@@ -600,31 +699,37 @@ export default class HospitalizationMedicalPrescriptionService {
   matchSchema(
     type: MedicalPrescriptionType,
     frequency: MedicalPrescriptionFrequency,
-  ) {
+  ): { key: MedicalPrescriptionKeys } {
     if (type === MedicalPrescriptionType.PROCEDURE) {
       // b)
       if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-        return { key: 'PR' };
+        return { key: 'PR' } as const;
       }
+
+      if (frequency === MedicalPrescriptionFrequency.ONCE) {
+        return { key: 'PO' } as const;
+      }
+
+      return { key: 'P_' } as const;
     }
 
     if (type === MedicalPrescriptionType.MEDICATION) {
       // c)
       if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-        return { key: 'MR' };
+        return { key: 'MR' } as const;
       }
 
       // d)
-      return { key: 'M_' };
+      return { key: 'M_' } as const;
     }
 
     // e)
     if (frequency === MedicalPrescriptionFrequency.RECURRENT) {
-      return { key: 'FR' };
+      return { key: 'FR' } as const;
     }
 
     // f)
-    return { key: 'F_' };
+    return { key: 'F_' } as const;
   }
 
   async createScheduling(

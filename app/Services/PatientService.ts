@@ -756,7 +756,7 @@ export default class PatientService {
         );
       }
 
-      if (!patient.patientAnimal.death && data.death) {
+      if (!patient?.patientAnimal.death && data.death) {
         const hospitalization = await Hospitalization.query()
           .useTransaction(trx)
           .where('patient_id', patient.id)

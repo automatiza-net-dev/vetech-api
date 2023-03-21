@@ -15,13 +15,19 @@ import CreateMedicationRecurrentValidator from 'App/Validators/MedicalPrescripti
 import CreateProcedureRecurrentValidator from 'App/Validators/MedicalPrescription/CreateProcedureRecurrentValidator';
 import IMedicalPrescriptionData from 'Contracts/interfaces/IMedicalPrescriptionData';
 
-type MedicalPrescriptionKeys = 'PR' | 'MR' | 'FR' | 'F_' | 'M_';
+export type MedicalPrescriptionKeys =
+  | 'PR'
+  | 'PO'
+  | 'P_'
+  | 'MR'
+  | 'FR'
+  | 'F_'
+  | 'M_';
 
-export const MedicalPrescriptionValidation: Record<
-  MedicalPrescriptionKeys,
-  unknown
-> = {
+export const MedicalPrescriptionValidation = {
   PR: CreateProcedureRecurrentValidator,
+  PO: CreateProcedureRecurrentValidator,
+  P_: CreateProcedureRecurrentValidator,
   MR: CreateMedicationRecurrentValidator,
   FR: CreateFluidRecurrentValidator,
   F_: CreateFluidOnceOrNeededValidator,
@@ -64,6 +70,23 @@ export default class MedicalPrescriptionService {
         frequencyQuantity: body.frequencyQuantity as number,
         frequencyQuantityUnit:
           body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+      });
+    }
+
+    if (key === 'PO') {
+      return MedicalPrescription.create({
+        ...validatedData,
+        frequencyInterval: body.frequencyInterval as number,
+        frequencyUnit: body.frequencyUnit as MedicalPrescriptionFrequencyUnit,
+        frequencyQuantity: body.frequencyQuantity as number,
+        frequencyQuantityUnit:
+          body.frequencyQuantityUnit as MedicalPrescriptionFrequencyQuantityUnit,
+      });
+    }
+
+    if (key === 'P_') {
+      return MedicalPrescription.create({
+        ...validatedData,
       });
     }
 

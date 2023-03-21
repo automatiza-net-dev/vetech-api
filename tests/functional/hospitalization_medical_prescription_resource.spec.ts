@@ -78,6 +78,66 @@ test.group('Hospitalization medical prescription resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create medical prescriptions (PO)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, hospitalization } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/hospitalization-prescriptions`)
+      .json({
+        hospitalizationId: hospitalization.id,
+        type: MedicalPrescriptionType.PROCEDURE,
+        prescribedAt: '2022-01-01',
+        frequency: MedicalPrescriptionFrequency.ONCE,
+        description: 'some description',
+        resume: 'some resume',
+        executionStart: new Date(),
+        frequencyInterval: 10,
+        frequencyUnit: MedicalPrescriptionFrequencyUnit.DAY,
+        frequencyQuantity: 10,
+        frequencyQuantityUnit: MedicalPrescriptionFrequencyQuantityUnit.HOUR,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create medical prescriptions (P_)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, hospitalization } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/hospitalization-prescriptions`)
+      .json({
+        hospitalizationId: hospitalization.id,
+        type: MedicalPrescriptionType.PROCEDURE,
+        prescribedAt: '2022-01-01',
+        frequency: MedicalPrescriptionFrequency.WHEN_NEEDED,
+        description: 'some description',
+        resume: 'some resume',
+        executionStart: new Date(),
+        frequencyInterval: 10,
+        frequencyUnit: MedicalPrescriptionFrequencyUnit.DAY,
+        frequencyQuantity: 10,
+        frequencyQuantityUnit: MedicalPrescriptionFrequencyQuantityUnit.HOUR,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should create medical prescriptions (MR)', async ({
     assert,
     client,

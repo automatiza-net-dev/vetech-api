@@ -49,6 +49,7 @@ export default class HospitalizationMedicalPrescriptionsController {
       CreateHospitalizationMedicalPrescriptionValidator,
     );
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
+    // @ts-expect-error its fine
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
     const { unit_id, user } = this.sharedService.extractUser(auth);
@@ -64,6 +65,7 @@ export default class HospitalizationMedicalPrescriptionsController {
       UpdateHospitalizationMedicalPrescriptionValidator,
     );
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
+    // @ts-expect-error its fine
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
     const result = await this.service.update(params.id, payload, payload2);

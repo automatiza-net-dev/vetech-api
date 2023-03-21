@@ -19,13 +19,6 @@ test.group('Patient resource', group => {
   const createData = async () => {
     const { user, group } = await userBootstrap();
 
-    const patient = await PatientFactory.create();
-    const holder = await PatientFactory.create();
-    await holder.merge({ type: PatientType.TUTOR }).save();
-
-    await holder.related('dependents').attach([patient.id]);
-    await group.related('patients').attach([patient.id, holder.id]);
-
     const specie = await group.related('species').create({
       id: v4(),
       description: 'some specie',
@@ -40,6 +33,18 @@ test.group('Patient resource', group => {
     const hair = await PatientAnimalHair.create({
       description: 'some hair',
     });
+
+    const patient = await PatientFactory.create();
+    await patient.related('patientAnimal').create({
+      race_id: race.id,
+      hair_id: hair.id,
+    });
+
+    const holder = await PatientFactory.create();
+    await holder.merge({ type: PatientType.TUTOR }).save();
+
+    await holder.related('dependents').attach([patient.id]);
+    await group.related('patients').attach([patient.id, holder.id]);
 
     return { user, patient, holder, group, race, hair };
   };

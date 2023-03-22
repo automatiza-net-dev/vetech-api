@@ -268,8 +268,8 @@ export default class DailyCashierService {
           .sort(
             (a, b) =>
               a.acquirer.description.localeCompare(b.acquirer.description) ||
-              a.flag.description.localeCompare(b.flag.description) ||
-              a.bill.tag.localeCompare(b.bill.tag) ||
+              a.flag?.description.localeCompare(b.flag?.description) ||
+              a.bill?.tag.localeCompare(b.bill?.tag) ||
               a.expirationDate.toJSDate().getSeconds() -
                 b.expirationDate.toJSDate().getSeconds(),
           )
@@ -277,9 +277,9 @@ export default class DailyCashierService {
             id: e.id,
             payment_method_id: e.payment_method_id,
             payment_description: {
-              bill_tag: e.bill.tag,
+              bill_tag: e.bill?.tag,
               tef_flag_id: e.tef_flag_id,
-              tef_flag_description: e.flag.description,
+              tef_flag_description: e.flag?.description,
               tef_aquirer_id: e.tef_acquirer_id,
               tef_aquirer_description: e.acquirer.description,
               expiration_date: e.expirationDate,

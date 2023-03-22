@@ -19,6 +19,7 @@ import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 import Specie from 'App/Models/Specie';
 import Subgroup from 'App/Models/Subgroup';
+import TaxationGroup from 'App/Models/TaxationGroup';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import Variation from 'App/Models/Variation';
@@ -163,4 +164,10 @@ export default class EconomicGroup extends BaseModel {
     foreignKey: 'economicGroupId',
   })
   public paymentMethods: HasMany<typeof PaymentMethod>;
+
+  @hasMany(() => TaxationGroup, {
+    localKey: 'id',
+    foreignKey: 'economic_group_id',
+  })
+  public taxationGroups: HasMany<typeof TaxationGroup>;
 }

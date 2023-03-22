@@ -4,6 +4,31 @@ import Unit, { UnitType } from 'App/Models/Unit';
 export default class extends BaseSeeder {
   private BASE: Array<Partial<Unit>> = [
     {
+      name: 'Caixa',
+      tag: 'cx',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Pacote',
+      tag: 'pac',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Par',
+      tag: 'par',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Peça',
+      tag: 'pc',
+      type: UnitType.PRODUCT,
+    },
+    {
+      name: 'Rolo',
+      tag: 'rl',
+      type: UnitType.PRODUCT,
+    },
+    {
       name: 'Quilo',
       tag: 'kg',
       type: UnitType.PRODUCT,
@@ -14,43 +39,23 @@ export default class extends BaseSeeder {
       type: UnitType.PRODUCT,
     },
     {
-      name: 'Caixa',
-      tag: 'cx',
-      type: UnitType.PRODUCT,
-    },
-    {
       name: 'Unidade',
       tag: 'un',
       type: UnitType.PRODUCT,
     },
     {
-      name: 'Unidade',
-      tag: 'unid',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Peça',
-      tag: 'pc',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Grama',
-      tag: 'gr',
+      name: 'Ampola',
+      tag: 'amp',
       type: UnitType.MEDICINE,
     },
     {
-      name: 'Miligrama',
-      tag: 'mg',
+      name: 'Borrifada',
+      tag: 'borrifada',
       type: UnitType.MEDICINE,
     },
     {
-      name: 'Mililitro',
-      tag: 'ml',
-      type: UnitType.MEDICINE,
-    },
-    {
-      name: 'Gotas',
-      tag: 'gotas',
+      name: 'Cartela',
+      tag: 'cart',
       type: UnitType.MEDICINE,
     },
     {
@@ -64,18 +69,13 @@ export default class extends BaseSeeder {
       type: UnitType.MEDICINE,
     },
     {
-      name: 'Borrifada',
-      tag: 'borrifada',
+      name: 'Frasco',
+      tag: 'fr',
       type: UnitType.MEDICINE,
     },
     {
-      name: 'Miligramas por Quilo',
-      tag: 'mg/kg',
-      type: UnitType.MEDICINE,
-    },
-    {
-      name: 'Mililitros por Quilo',
-      tag: 'ml/kg',
+      name: 'Gotas',
+      tag: 'gotas',
       type: UnitType.MEDICINE,
     },
     {
@@ -84,13 +84,48 @@ export default class extends BaseSeeder {
       type: UnitType.MEDICINE,
     },
     {
-      name: 'Gotas por Minuto',
-      tag: 'gotas/min',
-      type: UnitType.FLUID_VELOCITY,
+      name: 'Grama',
+      tag: 'gr',
+      type: UnitType.MEDICINE,
     },
     {
-      name: 'Mililitros por Hora',
-      tag: 'ml/h',
+      name: 'Micrograma por Quilo',
+      tag: 'mcg/kg',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'Miligrama',
+      tag: 'mg',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'Miligramas por Quilo',
+      tag: 'mg/kg',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'Mililitro',
+      tag: 'ml',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'Mililitros por Quilo',
+      tag: 'ml/kg',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'UI por Mililitro',
+      tag: 'ui/ml',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'UI por Quilo',
+      tag: 'ui/kg',
+      type: UnitType.MEDICINE,
+    },
+    {
+      name: 'Gotas por Minuto',
+      tag: 'gotas/min',
       type: UnitType.FLUID_VELOCITY,
     },
     {
@@ -99,39 +134,9 @@ export default class extends BaseSeeder {
       type: UnitType.FLUID_VELOCITY,
     },
     {
-      name: 'Peça',
-      tag: 'Pc',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Pacote',
-      tag: 'Pct',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Ampola',
-      tag: 'Amp',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Par',
-      tag: 'par',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Cartela',
-      tag: 'Cart',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Fração',
-      tag: 'Fr',
-      type: UnitType.PRODUCT,
-    },
-    {
-      name: 'Rolo',
-      tag: 'Rl',
-      type: UnitType.PRODUCT,
+      name: 'Mililitros por Hora',
+      tag: 'ml/h',
+      type: UnitType.FLUID_VELOCITY,
     },
   ];
 

@@ -1,20 +1,29 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import Brand from 'App/Models/Brand';
-import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Product, { ProductType } from 'App/Models/Product';
 import Subgroup from 'App/Models/Subgroup';
+import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
 import raw from './products.json';
 
 export default class extends BaseSeeder {
+  parseString = (value: string) => {
+    return value.replace(',', '.').replaceAll('.', '');
+  };
+
+  parseNumber = (value: string) => {
+    return parseFloat(this.parseString(value));
+  };
+
   public async run() {
     const units = await Unit.all();
     const brands = await Brand.all();
     const subgroups = await Subgroup.all();
+    const taxGroups = await TaxationGroup.all();
 
     await Database.transaction(async trx => {
       const economicGroup = await EconomicGroup.create(
@@ -47,13 +56,16 @@ export default class extends BaseSeeder {
 
       const pData: Array<Partial<Product>> = raw.map(elem => {
         const unit = units.find(
-          u => u.tag.toLowerCase() === elem.Unidade.toLowerCase(),
+          u => u.tag.toLowerCase() === elem.Unidade?.toLowerCase(),
         );
         const brand = brands.find(
-          u => u.description.toLowerCase() === elem.brands.toLowerCase(),
+          u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
         );
         const subgroup = subgroups.find(
-          u => u.description.toLowerCase() === elem.subgroups.toLowerCase(),
+          u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
+        );
+        const taxGroup = taxGroups.find(
+          u => u.name.toLowerCase() === elem['Grupo Tributacao'].toLowerCase(),
         );
 
         if (!unit) {
@@ -61,11 +73,11 @@ export default class extends BaseSeeder {
             `Unidade ${elem.Unidade} não encontrada para o produto ${elem.Produto}`,
           );
         }
-        if (!brand) {
-          throw new Error(
-            `Marca ${elem.brands} não encontrada para o produto ${elem.Produto}`,
-          );
-        }
+        // if (!brand) {
+        //   throw new Error(
+        //     `Marca ${elem.brands} não encontrada para o produto ${elem.Produto}`,
+        //   );
+        // }
         if (!subgroup) {
           throw new Error(
             `Subgrupo ${elem.subgroups} não encontrada para o produto ${elem.Produto}`,
@@ -78,12 +90,14 @@ export default class extends BaseSeeder {
             elem.Tipo === 'Produto' ? ProductType.PRODUCT : ProductType.SERVICE,
           referenceCode: elem.Código.toString(),
           ncm: elem['Código NCM'] ? elem['Código NCM'].toString() : undefined,
-          cest: elem.CEST,
+          cest: elem?.CEST?.toString() ?? undefined,
           unit_id: unit.id,
           icmsOrigin: '0', // TODO correct
           economic_group_id: economicGroup.id,
           subgroup_id: subgroup.id,
-          brand_id: brand.id,
+          brand_id: brand?.id,
+          anvisaCode: elem['Código ANVISA']?.toString() ?? undefined,
+          taxation_group_id: taxGroup?.id,
         };
       });
 
@@ -131,17 +145,21 @@ export default class extends BaseSeeder {
         return variation.related('businessUnitProducts').create(
           {
             businness_unit_id: newBusinessUnit.id,
-            stock: parseInt(rawProduct.Estoque, 10),
-            maximumStock: rawProduct['Máximo'] ?? 1000,
-            minimumStock: rawProduct['Mínimo'] ?? 0,
+            stock: 0,
+            maximumStock: rawProduct['Máximo'] ?? 0,
+            minimumStock: rawProduct?.Minimo ?? 0,
             maximumDiscountPercentage: 0,
             maximumDiscountValue: 0,
-            price: parseFloat(rawProduct.Venda.replace(',', '.')),
-            costPrice: parseFloat(rawProduct.Custo.replace(',', '.')),
+            price: rawProduct.Venda
+              ? this.parseNumber(rawProduct.Venda)
+              : undefined,
+            costPrice: rawProduct.Custo
+              ? this.parseNumber(rawProduct.Custo)
+              : undefined,
             profitMargin: 0,
             commission: 0,
             meta: 0,
-            metaType: BusinessUnitProductMetaType.Quantidade,
+            metaType: undefined,
             commissionMeta: 0,
           },
           {

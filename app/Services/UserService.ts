@@ -2,13 +2,18 @@ import { inject } from '@adonisjs/fold';
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Encryption from '@ioc:Adonis/Core/Encryption';
 import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
+import Database, {
+  TransactionClientContract,
+} from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
+import Brand from 'App/Models/Brand';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import { CheckingAccountType } from 'App/Models/CheckingAccount';
 import ConfirmationToken from 'App/Models/ConfirmationToken';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import {
   PaymentMethodTef,
@@ -16,8 +21,19 @@ import {
   PaymentMethodUsage,
 } from 'App/Models/PaymentMethod';
 import Plan from 'App/Models/Plan';
+import Product, { ProductType } from 'App/Models/Product';
 import Role from 'App/Models/Role';
+import Subgroup from 'App/Models/Subgroup';
+import TaxationGroup from 'App/Models/TaxationGroup';
+import {
+  CompanyType,
+  MovementCategory,
+  MovementType,
+} from 'App/Models/TaxationGroupRule';
+import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
+import UfIcms from 'App/Models/UfIcms';
+import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
@@ -33,6 +49,8 @@ import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
 import { addDays } from 'date-fns';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import raw from '../../database/seeders/products.json';
 
 interface ISearch {
   name?: string;
@@ -106,86 +124,6 @@ export default class UserService {
         },
       );
 
-      await newGroup.related('paymentMethods').createMany(
-        [
-          {
-            description: 'Boleto',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.ENTRADA,
-            nfe_code: '15',
-          },
-          {
-            description: 'PIX',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.AMBOS,
-            nfe_code: '17',
-          },
-          {
-            description: 'Transferência',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.AMBOS,
-            nfe_code: '18',
-          },
-          {
-            description: 'Cheque',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.ENTRADA,
-            nfe_code: '02',
-          },
-          {
-            description: 'Dinheiro',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.AMBOS,
-            nfe_code: '01',
-          },
-          {
-            description: 'Débito em Conta',
-            requiresDocument: false,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.ENTRADA,
-            nfe_code: '99',
-          },
-          {
-            description: 'Crédito devolução',
-            requiresDocument: true,
-            tef: PaymentMethodTef.N,
-            fee: 0,
-            usage: PaymentMethodUsage.SAIDA,
-            nfe_code: '05',
-          },
-          {
-            description: 'Cartão de Débito (POS)',
-            requiresDocument: true,
-            tef: PaymentMethodTef.P,
-            type: PaymentMethodType.D,
-            fee: 0,
-            usage: PaymentMethodUsage.AMBOS,
-            nfe_code: '04',
-          },
-          {
-            description: 'Cartão de Crédito (POS)',
-            requiresDocument: true,
-            tef: PaymentMethodTef.P,
-            type: PaymentMethodType.C,
-            fee: 0,
-            usage: PaymentMethodUsage.AMBOS,
-            nfe_code: '03',
-          },
-        ],
-        { client: trx },
-      );
-
       const newBusinessUnit = await newGroup.related('businessUnits').create(
         {
           id: v4(),
@@ -229,25 +167,11 @@ export default class UserService {
         },
       );
 
-      await newBusinessUnit.related('checkingAccounts').create(
-        {
-          description: `Cofre - Matriz`,
-          accountNumber: 'Cofre',
-          bankCode: 'Cofre',
-          bankName: 'Cofre',
-          agency: '001',
-          type: CheckingAccountType.CX,
-          balance: 0,
-          active: true,
-        },
-        {
-          client: trx,
-        },
-      );
-
       await newBusinessUnit.related('unitConfig').create({
         service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
       });
+
+      await this.seedData(newGroup, newBusinessUnit, trx);
 
       return { user, unit: newBusinessUnit };
     });
@@ -409,5 +333,483 @@ export default class UserService {
     const user = await User.findByOrFail('email', email);
     user.password = password;
     await user.save();
+  }
+
+  private async seedData(
+    group: EconomicGroup,
+    bunit: BusinessUnit,
+    trx: TransactionClientContract,
+  ) {
+    const parseString = (value: string) => {
+      return value.replace(',', '.').replaceAll('.', '');
+    };
+
+    const parseNumber = (value: string) => {
+      return parseFloat(parseString(value));
+    };
+
+    const units = await Unit.all({ client: trx });
+    const brands = await Brand.all({ client: trx });
+    const subgroups = await Subgroup.all({ client: trx });
+    const taxGroups = await TaxationGroup.all({ client: trx });
+
+    await group.related('paymentMethods').createMany(
+      [
+        {
+          description: 'Boleto',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '15',
+        },
+        {
+          description: 'PIX',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '17',
+        },
+        {
+          description: 'Transferência',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '18',
+        },
+        {
+          description: 'Cheque',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '02',
+        },
+        {
+          description: 'Dinheiro',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '01',
+        },
+        {
+          description: 'Débito em Conta',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '99',
+        },
+        {
+          description: 'Crédito devolução',
+          requiresDocument: true,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.SAIDA,
+          nfe_code: '05',
+        },
+        {
+          description: 'Cartão de Débito (POS)',
+          requiresDocument: true,
+          tef: PaymentMethodTef.P,
+          type: PaymentMethodType.D,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '04',
+        },
+        {
+          description: 'Cartão de Crédito (POS)',
+          requiresDocument: true,
+          tef: PaymentMethodTef.P,
+          type: PaymentMethodType.C,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '03',
+        },
+      ],
+      { client: trx },
+    );
+
+    await bunit.related('checkingAccounts').create(
+      {
+        description: `Cofre - Matriz`,
+        accountNumber: 'Cofre',
+        bankCode: 'Cofre',
+        bankName: 'Cofre',
+        agency: '001',
+        type: CheckingAccountType.CX,
+        balance: 0,
+        active: true,
+      },
+      {
+        client: trx,
+      },
+    );
+
+    const ufIcms = await UfIcms.query()
+      .useTransaction(trx)
+      .where('origin_uf', bunit.state ?? '-1')
+      .andWhere('destination_uf', bunit.state ?? '-1')
+      .where('active', true)
+      .first();
+    const [
+      firstTaxGroup,
+      secondTaxGroup,
+      thirdTaxGroup,
+      fourthTaxGroup,
+      fifthTaxGroup,
+    ] = await group.related('taxationGroups').createMany(
+      [
+        {
+          name: 'Grupo Padrão',
+        },
+        {
+          name: 'Instrumentos para Transfusao',
+        },
+        {
+          name: 'Medicamentos Veterinarios',
+        },
+        {
+          name: 'Vacinas',
+        },
+        {
+          name: 'Serviços',
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+    const taxOperation = await TaxOperation.query()
+      .useTransaction(trx)
+      .where('code', '5.102')
+      .where('movement_category', MovementCategory.NS)
+      .where('movement_type', MovementType.S)
+      .first();
+    await firstTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await secondTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await thirdTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await fourthTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await fifthTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: 0,
+          fcpPerc: 0,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: 0,
+          fcpPerc: 0,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    const pData: Array<Partial<Product>> = raw.map(elem => {
+      const unit = units.find(
+        u => u.tag.toLowerCase() === elem.Unidade?.toLowerCase(),
+      );
+      const brand = brands.find(
+        u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
+      );
+      const subgroup = subgroups.find(
+        u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
+      );
+      const taxGroup = taxGroups.find(
+        u => u.name.toLowerCase() === elem['Grupo Tributacao'].toLowerCase(),
+      );
+
+      if (!unit) {
+        throw new Error(
+          `Unidade ${elem.Unidade} não encontrada para o produto ${elem.Produto}`,
+        );
+      }
+      // if (!brand) {
+      //   throw new Error(
+      //     `Marca ${elem.brands} não encontrada para o produto ${elem.Produto}`,
+      //   );
+      // }
+      if (!subgroup) {
+        throw new Error(
+          `Subgrupo ${elem.subgroups} não encontrada para o produto ${elem.Produto}`,
+        );
+      }
+
+      return {
+        description: elem.Produto,
+        type:
+          elem.Tipo === 'Produto' ? ProductType.PRODUCT : ProductType.SERVICE,
+        referenceCode: elem.Código.toString(),
+        ncm: elem['Código NCM'] ? elem['Código NCM'].toString() : undefined,
+        cest: elem?.CEST?.toString() ?? undefined,
+        unit_id: unit.id,
+        icmsOrigin: '0', // TODO correct
+        economic_group_id: group.id,
+        subgroup_id: subgroup.id,
+        brand_id: brand?.id,
+        anvisaCode: elem['Código ANVISA']?.toString() ?? undefined,
+        taxation_group_id: taxGroup?.id,
+      };
+    });
+
+    const products = await Product.createMany(pData, { client: trx });
+    const variationsPromises = products.map(product => {
+      const rawProduct = raw.find(
+        p => p['Código'].toString() === product.referenceCode,
+      );
+
+      if (!rawProduct) {
+        throw new Error(
+          `Produto ${product.referenceCode} não encontrou para o raw product`,
+        );
+      }
+
+      return product.related('variations').create(
+        {
+          barcode: rawProduct['Código Barra']?.toString() ?? undefined,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+    const variations = await Promise.all(variationsPromises);
+
+    const unitProducts = products.map(product => {
+      const rawProduct = raw.find(
+        p => p['Código'].toString() === product.referenceCode,
+      );
+
+      if (!rawProduct) {
+        throw new Error(
+          `Produto ${product.referenceCode} não encontrou para o raw product`,
+        );
+      }
+
+      const variation = variations.find(v => v.product_id === product.id);
+      if (!variation) {
+        throw new Error(
+          `Variação não encontrada para produto ${product.referenceCode}`,
+        );
+      }
+
+      return variation.related('businessUnitProducts').create(
+        {
+          businness_unit_id: bunit.id,
+          stock: 0,
+          maximumStock: rawProduct['Máximo'] ?? 0,
+          minimumStock: rawProduct?.Minimo ?? 0,
+          maximumDiscountPercentage: 0,
+          maximumDiscountValue: 0,
+          price: rawProduct.Venda ? parseNumber(rawProduct.Venda) : undefined,
+          costPrice: rawProduct.Custo
+            ? parseNumber(rawProduct.Custo)
+            : undefined,
+          profitMargin: 0,
+          commission: 0,
+          meta: 0,
+          metaType: undefined,
+          commissionMeta: 0,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+    await Promise.all(unitProducts);
   }
 }

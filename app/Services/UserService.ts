@@ -117,6 +117,8 @@ export default class UserService {
           document: data.document,
           responsibleEmail: data.email,
           responsiblePhone: data.phone,
+          companyName: `Clínica do(a) ${user.name}`,
+          fantasyName: `Clínica do(a) ${user.name}`,
         },
         {},
         {
@@ -132,6 +134,13 @@ export default class UserService {
           phone: data.phone,
           email: data.email,
           origin: 'CADASTRO SELF-SERVICE',
+
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
         },
         {
           client: trx,
@@ -451,8 +460,11 @@ export default class UserService {
 
     const ufIcms = await UfIcms.query()
       .useTransaction(trx)
-      .where('origin_uf', bunit.state ?? '-1')
-      .andWhere('destination_uf', bunit.state ?? '-1')
+      .where('origin_uf', bunit.state ? bunit.state.toUpperCase() : '-1')
+      .andWhere(
+        'destination_uf',
+        bunit.state ? bunit.state.toUpperCase() : '-1',
+      )
       .where('active', true)
       .first();
     const [

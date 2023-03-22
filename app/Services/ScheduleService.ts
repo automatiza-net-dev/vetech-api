@@ -400,6 +400,7 @@ export default class ScheduleService {
 
     const services = await ScheduleServiceType.query()
       // .has('schedules', '>', 0)
+      .where('active', true)
       .where('economic_group_id', group.id)
       .preload('schedules', query => {
         query.whereBetween('start_hour', [startDate, endDate]);
@@ -513,6 +514,7 @@ export default class ScheduleService {
       ]);
 
     const unavailableDays = await UnavailableDay.query()
+      .where('active', true)
       .where('business_unit_id', unitId)
       .andWhere('user_id', user)
       .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
@@ -604,6 +606,7 @@ export default class ScheduleService {
       .preload('user');
 
     const unavailableDays = await UnavailableDay.query()
+      .where('active', true)
       .where('business_unit_id', unit)
       .andWhereRaw('(start_date < ? or start_date is null)', [start])
       .andWhereRaw('(end_date > ? or end_date is null)', [end])
@@ -645,6 +648,7 @@ export default class ScheduleService {
       .preload('user');
 
     const unavailableDays = await UnavailableDay.query()
+      .where('active', true)
       .where('business_unit_id', unit)
       .andWhere('user_id', user)
       .andWhereRaw('(start_date < ? or start_date is null)', [start])
@@ -697,6 +701,7 @@ export default class ScheduleService {
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
+      .where('active', true)
       .where('business_unit_id', unitId)
       .whereRaw(
         '(start_date <= ? or start_date is null) or (end_date >= ? or end_date is null)',

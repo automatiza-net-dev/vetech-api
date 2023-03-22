@@ -36,7 +36,10 @@ export default class ScheduleServiceTypeService {
     }
 
     await groupQb.preload('types', qb => {
-      qb.where('description', 'ilike', `%${data.description ?? ''}%`);
+      qb.where('description', 'ilike', `%${data.description ?? ''}%`).where(
+        'active',
+        true,
+      );
 
       qb.preload('serviceGroup');
       qb.preload('product');

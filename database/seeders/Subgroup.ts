@@ -22,7 +22,7 @@ export default class extends BaseSeeder {
       'Vacinas',
       'Bloco Cirúrgico',
       'Cirurgia Eletiva',
-      'Cirurgia Terapêutica',
+      'Cirurgias Terapêutica',
       'Material de consumo - CC',
       'Imagem',
       'Material de consumo - Imagem',

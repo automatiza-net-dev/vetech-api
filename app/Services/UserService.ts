@@ -140,7 +140,7 @@ export default class UserService {
           complement: data.complement,
           district: data.district,
           city: data.city,
-          state: data.state,
+          state: data.state?.toUpperCase(),
         },
         {
           client: trx,

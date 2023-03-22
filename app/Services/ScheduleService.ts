@@ -108,20 +108,21 @@ export default class ScheduleService {
 
   public async usersWithSchedule(unitId: string) {
     const group = await this.sharedService.getUserGroup(unitId);
+    // const unit = await BusinessUnit.findOrFail(unitId);
 
     const now = new Date();
 
     return group
       .related('users')
       .query()
+      .whereHas('roles', query => {
+        query.where('unit_id', unitId);
+      })
       .whereHas('workingDays', query => {
         query.where('weekday_index', now.getDay());
       })
-      .orWhereHas('unavailableDays', _ => {
-        // query.where('frequency', ScheduleService.GetWD(now));
-      })
-      .orWhereHas('schedules', _ => {
-        // query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
+      .orWhereHas('schedules', query => {
+        query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
       });
   }
 

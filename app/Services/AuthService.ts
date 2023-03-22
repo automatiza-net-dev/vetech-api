@@ -7,13 +7,12 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
-import BusinessUnitService from 'App/Services/BusinessUnitService';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
 
 @inject()
 export default class AuthService {
-  constructor(private readonly businessUnitService: BusinessUnitService) {}
+  // constructor(private readonly businessUnitService: BusinessUnitService) {}
 
   public async login(data: ILoginData, auth: AuthContract) {
     const user = await this.getUser(data);

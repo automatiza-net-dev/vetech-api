@@ -4,7 +4,6 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import Role from 'App/Models/Role';
 import User from 'App/Models/User';
 import UserUnitRole from 'App/Models/UserUnitRole';
@@ -123,12 +122,12 @@ export default class UserRoleService {
     }
   }
 
-  public async updateUserRoles(unitId: string, data: Array<IUpdateUserRole>) {
-    const unit = await BusinessUnit.findOrFail(unitId);
-    const group = await EconomicGroup.query()
-      .where('id', unit.economicGroupId)
-      .preload('businessUnits')
-      .firstOrFail();
+  public async updateUserRoles(_: string, data: Array<IUpdateUserRole>) {
+    // const unit = await BusinessUnit.findOrFail(unitId);
+    // const group = await EconomicGroup.query()
+    //   .where('id', unit.economicGroupId)
+    //   .preload('businessUnits')
+    //   .firstOrFail();
 
     // TODO: pode ser que o usuário não tenha permissão para alterar a unidade
     // const allValid = group.businessUnits.some(

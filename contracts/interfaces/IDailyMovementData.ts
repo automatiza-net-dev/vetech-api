@@ -8,7 +8,7 @@ export interface IOpenDailyMovementData {
 export interface ICloseDailyMovementData {
   userId: string;
   closingDate: DateTime;
-  observations: string;
+  observations?: string;
 }
 
 export interface ICheckedDailyMovementData {

@@ -18,7 +18,7 @@ interface ISearch {
 
 @inject()
 export default class DailyMovementService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const qb = DailyMovement.query()
@@ -124,23 +124,25 @@ export default class DailyMovementService {
       )
       .flat();
 
-    dailyMovement.status = DailyMovementStatus.F;
-    dailyMovement.closingDate = data.closingDate;
-    dailyMovement.observations = data.observations;
-    dailyMovement.user_who_closed_id = data.userId;
-    dailyMovement.salesTotal = 0;
-    dailyMovement.expensesTotal = expenses.reduce(
-      (total, expense) =>
-        total + parseFloat(expense.value as unknown as string),
-      0,
-    );
-    dailyMovement.receiptsTotal = receipts.reduce(
-      (total, receipt) =>
-        total + parseFloat(receipt.value as unknown as string),
-      0,
-    );
-
-    return dailyMovement.save();
+    return dailyMovement
+      .merge({
+        status: DailyMovementStatus.F,
+        closingDate: data.closingDate,
+        observations: data.observations,
+        user_who_closed_id: data.userId,
+        salesTotal: 0,
+        expensesTotal: expenses.reduce(
+          (total, expense) =>
+            total + parseFloat(expense.value as unknown as string),
+          0,
+        ),
+        receiptsTotal: receipts.reduce(
+          (total, receipt) =>
+            total + parseFloat(receipt.value as unknown as string),
+          0,
+        ),
+      })
+      .save();
   }
 
   async reopenDailyMovement(unitId: string, id: string, userId: string) {

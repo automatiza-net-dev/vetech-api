@@ -10,7 +10,7 @@ export default class CloseDailyMovementValidator {
       rules.exists({ table: 'users', column: 'id' }),
     ]),
     closingDate: schema.date(),
-    observations: schema.string(),
+    observations: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

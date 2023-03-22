@@ -10,7 +10,7 @@ export default class extends BaseSeeder {
     },
     {
       name: 'Pacote',
-      tag: 'pac',
+      tag: 'PCT',
       type: UnitType.PRODUCT,
     },
     {

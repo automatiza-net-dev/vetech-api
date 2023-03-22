@@ -112,7 +112,7 @@ export default class ScheduleService {
 
     const now = new Date();
 
-    return group
+    const users = await group
       .related('users')
       .query()
       .whereHas('roles', query => {
@@ -124,6 +124,10 @@ export default class ScheduleService {
       .orWhereHas('schedules', query => {
         query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
       });
+    const uniqueIds = new Set(users.map(user => user.id));
+    return Array.from(uniqueIds)
+      .map(id => users.find(user => user.id === id))
+      .filter(Boolean);
   }
 
   public async returnableSchedules(unitId: string, patientId: string) {

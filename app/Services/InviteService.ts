@@ -53,11 +53,12 @@ export default class InviteService {
       .related('roles')
       .query()
       .where('role_id', role.id)
+      .where('unit_id', businessUnit.id)
       .first();
 
     if (existingRole) {
       throw new BadRequestException(
-        'Convite já existe para o usuário/cargo',
+        'Convite já existe para o usuário/cargo/unidade',
         400,
         'E_BAD_REQUEST',
       );
@@ -91,7 +92,7 @@ export default class InviteService {
 
       await existingUser
         .related('economicGroups')
-        .attach([businessUnit.economicGroupId], trx);
+        .sync([businessUnit.economicGroupId], false, trx);
 
       const invite = await businessUnit.related('invites').create(
         {

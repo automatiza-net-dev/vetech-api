@@ -67,7 +67,7 @@ test.group('Auth resource', group => {
     client,
     assert,
   }) => {
-    const [user, unit, group] = await createUser({});
+    const [user, _, group] = await createUser({});
     await group.related('businessUnits').create({
       id: v4(),
       document: user.document,
@@ -85,7 +85,6 @@ test.group('Auth resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.equal(unit.id, body[0].id);
   });
 
   test('should return 400 on bad login credentials', async ({

@@ -64,7 +64,7 @@ test.group('Invite resource', group => {
 
     assert.equal(400, response.status());
     assert.equal(
-      'E_BAD_REQUEST: Convite já existe para o usuário/cargo',
+      'E_BAD_REQUEST: Convite já existe para o usuário/cargo/unidade',
       body.message,
     );
   });

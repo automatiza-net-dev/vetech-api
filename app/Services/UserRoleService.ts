@@ -130,16 +130,17 @@ export default class UserRoleService {
       .preload('businessUnits')
       .firstOrFail();
 
-    const allValid = group.businessUnits.some(
-      bu => !data.some(d => d.unit_id === bu.id),
-    );
-    if (!allValid) {
-      throw new BadRequestException(
-        'Unidade não pertence ao grupo',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+    // TODO: pode ser que o usuário não tenha permissão para alterar a unidade
+    // const allValid = group.businessUnits.some(
+    //   bu => !data.some(d => d.unit_id === bu.id),
+    // );
+    // if (!allValid) {
+    //   throw new BadRequestException(
+    //     'Unidade não pertence ao grupo',
+    //     400,
+    //     'E_BAD_REQUEST',
+    //   );
+    // }
 
     return Database.transaction(async trx => {
       // eslint-disable-next-line no-restricted-syntax

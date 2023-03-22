@@ -4,6 +4,7 @@ import Env from '@ioc:Adonis/Core/Env';
 import Hash from '@ioc:Adonis/Core/Hash';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
@@ -16,10 +17,26 @@ export default class AuthService {
 
   public async login(data: ILoginData, auth: AuthContract) {
     const user = await this.getUser(data);
-    const units = await this.businessUnitService.getUserBusinessUnits(user);
+    const economicGroups = await user
+      .related('economicGroups')
+      .query()
+      .preload('businessUnits', query => {
+        query.where('active', true);
+      });
+    const uniqueIds = new Set(economicGroups.map(eg => eg.id));
+    const uniqueEconomicGroups = Array.from(uniqueIds)
+      .map(id => {
+        return economicGroups.find(eg => eg.id === id);
+      })
+      .filter(Boolean) as EconomicGroup[];
 
-    if (units.length === 1) {
-      const [unit] = units;
+    const validUnits = uniqueEconomicGroups
+      .map(eg => eg.businessUnits)
+      .flat()
+      .filter(bu => bu.active);
+
+    if (validUnits.length === 1) {
+      const [unit] = validUnits;
 
       const status = await this.checkLicence(unit);
 
@@ -35,20 +52,24 @@ export default class AuthService {
 
     if (!data.business_unit_id) {
       return Promise.all(
-        units.map(async unit => {
-          const result = await this.checkLicence(unit);
-
+        uniqueEconomicGroups.map(async eg => {
           return {
-            id: unit.id,
-            identification: unit.id,
-            fantasy_name: unit.fantasyName,
-            status: result ?? 'VALID',
+            id: eg.id,
+            fantasyName: eg.fantasyName,
+            companyName: eg.companyName,
+            businessUnits: await Promise.all(
+              eg.businessUnits.map(async bu => ({
+                id: bu.id,
+                identification: bu.identification,
+                status: (await this.checkLicence(bu)) ?? 'VALID',
+              })),
+            ),
           };
         }),
       );
     }
 
-    const unit = units.find(u => u.id === data.business_unit_id);
+    const unit = validUnits.find(u => u.id === data.business_unit_id);
 
     if (!unit) {
       throw new BadRequestException(

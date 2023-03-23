@@ -116,8 +116,8 @@ export default class UserService {
           document: data.document,
           responsibleEmail: data.email,
           responsiblePhone: data.phone,
-          companyName: `Clínica do(a) ${user.name}`,
-          fantasyName: `Clínica do(a) ${user.name}`,
+          companyName: `Grupo ${user.name}`,
+          fantasyName: `Grupo ${user.name}`,
         },
         {},
         {

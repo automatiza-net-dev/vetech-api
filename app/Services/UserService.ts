@@ -24,7 +24,6 @@ import Plan from 'App/Models/Plan';
 import Product, { ProductType } from 'App/Models/Product';
 import Role from 'App/Models/Role';
 import Subgroup from 'App/Models/Subgroup';
-import TaxationGroup from 'App/Models/TaxationGroup';
 import {
   CompanyType,
   MovementCategory,
@@ -357,10 +356,15 @@ export default class UserService {
       return parseFloat(parseString(value)) / 100;
     };
 
-    const units = await Unit.all({ client: trx });
-    const brands = await Brand.all({ client: trx });
-    const subgroups = await Subgroup.all({ client: trx });
-    const taxGroups = await TaxationGroup.all({ client: trx });
+    const units = await Unit.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id');
+    const brands = await Brand.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id');
+    const subgroups = await Subgroup.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id');
 
     await group.related('paymentMethods').createMany(
       [
@@ -712,14 +716,20 @@ export default class UserService {
     );
 
     const pData: Array<Partial<Product>> = raw.map(elem => {
-      const unit = units.find(u => u.tag === elem.Unidade);
+      const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
       const brand = brands.find(
         u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
       );
       const subgroup = subgroups.find(
         u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
       );
-      const taxGroup = taxGroups.find(
+      const taxGroup = [
+        firstTaxGroup,
+        secondTaxGroup,
+        thirdTaxGroup,
+        fourthTaxGroup,
+        fifthTaxGroup,
+      ].find(
         u => u.name.toLowerCase() === elem['Grupo Tributacao'].toLowerCase(),
       );
 

@@ -132,7 +132,9 @@ export default class FinanceService {
       qb.where('competence_date', data.competence);
     }
 
-    qb.preload('client');
+    qb.preload('client', query => {
+      query.preload('tutor');
+    });
     qb.preload('paymentMethod');
     qb.preload('accountPlan');
 

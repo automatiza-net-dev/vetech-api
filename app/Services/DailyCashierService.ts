@@ -275,7 +275,7 @@ export default class DailyCashierService {
           )
           .map(e => ({
             id: e.id,
-            payment_method_id: e.payment_method_id,
+            payment_method: e.paymentMethod,
             payment_description: {
               bill_tag: e.bill?.tag,
               tef_flag_id: e.tef_flag_id,

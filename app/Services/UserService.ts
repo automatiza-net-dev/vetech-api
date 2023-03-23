@@ -712,7 +712,7 @@ export default class UserService {
     );
 
     const pData: Array<Partial<Product>> = raw.map(elem => {
-      const unit = units.find(u => u.ta === elem.Unidade);
+      const unit = units.find(u => u.tag === elem.Unidade);
       const brand = brands.find(
         u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
       );

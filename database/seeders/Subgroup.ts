@@ -40,6 +40,18 @@ export default class extends BaseSeeder {
       description: elem,
     }));
 
-    await Subgroup.fetchOrCreateMany('description', parsed);
+    const existingSubgroups = await Subgroup.query()
+      .whereIn('description', BASE)
+      .whereNull('economic_group_id');
+
+    const existingSubgroupsDescriptions = existingSubgroups.map(
+      elem => elem.description,
+    );
+
+    const subgroupsToCreate = parsed.filter(
+      elem => !existingSubgroupsDescriptions.includes(elem.description ?? '-1'),
+    );
+
+    await Subgroup.createMany(subgroupsToCreate);
   }
 }

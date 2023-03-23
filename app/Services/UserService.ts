@@ -354,7 +354,7 @@ export default class UserService {
     };
 
     const parseNumber = (value: string) => {
-      return parseFloat(parseString(value));
+      return parseFloat(parseString(value)) / 100;
     };
 
     const units = await Unit.all({ client: trx });
@@ -476,7 +476,7 @@ export default class UserService {
     ] = await group.related('taxationGroups').createMany(
       [
         {
-          name: 'Grupo Padrão',
+          name: 'Acessorios',
         },
         {
           name: 'Instrumentos para Transfusao',
@@ -712,9 +712,7 @@ export default class UserService {
     );
 
     const pData: Array<Partial<Product>> = raw.map(elem => {
-      const unit = units.find(
-        u => u.tag.toLowerCase() === elem.Unidade?.toLowerCase(),
-      );
+      const unit = units.find(u => u.ta === elem.Unidade);
       const brand = brands.find(
         u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
       );

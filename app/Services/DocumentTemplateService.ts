@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import DocumentTemplate from 'App/Models/DocumentTemplate';
 import { DOCUMENT_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IDocumentTemplateData from 'Contracts/interfaces/IDocumentTemplateData';
@@ -16,7 +17,10 @@ export default class DocumentTemplateService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = group.related('documentTemplates').query();
+    const qb = DocumentTemplate.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
+    );
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);

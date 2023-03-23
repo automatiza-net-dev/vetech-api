@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import { RECIPE_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IMedicalDocumentTemplateData from 'Contracts/interfaces/IMedicalDocumentTemplateData';
@@ -16,7 +17,10 @@ export default class MedicalDocumentTemplateService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = group.related('medicalDocumentTemplates').query();
+    const qb = MedicalDocumentTemplate.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
+    );
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);

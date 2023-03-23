@@ -12,8 +12,8 @@ export default class UpdatePatientWithTutorValidator {
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],
     }),
-    gender: schema.enum(Object.values(PatientGender), []),
-    tags: schema.string({}, []),
+    gender: schema.enum.optional(Object.values(PatientGender), []),
+    tags: schema.string.optional({}, []),
     birthDate: schema.date({}),
     active: schema.boolean([]),
     document: schema.string({}, []),

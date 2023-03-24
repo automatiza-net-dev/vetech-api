@@ -217,7 +217,9 @@ export default class DailyCashierService {
         .preload('acquirer')
         .preload('flag')
         .preload('paymentMethod')
-        .preload('bill');
+        .preload('bill', query => {
+          query.preload('client');
+        });
 
       return result.map(r => ({
         id: r.id,
@@ -276,6 +278,7 @@ export default class DailyCashierService {
           .map(e => ({
             id: e.id,
             payment_method: e.paymentMethod,
+            client: e.bill?.client,
             payment_description: {
               bill_tag: e.bill?.tag,
               tef_flag_id: e.tef_flag_id,

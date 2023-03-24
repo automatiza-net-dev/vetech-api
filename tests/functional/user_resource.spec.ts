@@ -61,6 +61,7 @@ test.group('User resource', group => {
       .put(`/users`)
       .json({
         document: '0987',
+        licensingJob: '1234',
       })
       .loginAs(user);
 

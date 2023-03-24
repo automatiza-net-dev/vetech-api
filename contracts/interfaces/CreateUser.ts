@@ -11,4 +11,5 @@ export interface ICreateUser {
   district?: string;
   city?: string;
   state?: string;
+  licensingJob?: string;
 }

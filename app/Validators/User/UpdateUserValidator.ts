@@ -17,6 +17,7 @@ export default class UpdateUserValidator {
     city: schema.string.optional({}),
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
+    licensingJob: schema.string.optional({}),
   });
   public messages: CustomMessages = {};
 }

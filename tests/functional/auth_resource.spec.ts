@@ -108,6 +108,7 @@ test.group('Auth resource', group => {
       password: '102030',
       password_confirmation: '102030',
       document: '0987',
+      licensingJob: '1234',
     });
 
     const body = response.body();

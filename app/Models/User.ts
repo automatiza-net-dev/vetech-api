@@ -46,6 +46,11 @@ export default class User extends BaseModel {
   public profilePicture?: string;
 
   @column({
+    columnName: 'licensing_job',
+  })
+  public licensingJob?: string;
+
+  @column({
     columnName: 'postal_code',
   })
   public postalCode?: string;

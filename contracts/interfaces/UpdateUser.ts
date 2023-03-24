@@ -11,4 +11,5 @@ export interface IUpdatePassword {
   district?: string;
   city?: string;
   state?: string;
+  licensingJob?: string;
 }

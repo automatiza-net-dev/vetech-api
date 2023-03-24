@@ -43,7 +43,7 @@ interface ISearch {
 
 interface ISearchDocument {
   document?: string;
-  type?: string;
+  movement?: string;
 }
 
 @inject()
@@ -96,12 +96,12 @@ export default class BusinessUnitFiscalDocumentService {
       }
     }
 
-    if (data.document) {
-      const isSingle = !data.document.includes(',');
-      const tokens = data.document.split(',');
+    if (data.movement) {
+      const isSingle = !data.movement.includes(',');
+      const tokens = data.movement.split(',');
 
       if (isSingle) {
-        qb.where('movement_type', data.document);
+        qb.where('movement_type', data.movement);
       } else {
         qb.whereIn('movement_type', tokens);
       }

@@ -9,7 +9,6 @@ import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
 } from 'App/Models/BusinessUnitFiscalDocument';
 import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
-import { FiscalDocumentMovementType } from 'App/Models/FiscalDocument';
 import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
@@ -43,8 +42,8 @@ interface ISearch {
 }
 
 interface ISearchDocument {
-  movement?: BusinessUnitFiscalDocumentMovementType;
-  type?: FiscalDocumentMovementType;
+  document?: string;
+  type?: string;
 }
 
 @inject()
@@ -86,13 +85,26 @@ export default class BusinessUnitFiscalDocumentService {
       .debug(true)
       .where('business_unit_id', unitId);
 
-    qb.whereIn('movement_type', [
-      data.movement ? data.movement : '',
-      FiscalDocumentMovementType.A,
-    ]);
+    if (data.document) {
+      const isSingle = !data.document.includes(',');
+      const tokens = data.document.split(',');
 
-    if (data.type) {
-      qb.where('document_type', data.type);
+      if (isSingle) {
+        qb.where('document_type', data.document);
+      } else {
+        qb.whereIn('document_type', tokens);
+      }
+    }
+
+    if (data.document) {
+      const isSingle = !data.document.includes(',');
+      const tokens = data.document.split(',');
+
+      if (isSingle) {
+        qb.where('movement_type', data.document);
+      } else {
+        qb.whereIn('movement_type', tokens);
+      }
     }
 
     return qb;

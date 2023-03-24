@@ -123,6 +123,7 @@ export default class BusinessUnitFiscalDocumentService {
       model: data.model,
       series: data.series,
       sequence: data.sequence,
+      fiscal_document_id: data.fiscalDocumentId,
     });
   }
 

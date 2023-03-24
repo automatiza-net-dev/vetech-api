@@ -7,6 +7,7 @@ import {
 export default interface IBusinessUnitFiscalDocumentData {
   type: FiscalDocumentType;
   movement: FiscalDocumentMovementType;
+  fiscalDocumentId: string;
   description: string;
   model: string;
   series: string;

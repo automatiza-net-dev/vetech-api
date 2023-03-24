@@ -1,5 +1,16 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Bill, { BillStatus } from 'App/Models/Bill';
+import BusinessUnitFiscalDocument from 'App/Models/BusinessUnitFiscalDocument';
+import { DailyCashierStatus } from 'App/Models/DailyCashier';
+import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import FiscalDocument, {
+  FiscalDocumentMovementType,
+  FiscalDocumentType,
+} from 'App/Models/FiscalDocument';
+import { DateTime } from 'luxon';
+
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Business unit fiscal document resource', group => {
   group.each.setup(async () => {
@@ -7,77 +18,87 @@ test.group('Business unit fiscal document resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  // const createData = async () => {
-  //   const { user, group: eGroup, business } = await userBootstrap();
+  const createData = async () => {
+    const { user, group: eGroup, business } = await userBootstrap();
 
-  //   const dailyMovement = await DailyMovement.create({
-  //     business_unit_id: business.id,
-  //     user_who_opened_id: user.id,
-  //     openingDate: DateTime.now(),
-  //     status: DailyMovementStatus.A,
-  //   });
-  //   const dailyCashier = await dailyMovement.related('cashiers').create({
-  //     business_unit_id: dailyMovement.business_unit_id,
-  //     user_who_opened_id: user.id,
-  //     openingDate: DateTime.now(),
-  //     status: DailyCashierStatus.A,
-  //   });
+    const dailyMovement = await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyMovementStatus.A,
+    });
+    const dailyCashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
 
-  //   const bill = await Bill.create({
-  //     economic_group_id: eGroup.id,
-  //     business_unit_id: business.id,
-  //     user_id: user.id,
-  //     seller_id: user.id,
-  //     daily_movement_id: dailyMovement.id,
-  //     daily_cashier_id: dailyCashier.id,
-  //     status: BillStatus.A,
-  //   });
+    const bill = await Bill.create({
+      economic_group_id: eGroup.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      daily_cashier_id: dailyCashier.id,
+      status: BillStatus.A,
+    });
 
-  //   const unitFiscalDocument = await BusinessUnitFiscalDocument.create({
-  //     economic_group_id: eGroup.id,
-  //     business_unit_id: business.id,
+    const fiscalDocument = await FiscalDocument.create({
+      description: 'some description',
+      model: 'some model',
+      documentType: FiscalDocumentType.P,
+      movementType: FiscalDocumentMovementType.A,
+      active: true,
+    });
 
-  //     documentType: FiscalDocumentType.P,
-  //     movementType: FiscalDocumentMovementType.A,
-  //     description: 'some description',
-  //     model: 'some model',
-  //     series: 'some series',
-  //     sequence: 1,
-  //   });
+    const unitFiscalDocument = await BusinessUnitFiscalDocument.create({
+      economic_group_id: eGroup.id,
+      business_unit_id: business.id,
 
-  //   return {
-  //     user,
-  //     bill,
-  //     unitFiscalDocument,
-  //     eGroup,
-  //     business,
-  //   };
-  // };
+      documentType: FiscalDocumentType.P,
+      movementType: FiscalDocumentMovementType.A,
+      description: 'some description',
+      model: 'some model',
+      series: 'some series',
+      sequence: 1,
+    });
 
-  // test('should create business unit fiscal document', async ({
-  //   assert,
-  //   client,
-  // }) => {
-  //   const { user } = await createData();
-  //   const token = await generateJwtToken(client, {
-  //     email: user.email,
-  //     password: '102030',
-  //   });
+    return {
+      user,
+      bill,
+      unitFiscalDocument,
+      eGroup,
+      business,
+      fiscalDocument,
+    };
+  };
 
-  //   const response = await client
-  //     .post(`/fiscal-documents/business-unit/store`)
-  //     .json({
-  //       type: FiscalDocumentType.P,
-  //       movement: FiscalDocumentMovementType.A,
-  //       description: 'some description',
-  //       model: 'some model',
-  //       series: 'some series 1',
-  //       sequence: 1,
-  //     })
-  //     .bearerToken(token);
+  test('should create business unit fiscal document', async ({
+    assert,
+    client,
+  }) => {
+    const { user, fiscalDocument } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-  //   assert.equal(201, response.status());
-  // });
+    const response = await client
+      .post(`/fiscal-documents/business-unit/store`)
+      .json({
+        fiscalDocumentId: fiscalDocument.id,
+        type: FiscalDocumentType.P,
+        movement: FiscalDocumentMovementType.A,
+        description: 'some description',
+        model: 'some model',
+        series: 'some series 1',
+        sequence: 1,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
 
   // test('should throw BadRequestException if authorized already issued document', async ({
   //   assert,

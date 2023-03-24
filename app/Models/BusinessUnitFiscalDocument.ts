@@ -81,4 +81,9 @@ export default class BusinessUnitFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public fiscal_document_id: string;
 }

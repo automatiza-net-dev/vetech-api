@@ -710,6 +710,7 @@ export default class PatientService {
           photo,
           type: PatientType.SUPPLIER,
           tag: (supplier.length + 1).toString(),
+          birthDate: data.birthDate?.toJSDate(),
         },
         { client: trx },
       );
@@ -985,6 +986,7 @@ export default class PatientService {
           photo,
           tags: data.tags,
           active: data.active,
+          birthDate: data.birthDate?.toJSDate(),
         })
         .useTransaction(trx)
         .save();

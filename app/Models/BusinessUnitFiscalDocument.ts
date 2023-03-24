@@ -2,9 +2,10 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
-import {
+import FiscalDocument, {
   FiscalDocumentMovementType,
   FiscalDocumentType,
 } from 'App/Models/FiscalDocument';
@@ -86,4 +87,9 @@ export default class BusinessUnitFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public fiscal_document_id: string;
+
+  @belongsTo(() => FiscalDocument, {
+    foreignKey: 'fiscal_document_id',
+  })
+  public fiscalDocument: BelongsTo<typeof FiscalDocument>;
 }

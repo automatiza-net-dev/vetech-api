@@ -2,6 +2,7 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';

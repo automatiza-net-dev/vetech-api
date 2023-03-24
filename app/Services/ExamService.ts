@@ -16,11 +16,13 @@ interface ISearch {
 export default class ExamService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, user: User, data: ISearch) {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+  public async index(unitId: string, _: User, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = Exam.query();
+    const qb = Exam.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
+    );
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -36,10 +38,6 @@ export default class ExamService {
 
     if (data.active) {
       qb.where('active', data.active === 'true');
-    }
-
-    if (!isSuperAdmin) {
-      qb.where('economic_group_id', group.id);
     }
 
     // TODO paginate

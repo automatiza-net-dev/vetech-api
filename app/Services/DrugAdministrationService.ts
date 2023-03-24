@@ -9,7 +9,10 @@ export default class DrugAdministrationService {
 
   public async index(unitId: string) {
     const group = await this.sharedService.getUserGroup(unitId);
-    return DrugAdministration.query().where('economic_group_id', group.id);
+    return DrugAdministration.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
+    );
   }
 
   public async store(

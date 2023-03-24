@@ -12,11 +12,25 @@ export default class FiscalDocumentService {
     const qb = FiscalDocument.query().where('active', true);
 
     if (data.document) {
-      qb.where('document_type', data.document);
+      const isSingle = data.document.includes(',');
+      const tokens = data.document.split(',');
+
+      if (isSingle) {
+        qb.where('document_type', data.document);
+      } else {
+        qb.whereIn('document_type', tokens);
+      }
     }
 
     if (data.movement) {
-      qb.where('movement_type', data.movement);
+      const isSingle = data.movement.includes(',');
+      const tokens = data.movement.split(',');
+
+      if (isSingle) {
+        qb.where('movement_type', data.movement);
+      } else {
+        qb.whereIn('movement_type', tokens);
+      }
     }
 
     return qb;

@@ -12,7 +12,7 @@ export default class FiscalDocumentService {
     const qb = FiscalDocument.query().where('active', true);
 
     if (data.document) {
-      const isSingle = data.document.includes(',');
+      const isSingle = !data.document.includes(',');
       const tokens = data.document.split(',');
 
       if (isSingle) {
@@ -23,7 +23,7 @@ export default class FiscalDocumentService {
     }
 
     if (data.movement) {
-      const isSingle = data.movement.includes(',');
+      const isSingle = !data.movement.includes(',');
       const tokens = data.movement.split(',');
 
       if (isSingle) {

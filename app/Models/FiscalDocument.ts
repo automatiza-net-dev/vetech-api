@@ -27,6 +27,11 @@ export default class FiscalDocument extends BaseModel {
   })
   public movementType: FiscalDocumentMovementType;
 
+  @column({
+    columnName: 'image_name',
+  })
+  public imageName: string;
+
   @column()
   description: string;
 

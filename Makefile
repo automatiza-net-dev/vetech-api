@@ -51,3 +51,4 @@ initial:
 		node ace db:seed --files "./database/seeders/ProductsSeeder.ts"
 		node ace db:seed --files "./database/seeders/ServiceSeeder.ts"
 		node ace db:seed --files "./database/seeders/DrugAdministrationSeeder.ts"
+		node ace db:seed --files "./database/seeders/TemplateReplacementSeeder.ts"

@@ -183,6 +183,21 @@ export default class extends BaseSeeder {
       attribute: 'role',
       replacer: '[USUARIO_CARGO]',
     },
+    {
+      origin: TemplateReplacementOrigin.SYSTEM,
+      attribute: 'date',
+      replacer: '[SISTEMA_DATA]',
+    },
+    {
+      origin: TemplateReplacementOrigin.SYSTEM,
+      attribute: 'dateextension',
+      replacer: '[SISTEMA_DATAEXTENSO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.SYSTEM,
+      attribute: 'time',
+      replacer: '[SISTEMA_HORA]',
+    },
   ];
   public async run() {
     await TemplateReplacement.fetchOrCreateMany('replacer', this.BASE);

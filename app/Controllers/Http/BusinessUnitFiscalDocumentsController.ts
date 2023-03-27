@@ -17,11 +17,20 @@ export default class BusinessUnitFiscalDocumentsController {
     private readonly sharedService: SharedService,
   ) {}
 
-  public async index({ auth, request, response }: HttpContextContract) {
+  public async indexNfe({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const qs = request.qs();
-    const result = await this.service.index(unit_id, qs);
+    const result = await this.service.nfeIndex(unit_id, qs);
+
+    return response.ok(result);
+  }
+
+  public async indexNfse({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.nfseIndex(unit_id, qs);
 
     return response.ok(result);
   }

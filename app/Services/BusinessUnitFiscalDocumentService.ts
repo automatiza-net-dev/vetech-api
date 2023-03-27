@@ -53,7 +53,7 @@ export default class BusinessUnitFiscalDocumentService {
     private focusNfe: FocusNfeService,
   ) {}
 
-  async index(unitId: string, data: ISearch) {
+  async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where(
       'business_unit_id',
       data.unit ?? unitId,
@@ -76,6 +76,27 @@ export default class BusinessUnitFiscalDocumentService {
     }
 
     qb.preload('corrections');
+
+    return qb;
+  }
+
+  async nfseIndex(unitId: string, data: ISearch) {
+    const qb = ServiceIssuedFiscalDocument.query().where(
+      'business_unit_id',
+      data.unit ?? unitId,
+    );
+
+    // if (data.type) {
+    //   qb.where('movement_type', data.type);
+    // }
+
+    // if (data.document) {
+    //   qb.where('fiscal_document_id', data.document);
+    // }
+
+    if (data.bill) {
+      qb.where('bill_id', data.bill);
+    }
 
     return qb;
   }

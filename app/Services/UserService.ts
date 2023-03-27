@@ -504,7 +504,7 @@ export default class UserService {
       .where('code', '5.102')
       .where('movement_category', MovementCategory.NS)
       .where('movement_type', MovementType.S)
-      .first();
+      .firstOrFail();
     await firstTaxGroup.related('rules').createMany(
       [
         {

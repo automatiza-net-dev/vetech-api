@@ -535,8 +535,6 @@ export default class BusinessUnitFiscalDocumentService {
             .save();
 
           return result;
-
-          // did not work ? :\
         }),
       );
 

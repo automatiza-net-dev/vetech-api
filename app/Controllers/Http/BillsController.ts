@@ -95,9 +95,9 @@ export default class BillsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBillPaymentValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBillPayment(unit_id, payload);
+    const result = await this.service.createBillPayment(unit_id, user, payload);
 
     return response.created(result);
   }

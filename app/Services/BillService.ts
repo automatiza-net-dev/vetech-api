@@ -174,6 +174,7 @@ export default class BillService {
       const unit = await BusinessUnit.findOrFail(unitId, {
         client: trx,
       });
+
       const client = await Patient.query()
         .useTransaction(trx)
         .where('id', data.clientId)
@@ -1117,7 +1118,11 @@ export default class BillService {
     });
   }
 
-  async createBillPayment(unitId: string, data: ICreateBillPaymentData) {
+  async createBillPayment(
+    unitId: string,
+    user: User,
+    data: ICreateBillPaymentData,
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
@@ -1136,6 +1141,21 @@ export default class BillService {
             },
           )
         : null;
+
+      const userOpenCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('user_who_opened_id', user.id)
+        .where('status', DailyCashierStatus.A)
+        .first();
+
+      if (!userOpenCashier) {
+        throw new BadRequestException(
+          'Não foi possível encontrar o caixa aberto para o usuário',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
 
       const existingPayments = await BillPayment.query().where(
         'bill_id',
@@ -1156,6 +1176,7 @@ export default class BillService {
             payment_method_id: data.paymentMethodId,
             tef_acquirer_id: data.acquirerId,
             tef_flag_id: data.flagId,
+            daily_cashier_id: userOpenCashier.id,
 
             block: uniqueBlocks.size + 1,
             expirationDate: data.expirationDate.plus({

@@ -88,6 +88,11 @@ export default class BillPayment extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public daily_cashier_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public bill_id: string;
 
   @belongsTo(() => Bill, {

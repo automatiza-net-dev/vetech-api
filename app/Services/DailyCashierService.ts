@@ -208,7 +208,17 @@ export default class DailyCashierService {
         .useTransaction(trx)
         .where('business_unit_id', unitId)
         .where('id', id)
-        .preload('bills')
+        .preload('bills', query => {
+          query.preload('client', query => {
+            query.preload('tutor');
+          });
+
+          query.preload('payments', query => {
+            query.preload('acquirer');
+            query.preload('flag');
+            query.preload('paymentMethod');
+          });
+        })
         .preload('entries')
         .first();
 
@@ -226,6 +236,21 @@ export default class DailyCashierService {
         .preload('bill', query => {
           query.preload('client');
         });
+
+      const billMap: Record<string, BillPayment> = {};
+      payments.forEach(p => {
+        const key = `${p.bill_id}-${p.block}`;
+
+        const existing = billMap[key];
+        if (!existing) {
+          billMap[key] = p;
+          return;
+        }
+
+        if (existing && existing.installments < p.installments) {
+          billMap[key] = p;
+        }
+      });
 
       return {
         id: result.id,
@@ -270,34 +295,37 @@ export default class DailyCashierService {
             tag: e.tag,
             entry_date: e.entryDate,
             description: e.description,
-            value: e.value,
+            value: parseFloat(e.value as unknown as string),
           })),
-        bill_payments: payments
-          .sort(
-            (a, b) =>
-              a.acquirer?.description.localeCompare(b.acquirer?.description) ||
-              a.flag?.description.localeCompare(b.flag?.description) ||
-              a.bill?.tag.localeCompare(b.bill?.tag) ||
-              a.expirationDate.toJSDate().getSeconds() -
-                b.expirationDate.toJSDate().getSeconds(),
-          )
-          .map(e => ({
-            id: e.id,
-            payment_method: e.paymentMethod,
-            client: e.bill?.client,
-            payment_description: {
-              bill_tag: e.bill?.tag,
-              tef_flag_id: e.tef_flag_id,
-              tef_flag_description: e.flag?.description,
-              tef_aquirer_id: e.tef_acquirer_id,
-              tef_aquirer_description: e.acquirer?.description,
-              expiration_date: e.expirationDate,
-              installments: e.installments,
-              installment_value: e.installmentValue,
-              total_value: e.totalValue,
-              nsu_document: e.nsuDocument,
-            },
-          })),
+        bill_payments: Object.values(billMap).map(e => ({
+          id: e.id,
+          block: e.block,
+          bill: {
+            id: e.bill?.id,
+          },
+          payment_method: {
+            id: e.paymentMethod.id,
+            description: e.paymentMethod.description,
+            fee: e.paymentMethod.fee,
+          },
+          client: {
+            id: e.bill?.client.id,
+            name: e.bill?.client.name,
+            email: e.bill?.client?.tutor?.email ?? null,
+          },
+          payment_description: {
+            bill_tag: e.bill?.tag,
+            tef_flag_id: e.tef_flag_id,
+            tef_flag_description: e.flag?.description,
+            tef_aquirer_id: e.tef_acquirer_id,
+            tef_aquirer_description: e.acquirer?.description,
+            expiration_date: e.expirationDate,
+            installments: e.installments,
+            installment_value: e.installmentValue,
+            total_value: e.totalValue,
+            nsu_document: e.nsuDocument,
+          },
+        })),
       };
     });
   }

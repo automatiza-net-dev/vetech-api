@@ -634,7 +634,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/info/:id', 'DailyCashiersController.check');
-  Route.get('/dump', 'DailyCashiersController.dump');
+  Route.get('/dump/:id', 'DailyCashiersController.dump');
   Route.get('/', 'DailyCashiersController.index');
   Route.post('/open', 'DailyCashiersController.openDailyCashier');
   Route.post('/close/:id', 'DailyCashiersController.closeDailyCashier');

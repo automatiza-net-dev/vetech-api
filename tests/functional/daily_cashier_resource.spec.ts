@@ -1,5 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Bill, { BillStatus } from 'App/Models/Bill';
+import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
   DailyCashierEntryStatus,
@@ -206,7 +208,7 @@ test.group('Daily cashier resource', group => {
   });
 
   test('should close daily cashier', async ({ assert, client }) => {
-    const { user, dailyMovement } = await createData();
+    const { user, dailyMovement, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -219,6 +221,31 @@ test.group('Daily cashier resource', group => {
       user_who_opened_id: user.id,
       openingDate: DateTime.now(),
       status: DailyCashierStatus.A,
+      openingBalance: 0,
+      cashierTotal: 0,
+    });
+
+    const bill = await Bill.create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: dailyMovement.business_unit_id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      status: BillStatus.A,
+      totalValue: 100,
+      daily_cashier_id: cashier.id,
+    });
+    await bill.related('payments').create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      block: 1,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.N,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10,
     });
 
     const response = await client

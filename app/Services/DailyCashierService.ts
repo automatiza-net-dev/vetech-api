@@ -202,15 +202,21 @@ export default class DailyCashierService {
     };
   }
 
-  async dump(unitId: string) {
+  async dump(unitId: string, id: string) {
     return Database.transaction(async trx => {
       const result = await DailyCashier.query()
         .useTransaction(trx)
         .where('business_unit_id', unitId)
+        .where('id', id)
         .preload('bills')
-        .preload('entries');
+        .preload('entries')
+        .first();
 
-      const bills = result.map(r => r.bills.map(b => b.id)).flat();
+      if (!result) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const bills = result.bills.map(b => b.id);
       const payments = await BillPayment.query()
         .useTransaction(trx)
         .whereIn('bill_id', bills)
@@ -221,28 +227,28 @@ export default class DailyCashierService {
           query.preload('client');
         });
 
-      return result.map(r => ({
-        id: r.id,
-        tag: r.tag,
-        daily_movement_id: r.daily_movement_id,
-        user_who_opened_id: r.user_who_opened_id,
-        opening_date: r.openingDate,
-        user_who_closed_id: r.user_who_closed_id,
-        closing_date: r.closingDate,
-        user_who_revised_id: r.user_who_revised_id,
-        revision_date: r.revisionDate,
-        user_who_checked_id: r.user_who_checked_id,
-        checking_date: r.checkingDate,
-        opening_balance: r.openingBalance,
+      return {
+        id: result.id,
+        tag: result.tag,
+        daily_movement_id: result.daily_movement_id,
+        user_who_opened_id: result.user_who_opened_id,
+        opening_date: result.openingDate,
+        user_who_closed_id: result.user_who_closed_id,
+        closing_date: result.closingDate,
+        user_who_revised_id: result.user_who_revised_id,
+        revision_date: result.revisionDate,
+        user_who_checked_id: result.user_who_checked_id,
+        checking_date: result.checkingDate,
+        opening_balance: result.openingBalance,
         cashier_funds: 0, // FIX
-        sales_total: r.salesTotal,
-        expenses_total: r.expensesTotal,
-        receipts_total: r.receiptsTotal,
-        cashier_total: r.cashierTotal,
-        cashier_balance: r.cashierBalance,
-        observation: r.observations,
-        status: r.status,
-        despesas: r.entries
+        sales_total: parseFloat(result.salesTotal as unknown as string),
+        expenses_total: parseFloat(result.expensesTotal as unknown as string),
+        receipts_total: parseFloat(result.receiptsTotal as unknown as string),
+        cashier_total: parseFloat(result.cashierTotal as unknown as string),
+        cashier_balance: parseFloat(result.cashierBalance as unknown as string),
+        observation: result.observations,
+        status: result.status,
+        despesas: result.entries
           .filter(
             e =>
               e.type === DailyCashierEntryType.D &&
@@ -252,9 +258,9 @@ export default class DailyCashierService {
             tag: e.tag,
             entry_date: e.entryDate,
             description: e.description,
-            value: e.value,
+            value: parseFloat(e.value as unknown as string),
           })),
-        recebimentos: r.entries
+        recebimentos: result.entries
           .filter(
             e =>
               e.type === DailyCashierEntryType.C &&
@@ -292,7 +298,7 @@ export default class DailyCashierService {
               nsu_document: e.nsuDocument,
             },
           })),
-      }));
+      };
     });
   }
 
@@ -363,6 +369,7 @@ export default class DailyCashierService {
       openingDate: data.openingDate,
       status: DailyCashierStatus.A,
       tag: count.length + 1,
+      openingBalance: data.initialBalance,
     });
   }
 
@@ -386,6 +393,17 @@ export default class DailyCashierService {
 
     const entries = await dailyCashier.related('entries').query();
 
+    const bills = await dailyCashier
+      .related('bills')
+      .query()
+      .preload('payments');
+
+    const salesSum = bills.reduce(
+      (total, bill) =>
+        total + bill.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+      0,
+    );
+
     const expensesTotal = entries
       .filter(entry => entry.type === DailyCashierEntryType.D)
       .reduce(
@@ -399,21 +417,24 @@ export default class DailyCashierService {
         0,
       );
 
-    dailyCashier.status = DailyCashierStatus.F;
-    dailyCashier.closingDate = data.closingDate;
-    dailyCashier.user_who_closed_id = data.userId;
-
-    dailyCashier.salesTotal = 0; // TODO fix this
-    dailyCashier.expensesTotal = expensesTotal;
-    dailyCashier.receiptsTotal = receiptsTotal;
-    dailyCashier.cashierTotal = data.cashierTotal;
-    dailyCashier.cashierBalance =
-      dailyCashier.openingBalance +
-      dailyCashier.salesTotal +
+    const partial =
+      parseFloat(dailyCashier.openingBalance as unknown as string) +
+      salesSum +
       receiptsTotal -
       expensesTotal;
 
-    return dailyCashier.save();
+    return dailyCashier
+      .merge({
+        status: DailyCashierStatus.F,
+        closingDate: data.closingDate,
+        user_who_closed_id: data.userId,
+        salesTotal: salesSum,
+        expensesTotal,
+        receiptsTotal,
+        cashierTotal: data.cashierTotal,
+        cashierBalance: data.cashierTotal - partial,
+      })
+      .save();
   }
 
   async reopenDailyCashier(unitId: string, id: string, userId: string) {

@@ -29,9 +29,9 @@ export default class DailyCashiersController {
     return response.ok(dailyMovement);
   }
 
-  public async dump({ auth, response }: HttpContextContract) {
+  public async dump({ auth, response, params }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const result = await this.service.dump(unit_id);
+    const result = await this.service.dump(unit_id, params.id);
 
     return response.ok(result);
   }

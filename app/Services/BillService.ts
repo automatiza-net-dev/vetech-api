@@ -20,6 +20,7 @@ import Product, { ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
+  CompanyType,
   MovementCategory,
   MovementType,
 } from 'App/Models/TaxationGroupRule';
@@ -536,7 +537,8 @@ export default class BillService {
       .where('movementType', MovementType.S)
       .where('movementCategory', MovementCategory.NS)
       .where('fromUf', unit.state ?? '')
-      .where('toUf', bill.client.tutor.state ?? '')
+      .where('toUf', unit.state ?? '')
+      .where('company_type', unit.simple ? CompanyType.S : CompanyType.N)
       .preload('taxationGroup')
       .preload('taxOperation')
       .first();

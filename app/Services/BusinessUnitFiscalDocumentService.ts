@@ -158,6 +158,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .preload('acquirers')
         .firstOrFail();
+
+      const token = this.getToken(unit);
+
       const bill = await Bill.query()
         .where('id', data.billId)
         .preload('client', query => {
@@ -402,9 +405,7 @@ export default class BusinessUnitFiscalDocumentService {
       const result = await this.focusNfe.sendNfe(
         issuedDocument.id,
         nfePayload,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
+        token,
       );
       if (!result.success) {
         throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
@@ -434,6 +435,8 @@ export default class BusinessUnitFiscalDocumentService {
         .where('id', unitId)
         .preload('unitConfig')
         .firstOrFail();
+
+      const token = this.getToken(unit);
 
       const document = await BusinessUnitFiscalDocument.findOrFail(
         data.unitFiscalDocumentId,
@@ -527,9 +530,7 @@ export default class BusinessUnitFiscalDocumentService {
                 city_code: unit.cityCode ?? '',
               },
             },
-            unit.unitConfig.focusHomologationToken === 'H'
-              ? unit.unitConfig.focusHomologationToken
-              : unit.unitConfig.focusProductionToken,
+            token,
           );
 
           await serviceDocument
@@ -579,12 +580,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
-      const result = await this.focusNfe.getNfe(
-        document.id,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
-      );
+      const token = this.getToken(unit);
+
+      const result = await this.focusNfe.getNfe(document.id, token);
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -619,12 +617,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
-      const result = await this.focusNfe.getNfse(
-        document.id,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
-      );
+      const token = this.getToken(unit);
+
+      const result = await this.focusNfe.getNfse(document.id, token);
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -655,12 +650,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
-      const result = await this.focusNfe.getNfe(
-        document.id,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
-      );
+      const token = this.getToken(unit);
+
+      const result = await this.focusNfe.getNfe(document.id, token);
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -691,12 +683,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
-      const result = await this.focusNfe.getNfse(
-        document.id,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
-      );
+      const token = this.getToken(unit);
+
+      const result = await this.focusNfe.getNfse(document.id, token);
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -762,6 +751,8 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
+      const token = this.getToken(unit);
+
       const document = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -791,9 +782,7 @@ export default class BusinessUnitFiscalDocumentService {
       const cancelResult = await this.focusNfe.cancelNfe(
         document.id,
         data.reason,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
+        token,
       );
       if (!cancelResult) {
         throw new BadRequestException(
@@ -855,12 +844,12 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('unitConfig')
         .firstOrFail();
 
+      const token = this.getToken(unit);
+
       const cancelResult = await this.focusNfe.cancelNfse(
         document.id,
         data.reason,
-        unit.unitConfig.focusHomologationToken === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
+        token,
       );
       if (!cancelResult) {
         throw new BadRequestException(
@@ -913,6 +902,9 @@ export default class BusinessUnitFiscalDocumentService {
         .where('id', unitId)
         .preload('unitConfig')
         .firstOrFail();
+
+      const token = this.getToken(unit);
+
       const document = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -946,9 +938,7 @@ export default class BusinessUnitFiscalDocumentService {
           sequence: document.sequence.toString(),
           reason: data.reason,
         },
-        unit.unitConfig.fiscalDocumentEnvironment === 'H'
-          ? unit.unitConfig.focusHomologationToken
-          : unit.unitConfig.focusProductionToken,
+        token,
       );
 
       if (!result.success) {
@@ -1093,5 +1083,20 @@ export default class BusinessUnitFiscalDocumentService {
       authorizationPdfPath: data.url_danfse,
       authorizationXmlPath: data.caminho_xml_nota_fiscal,
     });
+  }
+
+  private getToken(unit: BusinessUnit) {
+    if (
+      !unit.unitConfig?.focusHomologationToken &&
+      !unit.unitConfig?.focusProductionToken
+    ) {
+      throw new BadRequestException(
+        'Não foi possível autorizar a nota fiscal, pois a unidade não possui um token de acesso ao FocusNFe',
+      );
+    }
+
+    return unit.unitConfig.fiscalDocumentEnvironment === 'H'
+      ? unit.unitConfig.focusHomologationToken
+      : unit.unitConfig.focusProductionToken;
   }
 }

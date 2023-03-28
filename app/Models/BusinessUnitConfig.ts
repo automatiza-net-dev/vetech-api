@@ -11,6 +11,21 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public xmlDownloadAuthorization: string;
 
+  @column({
+    columnName: 'focus_homologation_token',
+  })
+  public focusHomologationToken: string;
+
+  @column({
+    columnName: 'focus_production_token',
+  })
+  public focusProductionToken: string;
+
+  @column({
+    columnName: 'fiscal_document_environment',
+  })
+  public fiscalDocumentEnvironment: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

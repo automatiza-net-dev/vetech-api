@@ -269,7 +269,10 @@ export default class BusinessUnitFiscalDocumentService {
           },
         },
         buyer: {
-          name: bill.client.name,
+          name:
+            unit.unitConfig.fiscalDocumentEnvironment === 'H'
+              ? 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL'
+              : bill.client.name,
           cpf_document: bill.client.tutor.document ?? '',
           cnpj_document:
             bill.client.tutor.document?.length === 14
@@ -396,7 +399,13 @@ export default class BusinessUnitFiscalDocumentService {
         },
       };
 
-      const result = await this.focusNfe.sendNfe(issuedDocument.id, nfePayload);
+      const result = await this.focusNfe.sendNfe(
+        issuedDocument.id,
+        nfePayload,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
       if (!result.success) {
         throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
       }
@@ -475,47 +484,53 @@ export default class BusinessUnitFiscalDocumentService {
             },
           );
 
-          const result = await this.focusNfe.sendNfse(serviceDocument.id, {
-            issuedAt: DateTime.now().toISO(),
-            simple: unit.simple,
-            seller: {
-              document: unit.document ?? '',
-              city_ie: unit.cityRegistration ?? '',
-              city_code: unit.cityCode ?? '',
-            },
-            buyer: {
-              cpf_document: bill.client.tutor.document ?? '',
-              cnpj_document:
-                bill.client.tutor.document?.length === 14
-                  ? bill.client.tutor.document
-                  : null,
-              name: bill.client.name,
-              email: bill.client.tutor.email,
-              phone: bill.client.tutor.telephone ?? '',
-              address: {
-                street: bill.client.tutor.street ?? '',
-                number: bill.client.tutor.number ?? '',
-                district: bill.client.tutor.district ?? '',
-                city_code: bill.client.tutor.cityCode ?? '',
-                uf: bill.client.tutor.state ?? '',
-                postal_code: bill.client.tutor.postalCode ?? '',
-                complement: bill.client.tutor.complement ?? null,
+          const result = await this.focusNfe.sendNfse(
+            serviceDocument.id,
+            {
+              issuedAt: DateTime.now().toISO(),
+              simple: unit.simple,
+              seller: {
+                document: unit.document ?? '',
+                city_ie: unit.cityRegistration ?? '',
+                city_code: unit.cityCode ?? '',
+              },
+              buyer: {
+                cpf_document: bill.client.tutor.document ?? '',
+                cnpj_document:
+                  bill.client.tutor.document?.length === 14
+                    ? bill.client.tutor.document
+                    : null,
+                name: bill.client.name,
+                email: bill.client.tutor.email,
+                phone: bill.client.tutor.telephone ?? '',
+                address: {
+                  street: bill.client.tutor.street ?? '',
+                  number: bill.client.tutor.number ?? '',
+                  district: bill.client.tutor.district ?? '',
+                  city_code: bill.client.tutor.cityCode ?? '',
+                  uf: bill.client.tutor.state ?? '',
+                  postal_code: bill.client.tutor.postalCode ?? '',
+                  complement: bill.client.tutor.complement ?? null,
+                },
+              },
+              service: {
+                total_value: item.totalValue,
+                pis_value: item.pisValue,
+                cofins_value: item.cofinsValue,
+                iss_value: item.issValue,
+                base_value: item.issBase,
+                percentage_value: item.issPercentage,
+                discount_value: item.discountValue,
+                service_code: item.productVariation.product.serviceCode ?? '',
+                cnae: unit.cnae ?? '',
+                description: item.productVariation.product.description,
+                city_code: unit.cityCode ?? '',
               },
             },
-            service: {
-              total_value: item.totalValue,
-              pis_value: item.pisValue,
-              cofins_value: item.cofinsValue,
-              iss_value: item.issValue,
-              base_value: item.issBase,
-              percentage_value: item.issPercentage,
-              discount_value: item.discountValue,
-              service_code: item.productVariation.product.serviceCode ?? '',
-              cnae: unit.cnae ?? '',
-              description: item.productVariation.product.description,
-              city_code: unit.cityCode ?? '',
-            },
-          });
+            unit.unitConfig.focusHomologationToken === 'H'
+              ? unit.unitConfig.focusHomologationToken
+              : unit.unitConfig.focusProductionToken,
+          );
 
           await serviceDocument
             .merge({
@@ -558,7 +573,18 @@ export default class BusinessUnitFiscalDocumentService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const result = await this.focusNfe.getNfe(document.id);
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', document.business_unit_id)
+        .preload('unitConfig')
+        .firstOrFail();
+
+      const result = await this.focusNfe.getNfe(
+        document.id,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -587,7 +613,18 @@ export default class BusinessUnitFiscalDocumentService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const result = await this.focusNfe.getNfse(document.id);
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', document.business_unit_id)
+        .preload('unitConfig')
+        .firstOrFail();
+
+      const result = await this.focusNfe.getNfse(
+        document.id,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -612,7 +649,18 @@ export default class BusinessUnitFiscalDocumentService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const result = await this.focusNfe.getNfe(document.id);
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', document.business_unit_id)
+        .preload('unitConfig')
+        .firstOrFail();
+
+      const result = await this.focusNfe.getNfe(
+        document.id,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -637,7 +685,18 @@ export default class BusinessUnitFiscalDocumentService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const result = await this.focusNfe.getNfse(document.id);
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', document.business_unit_id)
+        .preload('unitConfig')
+        .firstOrFail();
+
+      const result = await this.focusNfe.getNfse(
+        document.id,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
       if (!result) {
         throw new BadRequestException(
           'Erro ao atualizar nova',
@@ -697,6 +756,12 @@ export default class BusinessUnitFiscalDocumentService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('unitConfig')
+        .firstOrFail();
+
       const document = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -726,6 +791,9 @@ export default class BusinessUnitFiscalDocumentService {
       const cancelResult = await this.focusNfe.cancelNfe(
         document.id,
         data.reason,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
       );
       if (!cancelResult) {
         throw new BadRequestException(
@@ -781,9 +849,18 @@ export default class BusinessUnitFiscalDocumentService {
         throw this.sharedService.ResourceNotFound();
       }
 
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('unitConfig')
+        .firstOrFail();
+
       const cancelResult = await this.focusNfe.cancelNfse(
         document.id,
         data.reason,
+        unit.unitConfig.focusHomologationToken === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
       );
       if (!cancelResult) {
         throw new BadRequestException(
@@ -831,7 +908,11 @@ export default class BusinessUnitFiscalDocumentService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
-      const unit = await BusinessUnit.findOrFail(unitId);
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('unitConfig')
+        .firstOrFail();
       const document = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -857,12 +938,18 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      const result = await this.focusNfe.disable(document.id, {
-        cnpj: unit.document ?? '',
-        series: document.series,
-        sequence: document.sequence.toString(),
-        reason: data.reason,
-      });
+      const result = await this.focusNfe.disable(
+        document.id,
+        {
+          cnpj: unit.document ?? '',
+          series: document.series,
+          sequence: document.sequence.toString(),
+          reason: data.reason,
+        },
+        unit.unitConfig.fiscalDocumentEnvironment === 'H'
+          ? unit.unitConfig.focusHomologationToken
+          : unit.unitConfig.focusProductionToken,
+      );
 
       if (!result.success) {
         throw new BadRequestException(

@@ -166,6 +166,7 @@ export interface ISendNfse {
     city_code: string;
   };
 }
+
 interface IDisableNfe {
   cnpj: string;
   series: string;
@@ -346,13 +347,9 @@ export default class FocusNfeService {
   private ax = axios.create({
     baseURL: process.env.FOCUS_NFE_URL,
     headers: {},
-    auth: {
-      username: process.env.FOCUS_NFE_KEY ?? '',
-      password: '',
-    },
   });
 
-  public async sendNfe(ref: string, data: ISendNfe) {
+  public async sendNfe(ref: string, data: ISendNfe, token: string) {
     const payload = {
       natureza_operacao: 'Venda',
       // serie: data.nfe_series, // THIS
@@ -487,6 +484,12 @@ export default class FocusNfeService {
       const { data } = await this.ax.post(
         `/v2/nfe?ref=${ref}`,
         this.sanitize(payload),
+        {
+          auth: {
+            username: token,
+            password: '',
+          },
+        },
       );
 
       return {
@@ -528,12 +531,17 @@ export default class FocusNfeService {
 
   public async getNfe(
     ref: string,
+    token: string,
     complete = true,
   ): Promise<z.infer<typeof nfeResponseSchema> | null> {
     try {
       const { data } = await this.ax.get(`/v2/nfe/${ref}`, {
         params: {
           completa: complete ? 1 : 0,
+        },
+        auth: {
+          username: token,
+          password: '',
         },
       });
 
@@ -555,10 +563,14 @@ export default class FocusNfeService {
     }
   }
 
-  public async getNfse(ref: string) {
+  public async getNfse(ref: string, token: string) {
     try {
       const { data } = await this.ax.get(`/v2/nfse/${ref}`, {
         params: {},
+        auth: {
+          username: token,
+          password: '',
+        },
       });
 
       const zodResponse = nfseResponseSchema.safeParse(data);
@@ -579,11 +591,15 @@ export default class FocusNfeService {
 
   // hora do evento?
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
-  public async cancelNfe(ref: string, reason: string) {
+  public async cancelNfe(ref: string, reason: string, token: string) {
     try {
       await this.ax.delete(`/v2/nfe/${ref}`, {
         data: {
           justificativa: reason,
+        },
+        auth: {
+          username: token,
+          password: '',
         },
       });
 
@@ -607,15 +623,24 @@ export default class FocusNfeService {
 
   // não é possível inutilizar nfe já autorizada
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
-  public async disable(ref: string, disableData: IDisableNfe) {
+  public async disable(ref: string, disableData: IDisableNfe, token: string) {
     try {
-      const { data } = await this.ax.post(`/v2/nfe/inutilizacao/${ref}`, {
-        cnpj: disableData.cnpj,
-        serie: disableData.series,
-        numero_inicial: disableData.sequence,
-        numero_final: disableData.sequence,
-        justificativa: disableData.reason,
-      });
+      const { data } = await this.ax.post(
+        `/v2/nfe/inutilizacao/${ref}`,
+        {
+          cnpj: disableData.cnpj,
+          serie: disableData.series,
+          numero_inicial: disableData.sequence,
+          numero_final: disableData.sequence,
+          justificativa: disableData.reason,
+        },
+        {
+          auth: {
+            username: token,
+            password: '',
+          },
+        },
+      );
 
       const zodResponse = disableNfeResponseSchema.safeParse(data);
       if (!zodResponse.success) {
@@ -642,7 +667,7 @@ export default class FocusNfeService {
     }
   }
 
-  public async sendNfse(ref: string, data: ISendNfse) {
+  public async sendNfse(ref: string, data: ISendNfse, token: string) {
     const payload = {
       data_emissao: data.issuedAt,
       natureza_operacao: '1',
@@ -704,6 +729,12 @@ export default class FocusNfeService {
       const { data } = await this.ax.post(
         `/v2/nfse?ref=${ref}`,
         this.sanitize(payload),
+        {
+          auth: {
+            username: token,
+            password: '',
+          },
+        },
       );
 
       const parsedResponse = createNfseResponseSchema.safeParse(data);
@@ -734,11 +765,15 @@ export default class FocusNfeService {
 
   // hora do evento?
   // https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
-  public async cancelNfse(ref: string, reason: string) {
+  public async cancelNfse(ref: string, reason: string, token: string) {
     try {
       const { data } = await this.ax.delete(`/v2/nfse/${ref}`, {
         data: {
           justificativa: reason,
+        },
+        auth: {
+          username: token,
+          password: '',
         },
       });
 

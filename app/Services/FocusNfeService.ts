@@ -399,6 +399,7 @@ export default class FocusNfeService {
         numero_item: item.index,
         codigo_produto: item.code,
         codigo_barras_comercial: item.barcode,
+        codigo_barras_tributavel: item.barcode,
         descricao: item.description,
         codigo_ncm: item.ncm,
         cest: item.cest,

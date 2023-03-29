@@ -1,4 +1,5 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, column, HasMany, hasMany } from '@ioc:Adonis/Lucid/Orm';
+import AccountPlan from 'App/Models/AccountPlan';
 import { DateTime } from 'luxon';
 
 export enum AccountPlanGroupType {
@@ -30,4 +31,9 @@ export default class AccountPlanGroup extends BaseModel {
     serializeAs: null,
   })
   public economic_group_id: string;
+
+  @hasMany(() => AccountPlan, {
+    foreignKey: 'account_plan_group_id',
+  })
+  public accountPlans: HasMany<typeof AccountPlan>;
 }

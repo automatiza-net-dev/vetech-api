@@ -6,28 +6,27 @@ import AccountPlanGroup, {
 export default class extends BaseSeeder {
   private BASE: Array<Partial<AccountPlanGroup>> = [
     {
-      id: 1,
-      description: 'Receita Total',
+      description: 'RECEITAS',
       type: AccountPlanGroupType.C,
     },
     {
-      id: 2,
-      description: 'Custos Fixos',
+      description: 'DEDUÇÕES',
       type: AccountPlanGroupType.D,
     },
     {
-      id: 3,
-      description: 'Custos Variávels',
+      description: 'CUSTOS VARIAVEIS',
       type: AccountPlanGroupType.D,
     },
     {
-      id: 4,
-      description: 'Deduções',
+      description: 'CUSTOS FIXOS',
       type: AccountPlanGroupType.D,
     },
     {
-      id: 5,
-      description: 'Resultado Extra Operacional',
+      description: 'RESULTADO FINANCEIRO',
+      type: AccountPlanGroupType.A,
+    },
+    {
+      description: 'EXTRA OPERACIONAL',
       type: AccountPlanGroupType.A,
     },
   ];

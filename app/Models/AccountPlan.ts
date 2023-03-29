@@ -5,6 +5,8 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import AccountPlanGroup from 'App/Models/AccountPlanGroup';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -72,6 +74,12 @@ export default class AccountPlan extends BaseModel {
   })
   // eslint-disable-next-line no-use-before-define
   public parent: BelongsTo<typeof AccountPlan>;
+
+  @hasMany(() => AccountPlan, {
+    foreignKey: 'parent_id',
+  })
+  // eslint-disable-next-line no-use-before-define
+  public children: HasMany<typeof AccountPlan>;
 
   @column({
     serializeAs: null,

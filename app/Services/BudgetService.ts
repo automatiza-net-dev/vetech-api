@@ -6,7 +6,7 @@ import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
-import Product from 'App/Models/Product';
+import Product, { ProductPurpose } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
@@ -174,7 +174,10 @@ export default class BudgetService {
   public async searchProducts(unitId: string, data: ISearchProduct) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = Product.query().where('economic_group_id', group.id);
+    const qb = Product.query()
+      .where('economic_group_id', group.id)
+      .whereNotIn('purpose', [ProductPurpose.INTERNAL])
+      .where('active', true);
 
     if (
       data.variation ||

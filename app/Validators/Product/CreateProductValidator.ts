@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
-import { ProductIcmsOrigin } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 export default class CreateProductValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -29,6 +29,7 @@ export default class CreateProductValidator {
     features: schema.string.optional({}, []),
     taxBenefitCode: schema.string.optional({}, []),
     anvisaCode: schema.string.optional({}, []),
+    purpose: schema.enum(Object.values(ProductPurpose)),
     unitId: schema.string({}, [
       rules.uuid(),
       rules.exists({

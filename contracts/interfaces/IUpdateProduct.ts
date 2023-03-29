@@ -1,4 +1,4 @@
-import { ProductIcmsOrigin } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 export default interface IUpdateProduct {
   description: string;
@@ -16,4 +16,5 @@ export default interface IUpdateProduct {
   brandId?: string;
   taxBenefitCode?: string;
   anvisaCode?: string;
+  purpose: ProductPurpose;
 }

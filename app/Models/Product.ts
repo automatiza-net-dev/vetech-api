@@ -25,6 +25,12 @@ export enum ProductType {
   PRODUCT = 'product',
 }
 
+export enum ProductPurpose {
+  SALE = 'sale',
+  INTERNAL = 'internal',
+  BOTH = 'both',
+}
+
 export const ProductIcmsOrigin = [
   '0',
   '1',
@@ -46,6 +52,9 @@ export default class Product extends BaseModel {
 
   @column()
   public type: ProductType;
+
+  @column()
+  public purpose: ProductPurpose;
 
   @column({
     columnName: 'reference_code',

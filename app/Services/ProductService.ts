@@ -16,6 +16,7 @@ interface ISearch {
   description?: string;
   reference?: string;
   collection?: number;
+  purpose?: string;
 }
 
 @inject()
@@ -66,6 +67,10 @@ export default class ProductService {
 
     if (data.collection) {
       qb.where('collection_year', data.collection);
+    }
+
+    if (data.purpose) {
+      qb.where('purpose', data.purpose);
     }
 
     return qb;
@@ -153,6 +158,7 @@ export default class ProductService {
           brand_id: data.brandId,
           taxBenefitCode: data.taxBenefitCode,
           anvisaCode: data.anvisaCode,
+          purpose: data.purpose,
         },
         {
           client: trx,

@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Group from 'App/Models/Group';
-import Product, { ProductType } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import Subgroup from 'App/Models/Subgroup';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit, { UnitType } from 'App/Models/Unit';
@@ -108,6 +108,7 @@ test.group('Product resource', group => {
         icmsOrigin: '0',
         unitId: unit.id,
         type: ProductType.PRODUCT,
+        purpose: ProductPurpose.BOTH,
 
         referenceCode: '00001',
         collectionYear: 2022,
@@ -160,6 +161,7 @@ test.group('Product resource', group => {
         icmsOrigin: '0',
         unitId: unit.id,
         type: ProductType.PRODUCT,
+        purpose: ProductPurpose.BOTH,
 
         variations: [
           {
@@ -224,6 +226,7 @@ test.group('Product resource', group => {
         taxationGroupId: taxationGroup.id,
         taxBenefitCode: 'some',
         anvisaCode: 'some',
+        purpose: ProductPurpose.BOTH,
 
         variations: [
           {
@@ -328,6 +331,7 @@ test.group('Product resource', group => {
         icmsOrigin: '0',
         taxBenefitCode: 'some',
         anvisaCode: 'some',
+        purpose: ProductPurpose.BOTH,
       })
       .bearerToken(token);
 

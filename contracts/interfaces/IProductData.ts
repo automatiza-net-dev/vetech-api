@@ -1,5 +1,5 @@
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
-import { ProductIcmsOrigin } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 interface IPrice {
   maximumStock: number;
@@ -42,5 +42,6 @@ export default interface IProductData {
   taxationGroupId: string;
   groupId?: string;
   subgroupId: string;
+  purpose: ProductPurpose;
   variations: Array<IProductDataVariation>;
 }

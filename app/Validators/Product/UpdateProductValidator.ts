@@ -1,6 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { ProductIcmsOrigin } from 'App/Models/Product';
+import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 export default class UpdateProductValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -14,6 +14,7 @@ export default class UpdateProductValidator {
     features: schema.string.optional({}, []),
     taxBenefitCode: schema.string.optional({}, []),
     anvisaCode: schema.string.optional({}, []),
+    purpose: schema.enum(Object.values(ProductPurpose)),
     active: schema.boolean([]),
     groupId: schema.string.optional({}, [
       rules.uuid(),

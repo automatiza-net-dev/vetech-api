@@ -16,7 +16,7 @@ import Finance, {
 import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
-import Product, { ProductType } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
@@ -1308,6 +1308,7 @@ export default class BillService {
 
     const qb = Product.query()
       .where('economic_group_id', group.id)
+      .whereNotIn('purpose', [ProductPurpose.INTERNAL])
       .where('active', true);
 
     if (data.variation || data.barcode || data.quantity) {

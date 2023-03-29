@@ -21,7 +21,7 @@ import {
   PaymentMethodUsage,
 } from 'App/Models/PaymentMethod';
 import Plan from 'App/Models/Plan';
-import Product, { ProductType } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import Role from 'App/Models/Role';
 import Subgroup from 'App/Models/Subgroup';
 import {
@@ -355,6 +355,23 @@ export default class UserService {
 
     const parseNumber = (value: string) => {
       return parseFloat(parseString(value)) / 100;
+    };
+
+    const parsePurpose = (value: string) => {
+      switch (value) {
+        case 'Consumo Interno': {
+          return ProductPurpose.INTERNAL;
+        }
+        case 'Venda': {
+          return ProductPurpose.SALE;
+        }
+        case 'Venda e Consumo Interno': {
+          return ProductPurpose.BOTH;
+        }
+        default: {
+          throw new Error(`Invalid purpose: ${value}`);
+        }
+      }
     };
 
     const units = await Unit.query()
@@ -776,6 +793,7 @@ export default class UserService {
         anvisaCode: elem['Código ANVISA']?.toString() ?? undefined,
         taxation_group_id: taxGroup?.id,
         variation_group_id: variationGroup.id,
+        purpose: parsePurpose(elem['Propósito']),
       };
     });
 

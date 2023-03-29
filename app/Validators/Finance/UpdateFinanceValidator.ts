@@ -6,7 +6,6 @@ export default class UpdateFinanceValidator {
 
   public schema = schema.create({
     accountPlanId: schema.string({ trim: true }, [
-      rules.uuid(),
       rules.exists({ table: 'account_plans', column: 'id' }),
     ]),
     paymentMethodId: schema.string({ trim: true }, [

@@ -10,21 +10,20 @@ export default class UpsertFinanceValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    clientId: schema.string({ trim: true }, [
+    clientId: schema.string([
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
     type: schema.enum(Object.values(FinanceType)),
-    accountPlanId: schema.string({ trim: true }, [
-      rules.uuid(),
+    accountPlanId: schema.string([
       rules.exists({ table: 'account_plans', column: 'id' }),
     ]),
-    paymentMethodId: schema.string({ trim: true }, [
+    paymentMethodId: schema.string([
       rules.uuid(),
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
-    document: schema.string({ trim: true }),
-    historic: schema.string({ trim: true }),
+    document: schema.string(),
+    historic: schema.string(),
     issueDate: schema.date(),
     expirationDate: schema.date(),
     originalValue: schema.number(),
@@ -32,8 +31,10 @@ export default class UpsertFinanceValidator {
     installment: schema.number(),
     originFlag: schema.enum(Object.values(FinanceOriginFlag)),
 
-    checkingAccountId: schema.string.optional({ trim: true }, [
-      rules.uuid(),
+    checkingAccountId: schema.string.optional([
+      rules.uuid({
+        version: '4',
+      }),
       rules.exists({ table: 'checking_accounts', column: 'id' }),
     ]),
     paymentDate: schema.date.optional(),

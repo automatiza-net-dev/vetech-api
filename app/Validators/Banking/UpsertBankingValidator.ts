@@ -12,7 +12,6 @@ export default class UpsertBankingValidator {
     ]),
     type: schema.enum(Object.values(BankingType)),
     accountPlanId: schema.string({ trim: true }, [
-      rules.uuid(),
       rules.exists({ table: 'account_plans', column: 'id' }),
     ]),
     paymentMethodId: schema.string({ trim: true }, [

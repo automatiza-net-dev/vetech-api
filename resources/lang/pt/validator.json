@@ -45,6 +45,7 @@
     "under": "Campo precisa ser abaixo de { argument.0 }.",
     "unique": "Campo já está em uso, escolhe um diferente.",
     "url": "URL inválida.",
-    "unsigned": "Valor precisa ser positivo"
+    "unsigned": "Valor precisa ser positivo",
+    "uuid": "Campo deve ser um UUID válido."
   }
 }

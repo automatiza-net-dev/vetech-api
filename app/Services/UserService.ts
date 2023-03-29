@@ -34,6 +34,7 @@ import TefAcquirer from 'App/Models/TefAcquirer';
 import UfIcms from 'App/Models/UfIcms';
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
+import VariationGroup from 'App/Models/VariationGroup';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IConfirmConfirmationToken,
@@ -715,6 +716,17 @@ export default class UserService {
       },
     );
 
+    const variationGroup = await VariationGroup.create(
+      {
+        economic_group_id: group?.id,
+        description: 'Padrão',
+        active: true,
+      },
+      {
+        client: trx,
+      },
+    );
+
     const pData: Array<Partial<Product>> = raw.map(elem => {
       const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
       const brand = brands.find(
@@ -763,6 +775,7 @@ export default class UserService {
         brand_id: brand?.id,
         anvisaCode: elem['Código ANVISA']?.toString() ?? undefined,
         taxation_group_id: taxGroup?.id,
+        variation_group_id: variationGroup.id,
       };
     });
 

@@ -1014,35 +1014,52 @@ export default class PatientService {
     await patient.softDelete();
   }
 
-  public async setMainTutor(_: string, patient: string, tutor: string) {
-    const db_patient = await Patient.query()
-      .where('id', patient)
-      .where('type', PatientType.ANIMAL)
-      .first();
+  public async setMainTutor(
+    _: string,
+    user: User,
+    patient: string,
+    tutor: string,
+  ) {
+    await Database.transaction(async trx => {
+      const db_patient = await Patient.query()
+        .useTransaction(trx)
+        .where('id', patient)
+        .where('type', PatientType.ANIMAL)
+        .first();
 
-    if (!db_patient) {
-      throw new BadRequestException('Paciente inválido', 400, 'E_BAD_REQUEST');
-    }
+      if (!db_patient) {
+        throw new BadRequestException(
+          'Paciente inválido',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
 
-    const db_tutor = await Patient.query()
-      .where('id', tutor)
-      .where('type', PatientType.TUTOR)
-      .first();
+      const db_tutor = await Patient.query()
+        .useTransaction(trx)
+        .where('id', tutor)
+        .where('type', PatientType.TUTOR)
+        .first();
 
-    if (!db_tutor) {
-      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
-    }
+      if (!db_tutor) {
+        throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+      }
 
-    const patientTutors = await db_patient
-      .related('tutors')
-      .query()
-      .where('dependent_id', patient);
+      const patientTutors = await db_patient
+        .related('tutors')
+        .query()
+        .useTransaction(trx)
+        .pivotColumns(['is_main'])
+        .where('dependent_id', patient);
 
-    const client = Database.connection();
+      // console.log(patientTutors.map(t => t.$extras));
 
-    const trx = await Database.transaction();
+      const newMainTutor = patientTutors.find(
+        t => t.id !== tutor && !t.$extras.pivot_is_main,
+      );
 
-    try {
+      const client = Database.connection();
+
       const promises = patientTutors.map(t => {
         return client
           .from('holder_dependents')
@@ -1051,18 +1068,37 @@ export default class PatientService {
           .update({ is_main: t.id === tutor })
           .useTransaction(trx);
       });
-
       await Promise.all(promises);
 
-      await trx.commit();
-    } catch (error) {
-      await trx.rollback();
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+        client: trx,
+      });
+
+      await AnimalTimeline.create({
+        timeline_id: ATTENDANCE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: db_patient.id,
+          event: 'TROCA_TUTOR_PRINCIPAL',
+          technician: {
+            id: user.id,
+            name: user.name,
+          },
+          old_tutor: {
+            id: db_tutor?.id,
+            name: db_tutor?.name,
+          },
+          new_tutor: {
+            id: newMainTutor?.id ?? null,
+            name: newMainTutor?.name ?? null,
+          },
+        },
+      });
+    });
   }
 
   private async getEconomicGroup(unitId: string) {

@@ -19,7 +19,7 @@ export default class extends BaseSeeder {
       {
         id: SERVICE_VARIATION_ID,
         economic_group_id: undefined,
-        description: 'Serviços',
+        description: 'Padrão',
         active: true,
       },
       {},
@@ -31,7 +31,7 @@ export default class extends BaseSeeder {
       },
       {
         id: SERVICE_VARIATION_OPTION_ID,
-        description: 'Serviços',
+        description: 'Padrão',
         active: true,
         variation_id: service_variation.id,
       },
@@ -45,7 +45,7 @@ export default class extends BaseSeeder {
       {
         id: SERVICE_VARIATION_GROUP_ID,
         economic_group_id: undefined,
-        description: 'Serviços',
+        description: 'Padrão',
         active: true,
       },
     );

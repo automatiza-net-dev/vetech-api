@@ -240,9 +240,6 @@ export default class extends BaseSeeder {
 
   ACQUIRER_BASE: Array<Partial<TefAcquirer>> = [
     {
-      description: 'BCARD',
-    },
-    {
       description: 'CIELO',
     },
     {
@@ -252,13 +249,7 @@ export default class extends BaseSeeder {
       description: 'REDE',
     },
     {
-      description: 'VISANET',
-    },
-    {
       description: 'STONE',
-    },
-    {
-      description: 'INFINITEPAY',
     },
   ];
 

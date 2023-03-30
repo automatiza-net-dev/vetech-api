@@ -8,5 +8,6 @@ export default Factory.define(User, ({ faker }) => {
     password: '102030',
     document: '123456789',
     phone: '|PHONE|',
+    licensingJob: 'Veterinário',
   };
 }).build();

@@ -38,9 +38,9 @@ export default class extends BaseSeeder {
       type: OccurrenceType.ALTA_UTI,
       active: true,
     },
-    [OccurrenceType.PROCEDIMENTO_MEDICO]: {
+    [OccurrenceType.PRESCRICAO_MEDICA]: {
       description: 'Procedimento Médico',
-      type: OccurrenceType.PROCEDIMENTO_MEDICO,
+      type: OccurrenceType.PRESCRICAO_MEDICA,
       active: true,
     },
     [OccurrenceType.MEDICACAO]: {

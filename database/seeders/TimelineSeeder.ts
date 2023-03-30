@@ -70,7 +70,7 @@ export default class extends BaseSeeder {
     },
     {
       id: ATTENDANCE_UUID,
-      description: 'Atendimento',
+      description: 'Consulta',
       color: '#000',
       requiresObservation: false,
     },

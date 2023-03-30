@@ -1,41 +1,15 @@
 admin:
 	node ace db:seed --files "./database/seeders/Initial.ts"
-
-animals:
-	node ace db:seed --files "./database/seeders/Species.ts"
-	node ace db:seed --files "./database/seeders/Race.ts"
-
-timeline:
-	node ace db:seed --files "./database/seeders/TimelineSeeder.ts"
-
-schedule-statuses:
-	node ace db:seed --files "./database/seeders/ScheduleStatus.ts"
-
-variations:
-	node ace db:seed --files "./database/seeders/VariationSeeder.ts"
-
-units:
-	node ace db:seed --files "./database/seeders/UnitSeeder.ts"
-
-occurrences:
-	node ace db:seed --files "./database/seeders/OccurrenceSeeder.ts"
-
-reason:
-	node ace db:seed --files "./database/seeders/ReasonSeeder.ts"
-
-client-origin:
-	node ace db:seed --files "./database/seeders/ClientOrigin.ts"
-
-bank:
-	node ace db:seed --files "./database/seeders/BankSeeder.ts"
 	
-tef:
-	node ace db:seed --files "./database/seeders/TefSeeder.ts"
-	
-icms:
-	node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"
-
 initial:
+		node ace db:seed --files "./database/seeders/FiscalDocumentSeeder.ts"
+		node ace db:seed --files "./database/seeders/TimelineSeeder.ts"
+		node ace db:seed --files "./database/seeders/VariationSeeder.ts"
+		node ace db:seed --files "./database/seeders/OccurrenceSeeder.ts"
+		node ace db:seed --files "./database/seeders/BankSeeder.ts"
+		node ace db:seed --files "./database/seeders/TefSeeder.ts"
+		node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"
+		node ace db:seed --files "./database/seeders/ReasonSeeder.ts"
 		node ace db:seed --files "./database/seeders/Subgroup.ts"
 		node ace db:seed --files "./database/seeders/ServiceSchedule.ts"
 		node ace db:seed --files "./database/seeders/ScheduleServiceTypesSeeder.ts"

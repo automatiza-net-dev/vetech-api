@@ -184,6 +184,11 @@ export default class extends BaseSeeder {
       replacer: '[USUARIO_CARGO]',
     },
     {
+      origin: TemplateReplacementOrigin.USER,
+      attribute: 'licensingJob',
+      replacer: '[USUARIO_TRABALHO]',
+    },
+    {
       origin: TemplateReplacementOrigin.SYSTEM,
       attribute: 'date',
       replacer: '[SISTEMA_DATA]',

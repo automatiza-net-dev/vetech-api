@@ -205,11 +205,13 @@ test.group('Template replacement resource', group => {
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[USUARIO_NOME] [USUARIO_TRATAMENTO] [USUARIO_CELULAR] [USUARIO_CARGO]`,
+        base: `[USUARIO_NOME] [USUARIO_TRATAMENTO] [USUARIO_CELULAR] [USUARIO_CARGO] [USUARIO_TRABALHO]`,
         userId: user.id,
         businessUnitId: business.id,
       })
       .bearerToken(token);
+
+    console.log(response.body());
 
     assert.equal(200, response.status());
   });

@@ -18,6 +18,8 @@ export default class UpdateUserValidator {
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
     licensingJob: schema.string.optional({}),
+    inscription: schema.string.optional({}),
+    birthDate: schema.date.optional({}),
   });
   public messages: CustomMessages = {};
 }

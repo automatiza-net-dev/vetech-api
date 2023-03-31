@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 export interface IUpdatePassword {
   name?: string;
   email?: string;
@@ -12,4 +14,6 @@ export interface IUpdatePassword {
   city?: string;
   state?: string;
   licensingJob?: string;
+  inscription?: string;
+  birthDate?: DateTime;
 }

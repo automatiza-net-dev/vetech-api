@@ -38,6 +38,14 @@ export default class User extends BaseModel {
   public document?: string;
 
   @column()
+  public inscription?: string;
+
+  @column.dateTime({
+    columnName: 'birth_date',
+  })
+  public birthDate?: DateTime;
+
+  @column()
   public phone?: string;
 
   @column({

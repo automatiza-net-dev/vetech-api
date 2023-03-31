@@ -62,6 +62,8 @@ test.group('User resource', group => {
       .json({
         document: '0987',
         licensingJob: '1234',
+        inscription: '1234',
+        birthDate: DateTime.local().toISO(),
       })
       .loginAs(user);
 

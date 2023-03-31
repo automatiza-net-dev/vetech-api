@@ -78,6 +78,8 @@ export default class BusinessUnitService {
           },
         );
 
+        await unit.related('unitConfig').create({});
+
         await unit.related('licences').create(
           {
             id: v4(),

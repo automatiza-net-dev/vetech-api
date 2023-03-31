@@ -22,6 +22,12 @@ interface ISearchBusinessUnit {
   email?: string;
 }
 
+interface ISearchClinic {
+  identification?: string;
+  document?: string;
+  name?: string;
+}
+
 @inject()
 export default class BusinessUnitService {
   // constructor(private readonly sharedService: SharedService) {}
@@ -312,11 +318,31 @@ export default class BusinessUnitService {
     return user;
   }
 
-  public async getUserBusinessUnits(user: User): Promise<Array<BusinessUnit>> {
-    const entities = await user
+  public async getUserBusinessUnits(
+    user: User,
+    data: ISearchClinic,
+  ): Promise<Array<BusinessUnit>> {
+    console.log(data);
+
+    const qb = user
       .related('economicGroups')
       .query()
-      .preload('businessUnits');
+      .preload('businessUnits', query => {
+        if (data.document) {
+          query.where('document', 'ilike', `%${data.document}%`);
+        }
+
+        if (data.name) {
+          query.orWhere('fantasyName', 'ilike', `%${data.name}%`);
+          query.orWhere('companyName', 'ilike', `%${data.name}%`);
+        }
+
+        if (data.identification) {
+          query.where('identification', 'ilike', `%${data.identification}%`);
+        }
+      });
+
+    const entities = await qb;
 
     return entities.map(ent => ent.businessUnits).flat();
   }

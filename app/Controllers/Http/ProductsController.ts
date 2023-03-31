@@ -20,6 +20,10 @@ export default class ProductsController {
       description: qs.description,
       reference: qs.reference,
       collection: qs.collection,
+      active: qs.active,
+      purpose: qs.purpose,
+      subgroup: qs.subgroup,
+      taxation: qs.taxation,
     });
 
     return response.ok(result);

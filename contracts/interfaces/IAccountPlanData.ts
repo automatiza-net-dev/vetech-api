@@ -1,7 +1,7 @@
 import { AccountPlanType } from 'App/Models/AccountPlan';
 
 export default interface IAccountPlanData {
-  code: string;
+  code?: string;
   description: string;
   type: AccountPlanType;
   active: boolean;

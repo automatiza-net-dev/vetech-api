@@ -18,6 +18,9 @@ export default class ServicesController {
     const qs = request.qs();
     const result = await this.service.index(unit_id, {
       description: qs.description,
+      active: qs.active,
+      subgroup: qs.subgroup,
+      taxation: qs.taxation,
     });
 
     return response.ok(result);

@@ -17,13 +17,16 @@ interface ISearch {
   reference?: string;
   collection?: number;
   purpose?: string;
+  subgroup?: string;
+  taxation?: string;
+  active?: string;
 }
 
 @inject()
 export default class ProductService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = group
@@ -58,11 +61,11 @@ export default class ProductService {
       .where('type', ProductType.PRODUCT);
 
     if (data.description) {
-      qb.where('description', 'like', `%${data.description}%`);
+      qb.where('description', 'ilike', `%${data.description}%`);
     }
 
     if (data.reference) {
-      qb.where('reference_code', 'like', `%${data.reference}%`);
+      qb.where('reference_code', 'ilike', `%${data.reference}%`);
     }
 
     if (data.collection) {
@@ -73,7 +76,35 @@ export default class ProductService {
       qb.where('purpose', data.purpose);
     }
 
-    return qb;
+    if (data.subgroup) {
+      qb.where('subgroup_id', data.subgroup);
+    }
+
+    if (data.taxation) {
+      qb.where('taxation_group_id', data.taxation);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active === 'true');
+    }
+
+    const result = await qb;
+
+    return result.map(product => ({
+      id: product.id,
+      description: product.description,
+      referenceCode: product.referenceCode,
+      active: product.active,
+      created_at: product.createdAt,
+      subgroup: {
+        id: product.subgroup?.id ?? null,
+        description: product.subgroup?.description ?? null,
+      },
+      taxationGroup: {
+        id: product.taxationGroup?.id ?? null,
+        name: product.taxationGroup?.name ?? null,
+      },
+    }));
   }
 
   public async show(unitId: string, id: string): Promise<Product> {

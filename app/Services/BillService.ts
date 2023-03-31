@@ -79,7 +79,7 @@ export default class BillService {
   }
 
   async index(unitId: string, data: ISearch) {
-    const qb = Bill.query().where('business_unit_id', unitId);
+    const qb = Bill.query().where('business_unit_id', unitId).debug(true);
 
     if (data.fromBill) {
       qb.where('bill_date', '>=', data.fromBill);

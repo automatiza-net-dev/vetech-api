@@ -52,6 +52,11 @@ export default class Schedule extends BaseModel {
   })
   public majorComplaint?: string;
 
+  @column.dateTime({
+    columnName: 'finished_at',
+  })
+  public finishedAt?: DateTime;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

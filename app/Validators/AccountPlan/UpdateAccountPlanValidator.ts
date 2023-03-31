@@ -6,7 +6,7 @@ export default class UpdateAccountPlanValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    code: schema.string(),
+    code: schema.string.optional(),
     description: schema.string(),
     type: schema.enum(Object.values(AccountPlanType)),
     accountPlanGroupId: schema.number([

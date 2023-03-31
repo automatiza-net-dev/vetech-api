@@ -37,6 +37,7 @@ interface ISearchPartial {
 interface ISearchComplete {
   budget?: string;
   patient?: string;
+  tag?: string;
 }
 
 interface ISearchProduct {
@@ -117,6 +118,10 @@ export default class BudgetService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.tag) {
+      qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
     qb.preload('client', query => {

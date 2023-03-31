@@ -9,13 +9,16 @@ import IServiceData, {
 
 interface ISearch {
   description?: string;
+  subgroup?: string;
+  taxation?: string;
+  active?: string;
 }
 
 @inject()
 export default class ServiceService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch): Promise<Array<Product>> {
+  public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = group
@@ -52,7 +55,35 @@ export default class ServiceService {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    return qb;
+    if (data.subgroup) {
+      qb.where('subgroup_id', data.subgroup);
+    }
+
+    if (data.taxation) {
+      qb.where('taxation_group_id', data.taxation);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active === 'true');
+    }
+
+    const result = await qb;
+
+    return result.map(service => ({
+      id: service.id,
+      description: service.description,
+      referenceCode: service.referenceCode,
+      active: service.active,
+      created_at: service.createdAt,
+      subgroup: {
+        id: service.subgroup?.id ?? null,
+        description: service.subgroup?.description ?? null,
+      },
+      taxationGroup: {
+        id: service.taxationGroup?.id ?? null,
+        name: service.taxationGroup?.name ?? null,
+      },
+    }));
   }
 
   public async show(unitId: string, id: string): Promise<Product> {

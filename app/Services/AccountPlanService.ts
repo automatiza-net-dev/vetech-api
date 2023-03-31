@@ -17,10 +17,11 @@ export default class AccountPlanService {
   constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
-    const unit = await this.sharedService.getBUnit(unitId);
-    const qb = AccountPlan.query().where(
-      'economic_group_id',
-      unit.economicGroupId,
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    const qb = AccountPlan.query().whereRaw(
+      '(economic_group_id = ? or economic_group_id is null)',
+      [group.id],
     );
 
     if (data.unit) {

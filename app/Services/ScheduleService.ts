@@ -3,7 +3,11 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import { SS_NOT_CONFIRMED, VALID_CHANGES } from 'App/Models/ScheduleStatus';
+import {
+  SS_ATTENDANCE_FINISHED,
+  SS_NOT_CONFIRMED,
+  VALID_CHANGES,
+} from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -755,6 +759,8 @@ export default class ScheduleService {
     return schedule
       .merge({
         schedule_status_id: data.statusId,
+        finishedAt:
+          data.statusId === SS_ATTENDANCE_FINISHED ? DateTime.now() : undefined,
       })
       .save();
   }

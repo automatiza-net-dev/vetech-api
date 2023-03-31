@@ -45,13 +45,15 @@ export default class ProductService {
         query.select('id', 'barcode', 'active');
 
         query.preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+
           query.preload('businessUnit', query => {
             query.select('id', 'fantasyName', 'companyName', 'identification');
           });
         });
 
-        query.preload('variationOptions', subquery => {
-          subquery.select('id', 'description', 'active');
+        query.preload('variationOptions', query => {
+          query.select('id', 'description', 'active');
         });
       })
       .preload('variationGroup', query => {
@@ -103,6 +105,14 @@ export default class ProductService {
       taxationGroup: {
         id: product.taxationGroup?.id ?? null,
         name: product.taxationGroup?.name ?? null,
+      },
+      price: {
+        id: product.variations[0]?.id ?? null,
+        value:
+          parseFloat(
+            product.variations[0]?.businessUnitProducts[0]
+              ?.price as unknown as string,
+          ) ?? null,
       },
     }));
   }

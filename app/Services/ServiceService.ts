@@ -83,6 +83,14 @@ export default class ServiceService {
         id: service.taxationGroup?.id ?? null,
         name: service.taxationGroup?.name ?? null,
       },
+      price: {
+        id: service.variations[0]?.id ?? null,
+        value:
+          parseFloat(
+            service.variations[0]?.businessUnitProducts[0]
+              ?.price as unknown as string,
+          ) ?? null,
+      },
     }));
   }
 

@@ -98,11 +98,11 @@ test.group('Bill resource', group => {
     });
 
     const rule = await TaxationGroupRule.create({
-      companyType: CompanyType.N,
+      companyType: business.simple ? CompanyType.S : CompanyType.N,
       movementType: MovementType.S,
       movementCategory: MovementCategory.NS,
       fromUf: business.state,
-      toUf: 'PR',
+      toUf: business.state,
       icmsCst: '00',
       icmsPerc: 10,
       icmsPercRedAliquota: 10,

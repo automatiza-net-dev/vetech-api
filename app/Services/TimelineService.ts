@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
+import { connection } from '@ioc:Mongoose';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
@@ -41,14 +42,14 @@ export default class TimelineService {
   public async all(tag: string) {
     return AnimalTimeline.find({
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async weightIndex(tag: string) {
     return AnimalTimeline.find({
       timeline_id: WEIGHT_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeWeight(data: IAnimalWeight) {
@@ -144,7 +145,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: DOCUMENT_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeDocument(data: IAnimalDocument) {
@@ -209,7 +210,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: PATHOLOGY_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storePathology(data: IAnimalPathology) {
@@ -266,7 +267,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: RECIPE_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeMedicalRecipe(data: IAnimalMedicalRecipe) {
@@ -331,7 +332,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: PHOTO_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storePhoto(data: ICreateAnimalPhoto) {
@@ -367,7 +368,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: VACCINE_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeVaccine(data: ICreateAnimalVaccine) {
@@ -442,7 +443,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: EXAM_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeExam(data: ICreateAnimalExam) {
@@ -497,7 +498,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: ATTENDANCE_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeAppointment(data: ICreateAppointment) {
@@ -599,7 +600,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: OBSERVATION_UUID,
       'timeline_info.tag': tag,
-    });
+    }).sort({ createdAt: -1 });
   }
 
   public async storeObservations(data: ICreateObservation) {
@@ -611,7 +612,7 @@ export default class TimelineService {
       ? await Promise.all(data.medias.map(this.uploadPhoto))
       : [];
 
-    return AnimalTimeline.create({
+    const result = await AnimalTimeline.create({
       timeline_id: OBSERVATION_UUID,
       timeline_type: {
         description: timelineInfo.description,
@@ -629,6 +630,17 @@ export default class TimelineService {
         medias,
       },
     });
+
+    await connection.db.collection('timelines').updateOne(
+      {
+        _id: result._id,
+      },
+      {
+        $set: {
+          createdAt: data.createdAt?.toJSDate() ?? new Date(),
+        },
+      },
+    );
   }
 
   public async updateObservations(id: string, data: ICreateObservation) {

@@ -53,6 +53,7 @@ export const userBootstrap = async () => {
     state: '|STATE|',
     city: '|CITY|',
     postalCode: '|POSTAL_CODE|',
+    simple: true,
   });
 
   await business.related('unitConfig').create({

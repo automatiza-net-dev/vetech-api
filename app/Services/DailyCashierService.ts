@@ -347,6 +347,8 @@ export default class DailyCashierService {
 
     if (data.status) {
       query.where('status', data.status);
+    } else {
+      query.where('status', DailyCashierStatus.A);
     }
 
     if (data.from) {

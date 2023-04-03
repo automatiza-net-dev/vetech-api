@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import DocumentTemplate from 'App/Models/DocumentTemplate';
 import { DOCUMENT_UUID } from 'App/Models/TimelineType';
@@ -36,9 +37,10 @@ export default class DocumentTemplateService {
   public async show(unitId: string, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const template = await group
-      .related('documentTemplates')
-      .query()
+    const template = await DocumentTemplate.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .where('id', id)
       .first();
 
@@ -71,6 +73,14 @@ export default class DocumentTemplateService {
   public async update(unitId: string, id: string, data: IDocumentTemplateData) {
     const template = await this.show(unitId, id);
 
+    if (!template.economic_group_id) {
+      throw new BadRequestException(
+        'Não é possível editar um modelo padrão',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
     return template
       .merge({
         description: data.description,
@@ -84,6 +94,14 @@ export default class DocumentTemplateService {
 
   public async destroy(unitId: string, id: string) {
     const template = await this.show(unitId, id);
+
+    if (!template.economic_group_id) {
+      throw new BadRequestException(
+        'Não é possível editar um modelo padrão',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
 
     await template.softDelete();
   }

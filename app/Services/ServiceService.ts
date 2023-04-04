@@ -73,6 +73,7 @@ export default class ServiceService {
       id: service.id,
       description: service.description,
       referenceCode: service.referenceCode,
+      serviceCode: service.serviceCode,
       active: service.active,
       created_at: service.createdAt,
       subgroup: {

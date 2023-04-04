@@ -13,7 +13,7 @@ interface ISearch {
 export default class SpecieService {
   constructor(protected readonly sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch): Promise<Array<Specie>> {
+  async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Specie.query()
@@ -26,7 +26,11 @@ export default class SpecieService {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    return qb;
+    return (await qb).map(elem => ({
+      id: elem.id,
+      description: elem.description,
+      createdAt: elem.createdAt,
+    }));
   }
 
   async show(unitId: string, id: string): Promise<Specie> {

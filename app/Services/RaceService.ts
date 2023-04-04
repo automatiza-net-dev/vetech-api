@@ -15,7 +15,7 @@ interface ISearch {
 export default class RaceService {
   constructor(protected readonly sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch): Promise<Array<Race>> {
+  async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Race.query()
@@ -36,7 +36,18 @@ export default class RaceService {
       qb.where('fur', 'ilike', data.fur);
     }
 
-    return qb;
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      description: elem.description,
+      specie: {
+        id: elem.specie.id,
+        description: elem.specie.description,
+      },
+      fur: elem.fur,
+      createdAt: elem.createdAt,
+    }));
   }
 
   async show(unitId: string, id: string): Promise<Race> {

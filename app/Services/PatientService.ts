@@ -92,10 +92,7 @@ export default class PatientService {
     return qb;
   }
 
-  public async tutorsIndex(
-    unitId: string,
-    data: ISearchTutor,
-  ): Promise<Array<Patient>> {
+  public async tutorsIndex(unitId: string, data: ISearchTutor) {
     const group = await this.getEconomicGroup(unitId);
 
     const qb = group
@@ -133,26 +130,42 @@ export default class PatientService {
 
     const result = await qb;
 
-    return result.filter(model => {
-      if (data.document && !model.tutor) {
-        return false;
-      }
-      if (data.phone && !model.tutor) {
-        return false;
-      }
+    return result
+      .filter(model => {
+        if (data.document && !model.tutor) {
+          return false;
+        }
+        if (data.phone && !model.tutor) {
+          return false;
+        }
 
-      if (data.race && !model.patientAnimal.race) {
-        return false;
-      }
+        if (data.race && !model.patientAnimal.race) {
+          return false;
+        }
 
-      return true;
-    });
+        return true;
+      })
+      .map(elem => ({
+        id: elem.id,
+        name: elem.name,
+        email: elem.tutor.email,
+        tag: elem.tag,
+        cellphone: elem.tutor.cellphone,
+        dependents: elem.dependents.map(patient => ({
+          id: patient.id,
+          name: patient.name,
+          tag: patient.tag,
+          gender: patient.gender,
+          birthDate: patient.birthDate,
+          race: {
+            id: patient.patientAnimal.race.id,
+            description: patient.patientAnimal.race.description,
+          },
+        })),
+      }));
   }
 
-  public async supplierIndex(
-    unitId: string,
-    data: ISearchSupplier,
-  ): Promise<Array<Patient>> {
+  public async supplierIndex(unitId: string, data: ISearchSupplier) {
     const group = await this.getEconomicGroup(unitId);
 
     const qb = group
@@ -171,7 +184,18 @@ export default class PatientService {
       qb.where('name', 'ilike', `%${data.name}%`);
     }
 
-    return qb;
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      corporateName: elem.tutor.corporateName,
+      name: elem.name,
+      email: elem.tutor.email,
+      document: elem.tutor.document,
+      tag: elem.tag,
+      telephone: elem.tutor.telephone,
+      cellphone: elem.tutor.cellphone,
+    }));
   }
 
   public async animalsIndex(unitId: string, data: ISearchAnimals) {
@@ -252,11 +276,25 @@ export default class PatientService {
         return true;
       })
       .map(patient => {
-        const mapped = patient.tutors.map(t => {
-          return { ...t.toJSON(), is_main: Boolean(t.$extras.pivot_is_main) };
-        });
-
-        return { ...patient.toJSON(), tutors: mapped };
+        return {
+          id: patient.id,
+          name: patient.name,
+          tag: patient.tag,
+          gender: patient.gender,
+          birthDate: patient.birthDate,
+          race: {
+            id: patient.patientAnimal.race.id,
+            description: patient.patientAnimal.race.description,
+          },
+          tutors: patient.tutors.map(elem => ({
+            id: elem.id,
+            name: elem.name,
+            email: elem.tutor.email,
+            tag: elem.tag,
+            cellphone: elem.tutor.cellphone,
+            isMain: elem.$extras.pivot_is_main,
+          })),
+        };
       });
   }
 

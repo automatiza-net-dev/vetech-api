@@ -320,12 +320,7 @@ export default class BusinessUnitService {
     return user;
   }
 
-  public async getUserBusinessUnits(
-    user: User,
-    data: ISearchClinic,
-  ): Promise<Array<BusinessUnit>> {
-    console.log(data);
-
+  public async getUserBusinessUnits(user: User, data: ISearchClinic) {
     const qb = user
       .related('economicGroups')
       .query()
@@ -346,7 +341,17 @@ export default class BusinessUnitService {
 
     const entities = await qb;
 
-    return entities.map(ent => ent.businessUnits).flat();
+    return entities
+      .map(ent => ent.businessUnits)
+      .flat()
+      .map(elem => ({
+        id: elem.id,
+        identification: elem.identification,
+        document: elem.document,
+        fantasyName: elem.fantasyName,
+        companyName: elem.companyName,
+        phone: elem.phone,
+      }));
   }
 
   async searchUser(_: string, id: string) {

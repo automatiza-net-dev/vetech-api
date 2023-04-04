@@ -282,10 +282,7 @@ export default class PatientService {
           tag: patient.tag,
           gender: patient.gender,
           birthDate: patient.birthDate,
-          race: {
-            id: patient.patientAnimal.race.id,
-            description: patient.patientAnimal.race.description,
-          },
+          race: patient.patientAnimal.race,
           tutors: patient.tutors.map(elem => ({
             id: elem.id,
             name: elem.name,

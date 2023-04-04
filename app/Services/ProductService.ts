@@ -96,6 +96,7 @@ export default class ProductService {
       id: product.id,
       description: product.description,
       referenceCode: product.referenceCode,
+      purpose: product.purpose,
       active: product.active,
       created_at: product.createdAt,
       subgroup: {

@@ -15,9 +15,11 @@ export default class TaxationGroupService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = TaxationGroup.query().preload('rules');
-
-    qb.where('economic_group_id', group.id);
+    const qb = TaxationGroup.query()
+      .preload('rules')
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ]);
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -43,7 +45,9 @@ export default class TaxationGroupService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     const ent = await TaxationGroup.query()
-      .where('economic_group_id', group.id)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .where('id', id)
       .first();
 

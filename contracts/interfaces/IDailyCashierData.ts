@@ -11,6 +11,7 @@ export interface ICloseCashierData {
   userId: string;
   closingDate: DateTime;
   cashierTotal: number;
+  observations?: string;
 }
 
 export interface ICheckCashierData {

@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -172,6 +173,41 @@ test.group('Daily movement resource', group => {
       'E_DAILY_MOVEMENT_NOT_OPENED: Movimento diário não está aberto',
       response.body().message,
     );
+  });
+
+  test('should throw BadRequestException if daily movement has open daily cashier', async ({
+    assert,
+    client,
+  }) => {
+    const { user, business } = await createData();
+    const movement = await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now().minus({ seconds: 1 }),
+      status: DailyMovementStatus.F,
+    });
+
+    await movement.related('cashiers').create({
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now().minus({ seconds: 1 }),
+      status: DailyCashierStatus.A,
+    });
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/daily-movements/close/${movement.id}`)
+      .json({
+        userId: user.id,
+        closingDate: DateTime.now(),
+        observations: 'Test',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should close a daily movement', async ({ assert, client }) => {

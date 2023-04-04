@@ -11,6 +11,7 @@ export default class CloseDailyCashierValidator {
     ]),
     closingDate: schema.date(),
     cashierTotal: schema.number(),
+    observations: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import { DailyCashierEntryType } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import SharedService from 'App/Services/SharedService';
@@ -111,6 +112,17 @@ export default class DailyMovementService {
       .related('cashiers')
       .query()
       .preload('entries');
+
+    const hasOpenCashier = cashiers.some(
+      cashier => cashier.status === DailyCashierStatus.A,
+    );
+    if (hasOpenCashier) {
+      throw new BadRequestException(
+        'Existe um caixa aberto',
+        400,
+        'E_DAILY_CASHIER_OPENED',
+      );
+    }
 
     const expenses = cashiers
       .map(cashier =>

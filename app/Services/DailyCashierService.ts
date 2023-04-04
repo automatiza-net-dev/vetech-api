@@ -22,10 +22,17 @@ import { DateTime } from 'luxon';
 import BillPayment from '../Models/BillPayment';
 
 interface ISearch {
-  movement?: string;
+  tag?: string;
+  openingUser?: string;
   status?: string;
-  from?: string;
-  to?: string;
+  fromBalance?: string;
+  toBalance?: string;
+  fromOpening?: string;
+  toOpening?: string;
+  fromClosing?: string;
+  toClosing?: string;
+  fromChecking?: string;
+  toChecking?: string;
 }
 
 @inject()
@@ -226,10 +233,9 @@ export default class DailyCashierService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const bills = result.bills.map(b => b.id);
       const payments = await BillPayment.query()
         .useTransaction(trx)
-        .whereIn('bill_id', bills)
+        .where('daily_cashier_id', id)
         .preload('acquirer')
         .preload('flag')
         .preload('paymentMethod')
@@ -339,67 +345,99 @@ export default class DailyCashierService {
       .preload('userWhoChecked')
       .preload('entries');
 
-    if (data.movement) {
-      query.whereHas('dailyMovement', builder => {
-        builder.where('id', data.movement as string);
-      });
+    if (data.tag) {
+      query.where('tag', data.tag);
     }
 
+    if (data.openingUser) {
+      query.where('user_who_opened_id', data.openingUser);
+    }
+    if (data.fromBalance) {
+      query.where('cashier_balance', '>=', parseFloat(data.fromBalance));
+    }
+
+    if (data.toBalance) {
+      query.where('cashier_balance', '<=', parseFloat(data.toBalance));
+    }
     if (data.status) {
       query.where('status', data.status);
     } else {
       query.where('status', DailyCashierStatus.A);
     }
 
-    if (data.from) {
-      query.where('created_at', '>=', data.from);
+    if (data.fromOpening) {
+      query.where('opening_date', '>=', data.fromOpening);
     }
 
-    if (data.to) {
-      query.where('created_at', '<=', data.to);
+    if (data.toOpening) {
+      query.where('opening_date', '<=', data.toOpening);
+    }
+
+    if (data.fromClosing) {
+      query.where('closing_date', '>=', data.fromClosing);
+    }
+
+    if (data.toClosing) {
+      query.where('closing_date', '<=', data.toClosing);
+    }
+
+    if (data.fromChecking) {
+      query.where('checking_date', '>=', data.fromChecking);
+    }
+
+    if (data.toChecking) {
+      query.where('checking_date', '<=', data.toChecking);
     }
 
     return query;
   }
 
   async openDailyCashier(unitId: string, data: IOpenCashierData) {
-    // já validado no request, nunca vai "falhar"
-    const dailyMovement = await DailyMovement.findOrFail(data.dailyMovementId);
-
-    if (dailyMovement.status !== DailyMovementStatus.A) {
-      throw new BadRequestException(
-        'Movimento diário não está aberto',
-        400,
-        'E_DAILY_MOVEMENT_NOT_OPENED',
+    return Database.transaction(async trx => {
+      // já validado no request, nunca vai "falhar"
+      const dailyMovement = await DailyMovement.findOrFail(
+        data.dailyMovementId,
+        {
+          client: trx,
+        },
       );
-    }
 
-    const existingCashier = await dailyMovement
-      .related('cashiers')
-      .query()
-      .where('user_who_opened_id', data.userId)
-      .where('status', DailyCashierStatus.A)
-      .first();
+      if (dailyMovement.status !== DailyMovementStatus.A) {
+        throw new BadRequestException(
+          'Movimento diário não está aberto',
+          400,
+          'E_DAILY_MOVEMENT_NOT_OPENED',
+        );
+      }
 
-    if (existingCashier) {
-      throw new BadRequestException(
-        'Caixa já está aberto para este usuário',
-        400,
-        'E_DAILY_CASHIER_ALREADY_OPENED',
-      );
-    }
+      const existingCashier = await dailyMovement
+        .related('cashiers')
+        .query()
+        .useTransaction(trx)
+        .where('user_who_opened_id', data.userId)
+        .where('status', DailyCashierStatus.A)
+        .first();
 
-    const count = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .select(['id']);
+      if (existingCashier) {
+        throw new BadRequestException(
+          'Caixa já está aberto para este usuário',
+          400,
+          'E_DAILY_CASHIER_ALREADY_OPENED',
+        );
+      }
 
-    return dailyMovement.related('cashiers').create({
-      business_unit_id: unitId,
-      user_who_opened_id: data.userId,
-      openingDate: data.openingDate,
-      status: DailyCashierStatus.A,
-      tag: count.length + 1,
-      openingBalance: data.initialBalance,
+      const count = await DailyCashier.query()
+        .where('business_unit_id', unitId)
+        .select(['id']);
+
+      return dailyMovement.related('cashiers').create({
+        business_unit_id: unitId,
+        user_who_opened_id: data.userId,
+        openingDate: data.openingDate,
+        status: DailyCashierStatus.A,
+        tag: count.length + 1,
+        openingBalance: data.initialBalance,
+      });
     });
   }
 
@@ -463,6 +501,7 @@ export default class DailyCashierService {
         receiptsTotal,
         cashierTotal: data.cashierTotal,
         cashierBalance: data.cashierTotal - partial,
+        observations: data.observations,
       })
       .save();
   }

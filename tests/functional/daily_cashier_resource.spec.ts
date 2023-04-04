@@ -38,7 +38,21 @@ test.group('Daily cashier resource', group => {
       password: '102030',
     });
 
-    const response = await client.get('/daily-cashiers').bearerToken(token);
+    const urlParams = new URLSearchParams();
+    urlParams.append('tag', '1');
+    urlParams.append('openingUser', user.id);
+    urlParams.append('status', DailyCashierStatus.A);
+    urlParams.append('fromBalance', '100');
+    urlParams.append('toBalance', '100');
+    urlParams.append('fromOpening', DateTime.now().toISO());
+    urlParams.append('toOpening', DateTime.now().toISO());
+    urlParams.append('fromClosing', DateTime.now().toISO());
+    urlParams.append('toClosing', DateTime.now().toISO());
+    urlParams.append('fromChecking', DateTime.now().toISO());
+    urlParams.append('toChecking', DateTime.now().toISO());
+    const response = await client
+      .get(`/daily-cashiers?${urlParams.toString()}`)
+      .bearerToken(token);
 
     assert.equal(response.status(), 200);
   });

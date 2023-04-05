@@ -262,7 +262,7 @@ export default class TemplateReplacementService {
 
     return {
       ...patient.toJSON(),
-      ...patient.patientAnimal.toJSON(),
+      ...patient.patientAnimal?.toJSON(),
       gender: calculateGender(patient),
       hair: patient.patientAnimal?.hair?.description,
       race: patient.patientAnimal.race?.description,

@@ -34,7 +34,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """
-                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT '
+                        ssh -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             git pull origin master
                         '

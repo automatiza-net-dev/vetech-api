@@ -32,10 +32,10 @@ pipeline {
         }
         stage('Transfer Files') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """
                         ssh $USER@$HOST -p $PORT '
-                            cd '$FOLDER'
+                         cd '$FOLDER'
                             git pull origin master
                         '
                     """
@@ -44,7 +44,7 @@ pipeline {
         }
         stage('Install Modules') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
                         ssh $USER@$HOST -p $PORT'
                             cd '$FOLDER'
@@ -56,7 +56,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
                         ssh $USER@$HOST -p $PORT'
                             cd '$FOLDER'
@@ -69,7 +69,7 @@ pipeline {
         }
         stage('Run Migrations') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
                         ssh $USER@$HOST -p $PORT'
                             cd '$FOLDER'
@@ -82,7 +82,7 @@ pipeline {
         }
         stage('Restart') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
                         ssh $USER@$HOST -p $PORT'
                             pm2 restart '$APP'

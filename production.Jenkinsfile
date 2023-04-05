@@ -34,7 +34,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """
-                        ssh -oStrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
+                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             git pull origin master
                         '
@@ -46,7 +46,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """#!/bin/bash
-                        ssh -oStrictHostKeyChecking=no -tt $USER@$HOST -p $PORT'
+                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT'
                             cd '$FOLDER'
                             yarn
                         '
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """#!/bin/bash
-                        ssh -oStrictHostKeyChecking=no -tt $USER@$HOST -p $PORT'
+                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT'
                             cd '$FOLDER'
                             rm -rf dist
                             yarn build
@@ -71,7 +71,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """#!/bin/bash
-                        ssh -oStrictHostKeyChecking=no -tt $USER@$HOST -p $PORT'
+                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT'
                             cd '$FOLDER'
                             set NODE_ENV=production
                             npm run typeorm migration:run
@@ -84,7 +84,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """#!/bin/bash
-                        ssh -oStrictHostKeyChecking=no -tt $USER@$HOST -p $PORT'
+                        ssh -oStrictHostKeyChecking=no $USER@$HOST -p $PORT'
                             pm2 restart '$APP'
                         '
                     """

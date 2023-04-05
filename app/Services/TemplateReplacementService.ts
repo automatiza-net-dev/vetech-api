@@ -296,7 +296,8 @@ export default class TemplateReplacementService {
     const model = await User.query().where('id', id).firstOrFail();
     const related = {
       ...model.toJSON(),
-    };
+      treatment: 'Dr(a).',
+    } as unknown as User & { role?: string };
 
     if (unitId) {
       const userRole = await model

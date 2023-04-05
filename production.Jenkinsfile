@@ -34,7 +34,7 @@ pipeline {
             steps {
                 sshagent(['VETECH-PROD']) {
                     sh """
-                        ssh -tt $USER@$HOST '
+                        ssh $USER@$HOST '
                             cd '$FOLDER'
                             git pull origin master
                         '

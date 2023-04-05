@@ -74,7 +74,7 @@ pipeline {
                         ssh -tt $USER@$HOST -p $PORT'
                             cd '$FOLDER'
                             set NODE_ENV=production
-                            npm run typeorm migration:run
+                            node ace migration:run
                         '
                     """
                 }

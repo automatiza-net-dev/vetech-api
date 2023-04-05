@@ -36,7 +36,7 @@ pipeline {
                     sh """
                         ssh -tt $USER@$HOST -p $PORT '
                          cd '$FOLDER'
-                            git pull origin master
+                            git pull origin main
                         '
                     """
                 }

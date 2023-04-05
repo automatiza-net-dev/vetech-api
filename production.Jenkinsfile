@@ -62,6 +62,7 @@ pipeline {
                             cd '$FOLDER'
                             rm -rf dist
                             yarn build
+                            cp .env build/.env
                         '
                     """
                 }

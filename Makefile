@@ -1,0 +1,33 @@
+admin:
+	node ace db:seed --files "./database/seeders/Initial.ts"
+	
+initial:
+		node ace db:seed --files "./database/seeders/FiscalDocumentSeeder.ts"
+		node ace db:seed --files "./database/seeders/TimelineSeeder.ts"
+		node ace db:seed --files "./database/seeders/VariationSeeder.ts"
+		node ace db:seed --files "./database/seeders/OccurrenceSeeder.ts"
+		node ace db:seed --files "./database/seeders/BankSeeder.ts"
+		node ace db:seed --files "./database/seeders/TefSeeder.ts"
+		node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"
+		node ace db:seed --files "./database/seeders/ReasonSeeder.ts"
+		node ace db:seed --files "./database/seeders/Subgroup.ts"
+		node ace db:seed --files "./database/seeders/ServiceSchedule.ts"
+		node ace db:seed --files "./database/seeders/ScheduleServiceTypesSeeder.ts"
+		node ace db:seed --files "./database/seeders/ScheduleStatus.ts"
+		node ace db:seed --files "./database/seeders/ClientOrigin.ts"
+		node ace db:seed --files "./database/seeders/DocumentTemplateSeeder.ts"
+		node ace db:seed --files "./database/seeders/MedicalDocumentTemplateSeeder.ts"
+		node ace db:seed --files "./database/seeders/Species.ts"
+		node ace db:seed --files "./database/seeders/Race.ts"
+		node ace db:seed --files "./database/seeders/BrandSeeder.ts"
+		node ace db:seed --files "./database/seeders/PatientAnimalHairSeeder.ts"
+		node ace db:seed --files "./database/seeders/UnitSeeder.ts"
+		# node ace db:seed --files "./database/seeders/ProductsSeeder.ts"
+		node ace db:seed --files "./database/seeders/ServiceSeeder.ts"
+		node ace db:seed --files "./database/seeders/DrugAdministrationSeeder.ts"
+		node ace db:seed --files "./database/seeders/TemplateReplacementSeeder.ts"
+		node ace db:seed --files "./database/seeders/TaxOperationSeeder.ts"
+		node ace db:seed --files "./database/seeders/AccountPlanGroup.ts"
+		node ace db:seed --files "./database/seeders/AccountPlansSeeder.ts"
+		
+		

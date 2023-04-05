@@ -262,6 +262,7 @@ export default class TemplateReplacementService {
 
     return {
       ...patient.toJSON(),
+      ...patient.patientAnimal.toJSON(),
       gender: calculateGender(patient),
       hair: patient.patientAnimal?.hair?.description,
       race: patient.patientAnimal.race?.description,
@@ -275,6 +276,8 @@ export default class TemplateReplacementService {
             locale: Locales.ptBR,
           })
         : null,
+      castrated: patient.patientAnimal.castrated,
+      microchip: patient.patientAnimal.microchip,
     };
   }
 

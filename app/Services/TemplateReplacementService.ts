@@ -265,8 +265,8 @@ export default class TemplateReplacementService {
       ...patient.patientAnimal?.toJSON(),
       gender: calculateGender(patient),
       hair: patient.patientAnimal?.hair?.description,
-      race: patient.patientAnimal.race?.description,
-      specie: patient.patientAnimal.race?.specie?.description,
+      race: patient.patientAnimal?.race?.description,
+      specie: patient.patientAnimal?.race?.specie?.description,
       vaccinated: calculateVaccine(patient.vaccineOrigin),
       numeric_age: patient.birthDate
         ? differenceInYears(new Date(), patient.birthDate)
@@ -276,8 +276,8 @@ export default class TemplateReplacementService {
             locale: Locales.ptBR,
           })
         : null,
-      castrated: patient.patientAnimal.castrated,
-      microchip: patient.patientAnimal.microchip,
+      castrated: patient.patientAnimal?.castrated,
+      microchip: patient.patientAnimal?.microchip,
     };
   }
 

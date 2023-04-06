@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Pathology from 'App/Models/Pathology';
 import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IPathologyData from 'Contracts/interfaces/IPathologyData';
@@ -14,9 +15,11 @@ export default class PathologyService {
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const qb = group
-      .related('pathologies')
-      .query()
+
+    const qb = Pathology.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .preload('timelineType')
       .preload('group');
 
@@ -28,10 +31,8 @@ export default class PathologyService {
   }
 
   public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const entity = await group
-      .related('pathologies')
-      .query()
+    // const group = await this.sharedService.getUserGroup(unitId);
+    const entity = await Pathology.query()
       .preload('timelineType')
       .preload('group')
       .where('id', id)
@@ -62,6 +63,14 @@ export default class PathologyService {
   public async update(unitId: string, id: string, data: IPathologyData) {
     const entity = await this.show(unitId, id);
 
+    if (entity.economic_group_id) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
     return entity
       .merge({
         description: data.description,
@@ -74,6 +83,14 @@ export default class PathologyService {
 
   public async destroy(unitId: string, id: string) {
     const entity = await this.show(unitId, id);
+
+    if (entity.economic_group_id) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
 
     await entity.softDelete();
   }

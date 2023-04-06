@@ -5,10 +5,12 @@ pipeline {
         failure {
             updateGitlabCommitStatus name: 'build', state: 'failed'
             discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "🔴 $JOB_NAME - Falha", webhookURL: "${DISCORD_URL}"
+            discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "🔴 $JOB_NAME - Falha", webhookURL: "https://discord.com/api/webhooks/1093508379164553398/HCZ6NcU5T1dw9mgXw_YruUnNZl0g0Lqd-iB5k3GTcuaGBm8SacmU5hUBYsbySAm5QP00"
         }
         success {
             updateGitlabCommitStatus name: 'build', state: 'success'
             discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "✅ $JOB_NAME - Sucesso", webhookURL: "${DISCORD_URL}"
+            discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "✅ $JOB_NAME - Sucesso", webhookURL: "https://discord.com/api/webhooks/1093508379164553398/HCZ6NcU5T1dw9mgXw_YruUnNZl0g0Lqd-iB5k3GTcuaGBm8SacmU5hUBYsbySAm5QP00"
         }
         aborted {
             updateGitlabCommitStatus name: 'build', state: 'canceled'

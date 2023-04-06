@@ -49,6 +49,10 @@ export default class BusinessUnitService {
   public async store(user: User, data: ICreateBusinessUnit) {
     try {
       await Database.transaction(async trx => {
+        // const isValidDocument = await this.sharedService.validDocument(
+        //   data.document,
+        // );
+
         const economicGroups = await user
           .related('economicGroups')
           .query()

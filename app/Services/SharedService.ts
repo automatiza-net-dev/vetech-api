@@ -61,4 +61,11 @@ export default class SharedService {
 
     return Boolean(userRoles.find(r => roles.includes(r.role?.name)));
   }
+
+  public validDocument(document: string): boolean {
+    const re =
+      /([0-9]{2}[.]?[0-9]{3}[.]?[0-9]{3}[\/]?[0-9]{4}[-]?[0-9]{2})|([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}[-]?[0-9]{2})/;
+
+    return re.test(document);
+  }
 }

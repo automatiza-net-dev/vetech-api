@@ -1088,10 +1088,6 @@ export default class PatientService {
         .where('dependent_id', patient);
 
       // console.log(patientTutors.map(t => t.$extras));
-
-      const newMainTutor = patientTutors.find(
-        t => t.id !== tutor && !t.$extras.pivot_is_main,
-      );
       const oldMainTutor = patientTutors.find(
         t => t.id !== tutor && t.$extras.pivot_is_main,
       );

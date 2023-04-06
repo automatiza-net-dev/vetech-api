@@ -282,13 +282,13 @@ export default class PatientService {
           tag: patient.tag,
           gender: patient.gender,
           birthDate: patient.birthDate,
-          race: patient.patientAnimal.race,
+          race: patient.patientAnimal?.race,
           tutors: patient.tutors.map(elem => ({
             id: elem.id,
             name: elem.name,
-            email: elem.tutor.email,
+            email: elem.tutor?.email ?? '-',
             tag: elem.tag,
-            cellphone: elem.tutor.cellphone,
+            cellphone: elem.tutor?.cellphone ?? '-',
             isMain: elem.$extras.pivot_is_main,
           })),
         };

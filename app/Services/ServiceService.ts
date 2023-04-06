@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Exam from 'App/Models/Exam';
 import Product, { ProductType } from 'App/Models/Product';
 import SharedService from 'App/Services/SharedService';
 import IServiceData, {
@@ -166,11 +167,27 @@ export default class ServiceService {
           ncm: '00',
           variation_group_id: someUnitConfig?.service_variation_group_id,
           serviceCode: data.serviceCode,
+          serviceType: data.serviceType,
         },
         {
           client: trx,
         },
       );
+
+      if (data.serviceType === 'exam') {
+        await Exam.create(
+          {
+            product_id: service.id,
+            description: data.description,
+            economic_group_id: group.id,
+            ownLaboratory: false,
+            type: undefined,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
 
       const servVariation = await service.related('variations').create(
         {
@@ -209,20 +226,42 @@ export default class ServiceService {
     id: string,
     data: IUpdateService,
   ): Promise<Product> {
-    const service = await this.show(unitId, id);
+    return Database.transaction(async trx => {
+      const service = await this.show(unitId, id);
 
-    return service
-      .merge({
-        description: data.description,
-        referenceCode: data.referenceCode,
-        features: data.features,
-        unit_id: data.unitId,
-        active: data.active,
-        subgroup_id: data.subgroupId,
-        taxation_group_id: data.taxationGroupId,
-        serviceCode: data.serviceCode,
-      })
-      .save();
+      if (data.serviceType === 'exam') {
+        await Exam.firstOrCreate(
+          {
+            product_id: service.id,
+          },
+          {
+            description: data.description,
+            economic_group_id: service.economic_group_id,
+            product_id: service.id,
+            ownLaboratory: false,
+            type: undefined,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
+
+      return service
+        .merge({
+          description: data.description,
+          referenceCode: data.referenceCode,
+          features: data.features,
+          unit_id: data.unitId,
+          active: data.active,
+          subgroup_id: data.subgroupId,
+          taxation_group_id: data.taxationGroupId,
+          serviceCode: data.serviceCode,
+          serviceType: data.serviceType,
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   public async destroy(unitId: string, id: string): Promise<void> {

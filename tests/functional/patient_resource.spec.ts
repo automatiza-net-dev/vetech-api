@@ -35,6 +35,7 @@ test.group('Patient resource', group => {
     });
 
     const patient = await PatientFactory.create();
+    await patient.merge({ type: PatientType.ANIMAL }).save();
     await patient.related('patientAnimal').create({
       race_id: race.id,
       hair_id: hair.id,

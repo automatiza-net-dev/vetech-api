@@ -61,4 +61,9 @@ export default class Exam extends BaseModel {
 
   @belongsTo(() => Subgroup, {})
   public subgroup: BelongsTo<typeof Subgroup>;
+
+  @column({
+    serializeAs: null,
+  })
+  public product_id: string;
 }

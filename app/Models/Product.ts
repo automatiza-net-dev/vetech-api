@@ -43,6 +43,8 @@ export const ProductIcmsOrigin = [
   '8',
 ] as const;
 
+export const PServiceType = ['service', 'exam'] as const;
+
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -60,6 +62,11 @@ export default class Product extends BaseModel {
     columnName: 'reference_code',
   })
   public referenceCode: string;
+
+  @column({
+    columnName: 'service_type',
+  })
+  public serviceType: typeof PServiceType[number] | null;
 
   @column({
     columnName: 'collection_year',

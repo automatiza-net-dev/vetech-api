@@ -1092,6 +1092,9 @@ export default class PatientService {
       const newMainTutor = patientTutors.find(
         t => t.id !== tutor && !t.$extras.pivot_is_main,
       );
+      const oldMainTutor = patientTutors.find(
+        t => t.id !== tutor && t.$extras.pivot_is_main,
+      );
 
       const client = Database.connection();
 
@@ -1124,12 +1127,12 @@ export default class PatientService {
             name: user.name,
           },
           old_tutor: {
-            id: db_tutor?.id,
-            name: db_tutor?.name,
+            id: oldMainTutor?.id ?? null,
+            name: oldMainTutor?.name ?? null,
           },
           new_tutor: {
-            id: newMainTutor?.id ?? null,
-            name: newMainTutor?.name ?? null,
+            id: db_tutor?.id ?? null,
+            name: db_tutor?.name ?? null,
           },
         },
       });

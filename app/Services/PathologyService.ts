@@ -11,7 +11,7 @@ interface ISearch {
 
 @inject()
 export default class PathologyService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -30,7 +30,7 @@ export default class PathologyService {
     return qb;
   }
 
-  public async show(unitId: string, id: string) {
+  public async show(_: string, id: string) {
     // const group = await this.sharedService.getUserGroup(unitId);
     const entity = await Pathology.query()
       .preload('timelineType')

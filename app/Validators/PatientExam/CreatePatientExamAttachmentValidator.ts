@@ -6,7 +6,6 @@ export default class CreatePatientExamAttachmentValidator {
 
   public schema = schema.create({
     patientId: schema.string({}, [
-      rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
     realizedAt: schema.date(),

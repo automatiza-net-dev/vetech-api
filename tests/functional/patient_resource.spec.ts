@@ -432,7 +432,7 @@ test.group('Patient resource', group => {
         email: 'mail123123@mail.com',
         cellphone: '123',
         cityCode: 'some',
-        document: 'some document',
+        document: '97210938000178',
       } as IPatientSupplierData)
       .bearerToken(token);
 
@@ -478,7 +478,7 @@ test.group('Patient resource', group => {
         email: 'mail123123@mail.com',
         cellphone: '123',
         cityCode: 'some',
-        document: 'some document',
+        document: '09270350000142',
         active: true,
       } as IPatientSupplierData)
       .bearerToken(token);

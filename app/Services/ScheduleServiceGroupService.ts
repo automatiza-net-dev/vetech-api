@@ -41,7 +41,7 @@ export default class ScheduleServiceGroupService {
   }
 
   public async show(
-    user: User,
+    _: User,
     unitId: string,
     id: string,
   ): Promise<ScheduleServiceGroup> {

@@ -59,7 +59,7 @@ export default class VaccineService {
     });
   }
 
-  public async show(unitId: string, id: string, user: User) {
+  public async show(unitId: string, id: string, _: User) {
     const vaccine = await Vaccine.find(id);
 
     if (!vaccine) {

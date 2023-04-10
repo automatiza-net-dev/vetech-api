@@ -11,7 +11,7 @@ interface ISearch {
 
 @inject()
 export default class PathologyService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -61,9 +61,10 @@ export default class PathologyService {
   }
 
   public async update(unitId: string, id: string, data: IPathologyData) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const entity = await this.show(unitId, id);
 
-    if (entity.economic_group_id) {
+    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
       throw new ResourceNotFoundException(
         'Recurso não encontrado',
         404,
@@ -82,9 +83,10 @@ export default class PathologyService {
   }
 
   public async destroy(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const entity = await this.show(unitId, id);
 
-    if (entity.economic_group_id) {
+    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
       throw new ResourceNotFoundException(
         'Recurso não encontrado',
         404,

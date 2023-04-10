@@ -141,4 +141,11 @@ export default class BusinessUnitsController {
 
     return response.noContent();
   }
+
+  public async checkDocument({ params, response }: HttpContextContract) {
+    const { document } = params;
+    const result = await this.service.checkExistingDocument(document);
+
+    return response.ok(result);
+  }
 }

@@ -35,6 +35,7 @@ import UfIcms from 'App/Models/UfIcms';
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
 import VariationGroup from 'App/Models/VariationGroup';
+import SharedService from 'App/Services/SharedService';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IConfirmConfirmationToken,
@@ -61,6 +62,8 @@ interface ISearch {
 
 @inject()
 export default class UserService {
+  constructor(private sharedService: SharedService) {}
+
   public async index(data: ISearch): Promise<Array<User>> {
     const qb = User.query();
 
@@ -217,6 +220,23 @@ export default class UserService {
     return {
       exists: true,
       has_token: Boolean(token),
+    };
+  }
+
+  public async checkExistingDocument(document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const user = await User.findBy('document', document);
+
+    return {
+      valid: true,
+      exists: Boolean(user),
     };
   }
 

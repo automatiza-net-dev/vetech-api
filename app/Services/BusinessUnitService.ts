@@ -447,4 +447,21 @@ export default class BusinessUnitService {
       })),
     };
   }
+
+  public async checkExistingDocument(document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const doc = await BusinessUnit.findBy('document', document);
+
+    return {
+      valid: true,
+      exists: Boolean(doc),
+    };
+  }
 }

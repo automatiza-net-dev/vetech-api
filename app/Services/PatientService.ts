@@ -1225,6 +1225,30 @@ export default class PatientService {
     });
   }
 
+  public async checkExistingDocument(unitId: string, document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const group = await this.getEconomicGroup(unitId);
+    const db_doc = await group
+      .related('patients')
+      .query()
+      .whereHas('tutor', query => {
+        query.where('document', document);
+      })
+      .first();
+
+    return {
+      valid: true,
+      exists: Boolean(db_doc),
+    };
+  }
+
   private async getEconomicGroup(unitId: string) {
     const businessUnit = await BusinessUnit.findOrFail(unitId);
     return EconomicGroup.findOrFail(businessUnit.economicGroupId);

@@ -87,7 +87,7 @@ test.group('Business unit resource', group => {
       .post(`/business-units/`)
       .json({
         economic_group_id: economicGroup.id,
-        document: '123',
+        document: '81021647000100',
         email: 'mail@mail.com',
         stateRegistration: 'some',
         cityRegistration: 'some',
@@ -113,7 +113,7 @@ test.group('Business unit resource', group => {
     const response = await client
       .put(`/business-units/update-acquirer/${v4()}`)
       .json({
-        document: 'some',
+        document: '81021647000100',
         active: true,
       })
       .bearerToken(token);
@@ -135,14 +135,14 @@ test.group('Business unit resource', group => {
 
     const acq = await unit.related('acquirers').create({
       tef_acquirer_id: tefAcq.id,
-      document: '',
+      document: '81021647000100',
       active: true,
     });
 
     const response = await client
       .put(`/business-units/update-acquirer/${acq.id}`)
       .json({
-        document: 'some',
+        document: '81021647000100',
         active: true,
       })
       .bearerToken(token);
@@ -181,7 +181,7 @@ test.group('Business unit resource', group => {
 
     const acq = await unit.related('acquirers').create({
       tef_acquirer_id: tefAcq.id,
-      document: '',
+      document: '81021647000100',
       active: true,
     });
 
@@ -191,5 +191,50 @@ test.group('Business unit resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should return existing false for invalid document', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get(
+      `/business-units/check-document/invalid-email`,
+    );
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isFalse(body.valid);
+  });
+
+  test('should return existing true for valid document and false for in usage', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get(
+      `/business-units/check-document/74069759000167`,
+    );
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isFalse(body.exists);
+  });
+
+  test('should return existing true for valid document and true for in usage', async ({
+    client,
+    assert,
+  }) => {
+    await createBusinessUnit();
+    const response = await client.get(
+      `/business-units/check-document/45370407000149`,
+    );
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isTrue(body.exists);
   });
 });

@@ -65,11 +65,7 @@ export default class PathologyService {
     const entity = await this.show(unitId, id);
 
     if (entity.economic_group_id && entity.economic_group_id !== group.id) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw this.sharedService.SystemResource();
     }
 
     return entity
@@ -87,11 +83,7 @@ export default class PathologyService {
     const entity = await this.show(unitId, id);
 
     if (entity.economic_group_id && entity.economic_group_id !== group.id) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw this.sharedService.SystemResource();
     }
 
     await entity.softDelete();

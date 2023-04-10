@@ -45,7 +45,7 @@ export default class ScheduleServiceGroupService {
     unitId: string,
     id: string,
   ): Promise<ScheduleServiceGroup> {
-    const schedule = await ScheduleServiceGroup.find(id);
+    const model = await ScheduleServiceGroup.find(id);
 
     const exception = new ResourceNotFoundException(
       'Recurso não encontrado',
@@ -53,20 +53,18 @@ export default class ScheduleServiceGroupService {
       'E_NOT_FOUND',
     );
 
-    if (!schedule) throw exception;
+    if (!model) throw exception;
 
-    await schedule.load('types');
+    await model.load('types');
 
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
-    if (isSuperAdmin) {
-      return schedule;
+    if (!model.economic_group_id) {
+      return model;
     }
 
     const group = await this.sharedService.getUserGroup(unitId);
-    if (schedule?.economic_group_id !== group.id) throw exception;
+    if (model?.economic_group_id !== group.id) throw exception;
 
-    return schedule;
+    return model;
   }
 
   public async store(
@@ -92,14 +90,22 @@ export default class ScheduleServiceGroupService {
     id: string,
     data: IScheduleServiceGroupData,
   ): Promise<ScheduleServiceGroup> {
-    const schedule = await this.show(user, unitId, id);
+    const model = await this.show(user, unitId, id);
 
-    return schedule.merge(data).save();
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
+    return model.merge(data).save();
   }
 
   public async destroy(user: User, unitId: string, id: string): Promise<void> {
-    const schedule = await this.show(user, unitId, id);
+    const model = await this.show(user, unitId, id);
 
-    await schedule.softDelete();
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
+    await model.softDelete();
   }
 }

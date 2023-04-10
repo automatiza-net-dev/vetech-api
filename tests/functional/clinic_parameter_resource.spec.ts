@@ -12,11 +12,12 @@ test.group('Clinic parameter resource', group => {
   });
 
   const createData = async () => {
-    const { user } = await userBootstrap();
+    const { user, group } = await userBootstrap();
 
     const parameter = await ClinicParameter.create({
       name: 'some bed',
       tag: 'some tag',
+      economic_group_id: group.id,
     });
 
     return { user, parameter };

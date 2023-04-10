@@ -33,15 +33,10 @@ export default class SpecieService {
     }));
   }
 
-  async show(unitId: string, id: string): Promise<Specie> {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async show(_: string, id: string): Promise<Specie> {
     const specie = await Specie.find(id);
 
-    if (
-      !specie ||
-      (!!specie.economic_group_id && specie.economic_group_id !== group.id)
-    ) {
+    if (!specie) {
       throw new ResourceNotFoundException(
         'Espécie não foi encontrada',
         404,
@@ -66,13 +61,23 @@ export default class SpecieService {
     id: string,
     payload: ISpecieData,
   ): Promise<Specie> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const specie = await this.show(unitId, id);
+
+    if (specie.economic_group_id && specie.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return specie.merge(payload).save();
   }
 
   async destroy(unitId: string, id: string): Promise<void> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const specie = await this.show(unitId, id);
+
+    if (specie.economic_group_id && specie.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await specie.softDelete();
   }

@@ -32,8 +32,6 @@ export default class OccurrenceService {
   }
 
   public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     const qb = Occurrence.query().where('id', id);
 
     const ent = await qb.first();
@@ -42,7 +40,12 @@ export default class OccurrenceService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (ent?.economic_group_id !== group.id) {
+    if (!ent.economic_group_id) {
+      return ent;
+    }
+
+    const group = await this.sharedService.getUserGroup(unitId);
+    if (ent.economic_group_id !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
@@ -62,6 +65,10 @@ export default class OccurrenceService {
   public async update(unitId: string, id: string, data: IOccurrenceData) {
     const ent = await this.show(unitId, id);
 
+    if (!ent.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return ent
       .merge({
         description: data.description,
@@ -73,6 +80,10 @@ export default class OccurrenceService {
 
   public async destroy(unitId: string, id: string) {
     const ent = await this.show(unitId, id);
+
+    if (!ent.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await ent.softDelete();
   }

@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import DocumentTemplate from 'App/Models/DocumentTemplate';
 import { DOCUMENT_UUID } from 'App/Models/TimelineType';
@@ -74,11 +73,7 @@ export default class DocumentTemplateService {
     const template = await this.show(unitId, id);
 
     if (!template.economic_group_id) {
-      throw new BadRequestException(
-        'Não é possível editar um modelo padrão',
-        400,
-        'E_BAD_REQUEST',
-      );
+      throw this.sharedService.SystemResource();
     }
 
     return template
@@ -96,11 +91,7 @@ export default class DocumentTemplateService {
     const template = await this.show(unitId, id);
 
     if (!template.economic_group_id) {
-      throw new BadRequestException(
-        'Não é possível editar um modelo padrão',
-        400,
-        'E_BAD_REQUEST',
-      );
+      throw this.sharedService.SystemResource();
     }
 
     await template.softDelete();

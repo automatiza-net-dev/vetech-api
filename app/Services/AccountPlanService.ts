@@ -86,6 +86,10 @@ export default class AccountPlanService {
   async update(unitId: string, id: string, data: IAccountPlanData) {
     const model = await this.show(unitId, id);
 
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return model
       .merge({
         code: data.code,
@@ -100,6 +104,10 @@ export default class AccountPlanService {
 
   async destroy(unitId: string, id: string) {
     const model = await this.show(unitId, id);
+
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await model.softDelete();
   }

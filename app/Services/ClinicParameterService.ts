@@ -51,6 +51,10 @@ export default class ClinicParameterService {
   public async update(unitId: string, id: string, data: IClinicParameterData) {
     const entity = await this.show(unitId, id);
 
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return entity
       .merge({
         name: data.name,
@@ -62,6 +66,10 @@ export default class ClinicParameterService {
 
   public async destroy(unitId: string, id: string) {
     const entity = await this.show(unitId, id);
+
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return entity.delete();
   }

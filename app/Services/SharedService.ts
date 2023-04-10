@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
@@ -50,6 +51,14 @@ export default class SharedService {
 
   public ResourceNotFound(message = 'Recurso não encontrado') {
     return new ResourceNotFoundException(message, 404, 'E_NOT_FOUND');
+  }
+
+  public SystemResource() {
+    return new UnauthorizedException(
+      'Registro padrão do sistema. Não pode ser excluído nem alterado.',
+      400,
+      'E_SYSTEM',
+    );
   }
 
   public async userHasRoles(user: User, roles: string[]): Promise<boolean> {

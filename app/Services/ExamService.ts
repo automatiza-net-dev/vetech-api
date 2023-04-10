@@ -62,7 +62,7 @@ export default class ExamService {
     });
   }
 
-  public async show(unitId: string, id: string, user: User) {
+  public async show(unitId: string, id: string, _: User) {
     const exam = await Exam.find(id);
 
     if (!exam) {
@@ -73,20 +73,17 @@ export default class ExamService {
       );
     }
 
+    if (!exam.economic_group_id) {
+      return exam;
+    }
+
     const group = await this.sharedService.getUserGroup(unitId);
-
-    if (exam.economic_group_id) {
-      const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
-      if (!isSuperAdmin) {
-        if (group.id !== exam.economic_group_id) {
-          throw new ResourceNotFoundException(
-            'Exame não encontrada',
-            404,
-            'E_NOT_FOUND',
-          );
-        }
-      }
+    if (group.id !== exam.economic_group_id) {
+      throw new ResourceNotFoundException(
+        'Exame não encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
     }
 
     return exam;
@@ -94,6 +91,10 @@ export default class ExamService {
 
   public async update(unitId: string, user: User, id: string, data: IExamData) {
     const exam = await this.show(unitId, id, user);
+
+    if (!exam.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return exam
       .merge({
@@ -109,6 +110,10 @@ export default class ExamService {
 
   public async destroy(unitId: string, user: User, id: string) {
     const exam = await this.show(unitId, id, user);
+
+    if (!exam.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await exam.softDelete();
   }

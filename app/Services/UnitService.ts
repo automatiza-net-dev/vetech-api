@@ -47,8 +47,8 @@ export default class UnitService {
     });
   }
 
-  public async show(unitId: string, user: User, id: string) {
-    const isSudo = await this.sharedService.isSuperAdmin(user);
+  public async show(unitId: string, _: User, id: string) {
+    // const isSudo = await this.sharedService.isSuperAdmin(user);
     const group = await this.sharedService.getUserGroup(unitId);
     const unit = await Unit.find(id);
 
@@ -56,7 +56,11 @@ export default class UnitService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (!isSudo && unit.economic_group_id !== group.id) {
+    if (!unit.economic_group_id) {
+      return unit;
+    }
+
+    if (unit.economic_group_id !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
@@ -65,6 +69,10 @@ export default class UnitService {
 
   public async update(unitId: string, user: User, id: string, data: IUnitData) {
     const entity = await this.show(unitId, user, id);
+
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return entity
       .merge({
@@ -78,6 +86,10 @@ export default class UnitService {
 
   public async destroy(unitId: string, user: User, id: string) {
     const entity = await this.show(unitId, user, id);
+
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await entity.softDelete();
   }

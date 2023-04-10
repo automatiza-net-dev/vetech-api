@@ -29,5 +29,9 @@ initial:
 		node ace db:seed --files "./database/seeders/TaxOperationSeeder.ts"
 		node ace db:seed --files "./database/seeders/AccountPlanGroup.ts"
 		node ace db:seed --files "./database/seeders/AccountPlansSeeder.ts"
+		node ace db:seed --files "./database/seeders/ExamSeeder.ts"
+		node ace db:seed --files "./database/seeders/PathologySeeder.ts"
+		node ace db:seed --files "./database/seeders/VaccineSeeder.ts"
+		
 		
 		

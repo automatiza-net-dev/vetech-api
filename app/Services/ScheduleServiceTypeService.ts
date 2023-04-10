@@ -24,7 +24,7 @@ export default class ScheduleServiceTypeService {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
     const groupQb = ScheduleServiceGroup.query()
-      .where('description', 'like', `%${data.group ?? ''}%`)
+      .where('description', 'ilike', `%${data.group ?? ''}%`)
       .where('active', true);
 
     if (!isSuperAdmin) {

@@ -12,12 +12,13 @@ test.group('Pathology resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const pathology = await group.related('pathologies').create({
       description: 'any description',
       definition: 'any definition',
       timeline_type_id: PATHOLOGY_UUID,
+      system_id: system.id,
     });
 
     return { user, pathology };

@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import AccountPlan from 'App/Models/AccountPlan';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IAccountPlanData from 'Contracts/interfaces/IAccountPlanData';
 
 interface ISearch {
@@ -16,12 +16,10 @@ interface ISearch {
 export default class AccountPlanService {
   constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async index(authCtx: AuthContext, data: ISearch) {
     const qb = AccountPlan.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
+      [authCtx.group.id],
     );
 
     if (data.unit) {
@@ -54,23 +52,22 @@ export default class AccountPlanService {
     return qb;
   }
 
-  async store(unitId: string, data: Omit<IAccountPlanData, 'active'>) {
-    const unit = await this.sharedService.getBUnit(unitId);
-
+  async store(authCtx: AuthContext, data: Omit<IAccountPlanData, 'active'>) {
     return AccountPlan.create({
       code: data.code,
       description: data.description,
       type: data.type,
-      business_unit_id: unit.id,
-      economic_group_id: unit.economicGroupId,
+      business_unit_id: authCtx.unit.id,
+      economic_group_id: authCtx.group.id,
+      system_id: authCtx.system.id,
       account_plan_group_id: data.accountPlanGroupId,
       parent_id: data.parentId,
     });
   }
 
-  async show(unitId: string, id: string) {
+  async show(authCtx: AuthContext, id: string) {
     const qb = AccountPlan.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .where('id', id)
       .preload('parent');
 
@@ -83,8 +80,8 @@ export default class AccountPlanService {
     return model;
   }
 
-  async update(unitId: string, id: string, data: IAccountPlanData) {
-    const model = await this.show(unitId, id);
+  async update(authCtx: AuthContext, id: string, data: IAccountPlanData) {
+    const model = await this.show(authCtx, id);
 
     if (!model.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -102,8 +99,8 @@ export default class AccountPlanService {
       .save();
   }
 
-  async destroy(unitId: string, id: string) {
-    const model = await this.show(unitId, id);
+  async destroy(authCtx: AuthContext, id: string) {
+    const model = await this.show(authCtx, id);
 
     if (!model.economic_group_id) {
       throw this.sharedService.SystemResource();

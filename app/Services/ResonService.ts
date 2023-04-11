@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Reason from 'App/Models/Reason';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IReasonData from 'Contracts/interfaces/IReasonData';
 
 interface ISearch {
@@ -14,13 +14,12 @@ interface ISearch {
 export default class ReasonService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const qb = Reason.query().whereRaw(
-      '(economic_group_id is null or economic_group_id = ?)',
-      [group.id],
-    );
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = Reason.query()
+      .whereRaw('(economic_group_id is null or economic_group_id = ?)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
 
     if (data.reason) {
       qb.where('reason', 'ilike', `%${data.reason}%`);
@@ -41,14 +40,13 @@ export default class ReasonService {
     return qb;
   }
 
-  public async show(unitId: string, reasonId: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async show(authCtx: AuthContext, reasonId: string) {
     const reason = await Reason.query()
       .where('id', reasonId)
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!reason) {
@@ -58,43 +56,24 @@ export default class ReasonService {
     return reason;
   }
 
-  public async store(unitId: string, data: Omit<IReasonData, 'active'>) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(authCtx: AuthContext, data: Omit<IReasonData, 'active'>) {
     return Reason.create({
       reason: data.reason,
       type: data.type,
       requiresObservation: data.requiresObservation,
-      economicGroupId: group.id,
+      economicGroupId: authCtx.group.id,
+      system_id: authCtx.system.id,
     });
   }
 
-  public async update(unitId: string, reasonId: string, data: IReasonData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const reason = await Reason.query().where('id', reasonId).first();
-
-    if (!reason) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    if (!reason.economicGroupId) {
-      throw this.sharedService.SystemResource();
-    }
-
-    if (reason.economicGroupId !== group.id) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    return reason.merge(data).save();
-  }
-
-  public async destroy(unitId: string, reasonId: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async update(
+    authCtx: AuthContext,
+    reasonId: string,
+    data: IReasonData,
+  ) {
     const reason = await Reason.query()
       .where('id', reasonId)
-      .where('economic_group_id', group.id)
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!reason) {
@@ -105,8 +84,26 @@ export default class ReasonService {
       throw this.sharedService.SystemResource();
     }
 
-    if (reason.economicGroupId !== group.id) {
+    if (reason.economicGroupId !== authCtx.group.id) {
       throw this.sharedService.ResourceNotFound();
+    }
+
+    return reason.merge(data).save();
+  }
+
+  public async destroy(authCtx: AuthContext, reasonId: string) {
+    const reason = await Reason.query()
+      .where('id', reasonId)
+      .where('economic_group_id', authCtx.group.id)
+      .where('system_id', authCtx.system.id)
+      .first();
+
+    if (!reason) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (!reason.economicGroupId) {
+      throw this.sharedService.SystemResource();
     }
 
     await reason.softDelete();

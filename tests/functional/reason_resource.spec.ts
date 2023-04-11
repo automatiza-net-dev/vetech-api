@@ -12,13 +12,14 @@ test.group('Reason resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const reason = await Reason.create({
       reason: 'any reason',
       requiresObservation: true,
       type: 'RA',
       economicGroupId: group.id,
+      system_id: system.id,
     });
 
     return { user, reason };

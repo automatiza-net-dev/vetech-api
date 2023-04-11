@@ -18,13 +18,14 @@ test.group('Template replacement resource', group => {
   });
 
   const createData = async () => {
-    const { user, group: ecoGroup, business } = await userBootstrap();
+    const { user, group: ecoGroup, business, system } = await userBootstrap();
 
     const template = await TemplateReplacement.create({
       economic_group_id: ecoGroup.id,
       origin: TemplateReplacementOrigin.BUSINESS,
       attribute: 'SOME',
       replacer: '[[SOME_1]]',
+      system_id: system.id,
     });
 
     const tutor = await PatientFactory.create();

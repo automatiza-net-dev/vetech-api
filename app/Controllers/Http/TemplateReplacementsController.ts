@@ -14,23 +14,26 @@ export default class TemplateReplacementsController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const result = await this.service.index(unit_id, {
-      attribute: qs.attribute,
-      origin: qs.origin,
-      replacer: qs.replacer,
-    });
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      {
+        attribute: qs.attribute,
+        origin: qs.origin,
+        replacer: qs.replacer,
+      },
+    );
 
     return response.ok(result);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateTemplateReplacementValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, payload);
+    const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }
@@ -42,17 +45,21 @@ export default class TemplateReplacementsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateTemplateReplacementValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.update(unit_id, params.id, payload);
+    const result = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
     return response.ok(result);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.destroy(unit_id, params.id);
+    await this.service.destroy(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }
@@ -63,9 +70,11 @@ export default class TemplateReplacementsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(RenderTemplateReplacementValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.renderText(unit_id, payload);
+    const result = await this.service.renderText(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.ok({ result });
   }

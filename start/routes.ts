@@ -113,9 +113,18 @@ Route.group(() => {
   );
 }).prefix('business-units');
 
-Route.post('roles/add-permission', 'RolesController.addPermission');
-Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
-Route.resource('roles', 'RolesController').apiOnly();
+Route.post('roles/add-permission', 'RolesController.addPermission').middleware(
+  'auth',
+);
+Route.delete(
+  'roles/:id/:permission',
+  'RolesController.deletePermission',
+).middleware('auth');
+Route.resource('roles', 'RolesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
 
 Route.resource('permissions', 'PermissionsController')
   .apiOnly()

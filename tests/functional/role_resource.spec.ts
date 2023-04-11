@@ -2,9 +2,9 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Permission from 'App/Models/Permission';
 import Role from 'App/Models/Role';
-import PermissionFactory from 'Database/factories/PermissionFactory';
-import RoleFactory from 'Database/factories/RoleFactory';
 import { v4 } from 'uuid';
+
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Role resource', group => {
   group.each.setup(async () => {
@@ -12,15 +12,30 @@ test.group('Role resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createRole = async (): Promise<[Role, Permission]> => {
-    const model = await RoleFactory.create();
-    const model2 = await PermissionFactory.create();
+  const createData = async () => {
+    const { user, group, system } = await userBootstrap();
 
-    return [model, model2];
+    const permission = await Permission.create({
+      name: v4(),
+      system_id: system.id,
+    });
+
+    const role = await Role.create({
+      name: v4(),
+      system_id: system.id,
+    });
+
+    return { user, role, permission };
   };
 
   test('should return a list of all roles', async ({ client, assert }) => {
-    const response = await client.get('/roles');
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/roles').bearerToken(token);
 
     const roles = response.body();
 
@@ -28,9 +43,13 @@ test.group('Role resource', group => {
   });
 
   test('should return a role', async ({ client, assert }) => {
-    const [role] = await createRole();
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.get(`/roles/${role.id}`);
+    const response = await client.get(`/roles/${role.id}`).bearerToken(token);
 
     const body = response.body();
 
@@ -42,7 +61,13 @@ test.group('Role resource', group => {
     client,
     assert,
   }) => {
-    const response = await client.get(`/roles/1000000000`);
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/roles/-1`).bearerToken(token);
 
     const body = response.body();
 
@@ -53,19 +78,35 @@ test.group('Role resource', group => {
   });
 
   test('should create a new role', async ({ client, assert }) => {
-    const response = await client.post('/roles').json({
-      name: v4(),
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
+
+    const response = await client
+      .post('/roles')
+      .json({
+        name: v4(),
+      })
+      .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
   test('should update a role', async ({ client, assert }) => {
-    const [role] = await createRole();
-
-    const response = await client.put(`/roles/${role.id}`).json({
-      name: v4(),
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
+
+    const response = await client
+      .put(`/roles/${role.id}`)
+      .json({
+        name: v4(),
+      })
+      .bearerToken(token);
 
     const body = response.body();
 
@@ -74,33 +115,55 @@ test.group('Role resource', group => {
   });
 
   test('should delete a role', async ({ client, assert }) => {
-    const [role] = await createRole();
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.delete(`/roles/${role.id}`);
+    const response = await client
+      .delete(`/roles/${role.id}`)
+      .bearerToken(token);
 
     assert.equal(204, response.status());
   });
 
   test('should add a permission to a role', async ({ client, assert }) => {
-    const [role, permission] = await createRole();
-
-    const response = await client.post(`/roles/add-permission`).json({
-      role_id: role.id,
-      permission_id: permission.id,
+    const { user, role, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
+
+    const response = await client
+      .post(`/roles/add-permission`)
+      .json({
+        role_id: role.id,
+        permission_id: permission.id,
+      })
+      .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
   test('should remove a permission to a role', async ({ client, assert }) => {
-    const [role, permission] = await createRole();
-
-    await client.post(`/roles/add-permission`).json({
-      role_id: role.id,
-      permission_id: permission.id,
+    const { user, role, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
 
-    const response = await client.delete(`/roles/${role.id}/${permission.id}`);
+    await client
+      .post(`/roles/add-permission`)
+      .json({
+        role_id: role.id,
+        permission_id: permission.id,
+      })
+      .bearerToken(token);
+
+    const response = await client
+      .delete(`/roles/${role.id}/${permission.id}`)
+      .bearerToken(token);
     assert.equal(204, response.status());
   });
 });

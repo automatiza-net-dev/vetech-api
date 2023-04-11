@@ -24,6 +24,7 @@ import Plan from 'App/Models/Plan';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import Role from 'App/Models/Role';
 import Subgroup from 'App/Models/Subgroup';
+import System from 'App/Models/System';
 import {
   CompanyType,
   MovementCategory,
@@ -110,6 +111,8 @@ export default class UserService {
     }
 
     return Database.transaction(async trx => {
+      const system = await System.query().useTransaction(trx).first();
+
       const user = await User.create(data, {
         client: trx,
       });
@@ -122,6 +125,7 @@ export default class UserService {
           responsiblePhone: data.phone,
           companyName: `Grupo ${user.name}`,
           fantasyName: `Grupo ${user.name}`,
+          system_id: system?.id,
         },
         {},
         {

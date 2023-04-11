@@ -13,12 +13,13 @@ test.group('Account plan group resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const apg = await AccountPlanGroup.create({
       economic_group_id: group.id,
       description: 'some description',
       type: AccountPlanGroupType.A,
+      system_id: system.id,
     });
 
     return { user, apg };

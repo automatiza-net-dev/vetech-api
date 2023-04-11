@@ -13,10 +13,10 @@ export default class AccountPlanGroupsController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
     const qs = request.qs();
-    const data = await this.service.index(unit_id, {
+    const data = await this.service.index(authCtx, {
       description: qs.description,
       type: qs.type,
     });
@@ -26,16 +26,16 @@ export default class AccountPlanGroupsController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAccountPlanGroupValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-    const data = await this.service.store(unit_id, payload);
+    const data = await this.service.store(authCtx, payload);
 
     return response.created(data);
   }
 
   public async show({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const data = await this.service.show(unit_id, request.param('id'));
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    const data = await this.service.show(authCtx, request.param('id'));
 
     return response.ok(data);
   }
@@ -47,16 +47,16 @@ export default class AccountPlanGroupsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateAccountPlanGroupValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-    const data = await this.service.update(unit_id, params.id, payload);
+    const data = await this.service.update(authCtx, params.id, payload);
 
     return response.ok(data);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    await this.service.remove(unit_id, params.id);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    await this.service.remove(authCtx, params.id);
 
     return response.noContent();
   }

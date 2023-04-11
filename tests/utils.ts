@@ -1,6 +1,7 @@
 import { ApiClient } from '@japa/api-client';
 import { LicenceType } from 'App/Models/Licence';
 import Role from 'App/Models/Role';
+import System from 'App/Models/System';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
 import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
@@ -33,11 +34,16 @@ export const createSudo = async (): Promise<[Role]> => {
 export const userBootstrap = async () => {
   const user = await UserFactory.create();
 
+  const system = await System.create({
+    name: v4(),
+  });
+
   const group = await user.related('economicGroups').create({
     id: v4(),
     document: user.document,
     responsibleEmail: user.email,
     responsiblePhone: user.phone,
+    system_id: system.id,
   });
 
   const business = await group.related('businessUnits').create({
@@ -74,5 +80,5 @@ export const userBootstrap = async () => {
     unit_id: business.id,
   });
 
-  return { user, group, business, licence, role };
+  return { user, group, business, licence, role, system };
 };

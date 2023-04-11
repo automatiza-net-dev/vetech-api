@@ -3,6 +3,7 @@ import { LicenceType } from 'App/Models/Licence';
 import Permission from 'App/Models/Permission';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
+import System from 'App/Models/System';
 import User from 'App/Models/User';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
@@ -17,8 +18,18 @@ export default class extends BaseSeeder {
       },
     ]);
 
+    const defaultSystem = await System.firstOrCreate(
+      {
+        name: 'Default System',
+      },
+      {
+        name: 'Default System',
+      },
+    );
+
     const newGroup = await admin.related('economicGroups').create({
       id: v4(),
+      system_id: defaultSystem.id,
     });
 
     const newBusinessUnit = await newGroup.related('businessUnits').create({

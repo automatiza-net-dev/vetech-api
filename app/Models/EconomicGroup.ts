@@ -1,5 +1,7 @@
 import {
   BaseModel,
+  BelongsTo,
+  belongsTo,
   column,
   HasMany,
   hasMany,
@@ -19,6 +21,7 @@ import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 import Specie from 'App/Models/Specie';
 import Subgroup from 'App/Models/Subgroup';
+import System from 'App/Models/System';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -65,6 +68,17 @@ export default class EconomicGroup extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
+  @belongsTo(() => System, {
+    localKey: 'id',
+    foreignKey: 'system_id',
+  })
+  public system: BelongsTo<typeof System>;
 
   @hasMany(() => BusinessUnit, {})
   public businessUnits: HasMany<typeof BusinessUnit>;

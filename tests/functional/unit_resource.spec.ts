@@ -12,13 +12,14 @@ test.group('Unit resource', group => {
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const unit = await Unit.create({
       name: 'some unit',
       economic_group_id: group.id,
       tag: 'some tag',
       type: UnitType.PRODUCT,
+      system_id: system.id,
     });
 
     return { user, unit, group, business };

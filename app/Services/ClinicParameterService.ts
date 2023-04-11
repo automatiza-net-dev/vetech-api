@@ -1,35 +1,31 @@
 import { inject } from '@adonisjs/fold';
 import ClinicParameter from 'App/Models/ClinicParameter';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IClinicParameterData from 'Contracts/interfaces/IClinicParameterData';
 
 @inject()
 export default class ClinicParameterService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext) {
     return ClinicParameter.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-      [group.id],
+      [authCtx.group.id],
     );
   }
 
   public async store(
-    unitId: string,
+    authCtx: AuthContext,
     data: Omit<IClinicParameterData, 'active'>,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     return ClinicParameter.create({
       name: data.name,
       tag: data.tag,
-      economic_group_id: group.id,
+      economic_group_id: authCtx.group.id,
     });
   }
 
-  public async show(unitId: string, id: string) {
+  public async show(authCtx: AuthContext, id: string) {
     const ent = await ClinicParameter.find(id);
 
     if (!ent) {
@@ -40,16 +36,23 @@ export default class ClinicParameterService {
       return ent;
     }
 
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (ent.economic_group_id !== group.id) {
+    if (ent.system_id !== authCtx.system.id) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (ent.economic_group_id !== authCtx.group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
     return ent;
   }
 
-  public async update(unitId: string, id: string, data: IClinicParameterData) {
-    const entity = await this.show(unitId, id);
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IClinicParameterData,
+  ) {
+    const entity = await this.show(authCtx, id);
 
     if (!entity.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -64,11 +67,15 @@ export default class ClinicParameterService {
       .save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const entity = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const entity = await this.show(authCtx, id);
 
     if (!entity.economic_group_id) {
       throw this.sharedService.SystemResource();
+    }
+
+    if (entity.system_id !== authCtx.system.id) {
+      throw this.sharedService.ResourceNotFound();
     }
 
     return entity.delete();

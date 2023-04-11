@@ -1,8 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Permission from 'App/Models/Permission';
-import PermissionFactory from 'Database/factories/PermissionFactory';
 import { v4 } from 'uuid';
+
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Permission resource', group => {
   group.each.setup(async () => {
@@ -10,17 +11,28 @@ test.group('Permission resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createPermission = async (): Promise<[Permission]> => {
-    const model = await PermissionFactory.create();
+  const createData = async () => {
+    const { user, system } = await userBootstrap();
 
-    return [model];
+    const permission = await Permission.create({
+      name: v4(),
+      system_id: system.id,
+    });
+
+    return { user, permission };
   };
 
   test('should return a list of all permissions', async ({
     client,
     assert,
   }) => {
-    const response = await client.get('/permissions');
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/permissions').bearerToken(token);
 
     const permissions = response.body();
 
@@ -28,9 +40,15 @@ test.group('Permission resource', group => {
   });
 
   test('should return a permission', async ({ client, assert }) => {
-    const [permission] = await createPermission();
+    const { user, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.get(`/permissions/${permission.id}`);
+    const response = await client
+      .get(`/permissions/${permission.id}`)
+      .bearerToken(token);
 
     const responseBody = response.body();
 
@@ -38,18 +56,35 @@ test.group('Permission resource', group => {
   });
 
   test('should create a permission', async ({ client, assert }) => {
-    const response = await client.post('/permissions').json({
-      name: v4(),
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
+
+    const response = await client
+      .post('/permissions')
+      .json({
+        name: v4(),
+      })
+      .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
   test('update permission', async ({ client, assert }) => {
-    const [permission] = await createPermission();
-    const response = await client.put(`/permissions/${permission.id}`).json({
-      name: 'UPDATED',
+    const { user, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
     });
+
+    const response = await client
+      .put(`/permissions/${permission.id}`)
+      .json({
+        name: 'UPDATED',
+      })
+      .bearerToken(token);
 
     const updatedPermission = response.body();
 
@@ -58,9 +93,15 @@ test.group('Permission resource', group => {
   });
 
   test('should delete a permission', async ({ client, assert }) => {
-    const [permission] = await createPermission();
+    const { user, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
 
-    const response = await client.delete(`/permissions/${permission.id}`);
+    const response = await client
+      .delete(`/permissions/${permission.id}`)
+      .bearerToken(token);
 
     assert.equal(204, response.status());
   });

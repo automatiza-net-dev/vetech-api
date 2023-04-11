@@ -115,7 +115,11 @@ Route.post('roles/add-permission', 'RolesController.addPermission');
 Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
 Route.resource('roles', 'RolesController').apiOnly();
 
-Route.resource('permissions', 'PermissionsController').apiOnly();
+Route.resource('permissions', 'PermissionsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
 
 Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');

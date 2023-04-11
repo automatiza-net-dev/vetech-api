@@ -2,8 +2,7 @@ import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IScheduleServiceTypeData from 'Contracts/interfaces/IScheduleServiceTypeData';
 import { v4 } from 'uuid';
 
@@ -17,32 +16,22 @@ export default class ScheduleServiceTypeService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(
-    user: User,
-    unitId: string,
+    authCtx: AuthContext,
     data: ISearch,
   ): Promise<Array<ScheduleServiceType>> {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
     const groupQb = ScheduleServiceGroup.query()
       .where('description', 'ilike', `%${data.group ?? ''}%`)
-      .where('active', true);
-
-    if (!isSuperAdmin) {
-      const group = await this.sharedService.getUserGroup(unitId);
-      groupQb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
-      ]);
-    }
-
-    await groupQb.preload('types', qb => {
-      qb.where('description', 'ilike', `%${data.description ?? ''}%`).where(
-        'active',
-        true,
-      );
-
-      qb.preload('serviceGroup');
-      qb.preload('product');
-    });
+      .where('active', true)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id)
+      .preload('types', qb => {
+        qb.where('description', 'ilike', `%${data.description ?? ''}%`)
+          .where('active', true)
+          .preload('serviceGroup')
+          .preload('product');
+      });
 
     const result = await groupQb;
 
@@ -50,19 +39,12 @@ export default class ScheduleServiceTypeService {
   }
 
   public async show(
-    user: User,
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
   ): Promise<ScheduleServiceType> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
-    const qb = ScheduleServiceType.query().where('id', id);
-    if (!isSuperAdmin) {
-      qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
-      ]);
-    }
+    const qb = ScheduleServiceType.query()
+      .where('id', id)
+      .where('system_id', authCtx.system.id);
 
     const type = await qb.first();
     if (!type) {
@@ -77,18 +59,17 @@ export default class ScheduleServiceTypeService {
   }
 
   public async store(
-    _: User,
-    unitId: string,
+    authCtx: AuthContext,
     data: Omit<IScheduleServiceTypeData, 'active'>,
   ): Promise<ScheduleServiceType> {
-    const group = await this.sharedService.getUserGroup(unitId);
     const serviceGroup = await ScheduleServiceGroup.findOrFail(
       data.scheduleServiceGroupId,
     );
 
     return serviceGroup.related('types').create({
       id: v4(),
-      economic_group_id: group.id,
+      economic_group_id: authCtx.group.id,
+      system_id: authCtx.system.id,
       description: data.description,
       reservedMinutes: data.reservedMinutes,
       product_id: data.productId,
@@ -99,13 +80,14 @@ export default class ScheduleServiceTypeService {
   }
 
   public async update(
-    _: User,
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IScheduleServiceTypeData,
   ): Promise<ScheduleServiceType> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const schedule = await ScheduleServiceType.find(id);
+    const schedule = await ScheduleServiceType.query()
+      .where('id', id)
+      .where('system_id', authCtx.system.id)
+      .first();
 
     if (!schedule) {
       throw new ResourceNotFoundException(
@@ -115,7 +97,10 @@ export default class ScheduleServiceTypeService {
       );
     }
 
-    if (schedule.economic_group_id && schedule.economic_group_id !== group.id) {
+    if (
+      schedule.economic_group_id &&
+      schedule.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.SystemResource();
     }
 
@@ -132,9 +117,11 @@ export default class ScheduleServiceTypeService {
       .save();
   }
 
-  public async destroy(_: User, unitId: string, id: string): Promise<void> {
-    const schedule = await ScheduleServiceType.find(id);
-    const group = await this.sharedService.getUserGroup(unitId);
+  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    const schedule = await ScheduleServiceType.query()
+      .where('id', id)
+      .where('system_id', authCtx.system.id)
+      .first();
 
     if (!schedule) {
       throw new ResourceNotFoundException(
@@ -144,7 +131,10 @@ export default class ScheduleServiceTypeService {
       );
     }
 
-    if (schedule.economic_group_id && schedule.economic_group_id !== group.id) {
+    if (
+      schedule.economic_group_id &&
+      schedule.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.SystemResource();
     }
 

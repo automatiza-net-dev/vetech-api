@@ -19,11 +19,12 @@ test.group('Schedule service group resource', group => {
   const createData = async (): Promise<
     [User, EconomicGroup, ScheduleServiceGroup, BusinessUnit]
   > => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const schedule = await ScheduleServiceGroup.create({
       economic_group_id: group.id,
       description: 'some schedule',
+      system_id: system.id,
     });
 
     return [user, group, schedule, business];

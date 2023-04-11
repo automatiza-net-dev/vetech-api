@@ -1,8 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IScheduleServiceGroupData from 'Contracts/interfaces/IScheduleServiceGroupData';
 
 interface ISearch {
@@ -14,38 +13,32 @@ export default class ScheduleServiceGroupService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(
-    user: User,
-    unitId: string,
+    authCtx: AuthContext,
     data: ISearch,
   ): Promise<Array<ScheduleServiceGroup>> {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
     const qb = ScheduleServiceGroup.query()
       .preload('types')
-      .where('active', true);
+      .where('active', true)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ]);
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    if (isSuperAdmin) {
-      return qb;
-    }
-
-    const group = await this.sharedService.getUserGroup(unitId);
-    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-      group.id,
-    ]);
-
     return qb;
   }
 
   public async show(
-    _: User,
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
   ): Promise<ScheduleServiceGroup> {
-    const model = await ScheduleServiceGroup.find(id);
+    const model = await ScheduleServiceGroup.query()
+      .where('id', id)
+      .where('system_id', authCtx.system.id)
+      .preload('types')
+      .first();
 
     const exception = new ResourceNotFoundException(
       'Recurso não encontrado',
@@ -55,42 +48,27 @@ export default class ScheduleServiceGroupService {
 
     if (!model) throw exception;
 
-    await model.load('types');
-
-    if (!model.economic_group_id) {
-      return model;
-    }
-
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (model?.economic_group_id !== group.id) throw exception;
-
     return model;
   }
 
   public async store(
-    user: User,
-    unitId: string,
+    authCtx: AuthContext,
     data: Omit<IScheduleServiceGroupData, 'active'>,
   ): Promise<ScheduleServiceGroup> {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-    const group = isSuperAdmin
-      ? null
-      : await this.sharedService.getUserGroup(unitId);
-
     return ScheduleServiceGroup.create({
-      economic_group_id: group ? group.id : undefined,
+      economic_group_id: authCtx.group.id,
+      system_id: authCtx.system.id,
       description: data.description,
       type: data.type,
     });
   }
 
   public async update(
-    user: User,
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IScheduleServiceGroupData,
   ): Promise<ScheduleServiceGroup> {
-    const model = await this.show(user, unitId, id);
+    const model = await this.show(authCtx, id);
 
     if (!model.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -99,8 +77,8 @@ export default class ScheduleServiceGroupService {
     return model.merge(data).save();
   }
 
-  public async destroy(user: User, unitId: string, id: string): Promise<void> {
-    const model = await this.show(user, unitId, id);
+  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    const model = await this.show(authCtx, id);
 
     if (!model.economic_group_id) {
       throw this.sharedService.SystemResource();

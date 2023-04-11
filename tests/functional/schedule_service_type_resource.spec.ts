@@ -7,7 +7,7 @@ import ScheduleServiceGroup, {
 import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
-import { createSudo, generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Schedule service type resource', group => {
   group.each.setup(async () => {
@@ -16,12 +16,13 @@ test.group('Schedule service type resource', group => {
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const schedule = await ScheduleServiceGroup.create({
       economic_group_id: group.id,
       description: 'some schedule',
       type: ScheduleServiceGroupType.R,
+      system_id: system.id,
     });
 
     const groupType = await schedule.related('types').create({
@@ -31,6 +32,7 @@ test.group('Schedule service type resource', group => {
       reservedMinutes: 90,
       allowReturn: true,
       resume: 'some resume',
+      system_id: system.id,
     });
 
     const variationGroup = await group.related('variationGroups').create({
@@ -126,33 +128,6 @@ test.group('Schedule service type resource', group => {
     assert.equal('E_NOT_FOUND: Recurso não encontrado', body.message);
   });
 
-  test('should return group type for super admin', async ({
-    assert,
-    client,
-  }) => {
-    const { groupType } = await createData();
-    const { user: user2, business } = await createData();
-    const [sudoRole] = await createSudo();
-    await user2.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: business.id,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user2.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .get(`/schedule-service-types/${groupType.id}`)
-      .bearerToken(token);
-
-    const body = response.body();
-
-    assert.equal(200, response.status());
-    assert.equal(groupType.id, body.id);
-  });
-
   test('should throw ResourceNotFoundException if no schedule service type was found', async ({
     assert,
     client,
@@ -171,33 +146,6 @@ test.group('Schedule service type resource', group => {
 
     assert.equal(404, response.status());
     assert.equal('E_NOT_FOUND: Recurso não encontrado', body.message);
-  });
-
-  test('should return any schedule group type for super admin', async ({
-    assert,
-    client,
-  }) => {
-    const { groupType } = await createData();
-    const { user: user2, business: businessUnit } = await createData();
-    const [sudoRole] = await createSudo();
-    await user2.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: businessUnit.id,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user2.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .get(`/schedule-service-types/${groupType.id}`)
-      .bearerToken(token);
-
-    const body = response.body();
-
-    assert.equal(200, response.status());
-    assert.equal(groupType.id, body.id);
   });
 
   test('should return schedule service type', async ({ assert, client }) => {

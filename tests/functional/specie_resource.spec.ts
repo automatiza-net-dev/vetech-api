@@ -14,11 +14,12 @@ test.group('Specie resource', group => {
   });
 
   const createData = async (): Promise<[User, EconomicGroup, Specie]> => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const specie = await group.related('species').create({
       id: v4(),
       description: 'some specie',
+      system_id: system.id,
     });
 
     return [user, group, specie];

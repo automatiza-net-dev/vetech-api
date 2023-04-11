@@ -11,12 +11,13 @@ export default class PatientAnimalHairsController {
   ) {}
 
   public async index({ request, response, auth }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const result = await this.service.index(unit_id, {
-      description: qs.description,
-    });
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      {
+        description: qs.description,
+      },
+    );
 
     return response.ok(result);
   }

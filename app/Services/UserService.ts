@@ -403,6 +403,7 @@ export default class UserService {
       .whereNull('economic_group_id');
     const brands = await Brand.query()
       .useTransaction(trx)
+      .where('system_id', group.system_id)
       .whereNull('economic_group_id');
     const subgroups = await Subgroup.query()
       .useTransaction(trx)

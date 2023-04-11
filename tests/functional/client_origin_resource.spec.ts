@@ -12,12 +12,13 @@ test.group('Client origin resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const origin = await ClientOrigin.create({
       description: 'some description',
       type: ClientOriginType.C,
       economic_group_id: group.id,
+      system_id: system.id,
     });
 
     return { user, business, origin };

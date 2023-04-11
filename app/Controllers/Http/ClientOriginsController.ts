@@ -13,26 +13,31 @@ export default class ClientOriginsController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const search = request.qs();
-    const result = await this.service.index(unit_id, search);
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      search,
+    );
 
     return response.ok(result);
   }
 
   public async store({ request, response, auth }: HttpContextContract) {
     const data = await request.validate(CreateClientOriginValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const client = await this.service.store(unit_id, data);
+    const client = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.created(client);
   }
 
   public async show({ auth, response, params }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const client = await this.service.show(unit_id, params.id);
+    const client = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(client);
   }
@@ -44,16 +49,21 @@ export default class ClientOriginsController {
     params,
   }: HttpContextContract) {
     const data = await request.validate(UpdateClientOriginValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const client = await this.service.update(unit_id, params.id, data);
+    const client = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      data,
+    );
 
     return response.ok(client);
   }
 
   public async destroy({ auth, response, params }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    await this.service.destroy(unit_id, params.id);
+    await this.service.destroy(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

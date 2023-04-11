@@ -12,11 +12,12 @@ test.group('Drug administration resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const drug = await DrugAdministration.create({
       description: 'some description',
       economic_group_id: group.id,
+      system_id: system.id,
     });
 
     return { user, drug, business };

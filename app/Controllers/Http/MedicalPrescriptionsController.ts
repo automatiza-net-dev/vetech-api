@@ -15,17 +15,18 @@ export default class MedicalPrescriptionsController {
   ) {}
 
   public async index({ auth, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const result = await this.service.index(unit_id);
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+    );
 
     return response.ok(result);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const result = await this.service.show(unit_id, params.id);
+    const result = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(result);
   }
@@ -36,9 +37,11 @@ export default class MedicalPrescriptionsController {
 
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const result = await this.service.store(unit_id, payload, payload2);
+    const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+      payload2,
+    );
 
     return response.created(result);
   }
@@ -53,10 +56,8 @@ export default class MedicalPrescriptionsController {
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const result = await this.service.update(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       payload,
       payload2,
@@ -66,9 +67,10 @@ export default class MedicalPrescriptionsController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.delete(unit_id, params.id);
+    await this.service.delete(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

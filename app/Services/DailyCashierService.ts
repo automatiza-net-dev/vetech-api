@@ -328,7 +328,7 @@ export default class DailyCashierService {
             expiration_date: e.expirationDate,
             installments: e.installments,
             installment_value: e.installmentValue,
-            total_value: e.totalValue,
+            total_value: e.installmentValue * e.installments,
             nsu_document: e.nsuDocument,
           },
         })),

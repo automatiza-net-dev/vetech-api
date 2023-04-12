@@ -271,7 +271,7 @@ export default class DailyCashierService {
         user_who_checked_id: result.user_who_checked_id,
         checking_date: result.checkingDate,
         opening_balance: result.openingBalance,
-        cashier_funds: 0, // FIX
+        cashier_funds: result.cashierFunds,
         sales_total: parseFloat(result.salesTotal as unknown as string),
         expenses_total: parseFloat(result.expensesTotal as unknown as string),
         receipts_total: parseFloat(result.receiptsTotal as unknown as string),

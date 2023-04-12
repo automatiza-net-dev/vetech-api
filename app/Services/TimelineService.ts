@@ -680,7 +680,7 @@ export default class TimelineService {
     });
   }
 
-  private async uploadPhoto(file: MultipartFileContract): Promise<string> {
+  private async uploadPhoto(file: MultipartFileContract) {
     const key = `${v4()}.${file.extname}`;
     await file.moveToDisk(
       'timeline',
@@ -690,6 +690,11 @@ export default class TimelineService {
       'local',
     );
 
-    return Drive.getUrl(`timeline/${key}`);
+    const url = await Drive.getUrl(`timeline/${key}`);
+
+    return {
+      url,
+      filename: file.clientName,
+    };
   }
 }

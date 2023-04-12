@@ -461,14 +461,10 @@ export default class DailyCashierService {
 
     const entries = await dailyCashier.related('entries').query();
 
-    const bills = await dailyCashier
-      .related('bills')
-      .query()
-      .preload('payments');
+    const payments = await BillPayment.query().where('daily_cashier_id', id);
 
-    const salesSum = bills.reduce(
-      (total, bill) =>
-        total + bill.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+    const salesSum = payments.reduce(
+      (total, payment) => total + payment.totalValue,
       0,
     );
 

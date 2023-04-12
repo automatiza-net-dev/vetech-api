@@ -464,4 +464,16 @@ export default class BusinessUnitService {
       exists: Boolean(doc),
     };
   }
+
+  public async calculateStates(unitId: string) {
+    const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+
+    const egUnits = await BusinessUnit.query().where(
+      'economic_group_id',
+      unit.economicGroupId,
+    );
+
+    const states = egUnits.map(u => u.state);
+    return [...new Set(states)];
+  }
 }

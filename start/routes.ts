@@ -91,6 +91,7 @@ Route.group(() => {
     'auth',
   );
 
+  Route.get('/states', 'BusinessUnitsController.states').middleware('auth');
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 

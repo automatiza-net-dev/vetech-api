@@ -17,6 +17,11 @@ export default class BusinessUnitsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async states({ response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    return response.ok(await this.service.calculateStates(unit_id));
+  }
+
   public async index({ request, response }: HttpContextContract) {
     const qs = request.qs();
     return response.ok(

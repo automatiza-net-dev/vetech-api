@@ -66,6 +66,22 @@ test.group('Business unit resource', group => {
     assert.isArray(userList);
   });
 
+  test('should return a list of states', async ({ client, assert }) => {
+    const [_, __, user] = await createBusinessUnit();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/business-units/states`)
+      .bearerToken(token);
+
+    const userList = response.body();
+
+    assert.isArray(userList);
+  });
+
   test('should return a list of business units from logged user', async ({
     client,
     assert,

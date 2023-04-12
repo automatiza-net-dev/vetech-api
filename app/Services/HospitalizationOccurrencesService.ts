@@ -78,25 +78,25 @@ export default class HospitalizationOccurrencesService {
         client: trx,
       });
 
-      await HospitalizationTimeline.create({
-        meta: {
-          hospitalization: hospitalization.id,
-          group: group.id,
-          unit: unitId,
-          origin: 'occurrence',
-        },
-        data: {
-          realizedAt: data.executedAt,
-          issuedAt: DateTime.now(),
-          technician: {
-            id: user.id,
-            name: user.name,
-          },
-          description: data.description,
-          resume: data.resume,
-          attachments: hospAttachments.map(a => a.attachment),
-        },
-      });
+      // await HospitalizationTimeline.create({
+      //   meta: {
+      //     hospitalization: hospitalization.id,
+      //     group: group.id,
+      //     unit: unitId,
+      //     origin: 'occurrence',
+      //   },
+      //   data: {
+      //     realizedAt: data.executedAt,
+      //     issuedAt: DateTime.now(),
+      //     technician: {
+      //       id: user.id,
+      //       name: user.name,
+      //     },
+      //     description: data.description,
+      //     resume: data.resume,
+      //     attachments: hospAttachments.map(a => a.attachment),
+      //   },
+      // });
 
       if (occurrence.type === OccurrenceType.OCORRENCIA) {
         await HospitalizationTimeline.create({
@@ -243,24 +243,6 @@ export default class HospitalizationOccurrencesService {
           client: trx,
         });
 
-        // await HospitalizationTimeline.create({
-        //   meta: {
-        //     hospitalization: hospitalization.id,
-        //     group: group.id,
-        //     unit: unitId,
-        //     origin: 'occurrence',
-        //   },
-        //   type: HospitalizationType[hospitalization.type],
-        //   hospitalizedAt: hospitalization.createdAt,
-        //   realizedAt: data.executedAt,
-        //   issuedAt: DateTime.now(),
-        //   technician: {
-        //     id: user.id,
-        //     name: user.name,
-        //   },
-        //   attachments: hospAttachments.map(a => a.attachment),
-        // });
-
         await AnimalTimeline.create({
           timeline_id: ATTENDANCE_UUID,
           timeline_type: {
@@ -281,38 +263,6 @@ export default class HospitalizationOccurrencesService {
           },
         });
       }
-
-      // const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID, {
-      //   client: trx,
-      // });
-
-      // await AnimalTimeline.create({
-      //   timeline_id: HOSPITALIZATION_UUID,
-      //   timeline_type: {
-      //     description: timelineInfo.description,
-      //     color: timelineInfo.color,
-      //     requires_observation: timelineInfo.requiresObservation,
-      //   },
-      //   timeline_info: {
-      //     tag: hospitalization.id,
-      //     hospitalization: {
-      //       id: hospitalization.id,
-      //       type: hospitalization.type,
-      //     },
-      //     complaint: hospitalization.complaint,
-      //     bed: {
-      //       id: hospitalization.bed?.id,
-      //       name: hospitalization.bed?.name,
-      //       tag: hospitalization.bed?.tag,
-      //     },
-      //     hospitalizedAt: hospitalization.createdAt,
-      //     completedAt: DateTime.now(),
-      //     technician: {
-      //       id: user.id,
-      //       name: user.name,
-      //     },
-      //   },
-      // });
 
       return ent;
     });

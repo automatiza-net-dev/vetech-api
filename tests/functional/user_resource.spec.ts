@@ -266,4 +266,43 @@ test.group('User resource', group => {
 
     Mail.restore();
   });
+
+  test('should return existing false for invalid document', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get(`/users/check-document/invalid-email`);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isFalse(body.valid);
+  });
+
+  test('should return existing true for valid document and false for in usage', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get(`/users/check-document/74069759000167`);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isFalse(body.exists);
+  });
+
+  test('should return existing true for valid document and true for in usage', async ({
+    client,
+    assert,
+  }) => {
+    const [user] = await createUser();
+    const response = await client.get(`/users/check-document/${user.document}`);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isTrue(body.exists);
+  });
 });

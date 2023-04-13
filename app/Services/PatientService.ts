@@ -18,6 +18,7 @@ import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import SharedService from 'App/Services/SharedService';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData, {
   IFastStorePatient,
@@ -60,6 +61,8 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
+  constructor(private readonly sharedService: SharedService) {}
+
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
 
@@ -282,13 +285,13 @@ export default class PatientService {
           tag: patient.tag,
           gender: patient.gender,
           birthDate: patient.birthDate,
-          race: patient.patientAnimal.race,
+          race: patient.patientAnimal?.race,
           tutors: patient.tutors.map(elem => ({
             id: elem.id,
             name: elem.name,
-            email: elem.tutor.email,
+            email: elem.tutor?.email ?? '-',
             tag: elem.tag,
-            cellphone: elem.tutor.cellphone,
+            cellphone: elem.tutor?.cellphone ?? '-',
             isMain: elem.$extras.pivot_is_main,
           })),
         };
@@ -640,18 +643,41 @@ export default class PatientService {
     data: Omit<IPatientTutorData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
+    return Database.transaction(async trx => {
+      if (data.document) {
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
 
-    const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
+        const document = await group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .whereHas('tutor', query => {
+            query.where('document', data.document ?? '');
+          })
+          .first();
+        if (document) {
+          throw new BadRequestException(
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Tutor "${data.name}"`,
+            400,
+            'E_DOCUMENT_ALREADY_REGISTERED',
+          );
+        }
+      }
 
-    const tutors = await group
-      .related('patients')
-      .query()
-      .where('type', PatientType.TUTOR)
-      .select('id');
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-    const trx = await Database.transaction();
+      const tutors = await group
+        .related('patients')
+        .query()
+        .where('type', PatientType.TUTOR)
+        .select('id');
 
-    try {
       const patient = await Patient.create(
         {
           name: data.name,
@@ -665,42 +691,36 @@ export default class PatientService {
         { client: trx },
       );
 
-      await patient.related('tutor').create({
-        residence: data.residence,
-        document: data.document,
-        inscription: data.inscription,
-        corporateName: data.corporate_name,
-        email: data.email,
-        cellphone: data.cellphone,
-        telephone: data.telephone,
-        messagePersonName: data.message_person_name,
-        messagePersonPhone: data.message_person_phone,
-        postalCode: data.postal_code,
-        street: data.street,
-        number: data.number,
-        complement: data.complement,
-        district: data.district,
-        city: data.city,
-        state: data.state,
-        client_origin_id: data.clientOriginId,
-        cityCode: data.cityCode,
-      });
+      await patient.related('tutor').create(
+        {
+          residence: data.residence,
+          document: data.document,
+          inscription: data.inscription,
+          corporateName: data.corporate_name,
+          email: data.email,
+          cellphone: data.cellphone,
+          telephone: data.telephone,
+          messagePersonName: data.message_person_name,
+          messagePersonPhone: data.message_person_phone,
+          postalCode: data.postal_code,
+          street: data.street,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          client_origin_id: data.clientOriginId,
+          cityCode: data.cityCode,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await group.related('patients').attach([patient.id], trx);
 
-      await trx.commit();
-
       return patient;
-    } catch (e) {
-      Logger.error(e.message);
-      await trx.rollback();
-
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    });
   }
 
   public async assignPatientTutor(_: string, data: IAssignPatientTutor) {
@@ -729,6 +749,32 @@ export default class PatientService {
     const group = await this.getEconomicGroup(unitId);
 
     return Database.transaction(async trx => {
+      if (data.document) {
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+
+        const document = await group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .whereHas('tutor', query => {
+            query.where('document', data.document ?? '');
+          })
+          .first();
+        if (document) {
+          throw new BadRequestException(
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Fornecedor "${data.name}"`,
+            400,
+            'E_DOCUMENT_ALREADY_REGISTERED',
+          );
+        }
+      }
+
       const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
       const supplier = await group
@@ -895,23 +941,50 @@ export default class PatientService {
   }
 
   public async updateTutor(
-    _: string,
+    unitId: string,
     id: string,
     data: IPatientTutorData,
   ): Promise<Patient> {
-    const tutor = await Patient.query()
-      .where('id', id)
-      .where('type', PatientType.TUTOR)
-      .preload('tutor')
-      .first();
+    const group = await this.getEconomicGroup(unitId);
 
-    if (!tutor) {
-      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
-    }
+    return Database.transaction(async trx => {
+      const tutor = await Patient.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('type', PatientType.TUTOR)
+        .preload('tutor')
+        .first();
 
-    const trx = await Database.transaction();
+      if (!tutor) {
+        throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+      }
 
-    try {
+      if (data.document && data.document !== tutor.tutor.document) {
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+
+        const document = await group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .whereHas('tutor', query => {
+            query.where('document', data.document ?? '');
+          })
+          .first();
+        if (document) {
+          throw new BadRequestException(
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Tutor "${data.name}"`,
+            400,
+            'E_DOCUMENT_ALREADY_REGISTERED',
+          );
+        }
+      }
+
       const photo = data.photo
         ? await this.uploadPhoto(data.photo)
         : tutor.photo;
@@ -952,26 +1025,17 @@ export default class PatientService {
         .useTransaction(trx)
         .save();
 
-      await trx.commit();
-
       return tutor;
-    } catch (e) {
-      Logger.error(e.message);
-      await trx.rollback();
-
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
+    });
   }
 
   public async updateSupplier(
-    _: string,
+    unitId: string,
     id: string,
     data: IPatientSupplierData,
   ): Promise<Patient> {
+    const group = await this.getEconomicGroup(unitId);
+
     return Database.transaction(async trx => {
       const supplier = await Patient.query()
         .useTransaction(trx)
@@ -986,6 +1050,32 @@ export default class PatientService {
           400,
           'E_BAD_REQUEST',
         );
+      }
+
+      if (data.document && data.document !== supplier.tutor.document) {
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+
+        const document = await group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .whereHas('tutor', query => {
+            query.where('document', data.document ?? '');
+          })
+          .first();
+        if (document) {
+          throw new BadRequestException(
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Forcenedor "${data.name}"`,
+            400,
+            'E_DOCUMENT_ALREADY_REGISTERED',
+          );
+        }
       }
 
       const photo = data.photo
@@ -1088,9 +1178,8 @@ export default class PatientService {
         .where('dependent_id', patient);
 
       // console.log(patientTutors.map(t => t.$extras));
-
-      const newMainTutor = patientTutors.find(
-        t => t.id !== tutor && !t.$extras.pivot_is_main,
+      const oldMainTutor = patientTutors.find(
+        t => t.id !== tutor && t.$extras.pivot_is_main,
       );
 
       const client = Database.connection();
@@ -1124,16 +1213,40 @@ export default class PatientService {
             name: user.name,
           },
           old_tutor: {
-            id: db_tutor?.id,
-            name: db_tutor?.name,
+            id: oldMainTutor?.id ?? null,
+            name: oldMainTutor?.name ?? null,
           },
           new_tutor: {
-            id: newMainTutor?.id ?? null,
-            name: newMainTutor?.name ?? null,
+            id: db_tutor?.id ?? null,
+            name: db_tutor?.name ?? null,
           },
         },
       });
     });
+  }
+
+  public async checkExistingDocument(unitId: string, document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const group = await this.getEconomicGroup(unitId);
+    const db_doc = await group
+      .related('patients')
+      .query()
+      .whereHas('tutor', query => {
+        query.where('document', document);
+      })
+      .first();
+
+    return {
+      valid: true,
+      exists: Boolean(db_doc),
+    };
   }
 
   private async getEconomicGroup(unitId: string) {

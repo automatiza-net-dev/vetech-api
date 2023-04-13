@@ -39,6 +39,13 @@ export default class UsersController {
     return response.ok(result);
   }
 
+  public async checkDocument({ params, response }: HttpContextContract) {
+    const { document } = params;
+    const result = await this.service.checkExistingDocument(document);
+
+    return response.ok(result);
+  }
+
   public async resendConfirmationToken({
     params,
     response,

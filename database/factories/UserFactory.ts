@@ -6,7 +6,7 @@ export default Factory.define(User, ({ faker }) => {
     name: faker.name.firstName(),
     email: faker.internet.email(),
     password: '102030',
-    document: '123456789',
+    document: '22463560000115',
     phone: '|PHONE|',
     licensingJob: 'Veterinário',
   };

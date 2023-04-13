@@ -180,6 +180,11 @@ export default class extends BaseSeeder {
     },
     {
       origin: TemplateReplacementOrigin.USER,
+      attribute: 'treatment',
+      replacer: '[USUARIO_TRATAMENTO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.USER,
       attribute: 'role',
       replacer: '[USUARIO_CARGO]',
     },

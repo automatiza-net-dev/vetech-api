@@ -51,14 +51,9 @@ export default class RaceService {
   }
 
   async show(unitId: string, id: string): Promise<Race> {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     const race = await Race.find(id);
 
-    if (
-      !race ||
-      (!!race.economic_group_id && race.economic_group_id !== group.id)
-    ) {
+    if (!race) {
       throw new ResourceNotFoundException(
         'Raça não foi encontrada',
         404,
@@ -67,6 +62,18 @@ export default class RaceService {
     }
 
     await race.load('specie');
+    if (!race.economic_group_id) {
+      return race;
+    }
+
+    const group = await this.sharedService.getUserGroup(unitId);
+    if (race.economic_group_id !== group.id) {
+      throw new ResourceNotFoundException(
+        'Raça não foi encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
 
     return race;
   }
@@ -96,13 +103,23 @@ export default class RaceService {
   }
 
   async update(unitId: string, id: string, payload: IRaceData): Promise<Race> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const race = await this.show(unitId, id);
+
+    if (race.economic_group_id && race.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return race.merge(payload).save();
   }
 
   async destroy(unitId: string, id: string): Promise<void> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const race = await this.show(unitId, id);
+
+    if (race.economic_group_id && race.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await race.softDelete();
   }

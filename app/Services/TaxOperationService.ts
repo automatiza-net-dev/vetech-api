@@ -95,6 +95,10 @@ export default class TaxOperationService {
   ) {
     const tax = await this.show(unitId, user, id);
 
+    if (!tax.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     tax.merge(data);
 
     return tax.save();
@@ -102,6 +106,10 @@ export default class TaxOperationService {
 
   public async destroy(unitId: string, user: User, id: string) {
     const tax = await this.show(unitId, user, id);
+
+    if (!tax.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return tax.softDelete();
   }

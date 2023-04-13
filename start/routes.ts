@@ -36,6 +36,7 @@ Route.group(() => {
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');
   Route.get('/check-email/:email', 'UsersController.checkEmail');
+  Route.get('/check-document/:document', 'UsersController.checkDocument');
   Route.get(
     '/resend-confirmation/:email',
     'UsersController.resendConfirmationToken',
@@ -73,6 +74,11 @@ Route.group(() => {
 }).prefix('economic-groups');
 
 Route.group(() => {
+  Route.get(
+    '/check-document/:document',
+    'BusinessUnitsController.checkDocument',
+  );
+
   Route.get('/users', 'BusinessUnitsController.users').middleware('auth');
   Route.get('/user/:id', 'BusinessUnitsController.searchUser').middleware(
     'auth',
@@ -85,6 +91,7 @@ Route.group(() => {
     'auth',
   );
 
+  Route.get('/states', 'BusinessUnitsController.states').middleware('auth');
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 
@@ -136,6 +143,7 @@ Route.group(() => {
 }).prefix('invites');
 
 Route.group(() => {
+  Route.get('/check-document/:document', 'PatientsController.checkDocument');
   Route.get('/search', 'PatientsController.search');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');

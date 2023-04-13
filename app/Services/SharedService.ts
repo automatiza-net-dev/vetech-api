@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import User from 'App/Models/User';
@@ -52,6 +53,14 @@ export default class SharedService {
     return new ResourceNotFoundException(message, 404, 'E_NOT_FOUND');
   }
 
+  public SystemResource() {
+    return new UnauthorizedException(
+      'Registro padrão do sistema. Não pode ser excluído nem alterado.',
+      400,
+      'E_SYSTEM',
+    );
+  }
+
   public async userHasRoles(user: User, roles: string[]): Promise<boolean> {
     const userRoles = await user
       .related('roles')
@@ -60,5 +69,12 @@ export default class SharedService {
       .preload('role');
 
     return Boolean(userRoles.find(r => roles.includes(r.role?.name)));
+  }
+
+  public validDocument(document: string): boolean {
+    const re =
+      /([0-9]{2}[.]?[0-9]{3}[.]?[0-9]{3}[\/]?[0-9]{4}[-]?[0-9]{2})|([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}[-]?[0-9]{2})/;
+
+    return re.test(document);
   }
 }

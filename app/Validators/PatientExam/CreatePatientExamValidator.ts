@@ -8,20 +8,14 @@ export default class CreatePatientExamValidator {
     realizedAt: schema.date.optional(),
     laboratory: schema.string.optional(),
     report: schema.string(),
-    examId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'exams', column: 'id' }),
-    ]),
+    examId: schema.string({}, [rules.exists({ table: 'exams', column: 'id' })]),
     patientId: schema.string({}, [
-      rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
     scheduleId: schema.string.optional({}, [
-      rules.uuid(),
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),
     solicitorId: schema.string({}, [
-      rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
   });

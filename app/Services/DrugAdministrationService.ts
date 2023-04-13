@@ -34,6 +34,10 @@ export default class DrugAdministrationService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (!ent.economic_group_id) {
+      return ent;
+    }
+
     const group = await this.sharedService.getUserGroup(unitId);
 
     if (ent.economic_group_id !== group.id) {
@@ -50,6 +54,10 @@ export default class DrugAdministrationService {
   ) {
     const entity = await this.show(unitId, id);
 
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return entity
       .merge({
         description: data.description,
@@ -60,6 +68,10 @@ export default class DrugAdministrationService {
 
   public async destroy(unitId: string, id: string) {
     const entity = await this.show(unitId, id);
+
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await entity.softDelete();
   }

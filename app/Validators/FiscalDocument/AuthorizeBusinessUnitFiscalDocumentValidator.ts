@@ -21,7 +21,6 @@ export default class AuthorizeBusinessUnitFiscalDocumentValidator {
       }),
     ]),
     type: schema.enum(Object.values(BusinessUnitFiscalDocumentMovementType)),
-    accessKeyRef: schema.string(),
   });
 
   public messages: CustomMessages = {};

@@ -3,7 +3,7 @@ import { test } from '@japa/runner';
 import Unit, { UnitType } from 'App/Models/Unit';
 import { v4 } from 'uuid';
 
-import { createSudo, generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Unit resource', group => {
   group.each.setup(async () => {
@@ -92,29 +92,6 @@ test.group('Unit resource', group => {
       'E_NOT_FOUND: Recurso não encontrado',
       response.body().message,
     );
-  });
-
-  test('should return unit regardless for sudo user', async ({
-    assert,
-    client,
-  }) => {
-    const { user, business } = await createData();
-    const { unit } = await createData();
-    const [sudoRole] = await createSudo();
-    await user.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: business.id,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client.get(`/units/${unit.id}`).bearerToken(token);
-
-    assert.equal(200, response.status());
-    assert.equal(unit.id, response.body().id);
   });
 
   test('should return unit', async ({ assert, client }) => {

@@ -2,12 +2,20 @@ import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Bill, { BillStatus } from 'App/Models/Bill';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Exam from 'App/Models/Exam';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
+import Patient from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
+import Product from 'App/Models/Product';
 import TimelineType, { EXAM_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import BillService from 'App/Services/BillService';
+import SharedService from 'App/Services/SharedService';
 import IPatientExamData, {
   IPatientExamAttachmentData,
 } from 'Contracts/interfaces/IPatientExamData';
@@ -20,6 +28,11 @@ interface ISearch {
 }
 @inject()
 export default class PatientExamService {
+  constructor(
+    private sharedService: SharedService,
+    private billService: BillService,
+  ) {}
+
   public async index(unitId: string, data: ISearch) {
     const qb = PatientExam.query().where('business_id', unitId);
 
@@ -61,10 +74,104 @@ export default class PatientExamService {
   }
 
   public async store(unitId: string, user: User, data: IPatientExamData) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
     return Database.transaction(async trx => {
       const exam = await Exam.findOrFail(data.examId, {
         client: trx,
       });
+
+      const patient = await Patient.query()
+        .useTransaction(trx)
+        .where('id', data.patientId)
+        .preload('tutors', query => {
+          query.preload('tutor').pivotColumns(['is_main']);
+        })
+        .firstOrFail();
+
+      if (exam.product_id) {
+        const activeTutor = patient.tutors.find(
+          tutor => tutor.$extras.pivot_is_main,
+        );
+
+        if (activeTutor) {
+          const activeBilling = await Bill.query()
+            .useTransaction(trx)
+            .where('business_unit_id', unitId)
+            .where('client_id', activeTutor.id)
+            .where('patient_id', patient.id)
+            .where('status', BillStatus.A)
+            .first();
+
+          const service = await Product.query()
+            .useTransaction(trx)
+            .where('id', exam.product_id)
+            .preload('variations', query => {
+              query.preload('businessUnitProducts', query => {
+                query.where('businness_unit_id', unitId);
+              });
+            })
+            .firstOrFail();
+          const variation = service.variations.at(0);
+          if (!variation) {
+            throw new InternalErrorException(
+              'Não foi possível encontrar a variação do serviço',
+              400,
+              'E_VARIATION_NOT_FOUND',
+            );
+          }
+
+          const pricing = variation.businessUnitProducts.at(0);
+          if (!pricing) {
+            throw new InternalErrorException(
+              'Não foi possível encontrar o preço do serviço',
+              400,
+              'E_PRICE_NOT_FOUND',
+            );
+          }
+
+          if (activeBilling) {
+            await this.billService.createBillItemWithTrx(trx, unitId, group, {
+              billId: activeBilling.id,
+              discountValue: 0,
+              productVariationId: variation.id,
+              quantity: 1,
+              unitaryValue: pricing.price,
+            });
+          } else {
+            const userOpenCashier = await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', unitId)
+              .where('user_who_opened_id', user.id)
+              .where('status', DailyCashierStatus.A)
+              .first();
+
+            if (!userOpenCashier) {
+              throw new BadRequestException(
+                'Não foi possível encontrar o caixa aberto para o usuário',
+                400,
+                'E_BAD_REQUEST',
+              );
+            }
+
+            await this.billService.createBillWithTrx(trx, unitId, group, user, {
+              billDate: DateTime.now(),
+              clientId: activeTutor.id,
+              patientId: patient.id,
+              dailyCashierId: userOpenCashier.id,
+              dailyMovementId: userOpenCashier.daily_movement_id,
+              items: [
+                {
+                  discountValue: 0,
+                  productVariationId: variation.id,
+                  quantity: 1,
+                  unitaryValue: pricing.price,
+                },
+              ],
+            });
+          }
+        }
+      }
 
       const patientExam = await PatientExam.create(
         {

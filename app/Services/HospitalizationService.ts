@@ -134,7 +134,7 @@ export default class HospitalizationService {
     }
 
     return HospitalizationTimeline.find({
-      hospitalization_id: hospitalization.id,
+      'meta.hospitalization': hospitalization.id,
     });
   }
 

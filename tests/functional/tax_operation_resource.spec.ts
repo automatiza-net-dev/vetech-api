@@ -13,7 +13,7 @@ test.group('Tax operation resource', group => {
   });
 
   const createData = async () => {
-    const { user } = await userBootstrap();
+    const { user, group } = await userBootstrap();
 
     const operation = await TaxOperation.create({
       code: 'any code',
@@ -22,6 +22,7 @@ test.group('Tax operation resource', group => {
       movementCategory: MovementCategory.DE,
       generatesFinancial: true,
       accountingResult: true,
+      economic_group_id: group.id,
     });
 
     return { user, operation };

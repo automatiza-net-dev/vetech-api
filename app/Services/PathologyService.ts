@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Pathology from 'App/Models/Pathology';
 import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
 import IPathologyData from 'Contracts/interfaces/IPathologyData';
@@ -14,9 +15,11 @@ export default class PathologyService {
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
-    const qb = group
-      .related('pathologies')
-      .query()
+
+    const qb = Pathology.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .preload('timelineType')
       .preload('group');
 
@@ -27,11 +30,9 @@ export default class PathologyService {
     return qb;
   }
 
-  public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const entity = await group
-      .related('pathologies')
-      .query()
+  public async show(_: string, id: string) {
+    // const group = await this.sharedService.getUserGroup(unitId);
+    const entity = await Pathology.query()
       .preload('timelineType')
       .preload('group')
       .where('id', id)
@@ -60,7 +61,12 @@ export default class PathologyService {
   }
 
   public async update(unitId: string, id: string, data: IPathologyData) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const entity = await this.show(unitId, id);
+
+    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return entity
       .merge({
@@ -73,7 +79,12 @@ export default class PathologyService {
   }
 
   public async destroy(unitId: string, id: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
     const entity = await this.show(unitId, id);
+
+    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await entity.softDelete();
   }

@@ -1,4 +1,5 @@
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
+import { PServiceType } from 'App/Models/Product';
 
 interface IPrice {
   price: number;
@@ -21,6 +22,7 @@ export default interface IServiceData {
   features?: string;
   taxationGroupId: string;
   unitId?: string;
+  serviceType?: typeof PServiceType[number];
 
   price: IPrice;
 }
@@ -35,4 +37,5 @@ export interface IUpdateService {
   features?: string;
   taxationGroupId: string;
   unitId?: string;
+  serviceType?: typeof PServiceType[number];
 }

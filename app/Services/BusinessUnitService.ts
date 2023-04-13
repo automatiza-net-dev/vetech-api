@@ -10,6 +10,7 @@ import CheckingAccount, {
 } from 'App/Models/CheckingAccount';
 import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
+import SharedService from 'App/Services/SharedService';
 import { IBusinessUnitAcquirerData } from 'Contracts/interfaces/IBusinessUnitAcquirerData';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
@@ -30,7 +31,7 @@ interface ISearchClinic {
 
 @inject()
 export default class BusinessUnitService {
-  // constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
     const qb = BusinessUnit.query().preload('economicGroup');
@@ -59,6 +60,29 @@ export default class BusinessUnitService {
 
         if (!economicGroup) {
           throw new BadRequestException('Grupo econômico inválido');
+        }
+
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+        const hasUnitWithDocument = await economicGroup
+          .related('businessUnits')
+          .query()
+          .useTransaction(trx)
+          .where('document', data.document)
+          .first();
+        if (hasUnitWithDocument) {
+          throw new BadRequestException(
+            `Este Cnpj já existe neste Grupo Economico para a Clinica "${
+              data.fantasyName ?? '-'
+            }";`,
+            400,
+            'E_INVALID_DOCUMENT',
+          );
         }
 
         const products = await economicGroup
@@ -148,7 +172,7 @@ export default class BusinessUnitService {
   public async show(id: string): Promise<BusinessUnit> {
     const unit = await BusinessUnit.query()
       .where('id', id)
-      .preload('acquirers')
+      .preload('economicGroup')
       .first();
 
     if (!unit) {
@@ -166,32 +190,72 @@ export default class BusinessUnitService {
     id: string,
     data: IUpdateBusinessUnit,
   ): Promise<BusinessUnit> {
-    const unit = await this.show(id);
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('economicGroup')
+        .first();
 
-    return unit
-      .merge({
-        identification: data.identification,
-        fantasyName: data.fantasyName,
-        companyName: data.companyName,
-        email: data.email,
-        document: data.document,
-        phone: data.phone,
-        postalCode: data.postalCode,
-        address: data.address,
-        number: data.number,
-        complement: data.complement,
-        district: data.district,
-        city: data.city,
-        state: data.state,
-        active: data.active,
+      if (!unit) {
+        throw new ResourceNotFoundException(
+          'A unidade não foi encontrada',
+          404,
+          'E_NOT_FOUND',
+        );
+      }
 
-        stateRegistration: data.stateRegistration,
-        cityRegistration: data.cityRegistration,
-        cnae: data.cnae,
-        simple: data.simple,
-        cityCode: data.cityCode,
-      })
-      .save();
+      if (data.document && data.document !== unit.document) {
+        if (!this.sharedService.validDocument(data.document)) {
+          throw new BadRequestException(
+            'Documento inválido',
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+        const hasUnitWithDocument = await unit.economicGroup
+          .related('businessUnits')
+          .query()
+          .useTransaction(trx)
+          .where('document', data.document)
+          .first();
+        if (hasUnitWithDocument) {
+          throw new BadRequestException(
+            `Este Cnpj já existe neste Grupo Economico para a Clinica "${
+              unit.fantasyName ?? '-'
+            }";`,
+            400,
+            'E_INVALID_DOCUMENT',
+          );
+        }
+      }
+
+      return unit
+        .merge({
+          identification: data.identification,
+          fantasyName: data.fantasyName,
+          companyName: data.companyName,
+          email: data.email,
+          document: data.document,
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          active: data.active,
+
+          stateRegistration: data.stateRegistration,
+          cityRegistration: data.cityRegistration,
+          cnae: data.cnae,
+          simple: data.simple,
+          cityCode: data.cityCode,
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   public async updateAcquirer(
@@ -382,5 +446,34 @@ export default class BusinessUnitService {
         },
       })),
     };
+  }
+
+  public async checkExistingDocument(document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const doc = await BusinessUnit.findBy('document', document);
+
+    return {
+      valid: true,
+      exists: Boolean(doc),
+    };
+  }
+
+  public async calculateStates(unitId: string) {
+    const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+
+    const egUnits = await BusinessUnit.query().where(
+      'economic_group_id',
+      unit.economicGroupId,
+    );
+
+    const states = egUnits.map(u => u.state);
+    return [...new Set(states)];
   }
 }

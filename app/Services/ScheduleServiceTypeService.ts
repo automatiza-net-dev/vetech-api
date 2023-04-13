@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -25,7 +24,7 @@ export default class ScheduleServiceTypeService {
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
     const groupQb = ScheduleServiceGroup.query()
-      .where('description', 'like', `%${data.group ?? ''}%`)
+      .where('description', 'ilike', `%${data.group ?? ''}%`)
       .where('active', true);
 
     if (!isSuperAdmin) {
@@ -101,10 +100,11 @@ export default class ScheduleServiceTypeService {
 
   public async update(
     _: User,
-    __: string,
+    unitId: string,
     id: string,
     data: IScheduleServiceTypeData,
   ): Promise<ScheduleServiceType> {
+    const group = await this.sharedService.getUserGroup(unitId);
     const schedule = await ScheduleServiceType.find(id);
 
     if (!schedule) {
@@ -115,12 +115,8 @@ export default class ScheduleServiceTypeService {
       );
     }
 
-    if (!schedule.economic_group_id) {
-      throw new BadRequestException(
-        'Recurso do sistema',
-        400,
-        'E_SYSTEM_RESOURCE',
-      );
+    if (schedule.economic_group_id && schedule.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
     }
 
     return schedule
@@ -136,8 +132,9 @@ export default class ScheduleServiceTypeService {
       .save();
   }
 
-  public async destroy(_: User, __: string, id: string): Promise<void> {
+  public async destroy(_: User, unitId: string, id: string): Promise<void> {
     const schedule = await ScheduleServiceType.find(id);
+    const group = await this.sharedService.getUserGroup(unitId);
 
     if (!schedule) {
       throw new ResourceNotFoundException(
@@ -147,12 +144,8 @@ export default class ScheduleServiceTypeService {
       );
     }
 
-    if (!schedule.economic_group_id) {
-      throw new BadRequestException(
-        'Recurso do sistema',
-        400,
-        'E_SYSTEM_RESOURCE',
-      );
+    if (schedule.economic_group_id && schedule.economic_group_id !== group.id) {
+      throw this.sharedService.SystemResource();
     }
 
     await schedule.softDelete();

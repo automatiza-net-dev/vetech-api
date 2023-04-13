@@ -205,7 +205,7 @@ test.group('Template replacement resource', group => {
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[USUARIO_NOME] [USUARIO_TRATAMENTO] [USUARIO_CELULAR] [USUARIO_CARGO] [USUARIO_TRABALHO]`,
+        base: `[USUARIO_NOME] [USUARIO_TRATAMENTO] [USUARIO_CELULAR] [USUARIO_CARGO] [USUARIO_TRABALHO] [USUARIO_CRMV]`,
         userId: user.id,
         businessUnitId: business.id,
       })

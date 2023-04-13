@@ -72,7 +72,11 @@ export default class ClientOriginService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
+    if (entity.economic_group_id !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
@@ -88,7 +92,11 @@ export default class ClientOriginService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+    if (!entity.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
+    if (entity.economic_group_id !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 

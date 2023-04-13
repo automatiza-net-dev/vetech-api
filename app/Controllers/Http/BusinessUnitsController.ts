@@ -17,6 +17,11 @@ export default class BusinessUnitsController {
     private readonly sharedService: SharedService,
   ) {}
 
+  public async states({ response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    return response.ok(await this.service.calculateStates(unit_id));
+  }
+
   public async index({ request, response }: HttpContextContract) {
     const qs = request.qs();
     return response.ok(
@@ -140,5 +145,12 @@ export default class BusinessUnitsController {
     await this.userRoleService.updateUserRoles(unit_id, data);
 
     return response.noContent();
+  }
+
+  public async checkDocument({ params, response }: HttpContextContract) {
+    const { document } = params;
+    const result = await this.service.checkExistingDocument(document);
+
+    return response.ok(result);
   }
 }

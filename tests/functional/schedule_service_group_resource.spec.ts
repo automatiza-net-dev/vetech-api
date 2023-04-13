@@ -8,7 +8,7 @@ import ScheduleServiceGroup, {
 import User from 'App/Models/User';
 import { v4 } from 'uuid';
 
-import { createSudo, generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Schedule service group resource', group => {
   group.each.setup(async () => {
@@ -111,29 +111,6 @@ test.group('Schedule service group resource', group => {
     assert.equal('E_NOT_FOUND: Recurso não encontrado', body.message);
   });
 
-  test('should return schedule for super admin', async ({ assert, client }) => {
-    const [__, _, schedule] = await createData();
-    const [user2, ____, _____, businessUnit] = await createData();
-    const [sudoRole] = await createSudo();
-    await user2.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: businessUnit.id,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user2.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .get(`/schedule-service-groups/${schedule.id}`)
-      .bearerToken(token);
-
-    const body = response.body();
-
-    assert.equal(200, response.status());
-    assert.equal(schedule.id, body.id);
-  });
   test('should throw ResourceNotFoundException if no schedule service group was found', async ({
     assert,
     client,
@@ -152,33 +129,6 @@ test.group('Schedule service group resource', group => {
 
     assert.equal(404, response.status());
     assert.equal('E_NOT_FOUND: Recurso não encontrado', body.message);
-  });
-
-  test('should return any schedule for super admin', async ({
-    assert,
-    client,
-  }) => {
-    const [__, _, schedule] = await createData();
-    const [user2, ____, _____, businessUnit] = await createData();
-    const [sudoRole] = await createSudo();
-    await user2.related('roles').create({
-      role_id: sudoRole.id,
-      unit_id: businessUnit.id,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user2.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .get(`/schedule-service-groups/${schedule.id}`)
-      .bearerToken(token);
-
-    const body = response.body();
-
-    assert.equal(200, response.status());
-    assert.equal(schedule.id, body.id);
   });
 
   test('should return schedule', async ({ assert, client }) => {

@@ -40,7 +40,7 @@ export default class ScheduleStatusService {
 
   public async show(
     unitId: string,
-    user: User,
+    _: User,
     id: string,
   ): Promise<ScheduleStatus> {
     const exception = new ResourceNotFoundException(
@@ -53,13 +53,12 @@ export default class ScheduleStatusService {
 
     if (!status) throw exception;
 
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-    if (isSuperAdmin) {
+    if (!status.economic_group_id) {
       return status;
     }
 
     const group = await this.sharedService.getUserGroup(unitId);
-    if (status?.economic_group_id !== group.id) throw exception;
+    if (status.economic_group_id !== group.id) throw exception;
 
     return status;
   }
@@ -93,6 +92,10 @@ export default class ScheduleStatusService {
   ): Promise<ScheduleStatus> {
     const status = await this.show(unitId, user, id);
 
+    if (!status.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return status
       .merge({
         description: data.description,
@@ -103,6 +106,10 @@ export default class ScheduleStatusService {
 
   public async destroy(unitId: string, user: User, id: string): Promise<void> {
     const status = await this.show(unitId, user, id);
+
+    if (!status.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await status.softDelete();
   }

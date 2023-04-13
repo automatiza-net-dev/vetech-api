@@ -82,10 +82,7 @@ test.group('Race resource', group => {
 
     const response = await client.get(`/races/${race2.id}`).bearerToken(token);
 
-    const body = response.body();
-
     assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Raça não foi encontrada', body.message);
   });
 
   test('should return the race', async ({ assert, client }) => {

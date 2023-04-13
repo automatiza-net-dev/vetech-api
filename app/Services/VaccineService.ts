@@ -59,7 +59,7 @@ export default class VaccineService {
     });
   }
 
-  public async show(unitId: string, id: string, user: User) {
+  public async show(unitId: string, id: string, _: User) {
     const vaccine = await Vaccine.find(id);
 
     if (!vaccine) {
@@ -70,20 +70,17 @@ export default class VaccineService {
       );
     }
 
+    if (!vaccine.economic_group_id) {
+      return vaccine;
+    }
+
     const group = await this.sharedService.getUserGroup(unitId);
-
-    if (vaccine.economic_group_id) {
-      const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
-      if (!isSuperAdmin) {
-        if (group.id !== vaccine.economic_group_id) {
-          throw new ResourceNotFoundException(
-            'Vacina não encontrada',
-            404,
-            'E_NOT_FOUND',
-          );
-        }
-      }
+    if (group.id !== vaccine.economic_group_id) {
+      throw new ResourceNotFoundException(
+        'Vacina não encontrada',
+        404,
+        'E_NOT_FOUND',
+      );
     }
 
     return vaccine;
@@ -96,6 +93,10 @@ export default class VaccineService {
     data: IVaccineData,
   ) {
     const vaccine = await this.show(unitId, id, user);
+
+    if (!vaccine.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     return vaccine
       .merge({
@@ -110,6 +111,10 @@ export default class VaccineService {
 
   public async destroy(unitId: string, user: User, id: string) {
     const vaccine = await this.show(unitId, id, user);
+
+    if (!vaccine.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await vaccine.softDelete();
   }

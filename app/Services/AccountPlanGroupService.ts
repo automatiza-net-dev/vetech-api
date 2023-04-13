@@ -69,6 +69,10 @@ export default class AccountPlanGroupService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     return model
       .merge({
         description: data.description,
@@ -88,6 +92,10 @@ export default class AccountPlanGroupService {
 
     if (!model) {
       throw this.sharedService.ResourceNotFound();
+    }
+
+    if (!model.economic_group_id) {
+      throw this.sharedService.SystemResource();
     }
 
     await model.delete();

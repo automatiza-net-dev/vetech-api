@@ -262,10 +262,11 @@ export default class TemplateReplacementService {
 
     return {
       ...patient.toJSON(),
+      ...patient.patientAnimal?.toJSON(),
       gender: calculateGender(patient),
       hair: patient.patientAnimal?.hair?.description,
-      race: patient.patientAnimal.race?.description,
-      specie: patient.patientAnimal.race?.specie?.description,
+      race: patient.patientAnimal?.race?.description,
+      specie: patient.patientAnimal?.race?.specie?.description,
       vaccinated: calculateVaccine(patient.vaccineOrigin),
       numeric_age: patient.birthDate
         ? differenceInYears(new Date(), patient.birthDate)
@@ -275,6 +276,8 @@ export default class TemplateReplacementService {
             locale: Locales.ptBR,
           })
         : null,
+      castrated: patient.patientAnimal?.castrated,
+      microchip: patient.patientAnimal?.microchip,
     };
   }
 
@@ -293,7 +296,8 @@ export default class TemplateReplacementService {
     const model = await User.query().where('id', id).firstOrFail();
     const related = {
       ...model.toJSON(),
-    };
+      treatment: 'Dr(a).',
+    } as unknown as User & { role?: string };
 
     if (unitId) {
       const userRole = await model

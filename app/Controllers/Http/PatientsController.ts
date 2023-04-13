@@ -40,6 +40,15 @@ export default class PatientsController {
     return response.ok(patients);
   }
 
+  public async checkDocument({ params, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const { document } = params;
+    const result = await this.service.checkExistingDocument(unit_id, document);
+
+    return response.ok(result);
+  }
+
   public async metadata({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const data = await this.service.metadata(unit_id, params.id);

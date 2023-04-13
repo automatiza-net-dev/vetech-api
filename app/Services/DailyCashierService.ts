@@ -270,8 +270,8 @@ export default class DailyCashierService {
         revision_date: result.revisionDate,
         user_who_checked_id: result.user_who_checked_id,
         checking_date: result.checkingDate,
-        opening_balance: result.openingBalance,
-        cashier_funds: 0, // FIX
+        opening_balance: parseFloat(result.openingBalance as unknown as string),
+        cashier_funds: parseFloat(result.cashierFunds as unknown as string),
         sales_total: parseFloat(result.salesTotal as unknown as string),
         expenses_total: parseFloat(result.expensesTotal as unknown as string),
         receipts_total: parseFloat(result.receiptsTotal as unknown as string),
@@ -328,7 +328,7 @@ export default class DailyCashierService {
             expiration_date: e.expirationDate,
             installments: e.installments,
             installment_value: e.installmentValue,
-            total_value: e.totalValue,
+            total_value: e.installmentValue * e.installments,
             nsu_document: e.nsuDocument,
           },
         })),
@@ -461,14 +461,10 @@ export default class DailyCashierService {
 
     const entries = await dailyCashier.related('entries').query();
 
-    const bills = await dailyCashier
-      .related('bills')
-      .query()
-      .preload('payments');
+    const payments = await BillPayment.query().where('daily_cashier_id', id);
 
-    const salesSum = bills.reduce(
-      (total, bill) =>
-        total + bill.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+    const salesSum = payments.reduce(
+      (total, payment) => total + payment.totalValue,
       0,
     );
 

@@ -35,6 +35,7 @@ test.group('Patient resource', group => {
     });
 
     const patient = await PatientFactory.create();
+    await patient.merge({ type: PatientType.ANIMAL }).save();
     await patient.related('patientAnimal').create({
       race_id: race.id,
       hair_id: hair.id,
@@ -42,6 +43,9 @@ test.group('Patient resource', group => {
 
     const holder = await PatientFactory.create();
     await holder.merge({ type: PatientType.TUTOR }).save();
+    await holder.related('tutor').create({
+      document: '94562755000123',
+    });
 
     await holder.related('dependents').attach([patient.id]);
     await group.related('patients').attach([patient.id, holder.id]);
@@ -292,7 +296,7 @@ test.group('Patient resource', group => {
         tags: 'tag',
         birthDate: new Date('2000-01-01'),
         active: true,
-        document: '123',
+        document: '94562755000123',
         inscription: '123',
         corporateName: '123',
         email: '123@mail.com',
@@ -431,7 +435,7 @@ test.group('Patient resource', group => {
         email: 'mail123123@mail.com',
         cellphone: '123',
         cityCode: 'some',
-        document: 'some document',
+        document: '97210938000178',
       } as IPatientSupplierData)
       .bearerToken(token);
 
@@ -477,11 +481,73 @@ test.group('Patient resource', group => {
         email: 'mail123123@mail.com',
         cellphone: '123',
         cityCode: 'some',
-        document: 'some document',
+        document: '09270350000142',
         active: true,
       } as IPatientSupplierData)
       .bearerToken(token);
 
     assert.equal(200, response.status());
+  });
+
+  test('should return existing false for invalid document', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/check-document/invalid-email`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isFalse(body.valid);
+  });
+
+  test('should return existing true for valid document and false for in usage', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/check-document/74069759000167`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isFalse(body.exists);
+  });
+
+  test('should return existing true for valid document and true for in usage', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/patients/check-document/94562755000123`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(body.valid);
+    assert.isTrue(body.exists);
   });
 });

@@ -15,29 +15,36 @@ export default class SubgroupService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = group.related('subgroups').query();
+    const qb = Subgroup.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
+      .preload('parent');
 
     if (data.description) {
       qb.where('description', 'like', `%${data.description}%`);
     }
-
-    qb.preload('parent');
 
     return qb;
   }
 
   public async show(unitId: string, id: string): Promise<Subgroup> {
     const group = await this.sharedService.getUserGroup(unitId);
-
-    const subgroup = await group
-      .related('subgroups')
-      .query()
+    const subgroup = await Subgroup.query()
       .where('id', id)
       .preload('variationGroup')
       .preload('parent')
       .first();
 
     if (!subgroup) {
+      throw new ResourceNotFoundException(
+        'Recurso não encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    if (subgroup.economic_group_id && subgroup.economic_group_id !== group.id) {
       throw new ResourceNotFoundException(
         'Recurso não encontrado',
         404,
@@ -63,6 +70,10 @@ export default class SubgroupService {
   public async update(unitId: string, id: string, data: ISubgroupData) {
     const subgroup = await this.show(unitId, id);
 
+    if (!subgroup.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
+
     const tree = await this.getTree(data.parent);
 
     return subgroup
@@ -78,6 +89,10 @@ export default class SubgroupService {
 
   public async destroy(unitId: string, id: string) {
     const subgroup = await this.show(unitId, id);
+
+    if (!subgroup.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
     await subgroup.softDelete();
   }

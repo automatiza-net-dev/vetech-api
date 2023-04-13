@@ -12,7 +12,7 @@ interface ISearch {
 
 @inject()
 export default class ReasonService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -46,7 +46,9 @@ export default class ReasonService {
 
     const reason = await Reason.query()
       .where('id', reasonId)
-      .where('economic_group_id', group.id)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        group.id,
+      ])
       .first();
 
     if (!reason) {
@@ -70,12 +72,17 @@ export default class ReasonService {
   public async update(unitId: string, reasonId: string, data: IReasonData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const reason = await Reason.query()
-      .where('id', reasonId)
-      .where('economic_group_id', group.id)
-      .first();
+    const reason = await Reason.query().where('id', reasonId).first();
 
     if (!reason) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (!reason.economicGroupId) {
+      throw this.sharedService.SystemResource();
+    }
+
+    if (reason.economicGroupId !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
@@ -91,6 +98,14 @@ export default class ReasonService {
       .first();
 
     if (!reason) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (!reason.economicGroupId) {
+      throw this.sharedService.SystemResource();
+    }
+
+    if (reason.economicGroupId !== group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 

@@ -23,7 +23,7 @@ export default class CreatePatientWithTutorValidator {
     telephone: schema.string.optional({}, []),
     message_person_name: schema.string.optional({}, []),
     message_person_phone: schema.string.optional({}, []),
-    postal_code: schema.string.optional({}, []),
+    postalCode: schema.string.optional({}, []),
     street: schema.string.optional({}, []),
     number: schema.string.optional({}, []),
     complement: schema.string.optional({}, []),

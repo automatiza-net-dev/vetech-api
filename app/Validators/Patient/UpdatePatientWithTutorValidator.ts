@@ -24,7 +24,7 @@ export default class UpdatePatientWithTutorValidator {
     telephone: schema.string.optional({}, []),
     message_person_name: schema.string.optional({}, []),
     message_person_phone: schema.string.optional({}, []),
-    postal_code: schema.string({}, []),
+    postalCode: schema.string({}, []),
     street: schema.string({}, []),
     number: schema.string({}, []),
     complement: schema.string.optional({}, []),

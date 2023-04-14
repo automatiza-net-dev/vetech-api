@@ -6,6 +6,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Licence, { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
+import RoleFactory from 'Database/factories/RoleFactory';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
@@ -26,7 +27,7 @@ test.group('Auth resource', group => {
     expiration?: Date;
     licenceType?: LicenceType;
   }): Promise<[User, BusinessUnit, EconomicGroup, Licence]> => {
-    const { user, group, business, licence } = await userBootstrap();
+    const { user, group, business, licence, role } = await userBootstrap();
     await licence.delete();
 
     const newLicence = await business.related('licences').create({
@@ -68,12 +69,17 @@ test.group('Auth resource', group => {
     assert,
   }) => {
     const [user, _, group] = await createUser({});
-    await group.related('businessUnits').create({
+    const role = await RoleFactory.create();
+    const unit = await group.related('businessUnits').create({
       id: v4(),
       document: user.document,
       phone: user.phone,
       email: user.email,
       origin: 'TESTING',
+    });
+    await user.related('roles').create({
+      role_id: role.id,
+      unit_id: unit.id,
     });
 
     const response = await client.post(`/auth/login`).json({

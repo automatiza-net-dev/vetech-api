@@ -429,6 +429,11 @@ Route.group(() => {
   }).prefix('pressure');
 
   Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientEvaluationIndex');
+    Route.post('/', 'TimelinesController.storePatientEvaluation');
+  }).prefix('evaluation');
+
+  Route.group(() => {
     Route.get('/:id', 'TimelinesController.patientGlycemiaIndex');
     Route.post('/', 'TimelinesController.storePatientGlycemia');
   }).prefix('glycemia');

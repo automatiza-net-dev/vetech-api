@@ -31,6 +31,8 @@ export default class CreatePatientValidator {
     ]),
     castrated: schema.boolean(),
     microchip: schema.string.optional(),
+    hypertension: schema.boolean.optional(),
+    diabetes: schema.boolean.optional(),
   });
 
   public messages: CustomMessages = {};

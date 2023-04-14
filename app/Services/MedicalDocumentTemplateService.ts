@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import { RECIPE_UUID } from 'App/Models/TimelineType';
 import SharedService from 'App/Services/SharedService';
@@ -36,18 +35,16 @@ export default class MedicalDocumentTemplateService {
   public async show(unitId: string, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const template = await group
-      .related('medicalDocumentTemplates')
-      .query()
+    const template = await MedicalDocumentTemplate.query()
       .where('id', id)
       .first();
 
     if (!template) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (template.economic_group_id && template.economic_group_id !== group.id) {
+      throw this.sharedService.ResourceNotFound();
     }
 
     return template;

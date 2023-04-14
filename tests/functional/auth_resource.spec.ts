@@ -27,7 +27,7 @@ test.group('Auth resource', group => {
     expiration?: Date;
     licenceType?: LicenceType;
   }): Promise<[User, BusinessUnit, EconomicGroup, Licence]> => {
-    const { user, group, business, licence, role } = await userBootstrap();
+    const { user, group, business, licence } = await userBootstrap();
     await licence.delete();
 
     const newLicence = await business.related('licences').create({

@@ -95,6 +95,11 @@ Route.group(() => {
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 
+  Route.post(
+    '/add-collaborator',
+    'BusinessUnitsController.storeCollaborator',
+  ).middleware('auth');
+
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
   Route.put(

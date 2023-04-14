@@ -25,6 +25,7 @@ interface ISearch {
   tag?: string;
   openingUser?: string;
   status?: string;
+  complete?: number;
   fromBalance?: string;
   toBalance?: string;
   fromOpening?: string;
@@ -359,10 +360,13 @@ export default class DailyCashierService {
     if (data.toBalance) {
       query.where('cashier_balance', '<=', parseFloat(data.toBalance));
     }
-    if (data.status) {
-      query.where('status', data.status);
-    } else {
-      query.where('status', DailyCashierStatus.A);
+
+    if (!data.complete) {
+      if (data.status) {
+        query.where('status', data.status);
+      } else {
+        query.where('status', DailyCashierStatus.A);
+      }
     }
 
     if (data.fromOpening) {

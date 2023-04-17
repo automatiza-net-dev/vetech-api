@@ -478,6 +478,10 @@ Route.group(() => {
     Route.post('/', 'TimelinesController.storeObservation');
     Route.put('/:id', 'TimelinesController.updateObservations');
   }).prefix('observations');
+
+  Route.group(() => {
+    Route.post('/', 'TimelinesController.storeDeath');
+  }).prefix('deaths');
 })
   .prefix('n-timeline')
   .middleware('auth');

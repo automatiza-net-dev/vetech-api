@@ -304,7 +304,7 @@ test.group('Patient resource', group => {
         telephone: '123',
         messagePersonName: '123',
         messagePersonPhone: '123',
-        postal_code: '123',
+        postalCode: '123',
         street: '123',
         number: '123',
         complement: '123',

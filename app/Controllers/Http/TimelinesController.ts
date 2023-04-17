@@ -1,7 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import SharedService from 'App/Services/SharedService';
 import TimelineService from 'App/Services/TimelineService';
 import CreateAnimalAppointmentValidator from 'App/Validators/Timeline/CreateAnimalAppointmentValidator';
+import CreateAnimalDeathValidator from 'App/Validators/Timeline/CreateAnimalDeathValidator';
 import CreateAnimalDischargeValidator from 'App/Validators/Timeline/CreateAnimalDischargeValidator';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
 import CreateAnimalExamValidator from 'App/Validators/Timeline/CreateAnimalExamValidator';
@@ -14,7 +16,10 @@ import UpsertAnimalVaccineValidator from 'App/Validators/Timeline/UpsertAnimalVa
 
 @inject()
 export default class TimelinesController {
-  constructor(private readonly timelineService: TimelineService) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly timelineService: TimelineService,
+  ) {}
 
   public async index({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.all(params.id));
@@ -207,6 +212,14 @@ export default class TimelinesController {
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalObservationValidator);
     await this.timelineService.updateObservations(params.id, payload);
+    return response.created();
+  }
+
+  public async storeDeath({ request, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const payload = await request.validate(CreateAnimalDeathValidator);
+    await this.timelineService.storeDeath(unit_id, payload);
     return response.created();
   }
 }

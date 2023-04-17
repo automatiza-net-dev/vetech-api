@@ -18,6 +18,7 @@ export const VACCINE_UUID = 'ebb7e7c2-85ca-4d59-b2d7-6c0bfa66d538';
 export const EXAM_UUID = 'dcdf4aee-7630-499d-96e5-df56a1d9504a';
 export const HOSPITALIZATION_UUID = 'fc89df7a-ed1e-4060-b489-948aad2ca84a';
 export const ATTENDANCE_UUID = 'df88f8cc-b2d9-4deb-ae38-3f5269c97cd0';
+export const DEATH_UUID = '09320caf-78f2-4075-a916-a5eb9f1489a4';
 
 export default class TimelineType extends BaseModel {
   @column({ isPrimary: true })

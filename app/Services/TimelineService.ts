@@ -3,7 +3,13 @@ import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { connection } from '@ioc:Mongoose';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Hospitalization, {
+  HospitalizationStatus,
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
@@ -677,6 +683,98 @@ export default class TimelineService {
           medias,
         },
       },
+    });
+  }
+
+  public async storeDeath(
+    unitId: string,
+    data: { tag: string; technicianId: string },
+  ) {
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('economicGroup')
+        .firstOrFail();
+
+      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+        client: trx,
+      });
+
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      const patient = await Patient.query()
+        .useTransaction(trx)
+        .where('id', data.tag)
+        .preload('patientAnimal')
+        .firstOrFail();
+
+      if (patient.patientAnimal.death) {
+        throw new BadRequestException(
+          'Animal já está marcado como em óbito',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await patient.patientAnimal
+        .merge({
+          death: true,
+          deathDate: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+
+      await AnimalTimeline.create({
+        timeline_id: ATTENDANCE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: patient.id,
+          event: 'OBITO',
+          realized: DateTime.now(),
+          resume: 'Óbito',
+          description: 'Óbito',
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      });
+
+      const hospitalization = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('patient_id', patient.id)
+        .where('status', HospitalizationStatus.ACTIVE)
+        .limit(1)
+        .first();
+
+      if (hospitalization) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: unit.economicGroupId,
+            unit: unit.id,
+            origin: 'death_occurrence',
+          },
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            realizedAt: DateTime.now(),
+            issuedAt: DateTime.now(),
+            technician: {
+              id: technician.id,
+              name: technician.name,
+            },
+            attachments: [],
+          },
+        });
+      }
     });
   }
 

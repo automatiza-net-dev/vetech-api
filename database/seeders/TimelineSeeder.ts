@@ -1,6 +1,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import TimelineType, {
   ATTENDANCE_UUID,
+  DEATH_UUID,
   DOCUMENT_UUID,
   EXAM_UUID,
   HOSPITALIZATION_UUID,
@@ -71,6 +72,12 @@ export default class extends BaseSeeder {
     {
       id: ATTENDANCE_UUID,
       description: 'Consulta',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: DEATH_UUID,
+      description: 'Óbito',
       color: '#000',
       requiresObservation: false,
     },

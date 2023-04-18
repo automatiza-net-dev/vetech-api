@@ -603,6 +603,8 @@ export default class PatientService {
           photo,
           vaccineOrigin: data.vaccineOrigin,
           tag: (patients.length + 1).toString(),
+          hypertension: data.hypertension,
+          diabetes: data.diabetes,
         },
         {
           client: trx,
@@ -918,6 +920,8 @@ export default class PatientService {
           birthDate: data.birthDate?.toJSDate(),
           active: data.active,
           vaccineOrigin: data.vaccineOrigin,
+          hypertension: data.hypertension,
+          diabetes: data.diabetes,
         })
         .useTransaction(trx)
         .save();

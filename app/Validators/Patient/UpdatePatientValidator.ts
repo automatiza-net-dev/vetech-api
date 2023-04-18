@@ -35,6 +35,8 @@ export default class UpdatePatientValidator {
     microchip: schema.string.optional(),
     death: schema.boolean(),
     deathDate: schema.date.optional(),
+    hypertension: schema.boolean.optional(),
+    diabetes: schema.boolean.optional(),
   });
 
   public messages: CustomMessages = {};

@@ -19,6 +19,9 @@ export const EXAM_UUID = 'dcdf4aee-7630-499d-96e5-df56a1d9504a';
 export const HOSPITALIZATION_UUID = 'fc89df7a-ed1e-4060-b489-948aad2ca84a';
 export const ATTENDANCE_UUID = 'df88f8cc-b2d9-4deb-ae38-3f5269c97cd0';
 export const DEATH_UUID = '09320caf-78f2-4075-a916-a5eb9f1489a4';
+export const EVALUATION_UUID = 'b7421395-6a6e-45e2-a813-3449015f7884';
+export const PRESSURE_MEASUREMENT_UUID = '4cc98fb7-aa74-4a67-8413-eec5dd199f5a';
+export const GLYCEMIA_UUID = '04f3bdd1-701b-422c-a1cb-cce485cbe43f';
 
 export default class TimelineType extends BaseModel {
   @column({ isPrimary: true })

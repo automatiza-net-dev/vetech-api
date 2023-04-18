@@ -7,11 +7,14 @@ import CreateAnimalDeathValidator from 'App/Validators/Timeline/CreateAnimalDeat
 import CreateAnimalDischargeValidator from 'App/Validators/Timeline/CreateAnimalDischargeValidator';
 import CreateAnimalDocumentValidator from 'App/Validators/Timeline/CreateAnimalDocumentValidator';
 import CreateAnimalExamValidator from 'App/Validators/Timeline/CreateAnimalExamValidator';
+import CreateAnimaGlycemiaValidator from 'App/Validators/Timeline/CreateAnimalGlycemiaValidator';
 import CreateAnimalMedicalRecipeValidator from 'App/Validators/Timeline/CreateAnimalMedicalRecipeValidator';
 import CreateAnimalObservationValidator from 'App/Validators/Timeline/CreateAnimalObservationValidator';
 import CreateAnimalPathologyValidator from 'App/Validators/Timeline/CreateAnimalPathologyValidator';
 import CreateAnimalPhotoValidator from 'App/Validators/Timeline/CreateAnimalPhotoValidator';
+import CreateAnimaPressureValidator from 'App/Validators/Timeline/CreateAnimalPressureValidator';
 import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWeightValidator';
+import CreatePatientEvaluationValidator from 'App/Validators/Timeline/CreatePatientEvaluation';
 import UpsertAnimalVaccineValidator from 'App/Validators/Timeline/UpsertAnimalVaccineValidator';
 
 @inject()
@@ -23,6 +26,48 @@ export default class TimelinesController {
 
   public async index({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.all(params.id));
+  }
+
+  public async patientEvaluationIndex({
+    params,
+    response,
+  }: HttpContextContract) {
+    return response.ok(await this.timelineService.evaluationIndex(params.id));
+  }
+
+  public async storePatientEvaluation({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientEvaluationValidator);
+    await this.timelineService.storeEvaluation(payload);
+    return response.created();
+  }
+
+  public async patientPressureIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.pressureIndex(params.id));
+  }
+
+  public async storePatientPressure({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimaPressureValidator);
+    await this.timelineService.storePressure(payload);
+    return response.created();
+  }
+
+  public async patientGlycemiaIndex({ params, response }: HttpContextContract) {
+    return response.ok(await this.timelineService.glycemiaIndex(params.id));
+  }
+
+  public async storePatientGlycemia({
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateAnimaGlycemiaValidator);
+    await this.timelineService.storeGlycemia(payload);
+    return response.created();
   }
 
   public async animalWeightIndex({ params, response }: HttpContextContract) {

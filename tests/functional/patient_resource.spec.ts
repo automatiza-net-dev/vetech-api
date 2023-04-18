@@ -82,6 +82,8 @@ test.group('Patient resource', group => {
         hairId: hair.id,
         castrated: true,
         microchip: 'any microchip',
+        hypertension: true,
+        diabetes: true,
       })
       .bearerToken(token);
 
@@ -189,6 +191,8 @@ test.group('Patient resource', group => {
         microchip: 'any microchip',
         death: false,
         deathDate: null,
+        hypertension: true,
+        diabetes: true,
       })
       .bearerToken(token);
 

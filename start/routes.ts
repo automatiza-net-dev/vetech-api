@@ -429,6 +429,21 @@ Route.group(() => {
   }).prefix('weight');
 
   Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientPressureIndex');
+    Route.post('/', 'TimelinesController.storePatientPressure');
+  }).prefix('pressure');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientEvaluationIndex');
+    Route.post('/', 'TimelinesController.storePatientEvaluation');
+  }).prefix('evaluation');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientGlycemiaIndex');
+    Route.post('/', 'TimelinesController.storePatientGlycemia');
+  }).prefix('glycemia');
+
+  Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
     Route.post('/', 'TimelinesController.storeAnimalDocument');
     Route.put('/:id', 'TimelinesController.updateAnimalDocument');

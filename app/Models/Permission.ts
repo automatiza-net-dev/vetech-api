@@ -2,11 +2,14 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import Role from 'App/Models/Role';
+import Screen from 'App/Models/Screen';
 import System from 'App/Models/System';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -50,6 +53,11 @@ export default class Permission extends BaseModel {
     serializeAs: null,
   })
   public screen_id: number;
+
+  @belongsTo(() => Screen, {
+    foreignKey: 'screen_id',
+  })
+  public screen: BelongsTo<typeof Screen>;
 
   @manyToMany(() => System, {
     pivotTable: 'systems_permissions',

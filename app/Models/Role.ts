@@ -47,6 +47,11 @@ export default class Role extends BaseModel {
   })
   public system_id: number;
 
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
+
   @manyToMany(() => Permission, {
     pivotTable: 'role_permissions',
     pivotTimestamps: true,

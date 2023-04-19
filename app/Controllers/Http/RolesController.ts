@@ -2,8 +2,8 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import RoleService from 'App/Services/RoleService';
 import SharedService from 'App/Services/SharedService';
-import AddPermissionValidator from 'App/Validators/Role/AddPermissionValidator';
 import CreateRoleValidator from 'App/Validators/Role/CreateRoleValidator';
+import ManageRolePermissionValidator from 'App/Validators/Role/ManageRolePermissionValidator';
 import UpdateRoleValidator from 'App/Validators/Role/UpdateRoleValidator';
 
 @inject()
@@ -45,14 +45,18 @@ export default class RolesController {
     return response.created(newRole);
   }
 
-  public async addPermission({ request, response, auth }: HttpContextContract) {
-    const payload = await request.validate(AddPermissionValidator);
-    await this.roleService.addPermission(
+  public async managePermissions({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(ManageRolePermissionValidator);
+    await this.roleService.manageRolePermissions(
       await this.sharedService.getAuthContext(auth),
       payload,
     );
 
-    return response.created();
+    return response.noContent();
   }
 
   public async update({
@@ -77,21 +81,6 @@ export default class RolesController {
     await this.roleService.delete(
       await this.sharedService.getAuthContext(auth),
       id,
-    );
-
-    return response.noContent();
-  }
-
-  public async deletePermission({
-    params,
-    response,
-    auth,
-  }: HttpContextContract) {
-    const { id, permission } = params;
-    await this.roleService.deletePermission(
-      await this.sharedService.getAuthContext(auth),
-      id,
-      permission,
     );
 
     return response.noContent();

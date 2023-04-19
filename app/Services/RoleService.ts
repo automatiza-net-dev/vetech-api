@@ -1,10 +1,9 @@
 import { inject } from '@adonisjs/fold';
-import BadRequestException from 'App/Exceptions/BadRequestException';
+import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Role from 'App/Models/Role';
-import PermissionService from 'App/Services/PermissionService';
 import { AuthContext } from 'App/Services/SharedService';
-import IAddPermissionToRole from 'Contracts/interfaces/AddPermissionToRole';
+import IManageRolePermissions from 'Contracts/interfaces/IManageRolePermissions';
 import IRoleData from 'Contracts/interfaces/IRoleData';
 
 interface ISearch {
@@ -13,13 +12,13 @@ interface ISearch {
 
 @inject()
 export default class RoleService {
-  constructor(private readonly permissionService: PermissionService) {}
-
   public async index(
     authCtx: AuthContext,
     data: ISearch,
   ): Promise<Array<Role>> {
-    const qb = Role.query().where('system_id', authCtx.system.id);
+    const qb = Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id);
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -33,12 +32,57 @@ export default class RoleService {
       name: data.name,
       type: data.type,
       system_id: authCtx.system.id,
+      economic_group_id: authCtx.group.id,
     });
   }
 
-  public async show(authCtx: AuthContext, id: number): Promise<Role> {
+  public async show(authCtx: AuthContext, id: number) {
     const role = await Role.query()
       .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .preload('permissions', query => {
+        query.preload('screen').pivotColumns(['active']);
+
+        // query.whereHas('systems', query => {
+        //   query.where('system_id', authCtx.system.id);
+        // });
+      })
+      .first();
+
+    if (!role) {
+      throw new ResourceNotFoundException(
+        'Cargo não foi encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return {
+      id: role.id,
+      name: role.name,
+      type: role.type,
+      permissions: role.permissions.map(p => ({
+        id: p.id,
+        control: p.control,
+        description: p.description,
+        active: p.$extras.pivot_active,
+        screen: {
+          id: p.screen.id,
+          name: p.screen.name,
+        },
+      })),
+    };
+  }
+
+  public async update(
+    authCtx: AuthContext,
+    id: number,
+    data: IRoleData,
+  ): Promise<Role> {
+    const role = await Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
       .where('id', id)
       .first();
 
@@ -50,18 +94,6 @@ export default class RoleService {
       );
     }
 
-    await role.load('permissions');
-
-    return role;
-  }
-
-  public async update(
-    authCtx: AuthContext,
-    id: number,
-    data: IRoleData,
-  ): Promise<Role> {
-    const role = await this.show(authCtx, id);
-
     return role
       .merge({
         name: data.name,
@@ -71,40 +103,57 @@ export default class RoleService {
   }
 
   public async delete(authCtx: AuthContext, id: number): Promise<void> {
-    const role = await this.show(authCtx, id);
-    await role.softDelete();
-  }
+    const role = await Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .first();
 
-  public async addPermission(
-    authCtx: AuthContext,
-    data: IAddPermissionToRole,
-  ): Promise<void> {
-    const role = await this.show(authCtx, data.role_id);
-    await role.load('permissions');
-
-    const permission = await this.permissionService.show(
-      authCtx,
-      data.permission_id,
-    );
-
-    if (role.permissions.find(perm => perm.id === permission.id)) {
-      throw new BadRequestException(
-        'Permissão já pertence ao cargo',
-        400,
-        'E_BAD_REQUEST',
+    if (!role) {
+      throw new ResourceNotFoundException(
+        'Cargo não foi encontrado',
+        404,
+        'E_NOT_FOUND',
       );
     }
 
-    await role.related('permissions').attach([permission.id]);
+    await role.softDelete();
   }
 
-  public async deletePermission(
+  public async manageRolePermissions(
     authCtx: AuthContext,
-    roleId: number,
-    permissionId: number,
+    data: IManageRolePermissions,
   ): Promise<void> {
-    const role = await this.show(authCtx, roleId);
+    await Database.transaction(async trx => {
+      const client = Database.connection();
 
-    await role.related('permissions').detach([permissionId]);
+      const roles = await Role.query()
+        .useTransaction(trx)
+        .where('system_id', authCtx.system.id)
+        .where('economic_group_id', authCtx.group.id)
+        .whereIn(
+          'id',
+          data.data.map(d => d.role),
+        );
+
+      const promises = roles.map(async role => {
+        const permissions = data.data.find(
+          d => d.role === role.id,
+        )?.permissions;
+
+        if (permissions) {
+          const promises = permissions.map(async permission => {
+            await client
+              .from('role_permissions')
+              .where('role_id', role.id)
+              .where('permission_id', permission.id)
+              .update({ active: permission.active });
+          });
+
+          await Promise.all(promises);
+        }
+      });
+      await Promise.all(promises);
+    });
   }
 }

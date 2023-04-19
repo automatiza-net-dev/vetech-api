@@ -17,7 +17,7 @@ export default class PermissionsController {
 
     return response.ok(
       await this.service.index(await this.sharedService.getAuthContext(auth), {
-        name: qs.name,
+        description: qs.description,
       }),
     );
   }

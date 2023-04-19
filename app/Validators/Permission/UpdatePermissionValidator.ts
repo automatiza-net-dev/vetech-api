@@ -5,9 +5,9 @@ export default class UpdatePermissionValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    name: schema.string({}, [
-      rules.unique({ table: 'permissions', column: 'name' }),
-    ]),
+    description: schema.string({}, []),
+    control: schema.string({}, []),
+    screenId: schema.number([rules.exists({ table: 'screens', column: 'id' })]),
   });
 
   public messages: CustomMessages = {};

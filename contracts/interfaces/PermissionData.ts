@@ -1,3 +1,6 @@
 export default interface IPermissionData {
-  name: string;
+  description: string;
+  control: string;
+
+  screenId: number;
 }

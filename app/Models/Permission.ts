@@ -7,6 +7,7 @@ import {
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import Role from 'App/Models/Role';
+import System from 'App/Models/System';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
@@ -15,7 +16,10 @@ export default class Permission extends BaseModel {
   public id: number;
 
   @column()
-  public name: string;
+  public description: string;
+
+  @column()
+  public control: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -45,5 +49,11 @@ export default class Permission extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public system_id: number;
+  public screen_id: number;
+
+  @manyToMany(() => System, {
+    pivotTable: 'systems_permissions',
+    pivotTimestamps: true,
+  })
+  public systems: ManyToMany<typeof System>;
 }

@@ -29,7 +29,11 @@ export default class RoleService {
   }
 
   public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
-    return Role.create({ ...data, system_id: authCtx.system.id });
+    return Role.create({
+      name: data.name,
+      type: data.type,
+      system_id: authCtx.system.id,
+    });
   }
 
   public async show(authCtx: AuthContext, id: number): Promise<Role> {
@@ -58,7 +62,12 @@ export default class RoleService {
   ): Promise<Role> {
     const role = await this.show(authCtx, id);
 
-    return role.merge(data).save();
+    return role
+      .merge({
+        name: data.name,
+        type: data.type,
+      })
+      .save();
   }
 
   public async delete(authCtx: AuthContext, id: number): Promise<void> {

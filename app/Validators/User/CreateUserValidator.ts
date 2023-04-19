@@ -24,6 +24,7 @@ export default class CreateUserValidator {
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
     licensingJob: schema.string.optional({}),
+    onDuty: schema.boolean.optional([]),
   });
   public messages: CustomMessages = {};
 }

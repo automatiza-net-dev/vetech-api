@@ -1,7 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import DrugAdministration from 'App/Models/DrugAdministration';
-import Hospitalization from 'App/Models/Hospitalization';
+import Hospitalization, {
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
@@ -34,7 +36,7 @@ test.group('Hospitalization medical prescription resource', group => {
       business_unit_id: business.id,
       patient_id: patient.id,
       tutor_id: patient.id,
-      type: 10,
+      type: HospitalizationType.Internação,
       expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
@@ -67,6 +69,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: MedicalPrescriptionFrequency.RECURRENT,
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         frequencyInterval: 10,
         frequencyUnit: MedicalPrescriptionFrequencyUnit.DAY,
@@ -97,6 +100,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: MedicalPrescriptionFrequency.ONCE,
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         frequencyInterval: 10,
         frequencyUnit: MedicalPrescriptionFrequencyUnit.DAY,
@@ -127,6 +131,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: MedicalPrescriptionFrequency.WHEN_NEEDED,
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         frequencyInterval: 10,
         frequencyUnit: MedicalPrescriptionFrequencyUnit.DAY,
@@ -157,6 +162,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: 'RECURRENT',
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         frequencyInterval: 10,
         frequencyUnit: 'HOUR',
@@ -190,6 +196,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: 'RECURRENT',
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         frequencyInterval: 10,
         frequencyUnit: 'HOUR',
@@ -227,6 +234,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: 'WHEN_NEEDED',
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         prescriptionUnitId: unit.id,
         dose: 10,
@@ -260,6 +268,7 @@ test.group('Hospitalization medical prescription resource', group => {
         frequency: 'ONCE',
         description: 'some description',
         resume: 'some resume',
+        volume: '10',
         executionStart: new Date(),
         prescriptionUnitId: unit.id,
         dose: 10,

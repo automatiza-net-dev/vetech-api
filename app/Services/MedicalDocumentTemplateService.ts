@@ -1,8 +1,7 @@
 import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import { RECIPE_UUID } from 'App/Models/TimelineType';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IMedicalDocumentTemplateData from 'Contracts/interfaces/IMedicalDocumentTemplateData';
 
 interface ISearch {
@@ -12,6 +11,8 @@ interface ISearch {
 
 @inject()
 export default class MedicalDocumentTemplateService {
+  constructor(private sharedService: SharedService) {}
+
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = MedicalDocumentTemplate.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
@@ -30,18 +31,19 @@ export default class MedicalDocumentTemplateService {
   }
 
   public async show(authCtx: AuthContext, id: string) {
-    const template = await authCtx.group
-      .related('medicalDocumentTemplates')
-      .query()
+    const template = await MedicalDocumentTemplate.query()
       .where('id', id)
       .first();
 
     if (!template) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    if (
+      template.economic_group_id &&
+      template.economic_group_id !== authCtx.group.id
+    ) {
+      throw this.sharedService.ResourceNotFound();
     }
 
     return template;

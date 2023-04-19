@@ -169,6 +169,56 @@ export default class BusinessUnitService {
     }
   }
 
+  public async addCollaborator(
+    unitId: string,
+    props: {
+      userId: string;
+      roleId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .firstOrFail();
+
+      const userToAdd = await User.query()
+        .useTransaction(trx)
+        .where('id', props.userId)
+        .preload('roles')
+        .firstOrFail();
+      const hasRoleAlready = userToAdd.roles.find(
+        role => role.role_id === props.roleId,
+      );
+
+      if (hasRoleAlready) {
+        throw new BadRequestException(
+          'Este usuário já é colaborador desta unidade',
+          400,
+          'E_ALREADY_EXISTS',
+        );
+      }
+
+      await userToAdd.related('roles').create(
+        {
+          role_id: props.roleId,
+          unit_id: unit.id,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd
+        .related('economicGroups')
+        .sync([unit.economicGroupId], false, trx);
+    });
+
+    // role
+    // unit
+  }
+
   public async show(id: string): Promise<BusinessUnit> {
     const unit = await BusinessUnit.query()
       .where('id', id)
@@ -463,5 +513,17 @@ export default class BusinessUnitService {
       valid: true,
       exists: Boolean(doc),
     };
+  }
+
+  public async calculateStates(unitId: string) {
+    const unit = await BusinessUnit.query().where('id', unitId).firstOrFail();
+
+    const egUnits = await BusinessUnit.query().where(
+      'economic_group_id',
+      unit.economicGroupId,
+    );
+
+    const states = egUnits.map(u => u.state);
+    return [...new Set(states)];
   }
 }

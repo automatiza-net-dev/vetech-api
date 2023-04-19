@@ -18,7 +18,6 @@ export interface IAuthorizeFiscalDocument {
   billId: string;
   unitFiscalDocumentId: string;
   type: BusinessUnitFiscalDocumentMovementType;
-  accessKeyRef: string;
 }
 
 export interface IAuthorizeNfseFiscalDocument {

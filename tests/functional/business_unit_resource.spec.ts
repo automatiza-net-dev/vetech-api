@@ -1,9 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import TefAcquirer from 'App/Models/TefAcquirer';
-import User from 'App/Models/User';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -14,12 +11,15 @@ test.group('Business unit resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createBusinessUnit = async (): Promise<
-    [BusinessUnit, EconomicGroup, User]
-  > => {
-    const { user, group, business } = await userBootstrap();
+  const createData = async () => {
+    const { user, group, business, role } = await userBootstrap();
 
-    return [business, group, user];
+    return {
+      user,
+      group,
+      business,
+      role,
+    };
   };
 
   test('should return a list of all business units', async ({
@@ -34,8 +34,8 @@ test.group('Business unit resource', group => {
   });
 
   test('update business unit', async ({ client, assert }) => {
-    const [unit] = await createBusinessUnit();
-    const response = await client.put(`/business-units/${unit.id}`).json({
+    const { business } = await createData();
+    const response = await client.put(`/business-units/${business.id}`).json({
       identification: 'TESTING',
       simple: true,
       cityCode: '123',
@@ -43,15 +43,18 @@ test.group('Business unit resource', group => {
 
     const updatedBusinessUnit = response.body();
 
-    assert.equal(unit.id, updatedBusinessUnit.id);
-    assert.notEqual(unit.identification, updatedBusinessUnit.identification);
+    assert.equal(business.id, updatedBusinessUnit.id);
+    assert.notEqual(
+      business.identification,
+      updatedBusinessUnit.identification,
+    );
   });
 
   test('should return a list of users from the business unit', async ({
     client,
     assert,
   }) => {
-    const [_, __, user] = await createBusinessUnit();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -66,27 +69,43 @@ test.group('Business unit resource', group => {
     assert.isArray(userList);
   });
 
+  test('should return a list of states', async ({ client, assert }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/business-units/states`)
+      .bearerToken(token);
+
+    const userList = response.body();
+
+    assert.isArray(userList);
+  });
+
   test('should return a list of business units from logged user', async ({
     client,
     assert,
   }) => {
-    const [unit, _, user] = await createBusinessUnit();
+    const { user, business } = await createData();
 
     const response = await client.get(`/business-units/user`).loginAs(user);
 
     const units = response.body();
 
     assert.isArray(units);
-    assert.equal(unit.id, units[0].id);
+    assert.equal(business.id, units[0].id);
   });
 
   test('should create new business unit', async ({ client, assert }) => {
-    const [_, economicGroup, user] = await createBusinessUnit();
+    const { user, group } = await createData();
 
     const response = await client
       .post(`/business-units/`)
       .json({
-        economic_group_id: economicGroup.id,
+        economic_group_id: group.id,
         document: '81021647000100',
         email: 'mail@mail.com',
         stateRegistration: 'some',
@@ -104,7 +123,7 @@ test.group('Business unit resource', group => {
     client,
     assert,
   }) => {
-    const [_, __, user] = await createBusinessUnit();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -122,7 +141,7 @@ test.group('Business unit resource', group => {
   });
 
   test('update business unit acquirer', async ({ client, assert }) => {
-    const [unit, group, user] = await createBusinessUnit();
+    const { user, business, group } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -133,7 +152,7 @@ test.group('Business unit resource', group => {
       description: 'any description',
     });
 
-    const acq = await unit.related('acquirers').create({
+    const acq = await business.related('acquirers').create({
       tef_acquirer_id: tefAcq.id,
       document: '81021647000100',
       active: true,
@@ -154,7 +173,7 @@ test.group('Business unit resource', group => {
     client,
     assert,
   }) => {
-    const [_, __, user] = await createBusinessUnit();
+    const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -168,7 +187,7 @@ test.group('Business unit resource', group => {
   });
 
   test('should delete business unit acquirer', async ({ client, assert }) => {
-    const [unit, group, user] = await createBusinessUnit();
+    const { user, business, group } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -179,7 +198,7 @@ test.group('Business unit resource', group => {
       description: 'any description',
     });
 
-    const acq = await unit.related('acquirers').create({
+    const acq = await business.related('acquirers').create({
       tef_acquirer_id: tefAcq.id,
       document: '81021647000100',
       active: true,
@@ -226,7 +245,7 @@ test.group('Business unit resource', group => {
     client,
     assert,
   }) => {
-    await createBusinessUnit();
+    await createData();
     const response = await client.get(
       `/business-units/check-document/45370407000149`,
     );
@@ -236,5 +255,50 @@ test.group('Business unit resource', group => {
     assert.equal(200, response.status());
     assert.isTrue(body.valid);
     assert.isTrue(body.exists);
+  });
+
+  test('should add new collaborator to business unit', async ({
+    client,
+    assert,
+  }) => {
+    const { user, role } = await createData();
+    const { user: userToAdd } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/business-units/add-collaborator`)
+      .json({
+        roleId: role.id,
+        userId: userToAdd.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException for existing role', async ({
+    client,
+    assert,
+  }) => {
+    const { user, role } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/business-units/add-collaborator`)
+      .json({
+        roleId: role.id,
+        userId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 });

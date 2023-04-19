@@ -231,7 +231,6 @@ export default class BusinessUnitFiscalDocumentService {
           model: document.model,
           series: document.series,
           sequence: document.sequence + 1,
-          accessKeyRef: data.accessKeyRef,
           user_who_authorized_id: user.id,
           authorizationDate: DateTime.now(),
           contingency: IssuedFiscalDocumentContingency.N,

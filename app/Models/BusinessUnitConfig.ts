@@ -22,6 +22,11 @@ export default class BusinessUnitConfig extends BaseModel {
   public focusProductionToken: string;
 
   @column({
+    columnName: 'requires_schedule_tutor',
+  })
+  public requiresScheduleTutor: boolean;
+
+  @column({
     columnName: 'fiscal_document_environment',
   })
   public fiscalDocumentEnvironment: string;

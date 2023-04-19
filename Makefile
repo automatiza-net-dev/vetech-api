@@ -33,5 +33,3 @@ initial:
 		node ace db:seed --files "./database/seeders/PathologySeeder.ts"
 		node ace db:seed --files "./database/seeders/VaccineSeeder.ts"
 		
-		
-		

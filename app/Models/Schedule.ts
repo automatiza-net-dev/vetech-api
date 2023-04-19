@@ -52,6 +52,11 @@ export default class Schedule extends BaseModel {
   })
   public majorComplaint?: string;
 
+  @column({
+    columnName: 'on_duty',
+  })
+  public onDuty?: boolean;
+
   @column.dateTime({
     columnName: 'finished_at',
   })

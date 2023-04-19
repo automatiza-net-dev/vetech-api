@@ -3,6 +3,7 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
 import SharedService from 'App/Services/SharedService';
 import UserRoleService from 'App/Services/UserRoleService';
+import CreateBusinessUnitCollaboratorValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitCollaboratorValidator';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitAcquirerValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitAcquirerValidator';
 import UpdateBusinessUnitValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitValidator';
@@ -16,6 +17,11 @@ export default class BusinessUnitsController {
     private readonly userRoleService: UserRoleService,
     private readonly sharedService: SharedService,
   ) {}
+
+  public async states({ response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    return response.ok(await this.service.calculateStates(unit_id));
+  }
 
   public async index({ request, response }: HttpContextContract) {
     const qs = request.qs();
@@ -36,6 +42,21 @@ export default class BusinessUnitsController {
     const { user } = this.sharedService.extractUser(auth);
 
     await this.service.store(user, payload);
+
+    return response.created();
+  }
+
+  public async storeCollaborator({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(
+      CreateBusinessUnitCollaboratorValidator,
+    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.addCollaborator(unit_id, payload);
 
     return response.created();
   }

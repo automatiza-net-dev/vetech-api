@@ -16,23 +16,18 @@ export default class AuthService {
 
   public async login(data: ILoginData, auth: AuthContract) {
     const user = await this.getUser(data);
-    const economicGroups = await user
-      .related('economicGroups')
+    const roles = await user
+      .related('roles')
       .query()
-      .preload('businessUnits', query => {
+      .preload('unit')
+      .whereHas('unit', query => {
         query.where('active', true);
-      });
-    const uniqueIds = new Set(economicGroups.map(eg => eg.id));
-    const uniqueEconomicGroups = Array.from(uniqueIds)
-      .map(id => {
-        return economicGroups.find(eg => eg.id === id);
       })
-      .filter(Boolean) as EconomicGroup[];
+      .where('active', true);
 
-    const validUnits = uniqueEconomicGroups
-      .map(eg => eg.businessUnits)
-      .flat()
-      .filter(bu => bu.active);
+    const validUnits = roles
+      .map(r => r.unit)
+      .filter(u => u !== null) as BusinessUnit[];
 
     if (validUnits.length === 1) {
       const [unit] = validUnits;
@@ -49,15 +44,26 @@ export default class AuthService {
       });
     }
 
+    const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
+      'id',
+      validUnits.map(u => u.economicGroupId),
+    );
+
+    const dataMap = new Map<string, BusinessUnit[]>();
+    uniqueEconomicGroups.forEach(eg => dataMap.set(eg.id, []));
+    validUnits.forEach(u => dataMap.get(u.economicGroupId)?.push(u));
+
     if (!data.business_unit_id) {
       return Promise.all(
-        uniqueEconomicGroups.map(async eg => {
+        Array.from(dataMap.keys()).map(async key => {
+          const group = uniqueEconomicGroups.find(eg => eg.id === key);
+
           return {
-            id: eg.id,
-            fantasyName: eg.fantasyName,
-            companyName: eg.companyName,
+            id: group?.id,
+            fantasyName: group?.fantasyName,
+            companyName: group?.companyName,
             businessUnits: await Promise.all(
-              eg.businessUnits.map(async bu => ({
+              dataMap.get(key)!.map(async bu => ({
                 id: bu.id,
                 identification: bu.identification,
                 status: (await this.checkLicence(bu)) ?? 'VALID',

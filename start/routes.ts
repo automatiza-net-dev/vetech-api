@@ -93,8 +93,14 @@ Route.group(() => {
     'auth',
   );
 
+  Route.get('/states', 'BusinessUnitsController.states').middleware('auth');
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
+
+  Route.post(
+    '/add-collaborator',
+    'BusinessUnitsController.storeCollaborator',
+  ).middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
 
@@ -438,6 +444,21 @@ Route.group(() => {
   }).prefix('weight');
 
   Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientPressureIndex');
+    Route.post('/', 'TimelinesController.storePatientPressure');
+  }).prefix('pressure');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientEvaluationIndex');
+    Route.post('/', 'TimelinesController.storePatientEvaluation');
+  }).prefix('evaluation');
+
+  Route.group(() => {
+    Route.get('/:id', 'TimelinesController.patientGlycemiaIndex');
+    Route.post('/', 'TimelinesController.storePatientGlycemia');
+  }).prefix('glycemia');
+
+  Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalDocumentIndex');
     Route.post('/', 'TimelinesController.storeAnimalDocument');
     Route.put('/:id', 'TimelinesController.updateAnimalDocument');
@@ -487,6 +508,10 @@ Route.group(() => {
     Route.post('/', 'TimelinesController.storeObservation');
     Route.put('/:id', 'TimelinesController.updateObservations');
   }).prefix('observations');
+
+  Route.group(() => {
+    Route.post('/', 'TimelinesController.storeDeath');
+  }).prefix('deaths');
 })
   .prefix('n-timeline')
   .middleware('auth');

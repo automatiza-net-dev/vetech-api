@@ -39,6 +39,7 @@ export default class UpdateScheduleValidator {
     raceId: schema.string.optional({}),
     majorComplaint: schema.string.optional({}),
     ignoreOverlapping: schema.boolean.optional([]),
+    onDuty: schema.boolean.optional([]),
   });
 
   public messages: CustomMessages = {};

@@ -603,6 +603,8 @@ export default class PatientService {
           photo,
           vaccineOrigin: data.vaccineOrigin,
           tag: (patients.length + 1).toString(),
+          hypertension: data.hypertension,
+          diabetes: data.diabetes,
         },
         {
           client: trx,
@@ -702,7 +704,7 @@ export default class PatientService {
           telephone: data.telephone,
           messagePersonName: data.message_person_name,
           messagePersonPhone: data.message_person_phone,
-          postalCode: data.postal_code,
+          postalCode: data.postalCode,
           street: data.street,
           number: data.number,
           complement: data.complement,
@@ -918,6 +920,8 @@ export default class PatientService {
           birthDate: data.birthDate?.toJSDate(),
           active: data.active,
           vaccineOrigin: data.vaccineOrigin,
+          hypertension: data.hypertension,
+          diabetes: data.diabetes,
         })
         .useTransaction(trx)
         .save();
@@ -1000,7 +1004,7 @@ export default class PatientService {
           telephone: data.telephone,
           messagePersonName: data.message_person_name,
           messagePersonPhone: data.message_person_phone,
-          postalCode: data.postal_code,
+          postalCode: data.postalCode,
           street: data.street,
           number: data.number,
           complement: data.complement,

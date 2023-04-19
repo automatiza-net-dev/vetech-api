@@ -110,24 +110,36 @@ export default class ScheduleService {
     return qb;
   }
 
-  public async usersWithSchedule(unitId: string) {
+  public async usersWithSchedule(
+    unitId: string,
+    props: {
+      onDuty?: number;
+    },
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
     // const unit = await BusinessUnit.findOrFail(unitId);
 
     const now = new Date();
 
-    const users = await group
+    const qb = group
       .related('users')
       .query()
-      .whereHas('roles', query => {
+      .orWhereHas('roles', query => {
         query.where('unit_id', unitId);
       })
-      .whereHas('workingDays', query => {
+      .orWhereHas('workingDays', query => {
         query.where('weekday_index', now.getDay());
       })
       .orWhereHas('schedules', query => {
         query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
       });
+
+    if (props.onDuty) {
+      qb.orWhere('on_duty', true);
+    }
+
+    const users = await qb;
+
     const uniqueIds = new Set(users.map(user => user.id));
     return Array.from(uniqueIds)
       .map(id => users.find(user => user.id === id))
@@ -165,32 +177,34 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    await ScheduleService.checkDisponibility(
-      data.userId ?? user.id,
-      unitId,
-      {
-        start: data.startHour.toJSDate(),
-        end: data.endHour.toJSDate(),
-      },
-      exception,
-    );
+    if (!data.onDuty) {
+      await ScheduleService.checkDisponibility(
+        data.userId ?? user.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        exception,
+      );
 
-    if (!data.ignoreOverlapping) {
-      const overlapping = await Schedule.query()
-        .where('user_id', user.id)
-        .andWhere('business_unit_id', unitId)
-        .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-          data.startHour.toJSDate(),
-          data.endHour.toJSDate(),
-        ])
-        .first();
+      if (!data.ignoreOverlapping) {
+        const overlapping = await Schedule.query()
+          .where('user_id', user.id)
+          .andWhere('business_unit_id', unitId)
+          .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
+          ])
+          .first();
 
-      if (overlapping) {
-        throw new BadRequestException(
-          'Horário já está ocupado',
-          400,
-          'E_BAD_REQUEST',
-        );
+        if (overlapping) {
+          throw new BadRequestException(
+            'Horário já está ocupado',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
       }
     }
 
@@ -209,6 +223,7 @@ export default class ScheduleService {
       schedule_service_type_id: data.scheduleServiceTypeId,
       schedule_status_id: SS_NOT_CONFIRMED,
       scheduleOriginId: data.scheduleOriginId,
+      onDuty: data.onDuty,
     });
 
     if (data.scheduleOriginId) {
@@ -312,6 +327,7 @@ export default class ScheduleService {
         patient_id: data.patientId,
         race_id: data.raceId,
         schedule_service_type_id: data.scheduleServiceTypeId,
+        onDuty: data.onDuty,
       })
       .save();
   }

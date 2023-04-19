@@ -3,12 +3,21 @@ import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { connection } from '@ioc:Mongoose';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Hospitalization, {
+  HospitalizationStatus,
+  HospitalizationType,
+} from 'App/Models/Hospitalization';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
+import { IPatientEvaluation } from 'App/Models/mongoose/PatientEvaluation';
+import { IPatientGlycemia } from 'App/Models/mongoose/PatientGlycemia';
+import { IPatientPressure } from 'App/Models/mongoose/PatientPressure';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
@@ -16,11 +25,14 @@ import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType, {
   ATTENDANCE_UUID,
   DOCUMENT_UUID,
+  EVALUATION_UUID,
   EXAM_UUID,
+  GLYCEMIA_UUID,
   HOSPITALIZATION_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
   PHOTO_UUID,
+  PRESSURE_MEASUREMENT_UUID,
   RECIPE_UUID,
   VACCINE_UUID,
   WEIGHT_UUID,
@@ -136,6 +148,117 @@ export default class TimelineService {
             },
             observation: data.observation,
           },
+        },
+      });
+    });
+  }
+
+  public async pressureIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: PRESSURE_MEASUREMENT_UUID,
+      'timeline_info.tag': tag,
+    }).sort({ createdAt: -1 });
+  }
+
+  public async storePressure(data: IPatientPressure) {
+    const timelineInfo = await TimelineType.findOrFail(
+      PRESSURE_MEASUREMENT_UUID,
+    );
+
+    return Database.transaction(async trx => {
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      return AnimalTimeline.create({
+        timeline_id: PRESSURE_MEASUREMENT_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          pressure: data.pressure,
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          observation: data.observation,
+        },
+      });
+    });
+  }
+
+  public async glycemiaIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: GLYCEMIA_UUID,
+      'timeline_info.tag': tag,
+    }).sort({ createdAt: -1 });
+  }
+
+  public async storeGlycemia(data: IPatientGlycemia) {
+    const timelineInfo = await TimelineType.findOrFail(GLYCEMIA_UUID);
+
+    return Database.transaction(async trx => {
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      return AnimalTimeline.create({
+        timeline_id: GLYCEMIA_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          value: data.value,
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          observation: data.observation,
+        },
+      });
+    });
+  }
+
+  public async evaluationIndex(tag: string) {
+    return AnimalTimeline.find({
+      timeline_id: EVALUATION_UUID,
+      'timeline_info.tag': tag,
+    }).sort({ createdAt: -1 });
+  }
+
+  public async storeEvaluation(data: IPatientEvaluation) {
+    const timelineInfo = await TimelineType.findOrFail(EVALUATION_UUID);
+
+    return Database.transaction(async trx => {
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      return AnimalTimeline.create({
+        timeline_id: EVALUATION_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: data.tag,
+          realizedAt: data.realizedAt.toJSDate(),
+          resume: data.resume,
+          protocol: data.protocol,
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          photos: await Promise.all(data.photos.map(this.uploadPhoto)),
         },
       });
     });
@@ -349,7 +472,7 @@ export default class TimelineService {
       },
       timeline_info: {
         tag: data.tag,
-        photo: await this.uploadPhoto(data.photo),
+        photo: await Promise.all(data.photos.map(this.uploadPhoto)),
         observation: data.observation ?? '',
         title: data.title ?? '',
         technician: {
@@ -680,7 +803,99 @@ export default class TimelineService {
     });
   }
 
-  private async uploadPhoto(file: MultipartFileContract): Promise<string> {
+  public async storeDeath(
+    unitId: string,
+    data: { tag: string; technicianId: string },
+  ) {
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('economicGroup')
+        .firstOrFail();
+
+      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
+        client: trx,
+      });
+
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      const patient = await Patient.query()
+        .useTransaction(trx)
+        .where('id', data.tag)
+        .preload('patientAnimal')
+        .firstOrFail();
+
+      if (patient.patientAnimal.death) {
+        throw new BadRequestException(
+          'Animal já está marcado como em óbito',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await patient.patientAnimal
+        .merge({
+          death: true,
+          deathDate: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+
+      await AnimalTimeline.create({
+        timeline_id: ATTENDANCE_UUID,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: patient.id,
+          event: 'OBITO',
+          realized: DateTime.now(),
+          resume: 'Óbito',
+          description: 'Óbito',
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      });
+
+      const hospitalization = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('patient_id', patient.id)
+        .where('status', HospitalizationStatus.ACTIVE)
+        .limit(1)
+        .first();
+
+      if (hospitalization) {
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: unit.economicGroupId,
+            unit: unit.id,
+            origin: 'death_occurrence',
+          },
+          data: {
+            type: HospitalizationType[hospitalization.type],
+            hospitalizedAt: hospitalization.createdAt,
+            realizedAt: DateTime.now(),
+            issuedAt: DateTime.now(),
+            technician: {
+              id: technician.id,
+              name: technician.name,
+            },
+            attachments: [],
+          },
+        });
+      }
+    });
+  }
+
+  private async uploadPhoto(file: MultipartFileContract) {
     const key = `${v4()}.${file.extname}`;
     await file.moveToDisk(
       'timeline',
@@ -690,6 +905,11 @@ export default class TimelineService {
       'local',
     );
 
-    return Drive.getUrl(`timeline/${key}`);
+    const url = await Drive.getUrl(`timeline/${key}`);
+
+    return {
+      url,
+      filename: file.clientName,
+    };
   }
 }

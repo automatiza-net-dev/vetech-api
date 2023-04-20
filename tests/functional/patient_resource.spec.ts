@@ -110,6 +110,30 @@ test.group('Patient resource', group => {
     assert.isFalse(Boolean(body.find(b => b.id === patient2.id)));
   });
 
+  test('should return list of patients from clinic', async ({
+    client,
+    assert,
+  }) => {
+    const { user, patient: patient1 } = await createData();
+    const { patient: patient2 } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('tag', '1');
+    const response = await client
+      .get(`/patients/animals?${qs.toString()}`)
+      .bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(Boolean(body.find(b => b.id === patient1.id)));
+    assert.isFalse(Boolean(body.find(b => b.id === patient2.id)));
+  });
+
   test('should throw NotFoundException if no valid patient is found', async ({
     client,
     assert,

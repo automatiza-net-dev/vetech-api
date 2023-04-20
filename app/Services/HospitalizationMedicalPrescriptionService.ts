@@ -176,7 +176,7 @@ export default class HospitalizationMedicalPrescriptionService {
             executionStart: data.executionStart,
             description: data.description,
             resume: data.resume,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -217,7 +217,7 @@ export default class HospitalizationMedicalPrescriptionService {
             fluidSpeed: body.fluidSpeed as number,
             dose: body.dose as number,
             supplement: body.supplement as string,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -265,7 +265,7 @@ export default class HospitalizationMedicalPrescriptionService {
             fluidSpeed: body.fluidSpeed as number,
             dose: body.dose as number,
             supplement: body.supplement as string,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -322,7 +322,7 @@ export default class HospitalizationMedicalPrescriptionService {
             drug: drug.description,
             dose: body.dose as number,
             unit: unit.name,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -383,7 +383,7 @@ export default class HospitalizationMedicalPrescriptionService {
             drug: drug.description,
             dose: body.dose as number,
             unit: unit.name,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -439,7 +439,7 @@ export default class HospitalizationMedicalPrescriptionService {
             dose: body.dose as number,
             unit: unit.name,
             supplement: body.supplement as string,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 
@@ -493,7 +493,7 @@ export default class HospitalizationMedicalPrescriptionService {
             fluidSpeed: body.fluidSpeed as number,
             dose: body.dose as number,
             supplement: body.supplement as string,
-            volume: data.volume,
+            volume: data.volume ?? null,
           },
         });
 

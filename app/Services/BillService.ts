@@ -1589,7 +1589,7 @@ export default class BillService {
         status: BillItemStatus.A,
         createdAt: bill.createdAt,
 
-        fiscalOperationCode: rule.taxOperation.code,
+        fiscalOperationCode: rule?.taxOperation?.code,
         icmsOriginProduct: productVariation.product.icmsOrigin,
         icmsCst:
           productVariation.product.type === ProductType.PRODUCT

@@ -44,6 +44,7 @@ interface ISearch {
   toBill?: string;
   status?: string;
   client?: string;
+  patientTag?: string;
   patient?: string;
   tag?: string;
 }
@@ -82,7 +83,7 @@ export default class BillService {
   }
 
   async index(unitId: string, data: ISearch) {
-    const qb = Bill.query().where('business_unit_id', unitId).debug(true);
+    const qb = Bill.query().where('business_unit_id', unitId);
 
     if (data.fromBill) {
       qb.where('bill_date', '>=', data.fromBill);
@@ -102,6 +103,14 @@ export default class BillService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.patientTag) {
+      qb.whereHas('patient', query => {
+        query.whereHas('patientAnimal', query => {
+          query.where('tag', 'ilike', `%${data.patientTag}%`);
+        });
+      });
     }
 
     if (data.tag) {

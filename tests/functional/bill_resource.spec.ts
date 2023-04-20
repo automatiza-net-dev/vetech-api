@@ -219,6 +219,30 @@ test.group('Bill resource', group => {
     };
   };
 
+  test('should search valid bills', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('fromBill', new Date().toISOString());
+    qs.append('toBill', new Date().toISOString());
+    qs.append('status', BillStatus.A);
+    qs.append('client', v4());
+    qs.append('patient', v4());
+    qs.append('patientTag', v4());
+    qs.append('tag', v4());
+
+    const response = await client
+      .get(`/bills?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.isArray(response.body());
+  });
+
   test('should search valid taxes', async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {

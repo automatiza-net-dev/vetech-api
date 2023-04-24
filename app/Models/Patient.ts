@@ -86,6 +86,12 @@ export default class Patient extends BaseModel {
   public weightOrigin?: PatientWeightOrigin;
 
   @column()
+  public hypertension: boolean;
+
+  @column()
+  public diabetes: boolean;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

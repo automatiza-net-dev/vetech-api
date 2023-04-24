@@ -16,4 +16,5 @@ export interface IUpdatePassword {
   licensingJob?: string;
   inscription?: string;
   birthDate?: DateTime;
+  onDuty?: boolean;
 }

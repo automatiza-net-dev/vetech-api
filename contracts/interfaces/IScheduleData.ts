@@ -13,6 +13,7 @@ export default interface IScheduleData {
   majorComplaint?: string;
   userId?: string;
   ignoreOverlapping?: boolean;
+  onDuty?: boolean;
 }
 
 export interface IRescheduleData {

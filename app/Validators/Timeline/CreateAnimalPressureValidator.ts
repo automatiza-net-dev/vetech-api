@@ -1,11 +1,13 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class CreateAnimalPhotoValidator {
+export default class CreateAnimaPressureValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
+    pressure: schema.number([rules.unsigned()]),
+    realizedAt: schema.date({}),
     technicianId: schema.string({}, [
       rules.uuid(),
       rules.exists({
@@ -13,12 +15,6 @@ export default class CreateAnimalPhotoValidator {
         column: 'id',
       }),
     ]),
-    photos: schema.array().members(
-      schema.file({
-        extnames: ['jpg', 'gif', 'png', 'jpeg'],
-      }),
-    ),
-    title: schema.string.optional({}, []),
     observation: schema.string.optional({}, []),
   });
 

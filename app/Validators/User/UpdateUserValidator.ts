@@ -20,6 +20,7 @@ export default class UpdateUserValidator {
     licensingJob: schema.string.optional({}),
     inscription: schema.string.optional({}),
     birthDate: schema.date.optional({}),
+    onDuty: schema.boolean.optional([]),
   });
   public messages: CustomMessages = {};
 }

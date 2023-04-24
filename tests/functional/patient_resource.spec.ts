@@ -82,6 +82,8 @@ test.group('Patient resource', group => {
         hairId: hair.id,
         castrated: true,
         microchip: 'any microchip',
+        hypertension: true,
+        diabetes: true,
       })
       .bearerToken(token);
 
@@ -100,6 +102,30 @@ test.group('Patient resource', group => {
     });
 
     const response = await client.get('/patients').bearerToken(token);
+
+    const body = response.body();
+
+    assert.equal(200, response.status());
+    assert.isTrue(Boolean(body.find(b => b.id === patient1.id)));
+    assert.isFalse(Boolean(body.find(b => b.id === patient2.id)));
+  });
+
+  test('should return list of patients from clinic', async ({
+    client,
+    assert,
+  }) => {
+    const { user, patient: patient1 } = await createData();
+    const { patient: patient2 } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('tag', '1');
+    const response = await client
+      .get(`/patients/animals?${qs.toString()}`)
+      .bearerToken(token);
 
     const body = response.body();
 
@@ -189,6 +215,8 @@ test.group('Patient resource', group => {
         microchip: 'any microchip',
         death: false,
         deathDate: null,
+        hypertension: true,
+        diabetes: true,
       })
       .bearerToken(token);
 
@@ -304,7 +332,7 @@ test.group('Patient resource', group => {
         telephone: '123',
         messagePersonName: '123',
         messagePersonPhone: '123',
-        postal_code: '123',
+        postalCode: '123',
         street: '123',
         number: '123',
         complement: '123',

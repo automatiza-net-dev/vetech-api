@@ -24,6 +24,7 @@ export default class UpdateHospitalizationMedicalPrescriptionValidator {
     description: schema.string(),
     observationOnExecution: schema.string.optional(),
     resume: schema.string(),
+    volume: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

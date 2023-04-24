@@ -23,6 +23,7 @@ export default class CreateHospitalizationMedicalPrescriptionValidator {
     frequency: schema.enum(Object.values(MedicalPrescriptionFrequency)),
     description: schema.string(),
     resume: schema.string(),
+    volume: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

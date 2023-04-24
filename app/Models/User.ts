@@ -84,6 +84,11 @@ export default class User extends BaseModel {
   @column()
   public rememberMeToken?: string;
 
+  @column({
+    columnName: 'on_duty',
+  })
+  public onDuty: boolean;
+
   @column()
   public active?: boolean;
 

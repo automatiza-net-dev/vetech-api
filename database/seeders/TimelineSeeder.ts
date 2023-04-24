@@ -1,12 +1,16 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import TimelineType, {
   ATTENDANCE_UUID,
+  DEATH_UUID,
   DOCUMENT_UUID,
+  EVALUATION_UUID,
   EXAM_UUID,
+  GLYCEMIA_UUID,
   HOSPITALIZATION_UUID,
   OBSERVATION_UUID,
   PATHOLOGY_UUID,
   PHOTO_UUID,
+  PRESSURE_MEASUREMENT_UUID,
   RECIPE_UUID,
   VACCINE_UUID,
   WEIGHT_UUID,
@@ -71,6 +75,30 @@ export default class extends BaseSeeder {
     {
       id: ATTENDANCE_UUID,
       description: 'Consulta',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: DEATH_UUID,
+      description: 'Óbito',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: EVALUATION_UUID,
+      description: 'Avaliação',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: PRESSURE_MEASUREMENT_UUID,
+      description: 'Aferição de Pressão',
+      color: '#000',
+      requiresObservation: false,
+    },
+    {
+      id: GLYCEMIA_UUID,
+      description: 'Glicemia',
       color: '#000',
       requiresObservation: false,
     },

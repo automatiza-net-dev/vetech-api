@@ -19,7 +19,7 @@ export default interface IPatientTutorData {
   telephone?: string;
   message_person_name?: string;
   message_person_phone?: string;
-  postal_code?: string;
+  postalCode?: string;
   street?: string;
   number?: string;
   complement?: string;

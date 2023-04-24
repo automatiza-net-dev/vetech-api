@@ -36,10 +36,10 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
-  public async withSchedule({ auth, response }: HttpContextContract) {
+  public async withSchedule({ request, auth, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.usersWithSchedule(unit_id);
+    const result = await this.service.usersWithSchedule(unit_id, request.qs());
 
     return response.ok(result);
   }

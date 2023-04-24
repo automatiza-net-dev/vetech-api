@@ -897,8 +897,18 @@ Route.group(() => {
   Route.post('/disable', 'WebhooksController.disable');
 }).prefix('webhooks');
 
-Route.resource('kits', 'KitsController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/', 'KitsController.index');
+
+  Route.post('/add-item', 'KitsController.addKitItem');
+  Route.post('/', 'KitsController.store');
+
+  Route.get('/:id', 'KitsController.show');
+
+  Route.put('/item/:id', 'KitsController.updateKitItem');
+  Route.put('/:id', 'KitsController.update');
+
+  Route.delete('/:id', 'KitsController.destroy');
+})
+  .prefix('kits')
+  .middleware('auth');

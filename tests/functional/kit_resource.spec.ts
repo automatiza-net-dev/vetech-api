@@ -1,6 +1,10 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import Kit from 'App/Models/Kit';
+import { ProductType } from 'App/Models/Product';
+import Unit, { UnitType } from 'App/Models/Unit';
+import { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
 import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -12,7 +16,7 @@ test.group('kit resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
     const kit = await Kit.create({
       description: 'some description',
@@ -22,7 +26,55 @@ test.group('kit resource', group => {
       economic_group_id: business.economicGroupId,
     });
 
-    return { user, kit };
+    const unit = await Unit.create({
+      name: 'some name',
+      tag: 'some tag',
+      type: UnitType.PRODUCT,
+    });
+
+    const product = await group.related('products').create({
+      description: 'some product',
+      type: ProductType.PRODUCT,
+      referenceCode: 'some reference code',
+      collectionYear: 2022,
+      ncm: 'some ncm',
+      cest: 'some cest',
+      features: 'some features',
+      unit_id: unit.id,
+      active: true,
+    });
+
+    const variation = await product.related('variations').create({
+      barcode: '123',
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      commission: 10,
+      commissionMeta: 10,
+      costPrice: 10,
+      maximumDiscountValue: 10,
+      meta: 10,
+      metaType: BusinessUnitProductMetaType.Quantidade,
+      profitMargin: 10,
+    });
+
+    const kitItem = await kit.related('items').create({
+      product_variation_id: variation.id,
+      quantity: 10,
+      discountPrice: 10,
+      discountPercentage: 10,
+      salePrice: 10,
+      originalPrice: 10,
+      business_unit_id: business.id,
+    });
+
+    return { user, kit, variation, kitItem };
   };
 
   test('should return all kits', async ({ assert, client }) => {
@@ -138,6 +190,47 @@ test.group('kit resource', group => {
     });
 
     const response = await client.delete(`/kits/${kit.id}`).bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should add item to kit', async ({ assert, client }) => {
+    const { user, kit, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/kits/add-item`)
+      .json({
+        kitId: kit.id,
+        productVariationId: variation.id,
+        discountPercentage: 0,
+        discountPrice: 0,
+        quantity: 0,
+      } as IUpsertKitItemData)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should update item from kit', async ({ assert, client }) => {
+    const { user, variation, kitItem } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/kits/item/${kitItem.id}`)
+      .json({
+        productVariationId: variation.id,
+        discountPercentage: 0,
+        discountPrice: 0,
+        quantity: 0,
+      })
+      .bearerToken(token);
 
     assert.equal(204, response.status());
   });

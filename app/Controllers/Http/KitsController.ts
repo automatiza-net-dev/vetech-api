@@ -2,7 +2,9 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import KitService from 'App/Services/KitService';
 import SharedService from 'App/Services/SharedService';
+import CreateKitItemValidator from 'App/Validators/Kit/CreateKitItemValidator';
 import CreateKitValidator from 'App/Validators/Kit/CreateKitValidator';
+import UpdateKitItemValidator from 'App/Validators/Kit/UpdateKitItemValidator';
 import UpdateKitValidator from 'App/Validators/Kit/UpdateKitValidator';
 
 @inject()
@@ -58,6 +60,29 @@ export default class KitsController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.destroy(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async addKitItem({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const payload = await request.validate(CreateKitItemValidator);
+
+    await this.service.addItemToKit(unit_id, payload);
+
+    return response.noContent();
+  }
+
+  public async updateKitItem({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const payload = await request.validate(UpdateKitItemValidator);
+
+    await this.service.updateItemToKit(unit_id, params.id, payload);
 
     return response.noContent();
   }

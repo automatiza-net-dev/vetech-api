@@ -1,4 +1,5 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm';
+import KitItem from 'App/Models/KitItem';
 import { DateTime } from 'luxon';
 
 export default class Kit extends BaseModel {
@@ -36,4 +37,9 @@ export default class Kit extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @hasMany(() => KitItem, {
+    foreignKey: 'kit_id',
+  })
+  public items: HasMany<typeof KitItem>;
 }

@@ -6,3 +6,11 @@ export default interface IKitData {
   toExpiration: DateTime;
   active: boolean;
 }
+
+export interface IUpsertKitItemData {
+  kitId: number;
+  productVariationId: string;
+  quantity: number;
+  discountPrice: number;
+  discountPercentage: number;
+}

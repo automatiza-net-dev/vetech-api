@@ -1,4 +1,5 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import Kit from 'App/Models/Kit';
 import ProductVariation from 'App/Models/ProductVariation';
 import { DateTime } from 'luxon';
@@ -43,6 +44,11 @@ export default class KitItem extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

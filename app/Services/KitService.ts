@@ -23,6 +23,8 @@ export default class KitService {
       qb.where('description', 'like', `%${data.description}%`);
     }
 
+    qb.preload('items');
+
     return qb;
   }
 
@@ -46,19 +48,56 @@ export default class KitService {
     const ent = await Kit.query()
       .where('id', id)
       .andWhere('business_unit_id', unitId)
+      .preload('items', query => {
+        query.preload('businessUnit');
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
       .first();
 
     if (!ent) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    return ent;
+    return {
+      id: ent.id,
+      description: ent.description,
+      from_expiration: ent.fromExpiration,
+      to_expiration: ent.toExpiration,
+      active: ent.active,
+      items: ent.items.map(item => ({
+        id: item.id,
+        unit: {
+          id: item.businessUnit.id,
+          identification: item.businessUnit.identification,
+        },
+        product: {
+          variation_id: item.productVariation.id,
+          product_id: item.productVariation.product_id,
+          description: item.productVariation.product.description,
+          quantity: item.quantity,
+          original_price: item.originalPrice,
+          discount_price: item.discountPrice,
+          discount_percentage: item.discountPercentage,
+          sale_price: item.salePrice,
+          active: item.active,
+        },
+      })),
+    };
   }
 
   public async update(unitId: string, id: string, data: IKitData) {
-    const entity = await this.show(unitId, id);
+    const ent = await Kit.query()
+      .where('id', id)
+      .andWhere('business_unit_id', unitId)
+      .first();
 
-    return entity
+    if (!ent) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return ent
       .merge({
         description: data.description,
         fromExpiration: data.fromExpiration,
@@ -69,9 +108,22 @@ export default class KitService {
   }
 
   public async destroy(unitId: string, id: string) {
-    const entity = await this.show(unitId, id);
+    const ent = await Kit.query()
+      .where('id', id)
+      .andWhere('business_unit_id', unitId)
+      .preload('items', query => {
+        query.preload('businessUnit');
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
+      .first();
 
-    return entity.delete();
+    if (!ent) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return ent.delete();
   }
 
   public async addItemToKit(unitId: string, data: IUpsertKitItemData) {

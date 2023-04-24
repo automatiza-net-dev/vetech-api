@@ -896,3 +896,9 @@ Route.group(() => {
   Route.post('/nfse', 'WebhooksController.nfse');
   Route.post('/disable', 'WebhooksController.disable');
 }).prefix('webhooks');
+
+Route.resource('kits', 'KitsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

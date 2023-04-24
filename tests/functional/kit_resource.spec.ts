@@ -1,10 +1,11 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import Bed, { BedType } from 'App/Models/Bed';
+import Kit from 'App/Models/Kit';
+import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
-test.group('Bed resource', group => {
+test.group('kit resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -13,30 +14,31 @@ test.group('Bed resource', group => {
   const createData = async () => {
     const { user, business } = await userBootstrap();
 
-    const bed = await Bed.create({
-      name: 'some bed',
-      tag: 'some tag',
-      type: BedType.ICU,
-      business_id: business.id,
+    const kit = await Kit.create({
+      description: 'some description',
+      fromExpiration: DateTime.now(),
+      toExpiration: DateTime.now(),
+      business_unit_id: business.id,
+      economic_group_id: business.economicGroupId,
     });
 
-    return { user, bed };
+    return { user, kit };
   };
 
-  test('should return all beds', async ({ assert, client }) => {
+  test('should return all kits', async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const response = await client.get(`/beds`).bearerToken(token);
+    const response = await client.get(`/kits`).bearerToken(token);
 
     assert.equal(200, response.status());
     assert.isArray(response.body());
   });
 
-  test('should create bed', async ({ assert, client }) => {
+  test('should create kit', async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -44,18 +46,18 @@ test.group('Bed resource', group => {
     });
 
     const response = await client
-      .post(`/beds`)
+      .post(`/kits`)
       .json({
-        name: 'some name',
-        tag: 'some description',
-        type: BedType.ICU,
+        description: 'some description',
+        fromExpiration: new Date(),
+        toExpiration: new Date(),
       })
       .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
-  test('should throw NotFoundException if no bed is found', async ({
+  test('should throw NotFoundException if no kit is found', async ({
     assert,
     client,
   }) => {
@@ -65,7 +67,7 @@ test.group('Bed resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/beds/${-1}`).bearerToken(token);
+    const response = await client.get(`/kits/${-1}`).bearerToken(token);
 
     assert.equal(404, response.status());
     assert.equal(
@@ -74,18 +76,18 @@ test.group('Bed resource', group => {
     );
   });
 
-  test('should throw NotFoundException if bed does not belong to unit', async ({
+  test('should throw NotFoundException if kit does not belong to unit', async ({
     assert,
     client,
   }) => {
     const { user } = await createData();
-    const { bed } = await createData();
+    const { kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const response = await client.get(`/beds/${bed.id}`).bearerToken(token);
+    const response = await client.get(`/kits/${kit.id}`).bearerToken(token);
 
     assert.equal(404, response.status());
     assert.equal(
@@ -94,48 +96,48 @@ test.group('Bed resource', group => {
     );
   });
 
-  test('should return bed', async ({ assert, client }) => {
-    const { user, bed } = await createData();
+  test('should return kit', async ({ assert, client }) => {
+    const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const response = await client.get(`/beds/${bed.id}`).bearerToken(token);
+    const response = await client.get(`/kits/${kit.id}`).bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(bed.id, response.body().id);
+    assert.equal(kit.id, response.body().id);
   });
 
-  test('should update bed', async ({ assert, client }) => {
-    const { user, bed } = await createData();
+  test('should update kit', async ({ assert, client }) => {
+    const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const response = await client
-      .put(`/beds/${bed.id}`)
+      .put(`/kits/${kit.id}`)
       .json({
-        name: 'some name',
-        tag: 'some description',
-        type: BedType.ICU,
+        description: 'some description',
+        fromExpiration: new Date(),
+        toExpiration: new Date(),
         active: true,
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(bed.id, response.body().id);
+    assert.equal(kit.id, response.body().id);
   });
 
-  test('should soft delete bed', async ({ assert, client }) => {
-    const { user, bed } = await createData();
+  test('should soft delete kit', async ({ assert, client }) => {
+    const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
-    const response = await client.delete(`/beds/${bed.id}`).bearerToken(token);
+    const response = await client.delete(`/kits/${kit.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

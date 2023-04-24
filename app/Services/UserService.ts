@@ -385,6 +385,9 @@ export default class UserService {
         case 'Venda': {
           return ProductPurpose.SALE;
         }
+        case 'Apenas venda': {
+          return ProductPurpose.SALE;
+        }
         case 'Venda e Consumo Interno': {
           return ProductPurpose.BOTH;
         }

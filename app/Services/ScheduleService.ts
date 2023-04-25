@@ -4,6 +4,7 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import {
+  SS_ATTENDANCE_CANCELLED,
   SS_ATTENDANCE_FINISHED,
   SS_NOT_CONFIRMED,
   VALID_CHANGES,
@@ -66,7 +67,11 @@ export default class ScheduleService {
     if (data.confirmed === 'false') {
       qb.where('schedule_status_id', SS_NOT_CONFIRMED);
     } else {
-      qb.whereNotIn('schedule_status_id', [SS_NOT_CONFIRMED]);
+      qb.whereNotIn('schedule_status_id', [
+        SS_NOT_CONFIRMED,
+        SS_ATTENDANCE_FINISHED,
+        SS_ATTENDANCE_CANCELLED,
+      ]);
     }
 
     const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);

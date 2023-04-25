@@ -24,6 +24,7 @@ import Plan from 'App/Models/Plan';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import Role from 'App/Models/Role';
 import Subgroup from 'App/Models/Subgroup';
+import System from 'App/Models/System';
 import {
   CompanyType,
   MovementCategory,
@@ -87,30 +88,48 @@ export default class UserService {
   }
 
   public async store(data: ICreateUser) {
-    const adminRole = await Role.findBy('name', 'admin');
-    if (!adminRole) {
-      Logger.error('No admin role');
-      // should have admin role
-      throw new InternalErrorException(
-        'Erro na criação de usuário',
-        400,
-        'E_INTERNAL_SERVER_ERROR',
-      );
-    }
-
-    const trialPlan = await Plan.findBy('default', true);
-    if (!trialPlan) {
-      Logger.error('No trial plan');
-      // should have admin role
-      throw new InternalErrorException(
-        'Erro na criação de usuário',
-        400,
-        'E_INTERNAL_SERVER_ERROR',
-      );
-    }
-
     return Database.transaction(async trx => {
-      const user = await User.create(data, {
+      const { systemName, ...userData } = data;
+
+      const system = await System.query()
+        .where('name', 'ilike', `%${systemName}%`)
+        .first();
+
+      if (!system) {
+        throw new BadRequestException(
+          'Sistema não encontrado',
+          400,
+          'E_SYSTEM_NOT_FOUND',
+        );
+      }
+
+      const adminRole = await Role.findBy('name', 'admin', {
+        client: trx,
+      });
+      if (!adminRole) {
+        Logger.error('No admin role');
+        // should have admin role
+        throw new InternalErrorException(
+          'Erro na criação de usuário',
+          400,
+          'E_INTERNAL_SERVER_ERROR',
+        );
+      }
+
+      const trialPlan = await Plan.findBy('default', true, {
+        client: trx,
+      });
+      if (!trialPlan) {
+        Logger.error('No trial plan');
+        // should have admin role
+        throw new InternalErrorException(
+          'Erro na criação de usuário',
+          400,
+          'E_INTERNAL_SERVER_ERROR',
+        );
+      }
+
+      const user = await User.create(userData, {
         client: trx,
       });
 
@@ -122,6 +141,7 @@ export default class UserService {
           responsiblePhone: data.phone,
           companyName: `Grupo ${user.name}`,
           fantasyName: `Grupo ${user.name}`,
+          system_id: system.id,
         },
         {},
         {
@@ -183,7 +203,13 @@ export default class UserService {
         service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
       });
 
-      await this.seedData(newGroup, newBusinessUnit, trx);
+      if (system.name === 'LiftOne') {
+        await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
+      }
+
+      if (system.name === 'Vetech' || system.name === 'Sanclá') {
+        await this.seedData(newGroup, newBusinessUnit, trx);
+      }
 
       return { user, unit: newBusinessUnit };
     });
@@ -364,6 +390,697 @@ export default class UserService {
     await user.save();
   }
 
+  private async seedLiftOneData(
+    group: EconomicGroup,
+    bunit: BusinessUnit,
+    trx: TransactionClientContract,
+  ) {
+    const parseString = (value: string) => {
+      return value.replace(',', '.').replaceAll('.', '');
+    };
+
+    const parseNumber = (value: string) => {
+      return parseFloat(parseString(value)) / 100;
+    };
+
+    const parsePurpose = (value: string) => {
+      switch (value) {
+        case 'Consumo Interno': {
+          return ProductPurpose.INTERNAL;
+        }
+        case 'Venda': {
+          return ProductPurpose.SALE;
+        }
+        case 'Apenas venda': {
+          return ProductPurpose.SALE;
+        }
+        case 'Venda e Consumo Interno': {
+          return ProductPurpose.BOTH;
+        }
+        default: {
+          throw new Error(`Invalid purpose: ${value}`);
+        }
+      }
+    };
+
+    await group.related('paymentMethods').createMany(
+      [
+        {
+          description: 'Boleto',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '15',
+        },
+        {
+          description: 'PIX',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '17',
+        },
+        {
+          description: 'Transferência',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '18',
+        },
+        {
+          description: 'Cheque',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '02',
+        },
+        {
+          description: 'Dinheiro',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '01',
+        },
+        {
+          description: 'Débito em Conta',
+          requiresDocument: false,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.ENTRADA,
+          nfe_code: '99',
+        },
+        {
+          description: 'Crédito devolução',
+          requiresDocument: true,
+          tef: PaymentMethodTef.N,
+          fee: 0,
+          usage: PaymentMethodUsage.SAIDA,
+          nfe_code: '05',
+        },
+        {
+          description: 'Cartão de Débito (POS)',
+          requiresDocument: true,
+          tef: PaymentMethodTef.P,
+          type: PaymentMethodType.D,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '04',
+        },
+        {
+          description: 'Cartão de Crédito (POS)',
+          requiresDocument: true,
+          tef: PaymentMethodTef.P,
+          type: PaymentMethodType.C,
+          fee: 0,
+          usage: PaymentMethodUsage.AMBOS,
+          nfe_code: '03',
+        },
+      ],
+      { client: trx },
+    );
+
+    await bunit.related('checkingAccounts').create(
+      {
+        description: `Cofre - Matriz`,
+        accountNumber: 'Cofre',
+        bankCode: 'Cofre',
+        bankName: 'Cofre',
+        agency: '001',
+        type: CheckingAccountType.CX,
+        balance: 0,
+        active: true,
+      },
+      {
+        client: trx,
+      },
+    );
+
+    const units = await Unit.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id');
+
+    const subgroups = await Subgroup.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id');
+
+    const ufIcms = await UfIcms.query()
+      .useTransaction(trx)
+      .where('origin_uf', bunit.state ? bunit.state.toUpperCase() : '-1')
+      .andWhere(
+        'destination_uf',
+        bunit.state ? bunit.state.toUpperCase() : '-1',
+      )
+      .where('active', true)
+      .first();
+
+    const [
+      firstTaxGroup,
+      secondTaxGroup,
+      thirdTaxGroup,
+      fourthTaxGroup,
+      fifthTaxGroup,
+    ] = await group.related('taxationGroups').createMany(
+      [
+        {
+          name: 'Acessorios',
+        },
+        {
+          name: 'Instrumentos para Transfusao',
+        },
+        {
+          name: 'Medicamentos Veterinarios',
+        },
+        {
+          name: 'Vacinas',
+        },
+        {
+          name: 'Serviços',
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+    const taxOperation = await TaxOperation.query()
+      .useTransaction(trx)
+      .where('code', '5.102')
+      .where('movement_category', MovementCategory.NS)
+      .where('movement_type', MovementType.S)
+      .firstOrFail();
+
+    await firstTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await secondTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await thirdTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await fourthTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: ufIcms?.icmsPercentage,
+          fcpPerc: ufIcms?.fcpIcms,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    await fifthTaxGroup.related('rules').createMany(
+      [
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.S,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '102',
+          icmsPerc: 0,
+          fcpPerc: 0,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+        {
+          tax_operation_id: taxOperation?.id,
+          companyType: CompanyType.N,
+          movementType: MovementType.S,
+          movementCategory: MovementCategory.NS,
+          fromUf: bunit.state,
+          toUf: bunit.state,
+          icmsCst: '00',
+          icmsPerc: 0,
+          fcpPerc: 0,
+          pisCst: '49',
+          pisPerc: 0,
+          cofinsCst: '49',
+          cofinsPerc: 0,
+          ipiCst: '99',
+          ipiPerc: 0,
+        },
+      ],
+      {
+        client: trx,
+      },
+    );
+
+    const variationGroup = await VariationGroup.create(
+      {
+        economic_group_id: group?.id,
+        description: 'Padrão',
+        active: true,
+      },
+      {
+        client: trx,
+      },
+    );
+
+    const data = [
+      {
+        Código: 1,
+        Tipo: 'Serviço',
+        Propósito: 'Apenas venda',
+        subgroups: 'Anestesias',
+        Produto: 'Anestesia Local Facial',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '5,00',
+        Venda: '10,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 2,
+        Tipo: 'Serviço',
+        Propósito: 'Apenas venda',
+        subgroups: 'Cirurgias Eletiva',
+        Produto: 'Lifting temporal',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '10,00',
+        Venda: '20,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 3,
+        Tipo: 'Serviço',
+        Propósito: 'Apenas venda',
+        subgroups: 'Cirurgias Terapêutica',
+        Produto: 'Botox',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '15,00',
+        Venda: '30,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 4,
+        Tipo: 'Serviço',
+        Propósito: 'Venda e Consumo Interno',
+        subgroups: 'Consultas',
+        Produto: 'Avaliação Cirúrgica (Eletiva)',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '20,00',
+        Venda: '40,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 5,
+        Tipo: 'Serviço',
+        Propósito: 'Venda e Consumo Interno',
+        subgroups: 'Exames em Geral',
+        Produto: 'Glicemia',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '25,00',
+        Venda: '50,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 6,
+        Tipo: 'Serviço',
+        Propósito: 'Apenas venda',
+        subgroups: 'Procedimentos',
+        Produto: 'Curativo',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '30,00',
+        Venda: '60,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+      {
+        Código: 7,
+        Tipo: 'Produto',
+        Propósito: 'Apenas venda',
+        subgroups: 'Dermocosméticos',
+        Produto: 'Nutriol Med 390 ml',
+        brands: '',
+        Unidade: 'UN',
+        'Código Barra': '',
+        'Código NCM': '',
+        'Código de registro na ANVISA': '',
+        'Comissao Padrão (%)': 0,
+        'Meta Padrão (%)': 0,
+        'Comissao Meta Padrão (%)': 0,
+        Minimo: '',
+        Máximo: '',
+        Custo: '35,00',
+        Venda: '30,00',
+        'Grupo Tributacao': 'Serviços',
+        'Origem da mercadoria': 0,
+        CEST: '',
+        'Data de inclusão': '',
+        VARIACAO: 'Sem Variacao',
+      },
+    ];
+
+    const pData: Array<Partial<Product>> = data.map(elem => {
+      const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
+      const subgroup = subgroups.find(
+        u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
+      );
+      const taxGroup = [
+        firstTaxGroup,
+        secondTaxGroup,
+        thirdTaxGroup,
+        fourthTaxGroup,
+        fifthTaxGroup,
+      ].find(
+        u => u.name.toLowerCase() === elem['Grupo Tributacao'].toLowerCase(),
+      );
+
+      if (!unit) {
+        throw new Error(
+          `Unidade ${elem.Unidade} não encontrada para o produto ${elem.Produto}`,
+        );
+      }
+      // if (!brand) {
+      //   throw new Error(
+      //     `Marca ${elem.brands} não encontrada para o produto ${elem.Produto}`,
+      //   );
+      // }
+      if (!subgroup) {
+        throw new Error(
+          `Subgrupo ${elem.subgroups} não encontrada para o produto ${elem.Produto}`,
+        );
+      }
+
+      return {
+        description: elem.Produto,
+        type:
+          elem.Tipo === 'Produto' ? ProductType.PRODUCT : ProductType.SERVICE,
+        referenceCode: elem.Código.toString(),
+        ncm: elem['Código NCM'] ? elem['Código NCM'].toString() : undefined,
+        cest: elem?.CEST?.toString() ?? undefined,
+        unit_id: unit.id,
+        icmsOrigin: '0', // TODO correct
+        economic_group_id: group.id,
+        subgroup_id: subgroup.id,
+        brand_id: undefined,
+        anvisaCode: undefined,
+        taxation_group_id: taxGroup?.id,
+        variation_group_id: variationGroup.id,
+        purpose: parsePurpose(elem['Propósito']),
+      };
+    });
+
+    const products = await Product.createMany(pData, { client: trx });
+    const variationsPromises = products.map(product => {
+      const rawProduct = raw.find(
+        p => p['Código'].toString() === product.referenceCode,
+      );
+
+      if (!rawProduct) {
+        throw new Error(
+          `Produto ${product.referenceCode} não encontrou para o raw product`,
+        );
+      }
+
+      return product.related('variations').create(
+        {
+          barcode: rawProduct['Código Barra']?.toString() ?? undefined,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+    const variations = await Promise.all(variationsPromises);
+
+    const unitProducts = products.map(product => {
+      const rawProduct = raw.find(
+        p => p['Código'].toString() === product.referenceCode,
+      );
+
+      if (!rawProduct) {
+        throw new Error(
+          `Produto ${product.referenceCode} não encontrou para o raw product`,
+        );
+      }
+
+      const variation = variations.find(v => v.product_id === product.id);
+      if (!variation) {
+        throw new Error(
+          `Variação não encontrada para produto ${product.referenceCode}`,
+        );
+      }
+
+      return variation.related('businessUnitProducts').create(
+        {
+          businness_unit_id: bunit.id,
+          stock: 0,
+          maximumStock: rawProduct['Máximo'] ?? 0,
+          minimumStock: rawProduct?.Minimo ?? 0,
+          maximumDiscountPercentage: 0,
+          maximumDiscountValue: 0,
+          price: rawProduct.Venda ? parseNumber(rawProduct.Venda) : undefined,
+          costPrice: rawProduct.Custo
+            ? parseNumber(rawProduct.Custo)
+            : undefined,
+          profitMargin: 0,
+          commission: 0,
+          meta: 0,
+          metaType: undefined,
+          commissionMeta: 0,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+    await Promise.all(unitProducts);
+  }
+
   private async seedData(
     group: EconomicGroup,
     bunit: BusinessUnit,
@@ -402,6 +1119,7 @@ export default class UserService {
       .whereNull('economic_group_id');
     const brands = await Brand.query()
       .useTransaction(trx)
+      .where('system_id', group.system_id)
       .whereNull('economic_group_id');
     const subgroups = await Subgroup.query()
       .useTransaction(trx)

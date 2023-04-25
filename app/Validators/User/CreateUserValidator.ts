@@ -25,6 +25,10 @@ export default class CreateUserValidator {
     active: schema.boolean.optional([]),
     licensingJob: schema.string.optional({}),
     onDuty: schema.boolean.optional([]),
+
+    systemName: schema.string({}, [
+      rules.exists({ table: 'systems', column: 'name' }),
+    ]),
   });
   public messages: CustomMessages = {};
 }

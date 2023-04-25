@@ -54,7 +54,9 @@ Route.group(() => {
   Route.post('', 'PlansController.store');
   Route.put('/:id', 'PlansController.update');
   Route.delete('/:id', 'PlansController.destroy');
-}).prefix('plans');
+})
+  .prefix('plans')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('', 'PlanPricesController.index');
@@ -117,11 +119,23 @@ Route.group(() => {
   );
 }).prefix('business-units');
 
-Route.post('roles/add-permission', 'RolesController.addPermission');
-Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
-Route.resource('roles', 'RolesController').apiOnly();
+Route.group(() => {
+  Route.get('', 'RolesController.index');
+  Route.post('', 'RolesController.store');
+  Route.get('/:id', 'RolesController.show');
+  Route.put('/:id', 'RolesController.update');
+  Route.delete('/:id', 'RolesController.destroy');
 
-Route.resource('permissions', 'PermissionsController').apiOnly();
+  Route.post('/permissions', 'RolesController.managePermissions');
+})
+  .prefix('roles')
+  .middleware('auth');
+
+Route.resource('permissions', 'PermissionsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
 
 Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');

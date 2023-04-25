@@ -13,46 +13,56 @@ export default class ReasonsController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const reasons = await this.service.index(unit_id, request.qs());
+    const reasons = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
     return response.ok(reasons);
   }
 
   public async show({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const { id } = request.params();
 
-    const reason = await this.service.show(unit_id, id);
+    const reason = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      id,
+    );
 
     return response.ok(reason);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateReasonValidator);
 
-    const reason = await this.service.store(unit_id, data);
+    const reason = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.created(reason);
   }
 
   public async update({ auth, request, response }: HttpContextContract) {
     const { id } = request.params();
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(UpdateReasonValidator);
 
-    const reason = await this.service.update(unit_id, id, data);
+    const reason = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      id,
+      data,
+    );
 
     return response.ok(reason);
   }
 
   public async destroy({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const { id } = request.params();
 
-    await this.service.destroy(unit_id, id);
+    await this.service.destroy(
+      await this.sharedService.getAuthContext(auth),
+      id,
+    );
 
     return response.noContent();
   }

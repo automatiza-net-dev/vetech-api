@@ -133,6 +133,11 @@ export default class MedicalPrescription extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public system_id: number;
+
+  @column({
+    serializeAs: null,
+  })
   public prescription_unit_id: string;
 
   @belongsTo(() => Unit, {

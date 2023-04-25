@@ -1174,9 +1174,18 @@ export default class BillService {
     user: User,
     data: ICreateBillData,
   ) {
-    const unit = await BusinessUnit.findOrFail(unitId, {
-      client: trx,
-    });
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
+
+    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
+    }
 
     const client = await Patient.query()
       .useTransaction(trx)

@@ -32,4 +32,10 @@ initial:
 		node ace db:seed --files "./database/seeders/ExamSeeder.ts"
 		node ace db:seed --files "./database/seeders/PathologySeeder.ts"
 		node ace db:seed --files "./database/seeders/VaccineSeeder.ts"
-		
+
+liftone:
+		node ace db:seed --files "./database/seeders/SystemSeeder.ts"
+		node ace db:seed --files "./database/seeders/UfIcmsSeeder.ts"
+		node ace db:seed --files "./database/seeders/TefSeeder.ts"
+		node ace db:seed --files "./database/seeders/TaxOperationSeeder.ts"
+		node ace db:seed --files "./database/seeders/LiftOneSeeder.ts"

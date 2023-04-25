@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import AccountPlanGroup from 'App/Models/AccountPlanGroup';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IAccountPlanGroupData from 'Contracts/interfaces/IAccountPlanGroupData';
 
 interface ISearch {
@@ -11,13 +11,12 @@ interface ISearch {
 export default class AccountPlanGroupService {
   constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const qb = AccountPlanGroup.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
-    );
+  async index(authCtx: AuthContext, data: ISearch) {
+    const qb = AccountPlanGroup.query()
+      .where('system_id', authCtx.system.id)
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ]);
 
     if (data.description) {
       qb.whereILike('description', `%${data.description}%`);
@@ -30,22 +29,23 @@ export default class AccountPlanGroupService {
     return qb;
   }
 
-  async store(unitId: string, data: Omit<IAccountPlanGroupData, 'active'>) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async store(
+    authCtx: AuthContext,
+    data: Omit<IAccountPlanGroupData, 'active'>,
+  ) {
     return AccountPlanGroup.create({
-      economic_group_id: group.id,
+      economic_group_id: authCtx.group.id,
       description: data.description,
       type: data.type,
+      system_id: authCtx.system.id,
     });
   }
 
-  async show(unitId: string, id: number) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async show(authCtx: AuthContext, id: number) {
     const model = await AccountPlanGroup.query()
+      .where('system_id', authCtx.system.id)
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
       .where('id', id)
       .first();
@@ -57,11 +57,10 @@ export default class AccountPlanGroupService {
     return model;
   }
 
-  async update(unitId: string, id: number, data: IAccountPlanGroupData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async update(authCtx: AuthContext, id: number, data: IAccountPlanGroupData) {
     const model = await AccountPlanGroup.query()
-      .where('economic_group_id', group.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('system_id', authCtx.system.id)
       .where('id', id)
       .first();
 
@@ -82,11 +81,10 @@ export default class AccountPlanGroupService {
       .save();
   }
 
-  async remove(unitId: string, id: number) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async remove(authCtx: AuthContext, id: number) {
     const model = await AccountPlanGroup.query()
-      .where('economic_group_id', group.id)
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
       .where('id', id)
       .first();
 

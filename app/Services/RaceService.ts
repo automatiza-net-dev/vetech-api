@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Race from 'App/Models/Race';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IRaceData from 'Contracts/interfaces/IRaceData';
 import { v4 } from 'uuid';
 
@@ -15,13 +15,12 @@ interface ISearch {
 export default class RaceService {
   constructor(protected readonly sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async index(authCtx: AuthContext, data: ISearch) {
     const qb = Race.query()
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
+      .where('system_id', authCtx.system.id)
       .whereNull('deleted_at')
       .whereHas('specie', query => {
         query.whereILike('description', `%${data.specie ?? ''}%`);
@@ -50,24 +49,17 @@ export default class RaceService {
     }));
   }
 
-  async show(unitId: string, id: string): Promise<Race> {
-    const race = await Race.find(id);
+  async show(authCtx: AuthContext, id: string): Promise<Race> {
+    const race = await Race.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id)
+      .where('id', id)
+      .preload('specie')
+      .first();
 
     if (!race) {
-      throw new ResourceNotFoundException(
-        'Raça não foi encontrada',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
-
-    await race.load('specie');
-    if (!race.economic_group_id) {
-      return race;
-    }
-
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (race.economic_group_id !== group.id) {
       throw new ResourceNotFoundException(
         'Raça não foi encontrada',
         404,
@@ -78,9 +70,8 @@ export default class RaceService {
     return race;
   }
 
-  async store(unitId: string, payload: IRaceData): Promise<Race> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const specie = await group
+  async store(authCtx: AuthContext, payload: IRaceData): Promise<Race> {
+    const specie = await authCtx.group
       .related('species')
       .query()
       .where('id', payload.specie_id)
@@ -97,27 +88,30 @@ export default class RaceService {
     return specie.related('races').create({
       id: v4(),
       description: payload.description,
-      economic_group_id: group.id,
+      economic_group_id: authCtx.group.id,
       fur: payload.fur,
+      system_id: authCtx.system.id,
     });
   }
 
-  async update(unitId: string, id: string, payload: IRaceData): Promise<Race> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const race = await this.show(unitId, id);
+  async update(
+    authCtx: AuthContext,
+    id: string,
+    payload: IRaceData,
+  ): Promise<Race> {
+    const race = await this.show(authCtx, id);
 
-    if (race.economic_group_id && race.economic_group_id !== group.id) {
+    if (race.economic_group_id && race.economic_group_id !== authCtx.group.id) {
       throw this.sharedService.SystemResource();
     }
 
     return race.merge(payload).save();
   }
 
-  async destroy(unitId: string, id: string): Promise<void> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const race = await this.show(unitId, id);
+  async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    const race = await this.show(authCtx, id);
 
-    if (race.economic_group_id && race.economic_group_id !== group.id) {
+    if (race.economic_group_id && race.economic_group_id !== authCtx.group.id) {
       throw this.sharedService.SystemResource();
     }
 

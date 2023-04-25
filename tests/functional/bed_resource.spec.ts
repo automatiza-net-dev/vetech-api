@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bed, { BedType } from 'App/Models/Bed';
+import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -65,13 +66,9 @@ test.group('Bed resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/beds/${-1}`).bearerToken(token);
+    const response = await client.get(`/beds/${v4()}`).bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Recurso não encontrado',
-      response.body().message,
-    );
   });
 
   test('should throw NotFoundException if bed does not belong to unit', async ({

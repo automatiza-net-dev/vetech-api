@@ -46,6 +46,11 @@ export default class Specie extends BaseModel {
     await softDelete(this, column);
   }
 
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
   @hasMany(() => Race, {
     foreignKey: 'specie_id',
   })

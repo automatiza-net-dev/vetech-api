@@ -21,11 +21,12 @@ test.group('Medical prescription resource', group => {
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const drug = await DrugAdministration.create({
       description: 'some description',
       economic_group_id: group.id,
+      system_id: system.id,
     });
 
     const unit = await Unit.create({
@@ -54,6 +55,7 @@ test.group('Medical prescription resource', group => {
       fluidSet: MedicalPrescriptionFluidSet.MACRODROPS,
       fluidSpeed: 1,
       supplement: 'some supplement',
+      system_id: system.id,
     });
 
     return { user, drug, prescription, unit };

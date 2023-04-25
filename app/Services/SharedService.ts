@@ -4,12 +4,20 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import System from 'App/Models/System';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
 export type DateSet = {
   start: Date;
   end: Date;
+};
+
+export type AuthContext = {
+  user: User;
+  group: EconomicGroup;
+  system: System;
+  unit: BusinessUnit;
 };
 
 @inject()
@@ -36,6 +44,24 @@ export default class SharedService {
     const { unit_id } = auth.use('api').token!.meta;
 
     return { user, unit_id };
+  }
+
+  public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
+    const { user, unit_id } = this.extractUser(auth);
+
+    const unit = await BusinessUnit.query()
+      .where('id', unit_id)
+      .preload('economicGroup', query => {
+        query.preload('system');
+      })
+      .firstOrFail();
+
+    return {
+      user,
+      group: unit.economicGroup,
+      system: unit.economicGroup.system,
+      unit,
+    };
   }
 
   public checkOverlapping(ASet: DateSet, BSet: DateSet): boolean {
@@ -73,7 +99,7 @@ export default class SharedService {
 
   public validDocument(document: string): boolean {
     const re =
-      /([0-9]{2}[.]?[0-9]{3}[.]?[0-9]{3}[\/]?[0-9]{4}[-]?[0-9]{2})|([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}[-]?[0-9]{2})/;
+      /([0-9]{2}[.]?[0-9]{3}[.]?[0-9]{3}[\\/]?[0-9]{4}[-]?[0-9]{2})|([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}[-]?[0-9]{2})/;
 
     return re.test(document);
   }

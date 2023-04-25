@@ -10,11 +10,12 @@ test.group('Schedule status resource', group => {
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const status = await group.related('scheduleStatuses').create({
       color: 'color1',
       description: 'description1',
+      system_id: system.id,
     });
 
     return { user, business, status };

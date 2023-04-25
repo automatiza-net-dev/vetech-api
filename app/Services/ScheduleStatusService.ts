@@ -1,8 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IScheduleStatusData from 'Contracts/interfaces/IScheduleStatusData';
 
 interface ISearch {
@@ -14,42 +13,33 @@ export default class ScheduleStatusService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: ISearch,
   ): Promise<Array<ScheduleStatus>> {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
     const qb = ScheduleStatus.query();
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    if (isSuperAdmin) {
-      return qb;
-    }
-
-    const group = await this.sharedService.getUserGroup(unitId);
     qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-      group.id,
-    ]);
+      authCtx.group.id,
+    ]).where('system_id', authCtx.system.id);
 
     return qb;
   }
 
-  public async show(
-    unitId: string,
-    _: User,
-    id: string,
-  ): Promise<ScheduleStatus> {
+  public async show(authCtx: AuthContext, id: string): Promise<ScheduleStatus> {
     const exception = new ResourceNotFoundException(
       'Recurso não foi encontrado',
       404,
       'E_NOT_FOUND',
     );
 
-    const status = await ScheduleStatus.find(id);
+    const status = await ScheduleStatus.query()
+      .where('id', id)
+      .where('system_id', authCtx.system.id)
+      .first();
 
     if (!status) throw exception;
 
@@ -57,40 +47,29 @@ export default class ScheduleStatusService {
       return status;
     }
 
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (status.economic_group_id !== group.id) throw exception;
+    if (status.economic_group_id !== authCtx.group.id) throw exception;
 
     return status;
   }
 
   public async store(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: IScheduleStatusData,
   ): Promise<ScheduleStatus> {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-
-    if (isSuperAdmin) {
-      return ScheduleStatus.create({
-        color: data.color,
-        description: data.description,
-      });
-    }
-
-    const group = await this.sharedService.getUserGroup(unitId);
-    return group.related('scheduleStatuses').create({
+    return ScheduleStatus.create({
       color: data.color,
       description: data.description,
+      economic_group_id: authCtx.group.id,
+      system_id: authCtx.system.id,
     });
   }
 
   public async update(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     id: string,
     data: IScheduleStatusData,
   ): Promise<ScheduleStatus> {
-    const status = await this.show(unitId, user, id);
+    const status = await this.show(authCtx, id);
 
     if (!status.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -104,8 +83,8 @@ export default class ScheduleStatusService {
       .save();
   }
 
-  public async destroy(unitId: string, user: User, id: string): Promise<void> {
-    const status = await this.show(unitId, user, id);
+  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    const status = await this.show(authCtx, id);
 
     if (!status.economic_group_id) {
       throw this.sharedService.SystemResource();

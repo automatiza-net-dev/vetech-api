@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import ClientOrigin from 'App/Models/ClientOrigin';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IClientOriginData from 'Contracts/interfaces/IClientOriginData';
 
 interface ISearch {
@@ -13,13 +13,13 @@ interface ISearch {
 export default class ClientOriginService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, search: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const query = ClientOrigin.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-      [group.id],
-    );
+  public async index(authCtx: AuthContext, search: ISearch) {
+    const query = ClientOrigin.query()
+      .where('system_id', authCtx.system.id)
+      .whereRaw(
+        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
+        [authCtx.group.id],
+      );
 
     if (search.type) {
       query.where('type', search.type);
@@ -36,37 +36,47 @@ export default class ClientOriginService {
     return query;
   }
 
-  public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const client = await ClientOrigin.query().where('id', id).first();
+  public async show(authCtx: AuthContext, id: string) {
+    const client = await ClientOrigin.query()
+      .where('system_id', authCtx.system.id)
+      .where('id', id)
+      .first();
 
     if (!client) {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (client.economic_group_id && client.economic_group_id !== group.id) {
+    if (
+      client.economic_group_id &&
+      client.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.ResourceNotFound();
     }
 
     return client;
   }
 
-  public async store(unitId: string, data: Omit<IClientOriginData, 'active'>) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(
+    authCtx: AuthContext,
+    data: Omit<IClientOriginData, 'active'>,
+  ) {
     const client = await ClientOrigin.create({
       ...data,
-      economic_group_id: group.id,
+      economic_group_id: authCtx.group.id,
     });
 
     return client;
   }
 
-  public async update(unitId: string, id: string, data: IClientOriginData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const entity = await ClientOrigin.query().where('id', id).first();
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IClientOriginData,
+  ) {
+    const entity = await ClientOrigin.query()
+      .where('system_id', authCtx.system.id)
+      .where('id', id)
+      .first();
 
     if (!entity) {
       throw this.sharedService.ResourceNotFound();
@@ -76,17 +86,18 @@ export default class ClientOriginService {
       throw this.sharedService.SystemResource();
     }
 
-    if (entity.economic_group_id !== group.id) {
+    if (entity.economic_group_id !== authCtx.group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 
     return entity.merge(data).save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const entity = await ClientOrigin.query().where('id', id).first();
+  public async destroy(authCtx: AuthContext, id: string) {
+    const entity = await ClientOrigin.query()
+      .where('system_id', authCtx.system.id)
+      .where('id', id)
+      .first();
 
     if (!entity) {
       throw this.sharedService.ResourceNotFound();
@@ -96,7 +107,7 @@ export default class ClientOriginService {
       throw this.sharedService.SystemResource();
     }
 
-    if (entity.economic_group_id !== group.id) {
+    if (entity.economic_group_id !== authCtx.group.id) {
       throw this.sharedService.ResourceNotFound();
     }
 

@@ -1,60 +1,87 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import RoleService from 'App/Services/RoleService';
-import AddPermissionValidator from 'App/Validators/Role/AddPermissionValidator';
+import SharedService from 'App/Services/SharedService';
 import CreateRoleValidator from 'App/Validators/Role/CreateRoleValidator';
+import ManageRolePermissionValidator from 'App/Validators/Role/ManageRolePermissionValidator';
 import UpdateRoleValidator from 'App/Validators/Role/UpdateRoleValidator';
 
 @inject()
 export default class RolesController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly roleService: RoleService,
+  ) {}
 
-  public async index({ request, response }: HttpContextContract) {
+  public async index({ request, response, auth }: HttpContextContract) {
     const qs = request.qs();
 
     response.ok(
-      await this.roleService.index({
-        name: qs.name,
-      }),
+      await this.roleService.index(
+        await this.sharedService.getAuthContext(auth),
+        {
+          name: qs.name,
+        },
+      ),
     );
   }
 
-  public async show({ params, response }: HttpContextContract) {
-    response.ok(await this.roleService.show(params.id));
+  public async show({ params, response, auth }: HttpContextContract) {
+    response.ok(
+      await this.roleService.show(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+      ),
+    );
   }
 
-  public async store({ request, response }: HttpContextContract) {
+  public async store({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateRoleValidator);
-    const newRole = await this.roleService.store(payload);
+    const newRole = await this.roleService.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(newRole);
   }
 
-  public async addPermission({ request, response }: HttpContextContract) {
-    const payload = await request.validate(AddPermissionValidator);
-    await this.roleService.addPermission(payload);
-
-    return response.created();
-  }
-
-  public async update({ params, request, response }: HttpContextContract) {
-    const { id } = params;
-    const payload = await request.validate(UpdateRoleValidator);
-    const updatedRole = await this.roleService.update(id, payload);
-
-    return response.created(updatedRole);
-  }
-
-  public async destroy({ params, response }: HttpContextContract) {
-    const { id } = params;
-    await this.roleService.delete(id);
+  public async managePermissions({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(ManageRolePermissionValidator);
+    await this.roleService.manageRolePermissions(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.noContent();
   }
 
-  public async deletePermission({ params, response }: HttpContextContract) {
-    const { id, permission } = params;
-    await this.roleService.deletePermission(id, permission);
+  public async update({
+    params,
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdateRoleValidator);
+    const updatedRole = await this.roleService.update(
+      await this.sharedService.getAuthContext(auth),
+      id,
+      payload,
+    );
+
+    return response.created(updatedRole);
+  }
+
+  public async destroy({ params, response, auth }: HttpContextContract) {
+    const { id } = params;
+    await this.roleService.delete(
+      await this.sharedService.getAuthContext(auth),
+      id,
+    );
 
     return response.noContent();
   }

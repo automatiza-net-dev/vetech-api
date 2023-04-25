@@ -1,8 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Exam from 'App/Models/Exam';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IExamData } from 'Contracts/interfaces/IExamData';
 
 interface ISearch {
@@ -16,12 +15,10 @@ interface ISearch {
 export default class ExamService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, _: User, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext, data: ISearch) {
     const qb = Exam.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
+      [authCtx.group.id],
     );
 
     if (data.name) {
@@ -44,25 +41,18 @@ export default class ExamService {
     return qb;
   }
 
-  public async store(
-    unitId: string,
-    user: User,
-    data: Omit<IExamData, 'active'>,
-  ) {
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(authCtx: AuthContext, data: Omit<IExamData, 'active'>) {
     return Exam.create({
       name: data.name,
       description: data.description,
-      economic_group_id: isSuperAdmin ? undefined : group.id,
+      economic_group_id: authCtx.group.id,
       subgroup_id: data.subgroupId,
       ownLaboratory: data.ownLaboratory,
       type: data.type,
     });
   }
 
-  public async show(unitId: string, id: string, _: User) {
+  public async show(authCtx: AuthContext, id: string) {
     const exam = await Exam.find(id);
 
     if (!exam) {
@@ -77,8 +67,7 @@ export default class ExamService {
       return exam;
     }
 
-    const group = await this.sharedService.getUserGroup(unitId);
-    if (group.id !== exam.economic_group_id) {
+    if (authCtx.group.id !== exam.economic_group_id) {
       throw new ResourceNotFoundException(
         'Exame não encontrada',
         404,
@@ -89,8 +78,8 @@ export default class ExamService {
     return exam;
   }
 
-  public async update(unitId: string, user: User, id: string, data: IExamData) {
-    const exam = await this.show(unitId, id, user);
+  public async update(authCtx: AuthContext, id: string, data: IExamData) {
+    const exam = await this.show(authCtx, id);
 
     if (!exam.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -108,8 +97,8 @@ export default class ExamService {
       .save();
   }
 
-  public async destroy(unitId: string, user: User, id: string) {
-    const exam = await this.show(unitId, id, user);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const exam = await this.show(authCtx, id);
 
     if (!exam.economic_group_id) {
       throw this.sharedService.SystemResource();

@@ -87,6 +87,11 @@ export default class ScheduleStatus extends BaseModel {
     await softDelete(this, column);
   }
 
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
   @column()
   public economic_group_id?: string;
 

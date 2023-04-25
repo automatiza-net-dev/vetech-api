@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Pathology from 'App/Models/Pathology';
 import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IPathologyData from 'Contracts/interfaces/IPathologyData';
 
 interface ISearch {
@@ -13,12 +13,11 @@ interface ISearch {
 export default class PathologyService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext, data: ISearch) {
     const qb = Pathology.query()
+      .where('system_id', authCtx.system.id)
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
       .preload('timelineType')
       .preload('group');
@@ -30,12 +29,13 @@ export default class PathologyService {
     return qb;
   }
 
-  public async show(_: string, id: string) {
+  public async show(authCtx: AuthContext, id: string) {
     // const group = await this.sharedService.getUserGroup(unitId);
     const entity = await Pathology.query()
       .preload('timelineType')
       .preload('group')
       .where('id', id)
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!entity) {
@@ -49,10 +49,11 @@ export default class PathologyService {
     return entity;
   }
 
-  public async store(unitId: string, data: Omit<IPathologyData, 'active'>) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    return group.related('pathologies').create({
+  public async store(
+    authCtx: AuthContext,
+    data: Omit<IPathologyData, 'active'>,
+  ) {
+    return authCtx.group.related('pathologies').create({
       description: data.description,
       definition: data.definition,
       template: data.template,
@@ -60,11 +61,13 @@ export default class PathologyService {
     });
   }
 
-  public async update(unitId: string, id: string, data: IPathologyData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const entity = await this.show(unitId, id);
+  public async update(authCtx: AuthContext, id: string, data: IPathologyData) {
+    const entity = await this.show(authCtx, id);
 
-    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+    if (
+      entity.economic_group_id &&
+      entity.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.SystemResource();
     }
 
@@ -78,11 +81,13 @@ export default class PathologyService {
       .save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const entity = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const entity = await this.show(authCtx, id);
 
-    if (entity.economic_group_id && entity.economic_group_id !== group.id) {
+    if (
+      entity.economic_group_id &&
+      entity.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.SystemResource();
     }
 

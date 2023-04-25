@@ -771,6 +771,7 @@ Route.group(() => {
 Route.group(() => {
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
+  Route.post('/add-kit', 'BillsController.addKitToBill');
   Route.put('/update-item', 'BillsController.updateBillItem');
   Route.put('/delete-item/:id', 'BillsController.deleteBillItem');
   Route.post('/create-payment', 'BillsController.createBillPayment');

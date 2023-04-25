@@ -10,6 +10,9 @@ import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
 
 interface ISearch {
   description?: string;
+  fromExpiration?: string;
+  toExpiration?: string;
+  active?: number;
 }
 
 @inject()
@@ -23,9 +26,42 @@ export default class KitService {
       qb.where('description', 'like', `%${data.description}%`);
     }
 
-    qb.preload('items');
+    if (data.fromExpiration) {
+      qb.where('from_expiration', '>=', data.fromExpiration);
+    }
 
-    return qb;
+    if (data.toExpiration) {
+      qb.where('to_expiration', '<=', data.toExpiration);
+    }
+
+    if (data.active) {
+      qb.where('active', Boolean(data.active));
+    }
+
+    qb.preload('items', query => {
+      query.where('business_unit_id', unitId);
+    });
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      description: elem.description,
+      fromExpiration: elem.fromExpiration,
+      toExpiration: elem.toExpiration,
+      active: elem.active,
+      sum: {
+        originalPrice: elem.items.reduce(
+          (acc, curr) => acc + curr.originalPrice,
+          0,
+        ),
+        discountPrice: elem.items.reduce(
+          (acc, curr) => acc + curr.discountPrice,
+          0,
+        ),
+        salePrice: elem.items.reduce((acc, curr) => acc + curr.salePrice, 0),
+      },
+    }));
   }
 
   public async store(unitId: string, data: Omit<IKitData, 'active'>) {

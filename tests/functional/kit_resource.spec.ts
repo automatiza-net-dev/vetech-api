@@ -84,7 +84,15 @@ test.group('kit resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/kits`).bearerToken(token);
+    const qs = new URLSearchParams({
+      active: '1',
+      description: 'asd',
+      fromExpiration: new Date().toISOString(),
+      toExpiration: new Date().toISOString(),
+    });
+    const response = await client
+      .get(`/kits?${qs.toString()}`)
+      .bearerToken(token);
 
     assert.equal(200, response.status());
     assert.isArray(response.body());

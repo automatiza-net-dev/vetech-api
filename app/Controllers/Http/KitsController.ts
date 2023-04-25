@@ -17,10 +17,7 @@ export default class KitsController {
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const qs = request.qs();
-    const beds = await this.service.index(unit_id, {
-      description: qs.description,
-    });
+    const beds = await this.service.index(unit_id, request.qs());
 
     return response.ok(beds);
   }

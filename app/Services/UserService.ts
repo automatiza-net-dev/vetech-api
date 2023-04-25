@@ -207,7 +207,7 @@ export default class UserService {
         await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
       }
 
-      if (system.name === 'Vetech' || system.name === 'Vetech') {
+      if (system.name === 'Vetech' || system.name === 'Sanclá') {
         await this.seedData(newGroup, newBusinessUnit, trx);
       }
 

@@ -16,6 +16,7 @@ import Finance, {
   FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
+import Kit from 'App/Models/Kit';
 import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
@@ -44,6 +45,7 @@ interface ISearch {
   toBill?: string;
   status?: string;
   client?: string;
+  patientTag?: string;
   patient?: string;
   tag?: string;
 }
@@ -82,7 +84,7 @@ export default class BillService {
   }
 
   async index(unitId: string, data: ISearch) {
-    const qb = Bill.query().where('business_unit_id', unitId).debug(true);
+    const qb = Bill.query().where('business_unit_id', unitId);
 
     if (data.fromBill) {
       qb.where('bill_date', '>=', data.fromBill);
@@ -102,6 +104,14 @@ export default class BillService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.patientTag) {
+      qb.whereHas('patient', query => {
+        query.whereHas('patientAnimal', query => {
+          query.where('tag', 'ilike', `%${data.patientTag}%`);
+        });
+      });
     }
 
     if (data.tag) {
@@ -1477,7 +1487,7 @@ export default class BillService {
     trx: TransactionClientContract,
     unitId: string,
     group: EconomicGroup,
-    data: ICreateBillItemData,
+    data: ICreateBillItemData & { kitId?: number },
   ) {
     const unit = await BusinessUnit.findOrFail(unitId, {
       client: trx,
@@ -1579,6 +1589,7 @@ export default class BillService {
         bill_id: bill.id,
         product_variation_id: data.productVariationId,
         tax_rule_id: rule.id,
+        kit_id: data.kitId,
 
         quantity: data.quantity,
         costValue: price.costPrice,
@@ -1589,7 +1600,7 @@ export default class BillService {
         status: BillItemStatus.A,
         createdAt: bill.createdAt,
 
-        fiscalOperationCode: rule.taxOperation.code,
+        fiscalOperationCode: rule?.taxOperation?.code,
         icmsOriginProduct: productVariation.product.icmsOrigin,
         icmsCst:
           productVariation.product.type === ProductType.PRODUCT
@@ -1754,5 +1765,73 @@ export default class BillService {
       .save();
 
     return billItem;
+  }
+
+  public async addFromKit(
+    unitId: string,
+    data: {
+      billId: string;
+      kitId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId, {
+        client: trx,
+      });
+      const group = await EconomicGroup.findOrFail(unit.economicGroupId, {
+        client: trx,
+      });
+
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('id', data.billId)
+        .andWhere('business_unit_id', unitId)
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota de Saída não está aberto',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const kit = await Kit.query()
+        .useTransaction(trx)
+        .where('id', data.kitId)
+        .andWhere('economic_group_id', unit.economicGroupId)
+        .preload('items', query => {
+          query.where('business_unit_id', unitId);
+
+          query.preload('productVariation', query => {
+            query.preload('product');
+          });
+        })
+        .first();
+
+      if (!kit) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (!kit.active) {
+        throw new BadRequestException('Kit não está ativo', 400, 'E_ERR');
+      }
+
+      await Promise.all(
+        kit.items.map(async item =>
+          this.createBillItemWithTrx(trx, unitId, group, {
+            billId: data.billId,
+            quantity: item.quantity,
+            discountValue: item.discountPrice,
+            productVariationId: item.product_variation_id,
+            unitaryValue: item.originalPrice,
+          }),
+        ),
+      );
+    });
   }
 }

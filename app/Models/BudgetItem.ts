@@ -85,4 +85,9 @@ export default class BudgetItem extends BaseModel {
     foreignKey: 'product_variation_id',
   })
   public productVariation: BelongsTo<typeof ProductVariation>;
+
+  @column({
+    serializeAs: null,
+  })
+  public kit_id: number;
 }

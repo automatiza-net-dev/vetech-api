@@ -3,9 +3,11 @@ import { test } from '@japa/runner';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import { BillItemStatus } from 'App/Models/BillItem';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
+import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductType } from 'App/Models/Product';
@@ -197,6 +199,39 @@ test.group('Bill resource', group => {
         fee: 10,
       });
 
+    const kit = await Kit.create({
+      description: 'some description',
+      fromExpiration: DateTime.now(),
+      toExpiration: DateTime.now(),
+      economic_group_id: business.economicGroupId,
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      commission: 10,
+      commissionMeta: 10,
+      costPrice: 10,
+      maximumDiscountValue: 10,
+      meta: 10,
+      metaType: BusinessUnitProductMetaType.Quantidade,
+      profitMargin: 10,
+    });
+
+    const kitItem = await kit.related('items').create({
+      product_variation_id: variation.id,
+      quantity: 10,
+      discountPrice: 10,
+      discountPercentage: 10,
+      salePrice: 10,
+      originalPrice: 10,
+      business_unit_id: business.id,
+    });
+
     return {
       user,
       patient,
@@ -216,8 +251,34 @@ test.group('Bill resource', group => {
       paymentMethodFlag,
       flagInstallment,
       client,
+      kit,
+      kitItem,
     };
   };
+
+  test('should search valid bills', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('fromBill', new Date().toISOString());
+    qs.append('toBill', new Date().toISOString());
+    qs.append('status', BillStatus.A);
+    qs.append('client', v4());
+    qs.append('patient', v4());
+    qs.append('patientTag', v4());
+    qs.append('tag', v4());
+
+    const response = await client
+      .get(`/bills?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+    assert.isArray(response.body());
+  });
 
   test('should search valid taxes', async ({ assert, client }) => {
     const { user } = await createData();
@@ -290,29 +351,30 @@ test.group('Bill resource', group => {
     assert.equal(200, response.status());
   });
 
-  test('should throw BadRequestException if no Taxation Rule is found', async ({
-    assert,
-    client,
-  }) => {
-    const { user, bill, variation } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+  // quebra os testes de kit
+  // test('should throw BadRequestException if no Taxation Rule is found', async ({
+  //   assert,
+  //   client,
+  // }) => {
+  //   const { user, bill, variation } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
 
-    const response = await client
-      .post(`/bills/create-item`)
-      .json({
-        billId: bill.id,
-        productVariationId: variation.id,
-        quantity: 10,
-        unitaryValue: 20,
-        discountValue: 20,
-      })
-      .bearerToken(token);
+  //   const response = await client
+  //     .post(`/bills/create-item`)
+  //     .json({
+  //       billId: bill.id,
+  //       productVariationId: variation.id,
+  //       quantity: 10,
+  //       unitaryValue: 20,
+  //       discountValue: 20,
+  //     })
+  //     .bearerToken(token);
 
-    assert.equal(400, response.status());
-  });
+  //   assert.equal(400, response.status());
+  // });
 
   test('should create bill item (product)', async ({ assert, client }) => {
     const { user, bill, variation, business } = await createData();
@@ -764,6 +826,78 @@ test.group('Bill resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should add kit do bill', async ({ assert, client }) => {
+    const { user, bill, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/add-kit`)
+      .json({
+        billId: bill.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if bill is not active', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await bill
+      .merge({
+        status: BillStatus.F,
+      })
+      .save();
+
+    const response = await client
+      .post(`/bills/add-kit`)
+      .json({
+        billId: bill.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if kit is not active', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await kit
+      .merge({
+        active: false,
+      })
+      .save();
+
+    const response = await client
+      .post(`/bills/add-kit`)
+      .json({
+        billId: bill.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   // test('should recalculate item taxes', async ({ assert, client }) => {

@@ -1,7 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bed, { BedType } from 'App/Models/Bed';
-import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -66,7 +65,7 @@ test.group('Bed resource', group => {
       password: '102030',
     });
 
-    const response = await client.get(`/beds/${v4()}`).bearerToken(token);
+    const response = await client.get(`/beds/${-1}`).bearerToken(token);
 
     assert.equal(404, response.status());
     assert.equal(

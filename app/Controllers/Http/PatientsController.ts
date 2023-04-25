@@ -88,6 +88,7 @@ export default class PatientsController {
       tutor: qs.tutor,
       document: qs.document,
       phone: qs.phone,
+      tag: qs.tag,
     });
 
     return response.ok(patients);

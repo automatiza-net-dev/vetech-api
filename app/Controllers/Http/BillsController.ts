@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BillService from 'App/Services/BillService';
 import SharedService from 'App/Services/SharedService';
+import AddKitToBillValidator from 'App/Validators/Bill/AddKitToBillValidator';
 import CreateBillItemValidator from 'App/Validators/Bill/CreateBillItemValidator';
 import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentValidator';
 import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
@@ -25,6 +26,7 @@ export default class BillsController {
       toBill: qs.toBill,
       patient: qs.patient,
       tag: qs.tag,
+      patientTag: qs.patientTag,
     });
 
     return response.ok(result);
@@ -170,6 +172,15 @@ export default class BillsController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.disableBillItem(unit_id, params.id);
+    return response.noContent();
+  }
+
+  public async addKitToBill({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(AddKitToBillValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.addFromKit(unit_id, payload);
+
     return response.noContent();
   }
 }

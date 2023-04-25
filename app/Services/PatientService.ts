@@ -44,6 +44,7 @@ interface ISearchAnimals {
   specie?: string;
   document?: string;
   phone?: string;
+  tag?: string;
 }
 
 interface ISearchTutor {
@@ -208,6 +209,10 @@ export default class PatientService {
       .related('patients')
       .query()
       .where('type', PatientType.ANIMAL);
+
+    if (data.tag) {
+      qb.where('tag', 'ilike', `%${data.tag}%`);
+    }
 
     if (data.race) {
       qb.whereHas('patientAnimal', query => {

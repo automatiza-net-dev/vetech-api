@@ -411,7 +411,23 @@ export default class BusinessUnitService {
     });
 
     await Database.transaction(async trx => {
-      await user.merge(sanitized).useTransaction(trx).save();
+      await user
+        .merge({
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          inscription: data.inscription,
+          licensingJob: data.licensingJob,
+        })
+        .useTransaction(trx)
+        .save();
 
       if ((roles ?? []).length > 0) {
         await user.related('roles').query().delete().useTransaction(trx);

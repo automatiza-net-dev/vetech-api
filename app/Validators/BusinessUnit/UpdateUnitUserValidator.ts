@@ -18,6 +18,8 @@ export default class UpdateUnitUserValidator {
     city: schema.string.optional({}),
     state: schema.string.optional({}),
     active: schema.boolean.optional([]),
+    inscription: schema.string.optional({}),
+    licensingJob: schema.string.optional({}),
     roles: schema.array
       .optional()
       .members(

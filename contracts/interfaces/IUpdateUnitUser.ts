@@ -11,5 +11,7 @@ export interface IUpdateUnitUser {
   district?: string;
   city?: string;
   state?: string;
+  inscription?: string;
+  licensingJob?: string;
   roles?: Array<number>;
 }

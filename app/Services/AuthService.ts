@@ -20,7 +20,7 @@ export default class AuthService {
     return Database.transaction(async trx => {
       const system = await System.query()
         .useTransaction(trx)
-        .where('name', data.system)
+        .where('name', 'ilike', `%${data.system}%`)
         .firstOrFail();
 
       const user = await User.findBy('email', data.email, {

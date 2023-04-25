@@ -91,9 +91,10 @@ export default class UserService {
     return Database.transaction(async trx => {
       const { systemName, ...userData } = data;
 
-      const system = await System.findBy('name', systemName, {
-        client: trx,
-      });
+      const system = await System.query()
+        .where('name', 'ilike', `%${systemName}%`)
+        .first();
+
       if (!system) {
         throw new BadRequestException(
           'Sistema não encontrado',
@@ -206,7 +207,7 @@ export default class UserService {
         await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
       }
 
-      if (system.name === 'Vetech') {
+      if (system.name === 'Vetech' || system.name === 'Vetech') {
         await this.seedData(newGroup, newBusinessUnit, trx);
       }
 

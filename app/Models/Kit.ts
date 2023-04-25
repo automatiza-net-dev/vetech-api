@@ -33,11 +33,6 @@ export default class Kit extends BaseModel {
   })
   public economic_group_id: string;
 
-  @column({
-    serializeAs: null,
-  })
-  public business_unit_id: string;
-
   @hasMany(() => KitItem, {
     foreignKey: 'kit_id',
   })

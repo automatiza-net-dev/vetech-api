@@ -22,7 +22,6 @@ test.group('kit resource', group => {
       description: 'some description',
       fromExpiration: DateTime.now(),
       toExpiration: DateTime.now(),
-      business_unit_id: business.id,
       economic_group_id: business.economicGroupId,
     });
 

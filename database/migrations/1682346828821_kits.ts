@@ -8,7 +8,6 @@ export default class extends BaseSchema {
       table.increments('id');
 
       table.uuid('economic_group_id').references('economic_groups.id');
-      table.uuid('business_unit_id').references('business_units.id');
 
       table.text('description');
       table.timestamp('from_expiration');

@@ -16,6 +16,12 @@ export default class LoginValidator {
         column: 'id',
       }),
     ]),
+    system: schema.string({}, [
+      rules.exists({
+        table: 'systems',
+        column: 'name',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

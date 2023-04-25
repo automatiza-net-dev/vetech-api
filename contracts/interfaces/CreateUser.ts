@@ -13,4 +13,6 @@ export interface ICreateUser {
   state?: string;
   licensingJob?: string;
   onDuty?: boolean;
+
+  systemName: string;
 }

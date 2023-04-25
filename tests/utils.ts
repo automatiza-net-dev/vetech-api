@@ -31,11 +31,11 @@ export const createSudo = async (): Promise<[Role]> => {
   return [role];
 };
 
-export const userBootstrap = async () => {
+export const userBootstrap = async (system_name = 'SUT') => {
   const user = await UserFactory.create();
 
   const system = await System.create({
-    name: v4(),
+    name: system_name,
   });
 
   const group = await user.related('economicGroups').create({

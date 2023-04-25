@@ -1,6 +1,5 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import { LicenceType } from 'App/Models/Licence';
-import Permission from 'App/Models/Permission';
 import Plan from 'App/Models/Plan';
 import Role from 'App/Models/Role';
 import System from 'App/Models/System';
@@ -46,13 +45,13 @@ export default class extends BaseSeeder {
       },
     ]);
 
-    const [fullPermission] = await Permission.fetchOrCreateMany('name', [
-      {
-        name: 'FULL_PERMISSION',
-      },
-    ]);
+    // const [fullPermission] = await Permission.fetchOrCreateMany('description', [
+    //   {
+    //     name: 'description',
+    //   },
+    // ]);
 
-    await superAdminRole.related('permissions').sync([fullPermission.id]);
+    // await superAdminRole.related('permissions').sync([fullPermission.id]);
 
     await admin.related('roles').firstOrCreate(
       { role_id: superAdminRole.id },

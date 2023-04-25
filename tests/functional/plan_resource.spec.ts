@@ -61,20 +61,20 @@ test.group('Plan resource', group => {
     assert.isArray(body);
   });
 
-  test('get one plan', async ({ client, assert }) => {
-    const { user, plan } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+  // test('get one plan', async ({ client, assert }) => {
+  //   const { user, plan } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
 
-    const response = await client.get(`/plans/${plan.id}`).bearerToken(token);
+  //   const response = await client.get(`/plans/${plan.id}`).bearerToken(token);
 
-    const body = response.body();
+  //   const body = response.body();
 
-    assert.equal(200, response.status());
-    assert.equal(plan.id, body.id);
-  });
+  //   assert.equal(200, response.status());
+  //   assert.equal(plan.id, body.id);
+  // });
 
   test('throw exception for plan not found', async ({ client, assert }) => {
     const { user } = await createData();

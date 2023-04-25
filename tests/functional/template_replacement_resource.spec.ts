@@ -212,8 +212,6 @@ test.group('Template replacement resource', group => {
       })
       .bearerToken(token);
 
-    console.log(response.body());
-
     assert.equal(200, response.status());
   });
 

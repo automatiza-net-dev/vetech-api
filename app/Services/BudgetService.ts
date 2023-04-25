@@ -286,7 +286,19 @@ export default class BudgetService {
     user: User,
     data: ICreateBudgetData,
   ) {
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
     const group = await this.sharedService.getUserGroup(unitId);
+
+    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
+    }
 
     const items = await ProductVariation.query().whereIn(
       'id',
@@ -471,6 +483,10 @@ export default class BudgetService {
     user: User,
     data: IConfirmBudgetData,
   ) {
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
     const group = await this.sharedService.getUserGroup(unitId);
 
     const model = await Budget.query()
@@ -482,10 +498,12 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const unit = await BusinessUnit.query().where('id', unitId).first();
-    if (!unit) {
-      // Não deveria acontecer em hipótese alguma
-      throw this.sharedService.ResourceNotFound();
+    if (unit.unitConfig.requiresBillPatient && !model.patient_id) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
     }
 
     const client = await Patient.query()

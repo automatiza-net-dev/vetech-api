@@ -11,7 +11,7 @@ export interface ICreateBudgetItemData {
 
 export interface ICreateBudgetData {
   clientId: string;
-  patientId: string;
+  patientId?: string;
   dailyMovementId: string;
   budgetDate: DateTime;
   expirationDate: DateTime;

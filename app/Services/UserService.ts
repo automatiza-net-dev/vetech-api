@@ -955,7 +955,7 @@ export default class UserService {
         Máximo: '',
         Custo: '35,00',
         Venda: '30,00',
-        'Grupo Tributacao': 'Dermocosméticos',
+        'Grupo Tributacao': 'Serviços',
         'Origem da mercadoria': 0,
         CEST: '',
         'Data de inclusão': '',

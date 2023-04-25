@@ -15,12 +15,14 @@ type LoginType = {
 
 export const generateJwtToken = async (
   client: ApiClient,
-  data: LoginType,
+  data: LoginType & { systemName?: string },
 ): Promise<string> => {
   const loginResponse = await client.post('/auth/login').json({
     email: data.email,
     password: data.password,
+    system: data.systemName ?? 'SUT',
   });
+
   const { token } = loginResponse.body();
   return token;
 };
@@ -34,9 +36,14 @@ export const createSudo = async (): Promise<[Role]> => {
 export const userBootstrap = async (system_name = 'SUT') => {
   const user = await UserFactory.create();
 
-  const system = await System.create({
-    name: system_name,
-  });
+  const system = await System.firstOrCreate(
+    {
+      name: system_name,
+    },
+    {
+      name: system_name,
+    },
+  );
 
   const group = await user.related('economicGroups').create({
     id: v4(),

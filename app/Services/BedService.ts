@@ -47,7 +47,7 @@ export default class BedService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (ent.business_id !== unitId) {
+    if (ent.business_id && ent.business_id !== unitId) {
       throw this.sharedService.ResourceNotFound();
     }
 

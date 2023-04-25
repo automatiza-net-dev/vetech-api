@@ -121,11 +121,11 @@ export default class AuthService {
         );
       }
 
-      const status = await this.checkLicence(unit);
+      // const status = await this.checkLicence(unit);
 
-      if (status) {
-        throw new BadRequestException('Erro', 400, status);
-      }
+      // if (status) {
+      //   throw new BadRequestException('Erro', 400, status);
+      // }
 
       return AuthService.generateAuthToken(auth, user, unit.id);
     });

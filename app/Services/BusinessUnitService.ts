@@ -425,6 +425,7 @@ export default class BusinessUnitService {
           state: data.state,
           inscription: data.inscription,
           licensingJob: data.licensingJob,
+          onDuty: data.onDuty,
         })
         .useTransaction(trx)
         .save();

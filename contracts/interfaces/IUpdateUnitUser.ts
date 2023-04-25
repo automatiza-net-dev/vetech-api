@@ -13,5 +13,6 @@ export interface IUpdateUnitUser {
   state?: string;
   inscription?: string;
   licensingJob?: string;
+  onDuty?: boolean;
   roles?: Array<number>;
 }

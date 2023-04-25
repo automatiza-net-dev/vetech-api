@@ -319,6 +319,7 @@ test.group('Business unit resource', group => {
       .json({
         licensingJob: 'any',
         inscription: 'any',
+        onDuty: false,
       } as IUpdateUnitUser)
       .bearerToken(token);
 

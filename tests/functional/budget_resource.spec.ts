@@ -1,13 +1,16 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement from 'App/Models/DailyMovement';
+import Kit from 'App/Models/Kit';
 import { ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import Reason from 'App/Models/Reason';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -78,6 +81,39 @@ test.group('Budget resource', group => {
       reason: 'Test',
     });
 
+    const kit = await Kit.create({
+      description: 'some description',
+      fromExpiration: DateTime.now(),
+      toExpiration: DateTime.now(),
+      economic_group_id: business.economicGroupId,
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      commission: 10,
+      commissionMeta: 10,
+      costPrice: 10,
+      maximumDiscountValue: 10,
+      meta: 10,
+      metaType: BusinessUnitProductMetaType.Quantidade,
+      profitMargin: 10,
+    });
+
+    const kitItem = await kit.related('items').create({
+      product_variation_id: variation.id,
+      quantity: 10,
+      discountPrice: 10,
+      discountPercentage: 10,
+      salePrice: 10,
+      originalPrice: 10,
+      business_unit_id: business.id,
+    });
+
     return {
       user,
       client,
@@ -88,6 +124,8 @@ test.group('Budget resource', group => {
       budgetItem,
       reason,
       variation,
+      kit,
+      kitItem,
     };
   };
 
@@ -292,5 +330,77 @@ test.group('Budget resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should add kit do budget', async ({ assert, client }) => {
+    const { user, budget, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/add-kit`)
+      .json({
+        budgetId: budget.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if budget is not active', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await budget
+      .merge({
+        status: BudgetStatus.C,
+      })
+      .save();
+
+    const response = await client
+      .post(`/budgets/add-kit`)
+      .json({
+        budgetId: budget.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if kit is not active', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await kit
+      .merge({
+        active: false,
+      })
+      .save();
+
+    const response = await client
+      .post(`/budgets/add-kit`)
+      .json({
+        budgetId: budget.id,
+        kitId: kit.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 });

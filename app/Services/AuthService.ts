@@ -91,7 +91,7 @@ export default class AuthService {
       validUnits.forEach(u => dataMap.get(u.economicGroupId)?.push(u));
 
       if (!data.business_unit_id) {
-        return Promise.all(
+        const result = await Promise.all(
           Array.from(dataMap.keys()).map(async key => {
             const group = uniqueEconomicGroups.find(eg => eg.id === key);
 
@@ -109,6 +109,16 @@ export default class AuthService {
             };
           }),
         );
+
+        if (result.length === 0) {
+          throw new BadRequestException(
+            'Credenciais inválidas',
+            400,
+            'E_BAD_CREDENTIALS',
+          );
+        }
+
+        return result;
       }
 
       const unit = validUnits.find(u => u.id === data.business_unit_id);

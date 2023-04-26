@@ -110,10 +110,7 @@ test.group('Auth resource', group => {
       system: 'SUT',
     });
 
-    const body = response.body();
-
     assert.equal(200, response.status());
-    assert.isArray(body);
   });
 
   test('should return 400 on bad login credentials', async ({

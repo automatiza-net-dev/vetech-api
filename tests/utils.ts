@@ -45,6 +45,10 @@ export const userBootstrap = async (system_name = 'SUT') => {
     },
   );
 
+  await user.merge({
+    system_id: system.id,
+  });
+
   const group = await user.related('economicGroups').create({
     id: v4(),
     document: user.document,

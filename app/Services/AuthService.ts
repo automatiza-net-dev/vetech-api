@@ -20,12 +20,14 @@ export default class AuthService {
     return Database.transaction(async trx => {
       const system = await System.query()
         .useTransaction(trx)
-        .where('name', 'ilike', `%${data.system}%`)
+        .where('name', data.system)
         .firstOrFail();
 
-      const user = await User.findBy('email', data.email, {
-        client: trx,
-      });
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('email', data.email)
+        .where('system_id', system.id)
+        .first();
 
       if (!user) {
         throw new BadRequestException(

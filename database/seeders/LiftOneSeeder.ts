@@ -479,22 +479,21 @@ export default class extends BaseSeeder {
     if (!receiptPlanGroup) {
       throw new Error('RECEITAS not found');
     }
+
     await receiptPlanGroup.related('accountPlans').fetchOrCreateMany(
       [
         {
           description: 'Receita de produtos',
           code: '',
           type: AccountPlanType.C,
-          system_id: lift.id,
         },
         {
           description: 'Receita de serviços',
           code: '',
           type: AccountPlanType.C,
-          system_id: lift.id,
         },
       ],
-      ['description', 'system_id'],
+      ['description'],
     );
 
     // ----------------------------------------
@@ -517,10 +516,9 @@ export default class extends BaseSeeder {
             description: 'Impostos',
             code: '',
             type: AccountPlanType.D,
-            system_id: lift.id,
           },
         ],
-        ['description', 'system_id'],
+        ['description'],
       );
     await d_first.related('children').fetchOrCreateMany(
       [
@@ -847,154 +845,180 @@ export default class extends BaseSeeder {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'name',
           replacer: '[TUTOR_NOME]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'firstName',
           replacer: '[TUTOR_PRIMEIRONOME]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'address',
           replacer: '[TUTOR_ENDERECO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'district',
           replacer: '[TUTOR_BAIRRO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'city',
           replacer: '[TUTOR_CIDADE]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'state',
           replacer: '[TUTOR_UF]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'postalCode',
           replacer: '[TUTOR_CEP]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'document',
           replacer: '[TUTOR_CPF]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'inscription',
           replacer: '[TUTOR_RG]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'cellphone',
           replacer: '[TUTOR_TELEFONE]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'email',
           replacer: '[TUTOR_EMAIL]',
+          system_id: lift.id,
         },
 
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'fantasyName',
           replacer: '[CLINICA_FANTASIA]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'companyName',
           replacer: '[CLINICA_RAZAOSOCIAL]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'document',
           replacer: '[CLINICA_CNPJ]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'address',
           replacer: '[CLINICA_ENDERECO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'district',
           replacer: '[CLINICA_BAIRRO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'city',
           replacer: '[CLINICA_CIDADE]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'state',
           replacer: '[CLINICA_UF]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'postalCode',
           replacer: '[CLINICA_CEP]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'phone',
           replacer: '[CLINICA_TELEFONE]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.BUSINESS,
           attribute: 'email',
           replacer: '[CLINICA_EMAIL]',
+          system_id: lift.id,
         },
 
         {
           origin: TemplateReplacementOrigin.USER,
           attribute: 'name',
           replacer: '[USUARIO_NOME]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.USER,
           attribute: 'treatment',
           replacer: '[USUARIO_TRATAMENTO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.USER,
           attribute: 'phone',
           replacer: '[USUARIO_CELULAR]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.USER,
           attribute: 'role',
           replacer: '[USUARIO_CARGO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.USER,
           attribute: 'licensingJob',
           replacer: '[USUARIO_TRABALHO]',
+          system_id: lift.id,
         },
 
         {
           origin: TemplateReplacementOrigin.SYSTEM,
           attribute: 'date',
           replacer: '[SISTEMA_DATA]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.SYSTEM,
           attribute: 'dateextension',
           replacer: '[SISTEMA_DATAEXTENSO]',
+          system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.SYSTEM,
           attribute: 'time',
           replacer: '[SISTEMA_HORA]',
+          system_id: lift.id,
         },
-      ].map(item => ({
-        system_id: lift.id,
-        ...item,
-      })),
+      ],
     );
   }
 }

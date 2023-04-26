@@ -129,9 +129,25 @@ export default class UserService {
         );
       }
 
-      const user = await User.create(userData, {
-        client: trx,
-      });
+      const existingUser = await User.query()
+        .useTransaction(trx)
+        .where('email', userData.email)
+        .where('system_id', system.id)
+        .first();
+      if (existingUser) {
+        throw new BadRequestException(
+          'Já existe um usuário com este email',
+          400,
+          'E_USER_ALREADY_EXISTS',
+        );
+      }
+
+      const user = await User.create(
+        { ...userData, system_id: system.id },
+        {
+          client: trx,
+        },
+      );
 
       const newGroup = await user.related('economicGroups').create(
         {

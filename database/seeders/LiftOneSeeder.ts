@@ -30,22 +30,28 @@ export default class extends BaseSeeder {
   public async run() {
     const lift = await System.query().where('name', 'LiftOne').firstOrFail();
 
-    await Pathology.fetchOrCreateMany('description', [
-      {
-        description: 'Diabetes',
-        definition: 'Diabetes',
-        template: '',
-        system_id: lift.id,
-        active: true,
-      },
-    ]);
+    Pathology.fetchOrCreateMany(
+      ['description', 'system_id'],
+      [
+        {
+          description: 'Diabetes',
+          definition: 'Diabetes',
+          template: '',
+          system_id: lift.id,
+          active: true,
+        },
+      ],
+    );
 
-    await Brand.fetchOrCreateMany('description', [
-      {
-        description: 'LiftOne',
-        system_id: lift.id,
-      },
-    ]);
+    await Brand.fetchOrCreateMany(
+      ['description', 'system_id'],
+      [
+        {
+          description: 'LiftOne',
+          system_id: lift.id,
+        },
+      ],
+    );
 
     await Subgroup.fetchOrCreateMany(
       'description',
@@ -63,7 +69,7 @@ export default class extends BaseSeeder {
     );
 
     const groups = await ScheduleServiceGroup.fetchOrCreateMany(
-      'description',
+      ['description', 'system_id'],
       [
         'Internação',
         'Cirurgia',
@@ -79,7 +85,7 @@ export default class extends BaseSeeder {
     );
 
     await ScheduleServiceType.fetchOrCreateMany(
-      'description',
+      ['description', 'system_id'],
       [
         {
           description: 'Procedimento facial',
@@ -119,61 +125,64 @@ export default class extends BaseSeeder {
       }),
     );
 
-    await ScheduleStatus.fetchOrCreateMany('description', [
-      {
-        description: 'Agendado (Não confirmado)',
-        color: '#D3D3D3',
-        system_id: lift.id,
-      },
-      {
-        description: 'Agendado (Confirmado)',
-        color: '#00BFFF',
-        system_id: lift.id,
-      },
-      {
-        description: 'Na recepção',
-        color: '#FFA500',
-        system_id: lift.id,
-      },
-      {
-        description: 'Em atendimento',
-        color: '#1E90FF',
-        system_id: lift.id,
-      },
-      {
-        description: 'Atendimento finalizado',
-        color: '#008000',
-        system_id: lift.id,
-      },
-      {
-        description: 'Atendimento cancelado',
-        color: '#4F4F4F',
-        system_id: lift.id,
-      },
-      {
-        description: 'Em cirurgia',
-        color: '#DEB887',
-        system_id: lift.id,
-      },
-      {
-        description: 'Hospitalizado',
-        color: '#FFD700',
-        system_id: lift.id,
-      },
-      {
-        description: 'Em observação',
-        color: '#FFFF00',
-        system_id: lift.id,
-      },
-      {
-        description: 'Atrasado',
-        color: '#FF0000',
-        system_id: lift.id,
-      },
-    ]);
+    await ScheduleStatus.fetchOrCreateMany(
+      ['description', 'system_id'],
+      [
+        {
+          description: 'Agendado (Não confirmado)',
+          color: '#D3D3D3',
+          system_id: lift.id,
+        },
+        {
+          description: 'Agendado (Confirmado)',
+          color: '#00BFFF',
+          system_id: lift.id,
+        },
+        {
+          description: 'Na recepção',
+          color: '#FFA500',
+          system_id: lift.id,
+        },
+        {
+          description: 'Em atendimento',
+          color: '#1E90FF',
+          system_id: lift.id,
+        },
+        {
+          description: 'Atendimento finalizado',
+          color: '#008000',
+          system_id: lift.id,
+        },
+        {
+          description: 'Atendimento cancelado',
+          color: '#4F4F4F',
+          system_id: lift.id,
+        },
+        {
+          description: 'Em cirurgia',
+          color: '#DEB887',
+          system_id: lift.id,
+        },
+        {
+          description: 'Hospitalizado',
+          color: '#FFD700',
+          system_id: lift.id,
+        },
+        {
+          description: 'Em observação',
+          color: '#FFFF00',
+          system_id: lift.id,
+        },
+        {
+          description: 'Atrasado',
+          color: '#FF0000',
+          system_id: lift.id,
+        },
+      ],
+    );
 
     await DrugAdministration.fetchOrCreateMany(
-      'description',
+      ['description', 'system_id'],
       [
         'Enema',
         'Epidural',
@@ -194,49 +203,59 @@ export default class extends BaseSeeder {
       })),
     );
 
-    await Unit.fetchOrCreateMany('name', [
-      { name: 'Caixa', tag: 'cx', type: UnitType.PRODUCT },
-      { name: 'Pacote', tag: 'pac', type: UnitType.PRODUCT },
-      { name: 'Par', tag: 'par', type: UnitType.PRODUCT },
-      { name: 'Peça', tag: 'pc', type: UnitType.PRODUCT },
-      { name: 'Rolo', tag: 'rl', type: UnitType.PRODUCT },
-      { name: 'Quilo', tag: 'kg', type: UnitType.PRODUCT },
-      { name: 'Saco', tag: 'sc', type: UnitType.PRODUCT },
-      { name: 'Unidade', tag: 'un', type: UnitType.PRODUCT },
+    await Unit.fetchOrCreateMany(
+      ['name', 'system_id'],
+      [
+        { name: 'Caixa', tag: 'cx', type: UnitType.PRODUCT },
+        { name: 'Pacote', tag: 'pac', type: UnitType.PRODUCT },
+        { name: 'Par', tag: 'par', type: UnitType.PRODUCT },
+        { name: 'Peça', tag: 'pc', type: UnitType.PRODUCT },
+        { name: 'Rolo', tag: 'rl', type: UnitType.PRODUCT },
+        { name: 'Quilo', tag: 'kg', type: UnitType.PRODUCT },
+        { name: 'Saco', tag: 'sc', type: UnitType.PRODUCT },
+        { name: 'Unidade', tag: 'un', type: UnitType.PRODUCT },
 
-      { name: 'Ampola', tag: 'amp', type: UnitType.MEDICINE },
-      { name: 'Borrifada', tag: 'borrifada', type: UnitType.MEDICINE },
-      { name: 'Cartela', tag: 'cart', type: UnitType.MEDICINE },
-      { name: 'Comprimido', tag: 'comprimido', type: UnitType.MEDICINE },
-      { name: 'Drágeas', tag: 'drágeas', type: UnitType.MEDICINE },
-      { name: 'Frasco', tag: 'fr', type: UnitType.MEDICINE },
-      { name: 'Gotas', tag: 'gotas', type: UnitType.MEDICINE },
-      { name: 'Gotas por Quilo', tag: 'gotas/kg', type: UnitType.MEDICINE },
-      { name: 'Grama', tag: 'gr', type: UnitType.MEDICINE },
-      { name: 'Micrograma por Quilo', tag: 'mcg/kg', type: UnitType.MEDICINE },
-      { name: 'Miligrama', tag: 'mg', type: UnitType.MEDICINE },
-      { name: 'Miligramas por Quilo', tag: 'mg/kg', type: UnitType.MEDICINE },
-      { name: 'Mililitro', tag: 'ml', type: UnitType.MEDICINE },
-      { name: 'Mililitros por Quilo', tag: 'ml/kg', type: UnitType.MEDICINE },
-      { name: 'UI por Mililitro', tag: 'ui/ml', type: UnitType.MEDICINE },
-      { name: 'UI por Quilo', tag: 'ui/kg', type: UnitType.MEDICINE },
+        { name: 'Ampola', tag: 'amp', type: UnitType.MEDICINE },
+        { name: 'Borrifada', tag: 'borrifada', type: UnitType.MEDICINE },
+        { name: 'Cartela', tag: 'cart', type: UnitType.MEDICINE },
+        { name: 'Comprimido', tag: 'comprimido', type: UnitType.MEDICINE },
+        { name: 'Drágeas', tag: 'drágeas', type: UnitType.MEDICINE },
+        { name: 'Frasco', tag: 'fr', type: UnitType.MEDICINE },
+        { name: 'Gotas', tag: 'gotas', type: UnitType.MEDICINE },
+        { name: 'Gotas por Quilo', tag: 'gotas/kg', type: UnitType.MEDICINE },
+        { name: 'Grama', tag: 'gr', type: UnitType.MEDICINE },
+        {
+          name: 'Micrograma por Quilo',
+          tag: 'mcg/kg',
+          type: UnitType.MEDICINE,
+        },
+        { name: 'Miligrama', tag: 'mg', type: UnitType.MEDICINE },
+        { name: 'Miligramas por Quilo', tag: 'mg/kg', type: UnitType.MEDICINE },
+        { name: 'Mililitro', tag: 'ml', type: UnitType.MEDICINE },
+        { name: 'Mililitros por Quilo', tag: 'ml/kg', type: UnitType.MEDICINE },
+        { name: 'UI por Mililitro', tag: 'ui/ml', type: UnitType.MEDICINE },
+        { name: 'UI por Quilo', tag: 'ui/kg', type: UnitType.MEDICINE },
 
-      {
-        name: 'Gotas por Minuto',
-        tag: 'gotas/min',
-        type: UnitType.FLUID_VELOCITY,
-      },
-      {
-        name: 'Mililitros por Dia',
-        tag: 'ml/dia',
-        type: UnitType.FLUID_VELOCITY,
-      },
-      {
-        name: 'Mililitros por Hora',
-        tag: 'ml/h',
-        type: UnitType.FLUID_VELOCITY,
-      },
-    ]);
+        {
+          name: 'Gotas por Minuto',
+          tag: 'gotas/min',
+          type: UnitType.FLUID_VELOCITY,
+        },
+        {
+          name: 'Mililitros por Dia',
+          tag: 'ml/dia',
+          type: UnitType.FLUID_VELOCITY,
+        },
+        {
+          name: 'Mililitros por Hora',
+          tag: 'ml/h',
+          type: UnitType.FLUID_VELOCITY,
+        },
+      ].map(elem => ({
+        ...elem,
+        system_id: lift.id,
+      })),
+    );
 
     await PaymentMethod.fetchOrCreateMany('description', [
       {
@@ -315,84 +334,91 @@ export default class extends BaseSeeder {
       },
     ]);
 
-    await MedicalDocumentTemplate.fetchOrCreateMany('title', [
-      {
-        title: 'Orientação pré cirurgia',
-        description: 'Orientação pré cirurgia',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Recomendações pós cirurgia',
-        description: 'Recomendações pós cirurgia',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Receita Geral',
-        description: 'Receita Geral',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Receita Pós cirurgia',
-        description: 'Receita Pós cirurgia',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-    ]);
+    await MedicalDocumentTemplate.fetchOrCreateMany(
+      ['title', 'system_id'],
+      [
+        {
+          title: 'Orientação pré cirurgia',
+          description: 'Orientação pré cirurgia',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Recomendações pós cirurgia',
+          description: 'Recomendações pós cirurgia',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Receita Geral',
+          description: 'Receita Geral',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Receita Pós cirurgia',
+          description: 'Receita Pós cirurgia',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+      ],
+    );
 
-    await DocumentTemplate.fetchOrCreateMany('title', [
-      {
-        title: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
-        description: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
-        description: 'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
-        description: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Descrição cirurgias para prontuário',
-        description: 'Descrição cirurgias para prontuário',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Procotolo de entrega de prontuário médico',
-        description: 'Procotolo de entrega de prontuário médico',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-      {
-        title: 'Relatório Médico de atendimento',
-        description: 'Relatório Médico de atendimento',
-        template: '',
-        header: '',
-        system_id: lift.id,
-      },
-    ]);
+    await DocumentTemplate.fetchOrCreateMany(
+      ['title', 'system_id'],
+      [
+        {
+          title: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
+          description: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
+          description:
+            'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
+          description: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Descrição cirurgias para prontuário',
+          description: 'Descrição cirurgias para prontuário',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Procotolo de entrega de prontuário médico',
+          description: 'Procotolo de entrega de prontuário médico',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+        {
+          title: 'Relatório Médico de atendimento',
+          description: 'Relatório Médico de atendimento',
+          template: '',
+          header: '',
+          system_id: lift.id,
+        },
+      ],
+    );
 
     await ClientOrigin.fetchOrCreateMany(
-      'description',
+      ['description', 'system_id'],
       [
         'Facebook',
         'Google',
@@ -411,7 +437,7 @@ export default class extends BaseSeeder {
     );
 
     const accountPlanGroups = await AccountPlanGroup.fetchOrCreateMany(
-      'description',
+      ['description', 'system_id'],
       [
         {
           description: 'RECEITAS',
@@ -468,7 +494,7 @@ export default class extends BaseSeeder {
           system_id: lift.id,
         },
       ],
-      'description',
+      ['description', 'system_id'],
     );
 
     // ----------------------------------------
@@ -494,7 +520,7 @@ export default class extends BaseSeeder {
             system_id: lift.id,
           },
         ],
-        'description',
+        ['description', 'system_id'],
       );
     await d_first.related('children').fetchOrCreateMany(
       [
@@ -509,7 +535,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await d_second.related('children').fetchOrCreateMany(
@@ -525,7 +551,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
 
@@ -550,7 +576,7 @@ export default class extends BaseSeeder {
             type: AccountPlanType.D,
             system_id: lift.id,
           }),
-          'description',
+          ['description', 'system_id'],
         ),
       );
     await fc_first.related('children').fetchOrCreateMany(
@@ -566,7 +592,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await fc_second.related('children').fetchOrCreateMany(
@@ -577,7 +603,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await fc_third.related('children').fetchOrCreateMany(
@@ -593,7 +619,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
 
@@ -619,7 +645,7 @@ export default class extends BaseSeeder {
             type: AccountPlanType.D,
             system_id: lift.id,
           }),
-          'description',
+          ['description', 'system_id'],
         ),
       );
     await ff_first.related('children').fetchOrCreateMany(
@@ -654,7 +680,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await ff_second.related('children').fetchOrCreateMany(
@@ -679,7 +705,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await ff_third.related('children').fetchOrCreateMany(
@@ -737,7 +763,7 @@ export default class extends BaseSeeder {
             system_id: lift.id,
           },
         ],
-        'description',
+        ['description', 'system_id'],
       );
     await ffin_first.related('children').fetchOrCreateMany(
       [
@@ -753,7 +779,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
     await ffin_second.related('children').fetchOrCreateMany(
@@ -768,7 +794,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.C,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
 
@@ -797,7 +823,7 @@ export default class extends BaseSeeder {
           type: AccountPlanType.D,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
 
@@ -809,13 +835,13 @@ export default class extends BaseSeeder {
           type: AccountPlanType.C,
           system_id: lift.id,
         }),
-        'description',
+        ['description', 'system_id'],
       ),
     );
 
     // ----------------------------------------
     await TemplateReplacement.fetchOrCreateMany(
-      'replacer',
+      ['replacer', 'system_id'],
       [
         {
           origin: TemplateReplacementOrigin.TUTOR,

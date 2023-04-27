@@ -26,35 +26,40 @@ export const SS_ON_NOTE = '3aad3eec-4cb0-4295-9840-5c584cb1040d';
 export const SS_LATE = 'e5fbc62e-9f66-428c-ba05-1ecf6a0fb388';
 
 export const VALID_CHANGES: Record<string, Array<string>> = {
-  [SS_NOT_CONFIRMED]: [
-    SS_CONFIRMED,
-    SS_RECEPTION,
-    SS_LATE,
-    SS_ATTENDANCE_CANCELLED,
+  'Agendado (Não confirmado)': [
+    'Agendado (Confirmado)',
+    'Na recepção',
+    'Atrasado',
+    'Atendimento cancelado',
   ],
-  [SS_CONFIRMED]: [SS_RECEPTION, SS_SURGERY, SS_ATTENDANCE_CANCELLED],
-  [SS_RECEPTION]: [
-    SS_ON_ATTENDANCE,
-    SS_SURGERY,
-    SS_HOSPITALIZED,
-    SS_ON_NOTE,
-    SS_ATTENDANCE_CANCELLED,
+  'Agendado (Confirmado)': [
+    'Na recepção',
+    'Em cirurgia',
+    'Atendimento cancelado',
+    'Atrasado',
   ],
-  [SS_ON_ATTENDANCE]: [
-    SS_ATTENDANCE_FINISHED,
-    SS_SURGERY,
-    SS_HOSPITALIZED,
-    SS_ON_NOTE,
+  'Na recepção': [
+    'Em atendimento',
+    'Em cirurgia',
+    'Hospitalizado',
+    'Em observação',
+    'Atendimento cancelado',
   ],
-  [SS_SURGERY]: [SS_ATTENDANCE_FINISHED, SS_HOSPITALIZED, SS_ON_NOTE],
-  [SS_HOSPITALIZED]: [SS_ATTENDANCE_FINISHED, SS_ON_NOTE, SS_SURGERY],
-  [SS_ON_NOTE]: [SS_ATTENDANCE_FINISHED, SS_SURGERY, SS_HOSPITALIZED],
-  [SS_LATE]: [
-    SS_ON_ATTENDANCE,
-    SS_SURGERY,
-    SS_HOSPITALIZED,
-    SS_ON_NOTE,
-    SS_ATTENDANCE_CANCELLED,
+  'Em atendimento': [
+    'Atendimento finalizado',
+    'Em cirurgia',
+    'Hospitalizado',
+    'Em observação',
+  ],
+  'Em cirurgia': ['Atendimento finalizado', 'Hospitalizado', 'Em observação'],
+  Hospitalizado: ['Atendimento finalizado', 'Em observação', 'Em cirurgia'],
+  'Em observação': ['Atendimento finalizado', 'Em cirurgia', 'Hospitalizado'],
+  Atrasado: [
+    'Em atendimento',
+    'Em cirurgia',
+    'Hospitalizado',
+    'Em observação',
+    'Atendimento cancelado',
   ],
 };
 

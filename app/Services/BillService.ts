@@ -17,7 +17,6 @@ import Finance, {
   FinanceType,
 } from 'App/Models/Finance';
 import Kit from 'App/Models/Kit';
-import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
@@ -1187,11 +1186,11 @@ export default class BillService {
       );
     }
 
-    const client = await Patient.query()
-      .useTransaction(trx)
-      .where('id', data.clientId)
-      .preload('tutor')
-      .firstOrFail();
+    // const client = await Patient.query()
+    //   .useTransaction(trx)
+    //   .where('id', data.clientId)
+    //   .preload('tutor')
+    //   .firstOrFail();
 
     const bills = await Bill.query().select('id');
 

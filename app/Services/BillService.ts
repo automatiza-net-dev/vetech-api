@@ -1086,7 +1086,7 @@ export default class BillService {
           .where('movementType', MovementType.S)
           .where('movementCategory', MovementCategory.NS)
           .where('fromUf', unit.state ?? '')
-          .where('toUf', bill.client.tutor.state ?? '')
+          .where('toUf', unit.state ?? '')
           .preload('taxationGroup')
           .preload('taxOperation');
 
@@ -1217,7 +1217,7 @@ export default class BillService {
       .where('movementType', MovementType.S)
       .where('movementCategory', MovementCategory.NS)
       .where('fromUf', unit.state ?? '')
-      .where('toUf', client.tutor.state ?? '')
+      .where('toUf', unit.state ?? '')
       .preload('taxationGroup')
       .preload('taxOperation');
 
@@ -1550,18 +1550,18 @@ export default class BillService {
       .preload('taxOperation')
       .first();
 
-    if (!rule) {
-      throw new BadRequestException(
-        'Não existe regra de imposto válida',
-        400,
-        'E_NO_RULE',
-      );
-    }
+    // if (!rule) {
+    //   throw new BadRequestException(
+    //     'Não existe regra de imposto válida',
+    //     400,
+    //     'E_NO_RULE',
+    //   );
+    // }
 
     const ufIcms = await UfIcms.query()
       .useTransaction(trx)
-      .where('origin_uf', rule.toUf)
-      .where('destination_uf', rule.toUf)
+      .where('origin_uf', rule?.toUf ?? '-')
+      .where('destination_uf', rule?.toUf ?? '-')
       .first();
     // if (!ufIcms) {
     //   throw new InternalErrorException(
@@ -1581,13 +1581,14 @@ export default class BillService {
     }
 
     const totalValue = data.unitaryValue * data.quantity - data.discountValue;
-    const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
-    const icmsValue = (icmsBase * rule.icmsPerc) / 100;
-    const icmsStBase_1 = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
-    const icmsStPercentageRedBase = rule.ivaIcmsSt
-      ? rule.icmsPercRedBaseCalculoST
+    const icmsBase =
+      totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+    const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+    const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
+    const icmsStPercentageRedBase = rule?.ivaIcmsSt
+      ? rule?.icmsPercRedBaseCalculoST
       : undefined;
-    const icmsStBase_2 = rule.ivaIcmsSt
+    const icmsStBase_2 = rule?.ivaIcmsSt
       ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
       : 0;
 
@@ -1597,7 +1598,7 @@ export default class BillService {
         business_unit_id: unitId,
         bill_id: bill.id,
         product_variation_id: data.productVariationId,
-        tax_rule_id: rule.id,
+        tax_rule_id: rule?.id,
         kit_id: data.kitId,
 
         quantity: data.quantity,
@@ -1613,7 +1614,7 @@ export default class BillService {
         icmsOriginProduct: productVariation.product.icmsOrigin,
         icmsCst:
           productVariation.product.type === ProductType.PRODUCT
-            ? rule.icmsCst
+            ? rule?.icmsCst
             : undefined,
         icmsBase:
           productVariation.product.type === ProductType.PRODUCT
@@ -1621,22 +1622,22 @@ export default class BillService {
             : undefined,
         icmsPercentage:
           productVariation.product.type === ProductType.PRODUCT
-            ? rule.icmsPerc
+            ? rule?.icmsPerc
             : undefined,
         icmsValue:
           productVariation.product.type === ProductType.PRODUCT
             ? icmsValue
             : undefined,
-        icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-        icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-        icmsStBase: this.isValidNumber(rule.ivaIcmsSt)
+        icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+        icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+        icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
           ? icmsStBase_2
           : undefined,
         icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
-          ? rule.icmsPercRedBaseCalculoST
+          ? rule?.icmsPercRedBaseCalculoST
           : undefined,
-        icmsStIva: this.isValidNumber(rule.ivaIcmsSt),
-        icmsStPercentageUfDestination: this.isValidNumber(rule.ivaIcmsSt)
+        icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+        icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
           ? ufIcms?.icmsPercentage
           : undefined,
         icmsStValue:
@@ -1645,7 +1646,7 @@ export default class BillService {
             : undefined,
         issCst:
           productVariation.product.type === ProductType.SERVICE
-            ? rule.icmsCst
+            ? rule?.icmsCst
             : undefined,
         issBase:
           productVariation.product.type === ProductType.SERVICE
@@ -1653,33 +1654,33 @@ export default class BillService {
             : undefined,
         issPercentage:
           productVariation.product.type === ProductType.SERVICE
-            ? rule.icmsPerc
+            ? rule?.icmsPerc
             : undefined,
         issValue:
           productVariation.product.type === ProductType.SERVICE
             ? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
             : undefined,
-        pisCst: rule.pisCst,
-        cofinsCst: rule.cofinsCst,
+        pisCst: rule?.pisCst,
+        cofinsCst: rule?.cofinsCst,
         pisBase: totalValue,
-        pisPercentage: rule.pisPerc,
-        pisValue: (totalValue * rule.pisPerc) / 100,
+        pisPercentage: rule?.pisPerc,
+        pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
         pisRetentionValue: 0,
         cofinsBase: totalValue,
-        cofinsPercentage: rule.cofinsPerc,
-        cofinsValue: (totalValue * rule.cofinsPerc) / 100,
+        cofinsPercentage: rule?.cofinsPerc,
+        cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
         cofinsRetentionValue: 0,
-        ipiCst: rule.ipiCst,
+        ipiCst: rule?.ipiCst,
         ipiBase: totalValue,
-        ipiPercentage: rule.ipiPerc,
-        ipiValue: (totalValue * rule.ipiPerc) / 100,
+        ipiPercentage: rule?.ipiPerc,
+        ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
         icmsDeferredValue: 0,
         icmsPartitionValue: 0,
-        icmsFcpPercentage: rule.fcpPerc,
-        icmsFcpValue: (icmsBase * rule.fcpPerc) / 100,
-        icmsPartitionOriginUfPercentage: rule.icmsPerc,
-        icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-        icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+        icmsFcpPercentage: rule?.fcpPerc,
+        icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
+        icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+        icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+        icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
       },
       {
         client: trx,

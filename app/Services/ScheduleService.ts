@@ -182,7 +182,7 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    if (!data.onDuty) {
+    if (!user.onDuty) {
       await ScheduleService.checkDisponibility(
         data.userId ?? user.id,
         unitId,

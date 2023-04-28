@@ -553,6 +553,7 @@ export default class UserService {
       .where('active', true)
       .first();
 
+    // VERIFICAR PLANILHA
     const [
       firstTaxGroup,
       secondTaxGroup,

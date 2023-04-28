@@ -305,13 +305,15 @@ export default class PatientExamService {
         throw new ResourceNotFoundException('Recurso não encontrado');
       }
 
-      const attachment = await this.uploadAttachment(data.attachment);
-      const result = await ent.related('attachments').create(
-        {
-          attachment,
-          filename: data.attachment.clientName,
+      const attachments = await Promise.all(
+        data.attachments.map(async a => this.uploadAttachment(a)),
+      );
+      const result = await ent.related('attachments').createMany(
+        attachments.map((url, index) => ({
+          attachment: url,
+          filename: data.attachments[index].clientName,
           user_id: user.id,
-        },
+        })),
         {
           client: trx,
         },
@@ -324,7 +326,7 @@ export default class PatientExamService {
         },
         {
           $push: {
-            'timeline_info.attachments': attachment,
+            'timeline_info.attachments': attachments,
           },
         },
       );

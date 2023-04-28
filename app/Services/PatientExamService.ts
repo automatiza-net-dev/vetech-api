@@ -218,6 +218,8 @@ export default class PatientExamService {
           attachments: [],
         },
       });
+
+      return patientExam;
     });
   }
 

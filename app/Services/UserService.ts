@@ -228,7 +228,7 @@ export default class UserService {
         await this.seedData(newGroup, newBusinessUnit, trx);
       }
 
-      return { user, unit: newBusinessUnit };
+      return { user, unit: newBusinessUnit, system };
     });
   }
 

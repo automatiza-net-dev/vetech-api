@@ -80,6 +80,7 @@ export default class AuthService {
         return auth.use('api').generate(user, {
           expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
           unit_id: unit.id,
+          system_id: system.id,
         });
       }
 
@@ -139,14 +140,20 @@ export default class AuthService {
       //   throw new BadRequestException('Erro', 400, status);
       // }
 
-      return AuthService.generateAuthToken(auth, user, unit.id);
+      return AuthService.generateAuthToken(auth, user, unit.id, system.id);
     });
   }
 
-  static generateAuthToken(auth: AuthContract, user: User, unit_id: string) {
+  static generateAuthToken(
+    auth: AuthContract,
+    user: User,
+    unit_id: string,
+    system: number,
+  ) {
     return auth.use('api').generate(user, {
       expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
       unit_id,
+      system_id: system,
     });
   }
 

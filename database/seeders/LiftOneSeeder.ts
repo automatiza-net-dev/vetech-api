@@ -7,13 +7,7 @@ import Brand from 'App/Models/Brand';
 import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import DocumentTemplate from 'App/Models/DocumentTemplate';
 import DrugAdministration from 'App/Models/DrugAdministration';
-import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import Pathology from 'App/Models/Pathology';
-import PaymentMethod, {
-  PaymentMethodTef,
-  PaymentMethodType,
-  PaymentMethodUsage,
-} from 'App/Models/PaymentMethod';
 import ScheduleServiceGroup, {
   ScheduleServiceGroupType,
 } from 'App/Models/ScheduleServiceGroup';
@@ -30,7 +24,7 @@ export default class extends BaseSeeder {
   public async run() {
     const lift = await System.query().where('name', 'LiftOne').firstOrFail();
 
-    Pathology.fetchOrCreateMany(
+    await Pathology.fetchOrCreateMany(
       ['description', 'system_id'],
       [
         {
@@ -63,6 +57,14 @@ export default class extends BaseSeeder {
         'Exames em Geral',
         'Procedimentos',
         'Dermocosméticos',
+        'Lifting',
+        'Botox',
+        'Bioestimulador',
+        'Microagulhamento',
+        'Ultraformer',
+        'Lipo',
+        'Fios',
+        'Plicatura',
       ].map(elem => ({
         description: elem,
       })),
@@ -88,7 +90,7 @@ export default class extends BaseSeeder {
       ['description', 'system_id'],
       [
         {
-          description: 'Procedimento facial',
+          description: 'Procedimento',
           group: 'Cirurgia',
           minutes: 60,
           allow: true,
@@ -96,7 +98,7 @@ export default class extends BaseSeeder {
         {
           description: 'Avaliação',
           group: 'Consultas',
-          minutes: 45,
+          minutes: 30,
           allow: true,
         },
         {
@@ -257,178 +259,129 @@ export default class extends BaseSeeder {
       })),
     );
 
-    await PaymentMethod.fetchOrCreateMany('description', [
-      {
-        description: 'Boleto Bancario',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.ENTRADA,
-        nfe_code: '15',
-      },
-      {
-        description: 'PIX',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.AMBOS,
-        nfe_code: '17',
-      },
-      {
-        description: 'Transferência Bancaria',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.AMBOS,
-        nfe_code: '18',
-      },
-      {
-        description: 'Cheque',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.ENTRADA,
-        nfe_code: '02',
-      },
-      {
-        description: 'Dinheiro',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.AMBOS,
-        nfe_code: '01',
-      },
-      {
-        description: 'Débito em Conta',
-        requiresDocument: false,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.ENTRADA,
-        nfe_code: '99',
-      },
-      {
-        description: 'Crédito Devolução',
-        requiresDocument: true,
-        tef: PaymentMethodTef.N,
-        fee: 0,
-        usage: PaymentMethodUsage.SAIDA,
-        nfe_code: '05',
-      },
-      {
-        description: 'Cartão de Débito (POS)',
-        requiresDocument: true,
-        tef: PaymentMethodTef.P,
-        type: PaymentMethodType.D,
-        fee: 0,
-        usage: PaymentMethodUsage.AMBOS,
-        nfe_code: '04',
-      },
-      {
-        description: 'Cartão de Crédito (POS)',
-        requiresDocument: true,
-        tef: PaymentMethodTef.P,
-        type: PaymentMethodType.C,
-        fee: 0,
-        usage: PaymentMethodUsage.AMBOS,
-        nfe_code: '03',
-      },
-    ]);
-
-    await MedicalDocumentTemplate.fetchOrCreateMany(
-      ['title', 'system_id'],
-      [
-        {
-          title: 'Orientação pré cirurgia',
-          description: 'Orientação pré cirurgia',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Recomendações pós cirurgia',
-          description: 'Recomendações pós cirurgia',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Receita Geral',
-          description: 'Receita Geral',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Receita Pós cirurgia',
-          description: 'Receita Pós cirurgia',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-      ],
-    );
+    // await PaymentMethod.fetchOrCreateMany('description', [
+    //   {
+    //     description: 'Boleto Bancario',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.ENTRADA,
+    //     nfe_code: '15',
+    //   },
+    //   {
+    //     description: 'PIX',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.AMBOS,
+    //     nfe_code: '17',
+    //   },
+    //   {
+    //     description: 'Transferência Bancaria',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.AMBOS,
+    //     nfe_code: '18',
+    //   },
+    //   {
+    //     description: 'Cheque',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.ENTRADA,
+    //     nfe_code: '02',
+    //   },
+    //   {
+    //     description: 'Dinheiro',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.AMBOS,
+    //     nfe_code: '01',
+    //   },
+    //   {
+    //     description: 'Débito em Conta',
+    //     requiresDocument: false,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.ENTRADA,
+    //     nfe_code: '99',
+    //   },
+    //   {
+    //     description: 'Crédito Devolução',
+    //     requiresDocument: true,
+    //     tef: PaymentMethodTef.N,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.SAIDA,
+    //     nfe_code: '05',
+    //   },
+    //   {
+    //     description: 'Cartão de Débito (POS)',
+    //     requiresDocument: true,
+    //     tef: PaymentMethodTef.P,
+    //     type: PaymentMethodType.D,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.AMBOS,
+    //     nfe_code: '04',
+    //   },
+    //   {
+    //     description: 'Cartão de Crédito (POS)',
+    //     requiresDocument: true,
+    //     tef: PaymentMethodTef.P,
+    //     type: PaymentMethodType.C,
+    //     fee: 0,
+    //     usage: PaymentMethodUsage.AMBOS,
+    //     nfe_code: '03',
+    //   },
+    // ]);
 
     await DocumentTemplate.fetchOrCreateMany(
       ['title', 'system_id'],
       [
-        {
-          title: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
-          description: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS + LGPD',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
-          description:
-            'CONTRATO DE AUTORIZAÇÃO PARA ANESTESIA E CIRURGIA + LGPD',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
-          description: 'TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Descrição cirurgias para prontuário',
-          description: 'Descrição cirurgias para prontuário',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Procotolo de entrega de prontuário médico',
-          description: 'Procotolo de entrega de prontuário médico',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-        {
-          title: 'Relatório Médico de atendimento',
-          description: 'Relatório Médico de atendimento',
-          template: '',
-          header: '',
-          system_id: lift.id,
-        },
-      ],
+        'Instruções Pré e Pós Procedimento com anexo',
+        'Modelo de Termo de Satistação',
+        'Modelo Declaração de Consentimento Esclarecido Lifting Temporal',
+        'Modelo Ficha Anamnese',
+        'Modelo Ficha de Procedimento',
+        'Modelo Termo de Autorização de Uso de Imagem',
+        'Modelo Termo de Consentimento para Tratamento de Dados',
+      ].map(elem => ({
+        title: elem,
+        description: elem,
+        template: '',
+        header: '',
+        system_id: lift.id,
+      })),
     );
 
     await ClientOrigin.fetchOrCreateMany(
       ['description', 'system_id'],
       [
-        'Facebook',
-        'Google',
-        'Indicação de amigo',
-        'Indicação de colega',
-        'Instagram',
-        'Panfletagem',
-        'Passando na rua',
-        'Radio',
-        'Televisão',
+        'Banner da SanClá em outros sites',
+        'Base de Clientes (Contato Ativo)',
+        'Base de Clientes (Contato Receptivo)',
+        'E-mail - Contato',
+        'Facebook - Comentários',
+        'Facebook - Geração (Lista em Excel)',
+        'Facebook - Ligação',
+        'Facebook - Messenger',
+        'Facebook - WhatsApp',
+        'Feiras e Eventos',
+        'Google - Ligação Direta',
+        'Google - WhatsApp Site (Landing page)',
+        'Indicação Cliente',
+        'Indicação Funcionário',
+        'Indicação Veterinários',
+        'Instagram - Comentários',
+        'Instagram - Direct',
+        'Instagram - WhatsApp',
+        'Não Informado',
+        'Não Se Lembra',
+        'Placa/ Fachada (Passou na Frente)',
+        'Site Nacional (liftonefranquias.com.br)',
+        'Rádio Nativa FM',
+        'Outros',
       ].map(elem => ({
         description: elem,
         system_id: lift.id,
@@ -486,14 +439,16 @@ export default class extends BaseSeeder {
           description: 'Receita de produtos',
           code: '',
           type: AccountPlanType.C,
+          system_id: lift.id,
         },
         {
           description: 'Receita de serviços',
           code: '',
           type: AccountPlanType.C,
+          system_id: lift.id,
         },
       ],
-      ['description'],
+      ['description', 'system_id'],
     );
 
     // ----------------------------------------
@@ -511,14 +466,16 @@ export default class extends BaseSeeder {
             description: 'Devoluções e Cancelamentos',
             code: '',
             type: AccountPlanType.D,
+            system_id: lift.id,
           },
           {
             description: 'Impostos',
             code: '',
             type: AccountPlanType.D,
+            system_id: lift.id,
           },
         ],
-        ['description'],
+        ['description', 'system_id'],
       );
     await d_first.related('children').fetchOrCreateMany(
       [
@@ -844,67 +801,67 @@ export default class extends BaseSeeder {
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'name',
-          replacer: '[TUTOR_NOME]',
+          replacer: '[CLIENTE_NOME]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'firstName',
-          replacer: '[TUTOR_PRIMEIRONOME]',
+          replacer: '[CLIENTE_PRIMEIRONOME]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'address',
-          replacer: '[TUTOR_ENDERECO]',
+          replacer: '[CLIENTE_ENDERECO]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'district',
-          replacer: '[TUTOR_BAIRRO]',
+          replacer: '[CLIENTE_BAIRRO]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'city',
-          replacer: '[TUTOR_CIDADE]',
+          replacer: '[CLIENTE_CIDADE]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'state',
-          replacer: '[TUTOR_UF]',
+          replacer: '[CLIENTE_UF]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'postalCode',
-          replacer: '[TUTOR_CEP]',
+          replacer: '[CLIENTE_CEP]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'document',
-          replacer: '[TUTOR_CPF]',
+          replacer: '[CLIENTE_CPF]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'inscription',
-          replacer: '[TUTOR_RG]',
+          replacer: '[CLIENTE_RG]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'cellphone',
-          replacer: '[TUTOR_TELEFONE]',
+          replacer: '[CLIENTE_TELEFONE]',
           system_id: lift.id,
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'email',
-          replacer: '[TUTOR_EMAIL]',
+          replacer: '[CLIENTE_EMAIL]',
           system_id: lift.id,
         },
 

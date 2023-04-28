@@ -99,7 +99,12 @@ Route.group(() => {
 
   Route.post(
     '/add-collaborator',
-    'BusinessUnitsController.storeCollaborator',
+    'BusinessUnitsController.addCollaborator',
+  ).middleware('auth');
+
+  Route.post(
+    '/create-collaborator',
+    'BusinessUnitsController.createCollaborator',
   ).middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');

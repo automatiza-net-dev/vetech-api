@@ -1,19 +1,22 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class CreateBusinessUnitCollaboratorValidator {
+export default class AddBusinessUnitCollaboratorValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
+    userId: schema.string({}, [
+      rules.exists({
+        column: 'id',
+        table: 'users',
+      }),
+    ]),
     roleId: schema.number([
       rules.exists({
         column: 'id',
         table: 'roles',
       }),
     ]),
-    name: schema.string({}),
-    email: schema.string({}),
-    password: schema.string({}, [rules.confirmed()]),
   });
 
   public messages: CustomMessages = {};

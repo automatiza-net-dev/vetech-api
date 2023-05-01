@@ -13,30 +13,34 @@ export default class ScheduleServiceTypesController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const data = await this.service.index(user, unit_id, {
-      description: qs.description,
-      group: qs.group,
-    });
+    const data = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      {
+        description: qs.description,
+        group: qs.group,
+      },
+    );
 
     return response.ok(data);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
-
-    const data = await this.service.show(user, unit_id, params.id);
+    const data = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(data);
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateScheduleServiceTypeValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.store(user, unit_id, payload);
+    const data = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(data);
   }
@@ -48,17 +52,21 @@ export default class ScheduleServiceTypesController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateScheduleServiceTypeValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const data = await this.service.update(user, unit_id, params.id, payload);
+    const data = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
     return response.created(data);
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
-
-    await this.service.destroy(user, unit_id, params.id);
+    await this.service.destroy(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

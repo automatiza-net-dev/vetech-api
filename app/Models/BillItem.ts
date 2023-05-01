@@ -323,4 +323,9 @@ export default class BillItem extends BaseModel {
     foreignKey: 'tax_rule_id',
   })
   public taxRule: BelongsTo<typeof TaxationGroupRule>;
+
+  @column({
+    serializeAs: null,
+  })
+  public kit_id: number;
 }

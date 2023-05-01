@@ -241,6 +241,8 @@ test.group('Patient resource', group => {
         email: 'mail123123@mail.com',
         cellphone: '123',
         cityCode: 'some',
+        diabetes: true,
+        hypertension: true,
       })
       .bearerToken(token);
 
@@ -339,6 +341,8 @@ test.group('Patient resource', group => {
         district: '123',
         city: '123',
         state: '123',
+        diabetes: true,
+        hypertension: true,
       })
       .bearerToken(token);
 

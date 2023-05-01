@@ -6,10 +6,7 @@ export default class CreateUserValidator {
 
   public schema = schema.create({
     name: schema.string({}),
-    email: schema.string({}, [
-      rules.email(),
-      rules.unique({ table: 'users', column: 'email' }),
-    ]),
+    email: schema.string({}),
     password: schema.string({}, [rules.confirmed()]),
     document: schema.string.optional({}, [
       rules.unique({ table: 'users', column: 'document' }),
@@ -25,6 +22,10 @@ export default class CreateUserValidator {
     active: schema.boolean.optional([]),
     licensingJob: schema.string.optional({}),
     onDuty: schema.boolean.optional([]),
+
+    systemName: schema.string({}, [
+      rules.exists({ table: 'systems', column: 'name' }),
+    ]),
   });
   public messages: CustomMessages = {};
 }

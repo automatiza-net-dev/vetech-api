@@ -219,6 +219,64 @@ export default class BusinessUnitService {
     // unit
   }
 
+  public async createCollaborator(
+    unitId: string,
+    props: {
+      roleId: number;
+      name: string;
+      email: string;
+      password: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', unitId)
+        .preload('economicGroup')
+        .firstOrFail();
+
+      const userAlreadyExists = await User.query()
+        .useTransaction(trx)
+        .where('email', props.email)
+        .where('system_id', unit.economicGroup.system_id)
+        .first();
+
+      if (userAlreadyExists) {
+        throw new BadRequestException(
+          'Este usuário já existe',
+          400,
+          'E_ALREADY_EXISTS',
+        );
+      }
+
+      const userToAdd = await User.create(
+        {
+          name: props.name,
+          email: props.email,
+          password: props.password,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd.related('roles').create(
+        {
+          role_id: props.roleId,
+          unit_id: unit.id,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd
+        .related('economicGroups')
+        .sync([unit.economicGroupId], false, trx);
+    });
+  }
+
   public async show(id: string): Promise<BusinessUnit> {
     const unit = await BusinessUnit.query()
       .where('id', id)
@@ -411,7 +469,24 @@ export default class BusinessUnitService {
     });
 
     await Database.transaction(async trx => {
-      await user.merge(sanitized).useTransaction(trx).save();
+      await user
+        .merge({
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          inscription: data.inscription,
+          licensingJob: data.licensingJob,
+          onDuty: data.onDuty,
+        })
+        .useTransaction(trx)
+        .save();
 
       if ((roles ?? []).length > 0) {
         await user.related('roles').query().delete().useTransaction(trx);

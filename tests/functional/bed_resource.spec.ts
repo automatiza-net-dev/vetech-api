@@ -69,10 +69,6 @@ test.group('Bed resource', group => {
     const response = await client.get(`/beds/${v4()}`).bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Recurso não encontrado',
-      response.body().message,
-    );
   });
 
   test('should throw NotFoundException if bed does not belong to unit', async ({

@@ -7,7 +7,7 @@ import MedicalPrescription, {
   MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
 } from 'App/Models/MedicalPrescription';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import CreateFluidOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateFluidOnceOrNeededValidator';
 import CreateFluidRecurrentValidator from 'App/Validators/MedicalPrescription/CreateFluidRecurrentValidator';
 import CreateMedicationOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateMedicationOnceOrNeededValidator';
@@ -38,28 +38,30 @@ export const MedicalPrescriptionValidation = {
 export default class MedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string) {
+  public async index(authCtx: AuthContext) {
     return MedicalPrescription.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('system_id', authCtx.system.id)
       .preload('drugAdministration')
       .preload('prescriptionUnit')
       .preload('fluidUnit');
   }
 
   public async store(
-    unitId: string,
+    authCtx: AuthContext,
     data: IMedicalPrescriptionData,
     body: Record<string, unknown>,
   ) {
     const { key } = this.matchSchema(data.type, data.frequency);
 
     const validatedData: Partial<MedicalPrescription> = {
-      business_unit_id: unitId,
+      business_unit_id: authCtx.unit.id,
       type: data.type,
       prescribedAt: data.prescribedAt,
       frequency: data.frequency,
       description: data.description,
       resume: data.resume,
+      system_id: authCtx.system.id,
     };
 
     if (key === 'PR') {
@@ -147,10 +149,11 @@ export default class MedicalPrescriptionService {
     throw new BadRequestException('Combinação de tipo e frequência inválida');
   }
 
-  public async show(unitId: string, id: string) {
+  public async show(authCtx: AuthContext, id: string) {
     const entity = await MedicalPrescription.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!entity) {
@@ -167,14 +170,15 @@ export default class MedicalPrescriptionService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IMedicalPrescriptionData,
     body: Record<string, unknown>,
   ) {
     const entity = await MedicalPrescription.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!entity) {
@@ -254,10 +258,11 @@ export default class MedicalPrescriptionService {
     return entity.save();
   }
 
-  public async delete(unitId: string, id: string) {
+  public async delete(authCtx: AuthContext, id: string) {
     const entity = await MedicalPrescription.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!entity) {

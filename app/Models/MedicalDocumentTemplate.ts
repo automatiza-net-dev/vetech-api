@@ -50,6 +50,11 @@ export default class MedicalDocumentTemplate extends BaseModel {
     await softDelete(this, column);
   }
 
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
   @column()
   public timeline_type_id: string;
 

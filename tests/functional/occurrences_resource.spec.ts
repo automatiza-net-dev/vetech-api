@@ -12,12 +12,13 @@ test.group('Occurrences resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const occurence = await Occurrence.create({
       description: 'any description',
       type: OccurrenceType.ADMISSAO_INTERNACAO,
       economic_group_id: group.id,
+      system_id: system.id,
     });
 
     return { user, occurence };

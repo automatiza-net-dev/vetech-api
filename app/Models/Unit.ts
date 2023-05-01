@@ -52,5 +52,10 @@ export default class Unit extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public system_id: number;
+
+  @column({
+    serializeAs: null,
+  })
   public economic_group_id: string | null;
 }

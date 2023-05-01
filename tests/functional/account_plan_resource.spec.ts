@@ -14,12 +14,13 @@ test.group('Account plan resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const apg = await AccountPlanGroup.create({
       economic_group_id: group.id,
       description: 'some description',
       type: AccountPlanGroupType.A,
+      system_id: system.id,
     });
 
     const ap_parent = await AccountPlan.create({
@@ -27,6 +28,7 @@ test.group('Account plan resource', group => {
       description: 'some description',
       code: 'some code',
       account_plan_group_id: apg.id,
+      system_id: system.id,
     });
 
     const ap = await AccountPlan.create({
@@ -35,6 +37,7 @@ test.group('Account plan resource', group => {
       code: 'some code',
       account_plan_group_id: apg.id,
       parent_id: ap_parent.id,
+      system_id: system.id,
     });
 
     return { user, ap, apg };

@@ -1,10 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import { BillItemStatus } from 'App/Models/BillItem';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BudgetItem from 'App/Models/BudgetItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Kit from 'App/Models/Kit';
 import Patient from 'App/Models/Patient';
 import Product, { ProductPurpose } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
@@ -284,7 +286,19 @@ export default class BudgetService {
     user: User,
     data: ICreateBudgetData,
   ) {
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
     const group = await this.sharedService.getUserGroup(unitId);
+
+    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
+    }
 
     const items = await ProductVariation.query().whereIn(
       'id',
@@ -469,6 +483,10 @@ export default class BudgetService {
     user: User,
     data: IConfirmBudgetData,
   ) {
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
+      .firstOrFail();
     const group = await this.sharedService.getUserGroup(unitId);
 
     const model = await Budget.query()
@@ -480,10 +498,12 @@ export default class BudgetService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    const unit = await BusinessUnit.query().where('id', unitId).first();
-    if (!unit) {
-      // Não deveria acontecer em hipótese alguma
-      throw this.sharedService.ResourceNotFound();
+    if (unit.unitConfig.requiresBillPatient && !model.patient_id) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
     }
 
     const client = await Patient.query()
@@ -698,5 +718,93 @@ export default class BudgetService {
         status: BudgetStatus.N,
       })
       .save();
+  }
+
+  public async addFromKit(
+    unitId: string,
+    data: {
+      budgetId: string;
+      kitId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId, {
+        client: trx,
+      });
+
+      const budget = await Budget.query()
+        .useTransaction(trx)
+        .where('id', data.budgetId)
+        .andWhere('business_unit_id', unitId)
+        .first();
+
+      if (!budget) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (budget.status !== BudgetStatus.A) {
+        throw new BadRequestException(
+          'Orçamento não está aberto',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const kit = await Kit.query()
+        .useTransaction(trx)
+        .where('id', data.kitId)
+        .andWhere('economic_group_id', unit.economicGroupId)
+        .preload('items', query => {
+          query.where('business_unit_id', unitId);
+
+          query.preload('productVariation', query => {
+            query.preload('product');
+          });
+        })
+        .first();
+
+      if (!kit) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (!kit.active) {
+        throw new BadRequestException('Kit não está ativo', 400, 'E_ERR');
+      }
+
+      const items = await budget.related('items').createMany(
+        kit.items.map(item => {
+          return {
+            economic_group_id: unit.economicGroupId,
+            business_unit_id: unitId,
+            product_variation_id: item.product_variation_id,
+            kit_id: kit.id,
+
+            unitaryValue: item.originalPrice,
+            discountValue: item.discountPrice,
+            quantity: item.quantity,
+            totalValue: item.quantity * item.originalPrice - item.discountPrice,
+            status: BudgetStatus.A,
+          };
+        }),
+        {
+          client: trx,
+        },
+      );
+
+      await budget
+        .merge({
+          productValue:
+            budget.productValue +
+            items.reduce((acc, item) => acc + item.totalValue, 0),
+          discountValue:
+            budget.discountValue +
+            items.reduce((acc, item) => acc + item.discountValue, 0),
+          totalValue:
+            budget.totalValue +
+            items.reduce((acc, item) => acc + item.totalValue, 0),
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 }

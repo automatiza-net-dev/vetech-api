@@ -28,4 +28,6 @@ export default interface IPatientTutorData {
   state?: string;
   clientOriginId?: string;
   cityCode?: string;
+  diabetes?: boolean;
+  hypertension?: boolean;
 }

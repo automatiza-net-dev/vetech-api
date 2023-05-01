@@ -3,7 +3,8 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import {
+import ScheduleStatus, {
+  SS_ATTENDANCE_CANCELLED,
   SS_ATTENDANCE_FINISHED,
   SS_NOT_CONFIRMED,
   VALID_CHANGES,
@@ -66,7 +67,11 @@ export default class ScheduleService {
     if (data.confirmed === 'false') {
       qb.where('schedule_status_id', SS_NOT_CONFIRMED);
     } else {
-      qb.whereNotIn('schedule_status_id', [SS_NOT_CONFIRMED]);
+      qb.whereNotIn('schedule_status_id', [
+        SS_NOT_CONFIRMED,
+        SS_ATTENDANCE_FINISHED,
+        SS_ATTENDANCE_CANCELLED,
+      ]);
     }
 
     const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
@@ -177,7 +182,7 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    if (!data.onDuty) {
+    if (!user.onDuty) {
       await ScheduleService.checkDisponibility(
         data.userId ?? user.id,
         unitId,
@@ -757,19 +762,33 @@ export default class ScheduleService {
     const schedule = await Schedule.query()
       .where('id', data.scheduleId)
       .where('business_unit_id', unitId)
+      .preload('serviceStatus')
       .first();
 
     if (!schedule) {
-      throw new ResourceNotFoundException('Agendamento não encontrado');
+      throw new ResourceNotFoundException(
+        'Agendamento não encontrado',
+        400,
+        'E_ERR',
+      );
     }
 
     if (schedule.schedule_status_id === data.scheduleId) {
       return schedule;
     }
 
-    const validChanges = VALID_CHANGES[schedule.schedule_status_id];
-    if (!validChanges || !validChanges.includes(data.statusId)) {
-      throw new BadRequestException('Mudança inválida');
+    const toStatus = await ScheduleStatus.find(data.statusId);
+    if (!toStatus) {
+      throw new ResourceNotFoundException(
+        'Agendamento não encontrado',
+        400,
+        'E_ERR',
+      );
+    }
+
+    const validChanges = VALID_CHANGES[schedule.serviceStatus.description];
+    if (!validChanges || !validChanges.includes(toStatus.description)) {
+      throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
     }
 
     return schedule

@@ -1,6 +1,7 @@
 import { ApiClient } from '@japa/api-client';
 import { LicenceType } from 'App/Models/Licence';
 import Role from 'App/Models/Role';
+import System from 'App/Models/System';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
 import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
@@ -14,12 +15,14 @@ type LoginType = {
 
 export const generateJwtToken = async (
   client: ApiClient,
-  data: LoginType,
+  data: LoginType & { systemName?: string },
 ): Promise<string> => {
   const loginResponse = await client.post('/auth/login').json({
     email: data.email,
     password: data.password,
+    system: data.systemName ?? 'SUT',
   });
+
   const { token } = loginResponse.body();
   return token;
 };
@@ -30,14 +33,28 @@ export const createSudo = async (): Promise<[Role]> => {
   return [role];
 };
 
-export const userBootstrap = async () => {
+export const userBootstrap = async (system_name = 'SUT') => {
   const user = await UserFactory.create();
+
+  const system = await System.firstOrCreate(
+    {
+      name: system_name,
+    },
+    {
+      name: system_name,
+    },
+  );
+
+  await user.merge({
+    system_id: system.id,
+  });
 
   const group = await user.related('economicGroups').create({
     id: v4(),
     document: user.document,
     responsibleEmail: user.email,
     responsiblePhone: user.phone,
+    system_id: system.id,
   });
 
   const business = await group.related('businessUnits').create({
@@ -74,5 +91,5 @@ export const userBootstrap = async () => {
     unit_id: business.id,
   });
 
-  return { user, group, business, licence, role };
+  return { user, group, business, licence, role, system };
 };

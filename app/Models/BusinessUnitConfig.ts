@@ -27,6 +27,11 @@ export default class BusinessUnitConfig extends BaseModel {
   public requiresScheduleTutor: boolean;
 
   @column({
+    columnName: 'requires_bill_patient',
+  })
+  public requiresBillPatient: boolean;
+
+  @column({
     columnName: 'fiscal_document_environment',
   })
   public fiscalDocumentEnvironment: string;

@@ -1,13 +1,21 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class AddPermissionValidator {
+export default class AddBusinessUnitCollaboratorValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    role_id: schema.number([rules.exists({ table: 'roles', column: 'id' })]),
-    permission_id: schema.number([
-      rules.exists({ table: 'permissions', column: 'id' }),
+    userId: schema.string({}, [
+      rules.exists({
+        column: 'id',
+        table: 'users',
+      }),
+    ]),
+    roleId: schema.number([
+      rules.exists({
+        column: 'id',
+        table: 'roles',
+      }),
     ]),
   });
 

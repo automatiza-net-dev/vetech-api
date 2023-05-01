@@ -56,6 +56,11 @@ export default class AccountPlan extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public system_id: number;
+
+  @column({
+    serializeAs: null,
+  })
   public economic_group_id: string;
 
   @column({

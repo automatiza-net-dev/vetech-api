@@ -2,14 +2,14 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateBillValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     clientId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    patientId: schema.string({}, [
+    patientId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),

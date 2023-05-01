@@ -14,7 +14,7 @@ test.group('Race resource', group => {
   });
 
   const createData = async (): Promise<[User, Specie, Race]> => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const specie = await group.related('species').create({
       id: v4(),
@@ -26,6 +26,7 @@ test.group('Race resource', group => {
       description: 'some race',
       economic_group_id: group.id,
       fur: RaceFur.C,
+      system_id: system.id,
     });
 
     return [user, specie, race];

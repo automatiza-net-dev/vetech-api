@@ -5,18 +5,15 @@ export default class CreateBusinessUnitCollaboratorValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    userId: schema.string({}, [
-      rules.exists({
-        column: 'id',
-        table: 'users',
-      }),
-    ]),
     roleId: schema.number([
       rules.exists({
         column: 'id',
         table: 'roles',
       }),
     ]),
+    name: schema.string({}),
+    email: schema.string({}),
+    password: schema.string({}, [rules.confirmed()]),
   });
 
   public messages: CustomMessages = {};

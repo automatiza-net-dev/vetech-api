@@ -3,6 +3,7 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnitService from 'App/Services/BusinessUnitService';
 import SharedService from 'App/Services/SharedService';
 import UserRoleService from 'App/Services/UserRoleService';
+import AddBusinessUnitCollaboratorValidator from 'App/Validators/BusinessUnit/AddBusinessUnitCollaboratorValidator';
 import CreateBusinessUnitCollaboratorValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitCollaboratorValidator';
 import CreateBusinessUnitValidator from 'App/Validators/BusinessUnit/CreateBusinessUnitValidator';
 import UpdateBusinessUnitAcquirerValidator from 'App/Validators/BusinessUnit/UpdateBusinessUnitAcquirerValidator';
@@ -46,7 +47,22 @@ export default class BusinessUnitsController {
     return response.created();
   }
 
-  public async storeCollaborator({
+  public async addCollaborator({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(
+      AddBusinessUnitCollaboratorValidator,
+    );
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.addCollaborator(unit_id, payload);
+
+    return response.created();
+  }
+
+  public async createCollaborator({
     auth,
     request,
     response,
@@ -56,7 +72,7 @@ export default class BusinessUnitsController {
     );
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    await this.service.addCollaborator(unit_id, payload);
+    await this.service.createCollaborator(unit_id, payload);
 
     return response.created();
   }

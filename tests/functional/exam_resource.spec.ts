@@ -13,7 +13,7 @@ test.group('Exam resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const subgroup = await Subgroup.create({
       description: 'some group',
@@ -27,6 +27,7 @@ test.group('Exam resource', group => {
       economic_group_id: group.id,
       ownLaboratory: true,
       type: 'some type',
+      system_id: system.id,
     });
 
     return { user, business, subgroup, exam };

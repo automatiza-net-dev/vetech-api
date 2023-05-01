@@ -11,5 +11,8 @@ export interface IUpdateUnitUser {
   district?: string;
   city?: string;
   state?: string;
+  inscription?: string;
+  licensingJob?: string;
+  onDuty?: boolean;
   roles?: Array<number>;
 }

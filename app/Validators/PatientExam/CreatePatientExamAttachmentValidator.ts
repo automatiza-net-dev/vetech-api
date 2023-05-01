@@ -9,7 +9,7 @@ export default class CreatePatientExamAttachmentValidator {
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
     realizedAt: schema.date(),
-    attachment: schema.file(),
+    attachments: schema.array().members(schema.file()),
   });
 
   public messages: CustomMessages = {};

@@ -16,7 +16,7 @@ import Finance, {
   FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
-import Patient from 'App/Models/Patient';
+import Kit from 'App/Models/Kit';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
@@ -1085,7 +1085,7 @@ export default class BillService {
           .where('movementType', MovementType.S)
           .where('movementCategory', MovementCategory.NS)
           .where('fromUf', unit.state ?? '')
-          .where('toUf', bill.client.tutor.state ?? '')
+          .where('toUf', unit.state ?? '')
           .preload('taxationGroup')
           .preload('taxOperation');
 
@@ -1173,15 +1173,24 @@ export default class BillService {
     user: User,
     data: ICreateBillData,
   ) {
-    const unit = await BusinessUnit.findOrFail(unitId, {
-      client: trx,
-    });
-
-    const client = await Patient.query()
-      .useTransaction(trx)
-      .where('id', data.clientId)
-      .preload('tutor')
+    const unit = await BusinessUnit.query()
+      .where('id', unitId)
+      .preload('unitConfig')
       .firstOrFail();
+
+    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
+      throw new BadRequestException(
+        'É necessário informar o paciente para realizar o orçamento',
+        400,
+        'E_ERR',
+      );
+    }
+
+    // const client = await Patient.query()
+    //   .useTransaction(trx)
+    //   .where('id', data.clientId)
+    //   .preload('tutor')
+    //   .firstOrFail();
 
     const bills = await Bill.query().select('id');
 
@@ -1207,7 +1216,7 @@ export default class BillService {
       .where('movementType', MovementType.S)
       .where('movementCategory', MovementCategory.NS)
       .where('fromUf', unit.state ?? '')
-      .where('toUf', client.tutor.state ?? '')
+      .where('toUf', unit.state ?? '')
       .preload('taxationGroup')
       .preload('taxOperation');
 
@@ -1486,7 +1495,7 @@ export default class BillService {
     trx: TransactionClientContract,
     unitId: string,
     group: EconomicGroup,
-    data: ICreateBillItemData,
+    data: ICreateBillItemData & { kitId?: number },
   ) {
     const unit = await BusinessUnit.findOrFail(unitId, {
       client: trx,
@@ -1540,18 +1549,18 @@ export default class BillService {
       .preload('taxOperation')
       .first();
 
-    if (!rule) {
-      throw new BadRequestException(
-        'Não existe regra de imposto válida',
-        400,
-        'E_NO_RULE',
-      );
-    }
+    // if (!rule) {
+    //   throw new BadRequestException(
+    //     'Não existe regra de imposto válida',
+    //     400,
+    //     'E_NO_RULE',
+    //   );
+    // }
 
     const ufIcms = await UfIcms.query()
       .useTransaction(trx)
-      .where('origin_uf', rule.toUf)
-      .where('destination_uf', rule.toUf)
+      .where('origin_uf', rule?.toUf ?? '-')
+      .where('destination_uf', rule?.toUf ?? '-')
       .first();
     // if (!ufIcms) {
     //   throw new InternalErrorException(
@@ -1571,13 +1580,14 @@ export default class BillService {
     }
 
     const totalValue = data.unitaryValue * data.quantity - data.discountValue;
-    const icmsBase = totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100);
-    const icmsValue = (icmsBase * rule.icmsPerc) / 100;
-    const icmsStBase_1 = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
-    const icmsStPercentageRedBase = rule.ivaIcmsSt
-      ? rule.icmsPercRedBaseCalculoST
+    const icmsBase =
+      totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+    const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+    const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
+    const icmsStPercentageRedBase = rule?.ivaIcmsSt
+      ? rule?.icmsPercRedBaseCalculoST
       : undefined;
-    const icmsStBase_2 = rule.ivaIcmsSt
+    const icmsStBase_2 = rule?.ivaIcmsSt
       ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
       : 0;
 
@@ -1587,7 +1597,8 @@ export default class BillService {
         business_unit_id: unitId,
         bill_id: bill.id,
         product_variation_id: data.productVariationId,
-        tax_rule_id: rule.id,
+        tax_rule_id: rule?.id,
+        kit_id: data.kitId,
 
         quantity: data.quantity,
         costValue: price.costPrice,
@@ -1602,7 +1613,7 @@ export default class BillService {
         icmsOriginProduct: productVariation.product.icmsOrigin,
         icmsCst:
           productVariation.product.type === ProductType.PRODUCT
-            ? rule.icmsCst
+            ? rule?.icmsCst
             : undefined,
         icmsBase:
           productVariation.product.type === ProductType.PRODUCT
@@ -1610,22 +1621,22 @@ export default class BillService {
             : undefined,
         icmsPercentage:
           productVariation.product.type === ProductType.PRODUCT
-            ? rule.icmsPerc
+            ? rule?.icmsPerc
             : undefined,
         icmsValue:
           productVariation.product.type === ProductType.PRODUCT
             ? icmsValue
             : undefined,
-        icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-        icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-        icmsStBase: this.isValidNumber(rule.ivaIcmsSt)
+        icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+        icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+        icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
           ? icmsStBase_2
           : undefined,
         icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
-          ? rule.icmsPercRedBaseCalculoST
+          ? rule?.icmsPercRedBaseCalculoST
           : undefined,
-        icmsStIva: this.isValidNumber(rule.ivaIcmsSt),
-        icmsStPercentageUfDestination: this.isValidNumber(rule.ivaIcmsSt)
+        icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+        icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
           ? ufIcms?.icmsPercentage
           : undefined,
         icmsStValue:
@@ -1634,7 +1645,7 @@ export default class BillService {
             : undefined,
         issCst:
           productVariation.product.type === ProductType.SERVICE
-            ? rule.icmsCst
+            ? rule?.icmsCst
             : undefined,
         issBase:
           productVariation.product.type === ProductType.SERVICE
@@ -1642,33 +1653,33 @@ export default class BillService {
             : undefined,
         issPercentage:
           productVariation.product.type === ProductType.SERVICE
-            ? rule.icmsPerc
+            ? rule?.icmsPerc
             : undefined,
         issValue:
           productVariation.product.type === ProductType.SERVICE
             ? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
             : undefined,
-        pisCst: rule.pisCst,
-        cofinsCst: rule.cofinsCst,
+        pisCst: rule?.pisCst,
+        cofinsCst: rule?.cofinsCst,
         pisBase: totalValue,
-        pisPercentage: rule.pisPerc,
-        pisValue: (totalValue * rule.pisPerc) / 100,
+        pisPercentage: rule?.pisPerc,
+        pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
         pisRetentionValue: 0,
         cofinsBase: totalValue,
-        cofinsPercentage: rule.cofinsPerc,
-        cofinsValue: (totalValue * rule.cofinsPerc) / 100,
+        cofinsPercentage: rule?.cofinsPerc,
+        cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
         cofinsRetentionValue: 0,
-        ipiCst: rule.ipiCst,
+        ipiCst: rule?.ipiCst,
         ipiBase: totalValue,
-        ipiPercentage: rule.ipiPerc,
-        ipiValue: (totalValue * rule.ipiPerc) / 100,
+        ipiPercentage: rule?.ipiPerc,
+        ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
         icmsDeferredValue: 0,
         icmsPartitionValue: 0,
-        icmsFcpPercentage: rule.fcpPerc,
-        icmsFcpValue: (icmsBase * rule.fcpPerc) / 100,
-        icmsPartitionOriginUfPercentage: rule.icmsPerc,
-        icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-        icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+        icmsFcpPercentage: rule?.fcpPerc,
+        icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
+        icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+        icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+        icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
       },
       {
         client: trx,
@@ -1763,5 +1774,73 @@ export default class BillService {
       .save();
 
     return billItem;
+  }
+
+  public async addFromKit(
+    unitId: string,
+    data: {
+      billId: string;
+      kitId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const unit = await BusinessUnit.findOrFail(unitId, {
+        client: trx,
+      });
+      const group = await EconomicGroup.findOrFail(unit.economicGroupId, {
+        client: trx,
+      });
+
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('id', data.billId)
+        .andWhere('business_unit_id', unitId)
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota de Saída não está aberto',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const kit = await Kit.query()
+        .useTransaction(trx)
+        .where('id', data.kitId)
+        .andWhere('economic_group_id', unit.economicGroupId)
+        .preload('items', query => {
+          query.where('business_unit_id', unitId);
+
+          query.preload('productVariation', query => {
+            query.preload('product');
+          });
+        })
+        .first();
+
+      if (!kit) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (!kit.active) {
+        throw new BadRequestException('Kit não está ativo', 400, 'E_ERR');
+      }
+
+      await Promise.all(
+        kit.items.map(async item =>
+          this.createBillItemWithTrx(trx, unitId, group, {
+            billId: data.billId,
+            quantity: item.quantity,
+            discountValue: item.discountPrice,
+            productVariationId: item.product_variation_id,
+            unitaryValue: item.originalPrice,
+          }),
+        ),
+      );
+    });
   }
 }

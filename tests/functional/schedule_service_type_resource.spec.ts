@@ -16,12 +16,13 @@ test.group('Schedule service type resource', group => {
   });
 
   const createData = async () => {
-    const { user, group, business } = await userBootstrap();
+    const { user, group, business, system } = await userBootstrap();
 
     const schedule = await ScheduleServiceGroup.create({
       economic_group_id: group.id,
       description: 'some schedule',
       type: ScheduleServiceGroupType.R,
+      system_id: system.id,
     });
 
     const groupType = await schedule.related('types').create({
@@ -31,6 +32,7 @@ test.group('Schedule service type resource', group => {
       reservedMinutes: 90,
       allowReturn: true,
       resume: 'some resume',
+      system_id: system.id,
     });
 
     const variationGroup = await group.related('variationGroups').create({

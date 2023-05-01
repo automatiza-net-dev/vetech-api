@@ -11,7 +11,7 @@ import TemplateReplacement, {
   TemplateReplacementOrigin,
 } from 'App/Models/TemplateReplacement';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import ITemplateReplacementData, {
   ITemplateReplacementParser,
 } from 'Contracts/interfaces/ITemplateReplacementData';
@@ -29,13 +29,12 @@ type RenderTextData = Record<TemplateReplacementOrigin, ModelObject | null>;
 export default class TemplateReplacementService {
   constructor(private readonly sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const qb = TemplateReplacement.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
-    );
+  async index(authCtx: AuthContext, data: ISearch) {
+    const qb = TemplateReplacement.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
 
     if (data.origin) {
       qb.where('origin', data.origin);
@@ -52,9 +51,7 @@ export default class TemplateReplacementService {
     return qb;
   }
 
-  async store(unitId: string, data: ITemplateReplacementData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async store(authCtx: AuthContext, data: ITemplateReplacementData) {
     if (data.origin === TemplateReplacementOrigin.SYSTEM) {
       throw new BadRequestException(
         'Você não pode criar esse tipo',
@@ -64,19 +61,21 @@ export default class TemplateReplacementService {
     }
 
     return TemplateReplacement.create({
-      economic_group_id: group.id,
-
+      economic_group_id: authCtx.group.id,
+      system_id: authCtx.system.id,
       attribute: data.attribute,
       origin: data.origin,
       replacer: data.replacer,
     });
   }
 
-  async update(unitId: string, id: string, data: ITemplateReplacementData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async update(
+    authCtx: AuthContext,
+    id: string,
+    data: ITemplateReplacementData,
+  ) {
     const template = await TemplateReplacement.query()
-      .where('economic_group_id', group.id)
+      .where('economic_group_id', authCtx.group.id)
       .where('id', id)
       .first();
 
@@ -93,11 +92,10 @@ export default class TemplateReplacementService {
       .save();
   }
 
-  async destroy(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async destroy(authCtx: AuthContext, id: string) {
     const template = await TemplateReplacement.query()
-      .where('economic_group_id', group.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('system_id', authCtx.system.id)
       .where('id', id)
       .first();
 
@@ -108,9 +106,7 @@ export default class TemplateReplacementService {
     return template.delete();
   }
 
-  async renderText(unitId: string, data: ITemplateReplacementParser) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async renderText(authCtx: AuthContext, data: ITemplateReplacementParser) {
     const date = new Date();
     const textData: RenderTextData = {
       BUSINESS: null,
@@ -154,7 +150,7 @@ export default class TemplateReplacementService {
 
     const templates = await TemplateReplacement.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
+      [authCtx.group.id],
     );
 
     return this.parseTemplate(data.base, textData, templates);

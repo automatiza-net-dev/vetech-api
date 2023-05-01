@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import DocumentTemplate from 'App/Models/DocumentTemplate';
 import { DOCUMENT_UUID } from 'App/Models/TimelineType';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IDocumentTemplateData from 'Contracts/interfaces/IDocumentTemplateData';
 
 interface ISearch {
@@ -14,12 +14,10 @@ interface ISearch {
 export default class DocumentTemplateService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext, data: ISearch) {
     const qb = DocumentTemplate.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
+      [authCtx.group.id],
     );
 
     if (data.description) {
@@ -33,13 +31,12 @@ export default class DocumentTemplateService {
     return qb;
   }
 
-  public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async show(authCtx: AuthContext, id: string) {
     const template = await DocumentTemplate.query()
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
+      .where('system_id', authCtx.system.id)
       .where('id', id)
       .first();
 
@@ -55,12 +52,10 @@ export default class DocumentTemplateService {
   }
 
   public async store(
-    unitId: string,
+    authCtx: AuthContext,
     data: Omit<IDocumentTemplateData, 'active'>,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    return group.related('documentTemplates').create({
+    return authCtx.group.related('documentTemplates').create({
       timeline_type_id: DOCUMENT_UUID,
       description: data.description,
       title: data.title,
@@ -69,8 +64,12 @@ export default class DocumentTemplateService {
     });
   }
 
-  public async update(unitId: string, id: string, data: IDocumentTemplateData) {
-    const template = await this.show(unitId, id);
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IDocumentTemplateData,
+  ) {
+    const template = await this.show(authCtx, id);
 
     if (!template.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -87,8 +86,8 @@ export default class DocumentTemplateService {
       .save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const template = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const template = await this.show(authCtx, id);
 
     if (!template.economic_group_id) {
       throw this.sharedService.SystemResource();

@@ -45,6 +45,11 @@ export default class ClientOrigin extends BaseModel {
   }
 
   @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
+  @column({
     columnName: 'economic_group_id',
     serializeAs: null,
   })

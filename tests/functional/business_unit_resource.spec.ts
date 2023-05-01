@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import TefAcquirer from 'App/Models/TefAcquirer';
+import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -300,5 +301,28 @@ test.group('Business unit resource', group => {
       .bearerToken(token);
 
     assert.equal(400, response.status());
+  });
+
+  test('should update collaborator from business unit', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/business-units/user/${user.id}`)
+      .json({
+        licensingJob: 'any',
+        inscription: 'any',
+        onDuty: false,
+      } as IUpdateUnitUser)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 });

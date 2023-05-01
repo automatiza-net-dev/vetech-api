@@ -12,13 +12,14 @@ test.group('Document template resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const template = await group.related('documentTemplates').create({
       description: 'any description',
       title: 'any title',
       template: 'any template',
       timeline_type_id: DOCUMENT_UUID,
+      system_id: system.id,
     });
 
     return { user, template };

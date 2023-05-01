@@ -153,8 +153,12 @@ export default class PatientService {
         id: elem.id,
         name: elem.name,
         email: elem.tutor.email,
+        document: elem.tutor.document,
+        inscription: elem.tutor.inscription,
         tag: elem.tag,
         cellphone: elem.tutor.cellphone,
+        diabetes: elem.diabetes,
+        hypertension: elem.hypertension,
         dependents: elem.dependents.map(patient => ({
           id: patient.id,
           name: patient.name,
@@ -693,6 +697,8 @@ export default class PatientService {
           tags: data.tags,
           photo,
           type: PatientType.TUTOR,
+          diabetes: data.diabetes,
+          hypertension: data.hypertension,
           tag: (tutors.length + 1).toString(),
         },
         { client: trx },
@@ -1030,6 +1036,8 @@ export default class PatientService {
           tags: data.tags,
           birthDate: data.birthDate?.toJSDate(),
           active: data.active,
+          diabetes: data.diabetes,
+          hypertension: data.hypertension,
         })
         .useTransaction(trx)
         .save();

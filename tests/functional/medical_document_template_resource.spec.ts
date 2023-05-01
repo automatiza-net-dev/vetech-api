@@ -12,7 +12,7 @@ test.group('Medical document template resource', group => {
   });
 
   const createData = async () => {
-    const { user, group } = await userBootstrap();
+    const { user, group, system } = await userBootstrap();
 
     const template = await group.related('medicalDocumentTemplates').create({
       description: 'any description',
@@ -20,6 +20,7 @@ test.group('Medical document template resource', group => {
       header: 'any header',
       template: 'any template',
       timeline_type_id: RECIPE_UUID,
+      system_id: system.id,
     });
 
     return { user, template };

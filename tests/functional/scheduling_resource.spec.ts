@@ -203,6 +203,42 @@ test.group('Scheduling resource', group => {
     );
   });
 
+  test('should create scheduling for on duty user', async ({
+    assert,
+    client,
+  }) => {
+    const { user, status, serviceType } = await createData();
+
+    await user
+      .merge({
+        onDuty: true,
+      })
+      .save();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const d = new Date();
+
+    const result = await client
+      .post('/schedules')
+      .json({
+        scheduleServiceTypeId: serviceType.id,
+        scheduleStatusId: status.id,
+        startHour: new Date(
+          `2022-${d.getMonth() + 1}-${d.getDate()} 08:00:00`,
+        ).toISOString(),
+        endHour: new Date(
+          `2022-${d.getMonth() + 1}-${d.getDate()} 08:50:00`,
+        ).toISOString(),
+      })
+      .bearerToken(token);
+
+    assert.equal(201, result.status());
+  });
+
   test('should create scheduling', async ({ assert, client }) => {
     const { user, status, serviceType, business } = await createData();
     await createWorkingDay(user, business, '00:00', '23:59');

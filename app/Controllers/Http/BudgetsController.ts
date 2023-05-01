@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BudgetService from 'App/Services/BudgetService';
 import SharedService from 'App/Services/SharedService';
+import AddKitToBudgetValidator from 'App/Validators/Budget/AddKitToBudgetValidator';
 import CancelBudgetValidator from 'App/Validators/Budget/CancelBudgetValidator';
 import ConfirmBudgetValidator from 'App/Validators/Budget/ConfirmBudgetValidator';
 import CreateBudgetItemValidator from 'App/Validators/Budget/CreateBudgetItemValidator';
@@ -145,6 +146,19 @@ export default class BudgetsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
     await this.service.cancelBudget(unit_id, params.id, user, payload);
+
+    return response.noContent();
+  }
+
+  public async addKitToBudget({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(AddKitToBudgetValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.addFromKit(unit_id, payload);
 
     return response.noContent();
   }

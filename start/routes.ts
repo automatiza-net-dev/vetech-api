@@ -54,7 +54,9 @@ Route.group(() => {
   Route.post('', 'PlansController.store');
   Route.put('/:id', 'PlansController.update');
   Route.delete('/:id', 'PlansController.destroy');
-}).prefix('plans');
+})
+  .prefix('plans')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('', 'PlanPricesController.index');
@@ -97,7 +99,12 @@ Route.group(() => {
 
   Route.post(
     '/add-collaborator',
-    'BusinessUnitsController.storeCollaborator',
+    'BusinessUnitsController.addCollaborator',
+  ).middleware('auth');
+
+  Route.post(
+    '/create-collaborator',
+    'BusinessUnitsController.createCollaborator',
   ).middleware('auth');
 
   Route.post('', 'BusinessUnitsController.store').middleware('auth');
@@ -117,11 +124,23 @@ Route.group(() => {
   );
 }).prefix('business-units');
 
-Route.post('roles/add-permission', 'RolesController.addPermission');
-Route.delete('roles/:id/:permission', 'RolesController.deletePermission');
-Route.resource('roles', 'RolesController').apiOnly();
+Route.group(() => {
+  Route.get('', 'RolesController.index');
+  Route.post('', 'RolesController.store');
+  Route.get('/:id', 'RolesController.show');
+  Route.put('/:id', 'RolesController.update');
+  Route.delete('/:id', 'RolesController.destroy');
 
-Route.resource('permissions', 'PermissionsController').apiOnly();
+  Route.post('/permissions', 'RolesController.managePermissions');
+})
+  .prefix('roles')
+  .middleware('auth');
+
+Route.resource('permissions', 'PermissionsController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });
 
 Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');
@@ -757,6 +776,7 @@ Route.group(() => {
   Route.get('/complete', 'BudgetsController.completeIndex');
   Route.get('/:id', 'BudgetsController.show');
   Route.post('/create', 'BudgetsController.createBudget');
+  Route.post('/add-kit', 'BudgetsController.addKitToBudget');
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
   Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');
   Route.put('/cancel/:id', 'BudgetsController.cancelBudget');
@@ -770,6 +790,7 @@ Route.group(() => {
 Route.group(() => {
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
+  Route.post('/add-kit', 'BillsController.addKitToBill');
   Route.put('/update-item', 'BillsController.updateBillItem');
   Route.put('/delete-item/:id', 'BillsController.deleteBillItem');
   Route.post('/create-payment', 'BillsController.createBillPayment');
@@ -896,3 +917,19 @@ Route.group(() => {
   Route.post('/nfse', 'WebhooksController.nfse');
   Route.post('/disable', 'WebhooksController.disable');
 }).prefix('webhooks');
+
+Route.group(() => {
+  Route.get('/', 'KitsController.index');
+
+  Route.post('/add-item', 'KitsController.addKitItem');
+  Route.post('/', 'KitsController.store');
+
+  Route.get('/:id', 'KitsController.show');
+
+  Route.put('/item/:id', 'KitsController.updateKitItem');
+  Route.put('/:id', 'KitsController.update');
+
+  Route.delete('/:id', 'KitsController.destroy');
+})
+  .prefix('kits')
+  .middleware('auth');

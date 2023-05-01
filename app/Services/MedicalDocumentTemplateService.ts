@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
 import { RECIPE_UUID } from 'App/Models/TimelineType';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IMedicalDocumentTemplateData from 'Contracts/interfaces/IMedicalDocumentTemplateData';
 
 interface ISearch {
@@ -11,14 +11,12 @@ interface ISearch {
 
 @inject()
 export default class MedicalDocumentTemplateService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext, data: ISearch) {
     const qb = MedicalDocumentTemplate.query().whereRaw(
       '(economic_group_id = ? or economic_group_id is null)',
-      [group.id],
+      [authCtx.group.id],
     );
 
     if (data.description) {
@@ -32,9 +30,7 @@ export default class MedicalDocumentTemplateService {
     return qb;
   }
 
-  public async show(unitId: string, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async show(authCtx: AuthContext, id: string) {
     const template = await MedicalDocumentTemplate.query()
       .where('id', id)
       .first();
@@ -43,7 +39,10 @@ export default class MedicalDocumentTemplateService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (template.economic_group_id && template.economic_group_id !== group.id) {
+    if (
+      template.economic_group_id &&
+      template.economic_group_id !== authCtx.group.id
+    ) {
       throw this.sharedService.ResourceNotFound();
     }
 
@@ -51,12 +50,10 @@ export default class MedicalDocumentTemplateService {
   }
 
   public async store(
-    unitId: string,
+    authCtx: AuthContext,
     data: Omit<IMedicalDocumentTemplateData, 'active'>,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    return group.related('medicalDocumentTemplates').create({
+    return authCtx.group.related('medicalDocumentTemplates').create({
       timeline_type_id: RECIPE_UUID,
       description: data.description,
       title: data.title,
@@ -66,11 +63,11 @@ export default class MedicalDocumentTemplateService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IMedicalDocumentTemplateData,
   ) {
-    const template = await this.show(unitId, id);
+    const template = await this.show(authCtx, id);
 
     return template
       .merge({
@@ -83,8 +80,8 @@ export default class MedicalDocumentTemplateService {
       .save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const template = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const template = await this.show(authCtx, id);
 
     await template.softDelete();
   }

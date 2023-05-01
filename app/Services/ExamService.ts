@@ -16,10 +16,11 @@ export default class ExamService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(authCtx: AuthContext, data: ISearch) {
-    const qb = Exam.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [authCtx.group.id],
-    );
+    const qb = Exam.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -55,7 +56,7 @@ export default class ExamService {
   public async show(authCtx: AuthContext, id: string) {
     const exam = await Exam.find(id);
 
-    if (!exam) {
+    if (!exam || exam.system_id !== authCtx.system.id) {
       throw new ResourceNotFoundException(
         'Exame não encontrada',
         404,

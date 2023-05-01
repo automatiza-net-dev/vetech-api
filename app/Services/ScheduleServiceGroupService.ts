@@ -21,7 +21,8 @@ export default class ScheduleServiceGroupService {
       .where('active', true)
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         authCtx.group.id,
-      ]);
+      ])
+      .where('system_id', authCtx.system.id);
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);

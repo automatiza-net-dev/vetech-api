@@ -148,10 +148,11 @@ export default class TemplateReplacementService {
       textData.PATIENT = await this.fetchPatient(data.dependentId);
     }
 
-    const templates = await TemplateReplacement.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [authCtx.group.id],
-    );
+    const templates = await TemplateReplacement.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
 
     return this.parseTemplate(data.base, textData, templates);
   }

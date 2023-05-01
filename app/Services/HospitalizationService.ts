@@ -17,7 +17,7 @@ import TimelineType, {
   HOSPITALIZATION_UUID,
 } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
 import { DateTime } from 'luxon';
 
@@ -303,20 +303,18 @@ export default class HospitalizationService {
     );
   }
 
-  public async store(unitId: string, user: User, data: IHospitalizationData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(authCtx: AuthContext, data: IHospitalizationData) {
     const ent = await Database.transaction(async trx => {
       const patient = await Patient.findOrFail(data.patientId);
       const tutor = await Patient.findOrFail(data.tutorId);
       const bed = data.bedId ? await Bed.findOrFail(data.bedId) : null;
       const technician = data.userId
         ? await User.findOrFail(data.userId)
-        : user;
+        : authCtx.user;
 
       const existingInternation = await Hospitalization.query()
         .useTransaction(trx)
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .where('patient_id', data.patientId)
         .where('status', HospitalizationStatus.ACTIVE)
         .first();
@@ -332,8 +330,9 @@ export default class HospitalizationService {
         .useTransaction(trx)
         .where('type', OccurrenceType.ADMISSAO_INTERNACAO)
         .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-          group.id,
+          authCtx.group.id,
         ])
+        .where('system_id', authCtx.system.id)
         .first();
 
       const ent = await Hospitalization.create(
@@ -345,8 +344,8 @@ export default class HospitalizationService {
           diagnosis: data.diagnosis,
           prognosis: data.prognosis,
           status: HospitalizationStatus.ACTIVE,
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           patient_id: data.patientId,
           tutor_id: data.tutorId,
           bed_id: data.bedId,
@@ -362,10 +361,10 @@ export default class HospitalizationService {
           {
             occurrence_id: occurrence.id,
             description: `Internação do paciente ${patient?.name} por ${
-              user.name
+              authCtx.user.name
             } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
             executedAt: DateTime.now(),
-            user_id: user.id,
+            user_id: authCtx.user.id,
           },
           {
             client: trx,
@@ -380,8 +379,8 @@ export default class HospitalizationService {
       await HospitalizationTimeline.create({
         meta: {
           hospitalization: ent.id,
-          group: group.id,
-          unit: unitId,
+          group: authCtx.group.id,
+          unit: authCtx.unit.id,
           type: 'begin_hospitalization',
         },
         data: {
@@ -442,8 +441,8 @@ export default class HospitalizationService {
           type: HospitalizationType[data.type],
           risk: data.risk,
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           bed: bed
             ? {
@@ -458,7 +457,7 @@ export default class HospitalizationService {
       return ent;
     });
 
-    return this.show(unitId, ent.id);
+    return this.show(authCtx.unit.id, ent.id);
   }
 
   public async update(

@@ -8,10 +8,11 @@ export default class DrugAdministrationService {
   constructor(private sharedService: SharedService) {}
 
   public async index(authCtx: AuthContext) {
-    return DrugAdministration.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [authCtx.group.id],
-    );
+    return DrugAdministration.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
   }
 
   public async store(

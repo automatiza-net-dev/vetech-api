@@ -61,9 +61,9 @@ export default class HospitalizationsController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateHospitalizationValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-    const entity = await this.service.store(unit_id, user, payload);
+    const entity = await this.service.store(authCtx, payload);
 
     return response.created(entity);
   }

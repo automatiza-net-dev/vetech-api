@@ -8,10 +8,12 @@ export default class ClinicParameterService {
   constructor(private sharedService: SharedService) {}
 
   public async index(authCtx: AuthContext) {
-    return ClinicParameter.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-      [authCtx.group.id],
-    );
+    return ClinicParameter.query()
+      .whereRaw(
+        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
+        [authCtx.group.id],
+      )
+      .where('system_id', authCtx.system.id);
   }
 
   public async store(

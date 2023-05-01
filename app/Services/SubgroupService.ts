@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Subgroup from 'App/Models/Subgroup';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import ISubgroupData from 'Contracts/interfaces/ISubgroupData';
 
 interface ISearch {
@@ -12,13 +12,12 @@ interface ISearch {
 export default class SubgroupService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async index(authCtx: AuthContext, data: ISearch) {
     const qb = Subgroup.query()
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
+        authCtx.group.id,
       ])
+      .where('system_id', authCtx.system.id)
       .preload('parent');
 
     if (data.description) {
@@ -28,12 +27,12 @@ export default class SubgroupService {
     return qb;
   }
 
-  public async show(unitId: string, id: string): Promise<Subgroup> {
-    const group = await this.sharedService.getUserGroup(unitId);
+  public async show(authCtx: AuthContext, id: string): Promise<Subgroup> {
     const subgroup = await Subgroup.query()
       .where('id', id)
       .preload('variationGroup')
       .preload('parent')
+      .where('system_id', authCtx.system.id)
       .first();
 
     if (!subgroup) {
@@ -44,7 +43,10 @@ export default class SubgroupService {
       );
     }
 
-    if (subgroup.economic_group_id && subgroup.economic_group_id !== group.id) {
+    if (
+      subgroup.economic_group_id &&
+      subgroup.economic_group_id !== authCtx.group.id
+    ) {
       throw new ResourceNotFoundException(
         'Recurso não encontrado',
         404,
@@ -55,11 +57,13 @@ export default class SubgroupService {
     return subgroup;
   }
 
-  public async store(unitId: string, data: Omit<ISubgroupData, 'active'>) {
-    const group = await this.sharedService.getUserGroup(unitId);
+  public async store(
+    authCtx: AuthContext,
+    data: Omit<ISubgroupData, 'active'>,
+  ) {
     const tree = await this.getTree(data.parent);
 
-    return group.related('subgroups').create({
+    return authCtx.group.related('subgroups').create({
       parent_id: data.parent,
       tree,
       description: data.description,
@@ -67,8 +71,8 @@ export default class SubgroupService {
     });
   }
 
-  public async update(unitId: string, id: string, data: ISubgroupData) {
-    const subgroup = await this.show(unitId, id);
+  public async update(authCtx: AuthContext, id: string, data: ISubgroupData) {
+    const subgroup = await this.show(authCtx, id);
 
     if (!subgroup.economic_group_id) {
       throw this.sharedService.SystemResource();
@@ -87,8 +91,8 @@ export default class SubgroupService {
       .save();
   }
 
-  public async destroy(unitId: string, id: string) {
-    const subgroup = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const subgroup = await this.show(authCtx, id);
 
     if (!subgroup.economic_group_id) {
       throw this.sharedService.SystemResource();

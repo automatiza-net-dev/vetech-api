@@ -17,10 +17,11 @@ export default class AccountPlanService {
   constructor(private sharedService: SharedService) {}
 
   async index(authCtx: AuthContext, data: ISearch) {
-    const qb = AccountPlan.query().whereRaw(
-      '(economic_group_id = ? or economic_group_id is null)',
-      [authCtx.group.id],
-    );
+    const qb = AccountPlan.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
 
     if (data.unit) {
       qb.where('business_unit_id', data.unit);
@@ -68,6 +69,7 @@ export default class AccountPlanService {
   async show(authCtx: AuthContext, id: string) {
     const qb = AccountPlan.query()
       .where('business_unit_id', authCtx.unit.id)
+      .where('system_id', authCtx.system.id)
       .where('id', id)
       .preload('parent');
 

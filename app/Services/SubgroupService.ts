@@ -17,7 +17,6 @@ export default class SubgroupService {
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         authCtx.group.id,
       ])
-      .where('system_id', authCtx.system.id)
       .preload('parent');
 
     if (data.description) {
@@ -32,7 +31,6 @@ export default class SubgroupService {
       .where('id', id)
       .preload('variationGroup')
       .preload('parent')
-      .where('system_id', authCtx.system.id)
       .first();
 
     if (!subgroup) {

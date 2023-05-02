@@ -3,7 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Exam from 'App/Models/Exam';
 import Product, { ProductType } from 'App/Models/Product';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IServiceData, {
   IUpdateService,
 } from 'Contracts/interfaces/IServiceData';
@@ -19,10 +19,8 @@ interface ISearch {
 export default class ServiceService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const qb = group
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = authCtx.group
       .related('products')
       .query()
       .where('type', ProductType.SERVICE)
@@ -96,10 +94,8 @@ export default class ServiceService {
     }));
   }
 
-  public async show(unitId: string, id: string): Promise<Product> {
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    const product = await group
+  public async show(authCtx: AuthContext, id: string): Promise<Product> {
+    const product = await authCtx.group
       .related('products')
       .query()
       .where('id', id)
@@ -138,13 +134,11 @@ export default class ServiceService {
     return product;
   }
 
-  public async store(unitId: string, data: IServiceData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(authCtx: AuthContext, data: IServiceData) {
     await Database.transaction(async trx => {
       const businessUnits = await BusinessUnit.query()
         .useTransaction(trx)
-        .where('economic_group_id', group.id)
+        .where('economic_group_id', authCtx.group.id)
         .preload('unitConfig', query => {
           query.preload('serviceVariationGroup');
         });
@@ -160,7 +154,7 @@ export default class ServiceService {
           referenceCode: data.referenceCode,
           features: data.features,
           unit_id: data.unitId,
-          economic_group_id: group.id,
+          economic_group_id: authCtx.group.id,
           taxation_group_id: data.taxationGroupId,
           subgroup_id: data.subgroupId,
           icmsOrigin: '0',
@@ -179,9 +173,10 @@ export default class ServiceService {
           {
             product_id: service.id,
             description: data.description,
-            economic_group_id: group.id,
+            economic_group_id: authCtx.group.id,
             ownLaboratory: false,
             type: undefined,
+            system_id: authCtx.system.id,
           },
           {
             client: trx,
@@ -222,12 +217,12 @@ export default class ServiceService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IUpdateService,
   ): Promise<Product> {
     return Database.transaction(async trx => {
-      const service = await this.show(unitId, id);
+      const service = await this.show(authCtx, id);
 
       if (data.serviceType === 'exam') {
         await Exam.firstOrCreate(
@@ -240,6 +235,7 @@ export default class ServiceService {
             product_id: service.id,
             ownLaboratory: false,
             type: undefined,
+            system_id: authCtx.system.id,
           },
           {
             client: trx,
@@ -264,8 +260,8 @@ export default class ServiceService {
     });
   }
 
-  public async destroy(unitId: string, id: string): Promise<void> {
-    const product = await this.show(unitId, id);
+  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    const product = await this.show(authCtx, id);
 
     await product.softDelete();
   }

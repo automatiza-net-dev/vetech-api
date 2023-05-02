@@ -171,7 +171,7 @@ test.group('Auth resource', group => {
   });
 
   test('should handle forgot password', async ({ client, assert }) => {
-    const [user] = await User.all();
+    const [user] = await createUser({});
     const mailer = Mail.fake();
 
     const response = await client.post(`/auth/forgot-password`).json({
@@ -187,7 +187,7 @@ test.group('Auth resource', group => {
   });
 
   test('should throw error on invalid hash', async ({ client, assert }) => {
-    const [user] = await User.all();
+    const [user] = await createUser({});
     const hash = Encryption.encrypt('invalid@mail.com', '30min');
 
     const response = await client.post(`/auth/reset-password`).json({
@@ -205,7 +205,7 @@ test.group('Auth resource', group => {
   });
 
   test('should handle reset password', async ({ client, assert }) => {
-    const [user] = await User.all();
+    const [user] = await createUser({});
     const hash = Encryption.encrypt(user.email, '30min');
 
     const response = await client.post(`/auth/reset-password`).json({

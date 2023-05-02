@@ -4,7 +4,6 @@ import Role from 'App/Models/Role';
 import System from 'App/Models/System';
 import RoleFactory from 'Database/factories/RoleFactory';
 import UserFactory from 'Database/factories/UserFactory';
-import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
@@ -45,9 +44,11 @@ export const userBootstrap = async (system_name = 'SUT') => {
     },
   );
 
-  await user.merge({
-    system_id: system.id,
-  });
+  await user
+    .merge({
+      system_id: system.id,
+    })
+    .save();
 
   const group = await user.related('economicGroups').create({
     id: v4(),
@@ -73,9 +74,7 @@ export const userBootstrap = async (system_name = 'SUT') => {
     simple: true,
   });
 
-  await business.related('unitConfig').create({
-    service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
-  });
+  await business.related('unitConfig').create({});
 
   const licence = await business.related('licences').create({
     id: v4(),

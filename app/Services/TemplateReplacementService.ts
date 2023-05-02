@@ -173,7 +173,7 @@ export default class TemplateReplacementService {
       return this.parseTemplate(raw, data, tail);
     }
 
-    const value = elem[head.attribute];
+    const value = this.$getValue(head.attribute, elem);
     const value$ = value
       ? this.$toString(value) ?? head.attribute
       : head.attribute;
@@ -181,6 +181,19 @@ export default class TemplateReplacementService {
     const updated = raw.replaceAll(head.replacer, value$);
 
     return this.parseTemplate(updated, data, tail);
+  }
+
+  $getValue(key: string, obj: ModelObject) {
+    if (obj[key]) {
+      return obj[key];
+    }
+
+    const diff = this.snakeToCamelCase(key);
+    if (obj[diff]) {
+      return obj[diff];
+    }
+
+    return null;
   }
 
   $toString(data: unknown) {
@@ -214,7 +227,7 @@ export default class TemplateReplacementService {
       firstName: tutor.name.split(' ').at(0),
       address: [tutor.tutor?.street, tutor.tutor?.number]
         .filter(Boolean)
-        .join(' - '),
+        .join(', '),
       district: tutor.tutor.district,
       city: tutor.tutor.city,
       state: tutor.tutor.state,
@@ -307,5 +320,9 @@ export default class TemplateReplacementService {
     }
 
     return related;
+  }
+
+  private snakeToCamelCase(value: string) {
+    return value.replace(/([A-Z])/g, match => `_${match.toLowerCase()}`);
   }
 }

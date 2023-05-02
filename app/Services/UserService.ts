@@ -413,11 +413,11 @@ export default class UserService {
     trx: TransactionClientContract,
   ) {
     const parseString = (value: string) => {
-      return value.replace(',', '.').replaceAll('.', '');
+      return value.replace(',', '').replaceAll('.', ',');
     };
 
     const parseNumber = (value: string) => {
-      return parseFloat(parseString(value)) / 100;
+      return parseFloat(parseString(value));
     };
 
     await group.related('paymentMethods').createMany(
@@ -697,7 +697,7 @@ export default class UserService {
 
     const products = await Product.createMany(pData, { client: trx });
     const variationsPromises = products.map(product => {
-      const rawProduct = vetechProducts.find(
+      const rawProduct = liftOneServices.find(
         p => p['Código'].toString() === product.referenceCode,
       );
 
@@ -709,7 +709,7 @@ export default class UserService {
 
       return product.related('variations').create(
         {
-          barcode: rawProduct['Código Barra']?.toString() ?? undefined,
+          barcode: undefined,
         },
         {
           client: trx,
@@ -719,7 +719,7 @@ export default class UserService {
     const variations = await Promise.all(variationsPromises);
 
     const unitProducts = products.map(product => {
-      const rawProduct = vetechProducts.find(
+      const rawProduct = liftOneServices.find(
         p => p['Código'].toString() === product.referenceCode,
       );
 
@@ -744,10 +744,8 @@ export default class UserService {
           minimumStock: rawProduct?.Minimo ?? 0,
           maximumDiscountPercentage: 0,
           maximumDiscountValue: 0,
-          price: rawProduct.Venda ? parseNumber(rawProduct.Venda) : undefined,
-          costPrice: rawProduct.Custo
-            ? parseNumber(rawProduct.Custo)
-            : undefined,
+          price: rawProduct.Venda ? parseNumber(rawProduct.Venda) : 0,
+          costPrice: rawProduct.Custo ? parseNumber(rawProduct.Custo) : 0,
           profitMargin: 0,
           commission: 0,
           meta: 0,

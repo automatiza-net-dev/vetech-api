@@ -812,6 +812,12 @@ export default class extends BaseSeeder {
         },
         {
           origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'tag',
+          replacer: '[CLIENTE_FICHA]',
+          system_id: lift.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
           attribute: 'address',
           replacer: '[CLIENTE_ENDERECO]',
           system_id: lift.id,

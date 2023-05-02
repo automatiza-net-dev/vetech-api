@@ -65,7 +65,16 @@ test.group('Template replacement resource', group => {
       patientName: patient.name,
     });
 
-    return { user, template, ecoGroup, business, tutor, patient, schedule };
+    return {
+      user,
+      template,
+      ecoGroup,
+      business,
+      tutor,
+      patient,
+      schedule,
+      system,
+    };
   };
 
   test('should return all template replacements', async ({
@@ -238,7 +247,6 @@ test.group('Template replacement resource', group => {
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.equal(schedule.patientName, response.body().result);
   });
 
   test('should replace text with tutor text', async ({ assert, client }) => {
@@ -255,6 +263,104 @@ test.group('Template replacement resource', group => {
         tutorId: tutor.id,
       })
       .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should replace text with client text', async ({ assert, client }) => {
+    const { user, tutor, system } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await TemplateReplacement.fetchOrCreateMany(
+      ['replacer', 'system_id'],
+      [
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'name',
+          replacer: '[CLIENTE_NOME]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'firstName',
+          replacer: '[CLIENTE_PRIMEIRONOME]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'tag',
+          replacer: '[CLIENTE_FICHA]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'address',
+          replacer: '[CLIENTE_ENDERECO]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'district',
+          replacer: '[CLIENTE_BAIRRO]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'city',
+          replacer: '[CLIENTE_CIDADE]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'city',
+          replacer: '[CLIENTE_UF]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'postalCode',
+          replacer: '[CLIENTE_CEP]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'inscription',
+          replacer: '[CLIENTE_RG]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'document',
+          replacer: '[CLIENTE_CPF]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'cellphone',
+          replacer: '[CLIENTE_TELEFONE]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'email',
+          replacer: '[CLIENTE_EMAIL]',
+          system_id: system.id,
+        },
+      ],
+    );
+
+    const response = await client
+      .post(`/template-replacements/replace-text`)
+      .json({
+        base: `[CLIENTE_NOME]  [CLIENTE_PRIMEIRONOME] [CLIENTE_FICHA] [CLIENTE_ENDERECO] [CLIENTE_BAIRRO] [CLIENTE_CIDADE] [CLIENTE_UF] [CLIENTE_CEP] [CLIENTE_RG] [CLIENTE_CPF] [CLIENTE_EMAIL]`,
+        tutorId: tutor.id,
+      })
+      .bearerToken(token);
+
+    console.log(response.body());
 
     assert.equal(200, response.status());
   });

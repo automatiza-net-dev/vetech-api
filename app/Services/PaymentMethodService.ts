@@ -125,7 +125,11 @@ export default class PaymentMethodService {
       group.id,
     ]);
 
-    qb.where('type', data.type);
+    if (data.type === 'C') {
+      qb.whereIn('type', ['A', 'C']);
+    } else {
+      qb.whereIn('type', ['A', 'B', 'D']);
+    }
 
     return qb;
   }

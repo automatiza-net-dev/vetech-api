@@ -11,6 +11,7 @@ import {
 } from 'App/Models/ScheduleStatus';
 import User from 'App/Models/User';
 import ScheduleService from 'App/Services/ScheduleService';
+import IScheduleContactData from 'Contracts/interfaces/IScheduleContactData';
 import IUpdateScheduleStatus from 'Contracts/interfaces/IUpdateScheduleStatus';
 import PatientFactory from 'Database/factories/PatientFactory';
 import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
@@ -475,6 +476,93 @@ test.group('Scheduling resource', group => {
 
     const result = await client
       .get(`/schedules/status-changes/${schedule.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
+  test('should create a schedule contact', async ({ assert, client }) => {
+    const { user, serviceType, business, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    const result = await client
+      .post('/schedules/create-contact')
+      .json({
+        contactDate: DateTime.now(),
+        observation: 'some',
+        scheduleId: schedule.id,
+        statusId: SS_ATTENDANCE_CANCELLED,
+      } as IScheduleContactData)
+      .bearerToken(token);
+
+    assert.equal(201, result.status());
+  });
+
+  test('should return schedule', async ({ assert, client }) => {
+    const { user, serviceType, business, holder, system } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+    const reason = await Reason.create({
+      economicGroupId: business.economicGroupId,
+      system_id: system.id,
+      reason: 'some',
+      requiresObservation: true,
+    });
+    await schedule.related('statusChanges').create({
+      schedule_status_id: SS_ATTENDANCE_CANCELLED,
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+    });
+    await schedule.related('reschedules').create({
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+      originalDate: DateTime.now(),
+    });
+    await schedule.related('contacts').create({
+      user_id: user.id,
+      observation: 'some',
+      contactDate: DateTime.now(),
+    });
+
+    const result = await client
+      .get(`/schedules/${schedule.id}`)
       .bearerToken(token);
 
     assert.equal(200, result.status());

@@ -14,6 +14,7 @@ import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
 import Reason from 'App/Models/Reason';
 import Rescheduling from 'App/Models/Rescheduling';
+import ScheduleContact from 'App/Models/ScheduleContact';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
 import ScheduleStatusChange from 'App/Models/ScheduleStatusChange';
@@ -200,4 +201,10 @@ export default class Schedule extends BaseModel {
     foreignKey: 'reason_id',
   })
   public reason: BelongsTo<typeof Reason>;
+
+  @hasMany(() => ScheduleContact, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public contacts: HasMany<typeof ScheduleContact>;
 }

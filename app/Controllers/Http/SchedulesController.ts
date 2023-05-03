@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
+import CreateScheduleContactValidator from 'App/Validators/Schedule/CreateScheduleContactValidator';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
 import RescheduleValidator from 'App/Validators/Schedule/RescheduleValidator';
 import UpdateScheduleSpecificStatusValidator from 'App/Validators/Schedule/UpdateScheduleSpecificStatusValidator';
@@ -214,5 +215,14 @@ export default class SchedulesController {
     );
 
     return response.ok(result);
+  }
+
+  public async createContact({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateScheduleContactValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.createScheduleContact(authCtx, payload);
+
+    return response.created(result);
   }
 }

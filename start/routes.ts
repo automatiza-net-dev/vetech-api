@@ -289,6 +289,7 @@ Route.group(() => {
   Route.get('/returnables/:patient', 'SchedulesController.returnableSchedules');
 
   Route.get('/', 'SchedulesController.index');
+  Route.post('/create-contact', 'SchedulesController.createContact');
   Route.post('/', 'SchedulesController.store');
   Route.get('/:id', 'SchedulesController.show');
   Route.put('/reschedule/:id', 'SchedulesController.reschedule');

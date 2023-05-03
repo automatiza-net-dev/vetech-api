@@ -18,6 +18,7 @@ import SharedService, {
   AuthContext,
   DateSet,
 } from 'App/Services/SharedService';
+import IScheduleContactData from 'Contracts/interfaces/IScheduleContactData';
 import IScheduleData, {
   IRescheduleData,
 } from 'Contracts/interfaces/IScheduleData';
@@ -273,6 +274,12 @@ export default class ScheduleService {
         query.preload('user', query => query.select(['id', 'name', 'email']));
       })
       .preload('reason', query => query.select(['id', 'reason']))
+      .preload('contacts', query => {
+        query.preload('user', query => query.select(['id', 'name', 'email']));
+        query.preload('status', query =>
+          query.select(['id', 'description', 'color']),
+        );
+      })
       .preload('scheduleOrigin')
       .preload('scheduleReturn')
       .first();
@@ -916,6 +923,58 @@ export default class ScheduleService {
         reschedules,
         statusChanges,
       };
+    });
+  }
+
+  public async createScheduleContact(
+    authCtx: AuthContext,
+    data: IScheduleContactData,
+  ) {
+    return Database.transaction(async trx => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where('id', data.scheduleId)
+        .where('business_unit_id', authCtx.unit.id)
+        .preload('serviceStatus')
+        .first();
+
+      if (!schedule) {
+        throw new ResourceNotFoundException(
+          'Agendamento não encontrado',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const toStatus = await ScheduleStatus.find(data.statusId, {
+        client: trx,
+      });
+      if (!toStatus) {
+        throw new ResourceNotFoundException(
+          'Status não encontrado',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await schedule.related('contacts').create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: data.statusId,
+          observation: data.observation,
+          contactDate: data.contactDate,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      return schedule
+        .merge({
+          schedule_status_id: data.statusId,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 }

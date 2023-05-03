@@ -265,9 +265,14 @@ export default class ScheduleService {
         });
       })
       .preload('reschedules', query => {
-        query.preload('reason');
+        query.preload('reason', query => query.select(['id', 'reason']));
         query.preload('user', query => query.select(['id', 'name', 'email']));
       })
+      .preload('statusChanges', query => {
+        query.preload('reason', query => query.select(['id', 'reason']));
+        query.preload('user', query => query.select(['id', 'name', 'email']));
+      })
+      .preload('reason', query => query.select(['id', 'reason']))
       .preload('scheduleOrigin')
       .preload('scheduleReturn')
       .first();
@@ -829,6 +834,8 @@ export default class ScheduleService {
             data.statusId === SS_ATTENDANCE_FINISHED
               ? DateTime.now()
               : undefined,
+          reason_id: data.reasonId,
+          observation: data.observation,
         })
         .useTransaction(trx)
         .save();

@@ -12,6 +12,7 @@ import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
+import Reason from 'App/Models/Reason';
 import Rescheduling from 'App/Models/Rescheduling';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
@@ -47,6 +48,9 @@ export default class Schedule extends BaseModel {
 
   @column()
   public age?: number;
+
+  @column()
+  public observation?: string;
 
   @column({
     columnName: 'major_complaint',
@@ -185,4 +189,15 @@ export default class Schedule extends BaseModel {
     foreignKey: 'schedule_id',
   })
   public statusChanges: HasMany<typeof ScheduleStatusChange>;
+
+  @column({
+    serializeAs: null,
+  })
+  public reason_id: string;
+
+  @belongsTo(() => Reason, {
+    localKey: 'id',
+    foreignKey: 'reason_id',
+  })
+  public reason: BelongsTo<typeof Reason>;
 }

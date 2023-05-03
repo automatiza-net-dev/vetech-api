@@ -28,6 +28,21 @@ export default class extends BaseSeeder {
       type: 'OR',
       requiresObservation: true,
     },
+    {
+      reason: 'Cancelamento Tutor',
+      type: 'CA',
+      requiresObservation: false,
+    },
+    {
+      reason: 'Cancelamento Clínica',
+      type: 'CA',
+      requiresObservation: true,
+    },
+    {
+      reason: 'Outros',
+      type: 'CA',
+      requiresObservation: true,
+    },
   ];
   public async run() {
     await Reason.fetchOrCreateMany('reason', this.BASE);

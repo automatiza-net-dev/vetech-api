@@ -17,7 +17,7 @@ export default class CreatePatientEvaluationValidator {
         column: 'id',
       }),
     ]),
-    photos: schema.array().members(
+    photos: schema.array.optional().members(
       schema.file({
         extnames: ['jpg', 'gif', 'png', 'jpeg'],
       }),

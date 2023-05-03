@@ -258,7 +258,9 @@ export default class TimelineService {
             id: technician.id,
             name: technician.name,
           },
-          photos: await Promise.all(data.photos.map(this.uploadPhoto)),
+          photos: data.photos
+            ? await Promise.all(data.photos.map(this.uploadPhoto))
+            : [],
         },
       });
     });

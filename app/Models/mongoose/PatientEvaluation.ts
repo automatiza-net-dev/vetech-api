@@ -8,5 +8,5 @@ export type IPatientEvaluation = {
   realizedAt: DateTime;
   technicianId: string;
   observation?: string;
-  photos: MultipartFileContract[];
+  photos?: MultipartFileContract[];
 };

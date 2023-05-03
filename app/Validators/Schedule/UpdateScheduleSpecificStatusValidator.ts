@@ -16,6 +16,12 @@ export default class UpdateScheduleSpecificStatusValidator {
       rules.uuid(),
       rules.exists({ table: 'schedule_statuses', column: 'id' }),
     ]),
+
+    reasonId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'reasons', column: 'id' }),
+    ]),
+    observation: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

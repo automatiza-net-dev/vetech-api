@@ -279,6 +279,10 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/home', 'SchedulesController.homeContent');
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get(
+    '/status-changes/:id',
+    'SchedulesController.getScheduleStatusChanges',
+  );
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');

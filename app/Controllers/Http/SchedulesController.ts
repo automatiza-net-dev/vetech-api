@@ -113,10 +113,10 @@ export default class SchedulesController {
     const payload = await request.validate(
       UpdateScheduleSpecificStatusValidator,
     );
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
     const result = await this.service.updateScheduleStatusWithStaticValues(
-      unit_id,
+      authCtx,
       payload,
     );
 
@@ -196,6 +196,21 @@ export default class SchedulesController {
       unit_id,
       params.id,
       addDays(new Date(qs.date), 1),
+    );
+
+    return response.ok(result);
+  }
+
+  public async getScheduleStatusChanges({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.getScheduleStatusChanges(
+      authCtx,
+      params.id,
     );
 
     return response.ok(result);

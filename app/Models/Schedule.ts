@@ -15,6 +15,7 @@ import Race from 'App/Models/Race';
 import Rescheduling from 'App/Models/Rescheduling';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
+import ScheduleStatusChange from 'App/Models/ScheduleStatusChange';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -178,4 +179,10 @@ export default class Schedule extends BaseModel {
   })
   // eslint-disable-next-line no-use-before-define
   public scheduleReturn: BelongsTo<typeof Schedule>;
+
+  @hasMany(() => ScheduleStatusChange, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public statusChanges: HasMany<typeof ScheduleStatusChange>;
 }

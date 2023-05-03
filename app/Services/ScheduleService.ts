@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Schedule from 'App/Models/Schedule';
@@ -13,7 +14,10 @@ import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
 import WorkingDay from 'App/Models/WorkingDay';
-import SharedService, { DateSet } from 'App/Services/SharedService';
+import SharedService, {
+  AuthContext,
+  DateSet,
+} from 'App/Services/SharedService';
 import IScheduleData, {
   IRescheduleData,
 } from 'Contracts/interfaces/IScheduleData';
@@ -46,6 +50,7 @@ interface IHomeSearch {
 @inject()
 export default class ScheduleService {
   constructor(private readonly sharedService: SharedService) {}
+
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
       .where('business_unit_id', data.unit ?? unitId)
@@ -756,47 +761,154 @@ export default class ScheduleService {
   }
 
   public async updateScheduleStatusWithStaticValues(
-    unitId: string,
+    authCtx: AuthContext,
     data: IUpdateScheduleStatus,
   ) {
-    const schedule = await Schedule.query()
-      .where('id', data.scheduleId)
-      .where('business_unit_id', unitId)
-      .preload('serviceStatus')
-      .first();
+    return Database.transaction(async trx => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where('id', data.scheduleId)
+        .where('business_unit_id', authCtx.unit.id)
+        .preload('serviceStatus')
+        .first();
 
-    if (!schedule) {
-      throw new ResourceNotFoundException(
-        'Agendamento não encontrado',
-        400,
-        'E_ERR',
+      if (!schedule) {
+        throw new ResourceNotFoundException(
+          'Agendamento não encontrado',
+          400,
+          'E_ERR',
+        );
+      }
+
+      if (schedule.schedule_status_id === data.scheduleId) {
+        return schedule;
+      }
+
+      const toStatus = await ScheduleStatus.find(data.statusId, {
+        client: trx,
+      });
+      if (!toStatus) {
+        throw new ResourceNotFoundException(
+          'Agendamento não encontrado',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const validChanges = VALID_CHANGES[schedule.serviceStatus.description];
+      if (!validChanges || !validChanges.includes(toStatus.description)) {
+        throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
+      }
+
+      if (toStatus.description === 'Atendimento cancelado') {
+        if (!data.reasonId) {
+          throw new BadRequestException(
+            'Motivo do cancelamento é obrigatório',
+            400,
+            'E_INVALID',
+          );
+        }
+      }
+
+      await schedule.related('statusChanges').create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: data.statusId,
+          reason_id: data.reasonId,
+          observation: data.observation,
+        },
+        {
+          client: trx,
+        },
       );
-    }
 
-    if (schedule.schedule_status_id === data.scheduleId) {
-      return schedule;
-    }
+      return schedule
+        .merge({
+          schedule_status_id: data.statusId,
+          finishedAt:
+            data.statusId === SS_ATTENDANCE_FINISHED
+              ? DateTime.now()
+              : undefined,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 
-    const toStatus = await ScheduleStatus.find(data.statusId);
-    if (!toStatus) {
-      throw new ResourceNotFoundException(
-        'Agendamento não encontrado',
-        400,
-        'E_ERR',
-      );
-    }
+  public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {
+    return Database.transaction(async trx => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .preload('statusChanges', query => {
+          query.orderBy('created_at', 'desc');
 
-    const validChanges = VALID_CHANGES[schedule.serviceStatus.description];
-    if (!validChanges || !validChanges.includes(toStatus.description)) {
-      throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
-    }
+          query.preload('user', query => {
+            query.select(['id', 'name', 'email']);
+          });
+          query.preload('reason', query => {
+            query.select(['id', 'reason']);
+          });
+        })
+        .preload('reschedules', query => {
+          query.orderBy('created_at', 'desc');
 
-    return schedule
-      .merge({
-        schedule_status_id: data.statusId,
-        finishedAt:
-          data.statusId === SS_ATTENDANCE_FINISHED ? DateTime.now() : undefined,
-      })
-      .save();
+          query.preload('user', query => {
+            query.select(['id', 'name', 'email']);
+          });
+          query.preload('reason', query => {
+            query.select(['id', 'reason']);
+          });
+        })
+        .first();
+
+      if (!schedule) {
+        throw new ResourceNotFoundException(
+          'Agendamento não encontrado',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const reschedules = schedule.reschedules.map(r => {
+        return {
+          id: r.id,
+          observation: r.observation,
+          reason: {
+            id: r.reason?.id,
+            reason: r.reason?.reason,
+          },
+          user: {
+            id: r.user.id,
+            name: r.user.name,
+            email: r.user.email,
+          },
+          createdAt: r.createdAt,
+        };
+      });
+
+      const statusChanges = schedule.statusChanges.map(r => {
+        return {
+          id: r.id,
+          observation: r.observation,
+          reason: {
+            id: r.reason?.id,
+            reason: r.reason?.reason,
+          },
+          user: {
+            id: r.user.id,
+            name: r.user.name,
+            email: r.user.email,
+          },
+          createdAt: r.createdAt,
+        };
+      });
+
+      return {
+        reschedules,
+        statusChanges,
+      };
+    });
   }
 }

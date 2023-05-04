@@ -938,3 +938,10 @@ Route.group(() => {
 })
   .prefix('kits')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ProfessionsController.index');
+  Route.get('/:id', 'ProfessionsController.show');
+})
+  .prefix('professions')
+  .middleware('auth');

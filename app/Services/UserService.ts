@@ -520,10 +520,6 @@ export default class UserService {
       .useTransaction(trx)
       .whereNull('economic_group_id');
 
-    const subgroups = await Subgroup.query()
-      .useTransaction(trx)
-      .whereNull('economic_group_id');
-
     const ufIcms = await UfIcms.query()
       .useTransaction(trx)
       .where('origin_uf', bunit.state ? bunit.state.toUpperCase() : '-1')
@@ -652,11 +648,19 @@ export default class UserService {
       },
     );
 
+    const rawSubgroups = liftOneServices.map(elem => elem.subgroups);
+    const subgroups = await Subgroup.fetchOrCreateMany(
+      ['description'],
+      rawSubgroups.map(elem => ({
+        description: elem,
+        economic_group_id: undefined,
+      })),
+      { client: trx },
+    );
+
     const pData: Array<Partial<Product>> = liftOneServices.map(elem => {
       const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
-      const subgroup = subgroups.find(
-        u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
-      );
+      const subgroup = subgroups.find(u => u.description === elem.subgroups);
       const taxGroup = [firstTaxGroup, secondTaxGroup].find(
         u => u.name.toLowerCase() === elem['Grupo Tributacao'].toLowerCase(),
       );
@@ -793,16 +797,11 @@ export default class UserService {
       }
     };
 
-    const units = await Unit.query()
-      .useTransaction(trx)
-      .whereNull('economic_group_id');
     const brands = await Brand.query()
       .useTransaction(trx)
       .where('system_id', group.system_id)
-      .whereNull('economic_group_id');
-    const subgroups = await Subgroup.query()
-      .useTransaction(trx)
-      .whereNull('economic_group_id');
+      .whereNull('economic_group_id')
+      .where('system_id', group.system_id);
 
     await group.related('paymentMethods').createMany(
       [
@@ -1164,14 +1163,34 @@ export default class UserService {
       },
     );
 
+    const rawUnits = vetechProducts.map(elem => elem.Unidade);
+    const units = await Unit.fetchOrCreateMany(
+      ['name', 'system_id'],
+      rawUnits.map(elem => ({
+        name: elem,
+        tag: elem.toLowerCase(),
+        system_id: group.system_id,
+      })),
+      { client: trx },
+    );
+
+    const rawSubgroups = vetechProducts.map(elem => elem.subgroups);
+    const subgroups = await Subgroup.fetchOrCreateMany(
+      ['description'],
+      rawSubgroups.map(elem => ({
+        description: elem,
+        economic_group_id: undefined,
+      })),
+      { client: trx },
+    );
+
     const pData: Array<Partial<Product>> = vetechProducts.map(elem => {
       const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
       const brand = brands.find(
         u => u.description.toLowerCase() === elem.brands?.toLowerCase(),
       );
-      const subgroup = subgroups.find(
-        u => u.description.toLowerCase() === elem.subgroups?.toLowerCase(),
-      );
+      const subgroup = subgroups.find(u => u.description === elem.subgroups);
+
       const taxGroup = [
         firstTaxGroup,
         secondTaxGroup,
@@ -1281,8 +1300,6 @@ export default class UserService {
         },
       );
     });
-    const r = await Promise.all(unitProducts);
-
-    console.log(r);
+    await Promise.all(unitProducts);
   }
 }

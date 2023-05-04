@@ -30,4 +30,7 @@ export default interface IPatientTutorData {
   cityCode?: string;
   diabetes?: boolean;
   hypertension?: boolean;
+  professionId?: number;
+  nationality?: string;
+  civilStatus?: string;
 }

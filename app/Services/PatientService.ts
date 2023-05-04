@@ -105,6 +105,7 @@ export default class PatientService {
       .where('type', PatientType.TUTOR)
       .preload('tutor', query => {
         query.preload('clientOrigin');
+        query.preload('profession');
 
         if (data.document) {
           query.where('document', 'ilike', `%${data.document}%`);
@@ -159,6 +160,9 @@ export default class PatientService {
         cellphone: elem.tutor.cellphone,
         diabetes: elem.diabetes,
         hypertension: elem.hypertension,
+        profession: elem.tutor.profession,
+        civilStatus: elem.tutor.civilStatus,
+        nationality: elem.tutor.nationality,
         dependents: elem.dependents.map(patient => ({
           id: patient.id,
           name: patient.name,
@@ -388,6 +392,7 @@ export default class PatientService {
     if (patient.type === PatientType.TUTOR) {
       await patient.load('tutor', query => {
         query.preload('clientOrigin');
+        query.preload('profession');
       });
       await patient.load('dependents');
     }
@@ -724,6 +729,10 @@ export default class PatientService {
           state: data.state,
           client_origin_id: data.clientOriginId,
           cityCode: data.cityCode,
+
+          civilStatus: data.civilStatus,
+          nationality: data.nationality,
+          profession_id: data.professionId,
         },
         {
           client: trx,
@@ -1024,6 +1033,9 @@ export default class PatientService {
           state: data.state,
           client_origin_id: data.clientOriginId,
           cityCode: data.cityCode,
+          civilStatus: data.civilStatus,
+          nationality: data.nationality,
+          profession_id: data.professionId,
         })
         .useTransaction(trx)
         .save();

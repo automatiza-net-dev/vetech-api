@@ -5,9 +5,13 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus, {
-  SS_ATTENDANCE_CANCELLED,
   SS_ATTENDANCE_FINISHED,
+  SS_CONFIRMED,
+  SS_LATE,
   SS_NOT_CONFIRMED,
+  SS_ON_ATTENDANCE,
+  SS_RECEPTION,
+  SS_SURGERY,
   VALID_CHANGES,
 } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
@@ -71,12 +75,18 @@ export default class ScheduleService {
       .orderBy('start_hour', 'asc');
 
     if (data.confirmed === 'false') {
+      // Confirmar consultas
+
       qb.where('schedule_status_id', SS_NOT_CONFIRMED);
     } else {
-      qb.whereNotIn('schedule_status_id', [
-        SS_NOT_CONFIRMED,
-        SS_ATTENDANCE_FINISHED,
-        SS_ATTENDANCE_CANCELLED,
+      // Confirmar já confirmadas
+
+      qb.whereIn('schedule_status_id', [
+        SS_CONFIRMED,
+        SS_RECEPTION,
+        SS_ON_ATTENDANCE,
+        SS_LATE,
+        SS_SURGERY,
       ]);
     }
 

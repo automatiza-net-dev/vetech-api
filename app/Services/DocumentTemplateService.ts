@@ -62,6 +62,7 @@ export default class DocumentTemplateService {
       title: data.title,
       header: data.header,
       template: data.template,
+      system_id: authCtx.system.id,
     });
   }
 

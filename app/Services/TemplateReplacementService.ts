@@ -219,7 +219,9 @@ export default class TemplateReplacementService {
   async fetchTutor(id: string) {
     const tutor = await Patient.query()
       .where('id', id)
-      .preload('tutor')
+      .preload('tutor', query => {
+        query.preload('profession');
+      })
       .firstOrFail();
 
     return {
@@ -235,7 +237,11 @@ export default class TemplateReplacementService {
       document: tutor.tutor.document,
       cellphone: tutor.tutor.cellphone,
       email: tutor.tutor.email,
+
       inscription: tutor.tutor.inscription,
+      nationality: tutor.tutor.nationality,
+      civilStatus: tutor.tutor.civilStatus,
+      profession_description: tutor.tutor.profession?.description,
     };
   }
 

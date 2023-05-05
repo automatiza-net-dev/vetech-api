@@ -695,7 +695,7 @@ export default class UserService {
         anvisaCode: undefined,
         taxation_group_id: taxGroup?.id,
         variation_group_id: variationGroup.id,
-        purpose: ProductPurpose.SALE,
+        purpose: ProductPurpose.BOTH,
       };
     });
 
@@ -1232,7 +1232,10 @@ export default class UserService {
         anvisaCode: elem['Código ANVISA']?.toString() ?? undefined,
         taxation_group_id: taxGroup?.id,
         variation_group_id: variationGroup.id,
-        purpose: parsePurpose(elem['Propósito']),
+        purpose:
+          elem.Tipo === 'Produto'
+            ? parsePurpose(elem['Propósito'])
+            : ProductPurpose.BOTH,
       };
     });
 

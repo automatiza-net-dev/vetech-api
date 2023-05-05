@@ -50,6 +50,11 @@ test.group('Patient resource', group => {
     await holder.merge({ type: PatientType.TUTOR }).save();
     await holder.related('tutor').create({
       document: '94562755000123',
+      street: 'some street',
+      number: '123',
+      district: 'some district',
+      city: 'some city',
+      state: 'some state',
     });
 
     await holder.related('dependents').attach([patient.id]);
@@ -230,6 +235,18 @@ test.group('Patient resource', group => {
     assert.equal(200, response.status());
     assert.equal(patient.id, body.id);
     assert.notEqual(patient.name, body.name);
+  });
+
+  test('should get all tutors', async ({ client, assert }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/patient-tutors').bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 
   test('should create new tutor', async ({ client, assert }) => {

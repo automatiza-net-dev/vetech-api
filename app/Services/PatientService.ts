@@ -163,6 +163,14 @@ export default class PatientService {
         profession: elem.tutor.profession,
         civilStatus: elem.tutor.civilStatus,
         nationality: elem.tutor.nationality,
+        address: {
+          street: elem.tutor.street,
+          number: elem.tutor.number,
+          complement: elem.tutor.complement,
+          district: elem.tutor.district,
+          city: elem.tutor.city,
+          state: elem.tutor.state,
+        },
         dependents: elem.dependents.map(patient => ({
           id: patient.id,
           name: patient.name,

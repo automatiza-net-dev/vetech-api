@@ -845,10 +845,9 @@ export default class HospitalizationMedicalPrescriptionService {
 
     await prescription.load('fluidUnit');
 
-    // XX, XX, XX, XX, Macro-Gotas, XX, XX
     return [
       prescription.description,
-      `${prescription.dose} ${prescription.fluidUnit.name}`,
+      `${prescription.dose} ${prescription.prescriptionUnit.name}`,
       `volume: ${prescription.volume}`,
       `via aplicação: ${prescription.drugAdministration.description}`,
       MedicalPrescriptionFluidSetLabel[prescription.fluidSet],

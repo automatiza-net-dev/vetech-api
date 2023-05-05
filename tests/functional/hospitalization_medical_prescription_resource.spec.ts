@@ -4,6 +4,7 @@ import DrugAdministration from 'App/Models/DrugAdministration';
 import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
@@ -40,6 +41,12 @@ test.group('Hospitalization medical prescription resource', group => {
       expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
+    const scheduling =
+      await HospitalizationMedicalPrescriptionScheduling.create({
+        hospitalization_id: hospitalization.id,
+        resume: 'some resume',
+      });
+
     const unit = await Unit.create({
       name: 'some unit',
       economic_group_id: group.id,
@@ -47,8 +54,22 @@ test.group('Hospitalization medical prescription resource', group => {
       type: UnitType.PRODUCT,
     });
 
-    return { user, drug, hospitalization, unit };
+    return { user, drug, hospitalization, unit, scheduling };
   };
+
+  test('should get scheduling', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/hospitalization-prescriptions/scheduling`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 
   test('should create medical prescriptions (PR)', async ({
     assert,

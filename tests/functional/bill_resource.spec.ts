@@ -337,6 +337,58 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create bill without open cashier', async ({
+    assert,
+    client,
+  }) => {
+    const { user, client: holder, patient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create`)
+      .json({
+        clientId: holder.id,
+        patientId: patient.id,
+        billDate: new Date(),
+        productValue: 100,
+        serviceValue: 200,
+        discountValue: 55,
+        items: [],
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill without cashier related', async ({
+    assert,
+    client,
+  }) => {
+    const { user, client: holder, patient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create`)
+      .json({
+        clientId: holder.id,
+        patientId: patient.id,
+        billDate: new Date(),
+        productValue: 100,
+        serviceValue: 200,
+        discountValue: 55,
+        items: [],
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should display bill', async ({ assert, client }) => {
     const { user, bill } = await createData();
     const token = await generateJwtToken(client, {
@@ -445,6 +497,48 @@ test.group('Bill resource', group => {
       maximumDiscountPercentage: 10,
       maximumDiscountValue: 10,
     });
+
+    const response = await client
+      .post(`/bills/create-item`)
+      .json({
+        billId: bill.id,
+        productVariationId: variation.id,
+        quantity: 10,
+        unitaryValue: 20,
+        discountValue: 20,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill item (no daily cashier)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, variation, business, dailyCashier } =
+      await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      costPrice: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      maximumDiscountValue: 10,
+    });
+
+    await dailyCashier
+      .merge({
+        status: DailyCashierStatus.F,
+      })
+      .save();
 
     const response = await client
       .post(`/bills/create-item`)

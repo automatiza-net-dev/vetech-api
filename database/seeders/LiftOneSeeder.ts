@@ -870,6 +870,24 @@ export default class extends BaseSeeder {
           replacer: '[CLIENTE_EMAIL]',
           system_id: lift.id,
         },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'profession_description',
+          replacer: '[CLIENTE_PROFISSAO]',
+          system_id: lift.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'nationality',
+          replacer: '[CLIENTE_NACIONALIDADE]',
+          system_id: lift.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'civilStatus',
+          replacer: '[CLIENTE_ESTADOCIVIL]',
+          system_id: lift.id,
+        },
 
         {
           origin: TemplateReplacementOrigin.BUSINESS,

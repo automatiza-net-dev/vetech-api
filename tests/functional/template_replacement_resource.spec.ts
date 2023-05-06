@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import PatientAnimalHair from 'App/Models/PatientAnimalHair';
+import Profession from 'App/Models/Profession';
 import Race, { RaceFur } from 'App/Models/Race';
 import Schedule from 'App/Models/Schedule';
 import Specie from 'App/Models/Specie';
@@ -28,6 +29,10 @@ test.group('Template replacement resource', group => {
       system_id: system.id,
     });
 
+    const profession = await Profession.create({
+      description: '|PROFESSION|',
+    });
+
     const tutor = await PatientFactory.create();
     await tutor.related('tutor').create({
       street: '|STREET|',
@@ -40,6 +45,10 @@ test.group('Template replacement resource', group => {
       cellphone: '|CELLPHONE|',
       email: '|EMAIL|',
       inscription: '|INSCRIPTION|',
+
+      nationality: '|NATIONALITY|',
+      civilStatus: '|CIVIL_STATUS|',
+      profession_id: profession.id,
     });
 
     const specie = await Specie.create({
@@ -250,19 +259,45 @@ test.group('Template replacement resource', group => {
   });
 
   test('should replace text with tutor text', async ({ assert, client }) => {
-    const { user, tutor } = await createData();
+    const { user, tutor, system } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
+    await TemplateReplacement.fetchOrCreateMany(
+      ['replacer', 'system_id'],
+      [
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'profession_description',
+          replacer: '[TUTOR_PROFISSAO]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'nationality',
+          replacer: '[TUTOR_NACIONALIDADE]',
+          system_id: system.id,
+        },
+        {
+          origin: TemplateReplacementOrigin.TUTOR,
+          attribute: 'civilStatus',
+          replacer: '[TUTOR_ESTADOCIVIL]',
+          system_id: system.id,
+        },
+      ],
+    );
+
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[TUTOR_NOME] [TUTOR_PRIMEIRONOME] [TUTOR_ENDERECO] [TUTOR_BAIRRO] [TUTOR_CIDADE] [TUTOR_UF] [TUTOR_CEP] [TUTOR_CPF] [TUTOR_TELEFONE] [TUTOR_EMAIL] [TUTOR_RG]`,
+        base: `[TUTOR_NOME] [TUTOR_PRIMEIRONOME] [TUTOR_ENDERECO] [TUTOR_BAIRRO] [TUTOR_CIDADE] [TUTOR_UF] [TUTOR_CEP] [TUTOR_CPF] [TUTOR_TELEFONE] [TUTOR_EMAIL] [TUTOR_RG] [TUTOR_PROFISSAO] [TUTOR_NACIONALIDADE] [TUTOR_ESTADOCIVIL]`,
         tutorId: tutor.id,
       })
       .bearerToken(token);
+
+    console.log(response.body());
 
     assert.equal(200, response.status());
   });

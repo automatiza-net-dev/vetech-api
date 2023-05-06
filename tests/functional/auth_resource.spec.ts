@@ -170,6 +170,50 @@ test.group('Auth resource', group => {
     assert.equal('bearer', body.type);
   });
 
+  test('should register a new user (Sanclá)', async ({ client, assert }) => {
+    await createUser({
+      system_name: 'Sanclá',
+    });
+
+    const response = await client.post(`/auth/register`).json({
+      name: 'user1',
+      email: 'mail10@mail.com',
+      password: '102030',
+      password_confirmation: '102030',
+      document: '0987',
+      licensingJob: '1234',
+
+      systemName: 'Sanclá',
+    });
+
+    const body = response.body();
+
+    assert.equal(201, response.status());
+    assert.equal('bearer', body.type);
+  });
+
+  test('should register a new user (Vetech)', async ({ client, assert }) => {
+    await createUser({
+      system_name: 'Vetech',
+    });
+
+    const response = await client.post(`/auth/register`).json({
+      name: 'user1',
+      email: 'mail10@mail.com',
+      password: '102030',
+      password_confirmation: '102030',
+      document: '0987',
+      licensingJob: '1234',
+
+      systemName: 'Vetech',
+    });
+
+    const body = response.body();
+
+    assert.equal(201, response.status());
+    assert.equal('bearer', body.type);
+  });
+
   test('should handle forgot password', async ({ client, assert }) => {
     const [user] = await createUser({});
     const mailer = Mail.fake();

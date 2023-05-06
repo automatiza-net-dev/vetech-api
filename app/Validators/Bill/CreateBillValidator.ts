@@ -2,7 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateBillValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     clientId: schema.string({}, [
@@ -13,11 +13,11 @@ export default class CreateBillValidator {
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    dailyMovementId: schema.string({}, [
+    dailyMovementId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'daily_movements', column: 'id' }),
     ]),
-    dailyCashierId: schema.string({}, [
+    dailyCashierId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'daily_cashiers', column: 'id' }),
     ]),

@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Exam from 'App/Models/Exam';
-import Product, { ProductType } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IServiceData, {
   IUpdateService,
@@ -149,6 +149,7 @@ export default class ServiceService {
 
       const service = await Product.create(
         {
+          purpose: ProductPurpose.BOTH,
           description: data.description,
           type: ProductType.SERVICE,
           referenceCode: data.referenceCode,

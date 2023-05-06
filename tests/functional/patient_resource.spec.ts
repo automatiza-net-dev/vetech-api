@@ -4,6 +4,7 @@ import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import { PatientGender, PatientType } from 'App/Models/Patient';
 import PatientAnimalHair from 'App/Models/PatientAnimalHair';
+import Profession from 'App/Models/Profession';
 import IPatientSupplierData from 'Contracts/interfaces/IPatientSupplierData';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
@@ -18,6 +19,10 @@ test.group('Patient resource', group => {
 
   const createData = async () => {
     const { user, group } = await userBootstrap();
+
+    const profession = await Profession.create({
+      description: 'some description',
+    });
 
     const specie = await group.related('species').create({
       id: v4(),
@@ -45,12 +50,17 @@ test.group('Patient resource', group => {
     await holder.merge({ type: PatientType.TUTOR }).save();
     await holder.related('tutor').create({
       document: '94562755000123',
+      street: 'some street',
+      number: '123',
+      district: 'some district',
+      city: 'some city',
+      state: 'some state',
     });
 
     await holder.related('dependents').attach([patient.id]);
     await group.related('patients').attach([patient.id, holder.id]);
 
-    return { user, patient, holder, group, race, hair };
+    return { user, patient, holder, group, race, hair, profession };
   };
 
   const createGroupData = async (group: EconomicGroup) => {
@@ -227,8 +237,20 @@ test.group('Patient resource', group => {
     assert.notEqual(patient.name, body.name);
   });
 
-  test('should create new tutor', async ({ client, assert }) => {
+  test('should get all tutors', async ({ client, assert }) => {
     const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/patient-tutors').bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should create new tutor', async ({ client, assert }) => {
+    const { user, profession } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -243,6 +265,9 @@ test.group('Patient resource', group => {
         cityCode: 'some',
         diabetes: true,
         hypertension: true,
+        professionId: profession.id,
+        nationality: 'some',
+        civilStatus: 'some',
       })
       .bearerToken(token);
 
@@ -286,7 +311,7 @@ test.group('Patient resource', group => {
   });
 
   test('should update a tutor', async ({ client, assert }) => {
-    const { user, holder } = await createData();
+    const { user, holder, profession } = await createData();
     await holder.related('tutor').create({
       id: v4(),
       document: '123',
@@ -343,6 +368,9 @@ test.group('Patient resource', group => {
         state: '123',
         diabetes: true,
         hypertension: true,
+        professionId: profession.id,
+        nationality: 'some',
+        civilStatus: 'some',
       })
       .bearerToken(token);
 

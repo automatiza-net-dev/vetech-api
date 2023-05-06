@@ -11,6 +11,7 @@ import HospitalizationMedicalPrescriptionScheduling, {
 } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFluidSet,
+  MedicalPrescriptionFluidSetLabel,
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
   MedicalPrescriptionFrequencyUnit,
@@ -819,26 +820,24 @@ export default class HospitalizationMedicalPrescriptionService {
     });
 
     if (prescription.type === MedicalPrescriptionType.MEDICATION) {
-      // const _ = `${prescription.description}, ${prescription.dose} ${
-      //   prescription.prescriptionUnit.name
-      // }, ${prescription.drugAdministration?.description} (${
-      //   prescription.hospitalization.patient.weight ?? ''
-      // } kg em ${format(
-      //   prescription.hospitalization.patient.weightDate?.toJSDate() ??
-      //     new Date(),
-      //   'dd/MM/yyyy HH:mm',
-      // )})`;
-
       return [
         prescription.description,
         [prescription.dose, prescription.prescriptionUnit.name].join(' '),
-        prescription.volume,
-        prescription.prescriptionUnit.name,
-        `(${prescription.hospitalization.patient.weight ?? ''} kg em ${format(
-          prescription.hospitalization.patient.weightDate?.toJSDate() ??
-            new Date(),
-          'dd/MM/yyyy HH:mm',
-        )})`,
+        `volume: ${prescription.volume}`,
+        `via de aplicação: ${
+          prescription.drugAdministration?.description ?? '-'
+        }`,
+        `(${prescription.hospitalization.patient.weight ?? ''} ${
+          prescription.hospitalization.patient.weightDate
+            ? [
+                'kg em ',
+                format(
+                  prescription.hospitalization.patient.weightDate?.toJSDate(),
+                  'dd/MM/yyyy HH:mm',
+                ),
+              ].join(' ')
+            : 'Não informado'
+        })`,
       ]
         .filter(Boolean)
         .join(', ');
@@ -846,43 +845,14 @@ export default class HospitalizationMedicalPrescriptionService {
 
     await prescription.load('fluidUnit');
 
-    // const _ = `${prescription.description}, ${
-    //   prescription.drugAdministration.description
-    // }, ${prescription.fluidSpeed} ${prescription.fluidUnit?.name ?? ''}, ${
-    //   MedicalPrescriptionFluidSetLabel[prescription.fluidSet]
-    // }, ${prescription.dose}, ${prescription.prescriptionUnit?.name ?? ''}, ${
-    //   prescription.supplement ?? ''
-    // }  (${prescription.hospitalization.patient.weight ?? ''} ${
-    //   prescription.hospitalization.patient.weightDate
-    //     ? [
-    //         'kg em ',
-    //         format(
-    //           prescription.hospitalization.patient.weightDate?.toJSDate(),
-    //           'dd/MM/yyyy HH:mm',
-    //         ),
-    //       ].join(' ')
-    //     : 'Não informado'
-    // })`;
-
     return [
       prescription.description,
-      [prescription.fluidSpeed, prescription.fluidUnit?.name ?? '']
-        .filter(Boolean)
-        .join(' '),
-      prescription.dose,
-      prescription.volume,
+      `${prescription.dose} ${prescription.prescriptionUnit.name}`,
+      `volume: ${prescription.volume}`,
+      `via aplicação: ${prescription.drugAdministration.description}`,
+      MedicalPrescriptionFluidSetLabel[prescription.fluidSet],
+      `${prescription.fluidSpeed} ${prescription.fluidUnit?.name}`,
       prescription.supplement,
-      `(${prescription.hospitalization.patient.weight ?? ''} ${
-        prescription.hospitalization.patient.weightDate
-          ? [
-              'kg em ',
-              format(
-                prescription.hospitalization.patient.weightDate?.toJSDate(),
-                'dd/MM/yyyy HH:mm',
-              ),
-            ].join(' ')
-          : 'Não informado'
-      })`,
     ]
       .filter(Boolean)
       .join(', ');

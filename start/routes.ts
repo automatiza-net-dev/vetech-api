@@ -279,12 +279,17 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/home', 'SchedulesController.homeContent');
   Route.get('/disponibility', 'SchedulesController.viewDisponibility');
+  Route.get(
+    '/status-changes/:id',
+    'SchedulesController.getScheduleStatusChanges',
+  );
   Route.get('/user', 'SchedulesController.userDailySchedule');
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
   Route.get('/returnables/:patient', 'SchedulesController.returnableSchedules');
 
   Route.get('/', 'SchedulesController.index');
+  Route.post('/create-contact', 'SchedulesController.createContact');
   Route.post('/', 'SchedulesController.store');
   Route.get('/:id', 'SchedulesController.show');
   Route.put('/reschedule/:id', 'SchedulesController.reschedule');
@@ -932,4 +937,11 @@ Route.group(() => {
   Route.delete('/:id', 'KitsController.destroy');
 })
   .prefix('kits')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ProfessionsController.index');
+  Route.get('/:id', 'ProfessionsController.show');
+})
+  .prefix('professions')
   .middleware('auth');

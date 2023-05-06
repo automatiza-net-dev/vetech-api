@@ -12,9 +12,12 @@ import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
 import Race from 'App/Models/Race';
+import Reason from 'App/Models/Reason';
 import Rescheduling from 'App/Models/Rescheduling';
+import ScheduleContact from 'App/Models/ScheduleContact';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
+import ScheduleStatusChange from 'App/Models/ScheduleStatusChange';
 import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
@@ -46,6 +49,9 @@ export default class Schedule extends BaseModel {
 
   @column()
   public age?: number;
+
+  @column()
+  public observation?: string;
 
   @column({
     columnName: 'major_complaint',
@@ -178,4 +184,27 @@ export default class Schedule extends BaseModel {
   })
   // eslint-disable-next-line no-use-before-define
   public scheduleReturn: BelongsTo<typeof Schedule>;
+
+  @hasMany(() => ScheduleStatusChange, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public statusChanges: HasMany<typeof ScheduleStatusChange>;
+
+  @column({
+    serializeAs: null,
+  })
+  public reason_id: string;
+
+  @belongsTo(() => Reason, {
+    localKey: 'id',
+    foreignKey: 'reason_id',
+  })
+  public reason: BelongsTo<typeof Reason>;
+
+  @hasMany(() => ScheduleContact, {
+    localKey: 'id',
+    foreignKey: 'schedule_id',
+  })
+  public contacts: HasMany<typeof ScheduleContact>;
 }

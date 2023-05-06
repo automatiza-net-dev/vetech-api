@@ -2,10 +2,17 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import { PatientType } from 'App/Models/Patient';
+import Reason from 'App/Models/Reason';
 import Schedule from 'App/Models/Schedule';
-import { SS_CONFIRMED, SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
+import {
+  SS_ATTENDANCE_CANCELLED,
+  SS_CONFIRMED,
+  SS_NOT_CONFIRMED,
+} from 'App/Models/ScheduleStatus';
 import User from 'App/Models/User';
 import ScheduleService from 'App/Services/ScheduleService';
+import IScheduleContactData from 'Contracts/interfaces/IScheduleContactData';
+import IUpdateScheduleStatus from 'Contracts/interfaces/IUpdateScheduleStatus';
 import PatientFactory from 'Database/factories/PatientFactory';
 import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
 import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
@@ -21,7 +28,7 @@ test.group('Scheduling resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, system } = await userBootstrap();
 
     const status = await ScheduleStatusFactory.create();
     const serviceType = await ScheduleServiceTypeFactory.create();
@@ -29,7 +36,7 @@ test.group('Scheduling resource', group => {
     const holder = await PatientFactory.create();
     await holder.merge({ type: PatientType.TUTOR }).save();
 
-    return { user, status, serviceType, business, holder };
+    return { user, status, serviceType, business, holder, system };
   };
 
   const createWorkingDay = async (
@@ -348,6 +355,217 @@ test.group('Scheduling resource', group => {
 
     assert.equal(200, result.status());
     assert.isArray(result.body());
+  });
+
+  test('should throw BadRequestException when cancelling with no reason', async ({
+    assert,
+    client,
+  }) => {
+    const { user, serviceType, business, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    const result = await client
+      .put('/schedules/status')
+      .json({
+        scheduleId: schedule.id,
+        statusId: SS_ATTENDANCE_CANCELLED,
+      } as IUpdateScheduleStatus)
+      .bearerToken(token);
+
+    assert.equal(400, result.status());
+  });
+
+  test('should update status', async ({ assert, client }) => {
+    const { user, serviceType, business, holder, system } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const reason = await Reason.create({
+      economicGroupId: business.economicGroupId,
+      system_id: system.id,
+      reason: 'some',
+      requiresObservation: true,
+    });
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    const result = await client
+      .put('/schedules/status')
+      .json({
+        scheduleId: schedule.id,
+        statusId: SS_ATTENDANCE_CANCELLED,
+        reasonId: reason.id,
+        observation: 'some',
+      } as IUpdateScheduleStatus)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
+  test('should return schedule status changes', async ({ assert, client }) => {
+    const { user, serviceType, business, holder, system } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+    const reason = await Reason.create({
+      economicGroupId: business.economicGroupId,
+      system_id: system.id,
+      reason: 'some',
+      requiresObservation: true,
+    });
+    await schedule.related('statusChanges').create({
+      schedule_status_id: SS_ATTENDANCE_CANCELLED,
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+    });
+    await schedule.related('reschedules').create({
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+      originalDate: DateTime.now(),
+    });
+
+    const result = await client
+      .get(`/schedules/status-changes/${schedule.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
+  test('should create a schedule contact', async ({ assert, client }) => {
+    const { user, serviceType, business, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    const result = await client
+      .post('/schedules/create-contact')
+      .json({
+        contactDate: DateTime.now(),
+        observation: 'some',
+        scheduleId: schedule.id,
+        statusId: SS_ATTENDANCE_CANCELLED,
+      } as IScheduleContactData)
+      .bearerToken(token);
+
+    assert.equal(201, result.status());
+  });
+
+  test('should return schedule', async ({ assert, client }) => {
+    const { user, serviceType, business, holder, system } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+    const reason = await Reason.create({
+      economicGroupId: business.economicGroupId,
+      system_id: system.id,
+      reason: 'some',
+      requiresObservation: true,
+    });
+    await schedule.related('statusChanges').create({
+      schedule_status_id: SS_ATTENDANCE_CANCELLED,
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+    });
+    await schedule.related('reschedules').create({
+      user_id: user.id,
+      reason_id: reason.id,
+      observation: 'some',
+      originalDate: DateTime.now(),
+    });
+    await schedule.related('contacts').create({
+      user_id: user.id,
+      observation: 'some',
+      contactDate: DateTime.now(),
+    });
+
+    const result = await client
+      .get(`/schedules/${schedule.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
   });
 
   // test('should throw BadRequestException for overlapping schedules', async ({

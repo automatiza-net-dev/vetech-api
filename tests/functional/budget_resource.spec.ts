@@ -228,6 +228,31 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create budget without cashier related', async ({
+    assert,
+    client,
+  }) => {
+    const { user, client: dbClient, patient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/create`)
+      .json({
+        clientId: dbClient.id,
+        patientId: patient.id,
+        budgetDate: new Date(),
+        expirationDate: new Date(),
+        observation: 'some',
+        items: [],
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should create budget item', async ({ assert, client }) => {
     const { user, budget, variation } = await createData();
     const token = await generateJwtToken(client, {

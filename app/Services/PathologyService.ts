@@ -58,6 +58,7 @@ export default class PathologyService {
       definition: data.definition,
       template: data.template,
       timeline_type_id: PATHOLOGY_UUID,
+      system_id: authCtx.system.id,
     });
   }
 

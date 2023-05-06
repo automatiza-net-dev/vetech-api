@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import ScheduleService from 'App/Services/ScheduleService';
 import SharedService from 'App/Services/SharedService';
+import CreateScheduleContactValidator from 'App/Validators/Schedule/CreateScheduleContactValidator';
 import CreateScheduleValidator from 'App/Validators/Schedule/CreateScheduleValidator';
 import RescheduleValidator from 'App/Validators/Schedule/RescheduleValidator';
 import UpdateScheduleSpecificStatusValidator from 'App/Validators/Schedule/UpdateScheduleSpecificStatusValidator';
@@ -113,10 +114,10 @@ export default class SchedulesController {
     const payload = await request.validate(
       UpdateScheduleSpecificStatusValidator,
     );
-    const { unit_id } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
     const result = await this.service.updateScheduleStatusWithStaticValues(
-      unit_id,
+      authCtx,
       payload,
     );
 
@@ -199,5 +200,29 @@ export default class SchedulesController {
     );
 
     return response.ok(result);
+  }
+
+  public async getScheduleStatusChanges({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.getScheduleStatusChanges(
+      authCtx,
+      params.id,
+    );
+
+    return response.ok(result);
+  }
+
+  public async createContact({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateScheduleContactValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.createScheduleContact(authCtx, payload);
+
+    return response.created(result);
   }
 }

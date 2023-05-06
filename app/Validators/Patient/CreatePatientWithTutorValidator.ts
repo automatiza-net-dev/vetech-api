@@ -4,7 +4,7 @@ import { PatientGender } from 'App/Models/Patient';
 import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default class CreatePatientWithTutorValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     name: schema.string({}),
@@ -37,6 +37,11 @@ export default class CreatePatientWithTutorValidator {
     cityCode: schema.string.optional({}),
     hypertension: schema.boolean.optional(),
     diabetes: schema.boolean.optional(),
+    professionId: schema.number.optional([
+      rules.exists({ table: 'professions', column: 'id' }),
+    ]),
+    nationality: schema.string.optional({}, []),
+    civilStatus: schema.string.optional({}, []),
   });
 
   public messages: CustomMessages = {};

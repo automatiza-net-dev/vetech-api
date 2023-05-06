@@ -1,4 +1,5 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
+import System from 'App/Models/System';
 import TemplateReplacement, {
   TemplateReplacementOrigin,
 } from 'App/Models/TemplateReplacement';
@@ -111,6 +112,21 @@ export default class extends BaseSeeder {
       attribute: 'email',
       replacer: '[TUTOR_EMAIL]',
     },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'profession_description',
+      replacer: '[TUTOR_PROFISSAO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'nationality',
+      replacer: '[TUTOR_NACIONALIDADE]',
+    },
+    {
+      origin: TemplateReplacementOrigin.TUTOR,
+      attribute: 'civilStatus',
+      replacer: '[TUTOR_ESTADOCIVIL]',
+    },
 
     {
       origin: TemplateReplacementOrigin.BUSINESS,
@@ -210,6 +226,16 @@ export default class extends BaseSeeder {
     },
   ];
   public async run() {
-    await TemplateReplacement.fetchOrCreateMany('replacer', this.BASE);
+    const vetech = await System.findByOrFail('name', 'Vetech');
+    const sancla = await System.findByOrFail('name', 'Sanclá');
+
+    await TemplateReplacement.fetchOrCreateMany(
+      ['replacer', 'system_id'],
+      this.BASE.map(elem => ({ ...elem, system_id: vetech.id })),
+    );
+    await TemplateReplacement.fetchOrCreateMany(
+      ['replacer', 'system_id'],
+      this.BASE.map(elem => ({ ...elem, system_id: sancla.id })),
+    );
   }
 }

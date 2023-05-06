@@ -8,6 +8,7 @@ import {
 } from '@ioc:Adonis/Lucid/Orm';
 import ClientOrigin from 'App/Models/ClientOrigin';
 import Patient from 'App/Models/Patient';
+import Profession from 'App/Models/Profession';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -31,6 +32,14 @@ export default class PatientTutor extends BaseModel {
 
   @column()
   public inscription?: string; // ie/rg
+
+  @column()
+  public nationality?: string; // ie/rg
+
+  @column({
+    columnName: 'civil_status',
+  })
+  public civilStatus?: string;
 
   @column({
     columnName: 'corporate_name',
@@ -121,4 +130,16 @@ export default class PatientTutor extends BaseModel {
     foreignKey: 'client_origin_id',
   })
   public clientOrigin: BelongsTo<typeof ClientOrigin>;
+
+  @column({
+    columnName: 'profession_id',
+    serializeAs: null,
+  })
+  public profession_id: number;
+
+  @belongsTo(() => Profession, {
+    localKey: 'id',
+    foreignKey: 'profession_id',
+  })
+  public profession: BelongsTo<typeof Profession>;
 }

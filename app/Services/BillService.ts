@@ -597,7 +597,7 @@ export default class BillService {
             payment_method_id: data.paymentMethodId,
             tef_acquirer_id: data.acquirerId,
             tef_flag_id: data.flagId,
-            daily_cashier_id: userOpenCashier.id,
+            daily_cashier_id: userOpenCashier?.id,
 
             block: uniqueBlocks.size + 1,
             expirationDate: data.expirationDate.plus({
@@ -870,18 +870,18 @@ export default class BillService {
       );
     }
 
-    const dailyCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('user_who_opened_id', user.id)
-      .where('status', DailyCashierStatus.A)
-      .first();
-    if (!dailyCashier) {
-      throw new BadRequestException(
-        'Usuário não tem caixa diário aberto',
-        400,
-        'E_NOT_OPEN',
-      );
-    }
+    // const dailyCashier = await DailyCashier.query()
+    //   .where('business_unit_id', unitId)
+    //   .where('user_who_opened_id', user.id)
+    //   .where('status', DailyCashierStatus.A)
+    //   .first();
+    // if (!dailyCashier) {
+    //   throw new BadRequestException(
+    //     'Usuário não tem caixa diário aberto',
+    //     400,
+    //     'E_NOT_OPEN',
+    //   );
+    // }
 
     await Database.transaction(async trx => {
       await bill

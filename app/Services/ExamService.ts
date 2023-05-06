@@ -50,6 +50,7 @@ export default class ExamService {
       subgroup_id: data.subgroupId,
       ownLaboratory: data.ownLaboratory,
       type: data.type,
+      system_id: authCtx.system.id,
     });
   }
 

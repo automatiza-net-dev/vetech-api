@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BillService from 'App/Services/BillService';
 import SharedService from 'App/Services/SharedService';
 import AddKitToBillValidator from 'App/Validators/Bill/AddKitToBillValidator';
+import ConfirmBillPaymentsValidator from 'App/Validators/Bill/ConfirmBillPaymentsValidator';
 import CreateBillItemValidator from 'App/Validators/Bill/CreateBillItemValidator';
 import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentValidator';
 import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
@@ -197,5 +198,18 @@ export default class BillsController {
     );
 
     return response.ok(result);
+  }
+
+  public async updateCashierConference({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(ConfirmBillPaymentsValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateCashierConference(authCtx, payload);
+
+    return response.noContent();
   }
 }

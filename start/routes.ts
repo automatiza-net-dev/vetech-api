@@ -807,6 +807,7 @@ Route.group(() => {
   Route.get('/taxes', 'BillsController.searchTax');
   Route.get('/show/:id', 'BillsController.show');
 
+  Route.put('/update-conference', 'BillsController.updateCashierConference');
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
 

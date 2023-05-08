@@ -1888,4 +1888,62 @@ export default class BillService {
         .flat();
     });
   }
+
+  async updateCashierConference(
+    authCtx: AuthContext,
+    data: {
+      dailyCashierId: string;
+      confirmedPayments: string[];
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const cashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', data.dailyCashierId)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!cashier) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const payments = await BillPayment.query()
+        .useTransaction(trx)
+        .where('daily_cashier_id', cashier.id);
+
+      const tasks = payments.map(elem => {
+        const isConfirmed = data.confirmedPayments.includes(elem.id);
+
+        return elem
+          .merge({
+            user_id: isConfirmed ? authCtx.user.id : undefined,
+            conferenceDate: isConfirmed ? DateTime.now() : undefined,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+      const updatedPayments = await Promise.all(tasks);
+      const confirmedPayments = updatedPayments.filter(
+        elem => elem.conferenceDate,
+      );
+
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .whereIn(
+          'origin_id',
+          confirmedPayments.map(elem => elem.id),
+        );
+
+      const tasks2 = finances.map(elem =>
+        elem
+          .merge({
+            accept: FinanceAccept.S,
+            acceptedDate: DateTime.now(),
+          })
+          .useTransaction(trx)
+          .save(),
+      );
+      await Promise.all(tasks2);
+    });
+  }
 }

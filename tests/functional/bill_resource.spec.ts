@@ -1014,6 +1014,27 @@ test.group('Bill resource', group => {
     assert.equal(200, response.status());
   });
 
+  test('should update daily cashier conference data', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyCashier, payment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/update-conference`)
+      .json({
+        dailyCashierId: dailyCashier.id,
+        confirmedPayments: [payment.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   // test('should recalculate item taxes', async ({ assert, client }) => {
   //   const { user, bill, business, variation } = await createData();
   //   const token = await generateJwtToken(client, {

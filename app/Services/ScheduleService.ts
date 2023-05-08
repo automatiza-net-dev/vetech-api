@@ -822,15 +822,15 @@ export default class ScheduleService {
         throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
       }
 
-      if (toStatus.description === 'Atendimento cancelado') {
-        if (!data.reasonId) {
-          throw new BadRequestException(
-            'Motivo do cancelamento é obrigatório',
-            400,
-            'E_INVALID',
-          );
-        }
-      }
+      // if (toStatus.description === 'Atendimento cancelado') {
+      //   if (!data.reasonId) {
+      //     throw new BadRequestException(
+      //       'Motivo do cancelamento é obrigatório',
+      //       400,
+      //       'E_INVALID',
+      //     );
+      //   }
+      // }
 
       await schedule.related('statusChanges').create(
         {

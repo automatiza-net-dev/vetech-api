@@ -6,12 +6,7 @@ import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus, {
   SS_ATTENDANCE_FINISHED,
-  SS_CONFIRMED,
-  SS_LATE,
   SS_NOT_CONFIRMED,
-  SS_ON_ATTENDANCE,
-  SS_RECEPTION,
-  SS_SURGERY,
   VALID_CHANGES,
 } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
@@ -77,17 +72,29 @@ export default class ScheduleService {
     if (data.confirmed === 'false') {
       // Confirmar consultas
 
-      qb.where('schedule_status_id', SS_NOT_CONFIRMED);
+      // qb.where('schedule_status_id', SS_NOT_CONFIRMED);
+      qb.whereHas('serviceStatus', query => {
+        query.where('description', 'Agendado (Não confirmado)');
+      });
     } else {
       // Confirmar já confirmadas
 
-      qb.whereIn('schedule_status_id', [
-        SS_CONFIRMED,
-        SS_RECEPTION,
-        SS_ON_ATTENDANCE,
-        SS_LATE,
-        SS_SURGERY,
-      ]);
+      // qb.whereIn('schedule_status_id', [
+      //   SS_CONFIRMED,
+      //   SS_RECEPTION,
+      //   SS_ON_ATTENDANCE,
+      //   SS_LATE,
+      //   SS_SURGERY,
+      // ]);
+      qb.whereHas('serviceStatus', query => {
+        query.whereIn('description', [
+          'Agendado (Confirmado)',
+          'Na recepção',
+          'Em atendimento',
+          'Atrasado',
+          'Em cirurgia',
+        ]);
+      });
     }
 
     const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);

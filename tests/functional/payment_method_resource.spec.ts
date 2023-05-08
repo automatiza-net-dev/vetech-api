@@ -267,4 +267,42 @@ test.group('Payment method resource', group => {
 
     assert.equal(201, response.status());
   });
+
+  test('should search for tef flags (C)', async ({ client, assert }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams({
+      type: 'C',
+    });
+
+    const response = await client
+      .get(`/payment-methods/tef-flags?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should search for tef flags (D)', async ({ client, assert }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams({
+      type: 'D',
+    });
+
+    const response = await client
+      .get(`/payment-methods/tef-flags?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 });

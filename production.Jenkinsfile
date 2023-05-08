@@ -5,10 +5,12 @@ pipeline {
         failure {
             updateGitlabCommitStatus name: 'build', state: 'failed'
             discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "🔴 $JOB_NAME - Falha", webhookURL: "${DISCORD_URL}"
+            discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "🔴 $JOB_NAME - Falha", webhookURL: "https://discord.com/api/webhooks/1093508379164553398/HCZ6NcU5T1dw9mgXw_YruUnNZl0g0Lqd-iB5k3GTcuaGBm8SacmU5hUBYsbySAm5QP00"
         }
         success {
             updateGitlabCommitStatus name: 'build', state: 'success'
             discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "✅ $JOB_NAME - Sucesso", webhookURL: "${DISCORD_URL}"
+            discordSend footer: 'infra.creativecode.dev.br', link: env.BUILD_URL, result: currentBuild.currentResult, title: "✅ $JOB_NAME - Sucesso", webhookURL: "https://discord.com/api/webhooks/1093508379164553398/HCZ6NcU5T1dw9mgXw_YruUnNZl0g0Lqd-iB5k3GTcuaGBm8SacmU5hUBYsbySAm5QP00"
         }
         aborted {
             updateGitlabCommitStatus name: 'build', state: 'canceled'
@@ -32,11 +34,11 @@ pipeline {
         }
         stage('Transfer Files') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """
                         ssh -tt $USER@$HOST -p $PORT '
-                            cd '$FOLDER'
-                            git pull origin master
+                         cd '$FOLDER'
+                            git pull origin main
                         '
                     """
                 }
@@ -44,9 +46,9 @@ pipeline {
         }
         stage('Install Modules') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT'
+                        ssh -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             yarn
                         '
@@ -56,9 +58,9 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT'
+                        ssh -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             rm -rf dist
                             yarn build
@@ -70,9 +72,9 @@ pipeline {
         }
         stage('Run Migrations') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT'
+                        ssh -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             set NODE_ENV=production
                             node ace migration:run
@@ -83,9 +85,9 @@ pipeline {
         }
         stage('Restart') {
             steps {
-                sshagent(['VETECH-PROD']) {
+                sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT'
+                        ssh -tt $USER@$HOST -p $PORT '
                             pm2 restart '$APP'
                         '
                     """

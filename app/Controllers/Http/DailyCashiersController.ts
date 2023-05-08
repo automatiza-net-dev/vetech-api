@@ -2,12 +2,12 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import DailyCashierService from 'App/Services/DailyCashierService';
 import SharedService from 'App/Services/SharedService';
+import CheckDailyCashierValidator from 'App/Validators/DailyCashier/CheckDailyCashierValidator';
 import CloseDailyCashierValidator from 'App/Validators/DailyCashier/CloseDailyCashierValidator';
 import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCashierExpenseValidator';
 import CreateCashierReceiptValidator from 'App/Validators/DailyCashier/CreateCashierReceiptValidator';
 import OpenDailyCashierValidator from 'App/Validators/DailyCashier/OpenDailyCashierValidator';
 import ReviewDailyCashierValidator from 'App/Validators/DailyCashier/ReviewDailyCashierValidator';
-import CheckDailyMovementValidator from 'App/Validators/DailyMovement/CheckDailyMovementValidator';
 
 @inject()
 export default class DailyCashiersController {
@@ -90,10 +90,10 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const data = await request.validate(CheckDailyMovementValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    const data = await request.validate(CheckDailyCashierValidator);
     const dailyMovement = await this.service.checkDailyCashier(
-      unit_id,
+      authCtx,
       params.id,
       data,
     );

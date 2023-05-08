@@ -29,7 +29,7 @@ import TaxationGroupRule, {
 } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { GenerateTag } from 'App/Utils/GenerateTag';
 import {
   ICreateBillData,
@@ -638,8 +638,10 @@ export default class BillService {
           daily_movement_id: bill.daily_movement_id,
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.client_id,
-          type: FinanceType.C,
           payment_method_id: paymentMethod.id,
+          origin_id: payments.at(v)?.id,
+
+          type: FinanceType.C,
           installment: v + 1,
           block: uniqueBlocks.size + 1,
           originFlag: FinanceOriginFlag.S,
@@ -656,8 +658,8 @@ export default class BillService {
           feeValue: 0,
           feeDiscountPercentage: paymentMethod.fee,
           feePercentage: 0,
-          accept: FinanceAccept.S,
-          reconciled: true,
+          accept: FinanceAccept.N,
+          reconciled: false,
           competenceDate: DateTime.now().toFormat('MM/yyyy'),
           nsuDocument: payments.at(v)?.nsuDocument,
           tef_flag_id: payments.at(v)?.tef_flag_id,
@@ -1841,6 +1843,49 @@ export default class BillService {
           }),
         ),
       );
+    });
+  }
+
+  async fetchConferenceCashier(authCtx: AuthContext, id: string) {
+    return Database.transaction(async trx => {
+      const cashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!cashier) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const bills = await Bill.query()
+        .useTransaction(trx)
+        .where('daily_cashier_id', cashier.id)
+        .preload('client')
+        .preload('payments', query => {
+          query.preload('paymentMethod');
+          query.preload('flag');
+        });
+
+      return bills
+        .map(elem =>
+          elem.payments.map(payment => ({
+            id: payment.id,
+            description: payment.paymentMethod.description,
+            flag: payment.flag.description,
+            operation: payment.paymentMethod.tef,
+            client: {
+              id: elem.client?.id,
+              name: elem.client?.name,
+            },
+            tag: elem.tag,
+            nsuDocument: payment.nsuDocument,
+            total: payment.totalValue,
+            expiresAt: payment.expirationDate,
+            createdAt: payment.createdAt,
+          })),
+        )
+        .flat();
     });
   }
 }

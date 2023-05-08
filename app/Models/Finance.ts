@@ -98,6 +98,16 @@ export default class Finance extends BaseModel {
   })
   public downDate: DateTime | null;
 
+  @column.dateTime({
+    columnName: 'accepted_date',
+  })
+  public acceptedDate: DateTime;
+
+  @column.dateTime({
+    columnName: 'conciliated_date',
+  })
+  public conciliatedDate: DateTime;
+
   @column({
     columnName: 'original_value',
   })
@@ -232,6 +242,11 @@ export default class Finance extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public origin_id: string;
 
   @column({
     serializeAs: null,

@@ -183,4 +183,19 @@ export default class BillsController {
 
     return response.noContent();
   }
+
+  public async fetchConferenceCashier({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.fetchConferenceCashier(
+      authCtx,
+      params.id,
+    );
+
+    return response.ok(result);
+  }
 }

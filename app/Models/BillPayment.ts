@@ -23,6 +23,11 @@ export default class BillPayment extends BaseModel {
   })
   public expirationDate: DateTime;
 
+  @column.dateTime({
+    columnName: 'conference_date',
+  })
+  public conferenceDate: DateTime;
+
   @column({
     columnName: 'fee_type',
   })
@@ -84,6 +89,11 @@ export default class BillPayment extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public user_id: string;
 
   @column({
     serializeAs: null,

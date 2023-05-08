@@ -796,10 +796,13 @@ Route.group(() => {
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/add-kit', 'BillsController.addKitToBill');
+
   Route.put('/update-item', 'BillsController.updateBillItem');
   Route.put('/delete-item/:id', 'BillsController.deleteBillItem');
   Route.post('/create-payment', 'BillsController.createBillPayment');
+
   Route.get('/', 'BillsController.index');
+  Route.get('/conference/:id', 'BillsController.fetchConferenceCashier');
   Route.get('/products', 'BillsController.searchProducts');
   Route.get('/taxes', 'BillsController.searchTax');
   Route.get('/show/:id', 'BillsController.show');

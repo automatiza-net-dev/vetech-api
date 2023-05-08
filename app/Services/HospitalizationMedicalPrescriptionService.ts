@@ -102,7 +102,8 @@ export default class HospitalizationMedicalPrescriptionService {
         query.preload('patient');
         query.preload('technician');
       })
-      .preload('technician');
+      .preload('technician')
+      .preload('prescription');
 
     if (data.hospitalization) {
       query.where('hospitalization_id', data.hospitalization);

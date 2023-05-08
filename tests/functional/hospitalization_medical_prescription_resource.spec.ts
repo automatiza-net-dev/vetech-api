@@ -4,6 +4,7 @@ import DrugAdministration from 'App/Models/DrugAdministration';
 import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
@@ -41,10 +42,18 @@ test.group('Hospitalization medical prescription resource', group => {
       expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
+    const prescription = await HospitalizationMedicalPrescription.create({
+      hospitalization_id: hospitalization.id,
+      resume: 'teste resumo',
+      description: 'teste descrição',
+    });
+
     const scheduling =
       await HospitalizationMedicalPrescriptionScheduling.create({
         hospitalization_id: hospitalization.id,
-        resume: 'some resume',
+        hospitalization_medical_prescription_id: prescription.id,
+        resume: 'teste resumo',
+        description: 'teste descrição',
       });
 
     const unit = await Unit.create({
@@ -66,6 +75,24 @@ test.group('Hospitalization medical prescription resource', group => {
 
     const response = await client
       .get(`/hospitalization-prescriptions/scheduling`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get scheduling with qs', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('fromScheduledDate', new Date().toISOString());
+    qs.append('toScheduledDate', new Date().toISOString());
+
+    const response = await client
+      .get(`/hospitalization-prescriptions/scheduling?${qs.toString()}`)
       .bearerToken(token);
 
     assert.equal(200, response.status());

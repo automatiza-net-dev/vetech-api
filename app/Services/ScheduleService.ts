@@ -205,22 +205,24 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    const scheduleUser = await User.findOrFail(data.userId);
+    if (data.userId) {
+      const scheduleUser = await User.findOrFail(data.userId);
 
-    if (!scheduleUser.onDuty) {
-      await ScheduleService.checkDisponibility(
-        data.userId ?? user.id,
-        unitId,
-        {
-          start: data.startHour.toJSDate(),
-          end: data.endHour.toJSDate(),
-        },
-        exception,
-      );
+      if (!scheduleUser.onDuty) {
+        await ScheduleService.checkDisponibility(
+          data.userId ?? user.id,
+          unitId,
+          {
+            start: data.startHour.toJSDate(),
+            end: data.endHour.toJSDate(),
+          },
+          exception,
+        );
+      }
 
       if (!data.ignoreOverlapping) {
         const overlapping = await Schedule.query()
-          .where('user_id', user.id)
+          .where('user_id', data.userId ?? user.id)
           .andWhere('business_unit_id', unitId)
           .andWhereRaw('start_hour <= ? and end_hour >= ?', [
             data.startHour.toJSDate(),

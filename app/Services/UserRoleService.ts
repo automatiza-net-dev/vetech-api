@@ -19,7 +19,7 @@ interface ISearchBusinessUnitUsers {
 
 @inject()
 export default class UserRoleService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async assignUnitRoleToUser(
     unit: BusinessUnit,
@@ -71,7 +71,13 @@ export default class UserRoleService {
         }
       })
       .preload('unit')
-      .preload('user')
+      .preload('user', query => {
+        query.preload('workingDays', query => {
+          query.preload('businessUnit', query => {
+            query.select('id', 'company_name');
+          });
+        });
+      })
       .preload('role');
 
     const uniqueUsers = Array.from(

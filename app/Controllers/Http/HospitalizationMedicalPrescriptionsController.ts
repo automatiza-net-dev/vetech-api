@@ -12,7 +12,7 @@ export default class HospitalizationMedicalPrescriptionsController {
   constructor(
     private readonly service: HospitalizationMedicalPrescriptionService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -60,7 +60,12 @@ export default class HospitalizationMedicalPrescriptionsController {
     return response.created(result);
   }
 
-  public async update({ params, request, response }: HttpContextContract) {
+  public async update({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
     const payload = await request.validate(
       UpdateHospitalizationMedicalPrescriptionValidator,
     );
@@ -68,9 +73,40 @@ export default class HospitalizationMedicalPrescriptionsController {
     // @ts-expect-error its fine
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
 
-    const result = await this.service.update(params.id, payload, payload2);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.update(
+      params.id,
+      authCtx.user,
+      payload,
+      payload2,
+    );
 
     return response.ok(result);
+  }
+
+  public async interruptPrescription({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.interruptPrescription(authCtx, params.id);
+
+    return response.noContent();
+  }
+
+  public async excludePrescription({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.excludePrescription(authCtx, params.id);
+
+    return response.noContent();
   }
 
   public async updateSchedule({

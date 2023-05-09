@@ -21,6 +21,7 @@ export enum HospitalizationSchedulingStatus {
   'ACTIVE' = 'A',
   'COMPLETE' = 'C',
   'CANCELED' = 'CA',
+  'EXCLUDED' = 'E',
 }
 
 export default class HospitalizationMedicalPrescriptionScheduling extends BaseModel {
@@ -47,6 +48,11 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
     columnName: 'prescribed_at',
   })
   public prescribedAt: DateTime;
+
+  @column.dateTime({
+    columnName: 'excluded_at',
+  })
+  public excludedAt: DateTime;
 
   @column()
   public description: string;
@@ -105,4 +111,9 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
     foreignKey: 'user_id',
   })
   public technician: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
+  public update_user_id: string | null;
 }

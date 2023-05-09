@@ -5,7 +5,9 @@ import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
-import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import HospitalizationMedicalPrescriptionScheduling, {
+  HospitalizationSchedulingStatus,
+} from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
@@ -46,6 +48,7 @@ test.group('Hospitalization medical prescription resource', group => {
       hospitalization_id: hospitalization.id,
       resume: 'teste resumo',
       description: 'teste descrição',
+      status: 'A',
     });
 
     const scheduling =
@@ -54,6 +57,7 @@ test.group('Hospitalization medical prescription resource', group => {
         hospitalization_medical_prescription_id: prescription.id,
         resume: 'teste resumo',
         description: 'teste descrição',
+        status: HospitalizationSchedulingStatus.ACTIVE,
       });
 
     const unit = await Unit.create({
@@ -63,7 +67,7 @@ test.group('Hospitalization medical prescription resource', group => {
       type: UnitType.PRODUCT,
     });
 
-    return { user, drug, hospitalization, unit, scheduling };
+    return { user, drug, hospitalization, unit, scheduling, prescription };
   };
 
   test('should get scheduling', async ({ assert, client }) => {
@@ -325,5 +329,92 @@ test.group('Hospitalization medical prescription resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if prescription is not active when interrupting', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await prescription.merge({ status: 'I' }).save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/interrupt/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should interrupt medical prescription', async ({ assert, client }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/interrupt/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if prescription is not active when excluding', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await prescription.merge({ status: 'I' }).save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if prescription has executed scheduling', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription, scheduling } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await scheduling
+      .merge({ status: HospitalizationSchedulingStatus.COMPLETE })
+      .save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should exclude medical prescription', async ({ assert, client }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

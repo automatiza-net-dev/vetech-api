@@ -13,6 +13,11 @@ export default class extends BaseSeeder {
     },
     {
       origin: TemplateReplacementOrigin.PATIENT,
+      attribute: 'castrated',
+      replacer: '[PACIENTE_CASTRADO]',
+    },
+    {
+      origin: TemplateReplacementOrigin.PATIENT,
       attribute: 'tag',
       replacer: '[PACIENTE_ID]',
     },

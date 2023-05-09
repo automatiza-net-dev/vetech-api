@@ -290,7 +290,7 @@ export default class TemplateReplacementService {
           locale: Locales.ptBR,
         })
         : null,
-      castrated: patient.patientAnimal?.castrated,
+      castrated: patient.patientAnimal?.castrated ? 'Esterelizado' : 'Fértil',
       microchip: patient.patientAnimal?.microchip,
     };
   }

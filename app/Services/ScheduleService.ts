@@ -49,7 +49,7 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
@@ -205,7 +205,9 @@ export default class ScheduleService {
       'E_BAD_REQUEST',
     );
 
-    if (!user.onDuty) {
+    const scheduleUser = await User.findOrFail(data.userId);
+
+    if (!scheduleUser.onDuty) {
       await ScheduleService.checkDisponibility(
         data.userId ?? user.id,
         unitId,
@@ -427,16 +429,16 @@ export default class ScheduleService {
 
     const [wDays, uDays, schedules] = data.user
       ? await this.getUserGeneralSchedules(
-          data.user,
-          data.business,
-          startDate,
-          endDate,
-        )
+        data.user,
+        data.business,
+        startDate,
+        endDate,
+      )
       : await this.getGeneralSchedules(
-          data.business,
-          startOfDay(startDate),
-          endOfDay(endDate),
-        );
+        data.business,
+        startOfDay(startDate),
+        endOfDay(endDate),
+      );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }

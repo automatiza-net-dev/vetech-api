@@ -27,7 +27,7 @@ interface ISearch {
 type RenderTextData = Record<TemplateReplacementOrigin, ModelObject | null>;
 @inject()
 export default class TemplateReplacementService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   async index(authCtx: AuthContext, data: ISearch) {
     const qb = TemplateReplacement.query()
@@ -174,9 +174,7 @@ export default class TemplateReplacementService {
     }
 
     const value = this.$getValue(head.attribute, elem);
-    const value$ = value
-      ? this.$toString(value) ?? head.attribute
-      : head.attribute;
+    const value$ = value ? this.$toString(value) ?? head.attribute : '';
 
     const updated = raw.replaceAll(head.replacer, value$);
 
@@ -289,8 +287,8 @@ export default class TemplateReplacementService {
         : null,
       birthDate: patient.birthDate
         ? format(patient.birthDate, 'dd/MM/yyyy', {
-            locale: Locales.ptBR,
-          })
+          locale: Locales.ptBR,
+        })
         : null,
       castrated: patient.patientAnimal?.castrated,
       microchip: patient.patientAnimal?.microchip,

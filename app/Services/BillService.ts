@@ -212,16 +212,11 @@ export default class BillService {
           query.preload('product');
         });
 
+      const ufList = billItems.map(i => i.taxRule?.toUf).filter(Boolean);
       const ufIcms = await UfIcms.query()
         .useTransaction(trx)
-        .where(
-          'origin_uf',
-          billItems.map(i => i.taxRule.toUf),
-        )
-        .where(
-          'destination_uf',
-          billItems.map(i => i.taxRule.toUf),
-        )
+        .where('origin_uf', ufList)
+        .where('destination_uf', ufList)
         .first();
 
       const promises = billItems.map(async billItem => {

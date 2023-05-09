@@ -153,6 +153,7 @@ test.group('Scheduling resource', group => {
         scheduleStatusId: status.id,
         startHour: new Date().toISOString(),
         endHour: new Date().toISOString(),
+        userId: user.id,
       })
       .bearerToken(token);
 
@@ -198,6 +199,7 @@ test.group('Scheduling resource', group => {
         endHour: new Date(
           `2022-${d.getMonth() + 1}-${d.getDate()} 08:50:00`,
         ).toISOString(),
+        userId: user.id,
       })
       .bearerToken(token);
 

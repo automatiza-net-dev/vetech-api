@@ -36,7 +36,7 @@ pipeline {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT '
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                          cd '$FOLDER'
                             git pull origin $BRANCH
                         '

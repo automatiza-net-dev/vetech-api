@@ -6,9 +6,10 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import ScheduleStatus from 'App/Models/ScheduleStatus';
 import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { ICreateTreatment } from 'Contracts/interfaces/ITreatmentData';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -61,7 +62,7 @@ export default class AttendanceService {
     return attendance;
   }
 
-  public async open(unitId: string, user: User, data: ICreateTreatment) {
+  public async open(authCtx: AuthContext, data: ICreateTreatment) {
     if (!data.scheduleId && !data.patientId) {
       throw new BadRequestException(
         'É preciso informar agendamento ou paciente',
@@ -71,8 +72,8 @@ export default class AttendanceService {
     }
 
     const parsedData: Partial<Attendance> = {
-      business_unit_id: unitId,
-      open_user_id: user.id,
+      business_unit_id: authCtx.unit.id,
+      open_user_id: authCtx.user.id,
       schedule_service_id: data.scheduleServiceId,
       resume: data.resume,
       protocol: data.protocol,
@@ -82,6 +83,9 @@ export default class AttendanceService {
     await Database.transaction(async trx => {
       const serviceType = await ScheduleServiceType.findOrFail(
         data.scheduleServiceId,
+        {
+          client: trx,
+        },
       );
 
       if (data.scheduleId) {
@@ -97,14 +101,11 @@ export default class AttendanceService {
           .useTransaction(trx)
           .where('id', data.patientId ?? v4())
           .preload('tutors', query => {
-            query
-              .preload('tutor', query => {
-                query.preload('clientOrigin');
-              })
-              .pivotColumns(['is_main']);
+            query.preload('tutor').pivotColumns(['is_main']);
           })
           .firstOrFail();
         const mainTutor = patient.tutors.find(t => t.$extras.pivot_is_main);
+
         if (!mainTutor) {
           throw new BadRequestException(
             'Paciente sem tutor ativo',
@@ -115,6 +116,54 @@ export default class AttendanceService {
 
         parsedData.patient_id = data.patientId;
         parsedData.tutor_id = mainTutor.id;
+
+        const validPatientSchedule = await Schedule.query()
+          .useTransaction(trx)
+          .where('patient_id', patient.id)
+          .whereHas('serviceStatus', query => {
+            query.whereIn('description', [
+              'Agendado (Confirmado)',
+              'Agendado (Não confirmado)',
+              'Atrasado',
+              'Em atendimento',
+              'Em observação',
+              'Hospitalização',
+              'Na recepção',
+            ]);
+          })
+          .orderBy('start_hour', 'desc')
+          .first();
+
+        if (validPatientSchedule) {
+          parsedData.schedule_id = validPatientSchedule.id;
+        } else {
+          const status = await ScheduleStatus.query()
+            .useTransaction(trx)
+            .where('description', 'Em atendimento')
+            .firstOrFail();
+
+          const result = await Schedule.create(
+            {
+              business_unit_id: authCtx.unit.id,
+              schedule_service_type_id: data.scheduleServiceId,
+              schedule_status_id: status.id,
+              user_id: authCtx.user.id,
+              holder_id: mainTutor.id,
+              patient_id: patient.id,
+              startHour: DateTime.now(),
+              endHour: DateTime.now().plus({
+                minutes: serviceType.reservedMinutes,
+              }),
+              majorComplaint: data.resume,
+              onDuty: false,
+            },
+            {
+              client: trx,
+            },
+          );
+
+          parsedData.schedule_id = result.id;
+        }
       }
 
       const model = await Attendance.create(parsedData, {
@@ -139,8 +188,8 @@ export default class AttendanceService {
           resume: data.resume,
           protocol: data.protocol,
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           attendance: {
             id: model.id,

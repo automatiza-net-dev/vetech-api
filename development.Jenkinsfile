@@ -34,7 +34,7 @@ pipeline {
         }
         stage('Transfer Files') {
             steps {
-                sshagent(['PCORDISTA-SSH']) {
+                sshagent(['VETECH-HML']) {
                     sh """
                         ssh -tt $USER@$HOST -p $PORT '
                          cd '$FOLDER'

@@ -35,7 +35,7 @@ pipeline {
         stage('Transfer Files') {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
-                    sh """
+                    sh """#!/bin/bash
                         ssh -tt $USER@$HOST -p $PORT '
                          cd '$FOLDER'
                             git pull origin $BRANCH

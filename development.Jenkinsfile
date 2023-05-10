@@ -48,7 +48,7 @@ pipeline {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT '
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             yarn
                         '
@@ -60,7 +60,7 @@ pipeline {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT '
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             rm -rf dist
                             yarn build
@@ -74,7 +74,7 @@ pipeline {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT '
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                             cd '$FOLDER'
                             set NODE_ENV=production
                             node ace migration:run
@@ -87,7 +87,7 @@ pipeline {
             steps {
                 sshagent(['PCORDISTA-SSH']) {
                     sh """#!/bin/bash
-                        ssh -tt $USER@$HOST -p $PORT '
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                             pm2 restart '$APP'
                         '
                     """

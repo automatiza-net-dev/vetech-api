@@ -514,7 +514,7 @@ export default class PatientService {
         tag: item.tag,
         date: item.budgetDate.toJSDate(),
         seller: item.seller.name,
-        client: item.client.name,
+        client: key === 'patient_id' ? item.client?.name : item.user?.name,
         total_value: item.totalValue,
         missing_value: null,
         status: 'Orçamento em aberto',

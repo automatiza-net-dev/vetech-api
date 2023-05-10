@@ -485,6 +485,7 @@ export default class BusinessUnitService {
           inscription: data.inscription,
           licensingJob: data.licensingJob,
           onDuty: data.onDuty,
+          birthDate: data.birthDate,
         })
         .useTransaction(trx)
         .save();

@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 export interface IUpdateUnitUser {
   name?: string;
   email?: string;
@@ -14,5 +16,6 @@ export interface IUpdateUnitUser {
   inscription?: string;
   licensingJob?: string;
   onDuty?: boolean;
+  birthDate?: DateTime;
   roles?: Array<number>;
 }

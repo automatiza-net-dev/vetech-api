@@ -454,7 +454,7 @@ export default class PatientService {
     const patient = await authCtx.group
       .related('patients')
       .query()
-      .where('id', patientId)
+      .where('patient_id', patientId)
       .first();
 
     if (!patient) {

@@ -7,6 +7,8 @@ export type IPatientEvaluation = {
   protocol: string;
   realizedAt: DateTime;
   technicianId: string;
+  scheduleServiceTypeId: string;
+
   observation?: string;
   photos?: MultipartFileContract[];
 };

@@ -17,6 +17,13 @@ export default class CreatePatientEvaluationValidator {
         column: 'id',
       }),
     ]),
+    scheduleServiceTypeId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'schedule_service_types',
+        column: 'id',
+      }),
+    ]),
     photos: schema.array.optional().members(
       schema.file({
         extnames: ['jpg', 'gif', 'png', 'jpeg'],

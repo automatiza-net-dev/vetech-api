@@ -18,7 +18,7 @@ import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
 import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
 import IPatientData, {
   IFastStorePatient,
@@ -414,10 +414,10 @@ export default class PatientService {
     return patient;
   }
 
-  public async metadata(unitId: string, patientId: string) {
-    const group = await this.getEconomicGroup(unitId);
+  public async metadata(authCtx: AuthContext, patientId: string) {
+    const key = authCtx.system.name === 'LiftOne' ? 'client_id' : 'patient_id';
 
-    const patient = await group
+    const patient = await authCtx.group
       .related('patients')
       .query()
       .where('patient_id', patientId)
@@ -432,7 +432,7 @@ export default class PatientService {
     }
 
     const sales = await Bill.query()
-      .where('patient_id', patient.id)
+      .where(key, patient.id)
       .where('status', BillStatus.A);
 
     let total_sum = 0;
@@ -448,10 +448,10 @@ export default class PatientService {
     };
   }
 
-  public async salesMetadata(unitId: string, patientId: string) {
-    const group = await this.getEconomicGroup(unitId);
+  public async salesMetadata(authCtx: AuthContext, patientId: string) {
+    const key = authCtx.system.name === 'LiftOne' ? 'client_id' : 'patient_id';
 
-    const patient = await group
+    const patient = await authCtx.group
       .related('patients')
       .query()
       .where('patient_id', patientId)
@@ -466,16 +466,16 @@ export default class PatientService {
     }
 
     const sales = await Bill.query()
-      .where('patient_id', patient.id)
+      .where(key, patient.id)
       .preload('payments')
       .preload('seller')
-      .preload('client');
+      .preload(key === 'patient_id' ? 'client' : 'user');
 
     const budgets = await Budget.query()
-      .where('patient_id', patient.id)
+      .where(key, patient.id)
       .where('status', BudgetStatus.A)
       .preload('seller')
-      .preload('client');
+      .preload(key === 'patient_id' ? 'client' : 'user');
 
     const result: Array<unknown> = [];
 
@@ -498,7 +498,7 @@ export default class PatientService {
         tag: sale.tag,
         date: sale.billDate.toJSDate(),
         seller: sale.seller.name,
-        client: sale.client.name,
+        client: key === 'patient_id' ? sale.client?.name : sale.user?.name,
         total_value: sale.totalValue,
         missing_value:
           sale.totalValue -
@@ -514,7 +514,7 @@ export default class PatientService {
         tag: item.tag,
         date: item.budgetDate.toJSDate(),
         seller: item.seller.name,
-        client: item.client.name,
+        client: key === 'patient_id' ? item.client?.name : item.user?.name,
         total_value: item.totalValue,
         missing_value: null,
         status: 'Orçamento em aberto',
@@ -831,7 +831,7 @@ export default class PatientService {
       await patient.related('tutor').create({
         residence: data.residence,
         document: data.document,
-        inscription: data.stateInscription,
+        inscription: data.inscription,
         corporateName: data.corporateName,
         email: data.email,
         cellphone: data.cellphone,
@@ -1125,7 +1125,7 @@ export default class PatientService {
         .merge({
           residence: data.residence,
           document: data.document,
-          inscription: data.stateInscription,
+          inscription: data.inscription,
           corporateName: data.corporateName,
           email: data.email,
           cellphone: data.cellphone,

@@ -3,6 +3,7 @@ import { test } from '@japa/runner';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import { PatientType } from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
+import Rescheduling from 'App/Models/Rescheduling';
 import Schedule from 'App/Models/Schedule';
 import {
   SS_ATTENDANCE_CANCELLED,
@@ -36,7 +37,28 @@ test.group('Scheduling resource', group => {
     const holder = await PatientFactory.create();
     await holder.merge({ type: PatientType.TUTOR }).save();
 
-    return { user, status, serviceType, business, holder, system };
+    const patient = await PatientFactory.create();
+    await patient.merge({ type: PatientType.ANIMAL }).save();
+
+    await holder.related('dependents').attach([patient.id]);
+
+    const reason = await Reason.create({
+      economicGroupId: business.economicGroupId,
+      system_id: system.id,
+      reason: 'some',
+      type: 'CA',
+    });
+
+    return {
+      user,
+      status,
+      serviceType,
+      business,
+      holder,
+      system,
+      patient,
+      reason,
+    };
   };
 
   const createWorkingDay = async (
@@ -153,6 +175,7 @@ test.group('Scheduling resource', group => {
         scheduleStatusId: status.id,
         startHour: new Date().toISOString(),
         endHour: new Date().toISOString(),
+        userId: user.id,
       })
       .bearerToken(token);
 
@@ -198,6 +221,7 @@ test.group('Scheduling resource', group => {
         endHour: new Date(
           `2022-${d.getMonth() + 1}-${d.getDate()} 08:50:00`,
         ).toISOString(),
+        userId: user.id,
       })
       .bearerToken(token);
 
@@ -565,6 +589,49 @@ test.group('Scheduling resource', group => {
     const result = await client
       .get(`/schedules/${schedule.id}`)
       .bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
+  test('should get patient historic', async ({ assert, client }) => {
+    const { user, patient, holder, business, serviceType, reason } =
+      await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      patient_id: patient.id,
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+      reason_id: reason.id,
+      observation: 'some',
+      cancellation_user_id: user.id,
+    });
+
+    await Rescheduling.create({
+      schedule_id: schedule.id,
+      user_id: user.id,
+      originalDate: DateTime.now(),
+      observation: 'some',
+      reason_id: reason.id,
+    });
+
+    const result = await client
+      .get(`/schedules/historic/${patient.id}`)
+      .bearerToken(token);
+
+    console.log(JSON.stringify(result.body(), undefined, 2));
 
     assert.equal(200, result.status());
   });

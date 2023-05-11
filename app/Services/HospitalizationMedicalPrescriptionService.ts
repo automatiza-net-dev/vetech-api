@@ -21,7 +21,7 @@ import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
 import { MedicalPrescriptionKeys } from 'App/Services/MedicalPrescriptionService';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import CreateFluidOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateFluidOnceOrNeededValidator';
 import CreateFluidRecurrentValidator from 'App/Validators/MedicalPrescription/CreateFluidRecurrentValidator';
 import CreateMedicationOnceOrNeededValidator from 'App/Validators/MedicalPrescription/CreateMedicationOnceOrNeededValidator';
@@ -60,7 +60,7 @@ interface ISearchScheduling {
 
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const query = HospitalizationMedicalPrescription.query()
@@ -102,7 +102,8 @@ export default class HospitalizationMedicalPrescriptionService {
         query.preload('patient');
         query.preload('technician');
       })
-      .preload('technician');
+      .preload('technician')
+      .preload('prescription');
 
     if (data.hospitalization) {
       query.where('hospitalization_id', data.hospitalization);
@@ -152,6 +153,7 @@ export default class HospitalizationMedicalPrescriptionService {
         executionStart: data.executionStart,
         user_id: data.userId,
         volume: data.volume,
+        status: 'A',
       };
 
       if (key === 'PR') {
@@ -542,6 +544,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
   public async update(
     id: string,
+    user: User,
     data: IHospitalizationMedicalPrescriptionData,
     body: Record<string, unknown>,
   ) {
@@ -557,6 +560,8 @@ export default class HospitalizationMedicalPrescriptionService {
     const { key } = this.matchSchema(data.type, data.frequency);
 
     entity.merge({
+      update_user_id: user.id,
+      status: 'E',
       type: data.type,
       prescribedAt: data.prescribedAt,
       frequency: data.frequency,
@@ -631,27 +636,111 @@ export default class HospitalizationMedicalPrescriptionService {
     return entity.save();
   }
 
+  public async interruptPrescription(authCtx: AuthContext, id: string) {
+    await Database.transaction(async trx => {
+      const entity = await HospitalizationMedicalPrescription.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .first();
+
+      if (!entity) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (entity.status !== 'A') {
+        throw new BadRequestException(
+          'Prescrição não está ativa',
+          400,
+          'E_INVALID',
+        );
+      }
+
+      await entity
+        .merge({
+          status: 'I',
+          active: false,
+          excludedAt: DateTime.now(),
+          update_user_id: authCtx.user.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await entity.related('scheduling').query().useTransaction(trx).update({
+        status: 'I',
+        excludedAt: DateTime.now(),
+        update_user_id: authCtx.user.id,
+      });
+    });
+  }
+
+  public async excludePrescription(authCtx: AuthContext, id: string) {
+    await Database.transaction(async trx => {
+      const entity = await HospitalizationMedicalPrescription.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('scheduling')
+        .first();
+
+      if (!entity) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (entity.status !== 'A') {
+        throw new BadRequestException(
+          'Prescrição não está ativa',
+          400,
+          'E_INVALID',
+        );
+      }
+
+      if (entity.scheduling.some(s => s.status !== 'A')) {
+        throw new BadRequestException(
+          'Esta Prescrição Médica não pode ser excluída pois já possui execuções de Agendamentos. Utilize a opção "Interromper Prescrição Médica"',
+          400,
+          'E_INVALID',
+        );
+      }
+
+      await entity
+        .merge({
+          status: 'D',
+          active: false,
+          excludedAt: DateTime.now(),
+          update_user_id: authCtx.user.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await entity.related('scheduling').query().useTransaction(trx).update({
+        status: 'D',
+        excludedAt: DateTime.now(),
+        update_user_id: authCtx.user.id,
+      });
+    });
+  }
+
   public async updateScheduling(
     id: string,
     user: User,
     data: IHospitalizationMedicalPrescriptionSchedulingData,
   ) {
-    const scheduling =
-      await HospitalizationMedicalPrescriptionScheduling.query()
-        .where('id', id)
-        .preload('hospitalization')
-        .preload('prescription')
-        .first();
-
-    if (!scheduling) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    if (scheduling.executedAt) {
-      throw new BadRequestException('Agendamento já executado', 400, 'E_ERR');
-    }
-
     await Database.transaction(async trx => {
+      const scheduling =
+        await HospitalizationMedicalPrescriptionScheduling.query()
+          .useTransaction(trx)
+          .where('id', id)
+          .preload('hospitalization')
+          .preload('prescription')
+          .first();
+
+      if (!scheduling) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (scheduling.executedAt) {
+        throw new BadRequestException('Agendamento já executado', 400, 'E_ERR');
+      }
+
       await scheduling
         .merge({
           description: data.description,
@@ -663,6 +752,7 @@ export default class HospitalizationMedicalPrescriptionService {
           type: data.type,
           frequency: data.frequency,
           user_id: user.id,
+          update_user_id: user.id,
         })
         .useTransaction(trx)
         .save();
@@ -787,11 +877,11 @@ export default class HospitalizationMedicalPrescriptionService {
         const scheduledAt =
           prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.HOUR
             ? prescription.executionStart.plus({
-                hours: prescription.frequencyInterval * index,
-              })
+              hours: prescription.frequencyInterval * index,
+            })
             : prescription.executionStart.plus({
-                days: prescription.frequencyInterval * index,
-              });
+              days: prescription.frequencyInterval * index,
+            });
 
         return {
           type: prescription.type,
@@ -824,19 +914,17 @@ export default class HospitalizationMedicalPrescriptionService {
         prescription.description,
         [prescription.dose, prescription.prescriptionUnit.name].join(' '),
         `volume: ${prescription.volume}`,
-        `via de aplicação: ${
-          prescription.drugAdministration?.description ?? '-'
+        `via de aplicação: ${prescription.drugAdministration?.description ?? '-'
         }`,
-        `(${prescription.hospitalization.patient.weight ?? ''} ${
-          prescription.hospitalization.patient.weightDate
-            ? [
-                'kg em ',
-                format(
-                  prescription.hospitalization.patient.weightDate?.toJSDate(),
-                  'dd/MM/yyyy HH:mm',
-                ),
-              ].join(' ')
-            : 'Não informado'
+        `(${prescription.hospitalization.patient.weight ?? ''} ${prescription.hospitalization.patient.weightDate
+          ? [
+            'kg em ',
+            format(
+              prescription.hospitalization.patient.weightDate?.toJSDate(),
+              'dd/MM/yyyy HH:mm',
+            ),
+          ].join(' ')
+          : 'Não informado'
         })`,
       ]
         .filter(Boolean)

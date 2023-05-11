@@ -67,6 +67,7 @@ test.group('Template replacement resource', group => {
     await patient.related('patientAnimal').create({
       race_id: race.id,
       hair_id: hair.id,
+      castrated: true,
     });
 
     const schedule = await Schedule.create({
@@ -395,25 +396,86 @@ test.group('Template replacement resource', group => {
       })
       .bearerToken(token);
 
-    console.log(response.body());
-
     assert.equal(200, response.status());
   });
 
   test('should replace text with patient text', async ({ assert, client }) => {
-    const { user, patient } = await createData();
+    const { user, patient, system } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
+    const templates = await TemplateReplacement.fetchOrCreateMany(
+      ['replacer', 'system_id'],
+      [
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'name',
+          replacer: '[PACIENTE_NOME]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'castrated',
+          replacer: '[PACIENTE_CASTRADO]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'tag',
+          replacer: '[PACIENTE_ID]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'gender',
+          replacer: '[PACIENTE_SEXO]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'numeric_age',
+          replacer: '[PACIENTE_IDADE]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'birthDate',
+          replacer: '[PACIENTE_NASCIMENTO]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'hair',
+          replacer: '[PACIENTE_PELAGEM]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'specie',
+          replacer: '[PACIENTE_ESPECIE]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'race',
+          replacer: '[PACIENTE_RACA]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'weight',
+          replacer: '[PACIENTE_PESO]',
+        },
+        {
+          origin: TemplateReplacementOrigin.PATIENT,
+          attribute: 'vaccinated',
+          replacer: '[PACIENTE_VACINADO]',
+        },
+      ].map(elem => ({ ...elem, system_id: system.id })),
+    );
+
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_NOME] [PACIENTE_SEXO] [PACIENTE_PELAGEM] [PACIENTE_ESPECIE] [PACIENTE_RACA] [PACIENTE_PESO] [PACIENTE_VACINADO] [PACIENTE_ID] [PACIENTE_IDADE] [PACIENTE_NASCIMENTO]`,
+        base: templates.map(template => template.replacer).join(' '),
         dependentId: patient.id,
       })
       .bearerToken(token);
+
+    console.log(response.body());
 
     assert.equal(200, response.status());
   });

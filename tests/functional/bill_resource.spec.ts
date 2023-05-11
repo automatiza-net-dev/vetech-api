@@ -36,6 +36,38 @@ test.group('Bill resource', group => {
   const createData = async () => {
     const { user, business, group } = await userBootstrap();
 
+    const tefAcq = await TefAcquirer.create({
+      economic_group_id: group.id,
+      description: 'any description',
+    });
+
+    const tefFlag = await TefFlag.create({
+      economic_group_id: group.id,
+      description: 'any description',
+      code: 'any code',
+      type: TefFlagType.A,
+    });
+
+    const paymentMethod = await PaymentMethod.create({
+      economicGroupId: group.id,
+      tef: PaymentMethodTef.T,
+      description: 'some',
+    });
+
+    const paymentMethodFlag = await paymentMethod.related('flags').create({
+      economic_group_id: group.id,
+      tef_flag_id: tefFlag.id,
+      tef_acquirer_id: tefAcq.id,
+      maxInstallments: 10,
+    });
+
+    const flagInstallment = await paymentMethodFlag
+      .related('installments')
+      .create({
+        installment: 1,
+        fee: 10,
+      });
+
     const client = await PatientFactory.create();
     await client.merge({ type: PatientType.TUTOR }).save();
     await client.related('tutor').create({
@@ -83,6 +115,8 @@ test.group('Bill resource', group => {
       installmentValue: 10,
       totalValue: 10, // TODO: add fee
       bill_id: bill.id,
+      payment_method_id: paymentMethod.id,
+      tef_flag_id: tefFlag.id,
     });
 
     const taxation = await TaxationGroup.create({
@@ -167,37 +201,6 @@ test.group('Bill resource', group => {
       status: BillStatus.A,
       createdAt: DateTime.now(),
     }) */
-
-    const tefAcq = await TefAcquirer.create({
-      economic_group_id: group.id,
-      description: 'any description',
-    });
-
-    const tefFlag = await TefFlag.create({
-      economic_group_id: group.id,
-      description: 'any description',
-      code: 'any code',
-      type: TefFlagType.A,
-    });
-
-    const paymentMethod = await PaymentMethod.create({
-      economicGroupId: group.id,
-      tef: PaymentMethodTef.T,
-    });
-
-    const paymentMethodFlag = await paymentMethod.related('flags').create({
-      economic_group_id: group.id,
-      tef_flag_id: tefFlag.id,
-      tef_acquirer_id: tefAcq.id,
-      maxInstallments: 10,
-    });
-
-    const flagInstallment = await paymentMethodFlag
-      .related('installments')
-      .create({
-        installment: 1,
-        fee: 10,
-      });
 
     const kit = await Kit.create({
       description: 'some description',
@@ -992,6 +995,44 @@ test.group('Bill resource', group => {
       .bearerToken(token);
 
     assert.equal(400, response.status());
+  });
+
+  test('should fetch daily cashier conference data', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyCashier } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/bills/conference/${dailyCashier.id}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should update daily cashier conference data', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyCashier, payment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/update-conference`)
+      .json({
+        dailyCashierId: dailyCashier.id,
+        confirmedPayments: [payment.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 
   // test('should recalculate item taxes', async ({ assert, client }) => {

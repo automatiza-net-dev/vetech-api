@@ -10,7 +10,7 @@ import CheckingAccount, {
 } from 'App/Models/CheckingAccount';
 import { LicenceType } from 'App/Models/Licence';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IBusinessUnitAcquirerData } from 'Contracts/interfaces/IBusinessUnitAcquirerData';
 import { ICreateBusinessUnit } from 'Contracts/interfaces/ICreateBusinessUnit';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
@@ -220,7 +220,7 @@ export default class BusinessUnitService {
   }
 
   public async createCollaborator(
-    unitId: string,
+    authCtx: AuthContext,
     props: {
       roleId: number;
       name: string;
@@ -231,7 +231,7 @@ export default class BusinessUnitService {
     await Database.transaction(async trx => {
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
-        .where('id', unitId)
+        .where('id', authCtx.unit.id)
         .preload('economicGroup')
         .firstOrFail();
 
@@ -254,6 +254,7 @@ export default class BusinessUnitService {
           name: props.name,
           email: props.email,
           password: props.password,
+          system_id: authCtx.system.id,
         },
         {
           client: trx,
@@ -484,6 +485,7 @@ export default class BusinessUnitService {
           inscription: data.inscription,
           licensingJob: data.licensingJob,
           onDuty: data.onDuty,
+          birthDate: data.birthDate,
         })
         .useTransaction(trx)
         .save();

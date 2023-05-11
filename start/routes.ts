@@ -287,6 +287,7 @@ Route.group(() => {
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
   Route.get('/returnables/:patient', 'SchedulesController.returnableSchedules');
+  Route.get('/historic/:patient', 'SchedulesController.getPatientSchedules');
 
   Route.get('/', 'SchedulesController.index');
   Route.post('/create-contact', 'SchedulesController.createContact');
@@ -614,6 +615,14 @@ Route.group(() => {
   Route.get('/', 'HospitalizationMedicalPrescriptionsController.index');
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
   Route.put(
+    '/interrupt/:id',
+    'HospitalizationMedicalPrescriptionsController.interruptPrescription',
+  );
+  Route.put(
+    '/exclude/:id',
+    'HospitalizationMedicalPrescriptionsController.excludePrescription',
+  );
+  Route.put(
     '/schedule/:id',
     'HospitalizationMedicalPrescriptionsController.updateSchedule',
   );
@@ -796,14 +805,18 @@ Route.group(() => {
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/add-kit', 'BillsController.addKitToBill');
+
   Route.put('/update-item', 'BillsController.updateBillItem');
   Route.put('/delete-item/:id', 'BillsController.deleteBillItem');
   Route.post('/create-payment', 'BillsController.createBillPayment');
+
   Route.get('/', 'BillsController.index');
+  Route.get('/conference/:id', 'BillsController.fetchConferenceCashier');
   Route.get('/products', 'BillsController.searchProducts');
   Route.get('/taxes', 'BillsController.searchTax');
   Route.get('/show/:id', 'BillsController.show');
 
+  Route.put('/update-conference', 'BillsController.updateCashierConference');
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
 

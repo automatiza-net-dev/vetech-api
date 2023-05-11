@@ -21,6 +21,7 @@ export default class UpdateUnitUserValidator {
     inscription: schema.string.optional({}),
     licensingJob: schema.string.optional({}),
     onDuty: schema.boolean.optional([]),
+    birthDate: schema.date.optional({}),
     roles: schema.array
       .optional()
       .members(

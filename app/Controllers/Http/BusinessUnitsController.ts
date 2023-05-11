@@ -70,9 +70,10 @@ export default class BusinessUnitsController {
     const payload = await request.validate(
       CreateBusinessUnitCollaboratorValidator,
     );
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.createCollaborator(unit_id, payload);
+    await this.service.createCollaborator(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created();
   }

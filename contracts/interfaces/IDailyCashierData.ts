@@ -15,7 +15,6 @@ export interface ICloseCashierData {
 }
 
 export interface ICheckCashierData {
-  userId: string;
   checkingDate: DateTime;
   observations: string;
 }

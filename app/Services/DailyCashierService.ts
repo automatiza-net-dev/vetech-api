@@ -8,7 +8,7 @@ import {
 } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import {
   ICheckCashierData,
   ICloseCashierData,
@@ -578,34 +578,45 @@ export default class DailyCashierService {
     });
   }
 
-  async checkDailyCashier(unitId: string, id: string, data: ICheckCashierData) {
-    const dailyCashier = await DailyCashier.query()
-      .where('id', id)
-      .where('business_unit_id', unitId)
-      .first();
+  async checkDailyCashier(
+    authCtx: AuthContext,
+    id: string,
+    data: ICheckCashierData,
+  ) {
+    return Database.transaction(async trx => {
+      const dailyCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
 
-    if (!dailyCashier) {
-      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
-    }
+      if (!dailyCashier) {
+        throw this.sharedService.ResourceNotFound(
+          'Caixa diário não encontrado',
+        );
+      }
 
-    if (dailyCashier.status !== DailyCashierStatus.F) {
-      throw new BadRequestException(
-        'Caixa diário não está fechado',
-        400,
-        'E_DAILY_CASHIER_NOT_CLOSED',
-      );
-    }
+      if (dailyCashier.status !== DailyCashierStatus.F) {
+        throw new BadRequestException(
+          'Caixa diário não está fechado',
+          400,
+          'E_DAILY_CASHIER_NOT_CLOSED',
+        );
+      }
 
-    return dailyCashier
-      .merge({
-        user_who_checked_id: data.userId,
-        status: DailyCashierStatus.C,
-        observations: [dailyCashier.observations, data.observations].join(
-          ' - ',
-        ),
-        checkingDate: DateTime.now(),
-      })
-      .save();
+      return dailyCashier
+        .merge({
+          user_who_checked_id: authCtx.user.id,
+
+          status: DailyCashierStatus.C,
+          observations: [dailyCashier.observations, data.observations].join(
+            ' - ',
+          ),
+          checkingDate: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   async reviewDailyCashier(
@@ -613,31 +624,39 @@ export default class DailyCashierService {
     id: string,
     data: IReviewCashierData,
   ) {
-    const dailyCashier = await DailyCashier.query()
-      .where('id', id)
-      .where('business_unit_id', unitId)
-      .first();
+    return Database.transaction(async trx => {
+      const dailyCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', unitId)
+        .first();
 
-    if (!dailyCashier) {
-      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
-    }
+      if (!dailyCashier) {
+        throw this.sharedService.ResourceNotFound(
+          'Caixa diário não encontrado',
+        );
+      }
 
-    if (dailyCashier.status !== DailyCashierStatus.F) {
-      throw new BadRequestException(
-        'Caixa diário não está fechado',
-        400,
-        'E_DAILY_CASHIER_NOT_CLOSED',
-      );
-    }
+      if (dailyCashier.status !== DailyCashierStatus.F) {
+        throw new BadRequestException(
+          'Caixa diário não está fechado',
+          400,
+          'E_DAILY_CASHIER_NOT_CLOSED',
+        );
+      }
 
-    dailyCashier.merge({
-      user_who_revised_id: data.userId,
-      status: DailyCashierStatus.R,
-      revisionDate: data.revisionDate,
-      observations: [dailyCashier.observations, data.observations].join(' - '),
+      return dailyCashier
+        .merge({
+          user_who_revised_id: data.userId,
+          status: DailyCashierStatus.R,
+          revisionDate: data.revisionDate,
+          observations: [dailyCashier.observations, data.observations].join(
+            ' - ',
+          ),
+        })
+        .useTransaction(trx)
+        .save();
     });
-
-    return dailyCashier.save();
   }
 
   async createCashierExpenseEntry(

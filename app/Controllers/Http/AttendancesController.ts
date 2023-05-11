@@ -31,9 +31,9 @@ export default class AttendancesController {
 
   public async open({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(OpenAttendanceValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-    await this.service.open(unit_id, user, payload);
+    await this.service.open(authCtx, payload);
 
     return response.created();
   }

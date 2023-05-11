@@ -3,15 +3,14 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default class UpdatePatientSupplierValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     name: schema.string({}),
-    email: schema.string({}, [rules.email()]),
-    cellphone: schema.string({}, []),
-    document: schema.string({}, []),
+    email: schema.string.optional({}, [rules.email()]),
+    cellphone: schema.string.optional({}, []),
+    document: schema.string.optional({}, []),
 
-    stateInscription: schema.string.optional({}),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],

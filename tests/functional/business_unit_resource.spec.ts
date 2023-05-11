@@ -1,7 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import TefAcquirer from 'App/Models/TefAcquirer';
+import ScheduleService from 'App/Services/ScheduleService';
 import { IUpdateUnitUser } from 'Contracts/interfaces/IUpdateUnitUser';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -55,10 +57,19 @@ test.group('Business unit resource', group => {
     client,
     assert,
   }) => {
-    const { user } = await createData();
+    const { user, business } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
+    });
+
+    await business.related('workingDays').create({
+      id: v4(),
+      user_id: user.id,
+      weekDay: ScheduleService.GetWD(new Date()),
+      startHour: DateTime.now().toFormat('HH:mm:ss'),
+      endHour: DateTime.now().toFormat('HH:mm:ss'),
+      weekday_index: 0,
     });
 
     const response = await client

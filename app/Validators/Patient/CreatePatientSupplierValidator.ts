@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default class CreatePatientSupplierValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     name: schema.string({}),

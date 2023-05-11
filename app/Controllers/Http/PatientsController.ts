@@ -50,15 +50,19 @@ export default class PatientsController {
   }
 
   public async metadata({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const data = await this.service.metadata(unit_id, params.id);
+    const data = await this.service.metadata(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(data);
   }
 
   public async salesMetadata({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const data = await this.service.salesMetadata(unit_id, params.id);
+    const data = await this.service.salesMetadata(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(data);
   }

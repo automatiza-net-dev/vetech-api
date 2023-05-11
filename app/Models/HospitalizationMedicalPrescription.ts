@@ -24,9 +24,14 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export type HospitalizationMedicalPrescriptionStatus = 'A' | 'E' | 'I' | 'D';
+
 export default class HospitalizationMedicalPrescription extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
+
+  @column()
+  public status: HospitalizationMedicalPrescriptionStatus;
 
   @column()
   public type: MedicalPrescriptionType;
@@ -95,6 +100,9 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   @column.dateTime({ columnName: 'execution_start' })
   public executionStart: DateTime;
 
+  @column.dateTime({ columnName: 'excluded_at' })
+  public excludedAt: DateTime | null;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
@@ -133,6 +141,11 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
     foreignKey: 'user_id',
   })
   public user: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
+  public update_user_id?: string;
 
   @column({
     serializeAs: null,

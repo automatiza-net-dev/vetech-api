@@ -4,6 +4,10 @@ import DrugAdministration from 'App/Models/DrugAdministration';
 import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+import HospitalizationMedicalPrescriptionScheduling, {
+  HospitalizationSchedulingStatus,
+} from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
@@ -40,6 +44,22 @@ test.group('Hospitalization medical prescription resource', group => {
       expectedDischarge: DateTime.now().plus({ days: 2 }),
     });
 
+    const prescription = await HospitalizationMedicalPrescription.create({
+      hospitalization_id: hospitalization.id,
+      resume: 'teste resumo',
+      description: 'teste descrição',
+      status: 'A',
+    });
+
+    const scheduling =
+      await HospitalizationMedicalPrescriptionScheduling.create({
+        hospitalization_id: hospitalization.id,
+        hospitalization_medical_prescription_id: prescription.id,
+        resume: 'teste resumo',
+        description: 'teste descrição',
+        status: HospitalizationSchedulingStatus.ACTIVE,
+      });
+
     const unit = await Unit.create({
       name: 'some unit',
       economic_group_id: group.id,
@@ -47,8 +67,40 @@ test.group('Hospitalization medical prescription resource', group => {
       type: UnitType.PRODUCT,
     });
 
-    return { user, drug, hospitalization, unit };
+    return { user, drug, hospitalization, unit, scheduling, prescription };
   };
+
+  test('should get scheduling', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/hospitalization-prescriptions/scheduling`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get scheduling with qs', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('fromScheduledDate', new Date().toISOString());
+    qs.append('toScheduledDate', new Date().toISOString());
+
+    const response = await client
+      .get(`/hospitalization-prescriptions/scheduling?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 
   test('should create medical prescriptions (PR)', async ({
     assert,
@@ -277,5 +329,92 @@ test.group('Hospitalization medical prescription resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if prescription is not active when interrupting', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await prescription.merge({ status: 'I' }).save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/interrupt/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should interrupt medical prescription', async ({ assert, client }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/interrupt/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if prescription is not active when excluding', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await prescription.merge({ status: 'I' }).save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if prescription has executed scheduling', async ({
+    assert,
+    client,
+  }) => {
+    const { user, prescription, scheduling } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await scheduling
+      .merge({ status: HospitalizationSchedulingStatus.COMPLETE })
+      .save();
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should exclude medical prescription', async ({ assert, client }) => {
+    const { user, prescription } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

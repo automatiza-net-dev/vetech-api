@@ -10,7 +10,7 @@ export default interface IPatientSupplierData {
   telephone?: string;
 
   birthDate?: DateTime;
-  stateInscription?: string;
+  inscription?: string;
   residence?: typeof TutorResidences[number];
   photo?: MultipartFileContract;
   tags?: string;

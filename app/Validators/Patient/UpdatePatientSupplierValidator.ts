@@ -11,7 +11,6 @@ export default class UpdatePatientSupplierValidator {
     cellphone: schema.string.optional({}, []),
     document: schema.string.optional({}, []),
 
-    stateInscription: schema.string.optional({}),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png'],

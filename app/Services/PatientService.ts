@@ -62,7 +62,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
@@ -831,7 +831,7 @@ export default class PatientService {
       await patient.related('tutor').create({
         residence: data.residence,
         document: data.document,
-        inscription: data.stateInscription,
+        inscription: data.inscription,
         corporateName: data.corporateName,
         email: data.email,
         cellphone: data.cellphone,
@@ -1125,7 +1125,7 @@ export default class PatientService {
         .merge({
           residence: data.residence,
           document: data.document,
-          inscription: data.stateInscription,
+          inscription: data.inscription,
           corporateName: data.corporateName,
           email: data.email,
           cellphone: data.cellphone,

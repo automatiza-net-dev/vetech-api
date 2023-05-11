@@ -228,17 +228,30 @@ export default class TimelineService {
   }
 
   public async evaluationIndex(tag: string) {
+    const timelineInfo = await TimelineType.findByOrFail(
+      'description',
+      'Avaliação',
+    );
+
+    if (!timelineInfo) {
+      return [];
+    }
+
     return AnimalTimeline.find({
-      timeline_id: EVALUATION_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeEvaluation(data: IPatientEvaluation) {
     return Database.transaction(async trx => {
-      const timelineInfo = await TimelineType.findOrFail(EVALUATION_UUID, {
-        client: trx,
-      });
+      const timelineInfo = await TimelineType.findByOrFail(
+        'description',
+        'Avaliação',
+        {
+          client: trx,
+        },
+      );
 
       const scheduleServiceType = await ScheduleServiceType.findOrFail(
         data.scheduleServiceTypeId,

@@ -226,13 +226,14 @@ export default class BillService {
           billItem.unitaryValue * billItem.quantity -
           (dataItem?.discountValue ?? 0);
         const icmsBase =
-          totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
+          totalValue *
+          ((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsStBase_1 =
           icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
         const icmsStPercentageRedBase = this.isValidNumber(
           billItem.taxRule.ivaIcmsSt,
         )
-          ? billItem.taxRule.icmsPercRedBaseCalculoST
+          ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
           : undefined;
         const icmsStBase_2 = this.isValidNumber(billItem.taxRule.ivaIcmsSt)
           ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
@@ -265,7 +266,7 @@ export default class BillService {
             icmsStPercentageRedBase: this.isValidNumber(
               billItem.taxRule.ivaIcmsSt,
             )
-              ? billItem.taxRule.icmsPercRedBaseCalculoST
+              ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
               : undefined,
             icmsStIva: this.isValidNumber(billItem.taxRule.ivaIcmsSt),
             icmsStPercentageUfDestination: this.isValidNumber(

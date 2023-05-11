@@ -7,6 +7,7 @@ export default class OpenAttendanceValidator {
   public schema = schema.create({
     resume: schema.string.optional(),
     protocol: schema.string(),
+    internalObservation: schema.string.optional(),
     scheduleServiceId: schema.string({}, [
       rules.uuid(),
       rules.exists({

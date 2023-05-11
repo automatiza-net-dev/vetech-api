@@ -187,6 +187,7 @@ export default class AttendanceService {
           finishedAt: null,
           resume: data.resume,
           protocol: data.protocol,
+          internalObservation: data.internalObservation,
           technician: {
             id: authCtx.user.id,
             name: authCtx.user.name,
@@ -207,7 +208,7 @@ export default class AttendanceService {
   public async update(
     unitId: string,
     id: string,
-    data: { resume: string; protocol: string },
+    data: { resume: string; protocol: string; internalObservation?: string },
   ) {
     const model = await this.show(unitId, id);
 
@@ -227,6 +228,8 @@ export default class AttendanceService {
           $set: {
             'timeline_info.resume': data.resume,
             'timeline_info.protocol': data.protocol,
+            'timeline_info.internalObservation':
+              data.internalObservation ?? null,
           },
         },
         {},

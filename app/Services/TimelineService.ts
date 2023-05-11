@@ -335,6 +335,8 @@ export default class TimelineService {
           realizedAt: data.realizedAt.toJSDate(),
           resume: data.resume,
           protocol: data.protocol,
+          observation: data.observation ?? null,
+          internalObservation: data.internalObservation ?? null,
           technician: {
             id: technician.id,
             name: technician.name,

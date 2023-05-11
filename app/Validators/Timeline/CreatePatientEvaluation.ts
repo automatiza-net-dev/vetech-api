@@ -10,6 +10,7 @@ export default class CreatePatientEvaluationValidator {
     protocol: schema.string(),
     realizedAt: schema.date(),
     observation: schema.string.optional(),
+    internalObservation: schema.string.optional(),
     technicianId: schema.string({}, [
       rules.uuid(),
       rules.exists({

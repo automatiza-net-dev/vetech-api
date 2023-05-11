@@ -10,5 +10,6 @@ export type IPatientEvaluation = {
   scheduleServiceTypeId: string;
 
   observation?: string;
+  internalObservation?: string;
   photos?: MultipartFileContract[];
 };

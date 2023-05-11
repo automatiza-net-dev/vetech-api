@@ -7,6 +7,7 @@ export default class UpdateAttendanceValidator {
   public schema = schema.create({
     resume: schema.string(),
     protocol: schema.string(),
+    internalObservation: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

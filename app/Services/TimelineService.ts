@@ -235,9 +235,18 @@ export default class TimelineService {
   }
 
   public async storeEvaluation(data: IPatientEvaluation) {
-    const timelineInfo = await TimelineType.findOrFail(EVALUATION_UUID);
-
     return Database.transaction(async trx => {
+      const timelineInfo = await TimelineType.findOrFail(EVALUATION_UUID, {
+        client: trx,
+      });
+
+      const scheduleService = await ScheduleServiceType.findOrFail(
+        data.scheduleServiceId,
+        {
+          client: trx,
+        },
+      );
+
       const technician = await User.findOrFail(data.technicianId, {
         client: trx,
       });
@@ -257,6 +266,11 @@ export default class TimelineService {
           technician: {
             id: technician.id,
             name: technician.name,
+          },
+          service: {
+            id: scheduleService.id,
+            description: scheduleService.description,
+            resume: scheduleService.resume,
           },
           photos: data.photos
             ? await Promise.all(data.photos.map(this.uploadPhoto))

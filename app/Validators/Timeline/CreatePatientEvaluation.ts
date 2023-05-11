@@ -17,10 +17,10 @@ export default class CreatePatientEvaluationValidator {
         column: 'id',
       }),
     ]),
-    scheduleServiceId: schema.string({}, [
+    scheduleServiceTypeId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'schedule_services',
+        table: 'schedule_service_types',
         column: 'id',
       }),
     ]),

@@ -240,8 +240,8 @@ export default class TimelineService {
         client: trx,
       });
 
-      const scheduleService = await ScheduleServiceType.findOrFail(
-        data.scheduleServiceId,
+      const scheduleServiceType = await ScheduleServiceType.findOrFail(
+        data.scheduleServiceTypeId,
         {
           client: trx,
         },
@@ -268,9 +268,9 @@ export default class TimelineService {
             name: technician.name,
           },
           service: {
-            id: scheduleService.id,
-            description: scheduleService.description,
-            resume: scheduleService.resume,
+            id: scheduleServiceType.id,
+            description: scheduleServiceType.description,
+            resume: scheduleServiceType.resume,
           },
           photos: data.photos
             ? await Promise.all(data.photos.map(this.uploadPhoto))

@@ -22,21 +22,7 @@ import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
 import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import TimelineType, {
-  ATTENDANCE_UUID,
-  DOCUMENT_UUID,
-  EVALUATION_UUID,
-  EXAM_UUID,
-  GLYCEMIA_UUID,
-  HOSPITALIZATION_UUID,
-  OBSERVATION_UUID,
-  PATHOLOGY_UUID,
-  PHOTO_UUID,
-  PRESSURE_MEASUREMENT_UUID,
-  RECIPE_UUID,
-  VACCINE_UUID,
-  WEIGHT_UUID,
-} from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
@@ -58,14 +44,34 @@ export default class TimelineService {
   }
 
   public async weightIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Peso',
+      },
+      {
+        color: '#000000',
+        description: 'Peso',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: WEIGHT_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeWeight(data: IAnimalWeight) {
-    const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Peso',
+      },
+      {
+        color: '#000000',
+        description: 'Peso',
+        requiresObservation: false,
+      },
+    );
 
     return Database.transaction(async trx => {
       const technician = await User.findOrFail(data.technicianId, {
@@ -85,7 +91,7 @@ export default class TimelineService {
         .save();
 
       return AnimalTimeline.create({
-        timeline_id: WEIGHT_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -113,9 +119,19 @@ export default class TimelineService {
         throw new ResourceNotFoundException('Recurso não encontrado');
       }
 
-      const timelineInfo = await TimelineType.findOrFail(WEIGHT_UUID, {
-        client: trx,
-      });
+      const timelineInfo = await TimelineType.firstOrCreate(
+        {
+          description: 'Peso',
+        },
+        {
+          color: '#000000',
+          description: 'Peso',
+          requiresObservation: false,
+        },
+        {
+          client: trx,
+        },
+      );
       const technician = await User.findOrFail(data.technicianId, {
         client: trx,
       });
@@ -132,7 +148,7 @@ export default class TimelineService {
 
       return AnimalTimeline.findByIdAndUpdate(id, {
         $set: {
-          timeline_id: WEIGHT_UUID,
+          timeline_id: timelineInfo.id,
           timeline_type: {
             description: timelineInfo.description,
             color: timelineInfo.color,
@@ -154,15 +170,33 @@ export default class TimelineService {
   }
 
   public async pressureIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Aferição de Pressão',
+      },
+      {
+        color: '#000000',
+        description: 'Aferição de Pressão',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: PRESSURE_MEASUREMENT_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storePressure(data: IPatientPressure) {
-    const timelineInfo = await TimelineType.findOrFail(
-      PRESSURE_MEASUREMENT_UUID,
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Aferição de Pressão',
+      },
+      {
+        color: '#000000',
+        description: 'Aferição de Pressão',
+        requiresObservation: false,
+      },
     );
 
     return Database.transaction(async trx => {
@@ -171,7 +205,7 @@ export default class TimelineService {
       });
 
       return AnimalTimeline.create({
-        timeline_id: PRESSURE_MEASUREMENT_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -192,14 +226,34 @@ export default class TimelineService {
   }
 
   public async glycemiaIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Glicemia',
+      },
+      {
+        color: '#000000',
+        description: 'Glicemia',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: GLYCEMIA_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeGlycemia(data: IPatientGlycemia) {
-    const timelineInfo = await TimelineType.findOrFail(GLYCEMIA_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Glicemia',
+      },
+      {
+        color: '#000000',
+        description: 'Glicemia',
+        requiresObservation: false,
+      },
+    );
 
     return Database.transaction(async trx => {
       const technician = await User.findOrFail(data.technicianId, {
@@ -207,7 +261,7 @@ export default class TimelineService {
       });
 
       return AnimalTimeline.create({
-        timeline_id: GLYCEMIA_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -228,14 +282,16 @@ export default class TimelineService {
   }
 
   public async evaluationIndex(tag: string) {
-    const timelineInfo = await TimelineType.findByOrFail(
-      'description',
-      'Avaliação',
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Avaliação',
+      },
+      {
+        color: '#000000',
+        description: 'Avaliação',
+        requiresObservation: false,
+      },
     );
-
-    if (!timelineInfo) {
-      return [];
-    }
 
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
@@ -245,11 +301,14 @@ export default class TimelineService {
 
   public async storeEvaluation(data: IPatientEvaluation) {
     return Database.transaction(async trx => {
-      const timelineInfo = await TimelineType.findByOrFail(
-        'description',
-        'Avaliação',
+      const timelineInfo = await TimelineType.firstOrCreate(
         {
-          client: trx,
+          description: 'Avaliação',
+        },
+        {
+          color: '#000000',
+          description: 'Avaliação',
+          requiresObservation: false,
         },
       );
 
@@ -265,7 +324,7 @@ export default class TimelineService {
       });
 
       return AnimalTimeline.create({
-        timeline_id: EVALUATION_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -294,19 +353,39 @@ export default class TimelineService {
   }
 
   public async documentIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Documento',
+      },
+      {
+        color: '#000000',
+        description: 'Documento',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: DOCUMENT_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeDocument(data: IAnimalDocument) {
-    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Documento',
+      },
+      {
+        color: '#000000',
+        description: 'Documento',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: DOCUMENT_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -332,13 +411,21 @@ export default class TimelineService {
       throw new ResourceNotFoundException('Recurso não encontrado');
     }
 
-    const timelineInfo = await TimelineType.findOrFail(DOCUMENT_UUID);
-
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Documento',
+      },
+      {
+        color: '#000000',
+        description: 'Documento',
+        requiresObservation: false,
+      },
+    );
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {
-        timeline_id: DOCUMENT_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -359,19 +446,38 @@ export default class TimelineService {
   }
 
   public async pathologyIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Patologia',
+      },
+      {
+        color: '#000000',
+        description: 'Patologia',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: PATHOLOGY_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storePathology(data: IAnimalPathology) {
-    const timelineInfo = await TimelineType.findOrFail(PATHOLOGY_UUID);
-
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Patologia',
+      },
+      {
+        color: '#000000',
+        description: 'Patologia',
+        requiresObservation: false,
+      },
+    );
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: PATHOLOGY_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -416,19 +522,39 @@ export default class TimelineService {
   }
 
   public async medicalRecipeIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Formato Receita Médica',
+      },
+      {
+        color: '#000000',
+        description: 'Formato Receita Médica',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: RECIPE_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeMedicalRecipe(data: IAnimalMedicalRecipe) {
-    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Formato Receita Médica',
+      },
+      {
+        color: '#000000',
+        description: 'Formato Receita Médica',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: RECIPE_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -454,13 +580,22 @@ export default class TimelineService {
       throw new ResourceNotFoundException('Recurso não encontrado');
     }
 
-    const timelineInfo = await TimelineType.findOrFail(RECIPE_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Formato Receita Médica',
+      },
+      {
+        color: '#000000',
+        description: 'Formato Receita Médica',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {
-        timeline_id: RECIPE_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -481,19 +616,39 @@ export default class TimelineService {
   }
 
   public async photoIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Fotos',
+      },
+      {
+        color: '#000000',
+        description: 'Fotos',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: PHOTO_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storePhoto(data: ICreateAnimalPhoto) {
-    const timelineInfo = await TimelineType.findOrFail(PHOTO_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Fotos',
+      },
+      {
+        color: '#000000',
+        description: 'Fotos',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: PHOTO_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -517,21 +672,41 @@ export default class TimelineService {
   }
 
   public async vaccineIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Vacinas',
+      },
+      {
+        color: '#000000',
+        description: 'Vacinas',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: VACCINE_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeVaccine(data: ICreateAnimalVaccine) {
-    const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Vacinas',
+      },
+      {
+        color: '#000000',
+        description: 'Vacinas',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
     const vaccine = await PatientVaccine.findOrFail(data.vaccineId);
     await vaccine.load('calendars');
 
     return AnimalTimeline.create({
-      timeline_id: VACCINE_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -592,14 +767,34 @@ export default class TimelineService {
   }
 
   public async examIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Exames',
+      },
+      {
+        color: '#000000',
+        description: 'Exames',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: EXAM_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeExam(data: ICreateAnimalExam) {
-    const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Exames',
+      },
+      {
+        color: '#000000',
+        description: 'Exames',
+        requiresObservation: false,
+      },
+    );
 
     const requester = await User.findOrFail(data.requesterId);
     const technician = await User.findOrFail(data.technicianId);
@@ -613,7 +808,7 @@ export default class TimelineService {
       : [];
 
     return AnimalTimeline.create({
-      timeline_id: EXAM_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -647,14 +842,35 @@ export default class TimelineService {
   }
 
   public async appointmentIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Consulta',
+      },
+      {
+        color: '#000000',
+        description: 'Consulta',
+        requiresObservation: false,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: ATTENDANCE_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeAppointment(data: ICreateAppointment) {
-    const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Consulta',
+      },
+      {
+        color: '#000000',
+        description: 'Consulta',
+        requiresObservation: false,
+      },
+    );
+
     const serviceType = await ScheduleServiceType.findOrFail(
       data.scheduleServiceId,
     );
@@ -662,7 +878,7 @@ export default class TimelineService {
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: ATTENDANCE_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -687,19 +903,30 @@ export default class TimelineService {
   }
 
   public async hospitalizationIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Hospitalização',
+      },
+      {
+        color: '#000000',
+        description: 'Hospitalização',
+        requiresObservation: false,
+      },
+    );
+
     return HospitalizationTimeline.find({
-      timeline_id: HOSPITALIZATION_UUID,
+      timeline_id: timelineInfo.id,
       'patient.id': tag,
     });
   }
 
   // public async storeHospitalization(data: ICreateTimelineHospitalization) {
-  //   const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
+  //   const timelineInfo = await TimelineType.findOrFail(timelineInfo.id);
 
   //   const technician = await User.findOrFail(data.technicianId);
 
   //   return AnimalTimeline.create({
-  //     timeline_id: HOSPITALIZATION_UUID,
+  //     timeline_id: timelineInfo.id,
   //     timeline_type: {
   //       description: timelineInfo.description,
   //       color: timelineInfo.color,
@@ -724,12 +951,21 @@ export default class TimelineService {
   // }
 
   public async storeDischarge(data: ICreateTimelineDischarge) {
-    const timelineInfo = await TimelineType.findOrFail(HOSPITALIZATION_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Hospitalização',
+      },
+      {
+        color: '#000000',
+        description: 'Hospitalização',
+        requiresObservation: false,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
     return AnimalTimeline.create({
-      timeline_id: HOSPITALIZATION_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -749,14 +985,34 @@ export default class TimelineService {
   }
 
   public async observationsIndex(tag: string) {
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Observação',
+      },
+      {
+        color: '#000000',
+        description: 'Observação',
+        requiresObservation: true,
+      },
+    );
+
     return AnimalTimeline.find({
-      timeline_id: OBSERVATION_UUID,
+      timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
   }
 
   public async storeObservations(data: ICreateObservation) {
-    const timelineInfo = await TimelineType.findOrFail(OBSERVATION_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Observação',
+      },
+      {
+        color: '#000000',
+        description: 'Observação',
+        requiresObservation: true,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
@@ -765,7 +1021,7 @@ export default class TimelineService {
       : [];
 
     const result = await AnimalTimeline.create({
-      timeline_id: OBSERVATION_UUID,
+      timeline_id: timelineInfo.id,
       timeline_type: {
         description: timelineInfo.description,
         color: timelineInfo.color,
@@ -802,7 +1058,16 @@ export default class TimelineService {
       throw new ResourceNotFoundException('Recurso não encontrado');
     }
 
-    const timelineInfo = await TimelineType.findOrFail(OBSERVATION_UUID);
+    const timelineInfo = await TimelineType.firstOrCreate(
+      {
+        description: 'Observação',
+      },
+      {
+        color: '#000000',
+        description: 'Observação',
+        requiresObservation: true,
+      },
+    );
 
     const technician = await User.findOrFail(data.technicianId);
 
@@ -812,7 +1077,7 @@ export default class TimelineService {
 
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {
-        timeline_id: OBSERVATION_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,
@@ -837,15 +1102,25 @@ export default class TimelineService {
     data: { tag: string; technicianId: string },
   ) {
     return Database.transaction(async trx => {
+      const timelineInfo = await TimelineType.firstOrCreate(
+        {
+          description: 'Consulta',
+        },
+        {
+          color: '#000000',
+          description: 'Consulta',
+          requiresObservation: false,
+        },
+        {
+          client: trx,
+        },
+      );
+
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
         .where('id', unitId)
         .preload('economicGroup')
         .firstOrFail();
-
-      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-        client: trx,
-      });
 
       const technician = await User.findOrFail(data.technicianId, {
         client: trx,
@@ -874,7 +1149,7 @@ export default class TimelineService {
         .save();
 
       await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
+        timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
           color: timelineInfo.color,

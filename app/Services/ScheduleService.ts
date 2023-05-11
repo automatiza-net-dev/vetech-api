@@ -2,10 +2,10 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus, {
-  SS_ATTENDANCE_FINISHED,
   SS_NOT_CONFIRMED,
   VALID_CHANGES,
 } from 'App/Models/ScheduleStatus';
@@ -49,7 +49,7 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
@@ -431,16 +431,16 @@ export default class ScheduleService {
 
     const [wDays, uDays, schedules] = data.user
       ? await this.getUserGeneralSchedules(
-        data.user,
-        data.business,
-        startDate,
-        endDate,
-      )
+          data.user,
+          data.business,
+          startDate,
+          endDate,
+        )
       : await this.getGeneralSchedules(
-        data.business,
-        startOfDay(startDate),
-        endOfDay(endDate),
-      );
+          data.business,
+          startOfDay(startDate),
+          endOfDay(endDate),
+        );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
@@ -859,11 +859,15 @@ export default class ScheduleService {
         .merge({
           schedule_status_id: data.statusId,
           finishedAt:
-            data.statusId === SS_ATTENDANCE_FINISHED
+            toStatus.description === 'Atendimento finalizado'
               ? DateTime.now()
               : undefined,
           reason_id: data.reasonId,
           observation: data.observation,
+          cancellation_user_id:
+            toStatus.description === 'Atendimento cancelado'
+              ? authCtx.user.id
+              : undefined,
         })
         .useTransaction(trx)
         .save();
@@ -997,5 +1001,72 @@ export default class ScheduleService {
         .useTransaction(trx)
         .save();
     });
+  }
+
+  public async getPatientSchedules(authCtx: AuthContext, id: string) {
+    const patient = await Patient.query().where('id', id).first();
+
+    if (!patient) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const schedules = await Schedule.query()
+      .where('patient_id', id)
+      .where('business_unit_id', authCtx.unit.id)
+      .preload('holder')
+      .preload('serviceType')
+      .preload('user')
+      .preload('serviceStatus')
+      .preload('reschedules', query => {
+        query.preload('user');
+        query.preload('reason');
+      })
+      .preload('cancellationUser')
+      .orderBy('start_hour', 'desc');
+
+    return schedules.map(elem => ({
+      id: elem.id,
+      start: elem.startHour,
+      end: elem.endHour,
+      majorComplaint: elem.majorComplaint,
+      tutor: {
+        id: elem.holder?.id,
+        name: elem.holder?.name,
+      },
+      service: {
+        id: elem.serviceType?.id,
+        description: elem.serviceType?.description,
+      },
+      technician: {
+        id: elem.user?.id,
+        name: elem.user?.name,
+      },
+      status: {
+        id: elem.serviceStatus?.id,
+        description: elem.serviceStatus?.description,
+      },
+      cancellation: elem.cancellationUser
+        ? {
+            technician: {
+              id: elem.user?.id,
+              name: elem.user?.name,
+            },
+            reason: elem.reason?.reason,
+            observation: elem.observation,
+            cancelledAt: elem.updatedAt,
+          }
+        : null,
+      reschedules: elem.reschedules.map(r => ({
+        id: r.id,
+        reason: r.reason?.reason,
+        observation: r.observation,
+        originalDate: r.originalDate,
+        createdAt: r.createdAt,
+        technician: {
+          id: r.user?.id,
+          name: r.user?.name,
+        },
+      })),
+    }));
   }
 }

@@ -130,6 +130,15 @@ export default class Schedule extends BaseModel {
   public user: BelongsTo<typeof User>;
 
   @column()
+  public cancellation_user_id?: string;
+
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'cancellation_user_id',
+  })
+  public cancellationUser: BelongsTo<typeof User>;
+
+  @column()
   public patient_id?: string;
 
   @belongsTo(() => Patient, {

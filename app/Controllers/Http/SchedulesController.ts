@@ -225,4 +225,19 @@ export default class SchedulesController {
 
     return response.created(result);
   }
+
+  public async getPatientSchedules({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.getPatientSchedules(
+      authCtx,
+      params.patient,
+    );
+
+    return response.ok(result);
+  }
 }

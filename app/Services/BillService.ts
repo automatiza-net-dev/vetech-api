@@ -426,7 +426,10 @@ export default class BillService {
 
   async deleteBillItem(_: string, id: string) {
     return Database.transaction(async trx => {
-      const billItem = await BillItem.query().where('id', id).firstOrFail();
+      const billItem = await BillItem.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .firstOrFail();
 
       if (billItem.status === BillItemStatus.I) {
         throw new BadRequestException('Item já removido', 400, 'E_ERR');
@@ -973,8 +976,7 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue:
-            totalProductValue + totalServiceValue - totalDiscountValue,
+          totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems
@@ -1510,6 +1512,7 @@ export default class BillService {
       .related('items')
       .query()
       .useTransaction(trx)
+      .where('status', BillItemStatus.A)
       .preload('productVariation', query => {
         query.preload('product');
       });

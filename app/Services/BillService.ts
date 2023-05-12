@@ -71,6 +71,10 @@ export default class BillService {
   constructor(private sharedService: SharedService) {}
 
   isValidNumber(data: number | undefined) {
+    if (!data) {
+      return undefined;
+    }
+
     if (typeof data !== 'number') {
       return undefined;
     }
@@ -229,16 +233,16 @@ export default class BillService {
           totalValue *
           ((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsStBase_1 =
-          icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
+          icmsBase + (icmsBase * (billItem.taxRule?.ivaIcmsSt ?? 1)) / 100;
         const icmsStPercentageRedBase = this.isValidNumber(
           billItem.taxRule.ivaIcmsSt,
         )
           ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
           : undefined;
-        const icmsStBase_2 = this.isValidNumber(billItem.taxRule.ivaIcmsSt)
+        const icmsStBase_2 = this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
           ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
           : 0;
-        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
+        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 1)) / 100;
 
         return billItem
           .merge({

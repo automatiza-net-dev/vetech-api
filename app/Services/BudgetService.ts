@@ -747,6 +747,30 @@ export default class BudgetService {
       .save();
   }
 
+  public async deleteBudget(authCtx: AuthContext, id: string) {
+    return Database.transaction(async trx => {
+      const model = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (model.status !== BudgetStatus.A) {
+        throw new BadRequestException(
+          'Orçamento com status inválido para inclusão',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await model.softDelete();
+    });
+  }
+
   public async addFromKit(
     unitId: string,
     data: {

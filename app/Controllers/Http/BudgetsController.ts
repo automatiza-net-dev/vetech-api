@@ -95,7 +95,7 @@ export default class BudgetsController {
   }: HttpContextContract) {
     const payload = await request.validate(UpdateBudgetObservationValidator);
 
-    const result = await this.service.updateBudgetObservation(
+    await this.service.updateBudgetObservation(
       await this.sharedService.getAuthContext(auth),
       params.id,
       payload,
@@ -164,6 +164,15 @@ export default class BudgetsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
     await this.service.cancelBudget(unit_id, params.id, user, payload);
+
+    return response.noContent();
+  }
+
+  public async deleteBudget({ params, response, auth }: HttpContextContract) {
+    await this.service.deleteBudget(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

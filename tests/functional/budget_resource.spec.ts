@@ -274,6 +274,23 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should update budget observation', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/update-observation/${budget.id}`)
+      .json({
+        observation: 'some observation',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should update budget item', async ({ assert, client }) => {
     const { user, budgetItem } = await createData();
     const token = await generateJwtToken(client, {

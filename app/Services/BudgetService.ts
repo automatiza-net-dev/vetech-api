@@ -14,7 +14,7 @@ import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import BillService from 'App/Services/BillService';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { GenerateTag } from 'App/Utils/GenerateTag';
 import {
   ICancelBudgetData,
@@ -382,6 +382,33 @@ export default class BudgetService {
         .save();
 
       return budget;
+    });
+  }
+
+  public async updateBudgetObservation(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      observation: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const budget = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .andWhere('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!budget) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      return budget
+        .merge({
+          observation: data.observation,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

@@ -797,6 +797,11 @@ Route.group(() => {
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/add-kit', 'BudgetsController.addKitToBudget');
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
+
+  Route.put(
+    '/update-observation/:id',
+    'BudgetsController.updateBudgetObservation',
+  );
   Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');
   Route.put('/cancel/:id', 'BudgetsController.cancelBudget');
   Route.put('/confirm/:id', 'BudgetsController.confirmBudget');

@@ -42,9 +42,14 @@ export default class AuthController {
   public async whoAmI({ auth, response }: HttpContextContract) {
     const { user, unit_id } = this.sharedService.extractUser(auth);
 
+    const unit = await BusinessUnit.query()
+      .where('id', unit_id)
+      .preload('unitConfig')
+      .firstOrFail();
+
     return response.ok({
       user,
-      unit: await BusinessUnit.find(unit_id),
+      unit,
     });
   }
 

@@ -310,7 +310,7 @@ test.group('Template replacement resource', group => {
       password: '102030',
     });
 
-    await TemplateReplacement.fetchOrCreateMany(
+    const templates = await TemplateReplacement.fetchOrCreateMany(
       ['replacer', 'system_id'],
       [
         {
@@ -391,10 +391,12 @@ test.group('Template replacement resource', group => {
     const response = await client
       .post(`/template-replacements/replace-text`)
       .json({
-        base: `[CLIENTE_NOME]  [CLIENTE_PRIMEIRONOME] [CLIENTE_FICHA] [CLIENTE_ENDERECO] [CLIENTE_BAIRRO] [CLIENTE_CIDADE] [CLIENTE_UF] [CLIENTE_CEP] [CLIENTE_RG] [CLIENTE_CPF] [CLIENTE_EMAIL]`,
+        base: templates.map(template => template.replacer).join(' '),
         tutorId: tutor.id,
       })
       .bearerToken(token);
+
+    console.log('client??', response.body().result);
 
     assert.equal(200, response.status());
   });

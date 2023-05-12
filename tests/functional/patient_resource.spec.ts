@@ -6,6 +6,7 @@ import { PatientGender, PatientType } from 'App/Models/Patient';
 import PatientAnimalHair from 'App/Models/PatientAnimalHair';
 import Profession from 'App/Models/Profession';
 import IPatientSupplierData from 'Contracts/interfaces/IPatientSupplierData';
+import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { v4 } from 'uuid';
 
@@ -60,7 +61,13 @@ test.group('Patient resource', group => {
     await holder.related('dependents').attach([patient.id]);
     await group.related('patients').attach([patient.id, holder.id]);
 
-    return { user, patient, holder, group, race, hair, profession };
+    const origin = await ClientOrigin.create({
+      system_id: user.system_id,
+      type: ClientOriginType.C,
+      description: 'some origin',
+    });
+
+    return { user, patient, holder, group, race, hair, profession, origin };
   };
 
   const createGroupData = async (group: EconomicGroup) => {
@@ -250,7 +257,7 @@ test.group('Patient resource', group => {
   });
 
   test('should create new tutor', async ({ client, assert }) => {
-    const { user, profession } = await createData();
+    const { user, profession, origin } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -268,7 +275,8 @@ test.group('Patient resource', group => {
         professionId: profession.id,
         nationality: 'some',
         civilStatus: 'some',
-      })
+        clientOriginId: origin.id,
+      } as IPatientTutorData)
       .bearerToken(token);
 
     assert.equal(201, response.status());
@@ -311,7 +319,7 @@ test.group('Patient resource', group => {
   });
 
   test('should update a tutor', async ({ client, assert }) => {
-    const { user, holder, profession } = await createData();
+    const { user, holder, profession, origin } = await createData();
     await holder.related('tutor').create({
       id: v4(),
       document: '123',
@@ -330,11 +338,6 @@ test.group('Patient resource', group => {
       city: '123',
       state: '123',
       cityCode: 'some',
-    });
-
-    const origin = await ClientOrigin.create({
-      type: ClientOriginType.C,
-      description: 'some origin',
     });
 
     const token = await generateJwtToken(client, {

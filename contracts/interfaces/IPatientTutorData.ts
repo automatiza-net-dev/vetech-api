@@ -14,8 +14,8 @@ export default interface IPatientTutorData {
   document?: string;
   inscription?: string;
   corporate_name?: string;
-  email: string;
-  cellphone: string;
+  email?: string;
+  cellphone?: string;
   telephone?: string;
   message_person_name?: string;
   message_person_phone?: string;
@@ -26,7 +26,7 @@ export default interface IPatientTutorData {
   district?: string;
   city?: string;
   state?: string;
-  clientOriginId?: string;
+  clientOriginId: string;
   cityCode?: string;
   diabetes?: boolean;
   hypertension?: boolean;

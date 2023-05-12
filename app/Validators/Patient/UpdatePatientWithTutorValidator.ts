@@ -19,8 +19,8 @@ export default class UpdatePatientWithTutorValidator {
     document: schema.string({}, []),
     inscription: schema.string.optional({}, []),
     corporate_name: schema.string.optional({}, []),
-    email: schema.string({}, [rules.email()]),
-    cellphone: schema.string({}, []),
+    email: schema.string.optional({}, [rules.email()]),
+    cellphone: schema.string.optional({}, []),
     telephone: schema.string.optional({}, []),
     message_person_name: schema.string.optional({}, []),
     message_person_phone: schema.string.optional({}, []),
@@ -31,7 +31,7 @@ export default class UpdatePatientWithTutorValidator {
     district: schema.string({}, []),
     city: schema.string({}, []),
     state: schema.string({}, []),
-    clientOriginId: schema.string.optional({}, [
+    clientOriginId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),

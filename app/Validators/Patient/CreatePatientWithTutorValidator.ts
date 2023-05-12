@@ -18,8 +18,8 @@ export default class CreatePatientWithTutorValidator {
     document: schema.string.optional({}, []),
     inscription: schema.string.optional({}, []),
     corporate_name: schema.string.optional({}, []),
-    email: schema.string({}, [rules.email()]),
-    cellphone: schema.string({}, []),
+    email: schema.string.optional({}, [rules.email()]),
+    cellphone: schema.string.optional({}, []),
     telephone: schema.string.optional({}, []),
     message_person_name: schema.string.optional({}, []),
     message_person_phone: schema.string.optional({}, []),
@@ -30,7 +30,7 @@ export default class CreatePatientWithTutorValidator {
     district: schema.string.optional({}, []),
     city: schema.string.optional({}, []),
     state: schema.string.optional({}, []),
-    clientOriginId: schema.string.optional({}, [
+    clientOriginId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),

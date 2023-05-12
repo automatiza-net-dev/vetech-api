@@ -272,7 +272,7 @@ export default class BillService {
             )
               ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
               : undefined,
-            icmsStIva: this.isValidNumber(billItem?.taxRule.ivaIcmsSt),
+            icmsStIva: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt),
             icmsStPercentageUfDestination: this.isValidNumber(
               billItem.taxRule?.ivaIcmsSt,
             )
@@ -284,7 +284,7 @@ export default class BillService {
                 : undefined,
             issCst:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? billItem?.taxRule.icmsCst
+                ? billItem?.taxRule?.icmsCst
                 : undefined,
             issBase:
               billItem.productVariation.product.type === ProductType.SERVICE
@@ -292,7 +292,7 @@ export default class BillService {
                 : undefined,
             issPercentage:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? billItem?.taxRule.icmsPerc
+                ? billItem?.taxRule?.icmsPerc
                 : undefined,
             issValue:
               billItem.productVariation.product.type === ProductType.SERVICE

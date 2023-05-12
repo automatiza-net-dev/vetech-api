@@ -522,6 +522,7 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.observationsIndex');
     Route.post('/', 'TimelinesController.storeObservation');
     Route.put('/:id', 'TimelinesController.updateObservations');
+    Route.delete('/:id/:index', 'TimelinesController.deleteObservationMedia');
   }).prefix('observations');
 
   Route.group(() => {

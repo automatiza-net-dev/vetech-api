@@ -1141,28 +1141,47 @@ export default class TimelineService {
 
     const technician = await User.findOrFail(data.technicianId);
 
-    const medias = data.medias
-      ? await Promise.all(data.medias.map(this.uploadPhoto))
-      : [];
-
     return AnimalTimeline.findByIdAndUpdate(id, {
       $set: {
         timeline_id: timelineInfo.id,
-        timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
-        },
-        timeline_info: {
-          observation: data.observation,
-          tag: data.tag,
-          resume: data.resume,
-          technician: {
-            id: technician.id,
-            name: technician.name,
-          },
-          medias,
-        },
+        'timeline_type.description': timelineInfo.description,
+        'timeline_type.color': timelineInfo.color,
+        'timeline_type.requires_observation': timelineInfo.requiresObservation,
+        'timeline_info.tag': data.tag,
+        'timeline_info.resume': data.resume,
+        'timeline_info.observation': data.observation ?? null,
+        'timeline_info.technician.id': technician.id,
+        'timeline_info.technician.name': technician.name,
+        'timeline_info.medias': data.medias
+          ? [
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore does have photos
+              ...(record.timeline_info?.medias ?? []),
+              ...(await Promise.all(data.medias.map(this.uploadPhoto))),
+            ].filter(Boolean)
+          : [],
+      },
+    });
+  }
+
+  public async deleteObservationMedia(id: string, index: string) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const numericIndex = parseInt(index, 10);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore does have photos
+    const cleanMedias = record.timeline_info?.medias?.filter(
+      (_, idx) => idx !== numericIndex,
+    );
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        'timeline_info.medias': cleanMedias,
       },
     });
   }

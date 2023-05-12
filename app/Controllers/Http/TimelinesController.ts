@@ -275,7 +275,15 @@ export default class TimelinesController {
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalObservationValidator);
     await this.timelineService.updateObservations(params.id, payload);
-    return response.created();
+    return response.noContent();
+  }
+
+  public async deleteObservationMedia({
+    params,
+    response,
+  }: HttpContextContract) {
+    await this.timelineService.deleteObservationMedia(params.id, params.index);
+    return response.noContent();
   }
 
   public async storeDeath({ request, response, auth }: HttpContextContract) {

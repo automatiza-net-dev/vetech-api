@@ -268,7 +268,7 @@ export default class BillService {
               ? icmsStBase_2
               : undefined,
             icmsStPercentageRedBase: this.isValidNumber(
-              billItem.taxRule.ivaIcmsSt,
+              billItem.taxRule?.ivaIcmsSt,
             )
               ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
               : undefined,
@@ -305,7 +305,7 @@ export default class BillService {
             pisValue: (totalValue * (billItem.taxRule?.pisPerc ?? 1)) / 100,
             pisRetentionValue: 0,
             cofinsBase: totalValue,
-            cofinsPercentage: billItem.taxRule.cofinsPerc,
+            cofinsPercentage: billItem.taxRule?.cofinsPerc,
             cofinsValue:
               (totalValue * (billItem.taxRule?.cofinsPerc ?? 1)) / 100,
             cofinsRetentionValue: 0,

@@ -312,7 +312,7 @@ export default class BillService {
             ipiCst: billItem.taxRule?.ipiCst,
             ipiBase: totalValue,
             ipiPercentage: billItem.taxRule?.ipiPerc,
-            ipiValue: (totalValue * billItem.taxRule?.ipiPerc) / 100,
+            ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 2)) / 100,
             icmsDeferredValue: 0,
             icmsPartitionValue: 0,
             icmsFcpPercentage: billItem.taxRule?.fcpPerc,

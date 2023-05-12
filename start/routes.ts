@@ -461,6 +461,11 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.patientEvaluationIndex');
     Route.post('/', 'TimelinesController.storePatientEvaluation');
+    Route.put('/:id', 'TimelinesController.updatePatientEvaluation');
+    Route.delete(
+      '/:id/:index',
+      'TimelinesController.deletePatientEvaluationPhoto',
+    );
   }).prefix('evaluation');
 
   Route.group(() => {

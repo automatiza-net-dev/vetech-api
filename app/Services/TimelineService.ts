@@ -354,6 +354,74 @@ export default class TimelineService {
     });
   }
 
+  public async updateEvaluation(id: string, data: IPatientEvaluation) {
+    return Database.transaction(async trx => {
+      const record = await AnimalTimeline.findById(id);
+
+      if (!record) {
+        throw new ResourceNotFoundException('Recurso não encontrado');
+      }
+
+      const scheduleServiceType = await ScheduleServiceType.findOrFail(
+        data.scheduleServiceTypeId,
+        {
+          client: trx,
+        },
+      );
+
+      const technician = await User.findOrFail(data.technicianId, {
+        client: trx,
+      });
+
+      return AnimalTimeline.findByIdAndUpdate(id, {
+        $set: {
+          'timeline_info.tag': data.tag,
+          'timeline_info.realizedAt': data.realizedAt.toJSDate(),
+          'timeline_info.resume': data.resume,
+          'timeline_info.protocol': data.protocol,
+          'timeline_info.observation': data.observation ?? null,
+          'timeline_info.internalObservation': data.internalObservation ?? null,
+          'timeline_info.technician.id': technician.id,
+          'timeline_info.technician.name': technician.name,
+          'timeline_info.service.id': scheduleServiceType.id,
+          'timeline_info.service.description': scheduleServiceType.description,
+          'timeline_info.service.resume': scheduleServiceType.resume,
+
+          'timeline_info.photos': data.photos
+            ? [
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore does have photos
+                ...(record.timeline_info?.photos ?? []),
+                ...(await Promise.all(data.photos.map(this.uploadPhoto))),
+              ].filter(Boolean)
+            : [],
+        },
+      });
+    });
+  }
+
+  public async deleteEvaluationPhoto(id: string, index: string) {
+    const record = await AnimalTimeline.findById(id);
+
+    if (!record) {
+      throw new ResourceNotFoundException('Recurso não encontrado');
+    }
+
+    const numericIndex = parseInt(index, 10);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore does have photos
+    const cleanPhotos = record.timeline_info?.photos?.filter(
+      (_, idx) => idx !== numericIndex,
+    );
+
+    return AnimalTimeline.findByIdAndUpdate(id, {
+      $set: {
+        'timeline_info.photos': cleanPhotos,
+      },
+    });
+  }
+
   public async documentIndex(tag: string) {
     const timelineInfo = await TimelineType.firstOrCreate(
       {

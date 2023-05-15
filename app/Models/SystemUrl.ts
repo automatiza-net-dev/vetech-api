@@ -1,13 +1,13 @@
-import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm';
-import SystemUrl from 'App/Models/SystemUrl';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import System from 'App/Models/System';
 import { DateTime } from 'luxon';
 
-export default class System extends BaseModel {
+export default class SystemUrl extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column()
-  public name: string;
+  public url: string;
 
   @column()
   public active: boolean;
@@ -18,8 +18,13 @@ export default class System extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
-  @hasMany(() => SystemUrl, {
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
+  @belongsTo(() => System, {
     foreignKey: 'system_id',
   })
-  public systemUrls: HasMany<typeof SystemUrl>;
+  public system: BelongsTo<typeof System>;
 }

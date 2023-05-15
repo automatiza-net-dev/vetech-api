@@ -218,6 +218,8 @@ export default class PaymentMethodService {
         .useTransaction(trx)
         .where('economic_group_id', group.id)
         .where('tef_flag_id', data.tefFlagId)
+        .where('tef_acquirer_id', data.tefAcquirerId)
+        .where('payment_method_id', data.paymentMethodId)
         .first();
 
       if (existingFlag) {

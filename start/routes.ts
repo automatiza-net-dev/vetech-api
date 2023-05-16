@@ -971,3 +971,7 @@ Route.group(() => {
 })
   .prefix('professions')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/search', 'SystemUrlsController.search');
+}).prefix('urls');

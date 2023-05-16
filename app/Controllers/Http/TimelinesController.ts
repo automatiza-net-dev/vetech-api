@@ -44,6 +44,24 @@ export default class TimelinesController {
     return response.created();
   }
 
+  public async updatePatientEvaluation({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientEvaluationValidator);
+    await this.timelineService.updateEvaluation(params.id, payload);
+    return response.noContent();
+  }
+
+  public async deletePatientEvaluationPhoto({
+    params,
+    response,
+  }: HttpContextContract) {
+    await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
+    return response.noContent();
+  }
+
   public async patientPressureIndex({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.pressureIndex(params.id));
   }
@@ -257,7 +275,15 @@ export default class TimelinesController {
   }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalObservationValidator);
     await this.timelineService.updateObservations(params.id, payload);
-    return response.created();
+    return response.noContent();
+  }
+
+  public async deleteObservationMedia({
+    params,
+    response,
+  }: HttpContextContract) {
+    await this.timelineService.deleteObservationMedia(params.id, params.index);
+    return response.noContent();
   }
 
   public async storeDeath({ request, response, auth }: HttpContextContract) {

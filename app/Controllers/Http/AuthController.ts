@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Env from '@ioc:Adonis/Core/Env';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import EconomicGroup from 'App/Models/EconomicGroup';
 import AuthService from 'App/Services/AuthService';
 import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
@@ -42,9 +43,24 @@ export default class AuthController {
   public async whoAmI({ auth, response }: HttpContextContract) {
     const { user, unit_id } = this.sharedService.extractUser(auth);
 
+    const unit = await BusinessUnit.query()
+      .where('id', unit_id)
+      .preload('unitConfig')
+      .firstOrFail();
+
+    const economicGroup = await EconomicGroup.query()
+      .where('id', unit.economicGroupId)
+      .preload('system', query => {
+        query.preload('systemUrls', query => {
+          query.select(['id', 'url', 'active']);
+        });
+      })
+      .firstOrFail();
+
     return response.ok({
       user,
-      unit: await BusinessUnit.find(unit_id),
+      unit,
+      url: economicGroup.system.systemUrls.at(0) ?? null,
     });
   }
 

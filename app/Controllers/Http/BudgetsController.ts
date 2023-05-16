@@ -8,6 +8,7 @@ import ConfirmBudgetValidator from 'App/Validators/Budget/ConfirmBudgetValidator
 import CreateBudgetItemValidator from 'App/Validators/Budget/CreateBudgetItemValidator';
 import CreateBudgetValidator from 'App/Validators/Budget/CreateBudgetValidator';
 import UpdateBudgetItemValidator from 'App/Validators/Budget/UpdateBudgetItemValidator';
+import UpdateBudgetObservationValidator from 'App/Validators/Budget/UpdateBudgetObservationValidator';
 
 @inject()
 export default class BudgetsController {
@@ -29,6 +30,7 @@ export default class BudgetsController {
       status: qs.status,
       patient: qs.patient,
       tag: qs.tag,
+      client: qs.client,
     });
 
     return response.ok(result);
@@ -84,6 +86,23 @@ export default class BudgetsController {
     const result = await this.service.createBudget(unit_id, user, payload);
 
     return response.created(result);
+  }
+
+  public async updateBudgetObservation({
+    request,
+    response,
+    params,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateBudgetObservationValidator);
+
+    await this.service.updateBudgetObservation(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
+
+    return response.noContent();
   }
 
   public async createBudgetItem({
@@ -146,6 +165,15 @@ export default class BudgetsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
     await this.service.cancelBudget(unit_id, params.id, user, payload);
+
+    return response.noContent();
+  }
+
+  public async deleteBudget({ params, response, auth }: HttpContextContract) {
+    await this.service.deleteBudget(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

@@ -274,6 +274,23 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should update budget observation', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/update-observation/${budget.id}`)
+      .json({
+        observation: 'some observation',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should update budget item', async ({ assert, client }) => {
     const { user, budgetItem } = await createData();
     const token = await generateJwtToken(client, {
@@ -427,5 +444,42 @@ test.group('Budget resource', group => {
       .bearerToken(token);
 
     assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if budget has invalid status when deleting', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, kit } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await budget
+      .merge({
+        status: BudgetStatus.C,
+      })
+      .save();
+
+    const response = await client
+      .delete(`/budgets/delete/${budget.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should soft delete budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/budgets/delete/${budget.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

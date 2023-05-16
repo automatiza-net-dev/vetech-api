@@ -3,6 +3,7 @@ export interface ICreateTreatment {
   patientId?: string;
   resume?: string;
   protocol: string;
+  internalObservation?: string;
 
   scheduleId?: string;
 }

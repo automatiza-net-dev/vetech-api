@@ -461,6 +461,11 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.patientEvaluationIndex');
     Route.post('/', 'TimelinesController.storePatientEvaluation');
+    Route.put('/:id', 'TimelinesController.updatePatientEvaluation');
+    Route.delete(
+      '/:id/:index',
+      'TimelinesController.deletePatientEvaluationPhoto',
+    );
   }).prefix('evaluation');
 
   Route.group(() => {
@@ -517,6 +522,7 @@ Route.group(() => {
     Route.get('/:id', 'TimelinesController.observationsIndex');
     Route.post('/', 'TimelinesController.storeObservation');
     Route.put('/:id', 'TimelinesController.updateObservations');
+    Route.delete('/:id/:index', 'TimelinesController.deleteObservationMedia');
   }).prefix('observations');
 
   Route.group(() => {
@@ -792,9 +798,16 @@ Route.group(() => {
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/add-kit', 'BudgetsController.addKitToBudget');
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
+
+  Route.put(
+    '/update-observation/:id',
+    'BudgetsController.updateBudgetObservation',
+  );
   Route.put('/update-item/:id', 'BudgetsController.updateBudgetItem');
   Route.put('/cancel/:id', 'BudgetsController.cancelBudget');
   Route.put('/confirm/:id', 'BudgetsController.confirmBudget');
+  Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
+
   // Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
   // Route.put('/update/:id', 'BankingsController.updateBanking');
 })
@@ -958,3 +971,7 @@ Route.group(() => {
 })
   .prefix('professions')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/search', 'SystemUrlsController.search');
+}).prefix('urls');

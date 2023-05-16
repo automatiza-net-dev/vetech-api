@@ -225,6 +225,29 @@ test.group('Attendance resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should open attendance with internal observation', async ({
+    assert,
+    client,
+  }) => {
+    const props = await createData();
+    const token = await generateJwtToken(client, {
+      email: props.user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/attendances/open`)
+      .json({
+        protocol: 'some',
+        internalObservation: 'some',
+        scheduleServiceId: props.scheduleServiceType.id,
+        patientId: props.patient.id,
+      } as ICreateTreatment)
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should update attendance', async ({ assert, client }) => {
     const props = await createData();
     const token = await generateJwtToken(client, {

@@ -14,7 +14,7 @@ import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import BillService from 'App/Services/BillService';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { GenerateTag } from 'App/Utils/GenerateTag';
 import {
   ICancelBudgetData,
@@ -33,6 +33,7 @@ interface ISearchPartial {
   seller?: string;
   status?: string;
   patient?: string;
+  client?: string;
   tag?: string;
 }
 
@@ -90,6 +91,10 @@ export default class BudgetService {
 
     if (data.patient) {
       qb.where('patient_id', data.patient);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
     }
 
     if (data.tag) {
@@ -382,6 +387,33 @@ export default class BudgetService {
         .save();
 
       return budget;
+    });
+  }
+
+  public async updateBudgetObservation(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      observation: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const budget = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .andWhere('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!budget) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      return budget
+        .merge({
+          observation: data.observation,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 
@@ -718,6 +750,30 @@ export default class BudgetService {
         status: BudgetStatus.N,
       })
       .save();
+  }
+
+  public async deleteBudget(authCtx: AuthContext, id: string) {
+    return Database.transaction(async trx => {
+      const model = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (model.status !== BudgetStatus.A) {
+        throw new BadRequestException(
+          'Orçamento com status inválido para inclusão',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await model.softDelete();
+    });
   }
 
   public async addFromKit(

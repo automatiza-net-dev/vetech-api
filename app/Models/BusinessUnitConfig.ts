@@ -36,6 +36,11 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public fiscalDocumentEnvironment: string;
 
+  @column({
+    columnName: 'allow_change_schedule_duration',
+  })
+  public allowChangeScheduleDuration: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

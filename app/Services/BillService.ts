@@ -71,6 +71,10 @@ export default class BillService {
   constructor(private sharedService: SharedService) {}
 
   isValidNumber(data: number | undefined) {
+    if (!data) {
+      return undefined;
+    }
+
     if (typeof data !== 'number') {
       return undefined;
     }
@@ -226,60 +230,61 @@ export default class BillService {
           billItem.unitaryValue * billItem.quantity -
           (dataItem?.discountValue ?? 0);
         const icmsBase =
-          totalValue * ((100 - billItem.taxRule.icmsPercRedBaseCalculo) / 100);
+          totalValue *
+          ((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
         const icmsStBase_1 =
-          icmsBase + (icmsBase * billItem.taxRule.ivaIcmsSt) / 100;
+          icmsBase + (icmsBase * (billItem.taxRule?.ivaIcmsSt ?? 1)) / 100;
         const icmsStPercentageRedBase = this.isValidNumber(
-          billItem.taxRule.ivaIcmsSt,
+          billItem.taxRule?.ivaIcmsSt,
         )
-          ? billItem.taxRule.icmsPercRedBaseCalculoST
+          ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
           : undefined;
-        const icmsStBase_2 = this.isValidNumber(billItem.taxRule.ivaIcmsSt)
+        const icmsStBase_2 = this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
           ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
           : 0;
-        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
+        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 1)) / 100;
 
         return billItem
           .merge({
             discountValue: dataItem?.discountValue ?? 0,
             totalValue,
             icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
-            icmsCst: billItem.taxRule.icmsCst,
+            icmsCst: billItem.taxRule?.icmsCst,
             icmsBase:
               billItem.productVariation.product.type === ProductType.PRODUCT
                 ? icmsBase
                 : undefined,
             icmsPercentage:
               billItem.productVariation.product.type === ProductType.PRODUCT
-                ? billItem.taxRule.icmsPerc
+                ? billItem.taxRule?.icmsPerc
                 : undefined,
             icmsValue:
               billItem.productVariation.product.type === ProductType.PRODUCT
                 ? icmsValue
                 : undefined,
-            icmsPercentageRedAliquot: billItem.taxRule.icmsPercRedAliquota,
-            icmsPercentageRedBase: billItem.taxRule.icmsPercRedBaseCalculo,
-            icmsStBase: this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
+            icmsPercentageRedAliquot: billItem?.taxRule?.icmsPercRedAliquota,
+            icmsPercentageRedBase: billItem?.taxRule?.icmsPercRedBaseCalculo,
+            icmsStBase: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
               ? icmsStBase_2
               : undefined,
             icmsStPercentageRedBase: this.isValidNumber(
-              billItem.taxRule.ivaIcmsSt,
+              billItem.taxRule?.ivaIcmsSt,
             )
-              ? billItem.taxRule.icmsPercRedBaseCalculoST
+              ? billItem.taxRule?.icmsPercRedBaseCalculo ?? 0
               : undefined,
-            icmsStIva: this.isValidNumber(billItem.taxRule.ivaIcmsSt),
+            icmsStIva: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt),
             icmsStPercentageUfDestination: this.isValidNumber(
               billItem.taxRule?.ivaIcmsSt,
             )
               ? ufIcms?.icmsPercentage
               : undefined,
             icmsStValue:
-              ufIcms && this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
+              ufIcms && this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
                 ? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
                 : undefined,
             issCst:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? billItem.taxRule.icmsCst
+                ? billItem?.taxRule?.icmsCst
                 : undefined,
             issBase:
               billItem.productVariation.product.type === ProductType.SERVICE
@@ -287,35 +292,36 @@ export default class BillService {
                 : undefined,
             issPercentage:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? billItem.taxRule.icmsPerc
+                ? billItem?.taxRule?.icmsPerc
                 : undefined,
             issValue:
               billItem.productVariation.product.type === ProductType.SERVICE
-                ? (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100
+                ? (icmsBase * (billItem?.taxRule?.icmsPerc ?? 0)) / 100
                 : undefined,
             pisCst: billItem.taxRule?.pisCst,
             cofinsCst: billItem.taxRule?.cofinsCst,
             pisBase: totalValue,
-            pisPercentage: billItem.taxRule.pisPerc,
-            pisValue: (totalValue * billItem.taxRule.pisPerc) / 100,
+            pisPercentage: billItem.taxRule?.pisPerc,
+            pisValue: (totalValue * (billItem.taxRule?.pisPerc ?? 1)) / 100,
             pisRetentionValue: 0,
             cofinsBase: totalValue,
-            cofinsPercentage: billItem.taxRule.cofinsPerc,
-            cofinsValue: (totalValue * billItem.taxRule.cofinsPerc) / 100,
+            cofinsPercentage: billItem.taxRule?.cofinsPerc,
+            cofinsValue:
+              (totalValue * (billItem.taxRule?.cofinsPerc ?? 1)) / 100,
             cofinsRetentionValue: 0,
-            ipiCst: billItem.taxRule.ipiCst,
+            ipiCst: billItem.taxRule?.ipiCst,
             ipiBase: totalValue,
-            ipiPercentage: billItem.taxRule.ipiPerc,
-            ipiValue: (totalValue * billItem.taxRule.ipiPerc) / 100,
+            ipiPercentage: billItem.taxRule?.ipiPerc,
+            ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 2)) / 100,
             icmsDeferredValue: 0,
             icmsPartitionValue: 0,
-            icmsFcpPercentage: billItem.taxRule.fcpPerc,
-            icmsFcpValue: (icmsBase * billItem.taxRule.fcpPerc) / 100,
-            icmsPartitionOriginUfPercentage: billItem.taxRule.icmsPerc,
+            icmsFcpPercentage: billItem.taxRule?.fcpPerc,
+            icmsFcpValue: (icmsBase * (billItem.taxRule?.fcpPerc ?? 1)) / 100,
+            icmsPartitionOriginUfPercentage: billItem.taxRule?.icmsPerc,
             icmsPartitionDestinationUfPercentage:
-              billItem.taxRule.icmsPercRedAliquota,
+              billItem.taxRule?.icmsPercRedAliquota,
             icmsPartitionInterUfPercentage:
-              billItem.taxRule.icmsPercRedAliquota,
+              billItem.taxRule?.icmsPercRedAliquota,
           })
           .useTransaction(trx)
           .save();
@@ -425,7 +431,10 @@ export default class BillService {
 
   async deleteBillItem(_: string, id: string) {
     return Database.transaction(async trx => {
-      const billItem = await BillItem.query().where('id', id).firstOrFail();
+      const billItem = await BillItem.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .firstOrFail();
 
       if (billItem.status === BillItemStatus.I) {
         throw new BadRequestException('Item já removido', 400, 'E_ERR');
@@ -972,8 +981,7 @@ export default class BillService {
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue:
-            totalProductValue + totalServiceValue - totalDiscountValue,
+          totalValue: totalProductValue + totalServiceValue,
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems
@@ -1509,6 +1517,7 @@ export default class BillService {
       .related('items')
       .query()
       .useTransaction(trx)
+      .where('status', BillItemStatus.A)
       .preload('productVariation', query => {
         query.preload('product');
       });

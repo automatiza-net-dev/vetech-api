@@ -148,4 +148,41 @@ export default class TreatmentService {
         .save();
     });
   }
+
+  public async cancelTreatment(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      reasonId: string;
+
+      cancellationDate: DateTime;
+      cancellationObservations: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const execution = await Treatment.findOrFail(data.treatmentId, {
+        client: trx,
+      });
+
+      if (execution.status === 'Cancelado') {
+        throw new BadRequestException(
+          'Status inválido de execução',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await execution
+        .merge({
+          cancellation_user_id: authCtx.user.id,
+          cancellation_reason_id: data.reasonId,
+
+          cancellationDate: data.cancellationDate,
+          cancellationObservations: data.cancellationObservations,
+          status: 'Cancelado',
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 }

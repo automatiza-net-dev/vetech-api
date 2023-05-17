@@ -6,6 +6,7 @@ import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import { ProductType } from 'App/Models/Product';
+import Reason from 'App/Models/Reason';
 import Schedule from 'App/Models/Schedule';
 import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
 import Treatment from 'App/Models/Treatment';
@@ -25,7 +26,7 @@ test.group('Treatment resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const tutor = await PatientFactory.create();
     await tutor.merge({ type: PatientType.TUTOR }).save();
@@ -71,7 +72,7 @@ test.group('Treatment resource', group => {
       seller_id: user.id,
 
       emissionDate: DateTime.now(),
-      status: 'Confirmado',
+      status: 'Aberto',
     });
 
     const unit = await Unit.create({
@@ -146,6 +147,14 @@ test.group('Treatment resource', group => {
       status: 'Ativo',
     });
 
+    const reason = await Reason.create({
+      reason: 'any reason',
+      requiresObservation: true,
+      type: 'RA',
+      economicGroupId: group.id,
+      system_id: system.id,
+    });
+
     return {
       user,
       bill,
@@ -156,6 +165,7 @@ test.group('Treatment resource', group => {
       item,
       schedule,
       execution,
+      reason,
     };
   };
 
@@ -304,6 +314,53 @@ test.group('Treatment resource', group => {
 
         executionDate: new Date().toISOString(),
         observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException when cancelling treatment already cancelled', async ({
+    assert,
+    client,
+  }) => {
+    const { user, treatment, reason } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await treatment.merge({ status: 'Cancelado' }).save();
+
+    const response = await client
+      .post(`/treatments/cancel-treatment`)
+      .json({
+        treatmentId: treatment.id,
+        reasonId: reason.id,
+
+        cancellationDate: new Date().toISOString(),
+        cancellationObservations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should cancel treatment', async ({ assert, client }) => {
+    const { user, treatment, reason } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/cancel-treatment`)
+      .json({
+        treatmentId: treatment.id,
+        reasonId: reason.id,
+
+        cancellationDate: new Date().toISOString(),
+        cancellationObservations: 'some',
       })
       .bearerToken(token);
 

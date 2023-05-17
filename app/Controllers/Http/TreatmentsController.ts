@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import TreatmentService from 'App/Services/TreatmentService';
+import CancelTreatmentValidator from 'App/Validators/Treatment/CancelTreatmentValidator';
 import CreateTreatmentExecutionValidator from 'App/Validators/Treatment/CreateTreatmentExecutionValidator';
 import CreateTreatmentItemValidator from 'App/Validators/Treatment/CreateTreatmentItemValidator';
 import CreateTreatmentValidator from 'App/Validators/Treatment/CreateTreatmentValidator';
@@ -58,6 +59,20 @@ export default class TreatmentsController {
     const data = await request.validate(ExecuteTreatmentExecutionValidator);
 
     await this.service.executeExecution(authCtx, data);
+
+    return response.noContent();
+  }
+
+  public async cancelTreatment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(CancelTreatmentValidator);
+
+    await this.service.cancelTreatment(authCtx, data);
 
     return response.noContent();
   }

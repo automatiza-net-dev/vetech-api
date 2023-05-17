@@ -1,7 +1,7 @@
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 
-const TreatmentExecutionStatus = ['Ativo', 'Confirmado'] as const;
+const TreatmentExecutionStatus = ['Ativo', 'Confirmado', 'Cancelado'] as const;
 export type TreatmentExecutionStatus = typeof TreatmentExecutionStatus[number];
 
 export default class TreatmentExecution extends BaseModel {

@@ -981,6 +981,7 @@ Route.group(() => {
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
   Route.post('/create-execution', 'TreatmentsController.createExecution');
+  Route.post('/execute-execution', 'TreatmentsController.executeExecution');
 })
   .prefix('treatments')
   .middleware('auth');

@@ -9,6 +9,7 @@ import { ProductType } from 'App/Models/Product';
 import Schedule from 'App/Models/Schedule';
 import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
 import Treatment from 'App/Models/Treatment';
+import TreatmentExecution from 'App/Models/TreatmentExecution';
 import TreatmentItem from 'App/Models/TreatmentItem';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
@@ -130,7 +131,32 @@ test.group('Treatment resource', group => {
       schedule_status_id: SS_NOT_CONFIRMED,
     });
 
-    return { user, bill, tutor, treatment, variation, kit, item, schedule };
+    const execution = await TreatmentExecution.create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      schedule_id: schedule.id,
+      schedule_user_id: user.id,
+
+      id: 1,
+      treatment_id: treatment.id,
+      treatment_item_id: item.id,
+
+      quantityExecuted: 1,
+      scheduleDate: DateTime.now(),
+      status: 'Ativo',
+    });
+
+    return {
+      user,
+      bill,
+      tutor,
+      treatment,
+      variation,
+      kit,
+      item,
+      schedule,
+      execution,
+    };
   };
 
   test('should create a treatment without bill', async ({ assert, client }) => {
@@ -237,5 +263,50 @@ test.group('Treatment resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if executing completed execution', async ({
+    assert,
+    client,
+  }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await execution.merge({ status: 'Confirmado' }).save();
+
+    const response = await client
+      .post(`/treatments/execute-execution`)
+      .json({
+        executionId: execution.id,
+
+        executionDate: new Date().toISOString(),
+        observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should complete execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/execute-execution`)
+      .json({
+        executionId: execution.id,
+
+        executionDate: new Date().toISOString(),
+        observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

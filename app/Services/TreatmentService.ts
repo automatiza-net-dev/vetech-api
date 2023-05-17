@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
-import Schedule from 'App/Models/Schedule';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Treatment from 'App/Models/Treatment';
 import TreatmentExecution from 'App/Models/TreatmentExecution';
 import TreatmentItem from 'App/Models/TreatmentItem';
@@ -84,7 +84,6 @@ export default class TreatmentService {
 
       quantityExecuted: number;
       scheduleDate: DateTime;
-      executionDate: DateTime;
     },
   ) {
     return Database.transaction(async trx => {
@@ -93,17 +92,12 @@ export default class TreatmentService {
         .where('treatment_id', data.treatmentId)
         .where('treatment_item_id', data.treatmentItemId);
 
-      const schedule = await Schedule.findOrFail(data.scheduleId, {
-        client: trx,
-      });
-
       return TreatmentExecution.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
-          execution_user_id: authCtx.user.id,
           schedule_id: data.scheduleId,
-          schedule_user_id: schedule.user_id,
+          schedule_user_id: authCtx.user.id,
 
           id: existingExecutions.length + 1,
           treatment_id: data.treatmentId,
@@ -117,6 +111,41 @@ export default class TreatmentService {
           client: trx,
         },
       );
+    });
+  }
+
+  public async executeExecution(
+    authCtx: AuthContext,
+    data: {
+      executionId: number;
+
+      executionDate: DateTime;
+      observations: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const execution = await TreatmentExecution.findOrFail(data.executionId, {
+        client: trx,
+      });
+
+      if (execution.status !== 'Ativo') {
+        throw new BadRequestException(
+          'Execução já foi finalizada',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await execution
+        .merge({
+          execution_user_id: authCtx.user.id,
+
+          executionDate: data.executionDate,
+          observations: data.observations,
+          status: 'Confirmado',
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 }

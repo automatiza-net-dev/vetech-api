@@ -17,7 +17,6 @@ export default class CreateTreatmentExecutionValidator {
 
     quantityExecuted: schema.number(),
     scheduleDate: schema.date(),
-    executionDate: schema.date(),
   });
 
   public messages: CustomMessages = {};

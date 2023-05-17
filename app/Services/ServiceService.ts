@@ -51,7 +51,9 @@ export default class ServiceService {
       .preload('taxationGroup');
 
     if (data.description) {
-      qb.where('description', 'ilike', `%${data.description}%`);
+      qb.whereRaw('unaccent(description) ilike unaccent(?)', [
+        `%${data.description}%`,
+      ]);
     }
 
     if (data.subgroup) {

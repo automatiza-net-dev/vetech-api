@@ -5,7 +5,7 @@
  * file.
  */
 
-import { BodyParserConfig } from '@ioc:Adonis/Core/BodyParser'
+import { BodyParserConfig } from '@ioc:Adonis/Core/BodyParser';
 
 const bodyParserConfig: BodyParserConfig = {
   /*
@@ -30,7 +30,7 @@ const bodyParserConfig: BodyParserConfig = {
   */
   json: {
     encoding: 'utf-8',
-    limit: '1mb',
+    limit: '20mb',
     strict: true,
     types: [
       'application/json',
@@ -51,7 +51,7 @@ const bodyParserConfig: BodyParserConfig = {
   */
   form: {
     encoding: 'utf-8',
-    limit: '1mb',
+    limit: '20mb',
     queryString: {},
 
     /*
@@ -66,9 +66,7 @@ const bodyParserConfig: BodyParserConfig = {
     */
     convertEmptyStringsToNull: true,
 
-    types: [
-      'application/x-www-form-urlencoded',
-    ],
+    types: ['application/x-www-form-urlencoded'],
   },
 
   /*
@@ -83,11 +81,9 @@ const bodyParserConfig: BodyParserConfig = {
   */
   raw: {
     encoding: 'utf-8',
-    limit: '1mb',
+    limit: '10mb',
     queryString: {},
-    types: [
-      'text/*',
-    ],
+    types: ['text/*'],
   },
 
   /*
@@ -202,10 +198,8 @@ const bodyParserConfig: BodyParserConfig = {
     | The types that will be considered and parsed as multipart body.
     |
     */
-    types: [
-      'multipart/form-data',
-    ],
+    types: ['multipart/form-data'],
   },
-}
+};
 
-export default bodyParserConfig
+export default bodyParserConfig;

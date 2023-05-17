@@ -1,9 +1,17 @@
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 
+const TreatmentStatus = ['Confirmado', 'Aberto'] as const;
+export type TreatmentStatus = typeof TreatmentStatus[number];
+
 export default class Treatment extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
+
+  @column.dateTime({
+    columnName: 'emission_date',
+  })
+  public emissionDate: DateTime;
 
   @column({
     columnName: 'cancellation_date',
@@ -19,7 +27,7 @@ export default class Treatment extends BaseModel {
   public cancellationObservations: string | null;
 
   @column()
-  public status: string;
+  public status: TreatmentStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

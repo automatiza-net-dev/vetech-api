@@ -16,6 +16,7 @@ export default class extends BaseSchema {
       table.uuid('seller_id').references('users.id');
       table.uuid('client_id').references('patients.id');
 
+      table.dateTime('emission_date');
       table.dateTime('cancellation_date');
       table.text('observations');
       table.text('cancellation_observations');

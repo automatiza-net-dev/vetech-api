@@ -976,3 +976,9 @@ Route.group(() => {
 Route.group(() => {
   Route.post('/search', 'SystemUrlsController.search');
 }).prefix('urls');
+
+Route.group(() => {
+  Route.post('/create', 'TreatmentsController.create');
+})
+  .prefix('treatments')
+  .middleware('auth');

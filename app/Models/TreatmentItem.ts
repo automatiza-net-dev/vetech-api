@@ -1,23 +1,26 @@
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 
+const TreatmentItemStatus = ['Ativo'] as const;
+export type TreatmentItemStatus = typeof TreatmentItemStatus[number];
+
 export default class TreatmentItem extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column()
-  public quantity: string;
+  public quantity: number;
 
   @column({
     columnName: 'quantity_executed',
   })
-  public quantityExecuted: string;
+  public quantityExecuted: number;
 
   @column()
   public observations: string;
 
   @column()
-  public status: string;
+  public status: TreatmentItemStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

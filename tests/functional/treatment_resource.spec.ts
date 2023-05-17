@@ -6,9 +6,13 @@ import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import { ProductType } from 'App/Models/Product';
+import Schedule from 'App/Models/Schedule';
+import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
 import Treatment from 'App/Models/Treatment';
+import TreatmentItem from 'App/Models/TreatmentItem';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
+import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
 import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -98,7 +102,35 @@ test.group('Treatment resource', group => {
       economic_group_id: business.economicGroupId,
     });
 
-    return { user, bill, tutor, treatment, variation, kit };
+    const item = await TreatmentItem.create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      product_variation_id: variation.id,
+
+      id: 1,
+      treatment_id: treatment.id,
+      quantity: 10,
+      quantityExecuted: 0,
+      status: 'Ativo',
+    });
+
+    const serviceType = await ScheduleServiceTypeFactory.create();
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: tutor.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: tutor.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    return { user, bill, tutor, treatment, variation, kit, item, schedule };
   };
 
   test('should create a treatment without bill', async ({ assert, client }) => {
@@ -178,6 +210,29 @@ test.group('Treatment resource', group => {
         kitId: kit.id,
 
         quantity: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create a treatment execution', async ({ assert, client }) => {
+    const { user, treatment, item, schedule } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/create-execution`)
+      .json({
+        treatmentId: treatment.id,
+        treatmentItemId: item.id,
+        scheduleId: schedule.id,
+
+        quantityExecuted: 5,
+        scheduleDate: new Date().toISOString(),
+        executionDate: new Date().toISOString(),
       })
       .bearerToken(token);
 

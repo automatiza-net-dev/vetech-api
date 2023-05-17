@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import Schedule from 'App/Models/Schedule';
 import Treatment from 'App/Models/Treatment';
+import TreatmentExecution from 'App/Models/TreatmentExecution';
 import TreatmentItem from 'App/Models/TreatmentItem';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -49,10 +51,9 @@ export default class TreatmentService {
     },
   ) {
     return Database.transaction(async trx => {
-      const existingItem = await TreatmentItem.query().where(
-        'treatment_id',
-        data.treatmentId,
-      );
+      const existingItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('treatment_id', data.treatmentId);
 
       return TreatmentItem.create(
         {
@@ -65,6 +66,51 @@ export default class TreatmentService {
           treatment_id: data.treatmentId,
           quantity: data.quantity,
           quantityExecuted: 0,
+          status: 'Ativo',
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async createExecution(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      treatmentItemId: number;
+      scheduleId: string;
+
+      quantityExecuted: number;
+      scheduleDate: DateTime;
+      executionDate: DateTime;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const existingExecutions = await TreatmentExecution.query()
+        .useTransaction(trx)
+        .where('treatment_id', data.treatmentId)
+        .where('treatment_item_id', data.treatmentItemId);
+
+      const schedule = await Schedule.findOrFail(data.scheduleId, {
+        client: trx,
+      });
+
+      return TreatmentExecution.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          execution_user_id: authCtx.user.id,
+          schedule_id: data.scheduleId,
+          schedule_user_id: schedule.user_id,
+
+          id: existingExecutions.length + 1,
+          treatment_id: data.treatmentId,
+          treatment_item_id: data.treatmentItemId,
+
+          quantityExecuted: data.quantityExecuted,
+          scheduleDate: DateTime.now(),
           status: 'Ativo',
         },
         {

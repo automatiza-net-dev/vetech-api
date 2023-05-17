@@ -5,12 +5,12 @@ export default class extends BaseSchema {
 
   public async up() {
     this.schema.createTable(this.tableName, table => {
-      table.increments('id');
+      table.integer('id');
 
       table.uuid('economic_group_id').references('economic_groups.id');
-      table.uuid('business_unit_id').references('business_units.id');
-      table.integer('treatment_id').references('treatments.id');
-      table.integer('treatment_item_id').references('treatment_items.id');
+      table.uuid('business_unit_id').references('business_units');
+      table.integer('treatment_id').references('id').inTable('treatments');
+      table.integer('treatment_item_id'); // deveria referenciar treatment_items.id, mas como é chave composta :z
       table.uuid('schedule_user_id').references('users.id');
       table.uuid('schedule_id').references('schedules.id');
       table.uuid('execution_user_id').references('users.id');
@@ -23,6 +23,8 @@ export default class extends BaseSchema {
 
       table.timestamp('created_at', { useTz: true });
       table.timestamp('updated_at', { useTz: true });
+
+      table.primary(['id', 'treatment_id', 'treatment_item_id']);
     });
   }
 

@@ -1,0 +1,52 @@
+import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { DateTime } from 'luxon';
+
+export default class TreatmentItem extends BaseModel {
+  @column({ isPrimary: true })
+  public id: number;
+
+  @column()
+  public quantity: string;
+
+  @column({
+    columnName: 'quantity_executed',
+  })
+  public quantityExecuted: string;
+
+  @column()
+  public observations: string;
+
+  @column()
+  public status: string;
+
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
+
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public treatment_id: number;
+
+  @column({
+    serializeAs: null,
+  })
+  public kit_id: number;
+
+  @column({
+    serializeAs: null,
+  })
+  public product_variation_id: string;
+}

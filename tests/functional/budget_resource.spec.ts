@@ -11,6 +11,7 @@ import Reason from 'App/Models/Reason';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
+import mongoose from 'mongoose';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -218,6 +219,8 @@ test.group('Budget resource', group => {
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
+        evaluationId: new mongoose.Types.ObjectId(),
+
         budgetDate: new Date(),
         expirationDate: new Date(),
         observation: 'some',
@@ -450,7 +453,7 @@ test.group('Budget resource', group => {
     assert,
     client,
   }) => {
-    const { user, budget, kit } = await createData();
+    const { user, budget } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',

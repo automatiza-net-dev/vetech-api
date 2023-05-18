@@ -96,6 +96,38 @@ test.group('Scheduling resource', group => {
     });
   };
 
+  test('should fetch user info', async ({ assert, client }) => {
+    const { user, serviceType, business, holder } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      holder_id: holder.id,
+      age: 2,
+      startHour: DateTime.now(),
+      endHour: DateTime.now(),
+      majorComplaint: 'some complaint',
+      business_unit_id: business.id,
+      user_id: user.id,
+      patient_id: holder.id,
+      schedule_service_type_id: serviceType.id,
+      schedule_status_id: SS_NOT_CONFIRMED,
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('date', '2023-05-16');
+    qs.append('id', user.id);
+    const result = await client
+      .get(`/schedules/user?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, result.status());
+  });
+
   test('should return home content (not confirmed)', async ({
     assert,
     client,

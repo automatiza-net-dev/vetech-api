@@ -603,19 +603,21 @@ export default class ScheduleService {
       .preload('serviceStatus', query => {
         query.select(['id', 'description', 'color']);
       })
-      .preload('patient', query => {
-        query.select(['id', 'name', 'photo', 'tag']);
+      // .preload('patient', query => {
+      //   query.select(['id', 'name', 'photo', 'tag']);
 
-        query.preload('patientAnimal', subquery => {
-          subquery.select(['id', 'race_id']);
-          subquery.preload('race', subsubquery => {
-            subsubquery.select(['id', 'description', 'specie_id']);
-            subsubquery.preload('specie', subsubsubquery => {
-              subsubsubquery.select(['id', 'description']);
-            });
-          });
-        });
-      })
+      //   query.preload('tutor');
+
+      //   query.preload('patientAnimal', subquery => {
+      //     subquery.select(['id', 'race_id']);
+      //     subquery.preload('race', subsubquery => {
+      //       subsubquery.select(['id', 'description', 'specie_id']);
+      //       subsubquery.preload('specie', subsubsubquery => {
+      //         subsubsubquery.select(['id', 'description']);
+      //       });
+      //     });
+      //   });
+      // })
       .preload('holder', query => {
         query.select(['id', 'name']);
         query.preload('tutor', query => {
@@ -623,7 +625,29 @@ export default class ScheduleService {
         });
       });
 
-    const allEvents = [...workingDays, ...unavailableDays, ...schedules];
+    const patients = await Patient.query()
+      .whereIn(
+        'id',
+        schedules.map(s => s.patient_id).filter(Boolean) as string[],
+      )
+      .preload('tutor');
+
+    const mappedSchedules = schedules.map(schedule => {
+      const jsonKinda = schedule.toJSON();
+      const patient = patients.find(p => p.id === schedule.patient_id);
+
+      jsonKinda.patient = {
+        id: patient?.id,
+        name: patient?.name,
+        photo: patient?.photo,
+        tag: patient?.tag,
+        cellphone: patient?.tutor.cellphone,
+      };
+
+      return jsonKinda;
+    });
+
+    const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
     return allEvents.map(day => ({
       start: day.startHour.toString(),
@@ -652,7 +676,9 @@ export default class ScheduleService {
       .preload('race');
   }
 
-  private getEventLabel(data: WorkingDay | UnavailableDay | Schedule) {
+  private getEventLabel(
+    data: WorkingDay | UnavailableDay | Schedule | unknown,
+  ) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const { table } = data.constructor;

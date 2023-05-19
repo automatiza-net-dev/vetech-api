@@ -125,6 +125,8 @@ test.group('Scheduling resource', group => {
       .get(`/schedules/user?${qs.toString()}`)
       .bearerToken(token);
 
+    console.log(result.body());
+
     assert.equal(200, result.status());
   });
 

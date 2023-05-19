@@ -70,9 +70,11 @@ export default class SchedulesController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateScheduleValidator);
-    const { user, unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, user, payload);
+    const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

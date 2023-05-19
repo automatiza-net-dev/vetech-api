@@ -5,10 +5,7 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import ScheduleStatus, {
-  SS_NOT_CONFIRMED,
-  VALID_CHANGES,
-} from 'App/Models/ScheduleStatus';
+import ScheduleStatus, { VALID_CHANGES } from 'App/Models/ScheduleStatus';
 import WeekDay from 'App/Models/shared/WeekDay';
 import UnavailableDay from 'App/Models/UnavailableDay';
 import User from 'App/Models/User';
@@ -49,7 +46,7 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
@@ -195,8 +192,7 @@ export default class ScheduleService {
   }
 
   public async store(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: IScheduleData & { scheduleOriginId?: string },
   ): Promise<Schedule> {
     const exception = new BadRequestException(
@@ -210,8 +206,8 @@ export default class ScheduleService {
 
       if (!scheduleUser.onDuty) {
         await ScheduleService.checkDisponibility(
-          data.userId ?? user.id,
-          unitId,
+          data.userId ?? authCtx.user.id,
+          authCtx.unit.id,
           {
             start: data.startHour.toJSDate(),
             end: data.endHour.toJSDate(),
@@ -222,8 +218,8 @@ export default class ScheduleService {
 
       if (!data.ignoreOverlapping) {
         const overlapping = await Schedule.query()
-          .where('user_id', data.userId ?? user.id)
-          .andWhere('business_unit_id', unitId)
+          .where('user_id', data.userId ?? authCtx.user.id)
+          .andWhere('business_unit_id', authCtx.unit.id)
           .andWhereRaw('start_hour <= ? and end_hour >= ?', [
             data.startHour.toJSDate(),
             data.endHour.toJSDate(),
@@ -240,6 +236,16 @@ export default class ScheduleService {
       }
     }
 
+    const status = await ScheduleStatus.firstOrCreate(
+      {
+        description: 'Agendado (Não confirmado)',
+        system_id: authCtx.system.id,
+      },
+      {
+        color: '#000000',
+      },
+    );
+
     const result = await Schedule.create({
       patientName: data.patientName,
       patientPhone: data.patientPhone,
@@ -248,12 +254,12 @@ export default class ScheduleService {
       startHour: data.startHour,
       endHour: data.endHour,
       majorComplaint: data.majorComplaint,
-      business_unit_id: unitId,
-      user_id: data.userId ?? user.id,
+      business_unit_id: authCtx.unit.id,
+      user_id: data.userId ?? authCtx.user.id,
       patient_id: data.patientId,
       race_id: data.raceId,
       schedule_service_type_id: data.scheduleServiceTypeId,
-      schedule_status_id: SS_NOT_CONFIRMED,
+      schedule_status_id: status.id,
       scheduleOriginId: data.scheduleOriginId,
       onDuty: data.onDuty,
     });
@@ -431,16 +437,16 @@ export default class ScheduleService {
 
     const [wDays, uDays, schedules] = data.user
       ? await this.getUserGeneralSchedules(
-        data.user,
-        data.business,
-        startDate,
-        endDate,
-      )
+          data.user,
+          data.business,
+          startDate,
+          endDate,
+        )
       : await this.getGeneralSchedules(
-        data.business,
-        startOfDay(startDate),
-        endOfDay(endDate),
-      );
+          data.business,
+          startOfDay(startDate),
+          endOfDay(endDate),
+        );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
@@ -1047,14 +1053,14 @@ export default class ScheduleService {
       },
       cancellation: elem.cancellationUser
         ? {
-          technician: {
-            id: elem.user?.id,
-            name: elem.user?.name,
-          },
-          reason: elem.reason?.reason,
-          observation: elem.observation,
-          cancelledAt: elem.updatedAt,
-        }
+            technician: {
+              id: elem.user?.id,
+              name: elem.user?.name,
+            },
+            reason: elem.reason?.reason,
+            observation: elem.observation,
+            cancelledAt: elem.updatedAt,
+          }
         : null,
       reschedules: elem.reschedules.map(r => ({
         id: r.id,

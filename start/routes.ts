@@ -978,10 +978,26 @@ Route.group(() => {
 }).prefix('urls');
 
 Route.group(() => {
+  Route.get('/search', 'TreatmentsController.searchTreatment');
+  Route.get('/search-complete', 'TreatmentsController.searchCompleteTreatment');
+  Route.get('/search-items', 'TreatmentsController.searchTreatmentItems');
+  Route.get(
+    '/search-executions',
+    'TreatmentsController.searchTreatmentExecutions',
+  );
+  Route.get(
+    '/search-scheduling',
+    'TreatmentsController.searchClientScheduling',
+  );
+
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
   Route.post('/create-execution', 'TreatmentsController.createExecution');
   Route.post('/execute-execution', 'TreatmentsController.executeExecution');
+  Route.post(
+    '/update-treatment',
+    'TreatmentsController.updateTreatmentExecution',
+  );
   Route.post('/cancel-treatment', 'TreatmentsController.cancelTreatment');
 })
   .prefix('treatments')

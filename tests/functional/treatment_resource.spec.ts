@@ -62,19 +62,6 @@ test.group('Treatment resource', group => {
       tag: '2023_00001',
     });
 
-    const treatment = await Treatment.create({
-      economic_group_id: group.id,
-      business_unit_id: business.id,
-
-      bill_id: bill.id,
-      emission_user_id: user.id,
-      client_id: tutor.id,
-      seller_id: user.id,
-
-      emissionDate: DateTime.now(),
-      status: 'Aberto',
-    });
-
     const unit = await Unit.create({
       name: 'some name',
       tag: 'some tag',
@@ -104,10 +91,24 @@ test.group('Treatment resource', group => {
       economic_group_id: business.economicGroupId,
     });
 
+    const treatment = await Treatment.create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+
+      bill_id: bill.id,
+      emission_user_id: user.id,
+      client_id: tutor.id,
+      seller_id: user.id,
+
+      emissionDate: DateTime.now(),
+      status: 'Aberto',
+    });
+
     const item = await TreatmentItem.create({
       economic_group_id: group.id,
       business_unit_id: business.id,
       product_variation_id: variation.id,
+      kit_id: kit.id,
 
       id: 1,
       treatment_id: treatment.id,
@@ -365,5 +366,199 @@ test.group('Treatment resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should fetch treatments', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get(`/treatments/search`).bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should fetch treatments (with qs)', async ({ assert, client }) => {
+    const { user, tutor } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('from', '2021-01-01');
+    qs.append('to', '2021-12-31');
+    qs.append('patient', tutor.id);
+    qs.append('tag', 'any');
+    qs.append('status', 'any');
+
+    const response = await client
+      .get(`/treatments/search?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should throw BadRequestException if searching items with no treatment', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/treatments/search-items`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should fetch treatment items', async ({ assert, client }) => {
+    const { user, treatment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('treatment', treatment.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-items?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should throw BadRequestException if searching executions with no treatment', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/treatments/search-executions`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should fetch treatment executions', async ({ assert, client }) => {
+    const { user, treatment, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await execution
+      .merge({
+        execution_user_id: user.id,
+
+        executionDate: DateTime.now(),
+        observations: 'some',
+      })
+      .save();
+
+    const qs = new URLSearchParams();
+    qs.append('treatment', treatment.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-executions?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should fetch scheduling', async ({ assert, client }) => {
+    const { user, tutor } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('client', tutor.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-scheduling?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should update treatment execution', async ({ assert, client }) => {
+    const { user, reason, execution, schedule } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/update-treatment`)
+      .json({
+        treatmentExecutionId: execution.id,
+        reasonId: reason.id,
+        scheduleId: schedule.id,
+
+        observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if searching complete treatments with no treatment', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/treatments/search-complete`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should fetch complete treatments', async ({ assert, client }) => {
+    const { user, treatment, reason } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await treatment
+      .merge({
+        cancellation_user_id: user.id,
+        cancellationDate: DateTime.now(),
+
+        cancellation_reason_id: reason.id,
+        cancellationObservations: 'some',
+
+        observations: 'some',
+      })
+      .save();
+
+    const qs = new URLSearchParams();
+    qs.append('treatment', treatment.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-complete?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 });

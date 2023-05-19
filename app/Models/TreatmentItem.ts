@@ -1,4 +1,6 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Kit from 'App/Models/Kit';
+import ProductVariation from 'App/Models/ProductVariation';
 import { DateTime } from 'luxon';
 
 const TreatmentItemStatus = ['Ativo'] as const;
@@ -48,8 +50,18 @@ export default class TreatmentItem extends BaseModel {
   })
   public kit_id: number;
 
+  @belongsTo(() => Kit, {
+    foreignKey: 'kit_id',
+  })
+  public kit: BelongsTo<typeof Kit>;
+
   @column({
     serializeAs: null,
   })
   public product_variation_id: string;
+
+  @belongsTo(() => ProductVariation, {
+    foreignKey: 'product_variation_id',
+  })
+  public productVariation: BelongsTo<typeof ProductVariation>;
 }

@@ -1,4 +1,6 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Schedule from 'App/Models/Schedule';
+import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
 const TreatmentExecutionStatus = ['Ativo', 'Confirmado', 'Cancelado'] as const;
@@ -60,13 +62,28 @@ export default class TreatmentExecution extends BaseModel {
   })
   public schedule_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'schedule_user_id',
+  })
+  public scheduleUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public schedule_id: string;
 
+  @belongsTo(() => Schedule, {
+    foreignKey: 'schedule_id',
+  })
+  public schedule: BelongsTo<typeof Schedule>;
+
   @column({
     serializeAs: null,
   })
   public execution_user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'execution_user_id',
+  })
+  public executionUser: BelongsTo<typeof User>;
 }

@@ -7,6 +7,7 @@ import CreateTreatmentExecutionValidator from 'App/Validators/Treatment/CreateTr
 import CreateTreatmentItemValidator from 'App/Validators/Treatment/CreateTreatmentItemValidator';
 import CreateTreatmentValidator from 'App/Validators/Treatment/CreateTreatmentValidator';
 import ExecuteTreatmentExecutionValidator from 'App/Validators/Treatment/ExecuteTreatmentExecutionValidator';
+import UpdateTreatmentExecutionValidator from 'App/Validators/Treatment/UpdateTreatmentExecutionValidator';
 
 @inject()
 export default class TreatmentsController {
@@ -73,6 +74,85 @@ export default class TreatmentsController {
     const data = await request.validate(CancelTreatmentValidator);
 
     await this.service.cancelTreatment(authCtx, data);
+
+    return response.noContent();
+  }
+
+  public async searchTreatment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchTreatments(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async searchCompleteTreatment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchCompleteTreatments(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async searchTreatmentItems({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchTreatmentItems(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async searchTreatmentExecutions({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchTreatmentExecutions(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async searchClientScheduling({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchClientScheduling(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async updateTreatmentExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(UpdateTreatmentExecutionValidator);
+
+    await this.service.updateTreatmentExecution(authCtx, data);
 
     return response.noContent();
   }

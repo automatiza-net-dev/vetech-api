@@ -663,8 +663,6 @@ test.group('Scheduling resource', group => {
       .get(`/schedules/historic/${patient.id}`)
       .bearerToken(token);
 
-    console.log(JSON.stringify(result.body(), undefined, 2));
-
     assert.equal(200, result.status());
   });
 

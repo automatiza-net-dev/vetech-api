@@ -204,8 +204,17 @@ export default class TreatmentService {
       .where('economic_group_id', authCtx.group.id)
       .where('business_unit_id', authCtx.unit.id)
       .where('id', data.treatment)
-      .preload('items')
-      .preload('executions')
+      .preload('items', query => {
+        query.preload('kit');
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
+      .preload('executions', query => {
+        query.preload('scheduleUser');
+        query.preload('executionUser');
+        query.preload('schedule');
+      })
       .preload('bill')
       .preload('seller')
       .preload('cancellationUser')
@@ -249,6 +258,47 @@ export default class TreatmentService {
         name: elem.client.name,
       },
       status: elem.status,
+
+      items: elem.items.map(inner => ({
+        id: inner.id,
+        kit: {
+          id: inner.kit?.id ?? null,
+          description: inner.kit?.description ?? null,
+        },
+        productVariation: {
+          id: inner.productVariation.id,
+          description: inner.productVariation.product.description,
+        },
+        quantity: inner.quantity,
+        quantityExecuted: inner.quantityExecuted,
+        observations: inner.observations,
+        status: inner.status,
+      })),
+      executions: elem.executions.map(inner => ({
+        id: inner.id,
+        item: {
+          id: inner.treatment_item_id,
+        },
+        scheduleUser: {
+          id: inner.scheduleUser.id,
+          name: inner.scheduleUser.name,
+        },
+        executionUser: inner.executionUser
+          ? {
+              id: inner.executionUser.id,
+              name: inner.executionUser.name,
+            }
+          : null,
+        scheduleDate: inner.scheduleDate,
+        schedule: {
+          id: inner.schedule.id,
+        },
+        executionDate: inner.executionDate,
+        quantityExecuted: inner.quantityExecuted,
+        observations: inner.observations,
+        status: inner.status,
+        createdAt: inner.createdAt,
+      })),
     }));
   }
 

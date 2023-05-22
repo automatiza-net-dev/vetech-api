@@ -13,7 +13,7 @@ interface ISearch {
 
 @inject()
 export default class ScheduleServiceTypeService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(
     authCtx: AuthContext,
@@ -31,6 +31,8 @@ export default class ScheduleServiceTypeService {
           .where('active', true)
           .preload('serviceGroup')
           .preload('product');
+
+        qb.where('system_id', authCtx.system.id);
       });
 
     const result = await groupQb;

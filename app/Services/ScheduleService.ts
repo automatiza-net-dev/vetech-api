@@ -650,8 +650,8 @@ export default class ScheduleService {
     const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
     return allEvents.map(day => ({
-      start: day.startHour.toString(),
-      end: day.endHour.toString(),
+      start: day.startHour?.toString() ?? null,
+      end: day.endHour?.toString() ?? null,
       type: this.getEventLabel(day),
       event: day,
     }));

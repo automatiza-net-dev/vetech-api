@@ -109,7 +109,7 @@ test.group('Scheduling resource', group => {
       holder_id: holder.id,
       age: 2,
       startHour: DateTime.now(),
-      endHour: DateTime.now(),
+      endHour: DateTime.now().endOf('day'),
       majorComplaint: 'some complaint',
       business_unit_id: business.id,
       user_id: user.id,
@@ -119,13 +119,11 @@ test.group('Scheduling resource', group => {
     });
 
     const qs = new URLSearchParams();
-    qs.append('date', '2023-05-16');
+    qs.append('date', '2023-05-22');
     qs.append('id', user.id);
     const result = await client
       .get(`/schedules/user?${qs.toString()}`)
       .bearerToken(token);
-
-    console.log(result.body());
 
     assert.equal(200, result.status());
   });

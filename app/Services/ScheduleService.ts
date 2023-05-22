@@ -636,6 +636,9 @@ export default class ScheduleService {
       const jsonKinda = schedule.toJSON();
       const patient = patients.find(p => p.id === schedule.patient_id);
 
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+
       jsonKinda.patient = {
         id: patient?.id,
         name: patient?.name,
@@ -650,8 +653,8 @@ export default class ScheduleService {
     const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
     return allEvents.map(day => ({
-      start: day.startHour?.toString() ?? null,
-      end: day.endHour?.toString() ?? null,
+      start: day.startHour.toString(),
+      end: day.endHour.toString(),
       type: this.getEventLabel(day),
       event: day,
     }));

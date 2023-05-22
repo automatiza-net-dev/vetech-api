@@ -68,7 +68,7 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   isValidNumber(data: number | undefined) {
     if (!data) {
@@ -560,11 +560,11 @@ export default class BillService {
       );
       const flagInstallment = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.find(
-            data.paymentMethodFlagInstallmentId,
-            {
-              client: trx,
-            },
-          )
+          data.paymentMethodFlagInstallmentId,
+          {
+            client: trx,
+          },
+        )
         : null;
 
       const userOpenCashier = await DailyCashier.query()
@@ -864,11 +864,7 @@ export default class BillService {
       );
     }
 
-    const paymentsSum = bill.payments.reduce(
-      (acc, curr) => acc + curr.totalValue,
-      0,
-    );
-    if (paymentsSum < bill.totalValue) {
+    if (bill.paidValue < bill.totalValue) {
       throw new BadRequestException(
         'Valor de pagamentos é menor que o valor da nota',
         400,
@@ -1128,7 +1124,7 @@ export default class BillService {
               : undefined;
             const icmsStBase_2 = rule.ivaIcmsSt
               ? icmsStBase_1 -
-                (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+              (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
               : 0;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
@@ -1150,7 +1146,7 @@ export default class BillService {
                 icmsStIva: rule.ivaIcmsSt,
                 icmsStValue: rule.ivaIcmsSt
                   ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-                    icmsValue
+                  icmsValue
                   : undefined,
                 issBase: rule.icmsPerc,
                 issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
@@ -1345,7 +1341,7 @@ export default class BillService {
             : undefined,
           icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
             ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-              icmsValue
+            icmsValue
             : undefined,
           issCst:
             variation.product.type === ProductType.SERVICE

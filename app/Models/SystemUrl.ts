@@ -9,6 +9,26 @@ export default class SystemUrl extends BaseModel {
   @column()
   public url: string;
 
+  @column({
+    columnName: 'primary_color',
+  })
+  public primaryColor: string;
+
+  @column({
+    columnName: 'secondary_color',
+  })
+  public secondaryColor: string;
+
+  @column({
+    columnName: 'home_image_url',
+  })
+  public homeImageUrl: string;
+
+  @column({
+    columnName: 'logo_url',
+  })
+  public logoUrl: string;
+
   @column()
   public active: boolean;
 

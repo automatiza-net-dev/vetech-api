@@ -5,9 +5,11 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import { PatientGender, PatientType } from 'App/Models/Patient';
 import PatientAnimalHair from 'App/Models/PatientAnimalHair';
 import Profession from 'App/Models/Profession';
+import IPatientData from 'Contracts/interfaces/IPatientData';
 import IPatientSupplierData from 'Contracts/interfaces/IPatientSupplierData';
 import IPatientTutorData from 'Contracts/interfaces/IPatientTutorData';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -224,7 +226,7 @@ test.group('Patient resource', group => {
         type: PatientType.ANIMAL,
         gender: PatientGender.MALE,
         tags: 'tag',
-        birthDate: new Date('2000-01-01'),
+        birthDate: DateTime.now(),
         active: true,
         holderId: holder.id,
         raceId: race.id,
@@ -234,7 +236,9 @@ test.group('Patient resource', group => {
         deathDate: null,
         hypertension: true,
         diabetes: true,
-      })
+        glycemia: 100,
+        pressure: '123',
+      } as IPatientData)
       .bearerToken(token);
 
     const body = response.body();

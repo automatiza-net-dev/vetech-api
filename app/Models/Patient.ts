@@ -92,6 +92,12 @@ export default class Patient extends BaseModel {
   public diabetes: boolean;
 
   @column()
+  public glycemia: number;
+
+  @column()
+  public pressure: string;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

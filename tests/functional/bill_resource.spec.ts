@@ -720,6 +720,7 @@ test.group('Bill resource', group => {
     await bill.merge({ paidValue: 1000 }).save();
     await Finance.create({
       originFlag: FinanceOriginFlag.S,
+      origin_id: payment.id,
       document: bill.tag,
       block: payment.block,
       status: FinanceStatus.A,

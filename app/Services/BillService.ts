@@ -692,6 +692,7 @@ export default class BillService {
       }
 
       const finances = await Finance.query()
+        .useTransaction(trx)
         .where('origin_flag', FinanceOriginFlag.S)
         .whereILike('document', `%${payment.bill.tag}%`)
         .where('block', payment.block);
@@ -703,25 +704,19 @@ export default class BillService {
         );
       }
 
-      const updatedFinances = await Promise.all(
-        finances
-          .filter(p => p.status === FinanceStatus.A)
-          .map(async p => {
-            return p
-              .merge({
-                status: FinanceStatus.E,
-                deletedAt: DateTime.now(),
-              })
-              .useTransaction(trx)
-              .save();
-          }),
-      );
+      await Finance.query()
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereILike('document', `%${payment.bill.tag}%`)
+        .where('block', payment.block)
+        .useTransaction(trx)
+        .delete();
+
       await payment.useTransaction(trx).delete();
       await payment.bill
         .merge({
           paidValue:
             payment.bill.paidValue -
-            updatedFinances.reduce((acc, curr) => acc + curr.value, 0),
+            finances.reduce((acc, curr) => acc + curr.value, 0),
         })
         .useTransaction(trx)
         .save();

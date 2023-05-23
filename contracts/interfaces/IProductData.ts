@@ -2,17 +2,17 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 interface IPrice {
-  maximumStock: number;
-  minimumStock: number;
-  maximumDiscountPercentage: number;
-  maximumDiscountValue: number;
+  maximumStock?: number;
+  minimumStock?: number;
+  maximumDiscountPercentage?: number;
+  maximumDiscountValue?: number;
   price: number;
   costPrice?: number;
   profitMargin?: number;
-  commission: number;
-  meta: number;
-  metaType: BusinessUnitProductMetaType;
-  commissionMeta: number;
+  commission?: number;
+  meta?: number;
+  metaType?: BusinessUnitProductMetaType;
+  commissionMeta?: number;
 }
 
 export interface IProductDataVariation {
@@ -29,19 +29,24 @@ export default interface IProductData {
   description: string;
   referenceCode?: string;
   collectionYear?: number;
-  ncm?: string;
-  cest?: string;
-  features?: string;
-  unitId?: string;
-  brandId?: string;
-  taxBenefitCode?: string;
-  anvisaCode?: string;
-  icmsOrigin?: typeof ProductIcmsOrigin[number];
-  active: boolean;
-  variationGroup?: string;
-  taxationGroupId: string;
-  groupId?: string;
   subgroupId: string;
   purpose: ProductPurpose;
+
+  features?: string;
+
+  taxationGroupId: string;
+  icmsOrigin: typeof ProductIcmsOrigin[number];
+  ncm?: string;
+  cest?: string;
+  unitId?: string;
+
+  brandId?: string;
+
+  variationGroup?: string;
   variations: Array<IProductDataVariation>;
+
+  taxBenefitCode?: string;
+  anvisaCode?: string;
+  active: boolean;
+  groupId?: string;
 }

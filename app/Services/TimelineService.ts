@@ -31,6 +31,7 @@ import ICreateAppointment from 'Contracts/interfaces/ICreateAppointment';
 import { ICreateObservation } from 'Contracts/interfaces/ICreateObservation';
 import { ICreateTimelineDischarge } from 'Contracts/interfaces/ICreateTimelineHospitalization';
 import { DateTime } from 'luxon';
+import { ObjectId } from 'mongoose';
 import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
@@ -741,7 +742,20 @@ export default class TimelineService {
     id: string,
     data: { title?: string; observation?: string },
   ) {
-    const record = await AnimalTimeline.findById(id);
+    const record = (await AnimalTimeline.findById(id)) as {
+      _id: ObjectId;
+      timeline_type: Record<string, unknown>;
+      timeline_info: {
+        tag: string;
+        photos: string[];
+        observation: string;
+        title: string;
+        technician: {
+          id: string;
+          name: string;
+        };
+      };
+    };
 
     const timelineInfo = await TimelineType.firstOrCreate(
       {
@@ -763,8 +777,9 @@ export default class TimelineService {
         'timeline_info.tag': record?.timeline_info?.tag,
         'timeline_info.title': data.title,
         'timeline_info.observation': data.observation,
-        'timeline_info.technician.id': record?.timeline_info?.technician.id,
-        'timeline_info.technician.name': record?.timeline_info?.technician.name,
+        'timeline_info.technician.id': record?.timeline_info?.technician?.id,
+        'timeline_info.technician.name':
+          record?.timeline_info?.technician?.name,
         'timeline_info.photos': record?.timeline_info?.photos,
       },
     });
@@ -774,7 +789,20 @@ export default class TimelineService {
     id: string,
     data: { files: MultipartFileContract[] },
   ) {
-    const record = await AnimalTimeline.findById(id);
+    const record = (await AnimalTimeline.findById(id)) as {
+      _id: ObjectId;
+      timeline_type: Record<string, unknown>;
+      timeline_info: {
+        tag: string;
+        photos: string[];
+        observation: string;
+        title: string;
+        technician: {
+          id: string;
+          name: string;
+        };
+      };
+    };
 
     const timelineInfo = await TimelineType.firstOrCreate(
       {
@@ -800,7 +828,7 @@ export default class TimelineService {
         'timeline_type.color': timelineInfo.color,
         'timeline_type.requires_observation': timelineInfo.requiresObservation,
         'timeline_info.tag': record?.timeline_info?.tag,
-        'timeline_info.title': record?.timeline_info?.title!,
+        'timeline_info.title': record?.timeline_info?.title,
         'timeline_info.observation': record?.timeline_info?.observation,
         'timeline_info.technician.id': record?.timeline_info?.technician.id,
         'timeline_info.technician.name': record?.timeline_info?.technician.name,
@@ -810,7 +838,20 @@ export default class TimelineService {
   }
 
   public async deletePhotoAttachment(id: string, index: number) {
-    const record = await AnimalTimeline.findById(id);
+    const record = (await AnimalTimeline.findById(id)) as {
+      _id: ObjectId;
+      timeline_type: Record<string, unknown>;
+      timeline_info: {
+        tag: string;
+        photos: string[];
+        observation: string;
+        title: string;
+        technician: {
+          id: string;
+          name: string;
+        };
+      };
+    };
 
     const timelineInfo = await TimelineType.firstOrCreate(
       {
@@ -834,7 +875,7 @@ export default class TimelineService {
         'timeline_type.color': timelineInfo.color,
         'timeline_type.requires_observation': timelineInfo.requiresObservation,
         'timeline_info.tag': record?.timeline_info?.tag,
-        'timeline_info.title': record?.timeline_info?.title!,
+        'timeline_info.title': record?.timeline_info?.title,
         'timeline_info.observation': record?.timeline_info?.observation,
         'timeline_info.technician.id': record?.timeline_info?.technician.id,
         'timeline_info.technician.name': record?.timeline_info?.technician.name,

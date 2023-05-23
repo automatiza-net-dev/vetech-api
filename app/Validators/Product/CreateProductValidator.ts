@@ -4,54 +4,28 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { ProductIcmsOrigin, ProductPurpose } from 'App/Models/Product';
 
 export default class CreateProductValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   private price = schema.object().members({
-    maximumStock: schema.number([rules.unsigned()]),
-    minimumStock: schema.number([rules.unsigned()]),
-    maximumDiscountPercentage: schema.number([rules.unsigned()]),
-    maximumDiscountValue: schema.number([rules.unsigned()]),
+    maximumStock: schema.number.optional([rules.unsigned()]),
+    minimumStock: schema.number.optional([rules.unsigned()]),
+    maximumDiscountPercentage: schema.number.optional([rules.unsigned()]),
+    maximumDiscountValue: schema.number.optional([rules.unsigned()]),
     price: schema.number([rules.unsigned()]),
     costPrice: schema.number.optional([rules.unsigned()]),
     profitMargin: schema.number.optional([rules.unsigned()]),
-    commission: schema.number([rules.unsigned()]),
-    meta: schema.number([rules.unsigned()]),
-    metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
-    commissionMeta: schema.number([rules.unsigned()]),
+    commission: schema.number.optional([rules.unsigned()]),
+    meta: schema.number.optional([rules.unsigned()]),
+    metaType: schema.enum.optional(Object.values(BusinessUnitProductMetaType)),
+    commissionMeta: schema.number.optional([rules.unsigned()]),
   });
 
   public schema = schema.create({
     description: schema.string({}, []),
+
     referenceCode: schema.string.optional({}, []),
     collectionYear: schema.number.optional([rules.unsigned()]),
-    ncm: schema.string.optional({}, []),
-    cest: schema.string.optional({}, []),
-    features: schema.string.optional({}, []),
-    taxBenefitCode: schema.string.optional({}, []),
-    anvisaCode: schema.string.optional({}, []),
-    purpose: schema.enum(Object.values(ProductPurpose)),
-    unitId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'units',
-        column: 'id',
-      }),
-    ]),
-    icmsOrigin: schema.enum(Object.values(ProductIcmsOrigin), []),
-    variationGroup: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'variation_groups',
-        column: 'id',
-      }),
-    ]),
-    groupId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'groups',
-        column: 'id',
-      }),
-    ]),
+
     subgroupId: schema.string({}, [
       rules.uuid(),
       rules.exists({
@@ -59,10 +33,33 @@ export default class CreateProductValidator {
         column: 'id',
       }),
     ]),
+    purpose: schema.enum(Object.values(ProductPurpose)),
+
+    features: schema.string.optional({}, []),
+
     taxationGroupId: schema.string({}, [
       rules.uuid(),
       rules.exists({
         table: 'taxation_groups',
+        column: 'id',
+      }),
+    ]),
+    icmsOrigin: schema.enum(Object.values(ProductIcmsOrigin), []),
+
+    ncm: schema.string.optional({}, []),
+    cest: schema.string.optional({}, []),
+    unitId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'units',
+        column: 'id',
+      }),
+    ]),
+
+    variationGroup: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'variation_groups',
         column: 'id',
       }),
     ]),
@@ -85,6 +82,16 @@ export default class CreateProductValidator {
         ),
       }),
     ),
+
+    taxBenefitCode: schema.string.optional({}, []),
+    anvisaCode: schema.string.optional({}, []),
+    groupId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: 'groups',
+        column: 'id',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

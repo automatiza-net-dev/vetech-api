@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { PatientGender, PatientVaccineOrigin } from 'App/Models/Patient';
 
 export default class CreatePatientValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     name: schema.string({}),
@@ -33,6 +33,8 @@ export default class CreatePatientValidator {
     microchip: schema.string.optional(),
     hypertension: schema.boolean.optional(),
     diabetes: schema.boolean.optional(),
+    glycemia: schema.number.optional(),
+    pressure: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

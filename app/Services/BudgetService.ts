@@ -305,14 +305,16 @@ export default class BudgetService {
       );
     }
 
-    const items = await ProductVariation.query().whereIn(
-      'id',
-      data.items.map(({ productVariationId }) => productVariationId),
-    );
-
-    const budgets = await Budget.query().select('id');
-
     return Database.transaction(async trx => {
+      const items = await ProductVariation.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.items.map(({ productVariationId }) => productVariationId),
+        );
+
+      const budgets = await Budget.query().useTransaction(trx).select('id');
+
       const budget = await Budget.create(
         {
           economic_group_id: group.id,
@@ -322,6 +324,8 @@ export default class BudgetService {
           user_id: user.id,
           seller_id: user.id,
           daily_movement_id: data.dailyMovementId,
+          evaluation_id: data.evaluationId,
+
           budgetDate: data.budgetDate,
           expirationDate: data.expirationDate,
           productValue: 0,

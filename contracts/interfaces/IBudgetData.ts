@@ -13,6 +13,7 @@ export interface ICreateBudgetData {
   clientId: string;
   patientId?: string;
   dailyMovementId?: string;
+  evaluationId?: string;
   budgetDate: DateTime;
   expirationDate: DateTime;
   observation?: string;

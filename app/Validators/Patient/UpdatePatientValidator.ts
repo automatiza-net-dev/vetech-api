@@ -7,7 +7,7 @@ import {
 } from 'App/Models/Patient';
 
 export default class UpdatePatientValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     name: schema.string({}),
@@ -37,6 +37,8 @@ export default class UpdatePatientValidator {
     deathDate: schema.date.optional(),
     hypertension: schema.boolean.optional(),
     diabetes: schema.boolean.optional(),
+    glycemia: schema.number.optional(),
+    pressure: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

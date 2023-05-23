@@ -210,6 +210,96 @@ export default class FinanceService {
     });
   }
 
+  // 2.1
+  async createMultipleFinances(
+    unitId: string,
+    user: User,
+    data: IUpsertFinance[],
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    await Database.transaction(async trx => {
+      const tasks = data.map(async item => {
+        const paymentMethod = await PaymentMethod.findOrFail(
+          item.paymentMethodId,
+          {
+            client: trx,
+          },
+        );
+        const dailyMovement = await DailyMovement.query()
+          .useTransaction(trx)
+          .where('business_unit_id', unitId)
+          .where('status', DailyMovementStatus.A)
+          .first();
+        const dailyCashier = await DailyCashier.query()
+          .useTransaction(trx)
+          .where('business_unit_id', unitId)
+          .where('status', DailyMovementStatus.A)
+          .where('user_who_opened_id', user.id)
+          .first();
+
+        const discount = item.originalValue * (paymentMethod.fee / 100);
+
+        return Finance.create(
+          {
+            daily_movement_id: dailyMovement?.id,
+            daily_cashier_id: dailyCashier?.id,
+            status: FinanceStatus.A,
+            feeDiscountPercentage: paymentMethod.fee,
+            feeDiscountValue: discount,
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            client_id: item.clientId,
+            type: item.type,
+            account_plan_id: item.accountPlanId,
+            payment_method_id: item.paymentMethodId,
+            document: item.document,
+            historic: item.historic,
+            issueDate: item.issueDate,
+            expirationDate: item.expirationDate,
+            originalValue: item.originalValue,
+            value: item.originalValue - discount,
+            totalValue:
+              item.originalValue +
+              (item.feeValue || 0) +
+              (item.increaseValue || 0) -
+              (item.discountValue || 0) -
+              discount,
+            accept: item.accept,
+            installment: item.installment,
+            originFlag: item.originFlag,
+            checking_account_id: item.checkingAccountId,
+
+            paymentDate: item.paymentDate,
+            downDate: item.downDate,
+            paymentValue: item.paymentValue,
+            feeValue: item.feeValue,
+            feePercentage: item.feePercentage,
+            discountValue: item.discountValue,
+            discountPercentage: item.discountPercentage,
+            additionPercentage: item.increasePercentage,
+            additionValue: item.increaseValue,
+            observation: item.observation,
+            competenceDate: item.competenceDate,
+            fiscalNote: item.fiscalNote,
+            userDocument: item.userDocument,
+            nsuDocument: item.nsuDocument,
+            barCode: item.barCode,
+            bank: item.bank,
+            agency: item.agency,
+            account: item.account,
+            acquirer_id: item.tefAcquirerId,
+            tef_flag_id: item.tefFlagId,
+          },
+          {
+            client: trx,
+          },
+        );
+      });
+
+      await Promise.all(tasks);
+    });
+  }
+
   // 2.2
   async updateFinance(
     unitId: string,

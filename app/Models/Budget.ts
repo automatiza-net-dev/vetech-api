@@ -99,6 +99,11 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public evaluation_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public economic_group_id: string;
 
   @column({

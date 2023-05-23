@@ -13,7 +13,7 @@ interface ISearch {
 
 @inject()
 export default class ScheduleServiceTypeService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(
     authCtx: AuthContext,
@@ -21,16 +21,18 @@ export default class ScheduleServiceTypeService {
   ): Promise<Array<ScheduleServiceType>> {
     const groupQb = ScheduleServiceGroup.query()
       .where('description', 'ilike', `%${data.group ?? ''}%`)
-      .where('active', true)
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+      .andWhere('active', true)
+      .andWhereRaw('(economic_group_id = ? or economic_group_id is null)', [
         authCtx.group.id,
       ])
-      .where('system_id', authCtx.system.id)
+      .andWhere('system_id', authCtx.system.id)
       .preload('types', qb => {
         qb.where('description', 'ilike', `%${data.description ?? ''}%`)
-          .where('active', true)
+          .andWhere('active', true)
           .preload('serviceGroup')
           .preload('product');
+
+        qb.where('system_id', authCtx.system.id);
       });
 
     const result = await groupQb;

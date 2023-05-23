@@ -14,6 +14,8 @@ export default interface IPatientData {
   microchip?: string;
   hypertension?: boolean;
   diabetes?: boolean;
+  glycemia?: number;
+  pressure?: string;
 
   raceId: string;
   vaccineOrigin?: PatientVaccineOrigin;

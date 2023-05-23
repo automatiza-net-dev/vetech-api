@@ -494,6 +494,17 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalPhotoIndex');
     Route.post('/', 'TimelinesController.animalPhotoStore');
+    Route.post(
+      '/attachments/:id',
+      'TimelinesController.addAnimalPhotoAttachments',
+    );
+
+    Route.put('/:id', 'TimelinesController.updateAnimalPhoto');
+
+    Route.delete(
+      '/attachments/:id/:index',
+      'TimelinesController.deleteAnimalPhotoAttachments',
+    );
     Route.delete('/:id', 'TimelinesController.deleteAnimalPhoto');
   }).prefix('photos');
 

@@ -5,21 +5,22 @@ interface IPrice {
   price: number;
   profitMargin?: number;
   costPrice?: number;
-  maximumDiscountPercentage: number;
-  maximumDiscountValue: number;
-  commission: number;
-  meta: number;
-  metaType: BusinessUnitProductMetaType;
-  commissionMeta: number;
+  maximumDiscountPercentage?: number;
+  maximumDiscountValue?: number;
+  commission?: number;
+  meta?: number;
+  metaType?: BusinessUnitProductMetaType;
+  commissionMeta?: number;
 }
 
 export default interface IServiceData {
   description: string;
   referenceCode?: string;
   subgroupId: string;
-  serviceCode: string;
 
   features?: string;
+  serviceCode: string;
+
   taxationGroupId: string;
   unitId?: string;
   serviceType?: typeof PServiceType[number];

@@ -1057,6 +1057,7 @@ export default class ScheduleService {
         query.preload('reason');
       })
       .preload('cancellationUser')
+      .preload('reason')
       .orderBy('start_hour', 'desc');
 
     return schedules.map(elem => ({
@@ -1086,7 +1087,7 @@ export default class ScheduleService {
             id: elem.user?.id,
             name: elem.user?.name,
           },
-          reason: elem.reason?.reason,
+          reason: elem.reason?.reason ?? null,
           observation: elem.observation,
           cancelledAt: elem.updatedAt,
         }

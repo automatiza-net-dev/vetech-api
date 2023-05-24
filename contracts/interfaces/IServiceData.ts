@@ -32,7 +32,7 @@ export interface IUpdateService {
   description: string;
   referenceCode?: string;
   subgroupId: string;
-  serviceCode: string;
+  serviceCode?: string;
   active: boolean;
 
   features?: string;

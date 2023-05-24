@@ -19,7 +19,7 @@ export default interface IServiceData {
   subgroupId: string;
 
   features?: string;
-  serviceCode: string;
+  serviceCode?: string;
 
   taxationGroupId: string;
   unitId?: string;

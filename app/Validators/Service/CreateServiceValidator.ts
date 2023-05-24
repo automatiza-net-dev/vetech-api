@@ -30,7 +30,7 @@ export default class CreateServiceValidator {
         column: 'id',
       }),
     ]),
-    serviceCode: schema.string(),
+    serviceCode: schema.string.optional(),
     price: schema.object().members({
       maximumDiscountPercentage: schema.number.optional([rules.unsigned()]),
       maximumDiscountValue: schema.number.optional([rules.unsigned()]),

@@ -45,7 +45,7 @@ interface IHome {
 
 @inject()
 export default class HospitalizationService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async parsedIndex(unitId: string, data: IHome) {
     const qb = Hospitalization.query()
@@ -111,10 +111,10 @@ export default class HospitalizationService {
       risk: r.risk,
       bed: r.bed
         ? {
-            id: r.bed.id,
-            name: r.bed.name,
-            tag: r.bed.tag,
-          }
+          id: r.bed.id,
+          name: r.bed.name,
+          tag: r.bed.tag,
+        }
         : null,
       complaint: r.complaint,
       diagnosis: r.diagnosis,
@@ -361,9 +361,8 @@ export default class HospitalizationService {
         await ent.related('occurrences').create(
           {
             occurrence_id: occurrence.id,
-            description: `Internação do paciente ${patient?.name} por ${
-              authCtx.user.name
-            } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
+            description: `Internação do paciente ${patient?.name} por ${authCtx.user.name
+              } às ${DateTime.local().toFormat('dd/MM/yyyy HH:mm')}`,
             executedAt: DateTime.now(),
             user_id: authCtx.user.id,
           },
@@ -408,10 +407,10 @@ export default class HospitalizationService {
           deathAt: null,
           bed: bed
             ? {
-                id: bed?.id,
-                name: bed?.name,
-                tag: bed?.tag,
-              }
+              id: bed?.id,
+              name: bed?.name,
+              tag: bed?.tag,
+            }
             : null,
           status: data.status,
         },
@@ -447,10 +446,10 @@ export default class HospitalizationService {
           },
           bed: bed
             ? {
-                id: bed?.id,
-                name: bed?.name,
-                tag: bed?.tag,
-              }
+              id: bed?.id,
+              name: bed?.name,
+              tag: bed?.tag,
+            }
             : null,
         },
       });
@@ -701,39 +700,43 @@ export default class HospitalizationService {
       type: HospitalizationTypeDescription[hospitalization.type],
       expectedDischarge: hospitalization.expectedDischarge,
       createdAt: hospitalization.createdAt,
-      bed: {
-        id: hospitalization.bed.id,
-        tag: hospitalization.bed.tag,
-        name: hospitalization.bed.name,
-      },
-      tutor: {
-        id: hospitalization.tutor.id,
-        name: hospitalization.tutor.name,
-        cellphone: hospitalization.tutor.tutor.cellphone,
-        telephone: hospitalization.tutor.tutor.telephone,
-      },
+      bed: hospitalization.bed
+        ? {
+          id: hospitalization.bed.id,
+          tag: hospitalization.bed.tag,
+          name: hospitalization.bed.name,
+        }
+        : null,
+      tutor: hospitalization.tutor
+        ? {
+          id: hospitalization.tutor.id,
+          name: hospitalization.tutor.name,
+          cellphone: hospitalization.tutor.tutor.cellphone,
+          telephone: hospitalization.tutor.tutor.telephone,
+        }
+        : null,
       patient: {
         id: hospitalization.patient.id,
         name: hospitalization.patient.name,
         document: hospitalization.patient?.tutor?.document ?? null,
         info: hospitalization.patient.patientAnimal
           ? {
-              race: hospitalization.patient.patientAnimal.race.description,
-              specie:
-                hospitalization.patient.patientAnimal.race.specie.description,
-              hair:
-                hospitalization.patient.patientAnimal?.hair.description ?? null,
-              age: hospitalization.patient.birthDate
-                ? DateTime.now()
-                    .diff(
-                      DateTime.fromJSDate(hospitalization.patient.birthDate),
-                      'years',
-                    )
-                    .toObject().years
-                : null,
-              weight: hospitalization.patient.weight ?? null,
-              weightDate: hospitalization.patient.weightDate ?? null,
-            }
+            race: hospitalization.patient.patientAnimal.race.description,
+            specie:
+              hospitalization.patient.patientAnimal.race.specie.description,
+            hair:
+              hospitalization.patient.patientAnimal?.hair.description ?? null,
+            age: hospitalization.patient.birthDate
+              ? DateTime.now()
+                .diff(
+                  DateTime.fromJSDate(hospitalization.patient.birthDate),
+                  'years',
+                )
+                .toObject().years
+              : null,
+            weight: hospitalization.patient.weight ?? null,
+            weightDate: hospitalization.patient.weightDate ?? null,
+          }
           : null,
       },
       prescriptions: hospitalization.medicalPrescriptions,

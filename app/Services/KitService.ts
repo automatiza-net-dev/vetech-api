@@ -5,7 +5,7 @@ import BusinessUnit from 'App/Models/BusinessUnit';
 import Kit from 'App/Models/Kit';
 import KitItem from 'App/Models/KitItem';
 import ProductVariation from 'App/Models/ProductVariation';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
 
 interface ISearch {
@@ -17,7 +17,7 @@ interface ISearch {
 
 @inject()
 export default class KitService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -283,6 +283,22 @@ export default class KitService {
           client: trx,
         },
       );
+    });
+  }
+
+  public async deleteItemToKit(authCtx: AuthContext, itemId: string) {
+    return Database.transaction(async trx => {
+      const kitItem = await KitItem.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', itemId)
+        .first();
+
+      if (!kitItem) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await kitItem.delete();
     });
   }
 }

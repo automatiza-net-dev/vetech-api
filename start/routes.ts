@@ -972,6 +972,7 @@ Route.group(() => {
   Route.put('/item/:id', 'KitsController.updateKitItem');
   Route.put('/:id', 'KitsController.update');
 
+  Route.delete('/item/:id', 'KitsController.deleteKitItem');
   Route.delete('/:id', 'KitsController.destroy');
 })
   .prefix('kits')

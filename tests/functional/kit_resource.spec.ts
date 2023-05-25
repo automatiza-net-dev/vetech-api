@@ -241,4 +241,33 @@ test.group('kit resource', group => {
 
     assert.equal(204, response.status());
   });
+
+  test('should throw BadRequestException if no item was found', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.delete(`/kits/item/${-1}`).bearerToken(token);
+
+    assert.equal(404, response.status());
+  });
+
+  test('should delete item from kit', async ({ assert, client }) => {
+    const { user, kitItem } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/kits/item/${kitItem.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
 });

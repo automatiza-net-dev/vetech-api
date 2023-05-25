@@ -49,6 +49,12 @@ test.group('Patient resource', group => {
       hair_id: hair.id,
     });
 
+    await patient.related('tutor').create({
+      document: 'some',
+      cellphone: 'some',
+      telephone: 'some',
+    });
+
     const holder = await PatientFactory.create();
     await holder.merge({ type: PatientType.TUTOR }).save();
     await holder.related('tutor').create({

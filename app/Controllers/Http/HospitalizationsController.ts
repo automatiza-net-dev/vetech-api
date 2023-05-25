@@ -113,4 +113,19 @@ export default class HospitalizationsController {
 
     return response.noContent();
   }
+
+  public async getHospitalizationScheduling({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.getHospitalizationScheduling(
+      authCtx,
+      params.id,
+    );
+
+    return response.ok(result);
+  }
 }

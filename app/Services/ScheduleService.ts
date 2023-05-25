@@ -46,7 +46,7 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
@@ -437,16 +437,16 @@ export default class ScheduleService {
 
     const [wDays, uDays, schedules] = data.user
       ? await this.getUserGeneralSchedules(
-        data.user,
-        data.business,
-        startDate,
-        endDate,
-      )
+          data.user,
+          data.business,
+          startDate,
+          endDate,
+        )
       : await this.getGeneralSchedules(
-        data.business,
-        startOfDay(startDate),
-        endOfDay(endDate),
-      );
+          data.business,
+          startOfDay(startDate),
+          endOfDay(endDate),
+        );
 
     return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
   }
@@ -1083,14 +1083,14 @@ export default class ScheduleService {
       },
       cancellation: elem.cancellationUser
         ? {
-          technician: {
-            id: elem.user?.id,
-            name: elem.user?.name,
-          },
-          reason: elem.reason?.reason ?? null,
-          observation: elem.observation,
-          cancelledAt: elem.updatedAt,
-        }
+            technician: {
+              id: elem.user?.id,
+              name: elem.user?.name,
+            },
+            reason: elem.reason?.reason ?? null,
+            observation: elem.observation,
+            cancelledAt: elem.updatedAt,
+          }
         : null,
       reschedules: elem.reschedules.map(r => ({
         id: r.id,

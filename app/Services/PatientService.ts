@@ -864,10 +864,8 @@ export default class PatientService {
       deathDate?: DateTime;
     },
   ): Promise<Patient> {
-    const group = await this.getEconomicGroup(unitId);
-
     return Database.transaction(async trx => {
-      const patient = await group
+      const patient = await authCtx.group
         .related('patients')
         .query()
         .useTransaction(trx)
@@ -895,7 +893,7 @@ export default class PatientService {
           await HospitalizationTimeline.create({
             meta: {
               hospitalization: hospitalization.id,
-              group: group.id,
+              group: authCtx.group.id,
               unit: authCtx.unit.id,
               origin: 'death_occurrence',
             },
@@ -939,8 +937,8 @@ export default class PatientService {
               resume: 'Óbito',
               description: 'Óbito',
               technician: {
-                id: user.id,
-                name: user.name,
+                id: authCtx.user.id,
+                name: authCtx.user.name,
               },
             },
           });

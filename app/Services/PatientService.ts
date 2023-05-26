@@ -857,8 +857,7 @@ export default class PatientService {
   }
 
   public async update(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     id: string,
     data: Omit<IPatientData, 'holderId'> & {
       death: boolean;
@@ -897,7 +896,7 @@ export default class PatientService {
             meta: {
               hospitalization: hospitalization.id,
               group: group.id,
-              unit: unitId,
+              unit: authCtx.unit.id,
               origin: 'death_occurrence',
             },
             data: {
@@ -906,8 +905,8 @@ export default class PatientService {
               realizedAt: data.deathDate,
               issuedAt: DateTime.now(),
               technician: {
-                id: user.id,
-                name: user.name,
+                id: authCtx.user.id,
+                name: authCtx.user.name,
               },
               attachments: [],
             },
@@ -916,10 +915,12 @@ export default class PatientService {
           const timelineInfo = await TimelineType.firstOrCreate(
             {
               description: 'Atendimento',
+              system_id: authCtx.system.id,
             },
             {
               color: '#000000',
               description: 'Atendimento',
+              system_id: authCtx.system.id,
               requiresObservation: false,
             },
           );

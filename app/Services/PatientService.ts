@@ -862,6 +862,8 @@ export default class PatientService {
     data: Omit<IPatientData, 'holderId'> & {
       death: boolean;
       deathDate?: DateTime;
+      technicianId?: string;
+      deathObservation?: string;
     },
   ): Promise<Patient> {
     return Database.transaction(async trx => {
@@ -890,6 +892,10 @@ export default class PatientService {
           .first();
 
         if (hospitalization) {
+          const related = data.technicianId
+            ? await User.findOrFail(data.technicianId)
+            : authCtx.user;
+
           await HospitalizationTimeline.create({
             meta: {
               hospitalization: hospitalization.id,
@@ -903,8 +909,8 @@ export default class PatientService {
               realizedAt: data.deathDate,
               issuedAt: DateTime.now(),
               technician: {
-                id: authCtx.user.id,
-                name: authCtx.user.name,
+                id: related.id,
+                name: related.name,
               },
               attachments: [],
             },
@@ -935,7 +941,7 @@ export default class PatientService {
               event: 'OBITO',
               realized: DateTime.now(),
               resume: 'Óbito',
-              description: 'Óbito',
+              description: data.deathObservation,
               technician: {
                 id: authCtx.user.id,
                 name: authCtx.user.name,

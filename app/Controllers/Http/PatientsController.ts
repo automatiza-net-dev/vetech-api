@@ -114,11 +114,9 @@ export default class PatientsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdatePatientValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
     const patient = await this.service.update(
-      unit_id,
-      user,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       payload,
     );

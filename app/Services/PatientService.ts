@@ -62,7 +62,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
@@ -913,12 +913,19 @@ export default class PatientService {
             },
           });
         } else {
-          const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-            client: trx,
-          });
+          const timelineInfo = await TimelineType.firstOrCreate(
+            {
+              description: 'Atendimento',
+            },
+            {
+              color: '#000000',
+              description: 'Atendimento',
+              requiresObservation: false,
+            },
+          );
 
           await AnimalTimeline.create({
-            timeline_id: ATTENDANCE_UUID,
+            timeline_id: timelineInfo.id,
             timeline_type: {
               description: timelineInfo.description,
               color: timelineInfo.color,

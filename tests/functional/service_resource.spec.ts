@@ -68,6 +68,8 @@ test.group('Service resource', group => {
 
     const body = response.body();
 
+    console.log(body);
+
     assert.isArray(body);
   });
 

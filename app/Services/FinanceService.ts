@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, {
@@ -54,7 +55,7 @@ interface ISearch {
 
 @inject()
 export default class FinanceService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
     const units = [unitId];
@@ -65,11 +66,22 @@ export default class FinanceService {
     const qb = Finance.query().whereIn('business_unit_id', units).debug(true);
 
     if (data.fromIssueDate) {
-      qb.where('issue_date', '>=', new Date(data.fromIssueDate));
+      const d = new Date(data.fromIssueDate);
+      if (Number.isNaN(d.getTime())) {
+        Logger.info(`Invalid date: ${data.fromIssueDate}`);
+      } else {
+        qb.where('issue_date', '>=', new Date(data.fromIssueDate));
+      }
     }
 
     if (data.toIssueDate) {
-      qb.where('issue_date', '<=', new Date(data.toIssueDate));
+      // qb.where('issue_date', '<=', new Date(data.toIssueDate));
+      const d = new Date(data.toIssueDate);
+      if (Number.isNaN(d.getTime())) {
+        Logger.info(`Invalid date: ${data.toIssueDate}`);
+      } else {
+        qb.where('issue_date', '>=', new Date(data.toIssueDate));
+      }
     }
 
     if (data.fromExpirationDate) {

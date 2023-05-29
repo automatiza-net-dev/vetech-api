@@ -54,7 +54,7 @@ interface ISearch {
 
 @inject()
 export default class FinanceService {
-  constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) { }
 
   async index(unitId: string, data: ISearch) {
     const units = [unitId];
@@ -62,7 +62,7 @@ export default class FinanceService {
       units.push(data.unit);
     }
 
-    const qb = Finance.query().whereIn('business_unit_id', units);
+    const qb = Finance.query().whereIn('business_unit_id', units).debug(true);
 
     if (data.fromIssueDate) {
       qb.where('issue_date', '>=', new Date(data.fromIssueDate));

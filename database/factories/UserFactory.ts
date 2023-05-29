@@ -3,7 +3,7 @@ import User from 'App/Models/User';
 
 export default Factory.define(User, ({ faker }) => {
   return {
-    name: faker.name.firstName(),
+    name: faker.person.firstName(),
     email: faker.internet.email(),
     password: '102030',
     document: '22463560000115',

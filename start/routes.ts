@@ -1018,3 +1018,13 @@ Route.group(() => {
 })
   .prefix('treatments')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ContactTypesController.index');
+  Route.post('/', 'ContactTypesController.store');
+  Route.get('/:id', 'ContactTypesController.show');
+  Route.put('/:id', 'ContactTypesController.update');
+  Route.delete('/:id', 'ContactTypesController.destroy');
+})
+  .prefix('contact-types')
+  .middleware('auth');

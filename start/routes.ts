@@ -696,11 +696,17 @@ Route.resource('taxation-group-rules', 'TaxationGroupRulesController')
     '*': ['auth'],
   });
 
-Route.resource('reasons', 'ReasonsController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/winning', 'ReasonsController.winning');
+  Route.get('/losing', 'ReasonsController.losing');
+  Route.get('/', 'ReasonsController.index');
+  Route.get('/:id', 'ReasonsController.show');
+  Route.post('/', 'ReasonsController.store');
+  Route.put('/:id', 'ReasonsController.update');
+  Route.delete('/:id', 'ReasonsController.destroy');
+})
+  .prefix('reasons')
+  .middleware('auth');
 
 Route.resource('client-origins', 'ClientOriginsController')
   .apiOnly()

@@ -4,7 +4,6 @@ import ContactSubjectService from 'App/Services/ContactSubjectService';
 import SharedService from 'App/Services/SharedService';
 import CreateContactSubjectValidator from 'App/Validators/ContactSubject/CreateContactSubjectValidator';
 import UpdateContactSubjectValidator from 'App/Validators/ContactSubject/UpdateContactSubjectValidator';
-import CreateContactTypeValidator from 'App/Validators/ContactType/CreateContactTypeValidator';
 
 @inject()
 export default class ContactSubjectsController {

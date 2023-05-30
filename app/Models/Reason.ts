@@ -8,7 +8,7 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export const REASON_TYPES = ['RA', 'OR', 'CA'] as const;
+export const REASON_TYPES = ['RA', 'OR', 'CA', 'CRM_W', 'CRM_L'] as const;
 
 export default class Reason extends BaseModel {
   @column({ isPrimary: true })

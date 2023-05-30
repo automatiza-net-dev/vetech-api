@@ -3,7 +3,7 @@ import Permission from 'App/Models/Permission';
 
 export default Factory.define(Permission, ({ faker }) => {
   return {
-    control: faker.datatype.uuid(),
+    control: faker.string.uuid(),
     description: faker.lorem.words(3),
   };
 }).build();

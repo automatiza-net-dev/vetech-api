@@ -389,6 +389,73 @@ export default class extends BaseSeeder {
       })),
     );
 
+    await ClientOrigin.fetchOrCreateMany(
+      ['description', 'system_id'],
+      [
+        {
+          description: 'Base de Clientes',
+        },
+        {
+          description: 'Bussdor',
+        },
+        {
+          description: 'E-mail',
+        },
+        {
+          description: 'Evento',
+        },
+        {
+          description: 'Facebook',
+        },
+        {
+          description: 'Google',
+        },
+        {
+          description: 'Indicação Cliente',
+        },
+        {
+          description: 'Indicação Funcionário',
+        },
+        {
+          description: 'Indicação Veterinários',
+        },
+        {
+          description: 'Instagram',
+        },
+        {
+          description: 'Pet Shop',
+        },
+        {
+          description: 'Não Se Lembra',
+        },
+        {
+          description: 'Outdoor',
+        },
+        {
+          description: 'Outros',
+        },
+        {
+          description: 'Panfleto',
+        },
+        {
+          description: 'Fachada (Passou na Frente)',
+        },
+        {
+          description: 'Rádio',
+        },
+        {
+          description: 'TV',
+        },
+        {
+          description: 'Youtube',
+        },
+      ].map(elem => ({
+        description: elem.description,
+        system_id: lift.id,
+        type: ClientOriginType.CRM,
+      })),
+    );
+
     const accountPlanGroups = await AccountPlanGroup.fetchOrCreateMany(
       ['description', 'system_id'],
       [

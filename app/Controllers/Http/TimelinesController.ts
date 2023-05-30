@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import TimelineService from 'App/Services/TimelineService';
+import AddAttachmentsValidator from 'App/Validators/Timeline/AddAttachmentsValidator';
 import CreateAnimalAppointmentValidator from 'App/Validators/Timeline/CreateAnimalAppointmentValidator';
 import CreateAnimalDeathValidator from 'App/Validators/Timeline/CreateAnimalDeathValidator';
 import CreateAnimalDischargeValidator from 'App/Validators/Timeline/CreateAnimalDischargeValidator';
@@ -15,6 +16,7 @@ import CreateAnimalPhotoValidator from 'App/Validators/Timeline/CreateAnimalPhot
 import CreateAnimaPressureValidator from 'App/Validators/Timeline/CreateAnimalPressureValidator';
 import CreateAnimalWeightValidator from 'App/Validators/Timeline/CreateAnimalWeightValidator';
 import CreatePatientEvaluationValidator from 'App/Validators/Timeline/CreatePatientEvaluation';
+import UpdateAnimalPhotoValidator from 'App/Validators/Timeline/UpdateAnimalPhotoValidator';
 import UpsertAnimalVaccineValidator from 'App/Validators/Timeline/UpsertAnimalVaccineValidator';
 
 @inject()
@@ -22,7 +24,7 @@ export default class TimelinesController {
   constructor(
     private readonly sharedService: SharedService,
     private readonly timelineService: TimelineService,
-  ) {}
+  ) { }
 
   public async index({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.all(params.id));
@@ -186,6 +188,34 @@ export default class TimelinesController {
   public async animalPhotoStore({ request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalPhotoValidator);
     await this.timelineService.storePhoto(payload);
+    return response.created();
+  }
+
+  public async updateAnimalPhoto({
+    request,
+    response,
+    params,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateAnimalPhotoValidator);
+    await this.timelineService.updatePhoto(params.id, payload);
+    return response.created();
+  }
+
+  public async addAnimalPhotoAttachments({
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(AddAttachmentsValidator);
+    await this.timelineService.addPhotoAttachment(params.id, payload);
+    return response.created();
+  }
+
+  public async deleteAnimalPhotoAttachments({
+    params,
+    response,
+  }: HttpContextContract) {
+    await this.timelineService.deletePhotoAttachment(params.id, params.index);
     return response.created();
   }
 

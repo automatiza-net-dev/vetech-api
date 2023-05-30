@@ -30,6 +30,12 @@ export enum HospitalizationType {
   'Uti' = 3,
 }
 
+export const HospitalizationTypeDescription = {
+  [HospitalizationType.Internação]: 'Internação',
+  [HospitalizationType.Observação]: 'Observação',
+  [HospitalizationType.Uti]: 'Uti',
+} as const;
+
 export default class Hospitalization extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();

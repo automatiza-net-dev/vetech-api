@@ -119,4 +119,39 @@ test.group('Reason resource', group => {
 
     assert.equal(204, response.status());
   });
+  test('should winning reasons', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/reasons/winning').bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should winning reasons', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/reasons/winning').bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should losing reasons', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/reasons/losing').bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 });

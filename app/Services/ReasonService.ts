@@ -108,4 +108,24 @@ export default class ReasonService {
 
     await reason.softDelete();
   }
+
+  public async crmWinningReasons(authCtx: AuthContext) {
+    return Reason.query()
+      .where('system_id', authCtx.system.id)
+      .where('type', 'CRM_W')
+      .whereRaw('(economic_group_id is null or economic_group_id = ?)', [
+        authCtx.group.id,
+      ])
+      .where('active', true);
+  }
+
+  public async crmLosingReasons(authCtx: AuthContext) {
+    return Reason.query()
+      .where('system_id', authCtx.system.id)
+      .where('type', 'CRM_L')
+      .whereRaw('(economic_group_id is null or economic_group_id = ?)', [
+        authCtx.group.id,
+      ])
+      .where('active', true);
+  }
 }

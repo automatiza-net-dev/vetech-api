@@ -6,6 +6,7 @@ import Bed from 'App/Models/Bed';
 import Hospitalization, {
   HospitalizationStatus,
   HospitalizationType,
+  HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
@@ -665,5 +666,80 @@ export default class HospitalizationService {
       //   },
       // });
     });
+  }
+
+  public async getHospitalizationScheduling(authCtx: AuthContext, id: string) {
+    const hospitalization = await Hospitalization.query()
+      .where('id', id)
+      .where('business_unit_id', authCtx.unit.id)
+      .preload('bed')
+      .preload('tutor', query => {
+        query.preload('tutor');
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('hair');
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+
+        query.preload('tutor');
+      })
+      .preload('medicalPrescriptions', query => {
+        query.preload('user');
+      })
+      .first();
+
+    if (!hospitalization) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return {
+      id: hospitalization.id,
+      type: HospitalizationTypeDescription[hospitalization.type],
+      expectedDischarge: hospitalization.expectedDischarge,
+      createdAt: hospitalization.createdAt,
+      bed: hospitalization.bed
+        ? {
+            id: hospitalization.bed.id,
+            tag: hospitalization.bed.tag,
+            name: hospitalization.bed.name,
+          }
+        : null,
+      tutor: hospitalization.tutor
+        ? {
+            id: hospitalization.tutor.id,
+            name: hospitalization.tutor.name,
+            cellphone: hospitalization.tutor.tutor.cellphone,
+            telephone: hospitalization.tutor.tutor.telephone,
+          }
+        : null,
+      patient: {
+        id: hospitalization.patient.id,
+        name: hospitalization.patient.name,
+        document: hospitalization.patient?.tutor?.document ?? null,
+        info: hospitalization.patient.patientAnimal
+          ? {
+              race: hospitalization.patient.patientAnimal.race.description,
+              specie:
+                hospitalization.patient.patientAnimal.race.specie.description,
+              hair:
+                hospitalization.patient.patientAnimal?.hair.description ?? null,
+              age: hospitalization.patient.birthDate
+                ? DateTime.now()
+                    .diff(
+                      DateTime.fromJSDate(hospitalization.patient.birthDate),
+                      'years',
+                    )
+                    .toObject().years
+                : null,
+              weight: hospitalization.patient.weight ?? null,
+              weightDate: hospitalization.patient.weightDate ?? null,
+            }
+          : null,
+      },
+      prescriptions: hospitalization.medicalPrescriptions,
+    };
   }
 }

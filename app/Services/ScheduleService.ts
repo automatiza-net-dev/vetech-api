@@ -389,15 +389,19 @@ export default class ScheduleService {
   ): Promise<Schedule> {
     const schedule = await this.show(unitId, id);
 
-    await ScheduleService.checkDisponibility(
-      data.userId ?? user.id,
-      unitId,
-      {
-        start: data.startHour.toJSDate(),
-        end: data.endHour.toJSDate(),
-      },
-      new BadRequestException('Usuário não tem esse horário disponível'),
-    );
+    const technician = data.userId ? await User.findOrFail(data.userId) : user;
+
+    if (!technician.onDuty) {
+      await ScheduleService.checkDisponibility(
+        technician.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+        new BadRequestException('Usuário não tem esse horário disponível'),
+      );
+    }
 
     await schedule.related('reschedules').create({
       user_id: data.userId ?? user.id,
@@ -1057,6 +1061,7 @@ export default class ScheduleService {
         query.preload('reason');
       })
       .preload('cancellationUser')
+      .preload('reason')
       .orderBy('start_hour', 'desc');
 
     return schedules.map(elem => ({
@@ -1086,7 +1091,7 @@ export default class ScheduleService {
             id: elem.user?.id,
             name: elem.user?.name,
           },
-          reason: elem.reason?.reason,
+          reason: elem.reason?.reason ?? null,
           observation: elem.observation,
           cancelledAt: elem.updatedAt,
         }

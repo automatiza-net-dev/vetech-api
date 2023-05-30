@@ -23,7 +23,7 @@ interface ISearch {
 
 @inject()
 export default class AttendanceService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const qb = Attendance.query().where('business_unit_id', unitId);
@@ -150,8 +150,9 @@ export default class AttendanceService {
               user_id: authCtx.user.id,
               holder_id: mainTutor.id,
               patient_id: patient.id,
-              startHour: DateTime.now(),
+              startHour: DateTime.now().plus({ hours: 3 }),
               endHour: DateTime.now().plus({
+                hours: 3,
                 minutes: serviceType.reservedMinutes,
               }),
               majorComplaint: data.resume,
@@ -250,9 +251,23 @@ export default class AttendanceService {
         .useTransaction(trx)
         .save();
 
-      await AnimalTimeline.updateOne(
+      const timelineInfo = await TimelineType.firstOrCreate(
         {
-          timeline_id: ATTENDANCE_UUID,
+          description: 'Consulta',
+        },
+        {
+          color: '#000000',
+          description: 'Consulta',
+          requiresObservation: false,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await AnimalTimeline.updateMany(
+        {
+          timeline_id: timelineInfo.id,
           'timeline_info.tag': model.patient_id,
           'timeline_info.finishedAt': null,
         },

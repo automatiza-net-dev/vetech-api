@@ -136,4 +136,24 @@ test.group('Finance resource', group => {
 
     assert.equal(201, response.status());
   });
+
+  test('should search finance', async ({ assert, client }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('type', 'DEBITO');
+    qs.append('order', 'doc');
+    qs.append('fromIssue', '2023-05-29T03:00:00.000Z');
+    qs.append('toIssue', '2023-06-01T02:59:59.999Z');
+
+    const response = await client
+      .get(`/finances?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 });

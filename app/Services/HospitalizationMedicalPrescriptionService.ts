@@ -60,7 +60,7 @@ interface ISearchScheduling {
 
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const query = HospitalizationMedicalPrescription.query()
@@ -877,11 +877,11 @@ export default class HospitalizationMedicalPrescriptionService {
         const scheduledAt =
           prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.HOUR
             ? prescription.executionStart.plus({
-              hours: prescription.frequencyInterval * index,
-            })
+                hours: prescription.frequencyInterval * index,
+              })
             : prescription.executionStart.plus({
-              days: prescription.frequencyInterval * index,
-            });
+                days: prescription.frequencyInterval * index,
+              });
 
         return {
           type: prescription.type,
@@ -914,17 +914,19 @@ export default class HospitalizationMedicalPrescriptionService {
         prescription.description,
         [prescription.dose, prescription.prescriptionUnit.name].join(' '),
         `volume: ${prescription.volume}`,
-        `via de aplicação: ${prescription.drugAdministration?.description ?? '-'
+        `via de aplicação: ${
+          prescription.drugAdministration?.description ?? '-'
         }`,
-        `(${prescription.hospitalization.patient.weight ?? ''} ${prescription.hospitalization.patient.weightDate
-          ? [
-            'kg em ',
-            format(
-              prescription.hospitalization.patient.weightDate?.toJSDate(),
-              'dd/MM/yyyy HH:mm',
-            ),
-          ].join(' ')
-          : 'Não informado'
+        `(${prescription.hospitalization.patient.weight ?? ''} ${
+          prescription.hospitalization.patient.weightDate
+            ? [
+                'kg em ',
+                format(
+                  prescription.hospitalization.patient.weightDate?.toJSDate(),
+                  'dd/MM/yyyy HH:mm',
+                ),
+              ].join(' ')
+            : 'Não informado'
         })`,
       ]
         .filter(Boolean)

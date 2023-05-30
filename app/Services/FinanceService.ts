@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, {

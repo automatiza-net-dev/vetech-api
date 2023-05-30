@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ReasonService from 'App/Services/ResonService';
+import ReasonService from 'App/Services/ReasonService';
 import SharedService from 'App/Services/SharedService';
 import CreateReasonValidator from 'App/Validators/Reason/CreateReasonValidator';
 import UpdateReasonValidator from 'App/Validators/Reason/UpdateReasonValidator';
@@ -21,12 +21,10 @@ export default class ReasonsController {
     return response.ok(reasons);
   }
 
-  public async show({ auth, request, response }: HttpContextContract) {
-    const { id } = request.params();
-
+  public async show({ auth, params, response }: HttpContextContract) {
     const reason = await this.service.show(
       await this.sharedService.getAuthContext(auth),
-      id,
+      params.id,
     );
 
     return response.ok(reason);
@@ -65,5 +63,21 @@ export default class ReasonsController {
     );
 
     return response.noContent();
+  }
+
+  public async winning({ auth, response }: HttpContextContract) {
+    const reasons = await this.service.crmWinningReasons(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(reasons);
+  }
+
+  public async losing({ auth, response }: HttpContextContract) {
+    const reasons = await this.service.crmLosingReasons(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(reasons);
   }
 }

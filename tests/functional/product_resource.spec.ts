@@ -5,6 +5,7 @@ import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import Subgroup from 'App/Models/Subgroup';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit, { UnitType } from 'App/Models/Unit';
+import IProductData from 'Contracts/interfaces/IProductData';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -183,6 +184,44 @@ test.group('Product resource', group => {
           },
         ],
       })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create a product with minimal info', async ({
+    client,
+    assert,
+  }) => {
+    const { user, subgroupEntity, taxationGroup, variationGroup } =
+      await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/products')
+      .json({
+        description: 'product 1',
+        subgroupId: subgroupEntity.id,
+        purpose: ProductPurpose.BOTH,
+
+        taxationGroupId: taxationGroup.id,
+        icmsOrigin: '0',
+        variationGroup: variationGroup.id,
+
+        variations: [
+          {
+            barcode: 'some bar code',
+            variation_options: [],
+            price: {
+              price: 10,
+            },
+          },
+        ],
+        active: true,
+      } as IProductData)
       .bearerToken(token);
 
     assert.equal(201, response.status());

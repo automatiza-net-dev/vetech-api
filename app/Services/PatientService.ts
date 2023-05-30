@@ -62,7 +62,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
@@ -857,18 +857,17 @@ export default class PatientService {
   }
 
   public async update(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     id: string,
     data: Omit<IPatientData, 'holderId'> & {
       death: boolean;
       deathDate?: DateTime;
+      technicianId?: string;
+      deathObservation?: string;
     },
   ): Promise<Patient> {
-    const group = await this.getEconomicGroup(unitId);
-
     return Database.transaction(async trx => {
-      const patient = await group
+      const patient = await authCtx.group
         .related('patients')
         .query()
         .useTransaction(trx)
@@ -893,11 +892,15 @@ export default class PatientService {
           .first();
 
         if (hospitalization) {
+          const related = data.technicianId
+            ? await User.findOrFail(data.technicianId)
+            : authCtx.user;
+
           await HospitalizationTimeline.create({
             meta: {
               hospitalization: hospitalization.id,
-              group: group.id,
-              unit: unitId,
+              group: authCtx.group.id,
+              unit: authCtx.unit.id,
               origin: 'death_occurrence',
             },
             data: {
@@ -906,19 +909,28 @@ export default class PatientService {
               realizedAt: data.deathDate,
               issuedAt: DateTime.now(),
               technician: {
-                id: user.id,
-                name: user.name,
+                id: related.id,
+                name: related.name,
               },
               attachments: [],
             },
           });
         } else {
-          const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-            client: trx,
-          });
+          const timelineInfo = await TimelineType.firstOrCreate(
+            {
+              description: 'Atendimento',
+              system_id: authCtx.system.id,
+            },
+            {
+              color: '#000000',
+              description: 'Atendimento',
+              system_id: authCtx.system.id,
+              requiresObservation: false,
+            },
+          );
 
           await AnimalTimeline.create({
-            timeline_id: ATTENDANCE_UUID,
+            timeline_id: timelineInfo.id,
             timeline_type: {
               description: timelineInfo.description,
               color: timelineInfo.color,
@@ -929,10 +941,10 @@ export default class PatientService {
               event: 'OBITO',
               realized: DateTime.now(),
               resume: 'Óbito',
-              description: 'Óbito',
+              description: data.deathObservation,
               technician: {
-                id: user.id,
-                name: user.name,
+                id: authCtx.user.id,
+                name: authCtx.user.name,
               },
             },
           });

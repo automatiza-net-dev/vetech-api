@@ -10,6 +10,7 @@ import { v4 } from 'uuid';
 
 export enum ClientOriginType {
   'C' = 'Cadastro',
+  'CRM' = 'CRM',
 }
 
 export default class ClientOrigin extends BaseModel {

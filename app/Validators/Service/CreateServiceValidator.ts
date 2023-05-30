@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 
 export default class CreateServiceValidator {
-  constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) { }
 
   public schema = schema.create({
     description: schema.string({}, []),
@@ -30,17 +30,19 @@ export default class CreateServiceValidator {
         column: 'id',
       }),
     ]),
-    serviceCode: schema.string(),
+    serviceCode: schema.string.optional(),
     price: schema.object().members({
-      maximumDiscountPercentage: schema.number([rules.unsigned()]),
-      maximumDiscountValue: schema.number([rules.unsigned()]),
+      maximumDiscountPercentage: schema.number.optional([rules.unsigned()]),
+      maximumDiscountValue: schema.number.optional([rules.unsigned()]),
       price: schema.number([rules.unsigned()]),
       costPrice: schema.number.optional([rules.unsigned()]),
       profitMargin: schema.number.optional([rules.unsigned()]),
-      commission: schema.number([rules.unsigned()]),
-      meta: schema.number([rules.unsigned()]),
-      metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
-      commissionMeta: schema.number([rules.unsigned()]),
+      commission: schema.number.optional([rules.unsigned()]),
+      meta: schema.number.optional([rules.unsigned()]),
+      metaType: schema.enum.optional(
+        Object.values(BusinessUnitProductMetaType),
+      ),
+      commissionMeta: schema.number.optional([rules.unsigned()]),
     }),
   });
 

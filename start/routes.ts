@@ -494,6 +494,17 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalPhotoIndex');
     Route.post('/', 'TimelinesController.animalPhotoStore');
+    Route.post(
+      '/attachments/:id',
+      'TimelinesController.addAnimalPhotoAttachments',
+    );
+
+    Route.put('/:id', 'TimelinesController.updateAnimalPhoto');
+
+    Route.delete(
+      '/attachments/:id/:index',
+      'TimelinesController.deleteAnimalPhotoAttachments',
+    );
     Route.delete('/:id', 'TimelinesController.deleteAnimalPhoto');
   }).prefix('photos');
 
@@ -604,6 +615,10 @@ Route.group(() => {
   Route.get('/', 'HospitalizationsController.index');
   Route.post('/', 'HospitalizationsController.store');
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
+  Route.get(
+    '/info/:id',
+    'HospitalizationsController.getHospitalizationScheduling',
+  );
   Route.get('/scheduling/:id', 'HospitalizationsController.getScheduling');
   Route.get('/:id', 'HospitalizationsController.show');
   Route.put('/complete/:id', 'HospitalizationsController.complete');
@@ -681,11 +696,17 @@ Route.resource('taxation-group-rules', 'TaxationGroupRulesController')
     '*': ['auth'],
   });
 
-Route.resource('reasons', 'ReasonsController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/winning', 'ReasonsController.winning');
+  Route.get('/losing', 'ReasonsController.losing');
+  Route.get('/', 'ReasonsController.index');
+  Route.get('/:id', 'ReasonsController.show');
+  Route.post('/', 'ReasonsController.store');
+  Route.put('/:id', 'ReasonsController.update');
+  Route.delete('/:id', 'ReasonsController.destroy');
+})
+  .prefix('reasons')
+  .middleware('auth');
 
 Route.resource('client-origins', 'ClientOriginsController')
   .apiOnly()
@@ -961,6 +982,7 @@ Route.group(() => {
   Route.put('/item/:id', 'KitsController.updateKitItem');
   Route.put('/:id', 'KitsController.update');
 
+  Route.delete('/item/:id', 'KitsController.deleteKitItem');
   Route.delete('/:id', 'KitsController.destroy');
 })
   .prefix('kits')
@@ -1001,4 +1023,34 @@ Route.group(() => {
   Route.post('/cancel-treatment', 'TreatmentsController.cancelTreatment');
 })
   .prefix('treatments')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ContactTypesController.index');
+  Route.post('/', 'ContactTypesController.store');
+  Route.get('/:id', 'ContactTypesController.show');
+  Route.put('/:id', 'ContactTypesController.update');
+  Route.delete('/:id', 'ContactTypesController.destroy');
+})
+  .prefix('contact-types')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ContactSubjectsController.index');
+  Route.post('/', 'ContactSubjectsController.store');
+  Route.get('/:id', 'ContactSubjectsController.show');
+  Route.put('/:id', 'ContactSubjectsController.update');
+  Route.delete('/:id', 'ContactSubjectsController.destroy');
+})
+  .prefix('contact-subjects')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ActivitiesController.index');
+  Route.post('/', 'ActivitiesController.store');
+  Route.get('/:id', 'ActivitiesController.show');
+  Route.put('/:id', 'ActivitiesController.update');
+  Route.delete('/:id', 'ActivitiesController.destroy');
+})
+  .prefix('activities')
   .middleware('auth');

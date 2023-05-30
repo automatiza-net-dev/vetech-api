@@ -24,7 +24,7 @@ interface ISearch {
 
 @inject()
 export default class ProductService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);

@@ -54,6 +54,82 @@ export default class extends BaseSeeder {
       type: ClientOriginType.C,
       active: true,
     },
+    {
+      description: 'Base de Clientes',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Bussdor',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'E-mail',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Evento',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Facebook',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Google',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Indicação Cliente',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Indicação Funcionário',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Indicação Veterinários',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Instagram',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Pet Shop',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Não Se Lembra',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Outdoor',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Outros',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Panfleto',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Fachada (Passou na Frente)',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Rádio',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'TV',
+      type: ClientOriginType.CRM,
+    },
+    {
+      description: 'Youtube',
+      type: ClientOriginType.CRM,
+    },
   ];
 
   public async run() {

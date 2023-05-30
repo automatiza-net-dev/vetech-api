@@ -12,7 +12,7 @@ export default class KitsController {
   constructor(
     private sharedService: SharedService,
     private service: KitService,
-  ) {}
+  ) { }
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -81,6 +81,14 @@ export default class KitsController {
 
     await this.service.updateItemToKit(unit_id, params.id, payload);
 
+    return response.noContent();
+  }
+
+  public async deleteKitItem({ auth, params, response }: HttpContextContract) {
+    await this.service.deleteItemToKit(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
     return response.noContent();
   }
 }

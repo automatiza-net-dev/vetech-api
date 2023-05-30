@@ -72,6 +72,7 @@ export default class ServiceService {
 
     return result.map(service => ({
       id: service.id,
+      type: service.type,
       description: service.description,
       referenceCode: service.referenceCode,
       serviceCode: service.serviceCode,

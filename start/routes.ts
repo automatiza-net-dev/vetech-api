@@ -1028,3 +1028,13 @@ Route.group(() => {
 })
   .prefix('contact-types')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'ContactSubjectsController.index');
+  Route.post('/', 'ContactSubjectsController.store');
+  Route.get('/:id', 'ContactSubjectsController.show');
+  Route.put('/:id', 'ContactSubjectsController.update');
+  Route.delete('/:id', 'ContactSubjectsController.destroy');
+})
+  .prefix('contact-subjects')
+  .middleware('auth');

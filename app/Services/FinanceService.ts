@@ -63,25 +63,14 @@ export default class FinanceService {
       units.push(data.unit);
     }
 
-    const qb = Finance.query().whereIn('business_unit_id', units).debug(true);
+    const qb = Finance.query().whereIn('business_unit_id', units);
 
     if (data.fromIssueDate) {
-      const d = new Date(data.fromIssueDate);
-      if (Number.isNaN(d.getTime())) {
-        Logger.info(`Invalid date: ${data.fromIssueDate}`);
-      } else {
-        qb.where('issue_date', '>=', new Date(data.fromIssueDate));
-      }
+      qb.where('issue_date', '>=', new Date(data.fromIssueDate));
     }
 
     if (data.toIssueDate) {
-      // qb.where('issue_date', '<=', new Date(data.toIssueDate));
-      const d = new Date(data.toIssueDate);
-      if (Number.isNaN(d.getTime())) {
-        Logger.info(`Invalid date: ${data.toIssueDate}`);
-      } else {
-        qb.where('issue_date', '>=', new Date(data.toIssueDate));
-      }
+      qb.where('issue_date', '<=', new Date(data.toIssueDate));
     }
 
     if (data.fromExpirationDate) {

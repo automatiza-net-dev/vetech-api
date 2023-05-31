@@ -84,7 +84,7 @@ export default class TimelineService {
 
       await patient
         .merge({
-          weight: data.weight,
+          weight: parseFloat(data.weight),
           weightDate: DateTime.now(),
           weightOrigin: PatientWeightOrigin.A,
         })
@@ -140,7 +140,7 @@ export default class TimelineService {
 
       await patient
         .merge({
-          weight: data.weight,
+          weight: parseFloat(data.weight),
           weightDate: DateTime.now(),
           weightOrigin: PatientWeightOrigin.A,
         })

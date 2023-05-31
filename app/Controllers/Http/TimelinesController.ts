@@ -24,7 +24,7 @@ export default class TimelinesController {
   constructor(
     private readonly sharedService: SharedService,
     private readonly timelineService: TimelineService,
-  ) { }
+  ) {}
 
   public async index({ params, response }: HttpContextContract) {
     return response.ok(await this.timelineService.all(params.id));

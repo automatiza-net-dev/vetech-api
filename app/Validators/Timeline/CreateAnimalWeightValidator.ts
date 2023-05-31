@@ -6,7 +6,7 @@ export default class CreateAnimalWeightValidator {
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
-    weight: schema.number([rules.unsigned()]),
+    weight: schema.string(),
     realizedAt: schema.date({}),
     technicianId: schema.string({}, [
       rules.uuid(),

@@ -6,7 +6,7 @@ export default class CreateAnimaGlycemiaValidator {
 
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
-    value: schema.number([rules.unsigned()]),
+    value: schema.string(),
     realizedAt: schema.date({}),
     technicianId: schema.string({}, [
       rules.uuid(),

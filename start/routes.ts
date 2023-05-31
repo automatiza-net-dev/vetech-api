@@ -1054,3 +1054,13 @@ Route.group(() => {
 })
   .prefix('activities')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'CrmStatusController.index');
+  Route.post('/', 'CrmStatusController.store');
+  Route.get('/:id', 'CrmStatusController.show');
+  Route.put('/:id', 'CrmStatusController.update');
+  Route.delete('/:id', 'CrmStatusController.destroy');
+})
+  .prefix('crm-status')
+  .middleware('auth');

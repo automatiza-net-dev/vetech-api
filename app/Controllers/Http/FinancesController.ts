@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import FinanceService from 'App/Services/FinanceService';
 import SharedService from 'App/Services/SharedService';
+import AcceptManyFinanceValidator from 'App/Validators/Finance/AcceptManyFinanceValidator';
 import CreateMultipleFinancesValidator from 'App/Validators/Finance/CreateMultipleFinancesValidator';
 import UpdateFinanceDownValidator from 'App/Validators/Finance/UpdateFinanceDownValidator';
 import UpdateFinanceReversalValidator from 'App/Validators/Finance/UpdateFinanceReversalValidator';
@@ -124,6 +125,17 @@ export default class FinancesController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.deleteFinance(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  async acceptManyFinances({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(AcceptManyFinanceValidator);
+
+    await this.service.acceptMany(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.noContent();
   }

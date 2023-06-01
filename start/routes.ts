@@ -1065,3 +1065,9 @@ Route.group(() => {
 })
   .prefix('crm-status')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/', 'OpportunitiesController.store');
+})
+  .prefix('opportunities')
+  .middleware('auth');

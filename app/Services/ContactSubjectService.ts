@@ -34,7 +34,10 @@ export default class ContactSubjectService {
   public async show(authCtx: AuthContext, id: string) {
     const model = await ContactSubject.query()
       .where('system_id', authCtx.system.id)
-      .where('economic_group_id', authCtx.group.id)
+      .whereRaw(
+        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
+        [authCtx.group.id],
+      )
       .where('id', id)
       .first();
 

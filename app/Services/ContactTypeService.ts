@@ -11,8 +11,11 @@ interface ISearch {
 export default class ContactTypeService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(_authCtx: AuthContext, data: ISearch) {
-    const qb = ContactType.query().where('type', 'crm');
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = ContactType.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'crm');
 
     if (data.description) {
       qb.whereILike('description', `%${data.description}`);
@@ -25,8 +28,12 @@ export default class ContactTypeService {
     return qb;
   }
 
-  public async show(_authCtx: AuthContext, id: string) {
-    const model = await ContactType.query().where('id', id).first();
+  public async show(authCtx: AuthContext, id: string) {
+    const model = await ContactType.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .first();
 
     if (!model) {
       throw this.sharedService.ResourceNotFound();
@@ -36,10 +43,13 @@ export default class ContactTypeService {
   }
 
   public async store(
-    _authCtx: AuthContext,
+    authCtx: AuthContext,
     data: { description: string; observation: string; type: string },
   ) {
     await ContactType.create({
+      system_id: authCtx.system.id,
+      economic_group_id: authCtx.group.id,
+
       description: data.description,
       type: data.type,
       observation: data.observation,

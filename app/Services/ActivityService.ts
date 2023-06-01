@@ -11,8 +11,11 @@ interface ISearch {
 export default class ActivityService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(_authCtx: AuthContext, data: ISearch) {
-    const qb = Activity.query().where('type', 'crm');
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = Activity.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'crm');
 
     if (data.description) {
       qb.whereILike('description', `%${data.description}`);
@@ -25,8 +28,12 @@ export default class ActivityService {
     return qb;
   }
 
-  public async show(_authCtx: AuthContext, id: string) {
-    const model = await Activity.query().where('id', id).first();
+  public async show(authCtx: AuthContext, id: string) {
+    const model = await Activity.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .first();
 
     if (!model) {
       throw this.sharedService.ResourceNotFound();
@@ -36,10 +43,13 @@ export default class ActivityService {
   }
 
   public async store(
-    _authCtx: AuthContext,
+    authCtx: AuthContext,
     data: { description: string; duration: number; type: string },
   ) {
     await Activity.create({
+      system_id: authCtx.system.id,
+      economic_group_id: authCtx.group.id,
+
       description: data.description,
       type: data.type,
       duration: data.duration,

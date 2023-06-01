@@ -61,6 +61,11 @@ export default class Opportunity extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public opening_user_id: string;
 
   @column({
@@ -106,5 +111,5 @@ export default class Opportunity extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public reason_id: string;
+  public reason_id: number;
 }

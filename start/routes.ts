@@ -1068,6 +1068,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.post('/', 'OpportunitiesController.store');
+  Route.put('/:id', 'OpportunitiesController.update');
 })
   .prefix('opportunities')
   .middleware('auth');

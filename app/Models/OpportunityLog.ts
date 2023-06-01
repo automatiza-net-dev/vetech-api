@@ -32,6 +32,11 @@ export default class OpportunityLog extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public business_unit_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public opening_user_id: string;
 
   @column({

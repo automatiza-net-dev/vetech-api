@@ -1,16 +1,18 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
 import Opportunity from 'App/Models/Opportunity';
+import OpportunityLog from 'App/Models/OpportunityLog';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
-
-import { AuthContext } from './SharedService';
 
 @inject()
 export default class OpportunityService {
-  // constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) {}
 
   public async store(
     authCtx: AuthContext,
     data: {
+      businessUnitId?: string;
       userId: string;
       clientId: string;
       contactId: string;
@@ -24,23 +26,103 @@ export default class OpportunityService {
       value: number;
     },
   ) {
-    await Opportunity.create({
-      system_id: authCtx.system.id,
-      economic_group_id: authCtx.group.id,
-      opening_user_id: authCtx.user.id,
-      user_id: data.userId,
-      client_id: data.clientId,
-      contact_id: data.contactId,
-      status_id: data.statusId,
-      contact_type_id: data.contactTypeId,
-      contact_subject_id: data.contactSubjectId,
-      client_origin_id: data.originId,
+    await Database.transaction(async trx => {
+      const model = await Opportunity.create(
+        {
+          system_id: authCtx.system.id,
+          business_unit_id: data.businessUnitId,
+          economic_group_id: authCtx.group.id,
+          opening_user_id: authCtx.user.id,
+          user_id: data.userId,
+          client_id: data.clientId,
+          contact_id: data.contactId,
+          status_id: data.statusId,
+          contact_type_id: data.contactTypeId,
+          contact_subject_id: data.contactSubjectId,
+          client_origin_id: data.originId,
 
-      openingDate: DateTime.now(),
-      contactDate: data.contactDate,
-      description: data.description,
-      observation: data.observation,
-      value: data.value,
+          openingDate: DateTime.now(),
+          contactDate: data.contactDate,
+          description: data.description,
+          observation: data.observation,
+          value: data.value,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: model.id,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: data.businessUnitId,
+          opening_user_id: authCtx.user.id,
+          openingDate: DateTime.now(),
+          status_id: data.statusId,
+          user_id: data.userId,
+          contact_id: data.contactId,
+          value: data.value,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async update(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      businessUnitId?: string;
+      userId: string;
+      statusId: number;
+      contactId: string;
+      observation: string;
+      value: number;
+      active: boolean;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: model.id,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: model.business_unit_id,
+          user_id: model.user_id,
+          opening_user_id: model.opening_user_id,
+          status_id: model.status_id,
+          contact_id: model.contact_id,
+          value: model.value,
+          openingDate: model.openingDate,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await model
+        .merge({
+          business_unit_id: data.businessUnitId,
+          user_id: data.userId,
+          status_id: data.statusId,
+          contact_id: data.contactId,
+          observation: data.observation,
+          value: data.value,
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 }

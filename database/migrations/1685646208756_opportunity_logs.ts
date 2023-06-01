@@ -19,6 +19,11 @@ export default class extends BaseSchema {
         .inTable('economic_groups')
         .onDelete('CASCADE');
       table
+        .uuid('business_unit_id')
+        .references('id')
+        .inTable('business_units')
+        .onDelete('CASCADE');
+      table
         .uuid('opening_user_id')
         .references('id')
         .inTable('users')

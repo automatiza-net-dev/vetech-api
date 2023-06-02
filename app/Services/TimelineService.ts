@@ -82,9 +82,11 @@ export default class TimelineService {
         client: trx,
       });
 
+      const clean = data.weight.replaceAll('.', '').replaceAll(',', '.');
+
       await patient
         .merge({
-          weight: data.weight,
+          weight: parseFloat(clean),
           weightDate: DateTime.now(),
           weightOrigin: PatientWeightOrigin.A,
         })
@@ -140,7 +142,7 @@ export default class TimelineService {
 
       await patient
         .merge({
-          weight: data.weight,
+          weight: parseFloat(data.weight),
           weightDate: DateTime.now(),
           weightOrigin: PatientWeightOrigin.A,
         })
@@ -390,11 +392,11 @@ export default class TimelineService {
 
           'timeline_info.photos': data.photos
             ? [
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore does have photos
-              ...(record.timeline_info?.photos ?? []),
-              ...(await Promise.all(data.photos.map(this.uploadPhoto))),
-            ].filter(Boolean)
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore does have photos
+                ...(record.timeline_info?.photos ?? []),
+                ...(await Promise.all(data.photos.map(this.uploadPhoto))),
+              ].filter(Boolean)
             : [],
         },
       });
@@ -1301,11 +1303,11 @@ export default class TimelineService {
         'timeline_info.technician.name': technician.name,
         'timeline_info.medias': data.medias
           ? [
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore does have photos
-            ...(record.timeline_info?.medias ?? []),
-            ...(await Promise.all(data.medias.map(this.uploadPhoto))),
-          ].filter(Boolean)
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore does have photos
+              ...(record.timeline_info?.medias ?? []),
+              ...(await Promise.all(data.medias.map(this.uploadPhoto))),
+            ].filter(Boolean)
           : [],
       },
     });

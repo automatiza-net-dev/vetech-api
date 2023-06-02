@@ -796,6 +796,7 @@ Route.group(() => {
   Route.get('/', 'FinancesController.index');
   Route.post('/create', 'FinancesController.storeFinance');
   Route.post('/create-multiple', 'FinancesController.storeMultipleFinances');
+  Route.post('/accept-many', 'FinancesController.acceptManyFinances');
   Route.put('/update/:id', 'FinancesController.updateFinance');
   Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
@@ -1053,4 +1054,28 @@ Route.group(() => {
   Route.delete('/:id', 'ActivitiesController.destroy');
 })
   .prefix('activities')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'CrmStatusController.index');
+  Route.post('/', 'CrmStatusController.store');
+  Route.get('/:id', 'CrmStatusController.show');
+  Route.put('/:id', 'CrmStatusController.update');
+  Route.delete('/:id', 'CrmStatusController.destroy');
+})
+  .prefix('crm-status')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.post('/', 'OpportunitiesController.store');
+  Route.put('/:id', 'OpportunitiesController.update');
+
+  Route.post('/create-activity', 'OpportunitiesController.createActivity');
+  Route.post(
+    '/execute-activity/:id',
+    'OpportunitiesController.executeActivity',
+  );
+  Route.post('/cancel-activity/:id', 'OpportunitiesController.cancelActivity');
+})
+  .prefix('opportunities')
   .middleware('auth');

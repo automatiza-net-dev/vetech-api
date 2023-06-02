@@ -22,4 +22,14 @@ export default class ContactType extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
 }

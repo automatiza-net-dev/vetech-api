@@ -17,7 +17,7 @@ interface ISearch {
 
 @inject()
 export default class KitService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -42,6 +42,9 @@ export default class KitService {
 
     qb.preload('items', query => {
       query.where('business_unit_id', unitId);
+      query.preload('productVariation', query => {
+        query.preload('product');
+      });
     });
 
     const result = await qb;
@@ -54,15 +57,19 @@ export default class KitService {
       active: elem.active,
       sum: {
         originalPrice: elem.items.reduce(
-          (acc, curr) => acc + curr.originalPrice,
+          (acc, curr) => acc + curr.originalPrice * curr.quantity,
           0,
         ),
         discountPrice: elem.items.reduce(
-          (acc, curr) => acc + curr.discountPrice,
+          (acc, curr) => acc + curr.discountPrice * curr.quantity,
           0,
         ),
-        salePrice: elem.items.reduce((acc, curr) => acc + curr.salePrice, 0),
+        salePrice: elem.items.reduce(
+          (acc, curr) => acc + curr.salePrice * curr.quantity,
+          0,
+        ),
       },
+      items: elem.items,
     }));
   }
 

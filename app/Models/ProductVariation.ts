@@ -17,6 +17,8 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+import KitItem from './KitItem';
+
 export default class ProductVariation extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
@@ -69,4 +71,10 @@ export default class ProductVariation extends BaseModel {
     pivotRelatedForeignKey: 'variation_option_id',
   })
   public variationOptions: ManyToMany<typeof VariationOption>;
+
+  @hasMany(() => KitItem, {
+    localKey: 'id',
+    foreignKey: 'product_variation_id',
+  })
+  public kitItems: HasMany<typeof KitItem>;
 }

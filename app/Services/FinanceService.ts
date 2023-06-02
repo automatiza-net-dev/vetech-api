@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, {
@@ -11,6 +10,7 @@ import CheckingAccount from 'App/Models/CheckingAccount';
 import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
+  FinanceAccept,
   FinanceOriginFlag,
   FinanceStatus,
   FinanceType,
@@ -20,7 +20,7 @@ import FinanceReversal, {
 } from 'App/Models/FinanceReversal';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import {
   IFinanceDownData,
   IFinanceReversalData,
@@ -665,5 +665,32 @@ export default class FinanceService {
         status: FinanceStatus.E,
       })
       .save();
+  }
+
+  async acceptMany(authCtx: AuthContext, data: { ids: string[] }) {
+    await Database.transaction(async trx => {
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .whereIn('id', data.ids)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id);
+
+      if (finances.length !== data.ids.length) {
+        throw new BadRequestException(
+          'Não foi possível encontrar todos os lançamentos',
+          400,
+          'BAD_REQUEST',
+        );
+      }
+
+      await Finance.query()
+        .useTransaction(trx)
+        .whereIn('id', data.ids)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .update({
+          accept: FinanceAccept.S,
+        });
+    });
   }
 }

@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import AccountPlan, { AccountPlanType } from 'App/Models/AccountPlan';
-import {
+import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
   FinanceType,
@@ -46,6 +46,11 @@ test.group('Finance resource', group => {
       type: TefFlagType.A,
     });
 
+    const finance = await Finance.create({
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+    });
+
     return {
       user,
       business,
@@ -54,6 +59,7 @@ test.group('Finance resource', group => {
       paymentMethod,
       tefAcq,
       tefFlag,
+      finance,
     };
   };
 
@@ -155,5 +161,45 @@ test.group('Finance resource', group => {
       .bearerToken(token);
 
     assert.equal(200, response.status());
+  });
+
+  test('should throw BadRequestException if no finance was found when accepting many', async ({
+    assert,
+    client,
+  }) => {
+    const { user } = await createData();
+    const { finance } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/finances/accept-many`)
+      .json({
+        ids: [finance.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should accepting many finances', async ({ assert, client }) => {
+    const { user, finance } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/finances/accept-many`)
+      .json({
+        ids: [finance.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

@@ -24,7 +24,7 @@ interface ISearch {
 
 @inject()
 export default class ProductService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
@@ -43,6 +43,14 @@ export default class ProductService {
       .preload('variations', query => {
         query.orderBy('created_at', 'desc');
         query.select('id', 'barcode', 'active');
+
+        query.preload('kitItems', query => {
+          query.whereHas('kit', query => {
+            query.where('active', true);
+          });
+
+          query.preload('kit');
+        });
 
         query.preload('businessUnitProducts', query => {
           query.where('businness_unit_id', unitId);
@@ -117,6 +125,7 @@ export default class ProductService {
               ?.price as unknown as string,
           ) ?? null,
       },
+      kits: product.variations.map(v => v.kitItems).flat(),
     }));
   }
 

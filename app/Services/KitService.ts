@@ -42,6 +42,9 @@ export default class KitService {
 
     qb.preload('items', query => {
       query.where('business_unit_id', unitId);
+      query.preload('productVariation', query => {
+        query.preload('product');
+      });
     });
 
     const result = await qb;
@@ -66,6 +69,7 @@ export default class KitService {
           0,
         ),
       },
+      items: elem.items,
     }));
   }
 

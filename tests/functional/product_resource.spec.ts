@@ -1,11 +1,15 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import Group from 'App/Models/Group';
+import Kit from 'App/Models/Kit';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
+import ProductVariation from 'App/Models/ProductVariation';
 import Subgroup from 'App/Models/Subgroup';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import Unit, { UnitType } from 'App/Models/Unit';
 import IProductData from 'Contracts/interfaces/IProductData';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -51,6 +55,44 @@ test.group('Product resource', group => {
       economic_group_id: group.id,
       variation_group_id: variationGroup.id,
       icmsOrigin: '0',
+    });
+
+    const variation = await ProductVariation.create({
+      product_id: product.id,
+      barcode: 'some barcode',
+    });
+
+    const kit = await Kit.create({
+      description: 'some description',
+      fromExpiration: DateTime.now(),
+      toExpiration: DateTime.now(),
+      economic_group_id: business.economicGroupId,
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      commission: 10,
+      commissionMeta: 10,
+      costPrice: 10,
+      maximumDiscountValue: 10,
+      meta: 10,
+      metaType: BusinessUnitProductMetaType.Quantidade,
+      profitMargin: 10,
+    });
+
+    await kit.related('items').create({
+      product_variation_id: variation.id,
+      quantity: 10,
+      discountPrice: 10,
+      discountPercentage: 10,
+      salePrice: 10,
+      originalPrice: 10,
+      business_unit_id: business.id,
     });
 
     const taxationGroup = await TaxationGroup.create({

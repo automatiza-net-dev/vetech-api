@@ -48,6 +48,11 @@ export default class Rescheduling extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public update_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public schedule_id: string;
 
   @belongsTo(() => Schedule, {

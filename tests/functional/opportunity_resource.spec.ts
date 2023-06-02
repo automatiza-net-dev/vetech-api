@@ -4,8 +4,11 @@ import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import ContactSubject from 'App/Models/ContactSubject';
 import ContactType from 'App/Models/ContactType';
 import CrmStatus from 'App/Models/CrmStatus';
+import Opportunity from 'App/Models/Opportunity';
+import OpportunityActivity from 'App/Models/OpportunityActivity';
 import { PatientType } from 'App/Models/Patient';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -45,6 +48,37 @@ test.group('Opportunity resource', group => {
       system_id: system.id,
     });
 
+    const opportunity = await Opportunity.create({
+      system_id: system.id,
+      business_unit_id: business.id,
+      economic_group_id: group.id,
+      opening_user_id: user.id,
+      user_id: user.id,
+      client_id: holder.id,
+      contact_id: holder.id,
+      status_id: crmStatus.id,
+      contact_type_id: contactType.id,
+      contact_subject_id: contactSubject.id,
+      client_origin_id: origin.id,
+      openingDate: DateTime.now(),
+      contactDate: DateTime.now(),
+      description: 'some',
+      observation: 'some',
+      value: 10,
+    });
+
+    const activity = await OpportunityActivity.create({
+      opportunity_id: opportunity.id,
+      opening_user_id: user.id,
+      user_id: user.id,
+
+      issueDate: DateTime.now(),
+      executionDate: DateTime.now(),
+      duration: 10,
+      description: 'some',
+      status: 'Aberta',
+    });
+
     return {
       user,
       business,
@@ -54,6 +88,8 @@ test.group('Opportunity resource', group => {
       holder,
       origin,
       crmStatus,
+      opportunity,
+      activity,
     };
   };
 
@@ -85,5 +121,64 @@ test.group('Opportunity resource', group => {
       .bearerToken(token);
 
     props.assert.equal(response.status(), 201);
+  });
+
+  test('should create an opportunity activity', async props => {
+    const { user, opportunity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post('/opportunities/create-activity')
+      .json({
+        opportunityId: opportunity.id,
+        userId: user.id,
+
+        executionDate: new Date(),
+        description: 'some description',
+        duration: 10,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
+  });
+
+  test('should execute an opportunity activity', async props => {
+    const { user, activity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/execute-activity/${activity.id}`)
+      .json({
+        observation: 'some observation',
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
+  });
+
+  test('should cancel an opportunity activity', async props => {
+    const { user, activity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/cancel-activity/${activity.id}`)
+      .json({
+        observation: 'some observation',
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
   });
 });

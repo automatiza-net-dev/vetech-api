@@ -1,5 +1,13 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
+
+import Opportunity from './Opportunity';
+
+export const OpportunityActivityStatus = [
+  'Aberta',
+  'Executada',
+  'Cancelada',
+] as const;
 
 export default class OpportunityActivity extends BaseModel {
   @column({ isPrimary: true })
@@ -30,7 +38,7 @@ export default class OpportunityActivity extends BaseModel {
   public observation: string;
 
   @column()
-  public status: string;
+  public status: typeof OpportunityActivityStatus[number];
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -43,18 +51,23 @@ export default class OpportunityActivity extends BaseModel {
   })
   public opportunity_id: number;
 
-  @column({
-    serializeAs: null,
+  @belongsTo(() => Opportunity, {
+    foreignKey: 'opportunity_id',
   })
-  public opening_user_id: number;
+  public opportunity: BelongsTo<typeof Opportunity>;
 
   @column({
     serializeAs: null,
   })
-  public execution_user_id: number;
+  public opening_user_id: string;
 
   @column({
     serializeAs: null,
   })
-  public user_id: number;
+  public execution_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public user_id: string;
 }

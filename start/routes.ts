@@ -1069,6 +1069,13 @@ Route.group(() => {
 Route.group(() => {
   Route.post('/', 'OpportunitiesController.store');
   Route.put('/:id', 'OpportunitiesController.update');
+
+  Route.post('/create-activity', 'OpportunitiesController.createActivity');
+  Route.post(
+    '/execute-activity/:id',
+    'OpportunitiesController.executeActivity',
+  );
+  Route.post('/cancel-activity/:id', 'OpportunitiesController.cancelActivity');
 })
   .prefix('opportunities')
   .middleware('auth');

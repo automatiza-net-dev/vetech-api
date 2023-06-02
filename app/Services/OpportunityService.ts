@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Opportunity from 'App/Models/Opportunity';
+import OpportunityActivity from 'App/Models/OpportunityActivity';
 import OpportunityLog from 'App/Models/OpportunityLog';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -120,6 +122,129 @@ export default class OpportunityService {
           observation: data.observation,
           value: data.value,
           active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async addActivity(
+    authCtx: AuthContext,
+    data: {
+      opportunityId: number;
+      userId: string;
+
+      executionDate: DateTime;
+      duration: number;
+      description: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', data.opportunityId)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await OpportunityActivity.create(
+        {
+          opportunity_id: data.opportunityId,
+          opening_user_id: authCtx.user.id,
+          user_id: data.userId,
+
+          issueDate: DateTime.now(),
+          executionDate: data.executionDate,
+          duration: data.duration,
+          description: data.description,
+          status: 'Aberta',
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async executeActivity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      observation: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const activity = await OpportunityActivity.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('opportunity')
+        .first();
+
+      if (
+        !activity ||
+        activity.opportunity.economic_group_id !== authCtx.group.id
+      ) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (activity.status !== 'Aberta') {
+        throw new BadRequestException(
+          'Atividade já executada ou cancelada',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await activity
+        .merge({
+          execution_user_id: authCtx.user.id,
+          executionDate: DateTime.now(),
+          observation: data.observation,
+          status: 'Executada',
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async cancelActivity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      observation: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const activity = await OpportunityActivity.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('opportunity')
+        .first();
+
+      if (
+        !activity ||
+        activity.opportunity.economic_group_id !== authCtx.group.id
+      ) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (activity.status !== 'Aberta') {
+        throw new BadRequestException(
+          'Atividade já executada ou cancelada',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await activity
+        .merge({
+          execution_user_id: authCtx.user.id,
+          executionDate: DateTime.now(),
+          observation: data.observation,
+          status: 'Cancelada',
         })
         .useTransaction(trx)
         .save();

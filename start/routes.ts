@@ -131,6 +131,7 @@ Route.group(() => {
   Route.put('/:id', 'RolesController.update');
   Route.delete('/:id', 'RolesController.destroy');
 
+  Route.post('/add-permissions', 'RolesController.addPermissions');
   Route.post('/permissions', 'RolesController.managePermissions');
 })
   .prefix('roles')

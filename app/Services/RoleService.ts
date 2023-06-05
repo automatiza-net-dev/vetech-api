@@ -1,8 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Role from 'App/Models/Role';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IManageRolePermissions from 'Contracts/interfaces/IManageRolePermissions';
 import IRoleData from 'Contracts/interfaces/IRoleData';
 
@@ -12,6 +13,8 @@ interface ISearch {
 
 @inject()
 export default class RoleService {
+  constructor(private sharedService: SharedService) {}
+
   public async index(
     authCtx: AuthContext,
     data: ISearch,
@@ -27,7 +30,10 @@ export default class RoleService {
     return qb;
   }
 
-  public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
+  public async store(
+    authCtx: AuthContext,
+    data: Omit<IRoleData, 'active'>,
+  ): Promise<Role> {
     return Role.create({
       name: data.name,
       type: data.type,
@@ -38,15 +44,13 @@ export default class RoleService {
 
   public async show(authCtx: AuthContext, id: number) {
     const role = await Role.query()
+      .debug(true)
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
       .preload('permissions', query => {
+        query.where('active', true);
         query.preload('screen').pivotColumns(['active']);
-
-        // query.whereHas('systems', query => {
-        //   query.where('system_id', authCtx.system.id);
-        // });
       })
       .first();
 
@@ -98,6 +102,7 @@ export default class RoleService {
       .merge({
         name: data.name,
         type: data.type,
+        active: data.active,
       })
       .save();
   }
@@ -107,6 +112,7 @@ export default class RoleService {
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
+      .preload('permissions')
       .first();
 
     if (!role) {
@@ -117,7 +123,38 @@ export default class RoleService {
       );
     }
 
+    if (role.permissions.length > 0) {
+      throw new BadRequestException(
+        'Não é possível excluir um cargo que possui permissões',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
     await role.softDelete();
+  }
+
+  public async addPermissionsToRole(
+    authCtx: AuthContext,
+    data: {
+      roleId: number;
+      permissions: Array<number>;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const role = await Role.query()
+        .useTransaction(trx)
+        .where('id', data.roleId)
+        .where('system_id', authCtx.system.id)
+        .where('economic_group_id', authCtx.group.id)
+        .first();
+
+      if (!role) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await role.related('permissions').sync(data.permissions, false, trx);
+    });
   }
 
   public async manageRolePermissions(

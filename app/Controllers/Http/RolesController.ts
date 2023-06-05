@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import RoleService from 'App/Services/RoleService';
 import SharedService from 'App/Services/SharedService';
+import AddRolePermissionsValidator from 'App/Validators/Role/AddRolePermissionsValidator';
 import CreateRoleValidator from 'App/Validators/Role/CreateRoleValidator';
 import ManageRolePermissionValidator from 'App/Validators/Role/ManageRolePermissionValidator';
 import UpdateRoleValidator from 'App/Validators/Role/UpdateRoleValidator';
@@ -43,6 +44,20 @@ export default class RolesController {
     );
 
     return response.created(newRole);
+  }
+
+  public async addPermissions({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(AddRolePermissionsValidator);
+    await this.roleService.addPermissionsToRole(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
   }
 
   public async managePermissions({

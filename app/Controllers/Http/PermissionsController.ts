@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PermissionService from 'App/Services/PermissionService';
 import SharedService from 'App/Services/SharedService';
 import CreatePermissionValidator from 'App/Validators/Permission/CreatePermissionValidator';
+import FetchScreenValidator from 'App/Validators/Permission/FetchScreenValidator';
 import UpdatePermissionValidator from 'App/Validators/Permission/UpdatePermissionValidator';
 
 @inject()
@@ -46,6 +47,17 @@ export default class PermissionsController {
     return response.ok(
       await this.service.fetchMenu(
         await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+
+  public async fetchScreens({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(FetchScreenValidator);
+
+    return response.ok(
+      await this.service.fetchScreens(
+        await this.sharedService.getAuthContext(auth),
+        payload,
       ),
     );
   }

@@ -145,4 +145,21 @@ test.group('Permission resource', group => {
 
     assert.equal(200, response.status());
   });
+
+  test('should fetch screens', async ({ client, assert }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/permissions/screens')
+      .json({
+        term: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 });

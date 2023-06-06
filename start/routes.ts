@@ -139,6 +139,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/menu', 'PermissionsController.fetchMenu');
+  Route.post('/screens', 'PermissionsController.fetchScreens');
 
   Route.get('/', 'PermissionsController.index');
   Route.post('/', 'PermissionsController.store');

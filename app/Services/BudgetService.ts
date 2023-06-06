@@ -60,7 +60,7 @@ export default class BudgetService {
   constructor(
     private sharedService: SharedService,
     private billService: BillService,
-  ) {}
+  ) { }
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -256,6 +256,14 @@ export default class BudgetService {
     qb.preload('variations', query => {
       query.preload('product');
       query.preload('variationOptions');
+
+      query.preload('kitItems', query => {
+        query.whereHas('kit', query => {
+          query.where('active', true);
+        });
+
+        query.preload('kit');
+      });
 
       query.preload('businessUnitProducts', query => {
         query.where('businness_unit_id', unitId);
@@ -624,9 +632,9 @@ export default class BudgetService {
               : 0;
             const icmsValue = rule
               ? icmsBase *
-                ((rule.icmsPercRedBaseCalculo *
-                  ((100 - rule.icmsPercRedAliquota) / 100)) /
-                  100)
+              ((rule.icmsPercRedBaseCalculo *
+                ((100 - rule.icmsPercRedAliquota) / 100)) /
+                100)
               : 0;
 
             return {

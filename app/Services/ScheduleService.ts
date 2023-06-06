@@ -224,6 +224,10 @@ export default class ScheduleService {
             data.startHour.toJSDate(),
             data.endHour.toJSDate(),
           ])
+          .andWhereHas('serviceStatus', query => {
+            query.whereNotIn('description', ['Atendimento Cancelado']);
+          })
+
           .first();
 
         if (overlapping) {

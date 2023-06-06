@@ -1119,6 +1119,24 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
+  test('should create treatment from bill', async ({ assert, client }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-treatment`)
+      .json({
+        billId: bill.id,
+        sellerId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   // test('should recalculate item taxes', async ({ assert, client }) => {
   //   const { user, bill, business, variation } = await createData();
   //   const token = await generateJwtToken(client, {

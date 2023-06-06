@@ -846,6 +846,8 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.post('/create-treatment', 'BillsController.createTreatment');
+
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/add-kit', 'BillsController.addKitToBill');

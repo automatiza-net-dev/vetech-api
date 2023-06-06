@@ -7,6 +7,7 @@ import ConfirmBillPaymentsValidator from 'App/Validators/Bill/ConfirmBillPayment
 import CreateBillItemValidator from 'App/Validators/Bill/CreateBillItemValidator';
 import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentValidator';
 import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
+import CreateTreatmentBillValidator from 'App/Validators/Bill/CreateTreatmentBillValidator';
 import UpdateBillItemValidator from 'App/Validators/Bill/UpdateBillItemValidator';
 
 @inject()
@@ -209,6 +210,19 @@ export default class BillsController {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.updateCashierConference(authCtx, payload);
+
+    return response.noContent();
+  }
+
+  public async createTreatment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateTreatmentBillValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.createTreatmentFromBill(authCtx, payload);
 
     return response.noContent();
   }

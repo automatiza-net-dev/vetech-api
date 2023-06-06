@@ -27,6 +27,7 @@ import TaxationGroupRule, {
   MovementCategory,
   MovementType,
 } from 'App/Models/TaxationGroupRule';
+import Treatment from 'App/Models/Treatment';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
@@ -1947,6 +1948,38 @@ export default class BillService {
           .save(),
       );
       await Promise.all(tasks2);
+    });
+  }
+
+  async createTreatmentFromBill(
+    authCtx: AuthContext,
+    data: { billId: string; sellerId: string },
+  ) {
+    await Database.transaction(async trx => {
+      const elem = await Bill.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.billId)
+        .first();
+
+      if (!elem) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await Treatment.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          bill_id: elem.id,
+          emission_user_id: authCtx.user.id,
+          client_id: elem.client_id,
+          seller_id: data.sellerId,
+
+          emissionDate: DateTime.now(),
+          status: 'Confirmado',
+        },
+        { client: trx },
+      );
     });
   }
 }

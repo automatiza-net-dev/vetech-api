@@ -42,6 +42,14 @@ export default class PermissionsController {
     );
   }
 
+  public async fetchMenu({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.service.fetchMenu(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+
   public async update({
     params,
     request,

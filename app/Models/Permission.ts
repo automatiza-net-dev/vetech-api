@@ -33,12 +33,6 @@ export default class Permission extends BaseModel {
   @column.dateTime({ serializeAs: null })
   public deletedAt: DateTime;
 
-  @manyToMany(() => Role, {
-    pivotTable: 'role_permissions',
-    pivotTimestamps: true,
-  })
-  public roles: ManyToMany<typeof Role>;
-
   @beforeFind()
   public static softDeletesFind = softDeleteQuery;
 
@@ -64,4 +58,11 @@ export default class Permission extends BaseModel {
     pivotTimestamps: true,
   })
   public systems: ManyToMany<typeof System>;
+
+  @manyToMany(() => Role, {
+    pivotTable: 'role_permissions',
+    pivotTimestamps: true,
+    pivotColumns: ['active'],
+  })
+  public roles: ManyToMany<typeof Role>;
 }

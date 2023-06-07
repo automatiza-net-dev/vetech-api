@@ -157,6 +157,8 @@ export default class HospitalizationService {
       })
       .preload('technician')
       .preload('medicalPrescriptions', query => {
+        query.where('status', 'A');
+
         query.preload('prescriptionUnit');
         query.preload('fluidUnit');
         query.preload('drugAdministration');

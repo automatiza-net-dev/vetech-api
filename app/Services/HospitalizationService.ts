@@ -725,7 +725,8 @@ export default class HospitalizationService {
               specie:
                 hospitalization.patient.patientAnimal.race.specie.description,
               hair:
-                hospitalization.patient.patientAnimal?.hair.description ?? null,
+                hospitalization.patient.patientAnimal?.hair?.description ??
+                null,
               age: hospitalization.patient.birthDate
                 ? DateTime.now()
                     .diff(

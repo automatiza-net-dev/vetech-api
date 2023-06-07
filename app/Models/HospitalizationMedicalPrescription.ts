@@ -24,7 +24,12 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export type HospitalizationMedicalPrescriptionStatus = 'A' | 'E' | 'I' | 'D';
+export type HospitalizationMedicalPrescriptionStatus =
+  | 'A'
+  | 'E'
+  | 'I'
+  | 'D'
+  | 'C';
 
 export default class HospitalizationMedicalPrescription extends BaseModel {
   @column({ isPrimary: true })

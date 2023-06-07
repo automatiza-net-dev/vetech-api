@@ -49,28 +49,27 @@ export default class KitService {
 
     const result = await qb;
 
-    return result.map(elem => ({
-      id: elem.id,
-      description: elem.description,
-      fromExpiration: elem.fromExpiration,
-      toExpiration: elem.toExpiration,
-      active: elem.active,
-      sum: {
-        originalPrice: elem.items.reduce(
-          (acc, curr) => acc + curr.originalPrice * curr.quantity,
-          0,
-        ),
-        discountPrice: elem.items.reduce(
-          (acc, curr) => acc + curr.discountPrice * curr.quantity,
-          0,
-        ),
-        salePrice: elem.items.reduce(
-          (acc, curr) => acc + curr.salePrice * curr.quantity,
-          0,
-        ),
-      },
-      items: elem.items,
-    }));
+    return result.map(elem => {
+      return {
+        id: elem.id,
+        description: elem.description,
+        fromExpiration: elem.fromExpiration,
+        toExpiration: elem.toExpiration,
+        active: elem.active,
+        sum: {
+          originalPrice: elem.items.reduce(
+            (acc, curr) => acc + curr.originalPrice * curr.quantity,
+            0,
+          ),
+          discountPrice: elem.items.reduce(
+            (acc, curr) => acc + curr.discountPrice,
+            0,
+          ),
+          salePrice: elem.items.reduce((acc, curr) => acc + curr.salePrice, 0),
+        },
+        items: elem.items,
+      };
+    });
   }
 
   public async store(unitId: string, data: Omit<IKitData, 'active'>) {

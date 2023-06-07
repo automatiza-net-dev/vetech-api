@@ -161,7 +161,9 @@ export default class HospitalizationService {
         query.preload('fluidUnit');
         query.preload('drugAdministration');
         query.preload('user');
-        query.preload('scheduling');
+        query.preload('scheduling', query => {
+          query.preload('executionUser');
+        });
       })
       .preload('occurrences', query => {
         query.preload('occurrence');

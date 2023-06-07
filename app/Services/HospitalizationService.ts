@@ -687,6 +687,8 @@ export default class HospitalizationService {
         query.preload('tutor');
       })
       .preload('medicalPrescriptions', query => {
+        query.orderBy('execution_start', 'desc');
+
         query.preload('user');
       })
       .first();

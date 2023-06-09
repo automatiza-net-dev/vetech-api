@@ -259,7 +259,12 @@ export default class KitService {
         .preload('items')
         .firstOrFail();
 
-      await kit.related('items').query().useTransaction(trx).delete();
+      await kit
+        .related('items')
+        .query()
+        .useTransaction(trx)
+        .where('product_variation_id', data.productVariationId)
+        .delete();
 
       await kit.related('items').createMany(
         allUnits.map(unit => {

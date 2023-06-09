@@ -792,7 +792,6 @@ export default class TimelineService {
     data: { files: MultipartFileContract[] },
   ) {
     const record = (await AnimalTimeline.findById(id)) as {
-      _id: ObjectId;
       timeline_type: Record<string, unknown>;
       timeline_info: {
         tag: string;

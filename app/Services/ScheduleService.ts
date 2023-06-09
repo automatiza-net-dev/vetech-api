@@ -71,26 +71,11 @@ export default class ScheduleService {
 
       // qb.where('schedule_status_id', SS_NOT_CONFIRMED);
       qb.whereHas('serviceStatus', query => {
-        query.where('description', 'Agendado (Não confirmado)');
+        query.where('type', 'AN');
       });
     } else {
-      // Confirmar já confirmadas
-
-      // qb.whereIn('schedule_status_id', [
-      //   SS_CONFIRMED,
-      //   SS_RECEPTION,
-      //   SS_ON_ATTENDANCE,
-      //   SS_LATE,
-      //   SS_SURGERY,
-      // ]);
       qb.whereHas('serviceStatus', query => {
-        query.whereIn('description', [
-          'Agendado (Confirmado)',
-          'Na recepção',
-          'Em atendimento',
-          'Atrasado',
-          'Em cirurgia',
-        ]);
+        query.whereIn('type', ['AC', 'REC', 'ATEND', 'ATR', 'CIR']);
       });
     }
 
@@ -225,7 +210,7 @@ export default class ScheduleService {
             data.endHour.toJSDate(),
           ])
           .andWhereHas('serviceStatus', query => {
-            query.whereNotIn('description', ['Atendimento Cancelado']);
+            query.whereNotIn('type', ['CANC']);
           })
 
           .first();
@@ -244,6 +229,7 @@ export default class ScheduleService {
       {
         description: 'Agendado (Não confirmado)',
         system_id: authCtx.system.id,
+        type: 'AN',
       },
       {
         color: '#000000',
@@ -873,8 +859,8 @@ export default class ScheduleService {
         );
       }
 
-      const validChanges = VALID_CHANGES[schedule.serviceStatus.description];
-      if (!validChanges || !validChanges.includes(toStatus.description)) {
+      const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+      if (!validChanges || !validChanges.includes(toStatus.type)) {
         throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
       }
 
@@ -1088,8 +1074,8 @@ export default class ScheduleService {
         name: elem.user?.name,
       },
       status: {
-        id: elem.serviceStatus?.id,
-        description: elem.serviceStatus?.description,
+        id: elem.serviceStatus?.id ?? null,
+        description: elem.serviceStatus?.description ?? null,
       },
       cancellation: elem.cancellationUser
         ? {

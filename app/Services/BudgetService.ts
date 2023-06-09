@@ -262,7 +262,11 @@ export default class BudgetService {
           query.where('active', true);
         });
 
-        query.preload('kit');
+        query.preload('kit', query => {
+          query.preload('items', query => {
+            query.where('business_unit_id', unitId);
+          });
+        });
       });
 
       query.preload('businessUnitProducts', query => {

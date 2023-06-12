@@ -78,7 +78,7 @@ export default class AuthService {
         // }
 
         return auth.use('api').generate(user, {
-          expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
+          expiresIn: '7d',
           unit_id: unit.id,
           system_id: system.id,
         });
@@ -151,7 +151,7 @@ export default class AuthService {
     system: number,
   ) {
     return auth.use('api').generate(user, {
-      expiresIn: Env.get('NODE_ENV') === 'production' ? '1hr' : '1d',
+      expiresIn: '7d',
       unit_id,
       system_id: system,
     });

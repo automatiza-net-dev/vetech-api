@@ -774,6 +774,8 @@ export default class BillService {
         query.preload('kit', query => {
           query.preload('items', query => {
             query.where('business_unit_id', unitId);
+
+            query.preload('productVariation');
           });
         });
       });

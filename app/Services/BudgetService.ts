@@ -60,7 +60,7 @@ export default class BudgetService {
   constructor(
     private sharedService: SharedService,
     private billService: BillService,
-  ) { }
+  ) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query().where('business_unit_id', unitId);
@@ -265,6 +265,8 @@ export default class BudgetService {
         query.preload('kit', query => {
           query.preload('items', query => {
             query.where('business_unit_id', unitId);
+
+            query.preload('productVariation');
           });
         });
       });
@@ -636,9 +638,9 @@ export default class BudgetService {
               : 0;
             const icmsValue = rule
               ? icmsBase *
-              ((rule.icmsPercRedBaseCalculo *
-                ((100 - rule.icmsPercRedAliquota) / 100)) /
-                100)
+                ((rule.icmsPercRedBaseCalculo *
+                  ((100 - rule.icmsPercRedAliquota) / 100)) /
+                  100)
               : 0;
 
             return {

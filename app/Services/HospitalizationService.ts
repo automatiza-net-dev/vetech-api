@@ -695,7 +695,7 @@ export default class HospitalizationService {
 
         query.preload('user');
         query.preload('scheduling', query => {
-          query.orderBy('scheduled_at', 'desc');
+          query.orderBy('scheduled_at', 'asc');
 
           query.preload('executionUser');
           query.preload('technician');

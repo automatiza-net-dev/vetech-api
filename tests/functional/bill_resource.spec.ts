@@ -10,7 +10,7 @@ import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
-import { ProductType } from 'App/Models/Product';
+import { ProductPurpose, ProductType } from 'App/Models/Product';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
@@ -174,8 +174,10 @@ test.group('Bill resource', group => {
       cest: 'some cest',
       features: 'some features',
       unit_id: unit.id,
-      active: true,
       taxation_group_id: taxation.id,
+      economic_group_id: group.id,
+      active: true,
+      purpose: ProductPurpose.SALE,
     });
 
     const variation = await product.related('variations').create({

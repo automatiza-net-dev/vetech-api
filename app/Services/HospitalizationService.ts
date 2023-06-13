@@ -699,6 +699,7 @@ export default class HospitalizationService {
 
           query.preload('executionUser');
           query.preload('technician');
+          query.preload('prescription');
         });
       })
       .first();
@@ -729,6 +730,7 @@ export default class HospitalizationService {
         : null,
       patient: {
         id: hospitalization.patient.id,
+        tag: hospitalization.patient.tag,
         name: hospitalization.patient.name,
         document: hospitalization.patient?.tutor?.document ?? null,
         info: hospitalization.patient.patientAnimal

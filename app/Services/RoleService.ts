@@ -97,7 +97,9 @@ export default class RoleService {
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
-      .preload('permissions')
+      .preload('permissions', query => {
+        query.where('active', true);
+      })
       .first();
 
     if (!role) {

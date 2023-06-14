@@ -3,12 +3,15 @@ import {
   beforeFetch,
   beforeFind,
   column,
+  HasMany,
+  hasMany,
   ManyToMany,
   manyToMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import Permission from 'App/Models/Permission';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import UserUnitRole from './UserUnitRole';
 
 export const RoleType = ['system', 'controller'] as const;
 export type TRoleType = typeof RoleType[number];
@@ -61,4 +64,10 @@ export default class Role extends BaseModel {
     pivotColumns: ['active'],
   })
   public permissions: ManyToMany<typeof Permission>;
+
+  @hasMany(() => UserUnitRole, {
+    foreignKey: 'role_id',
+    localKey: 'id',
+  })
+  public users: HasMany<typeof UserUnitRole>;
 }

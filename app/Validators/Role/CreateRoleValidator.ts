@@ -1,12 +1,12 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
 import { RoleType } from 'App/Models/Role';
 
 export default class CreateRoleValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    name: schema.string({}, [rules.unique({ table: 'roles', column: 'name' })]),
+    name: schema.string({}, []),
     type: schema.enum(Object.values(RoleType)),
   });
 

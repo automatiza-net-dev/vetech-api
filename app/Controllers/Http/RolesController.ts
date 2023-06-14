@@ -36,6 +36,19 @@ export default class RolesController {
     );
   }
 
+  public async permissionMetadata({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.roleService.rolePermissionMetadata(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+      ),
+    );
+  }
+
   public async store({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateRoleValidator);
     const newRole = await this.roleService.store(

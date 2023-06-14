@@ -44,14 +44,9 @@ export default class RoleService {
 
   public async show(authCtx: AuthContext, id: number) {
     const role = await Role.query()
-      .debug(true)
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
-      .preload('permissions', query => {
-        query.where('active', true);
-        query.preload('screen').pivotColumns(['active']);
-      })
       .first();
 
     if (!role) {
@@ -66,16 +61,6 @@ export default class RoleService {
       id: role.id,
       name: role.name,
       type: role.type,
-      permissions: role.permissions.map(p => ({
-        id: p.id,
-        control: p.control,
-        description: p.description,
-        active: p.$extras.pivot_active,
-        screen: {
-          id: p.screen.id,
-          name: p.screen.name,
-        },
-      })),
     };
   }
 
@@ -132,6 +117,55 @@ export default class RoleService {
     }
 
     await role.softDelete();
+  }
+
+  public async rolePermissionMetadata(authCtx: AuthContext, id: number) {
+    const role = await Role.query()
+      .debug(true)
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .first();
+
+    if (!role) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    // .preload('permissions', query => {
+    //     query.where('active', true);
+    //     query.preload('screen').pivotColumns(['active']);
+    //   })
+
+    const permissions = await role
+      .related('permissions')
+      .query()
+      .debug(true)
+      .where('active', true)
+      .whereHas('screen', query => {
+        query.where('active', true);
+      })
+      .preload('screen')
+      .pivotColumns(['active']);
+
+    const screens = permissions.map(p => p.screen);
+    const uniqueScreens = screens.filter(
+      (v, i, a) => a.findIndex(t => t.id === v.id) === i,
+    );
+
+    return uniqueScreens.map(screen => {
+      const screenPermissions = permissions.filter(
+        p => p.screen.id === screen.id,
+      );
+      return {
+        id: screen.id,
+        name: screen.name,
+        permissions: screenPermissions.map(p => ({
+          id: p.id,
+          description: p.description,
+          active: p.$extras.pivot_active,
+        })),
+      };
+    });
   }
 
   public async addPermissionsToRole(

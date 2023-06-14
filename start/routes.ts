@@ -131,6 +131,7 @@ Route.group(() => {
   Route.put('/:id', 'RolesController.update');
   Route.delete('/:id', 'RolesController.destroy');
 
+  Route.get('/metadata/:id', 'RolesController.permissionMetadata');
   Route.post('/add-permissions', 'RolesController.addPermissions');
   Route.post('/permissions', 'RolesController.managePermissions');
 })

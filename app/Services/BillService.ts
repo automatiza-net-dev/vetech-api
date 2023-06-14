@@ -811,6 +811,9 @@ export default class BillService {
 
         result.push({
           id: variation.id,
+          variation: {
+            id: variation.id,
+          },
           product_id: product.id,
           type: product.type,
           description: product.description,
@@ -828,6 +831,9 @@ export default class BillService {
         result.push({
           id: kitItem.id,
           kit_id: kit.id,
+          variation: {
+            id: kitItem.product_variation_id,
+          },
           type: 'kit',
           description: kit.description,
           price: price ? parseFloat(price as unknown as string) : -1,

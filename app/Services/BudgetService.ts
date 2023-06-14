@@ -323,6 +323,9 @@ export default class BudgetService {
 
         result.push({
           id: variation.id,
+          variation: {
+            id: variation.id,
+          },
           product_id: product.id,
           type: product.type,
           description: product.description,
@@ -340,6 +343,9 @@ export default class BudgetService {
         result.push({
           id: kitItem.id,
           kit_id: kit.id,
+          variation: {
+            id: kitItem.product_variation_id,
+          },
           type: 'kit',
           description: kit.description,
           price: price ? parseFloat(price as unknown as string) : -1,
@@ -348,8 +354,6 @@ export default class BudgetService {
     }
 
     return result;
-
-    return qb;
   }
 
   public async createBudget(

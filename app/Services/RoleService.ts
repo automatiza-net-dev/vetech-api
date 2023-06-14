@@ -97,7 +97,9 @@ export default class RoleService {
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
-      .preload('permissions')
+      .preload('permissions', query => {
+        query.where('active', true);
+      })
       .first();
 
     if (!role) {
@@ -121,7 +123,6 @@ export default class RoleService {
 
   public async rolePermissionMetadata(authCtx: AuthContext, id: number) {
     const role = await Role.query()
-      .debug(true)
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
@@ -139,11 +140,6 @@ export default class RoleService {
     const permissions = await role
       .related('permissions')
       .query()
-      .debug(true)
-      .where('active', true)
-      .whereHas('screen', query => {
-        query.where('active', true);
-      })
       .preload('screen')
       .pivotColumns(['active']);
 
@@ -156,6 +152,7 @@ export default class RoleService {
       const screenPermissions = permissions.filter(
         p => p.screen.id === screen.id,
       );
+
       return {
         id: screen.id,
         name: screen.name,

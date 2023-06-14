@@ -23,7 +23,7 @@ interface ISearch {
 
 @inject()
 export default class AttendanceService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
     const qb = Attendance.query().where('business_unit_id', unitId);
@@ -209,7 +209,7 @@ export default class AttendanceService {
   public async update(
     unitId: string,
     id: string,
-    data: { resume: string; protocol: string; internalObservation?: string },
+    data: { resume?: string; protocol: string; internalObservation?: string },
   ) {
     const model = await this.show(unitId, id);
 

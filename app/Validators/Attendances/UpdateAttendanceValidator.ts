@@ -5,7 +5,7 @@ export default class UpdateAttendanceValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    resume: schema.string(),
+    resume: schema.string.optional(),
     protocol: schema.string(),
     internalObservation: schema.string.optional(),
   });

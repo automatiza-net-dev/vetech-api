@@ -138,9 +138,6 @@ export default class RoleService {
     const permissions = await role
       .related('permissions')
       .query()
-      .whereHas('screen', query => {
-        query.where('active', true);
-      })
       .preload('screen')
       .pivotColumns(['active']);
 
@@ -153,6 +150,7 @@ export default class RoleService {
       const screenPermissions = permissions.filter(
         p => p.screen.id === screen.id,
       );
+
       return {
         id: screen.id,
         name: screen.name,

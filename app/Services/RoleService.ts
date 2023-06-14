@@ -121,7 +121,6 @@ export default class RoleService {
 
   public async rolePermissionMetadata(authCtx: AuthContext, id: number) {
     const role = await Role.query()
-      .debug(true)
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
@@ -139,8 +138,6 @@ export default class RoleService {
     const permissions = await role
       .related('permissions')
       .query()
-      .debug(true)
-      .where('active', true)
       .whereHas('screen', query => {
         query.where('active', true);
       })

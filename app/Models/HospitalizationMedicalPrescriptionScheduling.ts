@@ -107,6 +107,16 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   })
   public user_id: string;
 
+  @column({
+    serializeAs: null,
+  })
+  public execution_user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'execution_user_id',
+  })
+  public executionUser: BelongsTo<typeof User>;
+
   @belongsTo(() => User, {
     foreignKey: 'user_id',
   })

@@ -157,11 +157,15 @@ export default class HospitalizationService {
       })
       .preload('technician')
       .preload('medicalPrescriptions', query => {
+        query.where('status', 'A');
+
         query.preload('prescriptionUnit');
         query.preload('fluidUnit');
         query.preload('drugAdministration');
         query.preload('user');
-        query.preload('scheduling');
+        query.preload('scheduling', query => {
+          query.preload('executionUser');
+        });
       })
       .preload('occurrences', query => {
         query.preload('occurrence');
@@ -687,7 +691,16 @@ export default class HospitalizationService {
         query.preload('tutor');
       })
       .preload('medicalPrescriptions', query => {
+        query.orderBy('execution_start', 'desc');
+
         query.preload('user');
+        query.preload('scheduling', query => {
+          query.orderBy('scheduled_at', 'asc');
+
+          query.preload('executionUser');
+          query.preload('technician');
+          query.preload('prescription');
+        });
       })
       .first();
 
@@ -717,6 +730,7 @@ export default class HospitalizationService {
         : null,
       patient: {
         id: hospitalization.patient.id,
+        tag: hospitalization.patient.tag,
         name: hospitalization.patient.name,
         document: hospitalization.patient?.tutor?.document ?? null,
         info: hospitalization.patient.patientAnimal
@@ -725,7 +739,8 @@ export default class HospitalizationService {
               specie:
                 hospitalization.patient.patientAnimal.race.specie.description,
               hair:
-                hospitalization.patient.patientAnimal?.hair.description ?? null,
+                hospitalization.patient.patientAnimal?.hair?.description ??
+                null,
               age: hospitalization.patient.birthDate
                 ? DateTime.now()
                     .diff(

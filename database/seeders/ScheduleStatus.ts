@@ -18,51 +18,61 @@ export default class extends BaseSeeder {
       id: SS_NOT_CONFIRMED,
       description: 'Agendado (Não confirmado)',
       color: '#000',
+      type: 'AN',
     },
     {
       id: SS_CONFIRMED,
       description: 'Agendado (Confirmado)',
       color: '#000',
+      type: 'AC',
     },
     {
       id: SS_RECEPTION,
       description: 'Na recepção',
       color: '#000',
+      type: 'REC',
     },
     {
       id: SS_ON_ATTENDANCE,
       description: 'Em atendimento',
       color: '#000',
+      type: 'ATEND',
     },
     {
       id: SS_ATTENDANCE_FINISHED,
       description: 'Atendimento finalizado',
       color: '#000',
+      type: 'FIN',
     },
     {
       id: SS_ATTENDANCE_CANCELLED,
       description: 'Atendimento cancelado',
       color: '#000',
+      type: 'CANC',
     },
     {
       id: SS_SURGERY,
       description: 'Em cirurgia',
       color: '#000',
+      type: 'CIR',
     },
     {
       id: SS_HOSPITALIZED,
       description: 'Hospitalizado',
       color: '#000',
+      type: 'INT',
     },
     {
       id: SS_ON_NOTE,
       description: 'Em observação',
       color: '#000',
+      type: 'OBS',
     },
     {
       id: SS_LATE,
       description: 'Atrasado',
       color: '#000',
+      type: 'ATR',
     },
   ];
 

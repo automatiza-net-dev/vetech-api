@@ -25,43 +25,30 @@ export const SS_HOSPITALIZED = '07cfeb17-192e-4196-a0d5-f33d3240a736';
 export const SS_ON_NOTE = '3aad3eec-4cb0-4295-9840-5c584cb1040d';
 export const SS_LATE = 'e5fbc62e-9f66-428c-ba05-1ecf6a0fb388';
 
-export const VALID_CHANGES: Record<string, Array<string>> = {
-  'Agendado (Não confirmado)': [
-    'Agendado (Confirmado)',
-    'Na recepção',
-    'Atrasado',
-    'Atendimento cancelado',
-  ],
-  'Agendado (Confirmado)': [
-    'Na recepção',
-    'Em cirurgia',
-    'Atendimento cancelado',
-    'Atrasado',
-  ],
-  'Na recepção': [
-    'Em atendimento',
-    'Em cirurgia',
-    'Hospitalizado',
-    'Em observação',
-    'Atendimento cancelado',
-  ],
-  'Em atendimento': [
-    'Atendimento finalizado',
-    'Em cirurgia',
-    'Hospitalizado',
-    'Em observação',
-  ],
-  'Em cirurgia': ['Atendimento finalizado', 'Hospitalizado', 'Em observação'],
-  Hospitalizado: ['Atendimento finalizado', 'Em observação', 'Em cirurgia'],
-  'Em observação': ['Atendimento finalizado', 'Em cirurgia', 'Hospitalizado'],
-  Atrasado: [
-    'Em atendimento',
-    'Em cirurgia',
-    'Hospitalizado',
-    'Em observação',
-    'Atendimento cancelado',
-  ],
-};
+export const ScheduleStatusTypes = [
+  'AC',
+  'AN',
+  'CANC',
+  'FIN',
+  'ATR',
+  'ATEND',
+  'CIR',
+  'OBS',
+  'INT',
+  'REC',
+] as const;
+export type ScheduleStatusType = typeof ScheduleStatusTypes[number];
+
+export const VALID_CHANGES = {
+  AN: ['AC', 'REC', 'ATR', 'CANC'],
+  AC: ['REC', 'CIR', 'CANC', 'ATR'],
+  REC: ['ATEND', 'CIR', 'INT', 'OBS', 'CANC'],
+  ATEND: ['FIN', 'CIR', 'INT', 'OBS'],
+  CIR: ['FIN', 'INT', 'OBS'],
+  INT: ['FIN', 'OBS', 'CIR'],
+  OBS: ['FIN', 'CIR', 'INT'],
+  ATR: ['ATEND', 'CIR', 'INT', 'OBS', 'CANC'],
+} as const;
 
 export default class ScheduleStatus extends BaseModel {
   @column({ isPrimary: true })
@@ -72,6 +59,9 @@ export default class ScheduleStatus extends BaseModel {
 
   @column()
   public color: string;
+
+  @column()
+  public type: ScheduleStatusType;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

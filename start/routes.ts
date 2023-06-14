@@ -125,22 +125,31 @@ Route.group(() => {
 }).prefix('business-units');
 
 Route.group(() => {
-  Route.get('', 'RolesController.index');
-  Route.post('', 'RolesController.store');
+  Route.get('/', 'RolesController.index');
+  Route.post('/', 'RolesController.store');
   Route.get('/:id', 'RolesController.show');
   Route.put('/:id', 'RolesController.update');
   Route.delete('/:id', 'RolesController.destroy');
 
+  Route.get('/metadata/:id', 'RolesController.permissionMetadata');
+  Route.post('/add-permissions', 'RolesController.addPermissions');
   Route.post('/permissions', 'RolesController.managePermissions');
 })
   .prefix('roles')
   .middleware('auth');
 
-Route.resource('permissions', 'PermissionsController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/menu', 'PermissionsController.fetchMenu');
+  Route.post('/screens', 'PermissionsController.fetchScreens');
+
+  Route.get('/', 'PermissionsController.index');
+  Route.post('/', 'PermissionsController.store');
+  Route.get('/:id', 'PermissionsController.show');
+  Route.put('/:id', 'PermissionsController.update');
+  Route.delete('/:id', 'PermissionsController.destroy');
+})
+  .prefix('permissions')
+  .middleware('auth');
 
 Route.group(() => {
   Route.post('/additional', 'LicencesController.additional').middleware('auth');
@@ -838,6 +847,8 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.post('/create-treatment', 'BillsController.createTreatment');
+
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/add-kit', 'BillsController.addKitToBill');

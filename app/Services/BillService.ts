@@ -27,6 +27,7 @@ import TaxationGroupRule, {
   MovementCategory,
   MovementType,
 } from 'App/Models/TaxationGroupRule';
+import Treatment from 'App/Models/Treatment';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
@@ -68,7 +69,7 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   isValidNumber(data: number | undefined) {
     if (!data) {
@@ -560,11 +561,11 @@ export default class BillService {
       );
       const flagInstallment = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.find(
-          data.paymentMethodFlagInstallmentId,
-          {
-            client: trx,
-          },
-        )
+            data.paymentMethodFlagInstallmentId,
+            {
+              client: trx,
+            },
+          )
         : null;
 
       const userOpenCashier = await DailyCashier.query()
@@ -764,12 +765,77 @@ export default class BillService {
       query.where('active', true);
       query.preload('variationOptions');
       query.preload('product');
+
+      query.preload('kitItems', query => {
+        query.whereHas('kit', query => {
+          query.where('active', true);
+        });
+
+        query.preload('kit', query => {
+          query.preload('items', query => {
+            query.where('business_unit_id', unitId);
+
+            query.preload('productVariation');
+          });
+        });
+      });
       query.preload('businessUnitProducts', query => {
         query.where('businness_unit_id', unitId);
       });
     });
     qb.preload('unit');
-    return qb;
+    const products = await qb;
+
+    const kits = await Kit.query()
+      .where('economic_group_id', group.id)
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.whereHas('businessUnitProducts', query => {
+            query.where('businness_unit_id', unitId);
+          });
+
+          query.preload('product');
+          query.preload('businessUnitProducts', query => {
+            query.where('businness_unit_id', unitId);
+          });
+        });
+      });
+
+    const result: Array<unknown> = [];
+
+    for (const product of products) {
+      for (const variation of product.variations) {
+        const price = variation.businessUnitProducts.find(
+          v => v.businness_unit_id === unitId,
+        )?.price;
+
+        result.push({
+          id: variation.id,
+          product_id: product.id,
+          type: product.type,
+          description: product.description,
+          price: price ? parseFloat(price as unknown as string) : -1,
+        });
+      }
+    }
+
+    for (const kit of kits) {
+      for (const kitItem of kit.items) {
+        const price = kitItem.productVariation.businessUnitProducts.find(
+          p => p.businness_unit_id === unitId,
+        )?.price;
+
+        result.push({
+          id: kitItem.id,
+          kit_id: kit.id,
+          type: 'kit',
+          description: kit.description,
+          price: price ? parseFloat(price as unknown as string) : -1,
+        });
+      }
+    }
+
+    return result;
   }
 
   async searchTax(unitId: string, data: ISearchTax) {
@@ -1119,7 +1185,7 @@ export default class BillService {
               : undefined;
             const icmsStBase_2 = rule.ivaIcmsSt
               ? icmsStBase_1 -
-              (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+                (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
               : 0;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
@@ -1141,7 +1207,7 @@ export default class BillService {
                 icmsStIva: rule.ivaIcmsSt,
                 icmsStValue: rule.ivaIcmsSt
                   ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-                  icmsValue
+                    icmsValue
                   : undefined,
                 issBase: rule.icmsPerc,
                 issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
@@ -1336,7 +1402,7 @@ export default class BillService {
             : undefined,
           icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
             ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-            icmsValue
+              icmsValue
             : undefined,
           issCst:
             variation.product.type === ProductType.SERVICE
@@ -1939,6 +2005,38 @@ export default class BillService {
           .save(),
       );
       await Promise.all(tasks2);
+    });
+  }
+
+  async createTreatmentFromBill(
+    authCtx: AuthContext,
+    data: { billId: string; sellerId: string },
+  ) {
+    await Database.transaction(async trx => {
+      const elem = await Bill.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.billId)
+        .first();
+
+      if (!elem) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await Treatment.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          bill_id: elem.id,
+          emission_user_id: authCtx.user.id,
+          client_id: elem.client_id,
+          seller_id: data.sellerId,
+
+          emissionDate: DateTime.now(),
+          status: 'Confirmado',
+        },
+        { client: trx },
+      );
     });
   }
 }

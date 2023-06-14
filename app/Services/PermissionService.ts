@@ -48,6 +48,26 @@ export default class PermissionService {
     });
   }
 
+  public async fetchMenu(authCtx: AuthContext) {
+    return Permission.query()
+      .whereHas('systems', query => {
+        query.where('system_id', authCtx.system.id);
+      })
+      .whereILike('control', `%${'menu'}%`)
+      .preload('screen');
+  }
+
+  public async fetchScreens(authCtx: AuthContext, data: { term: string }) {
+    return Permission.query()
+      .whereHas('systems', query => {
+        query.where('system_id', authCtx.system.id);
+      })
+      .whereHas('screen', query => {
+        query.whereILike('name', `%${data.term}%`);
+      })
+      .preload('screen');
+  }
+
   public async show(authCtx: AuthContext, id: number): Promise<Permission> {
     const permission = await Permission.query()
       .where('id', id)

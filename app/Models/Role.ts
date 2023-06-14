@@ -23,6 +23,9 @@ export default class Role extends BaseModel {
   @column()
   public type: TRoleType;
 
+  @column()
+  public active: boolean;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

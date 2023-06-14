@@ -62,6 +62,8 @@ test.group('Role resource', group => {
 
     const response = await client.get(`/roles/${role.id}`).bearerToken(token);
 
+    console.log(JSON.stringify(response.body(), null, 2));
+
     assert.equal(200, response.status());
   });
 
@@ -115,6 +117,7 @@ test.group('Role resource', group => {
       .json({
         name: v4(),
         type: 'system',
+        active: true,
       })
       .bearerToken(token);
 
@@ -124,12 +127,31 @@ test.group('Role resource', group => {
     assert.notEqual(role.name, body.name);
   });
 
+  test('should throw BadRequestException if deleting role with permissions', async ({
+    client,
+    assert,
+  }) => {
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/roles/${role.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should delete a role', async ({ client, assert }) => {
     const { user, role } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
+
+    await role.related('permissions').sync([]);
 
     const response = await client
       .delete(`/roles/${role.id}`)
@@ -160,6 +182,24 @@ test.group('Role resource', group => {
           },
         ],
       } as IManageRolePermissions)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should add new permission to role', async ({ client, assert }) => {
+    const { user, role, permission } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/roles/add-permissions`)
+      .json({
+        roleId: role.id,
+        permissions: [permission.id],
+      })
       .bearerToken(token);
 
     assert.equal(204, response.status());

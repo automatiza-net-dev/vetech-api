@@ -19,6 +19,7 @@ export default interface IHospitalizationMedicalPrescriptionData {
 }
 
 export interface IHospitalizationMedicalPrescriptionSchedulingData {
+  executionUserId: string;
   type?: MedicalPrescriptionType;
   frequency?: MedicalPrescriptionFrequency;
   scheduledAt?: DateTime;

@@ -97,6 +97,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
   public async schedulingIndex(unitId: string, data: ISearchScheduling) {
     const query = HospitalizationMedicalPrescriptionScheduling.query()
+      .where('status', HospitalizationSchedulingStatus.ACTIVE)
       .preload('hospitalization', query => {
         query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');
@@ -557,6 +558,14 @@ export default class HospitalizationMedicalPrescriptionService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (['E', 'I', 'C'].includes(entity.status)) {
+      throw new BadRequestException(
+        'Prescrição em estado inválido',
+        400,
+        'E_INVALID',
+      );
+    }
+
     const { key } = this.matchSchema(data.type, data.frequency);
 
     entity.merge({
@@ -665,11 +674,16 @@ export default class HospitalizationMedicalPrescriptionService {
         .useTransaction(trx)
         .save();
 
-      await entity.related('scheduling').query().useTransaction(trx).update({
-        status: 'I',
-        excludedAt: DateTime.now(),
-        update_user_id: authCtx.user.id,
-      });
+      await entity
+        .related('scheduling')
+        .query()
+        .useTransaction(trx)
+        .where('status', 'A')
+        .update({
+          status: 'I',
+          excludedAt: DateTime.now(),
+          update_user_id: authCtx.user.id,
+        });
     });
   }
 
@@ -703,7 +717,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
       await entity
         .merge({
-          status: 'D',
+          status: 'C',
           active: false,
           excludedAt: DateTime.now(),
           update_user_id: authCtx.user.id,
@@ -712,7 +726,7 @@ export default class HospitalizationMedicalPrescriptionService {
         .save();
 
       await entity.related('scheduling').query().useTransaction(trx).update({
-        status: 'D',
+        status: 'C',
         excludedAt: DateTime.now(),
         update_user_id: authCtx.user.id,
       });
@@ -737,7 +751,10 @@ export default class HospitalizationMedicalPrescriptionService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      if (scheduling.executedAt) {
+      if (
+        scheduling.status !== HospitalizationSchedulingStatus.ACTIVE ||
+        scheduling.executedAt
+      ) {
         throw new BadRequestException('Agendamento já executado', 400, 'E_ERR');
       }
 
@@ -753,6 +770,7 @@ export default class HospitalizationMedicalPrescriptionService {
           frequency: data.frequency,
           user_id: user.id,
           update_user_id: user.id,
+          execution_user_id: data.executionUserId,
         })
         .useTransaction(trx)
         .save();

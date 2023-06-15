@@ -73,8 +73,6 @@ test.group('Attendance resource', group => {
 
     const response = await client.get(`/attendances`).bearerToken(token);
 
-    // console.log(response.body());
-
     assert.equal(200, response.status());
   });
 

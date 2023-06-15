@@ -26,7 +26,9 @@ export default class AttendanceService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
-    const qb = Attendance.query().where('business_unit_id', unitId);
+    const qb = Attendance.query()
+      .where('business_unit_id', unitId)
+      .preload('scheduleService');
 
     if (data.resume) {
       qb.whereILike('resume', `%${data.resume}`);
@@ -53,6 +55,7 @@ export default class AttendanceService {
     const attendance = await Attendance.query()
       .where('business_unit_id', unitId)
       .where('id', id)
+      .preload('scheduleService')
       .first();
 
     if (!attendance) {

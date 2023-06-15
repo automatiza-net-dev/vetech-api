@@ -786,62 +786,26 @@ export default class BillService {
     qb.preload('unit');
     const products = await qb;
 
-    const kits = await Kit.query()
-      .where('economic_group_id', group.id)
-      .preload('items', query => {
-        query.preload('productVariation', query => {
-          query.whereHas('businessUnitProducts', query => {
-            query.where('businness_unit_id', unitId);
-          });
+    const kits = await Kit.query().where('economic_group_id', group.id);
+    // const kits = await Kit.query()
+    //   .where('economic_group_id', group.id)
+    //   .preload('items', query => {
+    //     query.preload('productVariation', query => {
+    //       query.whereHas('businessUnitProducts', query => {
+    //         query.where('businness_unit_id', unitId);
+    //       });
 
-          query.preload('product');
-          query.preload('businessUnitProducts', query => {
-            query.where('businness_unit_id', unitId);
-          });
-        });
-      });
+    //       query.preload('product');
+    //       query.preload('businessUnitProducts', query => {
+    //         query.where('businness_unit_id', unitId);
+    //       });
+    //     });
+    //   });
 
-    const result: Array<unknown> = [];
-
-    for (const product of products) {
-      for (const variation of product.variations) {
-        const price = variation.businessUnitProducts.find(
-          v => v.businness_unit_id === unitId,
-        )?.price;
-
-        result.push({
-          id: variation.id,
-          variation: {
-            id: variation.id,
-          },
-          product_id: product.id,
-          type: product.type,
-          description: product.description,
-          price: price ? parseFloat(price as unknown as string) : -1,
-        });
-      }
-    }
-
-    for (const kit of kits) {
-      for (const kitItem of kit.items) {
-        const price = kitItem.productVariation.businessUnitProducts.find(
-          p => p.businness_unit_id === unitId,
-        )?.price;
-
-        result.push({
-          id: kitItem.id,
-          kit_id: kit.id,
-          variation: {
-            id: kitItem.product_variation_id,
-          },
-          type: 'kit',
-          description: kit.description,
-          price: price ? parseFloat(price as unknown as string) : -1,
-        });
-      }
-    }
-
-    return result;
+    return [
+      ...products,
+      ...kits.map(elem => ({ ...elem.toJSON(), type: 'kit' })),
+    ];
   }
 
   async searchTax(unitId: string, data: ISearchTax) {

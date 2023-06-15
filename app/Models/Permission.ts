@@ -24,6 +24,9 @@ export default class Permission extends BaseModel {
   @column()
   public control: string;
 
+  @column()
+  public control_id: string;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
@@ -62,7 +65,7 @@ export default class Permission extends BaseModel {
   @manyToMany(() => Role, {
     pivotTable: 'role_permissions',
     pivotTimestamps: true,
-    pivotColumns: ['active'],
+    pivotColumns: ['active', 'status'],
   })
   public roles: ManyToMany<typeof Role>;
 }

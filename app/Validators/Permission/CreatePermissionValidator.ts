@@ -7,6 +7,7 @@ export default class CreatePermissionValidator {
   public schema = schema.create({
     description: schema.string({}, []),
     control: schema.string({}, []),
+    controlId: schema.string({}, []),
     screenId: schema.number([rules.exists({ table: 'screens', column: 'id' })]),
   });
 

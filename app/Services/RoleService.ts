@@ -45,7 +45,7 @@ export default class RoleService {
       const newRole = await Role.create(
         {
           name: data.name,
-          type: data.type,
+          type: 'system',
           system_id: authCtx.system.id,
           economic_group_id: authCtx.group.id,
         },
@@ -107,7 +107,6 @@ export default class RoleService {
     return role
       .merge({
         name: data.name,
-        type: data.type,
         active: data.active,
       })
       .save();
@@ -159,6 +158,7 @@ export default class RoleService {
     const permissions = await role
       .related('permissions')
       .query()
+      .where('control', 'system')
       .preload('screen')
       .pivotColumns(['active']);
 

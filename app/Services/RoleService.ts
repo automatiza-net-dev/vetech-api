@@ -22,7 +22,8 @@ export default class RoleService {
   ): Promise<Array<Role>> {
     const qb = Role.query()
       .where('system_id', authCtx.system.id)
-      .where('economic_group_id', authCtx.group.id);
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'system');
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -158,7 +159,6 @@ export default class RoleService {
     const permissions = await role
       .related('permissions')
       .query()
-      .where('control', 'system')
       .preload('screen')
       .pivotColumns(['active']);
 

@@ -312,6 +312,7 @@ export default class ScheduleService {
       .preload('statusChanges', query => {
         query.preload('reason', query => query.select(['id', 'reason']));
         query.preload('user', query => query.select(['id', 'name', 'email']));
+        query.preload('status', query => query.select(['id', 'description']));
       })
       .preload('reason', query => query.select(['id', 'reason']))
       .preload('contacts', query => {

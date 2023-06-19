@@ -850,8 +850,8 @@ Route.group(() => {
   Route.post('/create-treatment', 'BillsController.createTreatment');
 
   Route.post('/create', 'BillsController.createBill');
-  Route.post('/create-multiple', 'BillsController.createBills');
   Route.post('/create-item', 'BillsController.createBillItem');
+  Route.post('/create-items', 'BillsController.createBillItems');
   Route.post('/add-kit', 'BillsController.addKitToBill');
 
   Route.put('/update-item', 'BillsController.updateBillItem');

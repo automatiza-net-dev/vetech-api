@@ -4,6 +4,7 @@ import BillService from 'App/Services/BillService';
 import SharedService from 'App/Services/SharedService';
 import AddKitToBillValidator from 'App/Validators/Bill/AddKitToBillValidator';
 import ConfirmBillPaymentsValidator from 'App/Validators/Bill/ConfirmBillPaymentsValidator';
+import CreateBillItemsValidator from 'App/Validators/Bill/CreateBillItemsValidator';
 import CreateBillItemValidator from 'App/Validators/Bill/CreateBillItemValidator';
 import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentValidator';
 import CreateBillsValidator from 'App/Validators/Bill/CreateBillsValidator';
@@ -78,6 +79,19 @@ export default class BillsController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const result = await this.service.createBillItem(unit_id, payload);
+
+    return response.created(result);
+  }
+
+  public async createBillItems({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateBillItemsValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.createBillItems(unit_id, payload.items);
 
     return response.created(result);
   }

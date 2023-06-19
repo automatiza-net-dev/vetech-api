@@ -221,6 +221,17 @@ export default class BillService {
     });
   }
 
+  async createBillItems(unitId: string, data: ICreateBillItemData[]) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const tasks = data.map(d =>
+        this.createBillItemWithTrx(trx, unitId, group, d),
+      );
+      return Promise.all(tasks);
+    });
+  }
+
   async updateBillItem(_: string, data: IUpdateBillItemData) {
     return Database.transaction(async trx => {
       const billItems = await BillItem.query()

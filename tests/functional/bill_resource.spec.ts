@@ -343,6 +343,41 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create multiple bills', async ({ assert, client }) => {
+    const {
+      user,
+      client: holder,
+      patient,
+      dailyCashier,
+      dailyMovement,
+    } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-multiple`)
+      .json({
+        items: [
+          {
+            clientId: holder.id,
+            patientId: patient.id,
+            dailyMovementId: dailyMovement.id,
+            dailyCashierId: dailyCashier.id,
+            billDate: new Date(),
+            productValue: 100,
+            serviceValue: 200,
+            discountValue: 55,
+            items: [],
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should create bill without open cashier', async ({
     assert,
     client,

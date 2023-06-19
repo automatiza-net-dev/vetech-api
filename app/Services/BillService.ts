@@ -193,6 +193,26 @@ export default class BillService {
     });
   }
 
+  async createBills(unitId: string, user: User, data: ICreateBillData[]) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    // if (ufIcms.length !== taxRules.length) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
+
+    return Database.transaction(async trx => {
+      const tasks = data.map(d =>
+        this.createBillWithTrx(trx, unitId, group, user, d),
+      );
+
+      return Promise.all(tasks);
+    });
+  }
+
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
 

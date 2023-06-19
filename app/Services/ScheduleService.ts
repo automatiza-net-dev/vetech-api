@@ -1100,6 +1100,7 @@ export default class ScheduleService {
       status: {
         id: elem.serviceStatus?.id ?? null,
         description: elem.serviceStatus?.description ?? null,
+        color: elem.serviceStatus.color ?? null,
       },
       cancellation: elem.cancellationUser
         ? {

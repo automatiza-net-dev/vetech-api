@@ -488,6 +488,46 @@ export default class BudgetService {
     });
   }
 
+  public async createBudgetItems(
+    unitId: string,
+    data: ICreateBudgetItemData[],
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const tasks = data.map(async item => {
+        const budget = await Budget.findOrFail(item.budgetId);
+        const dbItem = await budget.related('items').create(
+          {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            product_variation_id: item.productVariationId,
+
+            unitaryValue: item.unitaryValue,
+            discountValue: item.discountValue,
+            quantity: item.quantity,
+            totalValue: item.quantity * item.unitaryValue - item.discountValue,
+            status: BudgetStatus.A,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        await budget
+          .merge({
+            productValue: budget.productValue + dbItem.totalValue,
+            discountValue: budget.discountValue + dbItem.discountValue,
+            totalValue: budget.totalValue + dbItem.totalValue,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+
+      await Promise.all(tasks);
+    });
+  }
+
   public async updateBudgetItem(
     unitId: string,
     id: string,

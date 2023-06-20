@@ -212,7 +212,6 @@ export default class ScheduleService {
           .andWhereHas('serviceStatus', query => {
             query.whereNotIn('type', ['CANC']);
           })
-
           .first();
 
         if (overlapping) {

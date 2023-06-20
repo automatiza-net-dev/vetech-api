@@ -10,7 +10,7 @@ export default class CreatePatientWithTutorValidator {
     name: schema.string({}),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
-      extnames: ['jpg', 'gif', 'png'],
+      extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),
     gender: schema.enum.optional(Object.values(PatientGender), []),
     tags: schema.string.optional({}, []),

@@ -5,6 +5,7 @@ import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import { v4 } from 'uuid';
 import Hash from '@ioc:Adonis/Core/Hash';
 import { userBootstrap } from '../utils';
+import { ApiClient } from '@japa/api-client';
 
 test.group('Third party resource', group => {
   group.each.setup(async () => {
@@ -29,6 +30,19 @@ test.group('Third party resource', group => {
     return { user, tpUser, tpPermission };
   };
 
+  const createToken = async (
+    client: ApiClient,
+    tpPermission: ThirdPartyUserPermission,
+  ) => {
+    const response = await client.post('/external/authenticate').json({
+      key: tpPermission.key,
+      password: '102030',
+      systemId: tpPermission.system_id,
+    });
+
+    return response.body().token;
+  };
+
   test('should authenticate', async ({ client, assert }) => {
     const { tpPermission } = await createData();
 
@@ -38,8 +52,16 @@ test.group('Third party resource', group => {
       systemId: tpPermission.system_id,
     });
 
-    console.log(response.body());
+    assert.equal(response.status(), 200);
+  });
 
+  test('should get profile', async ({ client, assert }) => {
+    const { tpPermission } = await createData();
+    const token = await createToken(client, tpPermission);
+
+    const response = await client.get('/external/profile').bearerToken(token);
+
+    console.log(response.body());
     assert.equal(response.status(), 200);
   });
 });

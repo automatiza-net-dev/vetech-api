@@ -14,4 +14,13 @@ export default class ThirdPartiesController {
 
     return response.ok(result);
   }
+
+  public async profile({ auth, response }: HttpContextContract) {
+    const user = auth.use('tpApi').user!;
+
+    return response.ok({
+      id: user.id,
+      key: user.key,
+    });
+  }
 }

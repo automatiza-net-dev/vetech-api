@@ -1094,4 +1094,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.post('/authenticate', 'ThirdPartiesController.authenticate');
+  Route.get('/profile', 'ThirdPartiesController.profile').middleware(
+    'auth:tpApi',
+  );
 }).prefix('external');

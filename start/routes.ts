@@ -1091,3 +1091,7 @@ Route.group(() => {
 })
   .prefix('opportunities')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/authenticate', 'ThirdPartiesController.authenticate');
+}).prefix('external');

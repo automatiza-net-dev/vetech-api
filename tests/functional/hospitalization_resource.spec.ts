@@ -347,8 +347,6 @@ test.group('Hospitalization resource', group => {
       .get(`/hospitalizations/info/${hospitalization.id}`)
       .bearerToken(token);
 
-    console.log(response.body());
-
     assert.equal(200, response.status());
   });
 });

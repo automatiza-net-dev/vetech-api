@@ -8,6 +8,7 @@ import Hospitalization, {
   HospitalizationType,
   HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
@@ -586,27 +587,28 @@ export default class HospitalizationService {
   public async completeHospitalization(unitId: string, id: string, user: User) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const hospitalization = await Hospitalization.query()
-      .where('business_unit_id', unitId)
-      .where('id', id)
-      .preload('patient')
-      .preload('bed')
-      .preload('tutor')
-      .first();
-
-    if (!hospitalization) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    if (hospitalization.status === HospitalizationStatus.COMPLETE) {
-      throw new BadRequestException(
-        'Internação já finalizada',
-        400,
-        'E_CLOSED_ALREADY',
-      );
-    }
-
     await Database.transaction(async trx => {
+      const hospitalization = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('id', id)
+        .preload('patient')
+        .preload('bed')
+        .preload('tutor')
+        .first();
+
+      if (!hospitalization) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (hospitalization.status === HospitalizationStatus.COMPLETE) {
+        throw new BadRequestException(
+          'Internação já finalizada',
+          400,
+          'E_CLOSED_ALREADY',
+        );
+      }
+
       await hospitalization
         .merge({
           releasedAt: DateTime.now(),
@@ -614,6 +616,22 @@ export default class HospitalizationService {
         })
         .useTransaction(trx)
         .save();
+
+      await HospitalizationMedicalPrescription.query()
+        .useTransaction(trx)
+        .where('hospitalization_id', hospitalization.id)
+        .where('status', 'A')
+        .update({
+          status: 'I',
+        });
+
+      await HospitalizationMedicalPrescriptionScheduling.query()
+        .useTransaction(trx)
+        .where('hospitalization_id', hospitalization.id)
+        .where('status', 'A')
+        .update({
+          status: 'CA',
+        });
 
       await HospitalizationTimeline.create({
         meta: {

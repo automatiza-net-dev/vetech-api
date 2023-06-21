@@ -28,7 +28,6 @@ export default class AuthenticateThirdPartyValidator {
       rules.exists({ table: 'third_party_user_permissions', column: 'key' }),
     ]),
     password: schema.string(),
-    systemId: schema.number([rules.exists({ table: 'systems', column: 'id' })]),
   });
 
   /**

@@ -6,21 +6,33 @@ import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 
 @inject()
 export default class ThirdPartyService {
+  private unauthotizedException = new BadRequestException(
+    'Credenciais inválidas',
+    400,
+    'E_INVALID',
+  );
+
   public async authenticate(
     authContract: AuthContract,
+    system: 'Vetech' | 'LiftOne' | 'Sanclá',
     data: {
       key: string;
       password: string;
-      systemId: number;
     },
   ) {
     const tpUser = await ThirdPartyUserPermission.query()
       .where('key', data.key)
-      .where('system_id', data.systemId)
-      .firstOrFail();
+      .whereHas('system', query => {
+        query.where('name', system);
+      })
+      .first();
+
+    if (!tpUser) {
+      throw this.unauthotizedException;
+    }
 
     if (!(await Hash.verify(tpUser.password, data.password))) {
-      throw new BadRequestException('Credenciais inválidas', 400, 'E_INVALID');
+      throw this.unauthotizedException;
     }
 
     const token = await authContract.use('tpApi').generate(tpUser, {

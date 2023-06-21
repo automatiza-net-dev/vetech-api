@@ -1093,7 +1093,19 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
-  Route.post('/authenticate', 'ThirdPartiesController.authenticate');
+  Route.post(
+    '/authenticate-sancla',
+    'ThirdPartiesController.authenticateSancla',
+  );
+  Route.post(
+    '/authenticate-liftone',
+    'ThirdPartiesController.authenticateLiftOne',
+  );
+  Route.post(
+    '/authenticate-vetech',
+    'ThirdPartiesController.authenticateVetech',
+  );
+
   Route.get('/profile', 'ThirdPartiesController.profile').middleware(
     'auth:tpApi',
   );

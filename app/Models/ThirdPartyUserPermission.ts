@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import { v4 } from 'uuid';
+import System from 'App/Models/System';
 
 export default class ThirdPartyUserPermission extends BaseModel {
   @column({ isPrimary: true })
@@ -30,4 +31,9 @@ export default class ThirdPartyUserPermission extends BaseModel {
     serializeAs: null,
   })
   public system_id: number;
+
+  @belongsTo(() => System, {
+    foreignKey: 'system_id',
+  })
+  public system: BelongsTo<typeof System>;
 }

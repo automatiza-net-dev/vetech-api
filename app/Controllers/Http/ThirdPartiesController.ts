@@ -7,10 +7,38 @@ import ThirdPartyService from 'App/Services/ThirdPartyService';
 export default class ThirdPartiesController {
   constructor(private readonly service: ThirdPartyService) {}
 
-  public async authenticate({ auth, request, response }: HttpContextContract) {
+  public async authenticateSancla({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
     const payload = await request.validate(AuthenticateThirdPartyValidator);
 
-    const result = await this.service.authenticate(auth, payload);
+    const result = await this.service.authenticate(auth, 'Sanclá', payload);
+
+    return response.ok(result);
+  }
+
+  public async authenticateVetech({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(AuthenticateThirdPartyValidator);
+
+    const result = await this.service.authenticate(auth, 'Vetech', payload);
+
+    return response.ok(result);
+  }
+
+  public async authenticateLiftOne({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(AuthenticateThirdPartyValidator);
+
+    const result = await this.service.authenticate(auth, 'LiftOne', payload);
 
     return response.ok(result);
   }

@@ -163,6 +163,8 @@ export default class BillService {
         query.preload('paymentMethod');
       }),
       bill.load('items', query => {
+        query.where('status', BillItemStatus.A);
+
         query.preload('taxRule', query => {
           query.select(['id']);
         });

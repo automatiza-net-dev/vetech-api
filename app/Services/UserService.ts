@@ -502,6 +502,7 @@ export default class UserService {
 
     await bunit.related('checkingAccounts').create(
       {
+        economic_group_id: group.id,
         description: `Cofre - Matriz`,
         accountNumber: 'Cofre',
         bankCode: 'Cofre',
@@ -885,6 +886,7 @@ export default class UserService {
 
     await bunit.related('checkingAccounts').create(
       {
+        economic_group_id: group.id,
         description: `Cofre - Matriz`,
         accountNumber: 'Cofre',
         bankCode: 'Cofre',

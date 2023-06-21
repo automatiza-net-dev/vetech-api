@@ -143,6 +143,7 @@ export default class BusinessUnitService {
 
         await CheckingAccount.create(
           {
+            economic_group_id: economicGroup.id,
             business_unit_id: unit.id,
             description: `Cofre - ${unit.identification ?? 'Não informado'}`,
             accountNumber: 'Cofre',

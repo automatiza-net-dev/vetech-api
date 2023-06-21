@@ -25,6 +25,8 @@ test.group('Third party resource', group => {
       name: systemName,
     });
 
+    await user.merge({ system_id: system.id }).save();
+
     const tpPermission = await ThirdPartyUserPermission.create({
       key: v4(),
       user_id: tpUser.id,
@@ -45,7 +47,6 @@ test.group('Third party resource', group => {
       .json({
         key: tpPermission.key,
         password: '102030',
-        systemId: tpPermission.system_id,
       });
 
     return response.body().token;
@@ -57,7 +58,6 @@ test.group('Third party resource', group => {
     const response = await client.post('/external/authenticate-vetech').json({
       key: tpPermission.key,
       password: '102030',
-      systemId: tpPermission.system_id,
     });
 
     assert.equal(response.status(), 200);
@@ -68,6 +68,22 @@ test.group('Third party resource', group => {
     const token = await createToken(client, tpPermission, 'vetech');
 
     const response = await client.get('/external/profile').bearerToken(token);
+
+    assert.equal(response.status(), 200);
+  });
+
+  test('should extended authenticate', async ({ client, assert }) => {
+    const { tpPermission, user } = await createData('Vetech');
+
+    const response = await client
+      .post('/external/extended-authenticate-vetech')
+      .json({
+        appKey: tpPermission.key,
+        appPassword: '102030',
+
+        userEmail: user.email,
+        userPassword: '102030',
+      });
 
     assert.equal(response.status(), 200);
   });

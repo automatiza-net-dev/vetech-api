@@ -1106,6 +1106,19 @@ Route.group(() => {
     'ThirdPartiesController.authenticateVetech',
   );
 
+  Route.post(
+    '/extended-authenticate-sancla',
+    'ThirdPartiesController.extendedAuthenticateSancla',
+  );
+  Route.post(
+    '/extended-authenticate-liftone',
+    'ThirdPartiesController.extendedAuthenticateLiftOne',
+  );
+  Route.post(
+    '/extended-authenticate-vetech',
+    'ThirdPartiesController.extendedAuthenticateVetech',
+  );
+
   Route.get('/profile', 'ThirdPartiesController.profile').middleware(
     'auth:tpApi',
   );

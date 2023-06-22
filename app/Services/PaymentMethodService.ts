@@ -171,6 +171,7 @@ export default class PaymentMethodService {
       nfe_code: '99',
     });
   }
+
   async updatePaymentMethod(
     unitId: string,
     id: string,

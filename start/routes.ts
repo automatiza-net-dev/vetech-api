@@ -810,6 +810,22 @@ Route.group(() => {
   Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
   Route.delete('/delete/:id', 'FinancesController.deleteFinance');
+
+  Route.get('/expiring-expenses', 'FinancesController.expiringExpenses');
+  Route.get('/expiring-payments', 'FinancesController.expiringPayments');
+  Route.get(
+    '/checking-accounts-resume',
+    'FinancesController.checkingAccountsResume',
+  );
+  Route.get('/open-cashiers-resume', 'FinancesController.openCashiersResume');
+  Route.get(
+    '/closed-cashiers-resume',
+    'FinancesController.closedCashiersResume',
+  );
+  Route.get(
+    '/revised-cashiers-resume',
+    'FinancesController.revisedCashiersResume',
+  );
 })
   .prefix('finances')
   .middleware('auth');

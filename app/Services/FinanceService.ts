@@ -7,7 +7,7 @@ import Banking, {
   BankingType,
 } from 'App/Models/Banking';
 import CheckingAccount from 'App/Models/CheckingAccount';
-import DailyCashier from 'App/Models/DailyCashier';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
@@ -692,5 +692,141 @@ export default class FinanceService {
           accept: FinanceAccept.S,
         });
     });
+  }
+
+  async getExpiringExpenses(authCtx: AuthContext) {
+    const today = DateTime.now();
+
+    const finances = await Finance.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('type', FinanceType.D)
+      .where('status', FinanceStatus.A)
+      .whereBetween('expiration_date', [
+        today.startOf('day').toISO() ?? '',
+        today.endOf('day').toISO() ?? '',
+      ])
+      .whereNull('payment_date')
+      .preload('paymentMethod');
+
+    return finances.map(elem => ({
+      id: elem.id,
+      document: elem.document,
+      installment: elem.installment,
+      paymentMethod: {
+        id: elem.paymentMethod.id,
+        description: elem.paymentMethod.description,
+      },
+      totalValue: elem.totalValue,
+    }));
+  }
+
+  async getExpiringPayments(authCtx: AuthContext) {
+    const today = DateTime.now();
+
+    const finances = await Finance.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('type', FinanceType.C)
+      .where('status', FinanceStatus.A)
+      .whereBetween('expiration_date', [
+        today.startOf('day').toISO() ?? '',
+        today.endOf('day').toISO() ?? '',
+      ])
+      .whereNull('payment_date')
+      .preload('paymentMethod');
+
+    return finances.map(elem => ({
+      id: elem.id,
+      document: elem.document,
+      installment: elem.installment,
+      paymentMethod: {
+        id: elem.paymentMethod.id,
+        description: elem.paymentMethod.description,
+      },
+      totalValue: elem.totalValue,
+    }));
+  }
+
+  async getCheckingAccountsResume(authCtx: AuthContext) {
+    const result = await CheckingAccount.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('active', true);
+
+    return result.map(elem => ({
+      id: elem.id,
+      description: elem.description,
+      accountNumber: elem.accountNumber,
+      balance: elem.balance,
+    }));
+  }
+
+  async getOpenDailyCashiers(authCtx: AuthContext) {
+    const result = await DailyCashier.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .where('status', DailyCashierStatus.A)
+      .preload('userWhoOpened');
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      openingBalance: elem.openingBalance,
+      cashierFunds: elem.cashierFunds,
+      salesTotal: elem.salesTotal,
+      expensesTotal: elem.expensesTotal,
+      receiptsTotal: elem.receiptsTotal,
+      cashierTotal: elem.cashierTotal,
+
+      userWhoOpened: {
+        id: elem.userWhoOpened.id,
+        name: elem.userWhoOpened.name,
+      },
+    }));
+  }
+
+  async getClosedDailyCashiers(authCtx: AuthContext) {
+    const result = await DailyCashier.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .where('status', DailyCashierStatus.F)
+      .preload('userWhoClosed');
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      openingBalance: elem.openingBalance,
+      cashierFunds: elem.cashierFunds,
+      salesTotal: elem.salesTotal,
+      expensesTotal: elem.expensesTotal,
+      receiptsTotal: elem.receiptsTotal,
+      cashierTotal: elem.cashierTotal,
+
+      userWhoClosed: {
+        id: elem.userWhoClosed.id,
+        name: elem.userWhoClosed.name,
+      },
+    }));
+  }
+
+  async getRevisedDailyCashiers(authCtx: AuthContext) {
+    const result = await DailyCashier.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .where('status', DailyCashierStatus.R)
+      .preload('userWhoRevised');
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      openingBalance: elem.openingBalance,
+      cashierFunds: elem.cashierFunds,
+      salesTotal: elem.salesTotal,
+      expensesTotal: elem.expensesTotal,
+      receiptsTotal: elem.receiptsTotal,
+      cashierTotal: elem.cashierTotal,
+
+      userWhoRevised: {
+        id: elem.userWhoRevised.id,
+        name: elem.userWhoRevised.name,
+      },
+    }));
   }
 }

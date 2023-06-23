@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import { BillItemStatus } from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
@@ -1220,10 +1220,17 @@ test.group('Bill resource', group => {
   });
 
   test('should create treatment from bill', async ({ assert, client }) => {
-    const { user, bill } = await createData();
+    const { user, bill, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
+    });
+
+    await BillItem.create({
+      id: v4(),
+      bill_id: bill.id,
+      product_variation_id: variation.id,
+      quantity: 1,
     });
 
     const response = await client

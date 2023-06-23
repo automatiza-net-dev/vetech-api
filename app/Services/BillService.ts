@@ -28,6 +28,7 @@ import TaxationGroupRule, {
   MovementType,
 } from 'App/Models/TaxationGroupRule';
 import Treatment from 'App/Models/Treatment';
+import TreatmentItem, { TreatmentItemStatus } from 'App/Models/TreatmentItem';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
@@ -39,6 +40,7 @@ import {
   IUpdateBillItemData,
 } from 'Contracts/interfaces/IBillData';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 interface ISearch {
   fromBill?: string;
@@ -2018,13 +2020,14 @@ export default class BillService {
         .useTransaction(trx)
         .where('business_unit_id', authCtx.unit.id)
         .where('id', data.billId)
+        .preload('items')
         .first();
 
       if (!elem) {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await Treatment.create(
+      const treatment = await Treatment.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
@@ -2036,6 +2039,20 @@ export default class BillService {
           emissionDate: DateTime.now(),
           status: 'Confirmado',
         },
+        { client: trx },
+      );
+
+      await TreatmentItem.createMany(
+        elem.items.map((inner, index) => ({
+          id: index + 1,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          treatment_id: treatment.id,
+          product_variation_id: inner.product_variation_id,
+
+          status: TreatmentItemStatus[0],
+          quantity: inner.quantity,
+        })),
         { client: trx },
       );
     });

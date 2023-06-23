@@ -3,7 +3,7 @@ import Kit from 'App/Models/Kit';
 import ProductVariation from 'App/Models/ProductVariation';
 import { DateTime } from 'luxon';
 
-const TreatmentItemStatus = ['Ativo'] as const;
+export const TreatmentItemStatus = ['Ativo'] as const;
 export type TreatmentItemStatus = typeof TreatmentItemStatus[number];
 
 export default class TreatmentItem extends BaseModel {

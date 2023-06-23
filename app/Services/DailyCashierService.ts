@@ -153,11 +153,13 @@ export default class DailyCashierService {
 
             if (!root) {
               acc[curr.payment_method_id] = {
-                [curr.flag.id]: {
-                  flag: {
-                    id: curr.flag.id,
-                    description: curr.flag.description,
-                  },
+                [curr.flag?.id ?? '-']: {
+                  flag: curr.flag
+                    ? {
+                        id: curr.flag.id,
+                        description: curr.flag.description,
+                      }
+                    : null,
                   payments: [curr],
                 },
               };

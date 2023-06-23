@@ -159,7 +159,7 @@ export default class DailyCashierService {
               };
             }
 
-            const elem = acc[curr.payment_method_id];
+            const elem = acc[curr.payment_method_id] ?? {};
             const subelem = elem[curr?.flag?.id];
             if (subelem) {
               subelem.payments.push(curr);
@@ -168,7 +168,7 @@ export default class DailyCashierService {
             }
 
             return acc;
-          }, {}),
+          }, {} as Record<string, Record<string, any>>),
         no_tef: dailyCashier.bills
           .reduce((acc, bill) => {
             const no_tefs = bill.payments.filter(p =>

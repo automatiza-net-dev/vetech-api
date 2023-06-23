@@ -149,26 +149,21 @@ export default class DailyCashierService {
             return [...acc, ...tefs];
           }, [])
           .reduce((acc, curr) => {
-            if (acc[curr.payment_method_id]) {
-              acc[curr.payment_method_id][curr.flag.id] = {
-                flag: {
-                  id: curr.flag.id,
-                  description: curr.flag.description,
+            const root = acc[curr.payment_method_id];
+            if (!root) {
+              acc[curr.payment_method_id] = {
+                [curr.flag.id]: {
+                  flag: {
+                    id: curr.flag.id,
+                    description: curr.flag.description,
+                  },
+                  payments: [curr],
                 },
-                payments: [curr],
               };
             }
 
-            const elem = acc[curr.payment_method_id] ?? {};
-            const subelem = elem[curr?.flag?.id];
-            if (subelem) {
-              subelem.payments.push(curr);
-            } else {
-              subelem.payments = [curr];
-            }
-
             return acc;
-          }, {} as Record<string, Record<string, any>>),
+          }, {} as Record<string, Record<string, unknown>>),
         no_tef: dailyCashier.bills
           .reduce((acc, bill) => {
             const no_tefs = bill.payments.filter(p =>

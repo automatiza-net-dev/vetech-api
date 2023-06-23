@@ -160,7 +160,7 @@ export default class DailyCashierService {
             }
 
             const elem = acc[curr.payment_method_id];
-            const subelem = elem[curr.flag?.id];
+            const subelem = elem[curr.?flag?.id];
             if (subelem) {
               subelem.payments.push(curr);
             } else {

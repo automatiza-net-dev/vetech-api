@@ -163,6 +163,7 @@ export default class PaymentMethodService {
       allowChangeExpirationDate: data.allowChangeExpirationDate,
       minimumInstallmentValue: data.minimumInstallmentValue,
       type: data.type,
+      usage: data.usage,
       checkingAccountId: data.checkingAccountId,
       fee: data.fee ?? 0,
       daysUntilTransfer: data.daysUntilTransfer ?? 0,
@@ -198,6 +199,8 @@ export default class PaymentMethodService {
         allowChangeExpirationDate: data.allowChangeExpirationDate,
         minimumInstallmentValue: data.minimumInstallmentValue,
         type: data.type,
+        usage: data.usage,
+
         checkingAccountId: data.checkingAccountId,
         fee: data.fee ?? 0,
         daysUntilTransfer: data.daysUntilTransfer ?? 0,

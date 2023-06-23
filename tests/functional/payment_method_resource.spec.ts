@@ -6,6 +6,7 @@ import CheckingAccount, {
 import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodType,
+  PaymentMethodUsage,
 } from 'App/Models/PaymentMethod';
 import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
 import TefAcquirer from 'App/Models/TefAcquirer';
@@ -92,6 +93,7 @@ test.group('Payment method resource', group => {
         allowChangeExpirationDate: true,
         minimumInstallmentValue: 10,
         type: PaymentMethodType.C,
+        usage: PaymentMethodUsage.RECEBER,
         checkingAccountId: checkingAccount.id,
         daysUntilTransfer: 10,
         installmentsWithoutPassword: 2,
@@ -122,6 +124,7 @@ test.group('Payment method resource', group => {
         allowChangeExpirationDate: true,
         minimumInstallmentValue: 10,
         type: PaymentMethodType.C,
+        usage: PaymentMethodUsage.RECEBER,
         checkingAccountId: checkingAccount.id,
         daysUntilTransfer: 10,
         installmentsWithoutPassword: 2,

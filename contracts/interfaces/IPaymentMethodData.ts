@@ -1,4 +1,8 @@
-import { PaymentMethodTef, PaymentMethodType } from 'App/Models/PaymentMethod';
+import {
+  PaymentMethodTef,
+  PaymentMethodType,
+  PaymentMethodUsage,
+} from 'App/Models/PaymentMethod';
 
 export interface ICreatePaymentMethodData {
   description: string;
@@ -9,6 +13,8 @@ export interface ICreatePaymentMethodData {
   daysBetweenInstallments: number;
   allowChangeExpirationDate: boolean;
   minimumInstallmentValue: number;
+  usage: PaymentMethodUsage;
+
   type?: PaymentMethodType;
   checkingAccountId?: string;
   fee?: number;

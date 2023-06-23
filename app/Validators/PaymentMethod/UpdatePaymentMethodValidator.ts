@@ -1,11 +1,13 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { PaymentMethodTef, PaymentMethodType } from 'App/Models/PaymentMethod';
+import {
+  PaymentMethodTef,
+  PaymentMethodType,
+  PaymentMethodUsage,
+} from 'App/Models/PaymentMethod';
 
 export default class UpdatePaymentMethodValidator {
   constructor(protected ctx: HttpContextContract) {}
-
-  private tef = this.ctx.request.input('tef');
 
   public schema = schema.create({
     description: schema.string(),
@@ -17,10 +19,9 @@ export default class UpdatePaymentMethodValidator {
     allowChangeExpirationDate: schema.boolean(),
     minimumInstallmentValue: schema.number(),
     active: schema.boolean(),
-    type:
-      this.tef === PaymentMethodTef.N
-        ? schema.enum.optional(Object.values(PaymentMethodType))
-        : schema.enum(Object.values(PaymentMethodType)),
+    usage: schema.enum(Object.values(PaymentMethodUsage)),
+
+    type: schema.enum.optional(Object.values(PaymentMethodType)),
     checkingAccountId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'checking_accounts', column: 'id' }),

@@ -427,7 +427,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '15',
         },
         {
@@ -451,7 +451,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '02',
         },
         {
@@ -467,7 +467,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '99',
         },
         {
@@ -475,7 +475,7 @@ export default class UserService {
           requiresDocument: true,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.SAIDA,
+          usage: PaymentMethodUsage.RECEBER,
           nfe_code: '05',
         },
         {
@@ -811,7 +811,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '15',
         },
         {
@@ -835,7 +835,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '02',
         },
         {
@@ -851,7 +851,7 @@ export default class UserService {
           requiresDocument: false,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.ENTRADA,
+          usage: PaymentMethodUsage.PAGAR,
           nfe_code: '99',
         },
         {
@@ -859,7 +859,7 @@ export default class UserService {
           requiresDocument: true,
           tef: PaymentMethodTef.N,
           fee: 0,
-          usage: PaymentMethodUsage.SAIDA,
+          usage: PaymentMethodUsage.RECEBER,
           nfe_code: '05',
         },
         {

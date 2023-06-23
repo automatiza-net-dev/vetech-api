@@ -150,6 +150,7 @@ export default class DailyCashierService {
           }, [])
           .reduce((acc, curr) => {
             const root = acc[curr.payment_method_id];
+
             if (!root) {
               acc[curr.payment_method_id] = {
                 [curr.flag.id]: {

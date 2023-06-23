@@ -33,6 +33,7 @@ import {
 import { DateTime } from 'luxon';
 
 interface ISearch {
+  pid?: string;
   patient?: string;
   complaint?: string;
 }
@@ -108,6 +109,10 @@ export default class ScheduleService {
       })
       .preload('scheduleOrigin')
       .preload('scheduleReturn');
+
+    if (data.pid) {
+      qb.where('patient_id', data.pid);
+    }
 
     if (data.patient) {
       qb.where('patient_name', 'ilike', `%${data.patient}%`);

@@ -18,7 +18,6 @@ import Finance, {
 } from 'App/Models/Finance';
 import Kit from 'App/Models/Kit';
 import PaymentMethod from 'App/Models/PaymentMethod';
-import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
@@ -687,11 +686,11 @@ export default class BillService {
           issueDate: DateTime.now(),
           expirationDate: payments.at(v)?.expirationDate,
           originalValue: singleValue,
-          value: singleValue - (singleValue * paymentMethod.fee) / 100,
-          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100,
+          value: singleValue - (singleValue * installment.fee) / 100,
+          totalValue: singleValue - (singleValue * installment.fee) / 100,
           feeDiscountValue:
             (payments.at(v)?.installmentValue ?? 0) -
-            (singleValue - (singleValue * paymentMethod.fee) / 100),
+            (singleValue - (singleValue * installment.fee) / 100),
           feeValue: 0,
           feeDiscountPercentage: paymentMethod.fee,
           feePercentage: 0,

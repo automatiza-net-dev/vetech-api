@@ -21,7 +21,10 @@ import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import Unit, { UnitType } from 'App/Models/Unit';
-import { IUpdateBillItemData } from 'Contracts/interfaces/IBillData';
+import {
+  ICreateBillPaymentData,
+  IUpdateBillItemData,
+} from 'Contracts/interfaces/IBillData';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -717,6 +720,30 @@ test.group('Bill resource', group => {
         expirationDate: new Date(),
         installmentsValue: 10,
       })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill payment (installments)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, paymentMethod } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-payment`)
+      .json({
+        billId: bill.id,
+        paymentMethodId: paymentMethod.id,
+        expirationDate: DateTime.now(),
+        installmentsValue: 10,
+        installments: 10,
+      } as ICreateBillPaymentData)
       .bearerToken(token);
 
     assert.equal(201, response.status());

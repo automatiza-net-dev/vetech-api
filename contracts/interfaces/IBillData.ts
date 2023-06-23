@@ -35,6 +35,7 @@ export interface ICreateBillPaymentData {
   expirationDate: DateTime;
   installmentsValue: number;
   nsuDocument?: string;
+  installments?: number;
 }
 
 export interface IUpdateBillItemData {

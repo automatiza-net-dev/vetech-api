@@ -18,6 +18,7 @@ import Finance, {
 } from 'App/Models/Finance';
 import Kit from 'App/Models/Kit';
 import PaymentMethod from 'App/Models/PaymentMethod';
+import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
@@ -585,21 +586,20 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
-      const bill = await Bill.findOrFail(data.billId);
-      const paymentMethod = await PaymentMethod.findOrFail(
-        data.paymentMethodId,
-        {
-          client: trx,
-        },
-      );
-      const flagInstallment = data.paymentMethodFlagInstallmentId
-        ? await PaymentMethodFlagInstallment.find(
-            data.paymentMethodFlagInstallmentId,
-            {
-              client: trx,
-            },
-          )
-        : null;
+      const bill = await Bill.findOrFail(data.billId, {
+        client: trx,
+      });
+      const paymentMethod = await PaymentMethod.query()
+        .useTransaction(trx)
+        .where('id', data.paymentMethodId)
+        .firstOrFail();
+
+      const installment = data.paymentMethodFlagInstallmentId
+        ? await PaymentMethodFlagInstallment.query()
+            .useTransaction(trx)
+            .where('id', data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
+        : { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
       const userOpenCashier = await DailyCashier.query()
         .useTransaction(trx)
@@ -622,12 +622,11 @@ export default class BillService {
       );
 
       const uniqueBlocks = new Set(existingPayments.map(p => p.block));
-      const singleValue =
-        data.installmentsValue / (flagInstallment?.installment ?? 1);
+      const singleValue = data.installmentsValue / installment.installment;
 
       const payments = await BillPayment.createMany(
         Array.from(
-          { length: flagInstallment?.installment ?? 1 },
+          { length: installment.installment ?? 1 },
           (_, v) => ({
             economic_group_id: group.id,
             business_unit_id: unitId,
@@ -653,8 +652,8 @@ export default class BillService {
             installmentValue: singleValue,
             totalValue: singleValue, // TODO: add fee
             nsuDocument: data.nsuDocument,
-            paymentMethodDiscountPercentage: paymentMethod.fee,
-            paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,
+            paymentMethodDiscountPercentage: installment.fee,
+            paymentMethodDiscountValue: (singleValue * installment.fee) / 100,
           }),
           {
             client: trx,
@@ -670,7 +669,7 @@ export default class BillService {
         .save();
 
       await Finance.createMany(
-        Array.from({ length: flagInstallment?.installment ?? 1 }, (_, v) => ({
+        Array.from({ length: installment.installment }, (_, v) => ({
           economic_group_id: group.id,
           business_unit_id: unitId,
           daily_movement_id: bill.daily_movement_id,

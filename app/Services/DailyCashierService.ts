@@ -49,7 +49,10 @@ export default class DailyCashierService {
       .preload('userWhoClosed')
       .preload('userWhoChecked')
       .preload('userWhoRevised')
-      .preload('entries')
+      .preload('entries', query => {
+        query.preload('paymentMethod');
+        query.preload('accountPlan');
+      })
       .preload('bills', query => {
         query.preload('client');
         query.preload('payments', query => {
@@ -124,6 +127,19 @@ export default class DailyCashierService {
             value: e.value,
             status: e.status,
             created_at: e.createdAt,
+
+            paymentMethod: e.paymentMethod
+              ? {
+                  id: e.paymentMethod.id,
+                  description: e.paymentMethod.description,
+                }
+              : null,
+            accountPlan: e.accountPlan
+              ? {
+                  id: e.accountPlan.id,
+                  description: e.accountPlan.description,
+                }
+              : null,
           };
         }),
       receipts: dailyCashier.entries
@@ -136,6 +152,19 @@ export default class DailyCashierService {
             value: e.value,
             status: e.status,
             created_at: e.createdAt,
+
+            paymentMethod: e.paymentMethod
+              ? {
+                  id: e.paymentMethod.id,
+                  description: e.paymentMethod.description,
+                }
+              : null,
+            accountPlan: e.accountPlan
+              ? {
+                  id: e.accountPlan.id,
+                  description: e.accountPlan.description,
+                }
+              : null,
           };
         }),
       bill_payments: {
@@ -684,13 +713,17 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      type: DailyCashierEntryType.D,
       business_unit_id: unitId,
+      account_plan_id: data.accountPlanId,
+      payment_method_id: data.paymentMethodId,
+
+      type: DailyCashierEntryType.D,
       description: data.description,
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
       tag: dailyCashier.tag,
+      fiscalNote: data.fiscalNote,
     });
   }
 
@@ -717,13 +750,17 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      type: DailyCashierEntryType.C,
       business_unit_id: unitId,
+      account_plan_id: data.accountPlanId,
+      payment_method_id: data.paymentMethodId,
+
+      type: DailyCashierEntryType.C,
       description: data.description,
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
       tag: dailyCashier.tag,
+      fiscalNote: data.fiscalNote,
     });
   }
 }

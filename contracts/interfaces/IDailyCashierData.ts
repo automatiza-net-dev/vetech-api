@@ -29,10 +29,18 @@ export interface ICreateCashierExpenseEntryData {
   entryDate: DateTime;
   value: number;
   description: string;
+
+  paymentMethodId: string;
+  accountPlanId: string;
+  fiscalNote: string;
 }
 
 export interface ICreateCashierReceiptEntryData {
   entryDate: DateTime;
   value: number;
   description: string;
+
+  paymentMethodId: string;
+  accountPlanId: string;
+  fiscalNote: string;
 }

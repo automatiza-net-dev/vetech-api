@@ -1,5 +1,9 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import AccountPlan from 'App/Models/AccountPlan';
+import AccountPlanGroup, {
+  AccountPlanGroupType,
+} from 'App/Models/AccountPlanGroup';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
@@ -8,6 +12,10 @@ import {
   DailyCashierEntryType,
 } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import PaymentMethod, {
+  PaymentMethodTef,
+  PaymentMethodType,
+} from 'App/Models/PaymentMethod';
 import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -19,7 +27,7 @@ test.group('Daily cashier resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group, system } = await userBootstrap();
 
     const dailyMovement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -28,7 +36,39 @@ test.group('Daily cashier resource', group => {
       status: DailyMovementStatus.A,
     });
 
-    return { user, business, dailyMovement };
+    const apg = await AccountPlanGroup.create({
+      economic_group_id: group.id,
+      description: 'some description',
+      type: AccountPlanGroupType.A,
+      system_id: system.id,
+    });
+
+    const ap = await AccountPlan.create({
+      business_unit_id: business.id,
+      description: 'some description',
+      code: 'some code',
+      account_plan_group_id: apg.id,
+      system_id: system.id,
+    });
+
+    const paymentMethod = await PaymentMethod.create({
+      economicGroupId: group.id,
+      description: 'some description',
+      requiresDocument: true,
+      tef: PaymentMethodTef.N,
+      automaticCancellation: true,
+      daysFirstInstallment: 10,
+      daysBetweenInstallments: 10,
+      allowChangeExpirationDate: false,
+      minimumInstallmentValue: 10,
+      type: PaymentMethodType.C,
+      fee: 0,
+      daysUntilTransfer: 0,
+      installmentsWithoutPassword: 1,
+      maxInstallments: 10,
+    });
+
+    return { user, business, dailyMovement, ap, paymentMethod };
   };
 
   test('should return all daily cashiers', async ({ client, assert }) => {
@@ -44,12 +84,12 @@ test.group('Daily cashier resource', group => {
     urlParams.append('status', DailyCashierStatus.A);
     urlParams.append('fromBalance', '100');
     urlParams.append('toBalance', '100');
-    urlParams.append('fromOpening', DateTime.now().toISO());
-    urlParams.append('toOpening', DateTime.now().toISO());
-    urlParams.append('fromClosing', DateTime.now().toISO());
-    urlParams.append('toClosing', DateTime.now().toISO());
-    urlParams.append('fromChecking', DateTime.now().toISO());
-    urlParams.append('toChecking', DateTime.now().toISO());
+    urlParams.append('fromOpening', new Date().toISOString());
+    urlParams.append('toOpening', new Date().toISOString());
+    urlParams.append('fromClosing', new Date().toISOString());
+    urlParams.append('toClosing', new Date().toISOString());
+    urlParams.append('fromChecking', new Date().toISOString());
+    urlParams.append('toChecking', new Date().toISOString());
     const response = await client
       .get(`/daily-cashiers?${urlParams.toString()}`)
       .bearerToken(token);
@@ -490,7 +530,7 @@ test.group('Daily cashier resource', group => {
     assert,
     client,
   }) => {
-    const { user, dailyMovement } = await createData();
+    const { user, dailyMovement, paymentMethod, ap } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -509,6 +549,10 @@ test.group('Daily cashier resource', group => {
         description: 'test',
         value: 100,
         entryDate: DateTime.now(),
+
+        paymentMethodId: paymentMethod.id,
+        accountPlanId: ap.id,
+        fiscalNote: 'some',
       })
       .bearerToken(token);
 
@@ -520,7 +564,7 @@ test.group('Daily cashier resource', group => {
   });
 
   test('should create new cashier expense', async ({ assert, client }) => {
-    const { user, dailyMovement } = await createData();
+    const { user, dailyMovement, paymentMethod, ap } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -539,6 +583,10 @@ test.group('Daily cashier resource', group => {
         description: 'test',
         value: 100,
         entryDate: DateTime.now(),
+
+        paymentMethodId: paymentMethod.id,
+        accountPlanId: ap.id,
+        fiscalNote: 'some',
       })
       .bearerToken(token);
 
@@ -549,7 +597,7 @@ test.group('Daily cashier resource', group => {
     assert,
     client,
   }) => {
-    const { user, dailyMovement } = await createData();
+    const { user, dailyMovement, ap, paymentMethod } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -568,6 +616,9 @@ test.group('Daily cashier resource', group => {
         description: 'test',
         value: 100,
         entryDate: DateTime.now(),
+        paymentMethodId: paymentMethod.id,
+        accountPlanId: ap.id,
+        fiscalNote: 'some',
       })
       .bearerToken(token);
 
@@ -579,7 +630,7 @@ test.group('Daily cashier resource', group => {
   });
 
   test('should create new cashier receipt', async ({ assert, client }) => {
-    const { user, dailyMovement } = await createData();
+    const { user, dailyMovement, paymentMethod, ap } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -598,6 +649,10 @@ test.group('Daily cashier resource', group => {
         description: 'test',
         value: 100,
         entryDate: DateTime.now(),
+
+        paymentMethodId: paymentMethod.id,
+        accountPlanId: ap.id,
+        fiscalNote: 'some',
       })
       .bearerToken(token);
 

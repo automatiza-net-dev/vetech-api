@@ -2,11 +2,15 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import PaymentMethod from 'App/Models/PaymentMethod';
+import AccountPlan from 'App/Models/AccountPlan';
 
 export enum DailyCashierEntryType {
   D = 'DEBITO',
@@ -31,6 +35,11 @@ export default class DailyCashierEntry extends BaseModel {
 
   @column()
   public description: string;
+
+  @column({
+    columnName: 'fiscal_note',
+  })
+  public fiscalNote: string;
 
   @column({
     serialize: parseFloat,
@@ -71,4 +80,24 @@ export default class DailyCashierEntry extends BaseModel {
     serializeAs: null,
   })
   public daily_cashier_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public payment_method_id: string;
+
+  @belongsTo(() => PaymentMethod, {
+    foreignKey: 'payment_method_id',
+  })
+  public paymentMethod: BelongsTo<typeof PaymentMethod>;
+
+  @column({
+    serializeAs: null,
+  })
+  public account_plan_id: string;
+
+  @belongsTo(() => AccountPlan, {
+    foreignKey: 'account_plan_id',
+  })
+  public accountPlan: BelongsTo<typeof AccountPlan>;
 }

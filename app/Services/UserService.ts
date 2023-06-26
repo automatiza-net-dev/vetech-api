@@ -35,8 +35,9 @@ import TefAcquirer from 'App/Models/TefAcquirer';
 import UfIcms from 'App/Models/UfIcms';
 import Unit from 'App/Models/Unit';
 import User from 'App/Models/User';
+import UserPasswordChange from 'App/Models/UserPasswordChange';
 import VariationGroup from 'App/Models/VariationGroup';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { ICreateUser } from 'Contracts/interfaces/CreateUser';
 import {
   IConfirmConfirmationToken,
@@ -388,6 +389,102 @@ export default class UserService {
         .to(email)
         .subject('Recuperação de Senha')
         .htmlView('emails/reset_password', { hash: encryptedEmail });
+    });
+  }
+
+  public async sendChangePasswordEmail(authCtx: AuthContext) {
+    const validEmailChange = await UserPasswordChange.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('user_id', authCtx.user.id)
+      .where('expires_at', '>', DateTime.now().toJSDate())
+      .where('completed', false)
+      .first();
+
+    if (validEmailChange) {
+      throw new BadRequestException(
+        'Já existe uma solicitação de alteração de senha para este usuário',
+        400,
+        'E_ALREADY_REQUESTED',
+      );
+    }
+
+    const hash = Encryption.encrypt(authCtx.user.email, '1h');
+
+    await UserPasswordChange.create({
+      system_id: authCtx.system.id,
+      economic_group_id: authCtx.group.id,
+      business_unit_id: authCtx.unit.id,
+      user_id: authCtx.user.id,
+      hash,
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+    });
+
+    await Mail.send(message => {
+      message
+        .from('sysvetech@gmail.com')
+        .to(authCtx.user.email)
+        .subject('Troca de Senha')
+        .htmlView('emails/change_password', {
+          url: `${
+            authCtx.system.systemUrls.find(r => r.url)?.url
+          }/change-password/${hash}`,
+        });
+    });
+  }
+
+  public async handleChangePasswordEmail(
+    authCtx: AuthContext,
+    data: { hash: string; password: string },
+  ) {
+    await Database.transaction(async trx => {
+      const validEmailChange = await UserPasswordChange.query()
+        .useTransaction(trx)
+        .where('system_id', authCtx.system.id)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('user_id', authCtx.user.id)
+        .where('hash', data.hash)
+        .first();
+
+      if (!validEmailChange) {
+        throw new BadRequestException(
+          'Não existe uma solicitação de alteração de senha para este usuário',
+          400,
+          'E_ALREADY_REQUESTED',
+        );
+      }
+
+      if (validEmailChange.expiresAt.diffNow('seconds').seconds < 0) {
+        throw new BadRequestException(
+          'O link de alteração de senha expirou',
+          400,
+          'E_EXPIRED_LINK',
+        );
+      }
+
+      if (validEmailChange.completed) {
+        throw new BadRequestException(
+          'O link de alteração de senha já foi utilizado',
+          400,
+          'E_COMPLETED_LINK',
+        );
+      }
+
+      await validEmailChange
+        .merge({
+          completed: true,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await authCtx.user
+        .merge({
+          password: data.password,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

@@ -52,7 +52,9 @@ export default class SharedService {
     const unit = await BusinessUnit.query()
       .where('id', unit_id)
       .preload('economicGroup', query => {
-        query.preload('system');
+        query.preload('system', query => {
+          query.preload('systemUrls');
+        });
       })
       .firstOrFail();
 

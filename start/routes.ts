@@ -44,6 +44,15 @@ Route.group(() => {
   Route.post('/send-confirmation', 'UsersController.createConfirmationToken');
   Route.post('/confirm-token', 'UsersController.confirmConfirmationToken');
 
+  Route.post(
+    '/start-change-password',
+    'UsersController.handleChangePasswordEmail',
+  ).middleware('auth');
+  Route.post(
+    '/complete-change-password',
+    'UsersController.handleChangePassword',
+  ).middleware('auth');
+
   Route.put('/', 'UsersController.update').middleware('auth');
   Route.delete('/', 'UsersController.destroy').middleware('auth');
 }).prefix('users');

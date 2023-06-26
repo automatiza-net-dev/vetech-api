@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
+import ChangePasswordValidator from 'App/Validators/User/ChangePasswordValidator';
 import ConfirmConfirmationTokenValidator from 'App/Validators/User/ConfirmConfirmationTokenValidator';
 import CreateConfirmationTokenValidator from 'App/Validators/User/CreateConfirmationTokenValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
@@ -89,6 +90,31 @@ export default class UsersController {
     const { user } = this.sharedService.extractUser(auth);
 
     await this.service.delete(user);
+
+    return response.noContent();
+  }
+
+  public async handleChangePasswordEmail({
+    auth,
+    response,
+  }: HttpContextContract) {
+    await this.service.sendChangePasswordEmail(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.noContent();
+  }
+
+  public async handleChangePassword({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(ChangePasswordValidator);
+    await this.service.handleChangePasswordEmail(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.noContent();
   }

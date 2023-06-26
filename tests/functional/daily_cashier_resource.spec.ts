@@ -658,4 +658,34 @@ test.group('Daily cashier resource', group => {
 
     assert.equal(response.status(), 204);
   });
+
+  test('should clear cashier payments', async ({ assert, client }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
+
+    const billPayment = await cashier.related('billPayments').create({
+      conferenceDate: DateTime.now(),
+      user_id: user.id,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/clear-payments`)
+      .json({
+        dailyCashierId: cashier.id,
+        items: [billPayment.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 204);
+  });
 });

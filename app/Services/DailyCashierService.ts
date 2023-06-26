@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import BillPaymentConference from 'App/Models/BillPaymentConference';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
   DailyCashierEntryStatus,
@@ -761,6 +762,63 @@ export default class DailyCashierService {
       entryDate: data.entryDate,
       tag: dailyCashier.tag,
       fiscalNote: data.fiscalNote,
+    });
+  }
+
+  async clearCashierPayments(
+    authCtx: AuthContext,
+    data: {
+      dailyCashierId: string;
+      items: string[];
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const dailyCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', data.dailyCashierId)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!dailyCashier) {
+        throw this.sharedService.ResourceNotFound(
+          'Caixa diário não encontrado',
+        );
+      }
+
+      if (dailyCashier.status !== DailyCashierStatus.A) {
+        throw new BadRequestException(
+          'Caixa diário não está aberto',
+          400,
+          'E_DAILY_CASHIER_NOT_OPENED',
+        );
+      }
+
+      const oldPayments = await dailyCashier
+        .related('billPayments')
+        .query()
+        .useTransaction(trx)
+        .whereIn('id', data.items);
+
+      await BillPaymentConference.createMany(
+        oldPayments.map(elem => ({
+          issueDate: DateTime.now(),
+          issue_user_id: authCtx.user.id,
+
+          conferenceDate: elem.conferenceDate,
+          conference_user_id: elem.user_id,
+        })),
+        { client: trx },
+      );
+
+      await dailyCashier
+        .related('billPayments')
+        .query()
+        .useTransaction(trx)
+        .whereIn('id', data.items)
+        .update({
+          conferenceDate: null,
+          user_id: null,
+        });
     });
   }
 }

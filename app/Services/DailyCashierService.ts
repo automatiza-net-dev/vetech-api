@@ -221,12 +221,7 @@ export default class DailyCashierService {
         return bill.payments.map(p => ({
           id: p.id,
           description: p.paymentMethod.description,
-          flag: p.flag
-            ? {
-                id: p.flag.id,
-                description: p.flag.id,
-              }
-            : null,
+          flag: p.flag ?? null,
           type: p.paymentMethod.type,
           created_at: p.createdAt,
           installments: p.installments,

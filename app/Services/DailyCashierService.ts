@@ -237,6 +237,20 @@ export default class DailyCashierService {
               }
             : null,
           installment_value: p.installmentValue,
+          nsuDocument: p.nsuDocument,
+          expirationDate: p.expirationDate,
+          bill: {
+            id: bill.id,
+            billDate: bill.billDate,
+            closingDate: bill.closingDate,
+            productValue: bill.productValue,
+            serviceValue: bill.serviceValue,
+            discountValue: bill.discountValue,
+            feeValue: bill.feeValue,
+            deliveryValue: bill.deliveryValue,
+            totalValue: bill.totalValue,
+            paidValue: bill.paidValue,
+          },
         }));
       }),
     };

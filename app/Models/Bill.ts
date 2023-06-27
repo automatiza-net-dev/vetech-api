@@ -306,4 +306,9 @@ export default class Bill extends BaseModel {
     foreignKey: 'bill_id',
   })
   public payments: HasMany<typeof BillPayment>;
+
+  @column({
+    serializeAs: null,
+  })
+  public treatment_id: number;
 }

@@ -40,7 +40,6 @@ import {
   IUpdateBillItemData,
 } from 'Contracts/interfaces/IBillData';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
 
 interface ISearch {
   fromBill?: string;
@@ -2027,6 +2026,14 @@ export default class BillService {
         throw this.sharedService.ResourceNotFound();
       }
 
+      if (elem.treatment_id) {
+        throw new BadRequestException(
+          'Está venda já foi convertida em tratamento',
+          400,
+          'E_ERR',
+        );
+      }
+
       const treatment = await Treatment.create(
         {
           economic_group_id: authCtx.group.id,
@@ -2041,6 +2048,13 @@ export default class BillService {
         },
         { client: trx },
       );
+
+      await elem
+        .merge({
+          treatment_id: treatment.id,
+        })
+        .useTransaction(trx)
+        .save();
 
       await TreatmentItem.createMany(
         elem.items.map((inner, index) => ({

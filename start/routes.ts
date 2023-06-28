@@ -1128,3 +1128,12 @@ Route.resource('addresses', 'AddressesController')
   .middleware({
     '*': ['auth'],
   });
+
+Route.group(() => {
+  Route.get('/:id', 'PatientContactsController.index');
+  Route.post('/', 'PatientContactsController.store');
+  Route.put('/:id', 'PatientContactsController.update');
+  Route.delete('/:id', 'PatientContactsController.destroy');
+})
+  .prefix('patient-contacts')
+  .middleware('auth');

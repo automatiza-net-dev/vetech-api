@@ -1122,4 +1122,13 @@ Route.group(() => {
   Route.get('/profile', 'ThirdPartiesController.profile').middleware(
     'auth:tpApi',
   );
+
+  Route.get(
+    '/business/:id',
+    'ThirdPartiesController.businessUnitInfo',
+  ).middleware('auth:tpApi');
+
+  Route.get('/user/:id', 'ThirdPartiesController.userInfo').middleware(
+    'auth:tpApi',
+  );
 }).prefix('external');

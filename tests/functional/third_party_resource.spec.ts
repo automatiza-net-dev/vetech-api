@@ -15,7 +15,7 @@ test.group('Third party resource', group => {
   });
 
   const createData = async (systemName: string) => {
-    const { user } = await userBootstrap();
+    const { user, business } = await userBootstrap();
 
     const tpUser = await ThirdPartyUser.create({
       name: 'Test',
@@ -34,7 +34,7 @@ test.group('Third party resource', group => {
       system_id: system.id,
     });
 
-    return { user, tpUser, tpPermission };
+    return { user, tpUser, tpPermission, business };
   };
 
   const createToken = async (
@@ -84,6 +84,28 @@ test.group('Third party resource', group => {
         userEmail: user.email,
         userPassword: '102030',
       });
+
+    assert.equal(response.status(), 200);
+  });
+
+  test('should get unit info', async ({ client, assert }) => {
+    const { tpPermission, business } = await createData('Vetech');
+    const token = await createToken(client, tpPermission, 'vetech');
+
+    const response = await client
+      .get(`/external/business/${business.id}`)
+      .bearerToken(token);
+
+    assert.equal(response.status(), 200);
+  });
+
+  test('should get user info', async ({ client, assert }) => {
+    const { tpPermission, user } = await createData('Vetech');
+    const token = await createToken(client, tpPermission, 'vetech');
+
+    const response = await client
+      .get(`/external/user/${user.id}`)
+      .bearerToken(token);
 
     assert.equal(response.status(), 200);
   });

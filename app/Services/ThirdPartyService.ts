@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import Hash from '@ioc:Adonis/Core/Hash';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import BusinessUnit from 'App/Models/BusinessUnit';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
 
@@ -102,6 +103,67 @@ export default class ThirdPartyService {
         token: userToken.token,
         expirates_at: userToken.expiresAt,
       },
+    };
+  }
+
+  public async businessUnitInfo(id: string) {
+    const businessUnit = await BusinessUnit.query().where('id', id).first();
+
+    if (!businessUnit) {
+      throw new BadRequestException(
+        'Unidade não encontrada',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return {
+      id: businessUnit.id ?? null,
+      identificacao: businessUnit.identification ?? null,
+      razaoSocial: businessUnit.companyName ?? null,
+      nomeFantasia: businessUnit.fantasyName ?? null,
+      cnpj: businessUnit.document ?? null,
+      inscricaoEstadual: businessUnit.stateRegistration ?? null,
+      inscricaoMunicipal: businessUnit.cityRegistration ?? null,
+      email: businessUnit.email ?? null,
+      telefone: businessUnit.phone ?? null,
+      cep: businessUnit.postalCode ?? null,
+      logradouro: businessUnit.address ?? null,
+      numero: businessUnit.number ?? null,
+      complemento: businessUnit.complement ?? null,
+      bairro: businessUnit.district ?? null,
+      cidade: businessUnit.city ?? null,
+      uf: businessUnit.state ?? null,
+      dataUltimaAtualizacao: businessUnit.updatedAt ?? null,
+    };
+  }
+
+  public async userInfo(id: string) {
+    const model = await User.query().where('id', id).first();
+
+    if (!model) {
+      throw new BadRequestException(
+        'Usuário não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return {
+      id: model.id ?? null,
+      nome: model.name ?? null,
+      cpf: model.document ?? null,
+      rg: model.inscription ?? null,
+      email: model.email ?? null,
+      telefone: model.phone ?? null,
+      cep: model.postalCode ?? null,
+      logradouro: model.address ?? null,
+      numero: model.number ?? null,
+      complemento: model.complement ?? null,
+      bairro: model.district ?? null,
+      cidade: model.city ?? null,
+      uf: model.state ?? null,
+      dataUltimaAtualizacao: model.updatedAt ?? null,
     };
   }
 }

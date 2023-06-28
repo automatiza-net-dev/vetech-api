@@ -106,4 +106,12 @@ export default class ThirdPartiesController {
       key: user.key,
     });
   }
+
+  public async businessUnitInfo({ params, response }: HttpContextContract) {
+    return response.ok(await this.service.businessUnitInfo(params.id));
+  }
+
+  public async userInfo({ params, response }: HttpContextContract) {
+    return response.ok(await this.service.userInfo(params.id));
+  }
 }

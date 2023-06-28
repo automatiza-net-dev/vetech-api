@@ -7,16 +7,17 @@ import SharedService, { AuthContext } from 'App/Services/SharedService';
 export default class AddressService {
   constructor(private sharedService: SharedService) {}
 
-  async index(authCtx: AuthContext) {
+  async index(_: AuthContext, uID: string) {
     return Address.query()
-      .where('user_id', authCtx.user.id)
+      .where('user_id', uID)
       .orderBy('main', 'desc')
       .orderBy('created_at', 'desc');
   }
 
   async store(
-    authCtx: AuthContext,
+    _: AuthContext,
     data: {
+      userId: string;
       main: boolean;
       code: number;
       type: typeof AddressTypes[number];
@@ -30,17 +31,19 @@ export default class AddressService {
     },
   ) {
     await Database.transaction(async trx => {
+      const { userId, ...rest } = data;
+
       if (data.main) {
         await Address.query()
           .useTransaction(trx)
-          .where('user_id', authCtx.user.id)
+          .where('user_id', userId)
           .update({ main: false });
       }
 
       await Address.create(
         {
-          ...data,
-          user_id: authCtx.user.id,
+          ...rest,
+          user_id: userId,
         },
         {
           client: trx,
@@ -49,11 +52,8 @@ export default class AddressService {
     });
   }
 
-  async show(authCtx: AuthContext, id: number) {
-    const addr = await Address.query()
-      .where('user_id', authCtx.user.id)
-      .where('id', id)
-      .first();
+  async show(_: AuthContext, id: number) {
+    const addr = await Address.query().where('id', id).first();
 
     if (!addr) {
       throw this.sharedService.ResourceNotFound();
@@ -82,8 +82,12 @@ export default class AddressService {
     await Database.transaction(async trx => {
       const addr = await Address.query()
         .useTransaction(trx)
-        .where('user_id', authCtx.user.id)
         .where('id', id)
+        .whereHas('user', query => {
+          query.whereHas('economicGroups', query => {
+            query.where('economic_group_id', authCtx.group.id);
+          });
+        })
         .first();
 
       if (!addr) {
@@ -103,8 +107,12 @@ export default class AddressService {
 
   async destroy(authCtx: AuthContext, id: number) {
     const addr = await Address.query()
-      .where('user_id', authCtx.user.id)
       .where('id', id)
+      .whereHas('user', query => {
+        query.whereHas('economicGroups', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        });
+      })
       .first();
 
     if (!addr) {

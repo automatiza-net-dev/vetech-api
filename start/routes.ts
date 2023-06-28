@@ -1123,11 +1123,14 @@ Route.group(() => {
   .prefix('opportunities')
   .middleware('auth');
 
-Route.resource('addresses', 'AddressesController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/:id', 'AddressesController.index');
+  Route.post('/', 'AddressesController.store');
+  Route.put('/:id', 'AddressesController.update');
+  Route.delete('/:id', 'AddressesController.destroy');
+})
+  .prefix('addresses')
+  .middleware('auth');
 
 Route.group(() => {
   Route.get('/:id', 'PatientContactsController.index');

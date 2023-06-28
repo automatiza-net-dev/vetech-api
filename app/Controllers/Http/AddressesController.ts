@@ -13,9 +13,10 @@ export default class AddressesController {
     private service: AddressService,
   ) {}
 
-  public async index({ auth, response }: HttpContextContract) {
+  public async index({ params, auth, response }: HttpContextContract) {
     const result = await this.service.index(
       await this.sharedService.getAuthContext(auth),
+      params.id,
     );
     return response.ok(result);
   }
@@ -31,14 +32,14 @@ export default class AddressesController {
     return response.created(result);
   }
 
-  public async show({ auth, params, response }: HttpContextContract) {
-    const result = await this.service.show(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+  //   public async show({ auth, params, response }: HttpContextContract) {
+  //     const result = await this.service.show(
+  //       await this.sharedService.getAuthContext(auth),
+  //       params.id,
+  //     );
 
-    return response.json(result);
-  }
+  //     return response.json(result);
+  //   }
 
   public async update({
     auth,

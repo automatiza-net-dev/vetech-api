@@ -634,6 +634,10 @@ Route.group(() => {
   Route.post('/', 'HospitalizationsController.store');
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
   Route.get(
+    '/patient-timeline/:id',
+    'HospitalizationsController.showPatientTimeline',
+  );
+  Route.get(
     '/info/:id',
     'HospitalizationsController.getHospitalizationScheduling',
   );

@@ -17,6 +17,7 @@ import Schedule from 'App/Models/Schedule';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import Hospitalization from 'App/Models/Hospitalization';
 
 export enum PatientType {
   TUTOR = 'tutor',
@@ -172,4 +173,10 @@ export default class Patient extends BaseModel {
     foreignKey: 'holder_id',
   })
   public holderSchedules: HasMany<typeof Schedule>;
+
+  @hasMany(() => Hospitalization, {
+    localKey: 'id',
+    foreignKey: 'patient_id',
+  })
+  public hospitalizations: HasMany<typeof Hospitalization>;
 }

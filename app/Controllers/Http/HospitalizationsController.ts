@@ -59,6 +59,12 @@ export default class HospitalizationsController {
     return response.ok(timeline);
   }
 
+  public async showPatientTimeline({ params, response }: HttpContextContract) {
+    const timeline = await this.service.patientTimeline(params.id);
+
+    return response.ok(timeline);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateHospitalizationValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);

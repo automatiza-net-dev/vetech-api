@@ -140,6 +140,23 @@ export default class HospitalizationService {
     });
   }
 
+  public async patientTimeline(id: string) {
+    const patient = await Patient.query()
+      .where('id', id)
+      .preload('hospitalizations')
+      .first();
+
+    if (!patient) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return HospitalizationTimeline.find({
+      'meta.hospitalization': {
+        $in: patient.hospitalizations.map(h => h.id),
+      },
+    });
+  }
+
   public async index(unitId: string, data: ISearch) {
     const qb = Hospitalization.query()
       .preload('bed')

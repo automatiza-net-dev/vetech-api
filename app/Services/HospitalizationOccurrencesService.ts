@@ -3,6 +3,7 @@ import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Database from '@ioc:Adonis/Lucid/Database';
 import Hospitalization, {
+  HospitalizationStatus,
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import HospitalizationOccurrence from 'App/Models/HospitalizationOccurrence';
@@ -78,26 +79,6 @@ export default class HospitalizationOccurrencesService {
         client: trx,
       });
 
-      // await HospitalizationTimeline.create({
-      //   meta: {
-      //     hospitalization: hospitalization.id,
-      //     group: group.id,
-      //     unit: unitId,
-      //     origin: 'occurrence',
-      //   },
-      //   data: {
-      //     realizedAt: data.executedAt,
-      //     issuedAt: DateTime.now(),
-      //     technician: {
-      //       id: user.id,
-      //       name: user.name,
-      //     },
-      //     description: data.description,
-      //     resume: data.resume,
-      //     attachments: hospAttachments.map(a => a.attachment),
-      //   },
-      // });
-
       if (occurrence.type === OccurrenceType.OCORRENCIA) {
         await HospitalizationTimeline.create({
           meta: {
@@ -157,6 +138,15 @@ export default class HospitalizationOccurrencesService {
           .useTransaction(trx)
           .save();
 
+        await Hospitalization.query()
+          .useTransaction(trx)
+          .where('patient_id', patient.id)
+          .where('status', HospitalizationStatus.ACTIVE)
+          .update({
+            death: true,
+            deathDate: data.executedAt,
+          });
+
         const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
           client: trx,
         });
@@ -173,6 +163,7 @@ export default class HospitalizationOccurrencesService {
             hospitalizedAt: hospitalization.createdAt,
             realizedAt: data.executedAt,
             issuedAt: DateTime.now(),
+            observation: data.resume,
             technician: {
               id: user.id,
               name: user.name,
@@ -180,6 +171,18 @@ export default class HospitalizationOccurrencesService {
             attachments: hospAttachments.map(a => a.attachment),
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              deathAt: DateTime.now(),
+            },
+          },
+        );
 
         await AnimalTimeline.create({
           timeline_id: ATTENDANCE_UUID,
@@ -309,6 +312,30 @@ export default class HospitalizationOccurrencesService {
 
     if (!ent) {
       throw this.sharedService.ResourceNotFound();
+    }
+
+    const newOccurr = await Occurrence.findOrFail(data.occurrenceId);
+
+    if (
+      [
+        OccurrenceType.ALTA_INTERNACAO,
+        OccurrenceType.ALTA_UTI,
+        OccurrenceType.ALTA_OBSERVACAO,
+      ].includes(newOccurr.type)
+    ) {
+      await HospitalizationTimeline.updateMany(
+        {
+          'meta.hospitalization': hospitalization.id,
+          'meta.type': 'begin_hospitalization',
+        },
+        {
+          $set: {
+            releasedAt: DateTime.now(),
+            resume: data.resume,
+            description: data.description,
+          },
+        },
+      );
     }
 
     return ent

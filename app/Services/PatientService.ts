@@ -907,6 +907,7 @@ export default class PatientService {
               type: HospitalizationType[hospitalization.type],
               hospitalizedAt: hospitalization.createdAt,
               realizedAt: data.deathDate,
+              observation: data.deathObservation,
               issuedAt: DateTime.now(),
               technician: {
                 id: related.id,
@@ -915,6 +916,18 @@ export default class PatientService {
               attachments: [],
             },
           });
+
+          await HospitalizationTimeline.updateMany(
+            {
+              'meta.hospitalization': hospitalization.id,
+              'meta.type': 'begin_hospitalization',
+            },
+            {
+              $set: {
+                deathAt: DateTime.now(),
+              },
+            },
+          );
         } else {
           const timelineInfo = await TimelineType.firstOrCreate(
             {

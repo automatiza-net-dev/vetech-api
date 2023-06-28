@@ -1425,6 +1425,7 @@ export default class TimelineService {
             hospitalizedAt: hospitalization.createdAt,
             realizedAt: DateTime.now(),
             issuedAt: DateTime.now(),
+            observation: '-',
             technician: {
               id: technician.id,
               name: technician.name,
@@ -1432,6 +1433,18 @@ export default class TimelineService {
             attachments: [],
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              deathAt: DateTime.now(),
+            },
+          },
+        );
       }
     });
   }

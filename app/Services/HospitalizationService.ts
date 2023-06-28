@@ -585,6 +585,18 @@ export default class HospitalizationService {
             },
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              releasedAt: DateTime.now(),
+            },
+          },
+        );
       }
     });
 
@@ -642,6 +654,18 @@ export default class HospitalizationService {
           status: 'I',
         });
 
+      await HospitalizationTimeline.updateMany(
+        {
+          'meta.hospitalization': hospitalization.id,
+          'meta.type': 'begin_hospitalization',
+        },
+        {
+          $set: {
+            releasedAt: DateTime.now(),
+          },
+        },
+      );
+
       await HospitalizationMedicalPrescriptionScheduling.query()
         .useTransaction(trx)
         .where('hospitalization_id', hospitalization.id)
@@ -669,6 +693,7 @@ export default class HospitalizationService {
           type: HospitalizationType[hospitalization.type],
           hospitalizedAt: hospitalization.createdAt,
           completedAt: DateTime.now(),
+          observation: '',
           technician: {
             id: user.id,
             name: user.name,

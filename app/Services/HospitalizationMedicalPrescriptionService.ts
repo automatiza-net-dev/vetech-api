@@ -211,7 +211,7 @@ export default class HospitalizationMedicalPrescriptionService {
               name: user.name,
             },
             prescription_type: 'Procedimento',
-            frequencyType: data.frequency,
+            frequency: data.frequency,
             frequencyUnit: body.frequencyUnit,
             frequencyQuantityUnit: body.frequencyQuantityUnit,
             executionStart: data.executionStart,

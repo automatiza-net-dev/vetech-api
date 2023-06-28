@@ -1122,3 +1122,9 @@ Route.group(() => {
 })
   .prefix('opportunities')
   .middleware('auth');
+
+Route.resource('addresses', 'AddressesController')
+  .apiOnly()
+  .middleware({
+    '*': ['auth'],
+  });

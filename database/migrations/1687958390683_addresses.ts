@@ -23,6 +23,7 @@ export default class extends BaseSchema {
       table.string('state', 255).nullable();
       table.integer('code').nullable();
       table.string('type').nullable();
+      table.boolean('active').defaultTo(true);
 
       table.timestamp('created_at', { useTz: true });
       table.timestamp('updated_at', { useTz: true });

@@ -46,6 +46,9 @@ export default class Address extends BaseModel {
   @column()
   public type: typeof AddressTypes[number];
 
+  @column()
+  public active: boolean;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

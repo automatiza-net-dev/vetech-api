@@ -234,6 +234,7 @@ export default class DailyCashierService {
           installment_value: p.installmentValue,
           nsuDocument: p.nsuDocument,
           expirationDate: p.expirationDate,
+          conferenceDate: p.conferenceDate ?? null,
           bill: {
             id: bill.id,
             billDate: bill.billDate,

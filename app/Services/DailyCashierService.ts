@@ -794,11 +794,15 @@ export default class DailyCashierService {
         );
       }
 
-      if (dailyCashier.status !== DailyCashierStatus.A) {
+      if (
+        ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
+          dailyCashier.status,
+        )
+      ) {
         throw new BadRequestException(
-          'Caixa diário não está aberto',
+          'Caixa diário não está em estado válido',
           400,
-          'E_DAILY_CASHIER_NOT_OPENED',
+          'E_DAILY_CASHIER_NOT_VALID',
         );
       }
 

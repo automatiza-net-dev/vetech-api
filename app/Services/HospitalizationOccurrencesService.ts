@@ -163,6 +163,7 @@ export default class HospitalizationOccurrencesService {
             realizedAt: data.executedAt,
             issuedAt: DateTime.now(),
             observation: data.resume,
+            description: data.description,
             technician: {
               id: user.id,
               name: user.name,
@@ -178,7 +179,7 @@ export default class HospitalizationOccurrencesService {
           },
           {
             $set: {
-              'data.deathAt': DateTime.now(),
+              'data.deathAt': DateTime.now().toJSDate(),
             },
           },
         );
@@ -193,7 +194,7 @@ export default class HospitalizationOccurrencesService {
           timeline_info: {
             tag: hospitalization.patient_id,
             event: 'OBITO',
-            realized: DateTime.now(),
+            realized: DateTime.now().toJSDate(),
             resume: data.resume,
             description: data.description,
             technician: {

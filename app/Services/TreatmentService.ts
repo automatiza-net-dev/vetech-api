@@ -220,7 +220,9 @@ export default class TreatmentService {
       .preload('cancellationUser')
       .preload('cancellationReason')
       .preload('emissionUser')
-      .preload('client');
+      .preload('client', query => {
+        query.preload('patientAnimal');
+      });
 
     return treatments.map(elem => ({
       id: elem.id,
@@ -256,6 +258,7 @@ export default class TreatmentService {
       client: {
         id: elem.client.id,
         name: elem.client.name,
+        patient: elem.client?.patientAnimal ?? null,
       },
       status: elem.status,
 

@@ -273,7 +273,7 @@ export default class HospitalizationOccurrencesService {
           },
           {
             $set: {
-              'data.releasedAt': DateTime.now(),
+              'data.releasedAt': DateTime.now().toJSDate(),
               'data.resume': data.resume,
               'data.description': data.description,
             },
@@ -344,7 +344,7 @@ export default class HospitalizationOccurrencesService {
         },
         {
           $set: {
-            'data.releasedAt': DateTime.now(),
+            'data.releasedAt': DateTime.now().toJSDate(),
             'data.resume': data.resume,
             'data.description': data.description,
           },

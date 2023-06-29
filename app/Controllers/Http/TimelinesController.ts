@@ -30,6 +30,15 @@ export default class TimelinesController {
     return response.ok(await this.timelineService.all(params.id));
   }
 
+  public async delete({ auth, params, response }: HttpContextContract) {
+    return response.ok(
+      await this.timelineService.softDeleteRecord(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+      ),
+    );
+  }
+
   public async patientEvaluationIndex({
     params,
     response,

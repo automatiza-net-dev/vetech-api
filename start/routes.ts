@@ -464,6 +464,7 @@ Route.resource('exams', 'ExamsController')
 
 Route.group(() => {
   Route.get('/:id', 'TimelinesController.index');
+  Route.delete('/:id', 'TimelinesController.delete');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalWeightIndex');

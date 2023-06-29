@@ -593,7 +593,7 @@ export default class HospitalizationService {
           },
           {
             $set: {
-              releasedAt: DateTime.now(),
+              'data.releasedAt': DateTime.now(),
             },
           },
         );
@@ -661,7 +661,7 @@ export default class HospitalizationService {
         },
         {
           $set: {
-            releasedAt: DateTime.now(),
+            'data.releasedAt': DateTime.now(),
           },
         },
       );

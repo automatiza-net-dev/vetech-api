@@ -266,6 +266,14 @@ export default class HospitalizationOccurrencesService {
           },
         });
 
+        await Hospitalization.query()
+          .useTransaction(trx)
+          .where('patient_id', hospitalization.patient_id)
+          .where('status', HospitalizationStatus.ACTIVE)
+          .update({
+            releasedDate: data.executedAt,
+          });
+
         await HospitalizationTimeline.updateMany(
           {
             'meta.hospitalization': hospitalization.id,

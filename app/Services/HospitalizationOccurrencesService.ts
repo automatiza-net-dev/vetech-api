@@ -309,6 +309,9 @@ export default class HospitalizationOccurrencesService {
               name: user.name,
             },
             type: HospitalizationType[hospitalization.type],
+            releaseType: data.resume.includes('AO')
+              ? 'Alta Indicada'
+              : 'Alta Sem Indicação',
             description: data.description,
             resume: data.resume,
           },

@@ -1441,7 +1441,7 @@ export default class TimelineService {
           },
           {
             $set: {
-              deathAt: DateTime.now(),
+              'data.deathAt': DateTime.now(),
             },
           },
         );

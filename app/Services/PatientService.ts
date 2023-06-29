@@ -924,7 +924,7 @@ export default class PatientService {
             },
             {
               $set: {
-                deathAt: DateTime.now(),
+                'data.deathAt': DateTime.now(),
               },
             },
           );

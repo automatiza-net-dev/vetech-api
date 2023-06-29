@@ -178,7 +178,7 @@ export default class HospitalizationOccurrencesService {
           },
           {
             $set: {
-              deathAt: DateTime.now(),
+              'data.deathAt': DateTime.now(),
             },
           },
         );
@@ -329,9 +329,9 @@ export default class HospitalizationOccurrencesService {
         },
         {
           $set: {
-            releasedAt: DateTime.now(),
-            resume: data.resume,
-            description: data.description,
+            'data.releasedAt': DateTime.now(),
+            'data.resume': data.resume,
+            'data.description': data.description,
           },
         },
       );

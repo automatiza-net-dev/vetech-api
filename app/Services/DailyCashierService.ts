@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Bill from 'App/Models/Bill';
 import BillPaymentConference from 'App/Models/BillPaymentConference';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
@@ -54,17 +55,20 @@ export default class DailyCashierService {
         query.preload('paymentMethod');
         query.preload('accountPlan');
       })
-      .preload('bills', query => {
-        query.preload('client');
-        query.preload('payments', query => {
-          query.preload('paymentMethod');
-        });
-      })
       .first();
 
     if (!dailyCashier) {
       throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
     }
+
+    const bills = await Bill.query()
+      .whereHas('payments', query => {
+        query.where('daily_cashier_id', dailyCashier.id);
+      })
+      .preload('client')
+      .preload('payments', query => {
+        query.preload('paymentMethod');
+      });
 
     return {
       cashier: {
@@ -169,7 +173,7 @@ export default class DailyCashierService {
           };
         }),
       bill_payments: {
-        tef_pos: dailyCashier.bills
+        tef_pos: bills
           .reduce((acc, bill) => {
             const tefs = bill.payments.filter(p =>
               [PaymentMethodTef.P, PaymentMethodTef.T].includes(
@@ -197,7 +201,7 @@ export default class DailyCashierService {
 
             return acc;
           }, {} as Record<string, Record<string, unknown>>),
-        no_tef: dailyCashier.bills
+        no_tef: bills
           .reduce((acc, bill) => {
             const no_tefs = bill.payments.filter(p =>
               [PaymentMethodTef.N].includes(p.paymentMethod.tef),
@@ -217,7 +221,7 @@ export default class DailyCashierService {
           }, {}),
       },
       // 2.10.5
-      payments: dailyCashier.bills.map(bill => {
+      payments: bills.map(bill => {
         return bill.payments.map(p => ({
           id: p.id,
           description: p.paymentMethod.description,

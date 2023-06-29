@@ -265,6 +265,20 @@ export default class HospitalizationOccurrencesService {
             },
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              'data.releasedAt': DateTime.now(),
+              'data.resume': data.resume,
+              'data.description': data.description,
+            },
+          },
+        );
       }
 
       return ent;

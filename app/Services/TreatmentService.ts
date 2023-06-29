@@ -122,15 +122,22 @@ export default class TreatmentService {
     authCtx: AuthContext,
     data: {
       executionId: number;
+      treatmentId: number;
 
       executionDate: DateTime;
-      observations: string;
+      observations?: string;
     },
   ) {
     return Database.transaction(async trx => {
-      const execution = await TreatmentExecution.findOrFail(data.executionId, {
-        client: trx,
-      });
+      const execution = await TreatmentExecution.query()
+        .useTransaction(trx)
+        .where('id', data.executionId)
+        .where('treatment_id', data.treatmentId)
+        .first();
+
+      if (!execution) {
+        throw this.shared.ResourceNotFound();
+      }
 
       if (execution.status !== 'Ativo') {
         throw new BadRequestException(

@@ -143,7 +143,6 @@ export default class HospitalizationOccurrencesService {
           .where('patient_id', patient.id)
           .where('status', HospitalizationStatus.ACTIVE)
           .update({
-            death: true,
             deathDate: data.executedAt,
           });
 

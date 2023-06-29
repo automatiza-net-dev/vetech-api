@@ -271,7 +271,7 @@ export default class HospitalizationOccurrencesService {
           .where('patient_id', hospitalization.patient_id)
           .where('status', HospitalizationStatus.ACTIVE)
           .update({
-            releasedDate: data.executedAt,
+            releasedAt: data.executedAt,
           });
 
         await HospitalizationTimeline.updateMany(

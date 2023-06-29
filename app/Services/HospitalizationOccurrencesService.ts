@@ -287,6 +287,32 @@ export default class HospitalizationOccurrencesService {
             },
           },
         );
+
+        await HospitalizationTimeline.create({
+          meta: {
+            hospitalization: hospitalization.id,
+            group: group.id,
+            unit: unitId,
+            origin: 'hospitalization_release',
+          },
+          data: {
+            tutor: {
+              id: hospitalization.tutor.id,
+              name: hospitalization.tutor.name,
+            },
+            patient: {
+              id: hospitalization.patient.id,
+              name: hospitalization.patient.name,
+            },
+            technician: {
+              id: user.id,
+              name: user.name,
+            },
+            type: HospitalizationType[hospitalization.type],
+            description: data.description,
+            resume: data.resume,
+          },
+        });
       }
 
       return ent;
@@ -424,6 +450,9 @@ export default class HospitalizationOccurrencesService {
     const hospitalization = await Hospitalization.query()
       .where('id', hospitalizationId)
       .where('business_unit_id', unitId)
+      .preload('tutor')
+      .preload('technician')
+      .preload('patient')
       .first();
 
     if (!hospitalization) {

@@ -143,7 +143,7 @@ export default class HospitalizationOccurrencesService {
           .where('patient_id', patient.id)
           .where('status', HospitalizationStatus.ACTIVE)
           .update({
-            deathDate: data.executedAt,
+            deathAt: data.executedAt,
           });
 
         const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {

@@ -27,8 +27,8 @@ export enum PaymentMethodType {
 }
 
 export enum PaymentMethodUsage {
-  ENTRADA = 'ENTRADA',
-  SAIDA = 'SAIDA',
+  PAGAR = 'PAGAR',
+  RECEBER = 'RECEBER',
   AMBOS = 'AMBOS',
 }
 

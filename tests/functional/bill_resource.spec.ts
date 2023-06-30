@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import { BillItemStatus } from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import { BillPaymentFeeType } from 'App/Models/BillPayment';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
@@ -21,7 +21,10 @@ import TaxOperation from 'App/Models/TaxOperation';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import Unit, { UnitType } from 'App/Models/Unit';
-import { IUpdateBillItemData } from 'Contracts/interfaces/IBillData';
+import {
+  ICreateBillPaymentData,
+  IUpdateBillItemData,
+} from 'Contracts/interfaces/IBillData';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
@@ -343,6 +346,41 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
+  // test('should create multiple bills', async ({ assert, client }) => {
+  //   const {
+  //     user,
+  //     client: holder,
+  //     patient,
+  //     dailyCashier,
+  //     dailyMovement,
+  //   } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
+
+  //   const response = await client
+  //     .post(`/bills/create-multiple`)
+  //     .json({
+  //       items: [
+  //         {
+  //           clientId: holder.id,
+  //           patientId: patient.id,
+  //           dailyMovementId: dailyMovement.id,
+  //           dailyCashierId: dailyCashier.id,
+  //           billDate: new Date(),
+  //           productValue: 100,
+  //           serviceValue: 200,
+  //           discountValue: 55,
+  //           items: [],
+  //         },
+  //       ],
+  //     })
+  //     .bearerToken(token);
+
+  //   assert.equal(201, response.status());
+  // });
+
   test('should create bill without open cashier', async ({
     assert,
     client,
@@ -460,6 +498,42 @@ test.group('Bill resource', group => {
         quantity: 10,
         unitaryValue: 20,
         discountValue: 20,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill items (product)', async ({ assert, client }) => {
+    const { user, bill, variation, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await variation.related('businessUnitProducts').create({
+      businness_unit_id: business.id,
+      price: 10,
+      costPrice: 10,
+      stock: 10,
+      maximumStock: 10,
+      minimumStock: 10,
+      maximumDiscountPercentage: 10,
+      maximumDiscountValue: 10,
+    });
+
+    const response = await client
+      .post(`/bills/create-items`)
+      .json({
+        items: [
+          {
+            billId: bill.id,
+            productVariationId: variation.id,
+            quantity: 10,
+            unitaryValue: 20,
+            discountValue: 20,
+          },
+        ],
       })
       .bearerToken(token);
 
@@ -646,6 +720,30 @@ test.group('Bill resource', group => {
         expirationDate: new Date(),
         installmentsValue: 10,
       })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create bill payment (installments)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, paymentMethod } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/create-payment`)
+      .json({
+        billId: bill.id,
+        paymentMethodId: paymentMethod.id,
+        expirationDate: DateTime.now(),
+        installmentsValue: 10,
+        installments: 10,
+      } as ICreateBillPaymentData)
       .bearerToken(token);
 
     assert.equal(201, response.status());
@@ -1122,10 +1220,17 @@ test.group('Bill resource', group => {
   });
 
   test('should create treatment from bill', async ({ assert, client }) => {
-    const { user, bill } = await createData();
+    const { user, bill, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
+    });
+
+    await BillItem.create({
+      id: v4(),
+      bill_id: bill.id,
+      product_variation_id: variation.id,
+      quantity: 1,
     });
 
     const response = await client

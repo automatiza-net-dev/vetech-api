@@ -7,6 +7,7 @@ export default class UpdatePermissionValidator {
   public schema = schema.create({
     description: schema.string({}, []),
     control: schema.string({}, []),
+    controlId: schema.string({}, []),
     screenId: schema.number([rules.exists({ table: 'screens', column: 'id' })]),
   });
 

@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Bill from 'App/Models/Bill';
+import BillPaymentConference from 'App/Models/BillPaymentConference';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
   DailyCashierEntryStatus,
@@ -49,18 +51,24 @@ export default class DailyCashierService {
       .preload('userWhoClosed')
       .preload('userWhoChecked')
       .preload('userWhoRevised')
-      .preload('entries')
-      .preload('bills', query => {
-        query.preload('client');
-        query.preload('payments', query => {
-          query.preload('paymentMethod');
-        });
+      .preload('entries', query => {
+        query.preload('paymentMethod');
+        query.preload('accountPlan');
       })
       .first();
 
     if (!dailyCashier) {
       throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
     }
+
+    const bills = await Bill.query()
+      .whereHas('payments', query => {
+        query.where('daily_cashier_id', dailyCashier.id);
+      })
+      .preload('client')
+      .preload('payments', query => {
+        query.preload('paymentMethod');
+      });
 
     return {
       cashier: {
@@ -124,6 +132,19 @@ export default class DailyCashierService {
             value: e.value,
             status: e.status,
             created_at: e.createdAt,
+
+            paymentMethod: e.paymentMethod
+              ? {
+                  id: e.paymentMethod.id,
+                  description: e.paymentMethod.description,
+                }
+              : null,
+            accountPlan: e.accountPlan
+              ? {
+                  id: e.accountPlan.id,
+                  description: e.accountPlan.description,
+                }
+              : null,
           };
         }),
       receipts: dailyCashier.entries
@@ -136,10 +157,23 @@ export default class DailyCashierService {
             value: e.value,
             status: e.status,
             created_at: e.createdAt,
+
+            paymentMethod: e.paymentMethod
+              ? {
+                  id: e.paymentMethod.id,
+                  description: e.paymentMethod.description,
+                }
+              : null,
+            accountPlan: e.accountPlan
+              ? {
+                  id: e.accountPlan.id,
+                  description: e.accountPlan.description,
+                }
+              : null,
           };
         }),
       bill_payments: {
-        tef_pos: dailyCashier.bills
+        tef_pos: bills
           .reduce((acc, bill) => {
             const tefs = bill.payments.filter(p =>
               [PaymentMethodTef.P, PaymentMethodTef.T].includes(
@@ -149,27 +183,25 @@ export default class DailyCashierService {
             return [...acc, ...tefs];
           }, [])
           .reduce((acc, curr) => {
-            if (acc[curr.payment_method_id]) {
-              acc[curr.payment_method_id][curr.flag.id] = {
-                flag: {
-                  id: curr.flag.id,
-                  description: curr.flag.description,
+            const root = acc[curr.payment_method_id];
+
+            if (!root) {
+              acc[curr.payment_method_id] = {
+                [curr.flag?.id ?? '-']: {
+                  flag: curr.flag
+                    ? {
+                        id: curr.flag.id,
+                        description: curr.flag.description,
+                      }
+                    : null,
+                  payments: [curr],
                 },
-                payments: [curr],
               };
             }
 
-            const elem = acc[curr.payment_method_id];
-            const subelem = elem[curr.flag.id];
-            if (subelem) {
-              subelem.payments.push(curr);
-            } else {
-              subelem.payments = [curr];
-            }
-
             return acc;
-          }, {}),
-        no_tef: dailyCashier.bills
+          }, {} as Record<string, Record<string, unknown>>),
+        no_tef: bills
           .reduce((acc, bill) => {
             const no_tefs = bill.payments.filter(p =>
               [PaymentMethodTef.N].includes(p.paymentMethod.tef),
@@ -189,22 +221,36 @@ export default class DailyCashierService {
           }, {}),
       },
       // 2.10.5
-      payments: dailyCashier.bills.map(bill => {
+      payments: bills.map(bill => {
         return bill.payments.map(p => ({
           id: p.id,
           description: p.paymentMethod.description,
-          flag: {
-            id: p.flag.id,
-            description: p.flag.id,
-          },
+          flag: p.flag ?? null,
           type: p.paymentMethod.type,
           created_at: p.createdAt,
           installments: p.installments,
-          client: {
-            id: bill.client.id,
-            name: bill.client.name,
-          },
+          client: bill.client
+            ? {
+                id: bill.client.id,
+                name: bill.client.name,
+              }
+            : null,
           installment_value: p.installmentValue,
+          nsuDocument: p.nsuDocument,
+          expirationDate: p.expirationDate,
+          conferenceDate: p.conferenceDate ?? null,
+          bill: {
+            id: bill.id,
+            billDate: bill.billDate,
+            closingDate: bill.closingDate,
+            productValue: bill.productValue,
+            serviceValue: bill.serviceValue,
+            discountValue: bill.discountValue,
+            feeValue: bill.feeValue,
+            deliveryValue: bill.deliveryValue,
+            totalValue: bill.totalValue,
+            paidValue: bill.paidValue,
+          },
         }));
       }),
     };
@@ -682,13 +728,17 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      type: DailyCashierEntryType.D,
       business_unit_id: unitId,
+      account_plan_id: data.accountPlanId,
+      payment_method_id: data.paymentMethodId,
+
+      type: DailyCashierEntryType.D,
       description: data.description,
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
       tag: dailyCashier.tag,
+      fiscalNote: data.fiscalNote,
     });
   }
 
@@ -715,13 +765,78 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      type: DailyCashierEntryType.C,
       business_unit_id: unitId,
+      account_plan_id: data.accountPlanId,
+      payment_method_id: data.paymentMethodId,
+
+      type: DailyCashierEntryType.C,
       description: data.description,
       value: data.value,
       status: DailyCashierEntryStatus.A,
       entryDate: data.entryDate,
       tag: dailyCashier.tag,
+      fiscalNote: data.fiscalNote,
+    });
+  }
+
+  async clearCashierPayments(
+    authCtx: AuthContext,
+    data: {
+      dailyCashierId: string;
+      items: string[];
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const dailyCashier = await DailyCashier.query()
+        .useTransaction(trx)
+        .where('id', data.dailyCashierId)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!dailyCashier) {
+        throw this.sharedService.ResourceNotFound(
+          'Caixa diário não encontrado',
+        );
+      }
+
+      if (
+        ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
+          dailyCashier.status,
+        )
+      ) {
+        throw new BadRequestException(
+          'Caixa diário não está em estado válido',
+          400,
+          'E_DAILY_CASHIER_NOT_VALID',
+        );
+      }
+
+      const oldPayments = await dailyCashier
+        .related('billPayments')
+        .query()
+        .useTransaction(trx)
+        .whereIn('id', data.items);
+
+      await BillPaymentConference.createMany(
+        oldPayments.map(elem => ({
+          issueDate: DateTime.now(),
+          issue_user_id: authCtx.user.id,
+
+          conferenceDate: elem.conferenceDate,
+          conference_user_id: elem.user_id,
+        })),
+        { client: trx },
+      );
+
+      await dailyCashier
+        .related('billPayments')
+        .query()
+        .useTransaction(trx)
+        .whereIn('id', data.items)
+        .update({
+          conferenceDate: null,
+          user_id: null,
+        });
     });
   }
 }

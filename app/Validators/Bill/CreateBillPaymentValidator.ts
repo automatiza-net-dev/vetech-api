@@ -27,6 +27,7 @@ export default class CreateBillPaymentValidator {
     expirationDate: schema.date(),
     installmentsValue: schema.number([]),
     nsuDocument: schema.string.optional(),
+    installments: schema.number.optional(),
   });
 
   public messages: CustomMessages = {};

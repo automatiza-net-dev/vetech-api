@@ -17,6 +17,7 @@ import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import BillPayment from './BillPayment';
 
 export enum DailyCashierStatus {
   A = 'ABERTO',
@@ -192,4 +193,9 @@ export default class DailyCashier extends BaseModel {
     foreignKey: 'daily_cashier_id',
   })
   public bills: HasMany<typeof Bill>;
+
+  @hasMany(() => BillPayment, {
+    foreignKey: 'daily_cashier_id',
+  })
+  public billPayments: HasMany<typeof BillPayment>;
 }

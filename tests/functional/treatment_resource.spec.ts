@@ -292,6 +292,7 @@ test.group('Treatment resource', group => {
       .post(`/treatments/execute-execution`)
       .json({
         executionId: execution.id,
+        treatmentId: execution.treatment_id,
 
         executionDate: new Date().toISOString(),
         observations: 'some',
@@ -312,6 +313,7 @@ test.group('Treatment resource', group => {
       .post(`/treatments/execute-execution`)
       .json({
         executionId: execution.id,
+        treatmentId: execution.treatment_id,
 
         executionDate: new Date().toISOString(),
         observations: 'some',

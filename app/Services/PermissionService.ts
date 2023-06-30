@@ -35,6 +35,7 @@ export default class PermissionService {
         {
           control: data.control,
           description: data.description,
+          control_id: data.controlId,
           screen_id: data.screenId,
         },
         {
@@ -96,6 +97,7 @@ export default class PermissionService {
     return permission
       .merge({
         control: data.control,
+        control_id: data.controlId,
         description: data.description,
         screen_id: data.screenId,
       })

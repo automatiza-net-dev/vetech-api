@@ -13,7 +13,7 @@ export default class UpdatePatientValidator {
     name: schema.string({}),
     type: schema.enum(Object.values(PatientType), []),
     photo: schema.file.optional({
-      extnames: ['jpg', 'gif', 'png'],
+      extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),
     gender: schema.enum(Object.values(PatientGender), []),
     tags: schema.string.optional({}, []),

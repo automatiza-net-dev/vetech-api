@@ -32,6 +32,7 @@ export default class SchedulesController {
     const result = await this.service.index(unit_id, {
       patient: qs.patient,
       complaint: qs.complaint,
+      pid: qs.pid,
     });
 
     return response.ok(result);

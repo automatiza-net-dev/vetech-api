@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, schema, rules } from '@ioc:Adonis/Core/Validator';
 
 export default class CreateCashierReceiptValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,6 +8,14 @@ export default class CreateCashierReceiptValidator {
     entryDate: schema.date(),
     description: schema.string(),
     value: schema.number(),
+
+    paymentMethodId: schema.string({}, [
+      rules.exists({ table: 'payment_methods', column: 'id' }),
+    ]),
+    accountPlanId: schema.string({}, [
+      rules.exists({ table: 'account_plans', column: 'id' }),
+    ]),
+    fiscalNote: schema.string(),
   });
 
   public messages: CustomMessages = {};

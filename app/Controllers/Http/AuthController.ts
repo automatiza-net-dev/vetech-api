@@ -56,10 +56,29 @@ export default class AuthController {
       })
       .firstOrFail();
 
+    const userRoles = await user
+      .related('roles')
+      .query()
+      .where('active', true)
+      .where('unit_id', unit_id)
+      .preload('role', query => {
+        query.where('active', true);
+
+        query.preload('permissions', query => {
+          query.where('active', true);
+        });
+      });
+
+    const controlIds = userRoles
+      .map(r => r.role.permissions.map(p => p.control_id))
+      .flat()
+      .filter(Boolean);
+
     return response.ok({
       user,
       unit,
       url: economicGroup.system.systemUrls.at(0) ?? null,
+      cl: controlIds,
     });
   }
 

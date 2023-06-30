@@ -8,9 +8,12 @@ export default class ExecuteTreatmentExecutionValidator {
     executionId: schema.number([
       rules.exists({ table: 'treatment_executions', column: 'id' }),
     ]),
+    treatmentId: schema.number([
+      rules.exists({ table: 'treatments', column: 'id' }),
+    ]),
 
     executionDate: schema.date(),
-    observations: schema.string({ trim: true }),
+    observations: schema.string.optional({ trim: true }),
   });
 
   public messages: CustomMessages = {};

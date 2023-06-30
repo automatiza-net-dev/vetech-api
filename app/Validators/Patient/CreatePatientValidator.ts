@@ -3,12 +3,12 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { PatientGender, PatientVaccineOrigin } from 'App/Models/Patient';
 
 export default class CreatePatientValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     name: schema.string({}),
     photo: schema.file.optional({
-      extnames: ['jpg', 'gif', 'png'],
+      extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),
     gender: schema.enum.optional(Object.values(PatientGender), []),
     tags: schema.string.optional({}, []),

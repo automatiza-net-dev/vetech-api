@@ -202,4 +202,106 @@ test.group('Finance resource', group => {
 
     assert.equal(204, response.status());
   });
+
+  test('should get expiring expenses', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/expiring-expenses`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get expiring payments', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/expiring-payments`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get checking accounts resume', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/checking-accounts-resume`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get open cashiers resume', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/open-cashiers-resume`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get closed cashiers resume', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/closed-cashiers-resume`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
+
+  test('should get revised cashiers resume', async ({ assert, client }) => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .get(`/finances/revised-cashiers-resume`)
+      .bearerToken(token);
+
+    // console.log(response.body());
+
+    assert.equal(200, response.status());
+  });
 });

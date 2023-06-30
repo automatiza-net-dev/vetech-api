@@ -139,4 +139,52 @@ export default class FinancesController {
 
     return response.noContent();
   }
+
+  async expiringExpenses({ auth, response }: HttpContextContract) {
+    const result = await this.service.getExpiringExpenses(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async expiringPayments({ auth, response }: HttpContextContract) {
+    const result = await this.service.getExpiringExpenses(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async checkingAccountsResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getCheckingAccountsResume(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async openCashiersResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getOpenDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async closedCashiersResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getClosedDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async revisedCashiersResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getRevisedDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
 }

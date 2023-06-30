@@ -27,6 +27,8 @@ test.group('Role resource', group => {
       screen_id: screen.id,
     });
 
+    await permission.related('systems').attach([system.id]);
+
     const role = await Role.create({
       name: v4(),
       system_id: system.id,
@@ -87,7 +89,10 @@ test.group('Role resource', group => {
     );
   });
 
-  test('should create a new role', async ({ client, assert }) => {
+  test('=============================================== should create a new role', async ({
+    client,
+    assert,
+  }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -127,7 +132,7 @@ test.group('Role resource', group => {
     assert.notEqual(role.name, body.name);
   });
 
-  test('should throw BadRequestException if deleting role with permissions', async ({
+  test('should throw BadRequestException if deleting role with users', async ({
     client,
     assert,
   }) => {
@@ -135,6 +140,10 @@ test.group('Role resource', group => {
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
+    });
+
+    await user.related('roles').create({
+      role_id: role.id,
     });
 
     const response = await client
@@ -151,7 +160,7 @@ test.group('Role resource', group => {
       password: '102030',
     });
 
-    await role.related('permissions').sync([]);
+    await role.related('users').query().delete();
 
     const response = await client
       .delete(`/roles/${role.id}`)

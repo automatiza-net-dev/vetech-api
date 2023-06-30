@@ -34,13 +34,51 @@ import { DateTime } from 'luxon';
 import { ObjectId } from 'mongoose';
 import { v4 } from 'uuid';
 
-import { IAnimalMedicalRecipe } from '../Models/mongoose/AnimalMedicalRecipe';
+import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
+import { AuthContext } from 'App/Services/SharedService';
 
 @inject()
 export default class TimelineService {
+  public async softDeleteRecord(authCtx: AuthContext, id: string) {
+    const res = await AnimalTimeline.updateOne(
+      {
+        _id: id,
+        'timeline_type.description': {
+          $in: [
+            'Documentos',
+            'Exames',
+            'Fotos',
+            'Observação',
+            'Patologia',
+            authCtx.system.name === 'Sanclá' && 'Atendimento',
+            authCtx.system.name === 'LiftOne' && 'Avaliação',
+          ].filter(Boolean),
+        },
+        'extras.deletedAt': null,
+      },
+      {
+        $set: {
+          'extras.deletedAt': DateTime.now().toJSDate(),
+          'extras.user.id': authCtx.user.id,
+          'extras.user.name': authCtx.user.name,
+          'extras.user.email': authCtx.user.email,
+        },
+      },
+    );
+
+    if (res.modifiedCount === 0) {
+      throw new BadRequestException(
+        'Nenhum registro encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+  }
+
   public async all(tag: string) {
     return AnimalTimeline.find({
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -59,6 +97,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -187,6 +226,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -243,6 +283,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -299,6 +340,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -440,6 +482,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -533,6 +576,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -609,6 +653,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -703,6 +748,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -904,6 +950,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -999,6 +1046,7 @@ export default class TimelineService {
     return AnimalTimeline.find({
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
+      'extras.deletedAt': null,
     }).sort({ createdAt: -1 });
   }
 
@@ -1072,6 +1120,7 @@ export default class TimelineService {
     );
 
     return AnimalTimeline.find({
+      'extras.deletedAt': null,
       timeline_id: timelineInfo.id,
       'timeline_info.tag': tag,
     }).sort({ createdAt: -1 });
@@ -1425,6 +1474,7 @@ export default class TimelineService {
             hospitalizedAt: hospitalization.createdAt,
             realizedAt: DateTime.now(),
             issuedAt: DateTime.now(),
+            observation: '-',
             technician: {
               id: technician.id,
               name: technician.name,
@@ -1432,6 +1482,18 @@ export default class TimelineService {
             attachments: [],
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              'data.deathAt': DateTime.now(),
+            },
+          },
+        );
       }
     });
   }

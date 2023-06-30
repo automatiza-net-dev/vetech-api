@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Hospitalization from 'App/Models/Hospitalization';
 import HospitalizationClinicParameter from 'App/Models/HospitalizationClinicParameter';
+import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import User from 'App/Models/User';
 import SharedService from 'App/Services/SharedService';
 import { IHospitalizationClinicParameterData } from 'Contracts/interfaces/IHospitalizationClinicParameterData';
@@ -50,17 +51,30 @@ export default class HospitalizationClinicParameterService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    ent.merge({
-      value: data.value,
-      resume: data.resume,
-      status: data.status,
-      user_id: data.userId,
-      clinic_parameter_id: data.clinicParameterId,
-      releasedAt: data.releasedAt,
-      executedAt: data.executedAt,
-    });
+    if (data.releasedAt) {
+      await HospitalizationTimeline.updateOne(
+        {
+          'meta.hospitalization_id': hospitalization.id,
+        },
+        {
+          $set: {
+            'data.releasedAt': data.releasedAt,
+          },
+        },
+      );
+    }
 
-    return ent.save();
+    return ent
+      .merge({
+        value: data.value,
+        resume: data.resume,
+        status: data.status,
+        user_id: data.userId,
+        clinic_parameter_id: data.clinicParameterId,
+        releasedAt: data.releasedAt,
+        executedAt: data.executedAt,
+      })
+      .save();
   }
 
   public async destroy(unitId: string, id: string) {

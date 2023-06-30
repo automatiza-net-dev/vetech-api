@@ -8,6 +8,7 @@ import Hospitalization, {
   HospitalizationType,
   HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
+import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
@@ -136,6 +137,25 @@ export default class HospitalizationService {
 
     return HospitalizationTimeline.find({
       'meta.hospitalization': hospitalization.id,
+      'extra.deletedAt': null,
+    });
+  }
+
+  public async patientTimeline(id: string) {
+    const patient = await Patient.query()
+      .where('id', id)
+      .preload('hospitalizations')
+      .first();
+
+    if (!patient) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return HospitalizationTimeline.find({
+      'meta.hospitalization': {
+        $in: patient.hospitalizations.map(h => h.id),
+      },
+      'extra.deletedAt': null,
     });
   }
 
@@ -567,6 +587,18 @@ export default class HospitalizationService {
             },
           },
         });
+
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.hospitalization': hospitalization.id,
+            'meta.type': 'begin_hospitalization',
+          },
+          {
+            $set: {
+              'data.releasedAt': DateTime.now(),
+            },
+          },
+        );
       }
     });
 
@@ -586,27 +618,28 @@ export default class HospitalizationService {
   public async completeHospitalization(unitId: string, id: string, user: User) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const hospitalization = await Hospitalization.query()
-      .where('business_unit_id', unitId)
-      .where('id', id)
-      .preload('patient')
-      .preload('bed')
-      .preload('tutor')
-      .first();
-
-    if (!hospitalization) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    if (hospitalization.status === HospitalizationStatus.COMPLETE) {
-      throw new BadRequestException(
-        'Internação já finalizada',
-        400,
-        'E_CLOSED_ALREADY',
-      );
-    }
-
     await Database.transaction(async trx => {
+      const hospitalization = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('id', id)
+        .preload('patient')
+        .preload('bed')
+        .preload('tutor')
+        .first();
+
+      if (!hospitalization) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (hospitalization.status === HospitalizationStatus.COMPLETE) {
+        throw new BadRequestException(
+          'Internação já finalizada',
+          400,
+          'E_CLOSED_ALREADY',
+        );
+      }
+
       await hospitalization
         .merge({
           releasedAt: DateTime.now(),
@@ -614,6 +647,34 @@ export default class HospitalizationService {
         })
         .useTransaction(trx)
         .save();
+
+      await HospitalizationMedicalPrescription.query()
+        .useTransaction(trx)
+        .where('hospitalization_id', hospitalization.id)
+        .where('status', 'A')
+        .update({
+          status: 'I',
+        });
+
+      await HospitalizationTimeline.updateMany(
+        {
+          'meta.hospitalization': hospitalization.id,
+          'meta.type': 'begin_hospitalization',
+        },
+        {
+          $set: {
+            'data.releasedAt': DateTime.now(),
+          },
+        },
+      );
+
+      await HospitalizationMedicalPrescriptionScheduling.query()
+        .useTransaction(trx)
+        .where('hospitalization_id', hospitalization.id)
+        .where('status', 'A')
+        .update({
+          status: 'CA',
+        });
 
       await HospitalizationTimeline.create({
         meta: {
@@ -634,6 +695,7 @@ export default class HospitalizationService {
           type: HospitalizationType[hospitalization.type],
           hospitalizedAt: hospitalization.createdAt,
           completedAt: DateTime.now(),
+          observation: '',
           technician: {
             id: user.id,
             name: user.name,

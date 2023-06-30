@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Permission from 'App/Models/Permission';
 import Role from 'App/Models/Role';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IManageRolePermissions from 'Contracts/interfaces/IManageRolePermissions';
@@ -21,7 +22,8 @@ export default class RoleService {
   ): Promise<Array<Role>> {
     const qb = Role.query()
       .where('system_id', authCtx.system.id)
-      .where('economic_group_id', authCtx.group.id);
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'system');
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -34,11 +36,31 @@ export default class RoleService {
     authCtx: AuthContext,
     data: Omit<IRoleData, 'active'>,
   ): Promise<Role> {
-    return Role.create({
-      name: data.name,
-      type: data.type,
-      system_id: authCtx.system.id,
-      economic_group_id: authCtx.group.id,
+    return Database.transaction(async trx => {
+      const permissions = await Permission.query()
+        .useTransaction(trx)
+        .whereHas('systems', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+
+      const newRole = await Role.create(
+        {
+          name: data.name,
+          type: 'system',
+          system_id: authCtx.system.id,
+          economic_group_id: authCtx.group.id,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await newRole.related('permissions').attach(
+        permissions.map(p => p.id),
+        trx,
+      );
+
+      return newRole;
     });
   }
 
@@ -86,7 +108,6 @@ export default class RoleService {
     return role
       .merge({
         name: data.name,
-        type: data.type,
         active: data.active,
       })
       .save();
@@ -97,9 +118,7 @@ export default class RoleService {
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
-      .preload('permissions', query => {
-        query.where('active', true);
-      })
+      .preload('users')
       .first();
 
     if (!role) {
@@ -110,7 +129,7 @@ export default class RoleService {
       );
     }
 
-    if (role.permissions.length > 0) {
+    if (role.users.length > 0) {
       throw new BadRequestException(
         'Não é possível excluir um cargo que possui permissões',
         400,

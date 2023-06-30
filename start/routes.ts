@@ -44,6 +44,15 @@ Route.group(() => {
   Route.post('/send-confirmation', 'UsersController.createConfirmationToken');
   Route.post('/confirm-token', 'UsersController.confirmConfirmationToken');
 
+  Route.post(
+    '/start-change-password',
+    'UsersController.handleChangePasswordEmail',
+  ).middleware('auth');
+  Route.post(
+    '/complete-change-password',
+    'UsersController.handleChangePassword',
+  ).middleware('auth');
+
   Route.put('/', 'UsersController.update').middleware('auth');
   Route.delete('/', 'UsersController.destroy').middleware('auth');
 }).prefix('users');
@@ -455,6 +464,7 @@ Route.resource('exams', 'ExamsController')
 
 Route.group(() => {
   Route.get('/:id', 'TimelinesController.index');
+  Route.delete('/:id', 'TimelinesController.delete');
 
   Route.group(() => {
     Route.get('/:id', 'TimelinesController.animalWeightIndex');
@@ -625,6 +635,10 @@ Route.group(() => {
   Route.post('/', 'HospitalizationsController.store');
   Route.get('/timeline/:id', 'HospitalizationsController.showTimeline');
   Route.get(
+    '/patient-timeline/:id',
+    'HospitalizationsController.showPatientTimeline',
+  );
+  Route.get(
     '/info/:id',
     'HospitalizationsController.getHospitalizationScheduling',
   );
@@ -738,6 +752,7 @@ Route.group(() => {
   Route.get('/dump/:id', 'DailyCashiersController.dump');
   Route.get('/', 'DailyCashiersController.index');
   Route.post('/open', 'DailyCashiersController.openDailyCashier');
+  Route.post('/clear-payments', 'DailyCashiersController.clearPayments');
   Route.post('/close/:id', 'DailyCashiersController.closeDailyCashier');
   Route.post('/reopen/:id', 'DailyCashiersController.reopenDailyCashier');
   Route.post('/check/:id', 'DailyCashiersController.checkDailyCashier');
@@ -810,6 +825,22 @@ Route.group(() => {
   Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
   Route.delete('/delete/:id', 'FinancesController.deleteFinance');
+
+  Route.get('/expiring-expenses', 'FinancesController.expiringExpenses');
+  Route.get('/expiring-payments', 'FinancesController.expiringPayments');
+  Route.get(
+    '/checking-accounts-resume',
+    'FinancesController.checkingAccountsResume',
+  );
+  Route.get('/open-cashiers-resume', 'FinancesController.openCashiersResume');
+  Route.get(
+    '/closed-cashiers-resume',
+    'FinancesController.closedCashiersResume',
+  );
+  Route.get(
+    '/revised-cashiers-resume',
+    'FinancesController.revisedCashiersResume',
+  );
 })
   .prefix('finances')
   .middleware('auth');
@@ -830,6 +861,7 @@ Route.group(() => {
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/add-kit', 'BudgetsController.addKitToBudget');
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
+  Route.post('/create-items', 'BudgetsController.createBudgetItems');
 
   Route.put(
     '/update-observation/:id',
@@ -851,6 +883,7 @@ Route.group(() => {
 
   Route.post('/create', 'BillsController.createBill');
   Route.post('/create-item', 'BillsController.createBillItem');
+  Route.post('/create-items', 'BillsController.createBillItems');
   Route.post('/add-kit', 'BillsController.addKitToBill');
 
   Route.put('/update-item', 'BillsController.updateBillItem');
@@ -1089,4 +1122,22 @@ Route.group(() => {
   Route.post('/cancel-activity/:id', 'OpportunitiesController.cancelActivity');
 })
   .prefix('opportunities')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/:id', 'AddressesController.index');
+  Route.post('/', 'AddressesController.store');
+  Route.put('/:id', 'AddressesController.update');
+  Route.delete('/:id', 'AddressesController.destroy');
+})
+  .prefix('addresses')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/:id', 'PatientContactsController.index');
+  Route.post('/', 'PatientContactsController.store');
+  Route.put('/:id', 'PatientContactsController.update');
+  Route.delete('/:id', 'PatientContactsController.destroy');
+})
+  .prefix('patient-contacts')
   .middleware('auth');

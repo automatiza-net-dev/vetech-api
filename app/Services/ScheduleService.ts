@@ -33,6 +33,7 @@ import {
 import { DateTime } from 'luxon';
 
 interface ISearch {
+  pid?: string;
   patient?: string;
   complaint?: string;
 }
@@ -108,6 +109,10 @@ export default class ScheduleService {
       })
       .preload('scheduleOrigin')
       .preload('scheduleReturn');
+
+    if (data.pid) {
+      qb.where('patient_id', data.pid);
+    }
 
     if (data.patient) {
       qb.where('patient_name', 'ilike', `%${data.patient}%`);
@@ -212,7 +217,6 @@ export default class ScheduleService {
           .andWhereHas('serviceStatus', query => {
             query.whereNotIn('type', ['CANC']);
           })
-
           .first();
 
         if (overlapping) {
@@ -225,42 +229,65 @@ export default class ScheduleService {
       }
     }
 
-    const status = await ScheduleStatus.firstOrCreate(
-      {
-        description: 'Agendado (Não confirmado)',
-        system_id: authCtx.system.id,
-        type: 'AN',
-      },
-      {
-        color: '#000000',
-      },
-    );
+    return Database.transaction(async trx => {
+      const status = await ScheduleStatus.firstOrCreate(
+        {
+          description: 'Agendado (Não confirmado)',
+          system_id: authCtx.system.id,
+          type: 'AN',
+        },
+        {
+          color: '#000000',
+        },
+        {
+          client: trx,
+        },
+      );
 
-    const result = await Schedule.create({
-      patientName: data.patientName,
-      patientPhone: data.patientPhone,
-      holder_id: data.holderId,
-      age: data.age,
-      startHour: data.startHour,
-      endHour: data.endHour,
-      majorComplaint: data.majorComplaint,
-      business_unit_id: authCtx.unit.id,
-      user_id: data.userId ?? authCtx.user.id,
-      patient_id: data.patientId,
-      race_id: data.raceId,
-      schedule_service_type_id: data.scheduleServiceTypeId,
-      schedule_status_id: status.id,
-      scheduleOriginId: data.scheduleOriginId,
-      onDuty: data.onDuty,
+      const result = await Schedule.create(
+        {
+          patientName: data.patientName,
+          patientPhone: data.patientPhone,
+          holder_id: data.holderId,
+          age: data.age,
+          startHour: data.startHour,
+          endHour: data.endHour,
+          majorComplaint: data.majorComplaint,
+          business_unit_id: authCtx.unit.id,
+          user_id: data.userId ?? authCtx.user.id,
+          patient_id: data.patientId,
+          race_id: data.raceId,
+          schedule_service_type_id: data.scheduleServiceTypeId,
+          schedule_status_id: status.id,
+          scheduleOriginId: data.scheduleOriginId,
+          onDuty: data.onDuty,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await result.related('statusChanges').create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: status.id,
+          observation: '',
+        },
+        {
+          client: trx,
+        },
+      );
+
+      if (data.scheduleOriginId) {
+        const origin = await Schedule.findOrFail(data.scheduleOriginId, {
+          client: trx,
+        });
+        origin.scheduleReturnId = result.id;
+        await origin.useTransaction(trx).save();
+      }
+
+      return result;
     });
-
-    if (data.scheduleOriginId) {
-      const origin = await Schedule.findOrFail(data.scheduleOriginId);
-      origin.scheduleReturnId = result.id;
-      await origin.save();
-    }
-
-    return result;
   }
 
   public async show(unitId: string, id: string): Promise<Schedule> {
@@ -289,6 +316,7 @@ export default class ScheduleService {
       .preload('statusChanges', query => {
         query.preload('reason', query => query.select(['id', 'reason']));
         query.preload('user', query => query.select(['id', 'name', 'email']));
+        query.preload('status', query => query.select(['id', 'description']));
       })
       .preload('reason', query => query.select(['id', 'reason']))
       .preload('contacts', query => {
@@ -1076,6 +1104,7 @@ export default class ScheduleService {
       status: {
         id: elem.serviceStatus?.id ?? null,
         description: elem.serviceStatus?.description ?? null,
+        color: elem.serviceStatus.color ?? null,
       },
       cancellation: elem.cancellationUser
         ? {

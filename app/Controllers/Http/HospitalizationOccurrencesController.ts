@@ -58,9 +58,10 @@ export default class HospitalizationOccurrencesController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.delete(unit_id, params.id);
+    await this.service.delete(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

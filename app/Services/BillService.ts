@@ -28,6 +28,7 @@ import TaxationGroupRule, {
   MovementType,
 } from 'App/Models/TaxationGroupRule';
 import Treatment from 'App/Models/Treatment';
+import TreatmentItem, { TreatmentItemStatus } from 'App/Models/TreatmentItem';
 import UfIcms from 'App/Models/UfIcms';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
@@ -163,6 +164,8 @@ export default class BillService {
         query.preload('paymentMethod');
       }),
       bill.load('items', query => {
+        query.where('status', BillItemStatus.A);
+
         query.preload('taxRule', query => {
           query.select(['id']);
         });
@@ -193,11 +196,42 @@ export default class BillService {
     });
   }
 
+  async createBills(unitId: string, user: User, data: ICreateBillData[]) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    // if (ufIcms.length !== taxRules.length) {
+    //   throw new InternalErrorException(
+    //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
+    //     500,
+    //     'E_INTERNAL_ERROR',
+    //   );
+    // }
+
+    return Database.transaction(async trx => {
+      const tasks = data.map(d =>
+        this.createBillWithTrx(trx, unitId, group, user, d),
+      );
+
+      return Promise.all(tasks);
+    });
+  }
+
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
       return this.createBillItemWithTrx(trx, unitId, group, data);
+    });
+  }
+
+  async createBillItems(unitId: string, data: ICreateBillItemData[]) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    return Database.transaction(async trx => {
+      const tasks = data.map(d =>
+        this.createBillItemWithTrx(trx, unitId, group, d),
+      );
+      return Promise.all(tasks);
     });
   }
 
@@ -552,21 +586,20 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
-      const bill = await Bill.findOrFail(data.billId);
-      const paymentMethod = await PaymentMethod.findOrFail(
-        data.paymentMethodId,
-        {
-          client: trx,
-        },
-      );
-      const flagInstallment = data.paymentMethodFlagInstallmentId
-        ? await PaymentMethodFlagInstallment.find(
-            data.paymentMethodFlagInstallmentId,
-            {
-              client: trx,
-            },
-          )
-        : null;
+      const bill = await Bill.findOrFail(data.billId, {
+        client: trx,
+      });
+      const paymentMethod = await PaymentMethod.query()
+        .useTransaction(trx)
+        .where('id', data.paymentMethodId)
+        .firstOrFail();
+
+      const installment = data.paymentMethodFlagInstallmentId
+        ? await PaymentMethodFlagInstallment.query()
+            .useTransaction(trx)
+            .where('id', data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
+        : { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
       const userOpenCashier = await DailyCashier.query()
         .useTransaction(trx)
@@ -589,12 +622,11 @@ export default class BillService {
       );
 
       const uniqueBlocks = new Set(existingPayments.map(p => p.block));
-      const singleValue =
-        data.installmentsValue / (flagInstallment?.installment ?? 1);
+      const singleValue = data.installmentsValue / installment.installment;
 
       const payments = await BillPayment.createMany(
         Array.from(
-          { length: flagInstallment?.installment ?? 1 },
+          { length: installment.installment ?? 1 },
           (_, v) => ({
             economic_group_id: group.id,
             business_unit_id: unitId,
@@ -620,8 +652,8 @@ export default class BillService {
             installmentValue: singleValue,
             totalValue: singleValue, // TODO: add fee
             nsuDocument: data.nsuDocument,
-            paymentMethodDiscountPercentage: paymentMethod.fee,
-            paymentMethodDiscountValue: (singleValue * paymentMethod.fee) / 100,
+            paymentMethodDiscountPercentage: installment.fee,
+            paymentMethodDiscountValue: (singleValue * installment.fee) / 100,
           }),
           {
             client: trx,
@@ -637,7 +669,7 @@ export default class BillService {
         .save();
 
       await Finance.createMany(
-        Array.from({ length: flagInstallment?.installment ?? 1 }, (_, v) => ({
+        Array.from({ length: installment.installment }, (_, v) => ({
           economic_group_id: group.id,
           business_unit_id: unitId,
           daily_movement_id: bill.daily_movement_id,
@@ -655,11 +687,11 @@ export default class BillService {
           issueDate: DateTime.now(),
           expirationDate: payments.at(v)?.expirationDate,
           originalValue: singleValue,
-          value: singleValue - (singleValue * paymentMethod.fee) / 100,
-          totalValue: singleValue - (singleValue * paymentMethod.fee) / 100,
+          value: singleValue - (singleValue * installment.fee) / 100,
+          totalValue: singleValue - (singleValue * installment.fee) / 100,
           feeDiscountValue:
             (payments.at(v)?.installmentValue ?? 0) -
-            (singleValue - (singleValue * paymentMethod.fee) / 100),
+            (singleValue - (singleValue * installment.fee) / 100),
           feeValue: 0,
           feeDiscountPercentage: paymentMethod.fee,
           feePercentage: 0,
@@ -786,62 +818,26 @@ export default class BillService {
     qb.preload('unit');
     const products = await qb;
 
-    const kits = await Kit.query()
-      .where('economic_group_id', group.id)
-      .preload('items', query => {
-        query.preload('productVariation', query => {
-          query.whereHas('businessUnitProducts', query => {
-            query.where('businness_unit_id', unitId);
-          });
+    const kits = await Kit.query().where('economic_group_id', group.id);
+    // const kits = await Kit.query()
+    //   .where('economic_group_id', group.id)
+    //   .preload('items', query => {
+    //     query.preload('productVariation', query => {
+    //       query.whereHas('businessUnitProducts', query => {
+    //         query.where('businness_unit_id', unitId);
+    //       });
 
-          query.preload('product');
-          query.preload('businessUnitProducts', query => {
-            query.where('businness_unit_id', unitId);
-          });
-        });
-      });
+    //       query.preload('product');
+    //       query.preload('businessUnitProducts', query => {
+    //         query.where('businness_unit_id', unitId);
+    //       });
+    //     });
+    //   });
 
-    const result: Array<unknown> = [];
-
-    for (const product of products) {
-      for (const variation of product.variations) {
-        const price = variation.businessUnitProducts.find(
-          v => v.businness_unit_id === unitId,
-        )?.price;
-
-        result.push({
-          id: variation.id,
-          variation: {
-            id: variation.id,
-          },
-          product_id: product.id,
-          type: product.type,
-          description: product.description,
-          price: price ? parseFloat(price as unknown as string) : -1,
-        });
-      }
-    }
-
-    for (const kit of kits) {
-      for (const kitItem of kit.items) {
-        const price = kitItem.productVariation.businessUnitProducts.find(
-          p => p.businness_unit_id === unitId,
-        )?.price;
-
-        result.push({
-          id: kitItem.id,
-          kit_id: kit.id,
-          variation: {
-            id: kitItem.product_variation_id,
-          },
-          type: 'kit',
-          description: kit.description,
-          price: price ? parseFloat(price as unknown as string) : -1,
-        });
-      }
-    }
-
-    return result;
+    return [
+      ...products,
+      ...kits.map(elem => ({ ...elem.toJSON(), type: 'kit' })),
+    ];
   }
 
   async searchTax(unitId: string, data: ISearchTax) {
@@ -2023,13 +2019,22 @@ export default class BillService {
         .useTransaction(trx)
         .where('business_unit_id', authCtx.unit.id)
         .where('id', data.billId)
+        .preload('items')
         .first();
 
       if (!elem) {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await Treatment.create(
+      if (elem.treatment_id) {
+        throw new BadRequestException(
+          'Está venda já foi convertida em tratamento',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const treatment = await Treatment.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
@@ -2041,6 +2046,27 @@ export default class BillService {
           emissionDate: DateTime.now(),
           status: 'Confirmado',
         },
+        { client: trx },
+      );
+
+      await elem
+        .merge({
+          treatment_id: treatment.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await TreatmentItem.createMany(
+        elem.items.map((inner, index) => ({
+          id: index + 1,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          treatment_id: treatment.id,
+          product_variation_id: inner.product_variation_id,
+
+          status: TreatmentItemStatus[0],
+          quantity: inner.quantity,
+        })),
         { client: trx },
       );
     });

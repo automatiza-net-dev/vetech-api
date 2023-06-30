@@ -2,10 +2,12 @@ import Mail from '@ioc:Adonis/Addons/Mail';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import ConfirmationToken from 'App/Models/ConfirmationToken';
-import User from 'App/Models/User';
+import UserPasswordChange from 'App/Models/UserPasswordChange';
 import UserFactory from 'Database/factories/UserFactory';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+
+import { userBootstrap, generateJwtToken } from '../utils';
 
 /*
   REFACTOR LIST
@@ -20,10 +22,8 @@ test.group('User resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createUser = async (): Promise<[User]> => {
-    const user = await UserFactory.create();
-
-    return [user];
+  const createUser = async () => {
+    return userBootstrap();
   };
 
   test('should return a list of all users', async ({ client, assert }) => {
@@ -55,7 +55,7 @@ test.group('User resource', group => {
   });
 
   test('update the user', async ({ client, assert }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
 
     const response = await client
       .put(`/users`)
@@ -71,7 +71,7 @@ test.group('User resource', group => {
   });
 
   test('soft delete a user', async ({ client, assert }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
 
     const deleteResponse = await client.delete(`/users`).loginAs(user);
 
@@ -98,7 +98,7 @@ test.group('User resource', group => {
     client,
     assert,
   }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
     const response = await client.get(`/users/check-email/${user.email}`);
 
     const body = response.body();
@@ -112,7 +112,7 @@ test.group('User resource', group => {
     client,
     assert,
   }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
     await ConfirmationToken.create({
       email: user.email,
       code: '0001',
@@ -225,7 +225,7 @@ test.group('User resource', group => {
     client,
     assert,
   }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
     const response = await client.get(
       `/users/resend-confirmation/${user.email}`,
     );
@@ -296,7 +296,7 @@ test.group('User resource', group => {
     client,
     assert,
   }) => {
-    const [user] = await createUser();
+    const { user } = await createUser();
     const response = await client.get(`/users/check-document/${user.document}`);
 
     const body = response.body();
@@ -304,5 +304,183 @@ test.group('User resource', group => {
     assert.equal(200, response.status());
     assert.isTrue(body.valid);
     assert.isTrue(body.exists);
+  });
+
+  test('should throw BadRequestException if there is a active change password link', async ({
+    client,
+    assert,
+  }) => {
+    const { user, group, system, business } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await UserPasswordChange.create({
+      system_id: system.id,
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      hash: '',
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+    });
+
+    const response = await client
+      .post(`/users/start-change-password`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should send change password email', async ({ client, assert }) => {
+    const mailer = Mail.fake();
+
+    const { user, system } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    const response = await client
+      .post(`/users/start-change-password`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+    assert.isTrue(
+      mailer.exists(mail => {
+        return mail.subject === 'Troca de Senha';
+      }),
+    );
+
+    Mail.restore();
+  });
+
+  test('should throw BadRequestException if hash does not belong to user', async ({
+    client,
+    assert,
+  }) => {
+    const { user, group, system, business } = await createUser();
+    const { user: user2 } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user2.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await UserPasswordChange.create({
+      system_id: system.id,
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      hash: 'HASH',
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+    });
+
+    const response = await client
+      .post(`/users/complete-change-password`)
+      .json({
+        hash: 'HASH',
+        password: '102030',
+        password_confirmation: '102030',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if hash is expired', async ({
+    client,
+    assert,
+  }) => {
+    const { user, group, system, business } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await UserPasswordChange.create({
+      system_id: system.id,
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      hash: 'HASH',
+      expiresAt: DateTime.now().minus({ hour: 1 }),
+    });
+
+    const response = await client
+      .post(`/users/complete-change-password`)
+      .json({
+        hash: 'HASH',
+        password: '102030',
+        password_confirmation: '102030',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if hash is completed', async ({
+    client,
+    assert,
+  }) => {
+    const { user, group, system, business } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await UserPasswordChange.create({
+      system_id: system.id,
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      hash: 'HASH',
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+      completed: true,
+    });
+
+    const response = await client
+      .post(`/users/complete-change-password`)
+      .json({
+        hash: 'HASH',
+        password: '102030',
+        password_confirmation: '102030',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should complete password change', async ({ client, assert }) => {
+    const { user, group, system, business } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await UserPasswordChange.create({
+      system_id: system.id,
+      economic_group_id: group.id,
+      business_unit_id: business.id,
+      user_id: user.id,
+      hash: 'HASH',
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+    });
+
+    const response = await client
+      .post(`/users/complete-change-password`)
+      .json({
+        hash: 'HASH',
+        password: '102030',
+        password_confirmation: '102030',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

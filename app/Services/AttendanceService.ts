@@ -26,7 +26,9 @@ export default class AttendanceService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch) {
-    const qb = Attendance.query().where('business_unit_id', unitId);
+    const qb = Attendance.query()
+      .where('business_unit_id', unitId)
+      .preload('scheduleService');
 
     if (data.resume) {
       qb.whereILike('resume', `%${data.resume}`);
@@ -53,6 +55,7 @@ export default class AttendanceService {
     const attendance = await Attendance.query()
       .where('business_unit_id', unitId)
       .where('id', id)
+      .preload('scheduleService')
       .first();
 
     if (!attendance) {
@@ -150,8 +153,8 @@ export default class AttendanceService {
               user_id: authCtx.user.id,
               holder_id: mainTutor.id,
               patient_id: patient.id,
-              startHour: DateTime.now().plus({ hours: 3 }),
-              endHour: DateTime.now().plus({
+              startHour: DateTime.now().minus({ hours: 3 }),
+              endHour: DateTime.now().minus({
                 hours: 3,
                 minutes: serviceType.reservedMinutes,
               }),

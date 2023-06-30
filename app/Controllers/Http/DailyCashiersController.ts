@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import DailyCashierService from 'App/Services/DailyCashierService';
 import SharedService from 'App/Services/SharedService';
 import CheckDailyCashierValidator from 'App/Validators/DailyCashier/CheckDailyCashierValidator';
+import ClearPaymentValidator from 'App/Validators/DailyCashier/ClearPaymentValidator';
 import CloseDailyCashierValidator from 'App/Validators/DailyCashier/CloseDailyCashierValidator';
 import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCashierExpenseValidator';
 import CreateCashierReceiptValidator from 'App/Validators/DailyCashier/CreateCashierReceiptValidator';
@@ -140,6 +141,16 @@ export default class DailyCashiersController {
     const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateCashierReceiptValidator);
     await this.service.createCashierReceiptEntry(unit_id, params.id, data);
+
+    return response.noContent();
+  }
+
+  public async clearPayments({ auth, request, response }: HttpContextContract) {
+    const data = await request.validate(ClearPaymentValidator);
+    await this.service.clearCashierPayments(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.noContent();
   }

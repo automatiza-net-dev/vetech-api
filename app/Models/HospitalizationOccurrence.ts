@@ -92,6 +92,11 @@ export default class HospitalizationOccurrence extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public exclusion_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public hospitalization_medical_prescription_id: string;
 
   @belongsTo(() => HospitalizationMedicalPrescription, {

@@ -17,7 +17,7 @@ import Occurrence, {
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
 import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
   IHospitalizationOccurrenceAttachmentData,
 } from 'Contracts/interfaces/IHospitalizationOccurrenceData';
@@ -83,6 +83,7 @@ export default class HospitalizationOccurrencesService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
+            occurrence: ent.id,
             group: group.id,
             unit: unitId,
             origin: 'occurrence',
@@ -106,6 +107,7 @@ export default class HospitalizationOccurrencesService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
+            occurrence: ent.id,
             group: group.id,
             unit: unitId,
             origin: 'report_occurrence',
@@ -153,6 +155,7 @@ export default class HospitalizationOccurrencesService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
+            occurrence: ent.id,
             group: group.id,
             unit: unitId,
             origin: 'death_occurrence',
@@ -222,6 +225,7 @@ export default class HospitalizationOccurrencesService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
+            occurrence: ent.id,
             group: group.id,
             unit: unitId,
             origin: 'weight_occurrence',
@@ -291,6 +295,7 @@ export default class HospitalizationOccurrencesService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
+            occurrence: ent.id,
             group: group.id,
             unit: unitId,
             origin: 'hospitalization_release',
@@ -403,20 +408,51 @@ export default class HospitalizationOccurrencesService {
       .save();
   }
 
-  public async delete(unitId: string, id: string) {
-    const ent = await HospitalizationOccurrence.find(id);
+  public async delete(authCtx: AuthContext, id: string) {
+    await Database.transaction(async trx => {
+      const ent = await HospitalizationOccurrence.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .whereHas('hospitalization', query => {
+          query.where('business_unit_id', authCtx.unit.id);
+        })
+        .preload('hospitalization')
+        .preload('occurrence')
+        .first();
 
-    if (!ent) {
-      throw this.sharedService.ResourceNotFound();
-    }
+      if (!ent) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-    await ent.load('hospitalization');
+      if (
+        [OccurrenceType.OCORRENCIA, OccurrenceType.RELATORIO_MEDICO].includes(
+          ent.occurrence.type,
+        )
+      ) {
+        await HospitalizationTimeline.updateMany(
+          {
+            'meta.occurrence': ent.id,
+          },
+          {
+            $set: {
+              'extra.deletedAt': DateTime.now().toJSDate(),
+              'extras.user.id': authCtx.user.id,
+              'extras.user.name': authCtx.user.name,
+              'extras.user.email': authCtx.user.email,
+            },
+          },
+        );
+      }
 
-    if (ent.hospitalization.business_unit_id !== unitId) {
-      throw this.sharedService.ResourceNotFound();
-    }
+      await ent
+        .merge({
+          exclusion_user_id: authCtx.user.id,
+        })
+        .useTransaction(trx)
+        .save();
 
-    await ent.softDelete();
+      await ent.softDelete();
+    });
   }
 
   public async deleteAttachment(

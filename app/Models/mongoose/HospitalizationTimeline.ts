@@ -3,6 +3,7 @@ import { model, Schema } from '@ioc:Mongoose';
 type T = {
   meta: object;
   data: object;
+  extra?: object;
 };
 
 export const hospitalizationTimelineSchema = new Schema<T>(
@@ -12,6 +13,10 @@ export const hospitalizationTimelineSchema = new Schema<T>(
     },
     data: {
       type: Object,
+    },
+    extra: {
+      type: Object,
+      required: false,
     },
   },
   {

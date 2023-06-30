@@ -137,6 +137,7 @@ export default class HospitalizationService {
 
     return HospitalizationTimeline.find({
       'meta.hospitalization': hospitalization.id,
+      'extra.deletedAt': null,
     });
   }
 
@@ -154,6 +155,7 @@ export default class HospitalizationService {
       'meta.hospitalization': {
         $in: patient.hospitalizations.map(h => h.id),
       },
+      'extra.deletedAt': null,
     });
   }
 

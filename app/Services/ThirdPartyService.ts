@@ -1,10 +1,14 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import Hash from '@ioc:Adonis/Core/Hash';
+import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import ProfileAccess from 'App/Models/ProfileAccess';
+import RoleProfileAccess from 'App/Models/RoleProfileAccess';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
+import { AuthContext } from 'App/Services/SharedService';
 
 @inject()
 export default class ThirdPartyService {
@@ -165,5 +169,39 @@ export default class ThirdPartyService {
       uf: model.state ?? null,
       dataUltimaAtualizacao: model.updatedAt ?? null,
     };
+  }
+
+  public async searchProfileAccesses(authCtx: AuthContext) {
+    const result = await ProfileAccess.query()
+      .where('system_id', authCtx.system.id)
+      .where('active', true);
+
+    return result.map(elem => ({
+      idPerfil: elem.id,
+      descricao: elem.description,
+    }));
+  }
+
+  public async syncProfileAccesses(
+    _: AuthContext,
+    data: { roleId: number; profileAccessIdList: number[] },
+  ) {
+    await Database.transaction(async trx => {
+      await RoleProfileAccess.query()
+        .useTransaction(trx)
+        .where('role_id', data.roleId)
+        .delete();
+
+      await RoleProfileAccess.createMany(
+        data.profileAccessIdList.map(
+          elem => ({
+            role_id: data.roleId,
+            profile_access_id: elem,
+            active: true,
+          }),
+          { client: trx },
+        ),
+      );
+    });
   }
 }

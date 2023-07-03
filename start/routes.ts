@@ -1131,4 +1131,13 @@ Route.group(() => {
   Route.get('/user/:id', 'ThirdPartiesController.userInfo').middleware(
     'auth:tpApi',
   );
+
+  Route.get(
+    '/profiles',
+    'ThirdPartiesController.searchProfileAccesses',
+  ).middleware('auth');
+
+  Route.post('/sync', 'ThirdPartiesController.syncProfileAccesses').middleware(
+    'auth',
+  );
 }).prefix('external');

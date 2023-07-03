@@ -3,10 +3,15 @@ import { inject } from '@adonisjs/fold';
 import AuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/AuthenticateThirdPartyValidator';
 import ThirdPartyService from 'App/Services/ThirdPartyService';
 import ExtendedAuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator';
+import SyncProfileAccessValidator from 'App/Validators/ThirdParty/SyncProfileAccessValidator';
+import SharedService from 'App/Services/SharedService';
 
 @inject()
 export default class ThirdPartiesController {
-  constructor(private readonly service: ThirdPartyService) {}
+  constructor(
+    private readonly service: ThirdPartyService,
+    private sharedService: SharedService,
+  ) {}
 
   public async authenticateSancla({
     auth,
@@ -113,5 +118,28 @@ export default class ThirdPartiesController {
 
   public async userInfo({ params, response }: HttpContextContract) {
     return response.ok(await this.service.userInfo(params.id));
+  }
+
+  public async searchProfileAccesses({ auth, response }: HttpContextContract) {
+    return response.ok(
+      await this.service.searchProfileAccesses(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+
+  public async syncProfileAccesses({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(SyncProfileAccessValidator);
+
+    await this.service.syncProfileAccesses(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
   }
 }

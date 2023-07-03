@@ -4,9 +4,11 @@ import ThirdPartyUser from 'App/Models/ThirdPartyUser';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import { v4 } from 'uuid';
 import Hash from '@ioc:Adonis/Core/Hash';
-import { userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 import { ApiClient } from '@japa/api-client';
 import System from 'App/Models/System';
+import ProfileAccess from 'App/Models/ProfileAccess';
+import Role from 'App/Models/Role';
 
 test.group('Third party resource', group => {
   group.each.setup(async () => {
@@ -14,18 +16,34 @@ test.group('Third party resource', group => {
     return () => Database.rollbackGlobalTransaction();
   });
 
-  const createData = async (systemName: string) => {
-    const { user, business } = await userBootstrap();
+  const createData = async (systemName?: string) => {
+    const {
+      user,
+      business,
+      group,
+      system: defaultSystem,
+    } = await userBootstrap();
 
     const tpUser = await ThirdPartyUser.create({
       name: 'Test',
     });
 
-    const system = await System.create({
-      name: systemName,
+    const system = systemName
+      ? await System.create({
+          name: systemName,
+        })
+      : defaultSystem;
+
+    const role = await Role.create({
+      name: v4(),
+      system_id: system.id,
+      economic_group_id: group.id,
+      type: 'system',
     });
 
-    await user.merge({ system_id: system.id }).save();
+    if (systemName) {
+      await user.merge({ system_id: system.id }).save();
+    }
 
     const tpPermission = await ThirdPartyUserPermission.create({
       key: v4(),
@@ -34,7 +52,7 @@ test.group('Third party resource', group => {
       system_id: system.id,
     });
 
-    return { user, tpUser, tpPermission, business };
+    return { user, tpUser, tpPermission, business, system, role };
   };
 
   const createToken = async (
@@ -108,5 +126,49 @@ test.group('Third party resource', group => {
       .bearerToken(token);
 
     assert.equal(response.status(), 200);
+  });
+
+  test('should get profiles', async ({ client, assert }) => {
+    const { system, user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    await ProfileAccess.create({
+      description: 'Test',
+      active: true,
+      system_id: system.id,
+    });
+
+    const response = await client.get(`/external/profiles`).bearerToken(token);
+
+    assert.equal(response.status(), 200);
+  });
+
+  test('should async profile accesses', async ({ client, assert }) => {
+    const { user, system, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    const pa = await ProfileAccess.create({
+      description: 'Test',
+      active: true,
+      system_id: system.id,
+    });
+
+    const response = await client
+      .post(`/external/sync`)
+      .json({
+        roleId: role.id,
+        profileAccessIdList: [pa.id],
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 204);
   });
 });

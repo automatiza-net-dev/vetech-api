@@ -108,7 +108,7 @@ export default class TreatmentService {
           treatment_item_id: data.treatmentItemId,
 
           quantityExecuted: data.quantityExecuted,
-          scheduleDate: DateTime.now(),
+          scheduleDate: data.scheduleDate,
           status: 'Ativo',
         },
         {

@@ -93,8 +93,7 @@ export default class TreatmentService {
     return Database.transaction(async trx => {
       const existingExecutions = await TreatmentExecution.query()
         .useTransaction(trx)
-        .where('treatment_id', data.treatmentId)
-        .where('treatment_item_id', data.treatmentItemId);
+        .where('treatment_id', data.treatmentId);
 
       return TreatmentExecution.create(
         {

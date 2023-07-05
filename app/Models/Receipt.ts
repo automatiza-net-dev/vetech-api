@@ -1,45 +1,22 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  belongsTo,
-  BelongsTo,
-  column,
-  HasMany,
-  hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import BillItem from 'App/Models/BillItem';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import Patient from 'App/Models/Patient';
+import User from 'App/Models/User';
 
-import BillPayment from './BillPayment';
-import Patient from './Patient';
-import User from './User';
-
-export enum BillStatus {
-  A = 'ATIVA',
-  E = 'EXTORNADA',
-  F = 'FECHADA',
-}
-
-export default class Bill extends BaseModel {
+export default class Receipt extends BaseModel {
   @column({ isPrimary: true })
-  public id: string = v4();
-
-  @column()
-  public tag: string;
+  public id: number;
 
   @column.dateTime({
-    columnName: 'bill_date',
+    columnName: 'issue_date',
   })
-  public billDate: DateTime;
+  public issueDate: DateTime;
 
   @column.dateTime({
-    columnName: 'closing_date',
+    columnName: 'receipt_date',
   })
-  public closingDate: DateTime;
+  public receiptDate: DateTime | null;
 
   @column({
     columnName: 'product_value',
@@ -57,19 +34,9 @@ export default class Bill extends BaseModel {
   public discountValue: number;
 
   @column({
-    columnName: 'fee_value',
-  })
-  public feeValue: number;
-
-  @column({
     columnName: 'delivery_value',
   })
   public deliveryValue: number;
-
-  @column({
-    columnName: 'paid_value',
-  })
-  public paidValue: number;
 
   @column({
     columnName: 'total_value',
@@ -122,11 +89,6 @@ export default class Bill extends BaseModel {
   public pisRetentionValue: number;
 
   @column({
-    columnName: 'cofins_base',
-  })
-  public cofinsBase: number;
-
-  @column({
     columnName: 'cofins_value',
   })
   public cofinsValue: number;
@@ -177,36 +139,20 @@ export default class Bill extends BaseModel {
   public additionalInformation: string;
 
   @column({
-    columnName: 'cancelled_at',
+    columnName: 'reversed_at',
   })
-  public cancelledAt: DateTime;
+  public reversedAt: DateTime | null;
 
   @column({
-    columnName: 'cancellation_observation',
+    columnName: 'reversal_observation',
   })
-  public cancellationObservation: string;
-
-  @column()
-  public status: BillStatus;
+  public reversalObservation: string | null;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
-
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
-
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
-
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
-
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
 
   @column({
     serializeAs: null,
@@ -226,22 +172,12 @@ export default class Bill extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public client_id: string;
+  public supplier_id: string;
 
   @belongsTo(() => Patient, {
-    foreignKey: 'client_id',
+    foreignKey: 'supplier_id',
   })
-  public client: BelongsTo<typeof Patient>;
-
-  @column({
-    serializeAs: null,
-  })
-  public patient_id: string;
-
-  @belongsTo(() => Patient, {
-    foreignKey: 'patient_id',
-  })
-  public patient: BelongsTo<typeof Patient>;
+  public supplier: BelongsTo<typeof Patient>;
 
   @column({
     serializeAs: null,
@@ -252,16 +188,6 @@ export default class Bill extends BaseModel {
     foreignKey: 'user_id',
   })
   public user: BelongsTo<typeof User>;
-
-  @column({
-    serializeAs: null,
-  })
-  public user_who_closed_id: string;
-
-  @belongsTo(() => User, {
-    foreignKey: 'user_who_closed_id',
-  })
-  public userWhoClosed: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,
@@ -286,30 +212,10 @@ export default class Bill extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public budget_id: string;
+  public reversal_user_id: string;
 
   @column({
     serializeAs: null,
   })
-  public cancellation_user_id: string;
-
-  @column({
-    serializeAs: null,
-  })
-  public cancellation_reason_id: string;
-
-  @hasMany(() => BillItem, {
-    foreignKey: 'bill_id',
-  })
-  public items: HasMany<typeof BillItem>;
-
-  @hasMany(() => BillPayment, {
-    foreignKey: 'bill_id',
-  })
-  public payments: HasMany<typeof BillPayment>;
-
-  @column({
-    serializeAs: null,
-  })
-  public treatment_id: number;
+  public reversal_reason_id: string;
 }

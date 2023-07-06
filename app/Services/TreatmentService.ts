@@ -70,6 +70,7 @@ export default class TreatmentService {
           treatment_id: data.treatmentId,
           quantity: data.quantity,
           quantityExecuted: 0,
+          scheduledQuantity: 0,
           status: 'Ativo',
         },
         {
@@ -93,9 +94,12 @@ export default class TreatmentService {
     return Database.transaction(async trx => {
       const existingExecutions = await TreatmentExecution.query()
         .useTransaction(trx)
-        .where('treatment_id', data.treatmentId);
+        .where('treatment_id', data.treatmentId)
+        .preload('treatmentItem');
 
-      return TreatmentExecution.create(
+      // TODO update treatment item scheduled thing
+
+      const execution = await TreatmentExecution.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
@@ -114,6 +118,67 @@ export default class TreatmentService {
           client: trx,
         },
       );
+
+      return execution;
+    });
+  }
+
+  public async batchCreateExecution(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      treatmentItems: { id: number; quantity: number }[];
+      scheduleId: string;
+      scheduleDate: DateTime;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const items = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('treatment_id', data.treatmentId)
+        .whereIn(
+          'id',
+          data.treatmentItems.map(item => item.id),
+        )
+        .preload('executions');
+
+      const sum = items.reduce((acc, item) => {
+        return acc + item.executions.length;
+      }, 0);
+
+      const tasks = items.map(async (item, idx) => {
+        const inputItem = data.treatmentItems[idx];
+
+        return item.related('executions').create(
+          {
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
+            schedule_id: data.scheduleId,
+            schedule_user_id: authCtx.user.id,
+
+            id: item.executions.length + sum + idx,
+            treatment_id: data.treatmentId,
+            quantityExecuted: inputItem.quantity ?? 0,
+            scheduleDate: data.scheduleDate,
+            status: 'Ativo',
+          },
+          { client: trx },
+        );
+      });
+
+      const tasks2 = items.map(async (item, idx) => {
+        const inputItem = data.treatmentItems[idx];
+
+        return item
+          .merge({
+            scheduledQuantity: item.scheduledQuantity + inputItem.quantity,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+
+      await Promise.all(tasks);
+      await Promise.all(tasks2);
     });
   }
 
@@ -156,6 +221,54 @@ export default class TreatmentService {
         })
         .useTransaction(trx)
         .save();
+    });
+  }
+
+  public async batchExecuteExecution(
+    authCtx: AuthContext,
+    data: {
+      executionIdList: number[];
+      treatmentId: number;
+
+      executionDate: DateTime;
+      observations?: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const executions = await TreatmentExecution.query()
+        .useTransaction(trx)
+        .whereIn('id', data.executionIdList)
+        .where('treatment_id', data.treatmentId);
+
+      if (executions.length !== data.executionIdList.length) {
+        throw new BadRequestException(
+          'Algumas execuções não foram encontradas',
+          400,
+          'E_NOT_FOUND',
+        );
+      }
+
+      if (executions.some(elem => elem.status !== 'Ativo')) {
+        throw new BadRequestException(
+          'Alguma execução já foi finalizada',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const tasks = executions.map(elem => {
+        return elem
+          .merge({
+            execution_user_id: authCtx.user.id,
+            executionDate: data.executionDate,
+            observations: data.observations,
+            status: 'Confirmado',
+          })
+          .useTransaction(trx)
+          .save();
+      });
+
+      await Promise.all(tasks);
     });
   }
 
@@ -493,6 +606,121 @@ export default class TreatmentService {
     }));
   }
 
+  public async searchSomething(
+    authCtx: AuthContext,
+    data: {
+      client: string;
+    },
+  ) {
+    if (!data.client) {
+      throw new BadRequestException('Paciente não informado', 400, 'E_ERR');
+    }
+
+    const treatments = await Treatment.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('client_id', data.client)
+      .whereHas('items', query => {
+        query.whereRaw(`quantity > scheduled_quantity`);
+      })
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      });
+
+    return treatments.map(elem => ({
+      id: elem.id,
+      date: elem.emissionDate,
+      items: elem.items.map(item => ({
+        id: item.id,
+        description: item.productVariation.product.description,
+        quantity: item.quantity - item.scheduledQuantity,
+      })),
+    }));
+  }
+
+  public async searchDateExecutions(
+    authCtx: AuthContext,
+    data: {
+      date?: string;
+      treatment?: number;
+    },
+  ) {
+    const qb = Treatment.query()
+      .whereHas('executions', query => {
+        query.where('economic_group_id', authCtx.group.id);
+        query.where('business_unit_id', authCtx.unit.id);
+
+        query.where('status', 'Ativo');
+
+        if (data.date) {
+          const today = DateTime.fromISO(data.date);
+
+          query.whereBetween('schedule_date', [
+            today.startOf('day').toJSDate(),
+            today.endOf('day').toJSDate(),
+          ]);
+        }
+      })
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
+      .preload('executions', query => {
+        query.preload('scheduleUser');
+        query.preload('schedule');
+      })
+      .preload('client', query => {
+        query.preload('tutors', query => {
+          query.preload('tutor');
+        });
+      });
+
+    if (data.treatment) {
+      qb.where('id', data.treatment);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      emissionDate: elem.emissionDate,
+      status: elem.status,
+      client: elem.client
+        ? {
+            id: elem.client.id,
+            name: elem.client.name,
+            tutorPhone:
+              elem.client.tutors.find(t => t.tutor.cellphone)?.tutor
+                .cellphone ?? null,
+          }
+        : null,
+      items: elem.items.map(inner => ({
+        id: inner.id,
+        description: inner.productVariation.product.description,
+      })),
+      executions: elem.executions.map(inner => ({
+        id: inner.id,
+        item_id: inner.treatment_item_id,
+        quantityExecuted: inner.quantityExecuted,
+
+        scheduleUser: {
+          id: inner.scheduleUser.id,
+          name: inner.scheduleUser.name,
+        },
+
+        scheduling: inner.schedule
+          ? {
+              id: inner.schedule.id,
+              date: inner.schedule.startHour,
+            }
+          : null,
+      })),
+    }));
+  }
+
   public async updateTreatmentExecution(
     authCtx: AuthContext,
     data: {
@@ -547,6 +775,51 @@ export default class TreatmentService {
           schedule_user_id: authCtx.user.id,
           scheduleDate: DateTime.now(),
           schedule_id: data.scheduleId,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async excludeTreatmentExecution(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      treatmentExecutionId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const execution = await TreatmentExecution.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.treatmentExecutionId)
+        .where('treatment_id', data.treatmentId)
+        .preload('treatmentItem')
+        .first();
+
+      if (!execution) {
+        throw this.shared.ResourceNotFound();
+      }
+
+      if (execution.status !== 'Ativo') {
+        throw new BadRequestException('Execução já finalizada', 400, 'E_ERR');
+      }
+
+      await execution
+        .merge({
+          status: 'Cancelado',
+          exclusion_user_id: authCtx.user.id,
+          exclusionDate: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+
+      await execution.treatmentItem
+        .merge({
+          scheduledQuantity:
+            execution.treatmentItem.scheduledQuantity -
+            execution.quantityExecuted,
         })
         .useTransaction(trx)
         .save();

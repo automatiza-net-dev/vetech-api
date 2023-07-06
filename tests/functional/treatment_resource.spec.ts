@@ -276,6 +276,29 @@ test.group('Treatment resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should batch create a treatment execution', async ({
+    assert,
+    client,
+  }) => {
+    const { user, treatment, item, schedule } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/batch-create-execution`)
+      .json({
+        treatmentId: treatment.id,
+        treatmentItems: [{ id: item.id, quantity: 10 }],
+        scheduleId: schedule.id,
+        scheduleDate: new Date().toISOString(),
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should throw BadRequestException if executing completed execution', async ({
     assert,
     client,
@@ -313,6 +336,45 @@ test.group('Treatment resource', group => {
       .post(`/treatments/execute-execution`)
       .json({
         executionId: execution.id,
+        treatmentId: execution.treatment_id,
+
+        executionDate: new Date().toISOString(),
+        observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should exclude execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/exclude-treatment-execution`)
+      .json({
+        treatmentExecutionId: execution.id,
+        treatmentId: execution.treatment_id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should batch complete execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/batch-execute-execution`)
+      .json({
+        executionIdList: [execution.id],
         treatmentId: execution.treatment_id,
 
         executionDate: new Date().toISOString(),
@@ -492,6 +554,41 @@ test.group('Treatment resource', group => {
 
     const response = await client
       .get(`/treatments/search-scheduling?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should fetch date executions', async ({ assert, client }) => {
+    const { user, treatment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('date', new Date().toISOString());
+    qs.append('treatment', treatment.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-date?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should not exucuted', async ({ assert, client }) => {
+    const { user, treatment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('client', treatment.client_id.toString());
+
+    const response = await client
+      .get(`/treatments/search-not-executed?${qs.toString()}`)
       .bearerToken(token);
 
     assert.equal(200, response.status());

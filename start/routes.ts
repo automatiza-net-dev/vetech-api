@@ -1056,16 +1056,33 @@ Route.group(() => {
     '/search-scheduling',
     'TreatmentsController.searchClientScheduling',
   );
+  Route.get('/search-date', 'TreatmentsController.searchDateExecutions');
+  Route.get(
+    '/search-not-executed',
+    'TreatmentsController.searchNotExecutedItems',
+  );
 
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
   Route.post('/create-execution', 'TreatmentsController.createExecution');
+  Route.post(
+    '/batch-create-execution',
+    'TreatmentsController.batchCreateExecution',
+  );
   Route.post('/execute-execution', 'TreatmentsController.executeExecution');
+  Route.post(
+    '/batch-execute-execution',
+    'TreatmentsController.batchExecuteExecution',
+  );
   Route.post(
     '/update-treatment',
     'TreatmentsController.updateTreatmentExecution',
   );
   Route.post('/cancel-treatment', 'TreatmentsController.cancelTreatment');
+  Route.post(
+    '/exclude-treatment-execution',
+    'TreatmentsController.excludeTreatmentExecution',
+  );
 })
   .prefix('treatments')
   .middleware('auth');

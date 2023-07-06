@@ -705,6 +705,7 @@ export default class TreatmentService {
         id: inner.id,
         item_id: inner.treatment_item_id,
         quantityExecuted: inner.quantityExecuted,
+        status: inner.status,
 
         scheduleUser: {
           id: inner.scheduleUser.id,

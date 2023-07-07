@@ -1128,6 +1128,13 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/search', 'OpportunitiesController.search');
+  Route.get('/search-kanban', 'OpportunitiesController.searchKanban');
+  Route.get(
+    '/search-kanban-activities',
+    'OpportunitiesController.searchKanbanActivities',
+  );
+
   Route.post('/', 'OpportunitiesController.store');
   Route.put('/:id', 'OpportunitiesController.update');
 

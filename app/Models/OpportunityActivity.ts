@@ -1,4 +1,6 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Activity from 'App/Models/Activity';
+import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
 import Opportunity from './Opportunity';
@@ -61,13 +63,33 @@ export default class OpportunityActivity extends BaseModel {
   })
   public opening_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'opening_user_id',
+  })
+  public openingUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public execution_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'execution_user_id',
+  })
+  public executionUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public activity_id: number;
+
+  @belongsTo(() => Activity, {
+    foreignKey: 'activity_id',
+  })
+  public activity: BelongsTo<typeof Activity>;
 }

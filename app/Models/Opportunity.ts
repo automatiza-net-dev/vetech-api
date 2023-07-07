@@ -1,4 +1,16 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  BelongsTo,
+  HasMany,
+  belongsTo,
+  column,
+  hasMany,
+} from '@ioc:Adonis/Lucid/Orm';
+import BusinessUnit from 'App/Models/BusinessUnit';
+import CrmStatus from 'App/Models/CrmStatus';
+import OpportunityActivity from 'App/Models/OpportunityActivity';
+import Patient from 'App/Models/Patient';
+import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
 export default class Opportunity extends BaseModel {
@@ -63,6 +75,11 @@ export default class Opportunity extends BaseModel {
   })
   public business_unit_id: string;
 
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
+
   @column({
     serializeAs: null,
   })
@@ -78,10 +95,20 @@ export default class Opportunity extends BaseModel {
   })
   public user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public client_id: string;
+
+  @belongsTo(() => Patient, {
+    foreignKey: 'client_id',
+  })
+  public client: BelongsTo<typeof Patient>;
 
   @column({
     serializeAs: null,
@@ -93,10 +120,20 @@ export default class Opportunity extends BaseModel {
   })
   public contact_id: string;
 
+  @belongsTo(() => Patient, {
+    foreignKey: 'contact_id',
+  })
+  public contact: BelongsTo<typeof Patient>;
+
   @column({
     serializeAs: null,
   })
   public status_id: number;
+
+  @belongsTo(() => CrmStatus, {
+    foreignKey: 'status_id',
+  })
+  public status: BelongsTo<typeof CrmStatus>;
 
   @column({
     serializeAs: null,
@@ -112,4 +149,9 @@ export default class Opportunity extends BaseModel {
     serializeAs: null,
   })
   public reason_id: number;
+
+  @hasMany(() => OpportunityActivity, {
+    foreignKey: 'opportunity_id',
+  })
+  public activities: HasMany<typeof OpportunityActivity>;
 }

@@ -11,6 +11,229 @@ import { DateTime } from 'luxon';
 export default class OpportunityService {
   constructor(private sharedService: SharedService) {}
 
+  public async searchOpportunities(
+    authCtx: AuthContext,
+    data: {
+      openingFrom?: string;
+      openingTo?: string;
+      contactFrom?: string;
+      contactTo?: string;
+      contactName?: string;
+      contactPhone?: string;
+      patientName?: string;
+      technician?: string;
+      unit?: string;
+    },
+  ) {
+    const qb = Opportunity.query()
+      .where('economic_group_id', authCtx.group.id)
+      .preload('client')
+      .preload('contact')
+      .preload('status')
+      .preload('user')
+      .preload('unit');
+
+    if (data.unit) {
+      qb.where('business_unit_id', data.unit);
+    }
+
+    if (data.technician) {
+      qb.where('user_id', data.technician);
+    }
+
+    if (data.openingFrom) {
+      qb.where('opening_date', '>=', data.openingFrom);
+    }
+
+    if (data.openingTo) {
+      qb.where('opening_date', '<=', data.openingTo);
+    }
+
+    if (data.contactFrom) {
+      qb.where('contact_date', '>=', data.contactFrom);
+    }
+
+    if (data.contactTo) {
+      qb.where('contact_date', '<=', data.contactTo);
+    }
+
+    if (data.contactName || data.contactPhone) {
+      qb.whereHas('contact', query => {
+        if (data.contactName) {
+          query.where('name', 'ilike', `%${data.contactName}%`);
+        }
+
+        if (data.contactPhone) {
+          query.whereHas('tutor', query => {
+            query.where('cellphone', 'ilike', `%${data.contactPhone}%`);
+          });
+        }
+      });
+    }
+
+    if (data.patientName) {
+      qb.whereHas('client', query => {
+        if (data.patientName) {
+          query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+      });
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      openingDate: elem.openingDate,
+      contactDate: elem.contactDate,
+      value: elem.value,
+      status: elem.status,
+      contact: elem.contact,
+      client: elem.client,
+      user: {
+        id: elem.user.id,
+        name: elem.user.name,
+      },
+      unit: {
+        id: elem.unit.id,
+        companyName: elem.unit.companyName,
+        fantasyName: elem.unit.fantasyName,
+      },
+    }));
+  }
+
+  public async searchKanbanOpportunities(
+    authCtx: AuthContext,
+    data: {
+      openingFrom?: string;
+      openingTo?: string;
+      contactName?: string;
+      patientName?: string;
+      technician?: string;
+      status?: string;
+    },
+  ) {
+    const qb = Opportunity.query()
+      .where('economic_group_id', authCtx.group.id)
+      .preload('client')
+      .preload('contact')
+      .preload('status')
+      .preload('user')
+      .preload('unit')
+      .preload('activities', query => {
+        query.where('status', 'Aberta');
+      });
+
+    if (data.technician) {
+      qb.where('user_id', data.technician);
+    }
+
+    if (data.openingFrom) {
+      qb.where('opening_date', '>=', data.openingFrom);
+    }
+
+    if (data.openingTo) {
+      qb.where('opening_date', '<=', data.openingTo);
+    }
+
+    if (data.contactName) {
+      qb.whereHas('contact', query => {
+        if (data.contactName) {
+          query.where('name', 'ilike', `%${data.contactName}%`);
+        }
+      });
+    }
+
+    if (data.patientName) {
+      qb.whereHas('client', query => {
+        if (data.patientName) {
+          query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+      });
+    }
+
+    const result = await qb;
+
+    const statusMap = new Map();
+    // eslint-disable-next-line
+    for (const op of result) {
+      if (!statusMap.has(op.status.description)) {
+        statusMap.set(op.status.description, []);
+      }
+
+      statusMap.get(op.status.description).push({
+        id: op.id,
+        openingDate: op.openingDate,
+        value: op.value,
+        contact: {
+          id: op.contact.id,
+          name: op.contact.name,
+        },
+        client: {
+          id: op.client.id,
+          name: op.client.name,
+        },
+        user: {
+          id: op.user.id,
+          name: op.user.name,
+        },
+        unit: {
+          id: op.unit.id,
+          companyName: op.unit.companyName,
+          fantasyName: op.unit.fantasyName,
+        },
+        activities: op.activities.map(elem => ({
+          id: elem.id,
+          executionDate: elem.executionDate,
+          duration: elem.duration,
+          status: elem.status,
+        })),
+      });
+      // statusMap.set(op.status.description, updatedData);
+    }
+
+    const mappedResult: Record<string, unknown> = {};
+    // eslint-disable-next-line
+    for (const [key, value] of statusMap.entries()) {
+      mappedResult[key] = value;
+    }
+
+    return mappedResult;
+  }
+
+  public async searchKanbanOpportunityActivities(
+    authCtx: AuthContext,
+    data: {
+      activity?: string;
+      opportunity?: string;
+    },
+  ) {
+    const qb = OpportunityActivity.query()
+      .whereHas('activity', query => {
+        query.where('economic_group_id', authCtx.group.id);
+      })
+      .preload('executionUser')
+      .preload('openingUser')
+      .preload('activity');
+    // .preload('opportunity', query => {
+    //   query
+    //     .preload('client')
+    //     .preload('contact')
+    //     .preload('status')
+    //     .preload('user')
+    //     .preload('unit');
+    // });
+
+    if (data.activity) {
+      qb.where('activity_id', data.activity);
+    }
+
+    if (data.opportunity) {
+      qb.where('opportunity_id', data.opportunity);
+    }
+
+    return qb;
+  }
+
   public async store(
     authCtx: AuthContext,
     data: {
@@ -133,6 +356,7 @@ export default class OpportunityService {
     data: {
       opportunityId: number;
       userId: string;
+      activityId: number;
 
       executionDate: DateTime;
       duration: number;
@@ -155,6 +379,7 @@ export default class OpportunityService {
           opportunity_id: data.opportunityId,
           opening_user_id: authCtx.user.id,
           user_id: data.userId,
+          activity_id: data.activityId,
 
           issueDate: DateTime.now(),
           executionDate: data.executionDate,

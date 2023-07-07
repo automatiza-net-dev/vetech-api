@@ -1,9 +1,19 @@
-import { DateTime } from 'luxon';
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+} from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Patient from 'App/Models/Patient';
+import ReceiptItem from 'App/Models/ReceiptItem';
+import ReceiptPayment from 'App/Models/ReceiptPayment';
 import User from 'App/Models/User';
+import { DateTime } from 'luxon';
 
+export const ReceiptStatus = ['Ativa', 'Estornada'] as const;
 export default class Receipt extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
@@ -89,6 +99,11 @@ export default class Receipt extends BaseModel {
   public pisRetentionValue: number;
 
   @column({
+    columnName: 'cofins_base',
+  })
+  public cofinsBase: number;
+
+  @column({
     columnName: 'cofins_value',
   })
   public cofinsValue: number;
@@ -147,6 +162,9 @@ export default class Receipt extends BaseModel {
     columnName: 'reversal_observation',
   })
   public reversalObservation: string | null;
+
+  @column()
+  public status: typeof ReceiptStatus[number];
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -218,4 +236,14 @@ export default class Receipt extends BaseModel {
     serializeAs: null,
   })
   public reversal_reason_id: string;
+
+  @hasMany(() => ReceiptPayment, {
+    foreignKey: 'receipt_id',
+  })
+  public payments: HasMany<typeof ReceiptPayment>;
+
+  @hasMany(() => ReceiptItem, {
+    foreignKey: 'receipt_id',
+  })
+  public items: HasMany<typeof ReceiptItem>;
 }

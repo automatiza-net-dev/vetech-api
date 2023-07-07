@@ -105,4 +105,26 @@ export default class SharedService {
 
     return re.test(document);
   }
+
+  public isValidNumber(data: number | undefined) {
+    if (!data) {
+      return undefined;
+    }
+
+    if (typeof data !== 'number') {
+      return undefined;
+    }
+
+    if (data === 0) {
+      return undefined;
+    }
+
+    return data;
+  }
+
+  public sum(val: Array<number>): number {
+    return val
+      .filter(Boolean)
+      .reduce((acc: number, cur: number) => acc + cur, 0);
+  }
 }

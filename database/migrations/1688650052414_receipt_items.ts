@@ -12,6 +12,7 @@ export default class extends BaseSchema {
       table.integer('receipt_id').references('receipts.id');
       table.uuid('product_variation_id').references('product_variations.id');
       table.uuid('disabled_user_id').references('users.id');
+      table.uuid('tax_operation_id').references('tax_operations.id');
 
       table.float('quantity');
       table.float('cost_value');

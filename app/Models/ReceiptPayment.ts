@@ -1,8 +1,10 @@
-import { DateTime } from 'luxon';
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import PaymentMethod from 'App/Models/PaymentMethod';
-import TefFlag from 'App/Models/TefFlag';
 import TefAcquirer from 'App/Models/TefAcquirer';
+import TefFlag from 'App/Models/TefFlag';
+import { DateTime } from 'luxon';
+
+export const ReceiptPaymentStatus = ['Ativo'] as const;
 
 export default class ReceiptPayment extends BaseModel {
   @column({ isPrimary: true })
@@ -42,7 +44,7 @@ export default class ReceiptPayment extends BaseModel {
   public expirationDate: DateTime;
 
   @column()
-  public status: string;
+  public status: typeof ReceiptPaymentStatus[number];
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

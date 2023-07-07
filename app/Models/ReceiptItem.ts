@@ -1,5 +1,7 @@
-import { DateTime } from 'luxon';
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { DateTime } from 'luxon';
+
+export const ReceiptItemStatus = ['Ativo', 'Excluido'] as const;
 
 export default class ReceiptItem extends BaseModel {
   @column({ isPrimary: true })
@@ -13,7 +15,7 @@ export default class ReceiptItem extends BaseModel {
   @column({
     columnName: 'status',
   })
-  public status: string;
+  public status: typeof ReceiptItemStatus[number];
 
   @column.dateTime({
     columnName: 'issued_at',
@@ -303,4 +305,9 @@ export default class ReceiptItem extends BaseModel {
     serializeAs: null,
   })
   public disabled_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public tax_operation_id: string;
 }

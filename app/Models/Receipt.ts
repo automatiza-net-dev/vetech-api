@@ -18,6 +18,9 @@ export default class Receipt extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
+  @column()
+  public tag: string;
+
   @column.dateTime({
     columnName: 'issue_date',
   })

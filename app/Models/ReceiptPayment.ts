@@ -1,14 +1,16 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import PaymentMethod from 'App/Models/PaymentMethod';
+import Receipt from 'App/Models/Receipt';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export const ReceiptPaymentStatus = ['Ativo'] as const;
 
 export default class ReceiptPayment extends BaseModel {
   @column({ isPrimary: true })
-  public id: number;
+  public id = v4();
 
   @column()
   public block: number;
@@ -66,6 +68,11 @@ export default class ReceiptPayment extends BaseModel {
     serializeAs: null,
   })
   public receipt_id: number;
+
+  @belongsTo(() => Receipt, {
+    foreignKey: 'receipt_id',
+  })
+  public receipt: BelongsTo<typeof Receipt>;
 
   @column({
     serializeAs: null,

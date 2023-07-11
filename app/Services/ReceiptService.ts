@@ -3,6 +3,11 @@ import Database, {
   TransactionClientContract,
 } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Finance, {
+  FinanceAccept,
+  FinanceOriginFlag,
+  FinanceStatus,
+} from 'App/Models/Finance';
 import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodUsage,
@@ -19,6 +24,7 @@ import TaxationGroupRule, {
 } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
+import { GenerateTag } from 'App/Utils/GenerateTag';
 import { DateTime } from 'luxon';
 
 @inject()
@@ -49,6 +55,11 @@ export default class ReceiptService {
     },
   ) {
     await Database.transaction(async trx => {
+      const counter = await Receipt.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id);
+
       const receipt = await Receipt.create(
         {
           economic_group_id: authCtx.group.id,
@@ -61,6 +72,7 @@ export default class ReceiptService {
           reversal_user_id: data.reversalUserId,
           reversal_reason_id: data.reversalReasonId,
 
+          tag: GenerateTag(counter.length + 1),
           issueDate: DateTime.now(),
           receiptDate: data.receiptDate,
           otherValue: data.otherValue,
@@ -82,66 +94,9 @@ export default class ReceiptService {
           discountValue: elem.discountValue,
         });
       });
+      await Promise.all(tasks);
 
-      const items = await Promise.all(tasks);
-      await receipt
-        .merge({
-          productValue: this.sharedService.sum(
-            items.map(elem => elem.totalValue),
-          ),
-          serviceValue: 0,
-          discountValue: this.sharedService.sum(
-            items.map(elem => elem.discountValue),
-          ),
-          totalValue: this.sharedService.sum(
-            items.map(elem => [elem.totalValue, -elem.discountValue]).flat(),
-          ),
-          deliveryValue: 0,
-
-          icmsBase: this.sharedService.sum(items.map(elem => elem.icmsBase)),
-          icmsValue: this.sharedService.sum(items.map(elem => elem.icmsValue)),
-          icmsStBase: this.sharedService.sum(
-            items.map(elem => elem.icmsStBase),
-          ),
-          icmsStValue: this.sharedService.sum(
-            items.map(elem => elem.icmsStValue),
-          ),
-          icmsDeferredValue: this.sharedService.sum(
-            items.map(elem => elem.icmsDeferredValue),
-          ),
-          icmsFcpValue: this.sharedService.sum(
-            items.map(elem => elem.icmsFcpValue),
-          ),
-          icmsUfOriginValue: this.sharedService.sum(
-            items.map(elem => elem.icmsPartitionOriginUfValue),
-          ),
-          icmsUfDestinationValue: this.sharedService.sum(
-            items.map(elem => elem.icmsPartitionDestinationUfValue),
-          ),
-
-          issValue: this.sharedService.sum(items.map(elem => elem.issValue)),
-
-          pisBase: this.sharedService.sum(items.map(elem => elem.pisBase)),
-          pisValue: this.sharedService.sum(items.map(elem => elem.pisValue)),
-          pisRetentionValue: this.sharedService.sum(
-            items.map(elem => elem.pisRetentionValue),
-          ),
-
-          cofinsBase: this.sharedService.sum(
-            items.map(elem => elem.cofinsBase),
-          ),
-          cofinsValue: this.sharedService.sum(
-            items.map(elem => elem.cofinsValue),
-          ),
-          cofinsRetentionValue: this.sharedService.sum(
-            items.map(elem => elem.cofinsRetentionValue),
-          ),
-
-          ipiBase: this.sharedService.sum(items.map(elem => elem.ipiBase)),
-          ipiValue: this.sharedService.sum(items.map(elem => elem.ipiValue)),
-        })
-        .useTransaction(trx)
-        .save();
+      await this.syncReceipt(trx, receipt);
     });
   }
 
@@ -358,9 +313,21 @@ export default class ReceiptService {
         );
       });
 
-      await Promise.all(tasks);
+      const payments = await Promise.all(tasks);
+      const paymentsTasks = payments.map(elem => {
+        return this.createFinanceEntry(trx, authCtx, {
+          dailyCashierId: receipt.daily_cashier_id,
+          dailyMovementId: receipt.daily_movement_id,
+          supplierId: receipt.supplier_id,
+          paymentMethodId: elem.payment_method_id,
+          tefAcquirerId: elem.tef_acquirer_id,
+          tefFlagId: elem.tef_flag_id,
 
-      // call finance thing
+          tag: receipt.tag,
+          item: elem,
+        });
+      });
+      await Promise.all(paymentsTasks);
     });
   }
 
@@ -406,13 +373,14 @@ export default class ReceiptService {
         .where('economic_group_id', authCtx.group.id)
         .where('business_unit_id', authCtx.unit.id)
         .where('id', data.paymentId)
+        .preload('receipt')
         .first();
 
       if (!thing) {
         throw this.sharedService.ResourceNotFound('Item não encontrado');
       }
 
-      // TODO call finance thing
+      await this.deleteFinanceEntry(trx, authCtx, thing);
 
       await thing.useTransaction(trx).delete();
     });
@@ -610,5 +578,138 @@ export default class ReceiptService {
         }),
       };
     });
+  }
+
+  private async createFinanceEntry(
+    trx: TransactionClientContract,
+    authCtx: AuthContext,
+    data: {
+      dailyMovementId?: string;
+      dailyCashierId?: string;
+      tefFlagId?: string;
+      tefAcquirerId?: string;
+      supplierId: string;
+      paymentMethodId: string;
+
+      tag: string;
+      item: ReceiptPayment;
+    },
+  ) {
+    await Finance.create(
+      {
+        economic_group_id: authCtx.group.id,
+        business_unit_id: authCtx.unit.id,
+
+        client_id: data.supplierId,
+        daily_cashier_id: data.dailyCashierId,
+        daily_movement_id: data.dailyMovementId,
+        account_plan_id: authCtx.unit?.unitConfig?.order_entry_account_plan_id,
+        payment_method_id: data.paymentMethodId,
+        tef_flag_id: data.tefFlagId,
+        acquirer_id: data.tefAcquirerId,
+        origin_id: data.item.id,
+
+        block: data.item.block,
+        installment: data.item.blockInstallments,
+        originFlag: FinanceOriginFlag.E,
+        document: `NFE-${data.tag}`,
+        historic: `NFE-${data.tag}`,
+        issueDate: DateTime.now(),
+        expirationDate: data.item.expirationDate,
+        originalValue: data.item.installmentValue,
+        value: data.item.installmentValue,
+        totalValue: data.item.installmentValue * data.item.blockInstallments,
+        feeValue: 0,
+        feePercentage: 0,
+        accept: FinanceAccept.N,
+        reconciled: false,
+        competenceDate: DateTime.now().toFormat('MM/yyyy'),
+        nsuDocument: data.item.nsuDocument,
+        status: FinanceStatus.A,
+      },
+      {
+        client: trx,
+      },
+    );
+  }
+
+  private async deleteFinanceEntry(
+    trx: TransactionClientContract,
+    authCtx: AuthContext,
+    payment: ReceiptPayment,
+  ) {
+    await Finance.query()
+      .useTransaction(trx)
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('origin_flag', FinanceOriginFlag.E)
+      .where('document', `NFE-${payment.receipt.tag}`)
+      .where('block', payment.block)
+      .update({
+        status: FinanceStatus.E,
+      });
+  }
+
+  private async syncReceipt(trx: TransactionClientContract, receipt: Receipt) {
+    const items = await ReceiptItem.query()
+      .useTransaction(trx)
+      .where('economic_group_id', receipt.economic_group_id)
+      .where('business_unit_id', receipt.business_unit_id)
+      .where('receipt_id', receipt.id);
+
+    await receipt
+      .merge({
+        productValue: this.sharedService.sum(
+          items.map(elem => elem.totalValue),
+        ),
+        serviceValue: 0,
+        discountValue: this.sharedService.sum(
+          items.map(elem => elem.discountValue),
+        ),
+        totalValue: this.sharedService.sum(
+          items.map(elem => [elem.totalValue, -elem.discountValue]).flat(),
+        ),
+        deliveryValue: 0,
+
+        icmsBase: this.sharedService.sum(items.map(elem => elem.icmsBase)),
+        icmsValue: this.sharedService.sum(items.map(elem => elem.icmsValue)),
+        icmsStBase: this.sharedService.sum(items.map(elem => elem.icmsStBase)),
+        icmsStValue: this.sharedService.sum(
+          items.map(elem => elem.icmsStValue),
+        ),
+        icmsDeferredValue: this.sharedService.sum(
+          items.map(elem => elem.icmsDeferredValue),
+        ),
+        icmsFcpValue: this.sharedService.sum(
+          items.map(elem => elem.icmsFcpValue),
+        ),
+        icmsUfOriginValue: this.sharedService.sum(
+          items.map(elem => elem.icmsPartitionOriginUfValue),
+        ),
+        icmsUfDestinationValue: this.sharedService.sum(
+          items.map(elem => elem.icmsPartitionDestinationUfValue),
+        ),
+
+        issValue: this.sharedService.sum(items.map(elem => elem.issValue)),
+
+        pisBase: this.sharedService.sum(items.map(elem => elem.pisBase)),
+        pisValue: this.sharedService.sum(items.map(elem => elem.pisValue)),
+        pisRetentionValue: this.sharedService.sum(
+          items.map(elem => elem.pisRetentionValue),
+        ),
+
+        cofinsBase: this.sharedService.sum(items.map(elem => elem.cofinsBase)),
+        cofinsValue: this.sharedService.sum(
+          items.map(elem => elem.cofinsValue),
+        ),
+        cofinsRetentionValue: this.sharedService.sum(
+          items.map(elem => elem.cofinsRetentionValue),
+        ),
+
+        ipiBase: this.sharedService.sum(items.map(elem => elem.ipiBase)),
+        ipiValue: this.sharedService.sum(items.map(elem => elem.ipiValue)),
+      })
+      .useTransaction(trx)
+      .save();
   }
 }

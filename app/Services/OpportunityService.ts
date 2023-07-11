@@ -28,7 +28,9 @@ export default class OpportunityService {
   ) {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
-      .preload('client')
+      .preload('client', query => {
+        query.preload('tutor');
+      })
       .preload('contact')
       .preload('status')
       .preload('user')

@@ -14,6 +14,37 @@ export default class OpportunitiesController {
     private service: OpportunityService,
   ) {}
 
+  public async search({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.searchOpportunities(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async searchKanban({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.searchKanbanOpportunities(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async searchKanbanActivities({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const result = await this.service.searchKanbanOpportunityActivities(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
   public async store({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateOpportunityValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);

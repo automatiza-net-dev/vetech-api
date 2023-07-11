@@ -166,6 +166,8 @@ export default class TreatmentService {
         );
       });
 
+      await Promise.all(tasks);
+
       const tasks2 = items.map(async (item, idx) => {
         const inputItem = data.treatmentItems[idx];
 
@@ -177,7 +179,6 @@ export default class TreatmentService {
           .save();
       });
 
-      await Promise.all(tasks);
       await Promise.all(tasks2);
     });
   }

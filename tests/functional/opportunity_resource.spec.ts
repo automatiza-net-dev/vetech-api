@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Activity from 'App/Models/Activity';
 import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
 import ContactSubject from 'App/Models/ContactSubject';
 import ContactType from 'App/Models/ContactType';
@@ -36,6 +37,12 @@ test.group('Opportunity resource', group => {
       description: 'Agendado (Confirmado)',
       type: 'OP',
       tag: 'some tag',
+    });
+
+    const someActivity = await Activity.create({
+      description: 'Agendado (Confirmado)',
+      type: 'crm',
+      duration: 10,
     });
 
     const holder = await PatientFactory.create();
@@ -90,8 +97,81 @@ test.group('Opportunity resource', group => {
       crmStatus,
       opportunity,
       activity,
+      someActivity,
     };
   };
+
+  test('should search for opportunities', async props => {
+    const { user, business } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const params = new URLSearchParams({
+      openingFrom: new Date().toISOString(),
+      openingTo: new Date().toISOString(),
+      contactFrom: new Date().toISOString(),
+      contactTo: new Date().toISOString(),
+      contactName: 'some',
+      contactPhone: 'some',
+      patientName: 'some',
+      technician: user.id,
+      unit: business.id,
+    });
+
+    const response = await props.client
+      .get(`/opportunities/search?${params.toString()}`)
+
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 200);
+  });
+
+  test('should search for opportunities (kanban)', async props => {
+    const { user, business } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const params = new URLSearchParams({
+      openingFrom: new Date().toISOString(),
+      openingTo: new Date().toISOString(),
+      contactName: 'some',
+      patientName: 'some',
+      technician: user.id,
+      unit: business.id,
+    });
+
+    const response = await props.client
+      .get(`/opportunities/search-kanban?${params.toString()}`)
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 200);
+  });
+
+  test('should search for activities (kanban)', async props => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const params = new URLSearchParams({
+      activity: '1',
+      opportunity: '1',
+    });
+
+    const response = await props.client
+      .get(`/opportunities/search-kanban-activities?${params.toString()}`)
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 200);
+  });
 
   test('should create an opportunity', async props => {
     const { user, holder, origin, contactType, contactSubject, crmStatus } =
@@ -124,7 +204,7 @@ test.group('Opportunity resource', group => {
   });
 
   test('should create an opportunity activity', async props => {
-    const { user, opportunity } = await createData();
+    const { user, opportunity, someActivity } = await createData();
 
     const token = await generateJwtToken(props.client, {
       email: user.email,
@@ -136,6 +216,7 @@ test.group('Opportunity resource', group => {
       .json({
         opportunityId: opportunity.id,
         userId: user.id,
+        activityId: someActivity.id,
 
         executionDate: new Date(),
         description: 'some description',

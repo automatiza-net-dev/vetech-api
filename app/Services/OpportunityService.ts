@@ -23,6 +23,7 @@ export default class OpportunityService {
       patientName?: string;
       technician?: string;
       unit?: string;
+      status?: string;
     },
   ) {
     const qb = Opportunity.query()
@@ -55,6 +56,10 @@ export default class OpportunityService {
 
     if (data.contactTo) {
       qb.where('contact_date', '<=', data.contactTo);
+    }
+
+    if (data.status) {
+      qb.where('status_id', data.status);
     }
 
     if (data.contactName || data.contactPhone) {

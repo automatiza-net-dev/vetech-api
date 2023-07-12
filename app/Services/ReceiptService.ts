@@ -382,9 +382,22 @@ export default class ReceiptService {
         throw this.sharedService.ResourceNotFound('Item não encontrado');
       }
 
-      await this.deleteFinanceEntry(trx, authCtx, thing);
+      const existingFinances = await Finance.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('origin_flag', FinanceOriginFlag.E)
+        .where('document', `NFE-${thing.receipt.tag}`)
+        .where('block', thing.block);
+      if (existingFinances.some(f => f.status === FinanceStatus.B)) {
+        throw new BadRequestException(
+          'Não é possível excluir um pagamento que já foi baixado',
+          400,
+          'E_PAYMENT_ALREADY_RECEIVED',
+        );
+      }
 
-      await thing.useTransaction(trx).delete();
+      await this.deleteFinanceEntry(trx, authCtx, thing);
     });
   }
 

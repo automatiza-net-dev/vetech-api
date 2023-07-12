@@ -203,7 +203,7 @@ export default class ReceiptService {
         discountValue: data.discountValue,
         totalValue: data.unitaryValue * data.quantity - data.discountValue,
         status: 'Ativo',
-        issuedAt: DateTime.now(),
+        issueDate: DateTime.now(),
 
         tax_operation_id: rule?.tax_operation_id,
         fiscalOperationCode: rule?.taxOperation?.code,
@@ -261,7 +261,7 @@ export default class ReceiptService {
     );
   }
 
-  async storePayment(
+  async createPayment(
     authCtx: AuthContext,
     data: {
       receiptId: number;
@@ -343,6 +343,7 @@ export default class ReceiptService {
         .where('economic_group_id', authCtx.group.id)
         .where('business_unit_id', authCtx.unit.id)
         .where('id', data.itemId)
+        .preload('receipt')
         .first();
 
       if (!thing) {
@@ -352,19 +353,20 @@ export default class ReceiptService {
       await thing
         .merge({
           disabled_user_id: authCtx.user.id,
-          disabledAt: DateTime.now(),
+          disabledDate: DateTime.now(),
+          status: 'Excluido',
         })
         .useTransaction(trx)
         .save();
 
-      // TODO call receipt update
+      await this.syncReceipt(trx, thing.receipt);
     });
   }
 
   async deletePayment(
     authCtx: AuthContext,
     data: {
-      paymentId: number;
+      paymentId: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -434,7 +436,7 @@ export default class ReceiptService {
       });
 
       query.preload('businessUnitProducts', query => {
-        query.where('business_unit_id', authCtx.unit.id);
+        query.where('businness_unit_id', authCtx.unit.id);
       });
     });
 
@@ -655,7 +657,8 @@ export default class ReceiptService {
       .useTransaction(trx)
       .where('economic_group_id', receipt.economic_group_id)
       .where('business_unit_id', receipt.business_unit_id)
-      .where('receipt_id', receipt.id);
+      .where('receipt_id', receipt.id)
+      .where('status', 'Ativo');
 
     await receipt
       .merge({

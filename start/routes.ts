@@ -1165,3 +1165,18 @@ Route.group(() => {
 })
   .prefix('patient-contacts')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/create', 'ReceiptsController.createReceipt');
+  Route.post('/create-item', 'ReceiptsController.createReceiptItem');
+  Route.post('/create-payment', 'ReceiptsController.createReceiptPayment');
+
+  Route.post('/delete-item', 'ReceiptsController.deleteReceiptItem');
+  Route.post('/delete-payment', 'ReceiptsController.deleteReceiptPayment');
+
+  Route.get('/products', 'ReceiptsController.searchProducts');
+  Route.get('/taxes', 'ReceiptsController.searchTaxes');
+  Route.get('/payment-methods', 'ReceiptsController.searchPaymentMethods');
+})
+  .prefix('receipts')
+  .middleware('auth');

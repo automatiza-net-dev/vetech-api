@@ -1,4 +1,5 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Receipt from 'App/Models/Receipt';
 import { DateTime } from 'luxon';
 
 export const ReceiptItemStatus = ['Ativo', 'Excluido'] as const;
@@ -18,14 +19,14 @@ export default class ReceiptItem extends BaseModel {
   public status: typeof ReceiptItemStatus[number];
 
   @column.dateTime({
-    columnName: 'issued_at',
+    columnName: 'issue_date',
   })
-  public issuedAt: DateTime;
+  public issueDate: DateTime;
 
   @column.dateTime({
-    columnName: 'disabled_at',
+    columnName: 'disabled_date',
   })
-  public disabledAt: DateTime;
+  public disabledDate: DateTime;
 
   @column()
   public quantity: number;
@@ -295,6 +296,11 @@ export default class ReceiptItem extends BaseModel {
     serializeAs: null,
   })
   public receipt_id: number;
+
+  @belongsTo(() => Receipt, {
+    foreignKey: 'receipt_id',
+  })
+  public receipt: BelongsTo<typeof Receipt>;
 
   @column({
     serializeAs: null,

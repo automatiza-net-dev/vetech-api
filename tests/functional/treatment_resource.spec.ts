@@ -348,6 +348,26 @@ test.group('Treatment resource', group => {
     assert.equal(204, response.status());
   });
 
+  test('should cancel execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/cancel-treatment-execution`)
+      .json({
+        treatmentExecutionId: execution.id,
+        treatmentId: execution.treatment_id,
+
+        reason: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should exclude execution', async ({ assert, client }) => {
     const { user, execution } = await createData();
     const token = await generateJwtToken(client, {
@@ -360,6 +380,8 @@ test.group('Treatment resource', group => {
       .json({
         treatmentExecutionId: execution.id,
         treatmentId: execution.treatment_id,
+
+        reason: 'some',
       })
       .bearerToken(token);
 

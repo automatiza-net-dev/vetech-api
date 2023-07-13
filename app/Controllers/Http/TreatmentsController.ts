@@ -8,7 +8,7 @@ import CancelTreatmentValidator from 'App/Validators/Treatment/CancelTreatmentVa
 import CreateTreatmentExecutionValidator from 'App/Validators/Treatment/CreateTreatmentExecutionValidator';
 import CreateTreatmentItemValidator from 'App/Validators/Treatment/CreateTreatmentItemValidator';
 import CreateTreatmentValidator from 'App/Validators/Treatment/CreateTreatmentValidator';
-import ExcludeTreamentExecutionValidator from 'App/Validators/Treatment/ExcludeTreamentExecutionValidator';
+import ExcludeTreatmentExecutionValidator from 'App/Validators/Treatment/ExcludeTreatmentExecutionValidator';
 import ExecuteTreatmentExecutionValidator from 'App/Validators/Treatment/ExecuteTreatmentExecutionValidator';
 import UpdateTreatmentExecutionValidator from 'App/Validators/Treatment/UpdateTreatmentExecutionValidator';
 
@@ -216,6 +216,20 @@ export default class TreatmentsController {
     return response.noContent();
   }
 
+  public async cancelTreatmentExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(ExcludeTreatmentExecutionValidator);
+
+    await this.service.cancelTreatmentExecution(authCtx, data);
+
+    return response.noContent();
+  }
+
   public async excludeTreatmentExecution({
     request,
     response,
@@ -223,7 +237,7 @@ export default class TreatmentsController {
   }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
-    const data = await request.validate(ExcludeTreamentExecutionValidator);
+    const data = await request.validate(ExcludeTreatmentExecutionValidator);
 
     await this.service.excludeTreatmentExecution(authCtx, data);
 

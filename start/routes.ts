@@ -1081,6 +1081,11 @@ Route.group(() => {
     'TreatmentsController.updateTreatmentExecution',
   );
   Route.post('/cancel-treatment', 'TreatmentsController.cancelTreatment');
+
+  Route.post(
+    '/cancel-treatment-execution',
+    'TreatmentsController.cancelTreatmentExecution',
+  );
   Route.post(
     '/exclude-treatment-execution',
     'TreatmentsController.excludeTreatmentExecution',

@@ -5,7 +5,12 @@ import { DateTime } from 'luxon';
 
 import TreatmentItem from './TreatmentItem';
 
-const TreatmentExecutionStatus = ['Ativo', 'Confirmado', 'Cancelado'] as const;
+const TreatmentExecutionStatus = [
+  'Ativo',
+  'Confirmado',
+  'Cancelado',
+  'Excluido',
+] as const;
 export type TreatmentExecutionStatus = typeof TreatmentExecutionStatus[number];
 
 export default class TreatmentExecution extends BaseModel {

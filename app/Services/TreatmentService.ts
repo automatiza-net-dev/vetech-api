@@ -441,6 +441,8 @@ export default class TreatmentService {
         },
         quantity: inner.quantity,
         quantityExecuted: inner.quantityExecuted,
+        scheduledQuantity: inner.scheduledQuantity,
+
         observations: inner.observations,
         status: inner.status,
       })),
@@ -465,6 +467,7 @@ export default class TreatmentService {
         },
         executionDate: inner.executionDate,
         quantityExecuted: inner.quantityExecuted,
+        scheduledQuantity: inner.scheduledQuantity,
         observations: inner.observations,
         status: inner.status,
         createdAt: inner.createdAt,
@@ -564,6 +567,7 @@ export default class TreatmentService {
       },
       quantity: elem.quantity,
       quantityExecuted: elem.quantityExecuted,
+      scheduledQuantity: elem.scheduledQuantity,
       observations: elem.observations,
       status: elem.status,
     }));
@@ -615,6 +619,7 @@ export default class TreatmentService {
       },
       executionDate: elem.executionDate,
       quantityExecuted: elem.quantityExecuted,
+      scheduledQuantity: elem.scheduledQuantity,
       observations: elem.observations,
       status: elem.status,
       createdAt: elem.createdAt,
@@ -753,6 +758,7 @@ export default class TreatmentService {
         id: inner.id,
         item_id: inner.treatment_item_id,
         quantityExecuted: inner.quantityExecuted,
+        scheduledQuantity: inner.scheduledQuantity,
         status: inner.status,
 
         scheduleUser: {
@@ -830,11 +836,13 @@ export default class TreatmentService {
     });
   }
 
-  public async excludeTreatmentExecution(
+  public async cancelTreatmentExecution(
     authCtx: AuthContext,
     data: {
       treatmentId: number;
       treatmentExecutionId: number;
+
+      reason: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -860,6 +868,55 @@ export default class TreatmentService {
           status: 'Cancelado',
           exclusion_user_id: authCtx.user.id,
           exclusionDate: DateTime.now(),
+          observations: data.reason,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await execution.treatmentItem
+        .merge({
+          scheduledQuantity:
+            execution.treatmentItem.quantityExecuted +
+            execution.scheduledQuantity,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async excludeTreatmentExecution(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      treatmentExecutionId: number;
+
+      reason: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const execution = await TreatmentExecution.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.treatmentExecutionId)
+        .where('treatment_id', data.treatmentId)
+        .preload('treatmentItem')
+        .first();
+
+      if (!execution) {
+        throw this.shared.ResourceNotFound();
+      }
+
+      if (execution.status !== 'Ativo') {
+        throw new BadRequestException('Execução já finalizada', 400, 'E_ERR');
+      }
+
+      await execution
+        .merge({
+          status: 'Excluido',
+          observations: data.reason,
+          exclusion_user_id: authCtx.user.id,
+          exclusionDate: DateTime.now(),
         })
         .useTransaction(trx)
         .save();
@@ -868,7 +925,7 @@ export default class TreatmentService {
         .merge({
           scheduledQuantity:
             execution.treatmentItem.scheduledQuantity -
-            execution.quantityExecuted,
+            execution.scheduledQuantity,
         })
         .useTransaction(trx)
         .save();

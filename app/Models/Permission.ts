@@ -27,6 +27,20 @@ export default class Permission extends BaseModel {
   @column()
   public control_id: string;
 
+  @column({
+    columnName: 'systems',
+    prepare(value) {
+      return value.join(',');
+    },
+    consume(value) {
+      if (!value) return [];
+
+      return value.split(',').map(item => parseFloat(item));
+    },
+    serializeAs: null,
+  })
+  public $systems: Array<number>;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

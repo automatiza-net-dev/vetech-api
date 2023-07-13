@@ -148,6 +148,8 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.post('/sync', 'PermissionsController.sync');
+
   Route.get('/menu', 'PermissionsController.fetchMenu');
   Route.post('/screens', 'PermissionsController.fetchScreens');
 

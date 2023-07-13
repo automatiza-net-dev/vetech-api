@@ -2,6 +2,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
+
 import TreatmentItem from './TreatmentItem';
 
 const TreatmentExecutionStatus = ['Ativo', 'Confirmado', 'Cancelado'] as const;
@@ -10,6 +11,11 @@ export type TreatmentExecutionStatus = typeof TreatmentExecutionStatus[number];
 export default class TreatmentExecution extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
+
+  @column({
+    columnName: 'scheduled_quantity',
+  })
+  public scheduledQuantity: number;
 
   @column({
     columnName: 'quantity_executed',

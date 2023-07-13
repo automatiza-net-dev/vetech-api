@@ -15,7 +15,7 @@ export default class CreateTreatmentExecutionValidator {
       rules.exists({ table: 'schedules', column: 'id' }),
     ]),
 
-    quantityExecuted: schema.number(),
+    scheduledQuantity: schema.number(),
     scheduleDate: schema.date(),
   });
 

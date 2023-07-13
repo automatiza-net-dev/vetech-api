@@ -12,6 +12,7 @@ export default class ExecuteTreatmentExecutionValidator {
       rules.exists({ table: 'treatments', column: 'id' }),
     ]),
 
+    quantity: schema.number(),
     executionDate: schema.date(),
     observations: schema.string.optional({ trim: true }),
   });

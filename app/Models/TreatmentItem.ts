@@ -9,6 +9,7 @@ import {
 import Kit from 'App/Models/Kit';
 import ProductVariation from 'App/Models/ProductVariation';
 import { DateTime } from 'luxon';
+
 import TreatmentExecution from './TreatmentExecution';
 
 export const TreatmentItemStatus = ['Ativo'] as const;
@@ -24,7 +25,7 @@ export default class TreatmentItem extends BaseModel {
   @column({
     columnName: 'scheduled_quantity',
   })
-  public scheduledQuantity: number = 0;
+  public scheduledQuantity = 0;
 
   @column({
     columnName: 'quantity_executed',

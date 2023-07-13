@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
 export default class BatchExecuteExecutionValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -24,13 +24,16 @@ export default class BatchExecuteExecutionValidator {
    *    ```
    */
   public schema = schema.create({
-    executionIdList: schema.array().members(
-      schema.number([
-        rules.exists({
-          table: 'treatment_executions',
-          column: 'id',
-        }),
-      ]),
+    executionList: schema.array().members(
+      schema.object().members({
+        id: schema.number([
+          rules.exists({
+            table: 'treatment_executions',
+            column: 'id',
+          }),
+        ]),
+        quantity: schema.number(),
+      }),
     ),
     treatmentId: schema.number([
       rules.exists({

@@ -267,7 +267,7 @@ test.group('Treatment resource', group => {
         treatmentItemId: item.id,
         scheduleId: schedule.id,
 
-        quantityExecuted: 5,
+        scheduledQuantity: 5,
         scheduleDate: new Date().toISOString(),
         executionDate: new Date().toISOString(),
       })
@@ -317,6 +317,7 @@ test.group('Treatment resource', group => {
         executionId: execution.id,
         treatmentId: execution.treatment_id,
 
+        quantity: 1,
         executionDate: new Date().toISOString(),
         observations: 'some',
       })
@@ -338,6 +339,7 @@ test.group('Treatment resource', group => {
         executionId: execution.id,
         treatmentId: execution.treatment_id,
 
+        quantity: 1,
         executionDate: new Date().toISOString(),
         observations: 'some',
       })
@@ -374,7 +376,7 @@ test.group('Treatment resource', group => {
     const response = await client
       .post(`/treatments/batch-execute-execution`)
       .json({
-        executionIdList: [execution.id],
+        executionList: [{ id: execution.id, quantity: 1 }],
         treatmentId: execution.treatment_id,
 
         executionDate: new Date().toISOString(),

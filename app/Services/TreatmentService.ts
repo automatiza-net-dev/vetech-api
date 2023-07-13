@@ -87,17 +87,19 @@ export default class TreatmentService {
       treatmentItemId: number;
       scheduleId: string;
 
-      quantityExecuted: number;
+      scheduledQuantity: number;
       scheduleDate: DateTime;
     },
   ) {
     return Database.transaction(async trx => {
+      const treatmentItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('id', data.treatmentItemId)
+        .firstOrFail();
+
       const existingExecutions = await TreatmentExecution.query()
         .useTransaction(trx)
-        .where('treatment_id', data.treatmentId)
-        .preload('treatmentItem');
-
-      // TODO update treatment item scheduled thing
+        .where('treatment_id', data.treatmentId);
 
       const execution = await TreatmentExecution.create(
         {
@@ -110,7 +112,8 @@ export default class TreatmentService {
           treatment_id: data.treatmentId,
           treatment_item_id: data.treatmentItemId,
 
-          quantityExecuted: data.quantityExecuted,
+          scheduledQuantity: data.scheduledQuantity,
+          quantityExecuted: 0,
           scheduleDate: data.scheduleDate,
           status: 'Ativo',
         },
@@ -118,6 +121,14 @@ export default class TreatmentService {
           client: trx,
         },
       );
+
+      await treatmentItem
+        .merge({
+          scheduledQuantity:
+            treatmentItem.scheduledQuantity + data.scheduledQuantity,
+        })
+        .useTransaction(trx)
+        .save();
 
       return execution;
     });
@@ -158,7 +169,8 @@ export default class TreatmentService {
 
             id: item.executions.length + sum + idx,
             treatment_id: data.treatmentId,
-            quantityExecuted: inputItem.quantity ?? 0,
+            scheduledQuantity: inputItem.quantity ?? 0,
+            quantityExecuted: 0,
             scheduleDate: data.scheduleDate,
             status: 'Ativo',
           },
@@ -190,6 +202,7 @@ export default class TreatmentService {
       treatmentId: number;
 
       executionDate: DateTime;
+      quantity: number;
       observations?: string;
     },
   ) {
@@ -198,6 +211,7 @@ export default class TreatmentService {
         .useTransaction(trx)
         .where('id', data.executionId)
         .where('treatment_id', data.treatmentId)
+        .preload('treatmentItem')
         .first();
 
       if (!execution) {
@@ -216,9 +230,21 @@ export default class TreatmentService {
         .merge({
           execution_user_id: authCtx.user.id,
 
+          quantityExecuted: data.quantity,
           executionDate: data.executionDate,
           observations: data.observations,
           status: 'Confirmado',
+        })
+        .useTransaction(trx)
+        .save();
+
+      await execution.treatmentItem
+        .merge({
+          quantityExecuted:
+            execution.treatmentItem.quantityExecuted + data.quantity,
+          scheduledQuantity:
+            execution.treatmentItem.scheduledQuantity -
+            (execution.scheduledQuantity - data.quantity),
         })
         .useTransaction(trx)
         .save();
@@ -228,7 +254,7 @@ export default class TreatmentService {
   public async batchExecuteExecution(
     authCtx: AuthContext,
     data: {
-      executionIdList: number[];
+      executionList: { id: number; quantity: number }[];
       treatmentId: number;
 
       executionDate: DateTime;
@@ -238,10 +264,14 @@ export default class TreatmentService {
     return Database.transaction(async trx => {
       const executions = await TreatmentExecution.query()
         .useTransaction(trx)
-        .whereIn('id', data.executionIdList)
-        .where('treatment_id', data.treatmentId);
+        .whereIn(
+          'id',
+          data.executionList.map(elem => elem.id),
+        )
+        .where('treatment_id', data.treatmentId)
+        .preload('treatmentItem');
 
-      if (executions.length !== data.executionIdList.length) {
+      if (executions.length !== data.executionList.length) {
         throw new BadRequestException(
           'Algumas execuções não foram encontradas',
           400,
@@ -258,18 +288,35 @@ export default class TreatmentService {
       }
 
       const tasks = executions.map(elem => {
+        const entry = data.executionList.find(entry => entry.id === elem.id);
+
         return elem
           .merge({
             execution_user_id: authCtx.user.id,
             executionDate: data.executionDate,
             observations: data.observations,
+            quantityExecuted: entry?.quantity ?? 0,
             status: 'Confirmado',
           })
           .useTransaction(trx)
           .save();
       });
 
-      await Promise.all(tasks);
+      const updatedExecutions = await Promise.all(tasks);
+
+      const updateTasks = updatedExecutions.map(elem => {
+        return elem.treatmentItem
+          .merge({
+            quantityExecuted:
+              elem.treatmentItem.quantityExecuted + elem.quantityExecuted,
+            scheduledQuantity:
+              elem.treatmentItem.scheduledQuantity -
+              (elem.scheduledQuantity - elem.quantityExecuted),
+          })
+          .useTransaction(trx)
+          .save();
+      });
+      await Promise.all(updateTasks);
     });
   }
 

@@ -1187,3 +1187,22 @@ Route.group(() => {
 })
   .prefix('receipts')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/items', 'ProductivityItemsController.searchItems');
+  Route.get('/products', 'ProductivityItemsController.searchItemProducts');
+
+  Route.post('/create-item', 'ProductivityItemsController.storeItem');
+  Route.post('/update-item', 'ProductivityItemsController.updateItem');
+
+  Route.post(
+    '/create-item-product',
+    'ProductivityItemsController.storeItemProduct',
+  );
+  Route.post(
+    '/update-item-product',
+    'ProductivityItemsController.updateItemProduct',
+  );
+})
+  .prefix('productivity-items')
+  .middleware('auth');

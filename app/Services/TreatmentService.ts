@@ -393,10 +393,12 @@ export default class TreatmentService {
 
     return treatments.map(elem => ({
       id: elem.id,
-      bill: {
-        id: elem.bill.id,
-        tag: elem.bill.tag,
-      },
+      bill: elem.bill
+        ? {
+            id: elem.bill.id,
+            tag: elem.bill.tag,
+          }
+        : null,
       seller: {
         id: elem.seller.id,
         name: elem.seller.name,

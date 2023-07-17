@@ -245,10 +245,10 @@ export default class BusinessUnitFiscalDocumentService {
       const nfePayload: ISendNfe = {
         nfe_series: issuedDocument.series,
         nfe_number: issuedDocument.sequence,
-        issuedAt: issuedDocument.authorizationDate.minus({ hours: 3 }).toISO(),
-        authorizedAt: issuedDocument.authorizationDate
-          .minus({ hours: 3 })
-          .toISO(),
+        issuedAt:
+          issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? '',
+        authorizedAt:
+          issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? '',
         purpose: issuedDocument.purpose,
 
         seller: {
@@ -489,7 +489,7 @@ export default class BusinessUnitFiscalDocumentService {
           const result = await this.focusNfe.sendNfse(
             serviceDocument.id,
             {
-              issuedAt: DateTime.now().toISO(),
+              issuedAt: new Date().toISOString(),
               simple: unit.simple,
               seller: {
                 document: unit.document ?? '',

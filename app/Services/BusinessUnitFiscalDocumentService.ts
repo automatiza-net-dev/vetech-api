@@ -384,7 +384,7 @@ export default class BusinessUnitFiscalDocumentService {
               ? null
               : unit.acquirers.find(a => a.id === item.tef_acquirer_id)
                   ?.document,
-          flag: item.flag.nfe_code,
+          flag: item?.flag?.nfe_code,
           nsu: item.nsuDocument,
         })),
         totalizers: {

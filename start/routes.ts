@@ -1156,6 +1156,56 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.post(
+    '/authenticate-sancla',
+    'ThirdPartiesController.authenticateSancla',
+  );
+  Route.post(
+    '/authenticate-liftone',
+    'ThirdPartiesController.authenticateLiftOne',
+  );
+  Route.post(
+    '/authenticate-vetech',
+    'ThirdPartiesController.authenticateVetech',
+  );
+
+  Route.post(
+    '/extended-authenticate-sancla',
+    'ThirdPartiesController.extendedAuthenticateSancla',
+  );
+  Route.post(
+    '/extended-authenticate-liftone',
+    'ThirdPartiesController.extendedAuthenticateLiftOne',
+  );
+  Route.post(
+    '/extended-authenticate-vetech',
+    'ThirdPartiesController.extendedAuthenticateVetech',
+  );
+
+  Route.get('/profile', 'ThirdPartiesController.profile').middleware(
+    'auth:tpApi',
+  );
+
+  Route.get(
+    '/business/:id',
+    'ThirdPartiesController.businessUnitInfo',
+  ).middleware('auth:tpApi');
+
+  Route.get('/user/:id', 'ThirdPartiesController.userInfo').middleware(
+    'auth:tpApi',
+  );
+
+  Route.get(
+    '/profiles',
+    'ThirdPartiesController.searchProfileAccesses',
+  ).middleware('auth');
+
+  Route.post('/sync', 'ThirdPartiesController.syncProfileAccesses').middleware(
+    'auth',
+  );
+}).prefix('external');
+
+Route.group(() => {
   Route.get('/:id', 'AddressesController.index');
   Route.post('/', 'AddressesController.store');
   Route.put('/:id', 'AddressesController.update');

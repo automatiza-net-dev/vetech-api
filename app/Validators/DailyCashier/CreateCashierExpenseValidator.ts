@@ -9,13 +9,13 @@ export default class CreateCashierExpenseValidator {
     description: schema.string(),
     value: schema.number(),
 
-    paymentMethodId: schema.string({}, [
+    paymentMethodId: schema.string.optional({}, [
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
-    accountPlanId: schema.string({}, [
+    accountPlanId: schema.string.optional({}, [
       rules.exists({ table: 'account_plans', column: 'id' }),
     ]),
-    fiscalNote: schema.string(),
+    fiscalNote: schema.string.optional(),
   });
 
   public messages: CustomMessages = {};

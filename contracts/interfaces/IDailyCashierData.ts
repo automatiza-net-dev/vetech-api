@@ -30,9 +30,9 @@ export interface ICreateCashierExpenseEntryData {
   value: number;
   description: string;
 
-  paymentMethodId: string;
-  accountPlanId: string;
-  fiscalNote: string;
+  paymentMethodId?: string;
+  accountPlanId?: string;
+  fiscalNote?: string;
 }
 
 export interface ICreateCashierReceiptEntryData {
@@ -40,7 +40,7 @@ export interface ICreateCashierReceiptEntryData {
   value: number;
   description: string;
 
-  paymentMethodId: string;
-  accountPlanId: string;
-  fiscalNote: string;
+  paymentMethodId?: string;
+  accountPlanId?: string;
+  fiscalNote?: string;
 }

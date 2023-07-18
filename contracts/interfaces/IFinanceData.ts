@@ -12,7 +12,7 @@ export interface IUpsertFinance {
   accountPlanId: string;
   paymentMethodId: string;
   document: string;
-  historic: string;
+  historic?: string;
   issueDate: DateTime;
   expirationDate: DateTime;
   originalValue: number;
@@ -48,7 +48,7 @@ export interface IUpsertFinance {
 export interface IUpdateFinance {
   accountPlanId: string;
   paymentMethodId: string;
-  historic: string;
+  historic?: string;
   expirationDate: DateTime;
   originalValue: number;
   reconciled: boolean;

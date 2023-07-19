@@ -251,6 +251,14 @@ export default class BillService {
           query.preload('product');
         });
 
+      if (billItems.at(0)?.bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
       const ufList = billItems.map(i => i.taxRule?.toUf).filter(Boolean);
       const ufIcms = await UfIcms.query()
         .useTransaction(trx)
@@ -485,6 +493,13 @@ export default class BillService {
       const bill = await Bill.findOrFail(billItem.bill_id, {
         client: trx,
       });
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
 
       const validItems = await BillItem.query()
         .useTransaction(trx)
@@ -589,6 +604,15 @@ export default class BillService {
       const bill = await Bill.findOrFail(data.billId, {
         client: trx,
       });
+
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
       const paymentMethod = await PaymentMethod.query()
         .useTransaction(trx)
         .where('id', data.paymentMethodId)
@@ -722,6 +746,14 @@ export default class BillService {
 
       if (!payment || payment.bill.economic_group_id !== group.id) {
         throw this.sharedService.ResourceNotFound();
+      }
+
+      if (payment.bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
       }
 
       const finances = await Finance.query()

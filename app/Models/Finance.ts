@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import CheckingAccount from 'App/Models/CheckingAccount';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -267,6 +268,11 @@ export default class Finance extends BaseModel {
     serializeAs: null,
   })
   public daily_cashier_id: string;
+
+  @belongsTo(() => CheckingAccount, {
+    foreignKey: 'checking_account_id',
+  })
+  public checkingAccount: BelongsTo<typeof CheckingAccount>;
 
   @column({
     serializeAs: null,

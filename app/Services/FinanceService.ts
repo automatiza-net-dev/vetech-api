@@ -39,6 +39,7 @@ interface ISearch {
   fromPaymentDate?: string;
   toPaymentDate?: string;
 
+  id?: string;
   client?: string;
   document?: string;
   fiscalNote?: string;
@@ -64,6 +65,10 @@ export default class FinanceService {
     }
 
     const qb = Finance.query().whereIn('business_unit_id', units);
+
+    if (data.id) {
+      qb.where('id', data.id);
+    }
 
     if (data.fromIssueDate) {
       qb.where('issue_date', '>=', new Date(data.fromIssueDate));
@@ -135,9 +140,10 @@ export default class FinanceService {
 
     qb.preload('client', query => {
       query.preload('tutor');
-    });
-    qb.preload('paymentMethod');
-    qb.preload('accountPlan');
+    })
+      .preload('paymentMethod')
+      .preload('accountPlan')
+      .preload('checkingAccount');
 
     return qb;
   }

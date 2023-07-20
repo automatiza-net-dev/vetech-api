@@ -20,29 +20,19 @@ export default class FinancesController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const qs = request.qs();
-    const result = await this.service.index(unit_id, {
-      accept: qs.accept,
-      client: qs.client,
-      document: qs.document,
-      fromExpirationDate: qs.fromExpiration,
-      toExpirationDate: qs.toExpiration,
-      fiscalNote: qs.fiscalNote,
-      fromIssueDate: qs.fromIssue,
-      toIssueDate: qs.toIssue,
-      nsu: qs.nsu,
-      fromPaymentDate: qs.fromPayment,
-      toPaymentDate: qs.toPayment,
-      paymentMethod: qs.paymentMethod,
-      status: qs.status,
-      type: qs.type,
-      reconciled: qs.reconciled,
-      plan: qs.plan,
-      unit: qs.unit,
-      competence: qs.competence,
-    });
+    const result = await this.service.index(unit_id, qs);
 
     return response.ok(result);
   }
+
+  // async show({ params, auth, response }: HttpContextContract) {
+  //   const result = await this.service.show(
+  //     await this.sharedService.getAuthContext(auth),
+  //     params.id,
+  //   );
+
+  //   return response.ok(result);
+  // }
 
   async storeFinance({ auth, request, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);

@@ -9,6 +9,8 @@ import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
 
 interface ISearch {
+  id?: string;
+  productCode?: string;
   description?: string;
   fromExpiration?: string;
   toExpiration?: string;
@@ -26,6 +28,10 @@ export default class KitService {
       .where('economic_group_id', group.id)
       .where('active', true);
 
+    if (data.id) {
+      qb.where('id', data.id);
+    }
+
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
@@ -42,6 +48,16 @@ export default class KitService {
       qb.whereRaw('(from_expiration <= ? or from_expiration is null)', [
         data.toExpiration,
       ]);
+    }
+
+    if (data.productCode) {
+      qb.whereHas('items', query => {
+        query.whereHas('productVariation', query => {
+          query.whereHas('product', query => {
+            query.where('reference_code', 'ilike', `%${data.productCode}%`);
+          });
+        });
+      });
     }
 
     qb.preload('items', query => {

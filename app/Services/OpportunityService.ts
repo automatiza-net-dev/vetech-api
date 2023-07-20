@@ -367,7 +367,7 @@ export default class OpportunityService {
 
       executionDate: DateTime;
       duration: number;
-      description: string;
+      description?: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -412,13 +412,11 @@ export default class OpportunityService {
       const activity = await OpportunityActivity.query()
         .useTransaction(trx)
         .where('id', id)
+        .where('economic_group_id', authCtx.group.id)
         .preload('opportunity')
         .first();
 
-      if (
-        !activity ||
-        activity.opportunity.economic_group_id !== authCtx.group.id
-      ) {
+      if (!activity) {
         throw this.sharedService.ResourceNotFound();
       }
 
@@ -453,13 +451,11 @@ export default class OpportunityService {
       const activity = await OpportunityActivity.query()
         .useTransaction(trx)
         .where('id', id)
+        .where('economic_group_id', authCtx.group.id)
         .preload('opportunity')
         .first();
 
-      if (
-        !activity ||
-        activity.opportunity.economic_group_id !== authCtx.group.id
-      ) {
+      if (!activity) {
         throw this.sharedService.ResourceNotFound();
       }
 

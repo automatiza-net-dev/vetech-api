@@ -35,7 +35,7 @@ export default class CreateOpportunityActivityValidator {
     ]),
     executionDate: schema.date(),
     duration: schema.number(),
-    description: schema.string({ trim: true }),
+    description: schema.string.optional({ trim: true }),
   });
 
   /**

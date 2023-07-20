@@ -22,6 +22,7 @@ export default class OpportunityService {
       .preload('status')
       .preload('user')
       .preload('unit')
+      .preload('activities')
       .first();
 
     if (!result) {
@@ -45,6 +46,7 @@ export default class OpportunityService {
         companyName: result.unit.companyName,
         fantasyName: result.unit.fantasyName,
       },
+      activities: result.activities,
     };
   }
 

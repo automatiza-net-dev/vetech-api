@@ -110,7 +110,6 @@ test.group('Opportunity resource', group => {
     });
     const response = await props.client
       .get(`/opportunities/show/${-1}`)
-
       .bearerToken(token);
 
     props.assert.equal(response.status(), 404);
@@ -125,7 +124,6 @@ test.group('Opportunity resource', group => {
     });
     const response = await props.client
       .get(`/opportunities/show/${opportunity.id}`)
-
       .bearerToken(token);
 
     props.assert.equal(response.status(), 200);

@@ -56,7 +56,7 @@ export default class CreateOpportunityValidator {
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),
     description: schema.string(),
-    observation: schema.string(),
+    observation: schema.string.optional(),
     value: schema.number(),
   });
 

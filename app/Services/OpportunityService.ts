@@ -254,7 +254,7 @@ export default class OpportunityService {
       contactSubjectId: number;
       originId: string;
       description: string;
-      observation: string;
+      observation?: string;
       value: number;
     },
   ) {
@@ -311,7 +311,7 @@ export default class OpportunityService {
       userId: string;
       statusId: number;
       contactId: string;
-      observation: string;
+      observation?: string;
       value: number;
       active: boolean;
     },

@@ -11,6 +11,43 @@ import { DateTime } from 'luxon';
 export default class OpportunityService {
   constructor(private sharedService: SharedService) {}
 
+  public async showOpportunity(authCtx: AuthContext, id: string) {
+    const result = await Opportunity.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('contact')
+      .preload('status')
+      .preload('user')
+      .preload('unit')
+      .first();
+
+    if (!result) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return {
+      id: result.id,
+      openingDate: result.openingDate,
+      contactDate: result.contactDate,
+      value: result.value,
+      status: result.status,
+      contact: result.contact,
+      client: result.client,
+      user: {
+        id: result.user.id,
+        name: result.user.name,
+      },
+      unit: {
+        id: result.unit.id,
+        companyName: result.unit.companyName,
+        fantasyName: result.unit.fantasyName,
+      },
+    };
+  }
+
   public async searchOpportunities(
     authCtx: AuthContext,
     data: {
@@ -412,8 +449,9 @@ export default class OpportunityService {
       const activity = await OpportunityActivity.query()
         .useTransaction(trx)
         .where('id', id)
-        .where('economic_group_id', authCtx.group.id)
-        .preload('opportunity')
+        .whereHas('opportunity', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        })
         .first();
 
       if (!activity) {
@@ -451,8 +489,9 @@ export default class OpportunityService {
       const activity = await OpportunityActivity.query()
         .useTransaction(trx)
         .where('id', id)
-        .where('economic_group_id', authCtx.group.id)
-        .preload('opportunity')
+        .whereHas('opportunity', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        })
         .first();
 
       if (!activity) {

@@ -101,6 +101,36 @@ test.group('Opportunity resource', group => {
     };
   };
 
+  test('should throw NotFoundException if no opportunity was found', async props => {
+    const { user } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+    const response = await props.client
+      .get(`/opportunities/show/${-1}`)
+
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 404);
+  });
+
+  test('should show opportunity', async props => {
+    const { user, opportunity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+    const response = await props.client
+      .get(`/opportunities/show/${opportunity.id}`)
+
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 200);
+  });
+
   test('should search for opportunities', async props => {
     const { user, business } = await createData();
 

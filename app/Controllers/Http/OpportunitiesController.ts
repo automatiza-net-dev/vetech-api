@@ -14,6 +14,15 @@ export default class OpportunitiesController {
     private service: OpportunityService,
   ) {}
 
+  public async show({ params, response, auth }: HttpContextContract) {
+    const result = await this.service.showOpportunity(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+
+    return response.ok(result);
+  }
+
   public async search({ request, response, auth }: HttpContextContract) {
     const result = await this.service.searchOpportunities(
       await this.sharedService.getAuthContext(auth),

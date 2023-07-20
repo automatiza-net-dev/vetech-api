@@ -1145,6 +1145,7 @@ Route.group(() => {
   );
 
   Route.post('/', 'OpportunitiesController.store');
+  Route.get('/show/:id', 'OpportunitiesController.show');
   Route.put('/:id', 'OpportunitiesController.update');
 
   Route.post('/create-activity', 'OpportunitiesController.createActivity');

@@ -713,7 +713,8 @@ export default class FinanceService {
         today.endOf('day').toISO() ?? '',
       ])
       .whereNull('payment_date')
-      .preload('paymentMethod');
+      .preload('paymentMethod')
+      .preload('client');
 
     return finances.map(elem => ({
       id: elem.id,
@@ -724,6 +725,10 @@ export default class FinanceService {
         description: elem.paymentMethod.description,
       },
       totalValue: elem.totalValue,
+      supplier: {
+        id: elem.client.id,
+        name: elem.client.name,
+      },
     }));
   }
 
@@ -740,7 +745,8 @@ export default class FinanceService {
         today.endOf('day').toISO() ?? '',
       ])
       .whereNull('payment_date')
-      .preload('paymentMethod');
+      .preload('paymentMethod')
+      .preload('client');
 
     return finances.map(elem => ({
       id: elem.id,
@@ -751,6 +757,10 @@ export default class FinanceService {
         description: elem.paymentMethod.description,
       },
       totalValue: elem.totalValue,
+      supplier: {
+        id: elem.client.id,
+        name: elem.client.name,
+      },
     }));
   }
 
@@ -834,5 +844,117 @@ export default class FinanceService {
         name: elem.userWhoRevised.name,
       },
     }));
+  }
+
+  async getTodayDailyCashiers(authCtx: AuthContext) {
+    const today = DateTime.now();
+
+    const result = await DailyCashier.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereBetween('opening_date', [
+        today.startOf('day').toISO() ?? '',
+        today.endOf('day').toISO() ?? '',
+      ])
+      .preload('userWhoOpened');
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      openingDate: elem.openingDate,
+      openingBalance: elem.openingBalance,
+      cashierFunds: elem.cashierFunds,
+      salesTotal: elem.salesTotal,
+      receiptsTotal: elem.receiptsTotal,
+      cashierTotal: elem.cashierTotal,
+
+      openingUser: {
+        id: elem.userWhoOpened.id,
+        name: elem.userWhoOpened.name,
+      },
+    }));
+  }
+
+  async getOverallResume(authCtx: AuthContext) {
+    // 1.8.1.1
+    const first = await Database.from('finances')
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', FinanceType.D)
+      .where('status', FinanceStatus.A)
+      .whereNull('payment_date')
+      .where(
+        'expiration_date',
+        '<',
+        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
+      )
+      .whereNull('deleted_at')
+      .sum('total_value')
+      .first();
+
+    // 1.8.1.2
+    const second = await Database.from('finances')
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', FinanceType.C)
+      .where('status', FinanceStatus.A)
+      .whereNull('payment_date')
+      .where(
+        'expiration_date',
+        '<',
+        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
+      )
+      .whereNull('deleted_at')
+      .sum('total_value')
+      .first();
+
+    // 1.8.1.3
+    const third = await Database.from('finances')
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', FinanceType.D)
+      .where('status', FinanceStatus.A)
+      .whereNull('payment_date')
+      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereNull('deleted_at')
+      .sum('total_value')
+      .first();
+
+    // 1.8.1.4
+    const fourth = await Database.from('finances')
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', FinanceType.C)
+      .where('status', FinanceStatus.A)
+      .whereNull('payment_date')
+      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereNull('deleted_at')
+      .sum('total_value')
+      .first();
+
+    // 1.8.1.5
+    const fifth = await Database.from('finances')
+      .where('economic_group_id', authCtx.group.id)
+      .whereNull('deleted_at')
+      .sum('total_value')
+      .first();
+
+    return [
+      {
+        type: 'VencidosAPagar',
+        total: first.sum ?? 0,
+      },
+      {
+        type: 'VencidosAReceber',
+        total: second.sum ?? 0,
+      },
+      {
+        type: 'FuturosAPagar',
+        total: third.sum ?? 0,
+      },
+      {
+        type: 'FuturosAReceber',
+        total: fourth.sum ?? 0,
+      },
+      {
+        type: 'ContasCorrentes',
+        total: fifth.sum ?? 0,
+      },
+    ];
   }
 }

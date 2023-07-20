@@ -843,6 +843,8 @@ Route.group(() => {
     '/revised-cashiers-resume',
     'FinancesController.revisedCashiersResume',
   );
+  Route.get('/today-cashiers-resume', 'FinancesController.todayCashiersResume');
+  Route.get('/overall-resume', 'FinancesController.overallResume');
 })
   .prefix('finances')
   .middleware('auth');

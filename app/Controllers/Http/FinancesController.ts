@@ -177,4 +177,20 @@ export default class FinancesController {
 
     return response.ok(result);
   }
+
+  async todayCashiersResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getTodayDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async overallResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getOverallResume(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
 }

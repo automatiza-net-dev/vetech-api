@@ -303,7 +303,7 @@ test.group('Treatment resource', group => {
     assert,
     client,
   }) => {
-    const { user, execution } = await createData();
+    const { user, execution, item } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -316,6 +316,7 @@ test.group('Treatment resource', group => {
       .json({
         executionId: execution.id,
         treatmentId: execution.treatment_id,
+        treatmentItemId: item.id,
 
         quantity: 1,
         executionDate: new Date().toISOString(),
@@ -327,7 +328,7 @@ test.group('Treatment resource', group => {
   });
 
   test('should complete execution', async ({ assert, client }) => {
-    const { user, execution } = await createData();
+    const { user, execution, item } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -338,6 +339,7 @@ test.group('Treatment resource', group => {
       .json({
         executionId: execution.id,
         treatmentId: execution.treatment_id,
+        treatmentItemId: item.id,
 
         quantity: 1,
         executionDate: new Date().toISOString(),
@@ -389,7 +391,7 @@ test.group('Treatment resource', group => {
   });
 
   test('should batch complete execution', async ({ assert, client }) => {
-    const { user, execution } = await createData();
+    const { user, execution, item } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -400,6 +402,7 @@ test.group('Treatment resource', group => {
       .json({
         executionList: [{ id: execution.id, quantity: 1 }],
         treatmentId: execution.treatment_id,
+        treatmentItemId: item.id,
 
         executionDate: new Date().toISOString(),
         observations: 'some',

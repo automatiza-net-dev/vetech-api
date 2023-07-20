@@ -11,6 +11,9 @@ export default class ExecuteTreatmentExecutionValidator {
     treatmentId: schema.number([
       rules.exists({ table: 'treatments', column: 'id' }),
     ]),
+    treatmentItemId: schema.number([
+      rules.exists({ table: 'treatment_items', column: 'id' }),
+    ]),
 
     quantity: schema.number(),
     executionDate: schema.date(),

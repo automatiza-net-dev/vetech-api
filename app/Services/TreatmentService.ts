@@ -199,6 +199,7 @@ export default class TreatmentService {
     authCtx: AuthContext,
     data: {
       executionId: number;
+      treatmentItemId: number;
       treatmentId: number;
 
       executionDate: DateTime;
@@ -211,6 +212,7 @@ export default class TreatmentService {
         .useTransaction(trx)
         .where('id', data.executionId)
         .where('treatment_id', data.treatmentId)
+        .where('treatment_item_id', data.treatmentItemId)
         .preload('treatmentItem')
         .first();
 
@@ -255,6 +257,7 @@ export default class TreatmentService {
     authCtx: AuthContext,
     data: {
       executionList: { id: number; quantity: number }[];
+      treatmentItemId: number;
       treatmentId: number;
 
       executionDate: DateTime;
@@ -269,6 +272,7 @@ export default class TreatmentService {
           data.executionList.map(elem => elem.id),
         )
         .where('treatment_id', data.treatmentId)
+        .where('treatment_item_id', data.treatmentItemId)
         .preload('treatmentItem');
 
       if (executions.length !== data.executionList.length) {

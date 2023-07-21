@@ -22,7 +22,11 @@ export default class OpportunityService {
       .preload('status')
       .preload('user')
       .preload('unit')
-      .preload('activities')
+      .preload('activities', query => {
+        query.preload('openingUser');
+        query.preload('executionUser');
+        query.preload('activity');
+      })
       .first();
 
     if (!result) {

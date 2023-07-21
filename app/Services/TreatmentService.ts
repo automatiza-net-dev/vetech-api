@@ -246,7 +246,7 @@ export default class TreatmentService {
           quantityExecuted:
             execution.treatmentItem.quantityExecuted + data.quantity,
           scheduledQuantity:
-            execution.treatmentItem.scheduledQuantity -
+            execution.treatmentItem.scheduledQuantity +
             (execution.scheduledQuantity - data.quantity),
         })
         .useTransaction(trx)

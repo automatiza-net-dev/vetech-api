@@ -50,6 +50,7 @@ export default class TimelineService {
             'Fotos',
             'Observação',
             'Patologia',
+            'Formato Receita Médica',
             authCtx.system.name === 'Sanclá' && 'Consulta',
             authCtx.system.name === 'LiftOne' && 'Avaliação',
           ].filter(Boolean),

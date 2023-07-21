@@ -234,7 +234,7 @@ export default class RoleService {
               .from('role_permissions')
               .where('role_id', role.id)
               .where('permission_id', permission.id)
-              .update({ active: permission.active });
+              .update({ status: permission.active });
           });
 
           await Promise.all(promises);

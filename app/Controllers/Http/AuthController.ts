@@ -65,6 +65,7 @@ export default class AuthController {
         query.where('active', true);
 
         query.preload('permissions', query => {
+          query.where('active', true);
           query.where('status', true);
         });
       });

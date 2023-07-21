@@ -256,8 +256,7 @@ export default class TreatmentService {
   public async batchExecuteExecution(
     authCtx: AuthContext,
     data: {
-      executionList: { id: number; quantity: number }[];
-      treatmentItemId: number;
+      executionList: { id: number; quantity: number; itemId: number }[];
       treatmentId: number;
 
       executionDate: DateTime;
@@ -272,7 +271,10 @@ export default class TreatmentService {
           data.executionList.map(elem => elem.id),
         )
         .where('treatment_id', data.treatmentId)
-        .where('treatment_item_id', data.treatmentItemId)
+        .whereIn(
+          'treatment_item_id',
+          data.executionList.map(e => e.itemId),
+        )
         .preload('treatmentItem');
 
       if (executions.length !== data.executionList.length) {

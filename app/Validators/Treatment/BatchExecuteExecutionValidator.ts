@@ -32,6 +32,9 @@ export default class BatchExecuteExecutionValidator {
             column: 'id',
           }),
         ]),
+        itemId: schema.number([
+          rules.exists({ table: 'treatment_items', column: 'id' }),
+        ]),
         quantity: schema.number(),
       }),
     ),
@@ -41,10 +44,6 @@ export default class BatchExecuteExecutionValidator {
         column: 'id',
       }),
     ]),
-    treatmentItemId: schema.number([
-      rules.exists({ table: 'treatment_items', column: 'id' }),
-    ]),
-
     executionDate: schema.date(),
     observations: schema.string.optional(),
   });

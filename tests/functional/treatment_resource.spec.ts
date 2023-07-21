@@ -400,9 +400,8 @@ test.group('Treatment resource', group => {
     const response = await client
       .post(`/treatments/batch-execute-execution`)
       .json({
-        executionList: [{ id: execution.id, quantity: 1 }],
+        executionList: [{ id: execution.id, itemId: item.id, quantity: 1 }],
         treatmentId: execution.treatment_id,
-        treatmentItemId: item.id,
 
         executionDate: new Date().toISOString(),
         observations: 'some',

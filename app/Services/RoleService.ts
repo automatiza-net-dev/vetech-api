@@ -160,9 +160,9 @@ export default class RoleService {
       .related('permissions')
       .query()
       .preload('screen')
-      .pivotColumns(['active']);
+      .pivotColumns(['active', 'status']);
 
-    const screens = permissions.map(p => p.screen);
+    const screens = permissions.map(p => p.screen).filter(Boolean);
     const uniqueScreens = screens.filter(
       (v, i, a) => a.findIndex(t => t.id === v.id) === i,
     );
@@ -178,7 +178,7 @@ export default class RoleService {
         permissions: screenPermissions.map(p => ({
           id: p.id,
           description: p.description,
-          active: p.$extras.pivot_active,
+          active: p.$extras.pivot_status,
         })),
       };
     });
@@ -216,6 +216,7 @@ export default class RoleService {
 
       const roles = await Role.query()
         .useTransaction(trx)
+        .debug(true)
         .where('system_id', authCtx.system.id)
         .where('economic_group_id', authCtx.group.id)
         .whereIn(

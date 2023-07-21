@@ -95,6 +95,7 @@ export default class TreatmentService {
       const treatmentItem = await TreatmentItem.query()
         .useTransaction(trx)
         .where('id', data.treatmentItemId)
+        .where('treatment_id', data.treatmentId)
         .firstOrFail();
 
       const existingExecutions = await TreatmentExecution.query()

@@ -241,16 +241,17 @@ export default class TreatmentService {
         .useTransaction(trx)
         .save();
 
-      await execution.treatmentItem
-        .merge({
+      await TreatmentItem.query()
+        .where('treatment_id', execution.treatment_id)
+        .where('id', data.treatmentItemId)
+        .update({
           quantityExecuted:
             execution.treatmentItem.quantityExecuted + data.quantity,
           scheduledQuantity:
             execution.treatmentItem.scheduledQuantity -
             (execution.scheduledQuantity - data.quantity),
         })
-        .useTransaction(trx)
-        .save();
+        .useTransaction(trx);
     });
   }
 

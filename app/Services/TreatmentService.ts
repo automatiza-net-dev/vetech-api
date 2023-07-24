@@ -241,6 +241,15 @@ export default class TreatmentService {
         .useTransaction(trx)
         .save();
 
+      console.log({
+        item: JSON.stringify(execution.treatmentItem, null, 2),
+        quantityExecuted:
+          execution.treatmentItem.quantityExecuted + data.quantity,
+        scheduledQuantity:
+          execution.treatmentItem.scheduledQuantity -
+          (execution.scheduledQuantity - data.quantity),
+      });
+
       await TreatmentItem.query()
         .where('treatment_id', execution.treatment_id)
         .where('id', data.treatmentItemId)

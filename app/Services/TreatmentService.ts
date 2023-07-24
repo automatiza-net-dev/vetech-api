@@ -123,14 +123,14 @@ export default class TreatmentService {
         },
       );
 
-      await treatmentItem
-        .merge({
+      await TreatmentItem.query()
+        .where('treatment_id', execution.treatment_id)
+        .where('id', data.treatmentItemId)
+        .update({
           scheduledQuantity:
             treatmentItem.scheduledQuantity + data.scheduledQuantity,
         })
-        .useTransaction(trx)
-        .save();
-
+        .useTransaction(trx);
       return execution;
     });
   }

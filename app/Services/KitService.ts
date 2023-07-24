@@ -37,17 +37,19 @@ export default class KitService {
     }
 
     if (data.fromExpiration) {
-      // qb.where('from_expiration', '>=', data.fromExpiration);
       qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
         data.fromExpiration,
       ]);
     }
 
     if (data.toExpiration) {
-      // qb.where('to_expiration', '<=', data.toExpiration);
-      qb.whereRaw('(from_expiration <= ? or from_expiration is null)', [
+      qb.whereRaw('(to_expiration <= ? or to_expiration is null)', [
         data.toExpiration,
       ]);
+    }
+
+    if (!data.fromExpiration && !data.toExpiration) {
+      qb.whereRaw('(from_expiration is null or to_expiration is null)');
     }
 
     if (data.productCode) {

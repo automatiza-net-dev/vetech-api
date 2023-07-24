@@ -241,15 +241,6 @@ export default class TreatmentService {
         .useTransaction(trx)
         .save();
 
-      console.log({
-        item: JSON.stringify(execution.treatmentItem, null, 2),
-        quantityExecuted:
-          execution.treatmentItem.quantityExecuted + data.quantity,
-        scheduledQuantity:
-          execution.treatmentItem.scheduledQuantity -
-          (execution.scheduledQuantity - data.quantity),
-      });
-
       await TreatmentItem.query()
         .where('treatment_id', execution.treatment_id)
         .where('id', data.treatmentItemId)
@@ -322,16 +313,17 @@ export default class TreatmentService {
       const updatedExecutions = await Promise.all(tasks);
 
       const updateTasks = updatedExecutions.map(elem => {
-        return elem.treatmentItem
-          .merge({
+        return TreatmentItem.query()
+          .where('treatment_id', elem.treatment_id)
+          .where('id', elem.treatment_id)
+          .update({
             quantityExecuted:
               elem.treatmentItem.quantityExecuted + elem.quantityExecuted,
             scheduledQuantity:
               elem.treatmentItem.scheduledQuantity -
               (elem.scheduledQuantity - elem.quantityExecuted),
           })
-          .useTransaction(trx)
-          .save();
+          .useTransaction(trx);
       });
       await Promise.all(updateTasks);
     });
@@ -892,14 +884,15 @@ export default class TreatmentService {
         .useTransaction(trx)
         .save();
 
-      await execution.treatmentItem
-        .merge({
+      await TreatmentItem.query()
+        .where('id', execution.treatment_item_id)
+        .where('treatment_id', execution.treatment_id)
+        .update({
           scheduledQuantity:
             execution.treatmentItem.quantityExecuted +
             execution.scheduledQuantity,
         })
-        .useTransaction(trx)
-        .save();
+        .useTransaction(trx);
     });
   }
 
@@ -940,14 +933,15 @@ export default class TreatmentService {
         .useTransaction(trx)
         .save();
 
-      await execution.treatmentItem
-        .merge({
+      await TreatmentItem.query()
+        .where('id', execution.treatment_item_id)
+        .where('treatment_id', execution.treatment_id)
+        .update({
           scheduledQuantity:
-            execution.treatmentItem.scheduledQuantity -
+            execution.treatmentItem.quantityExecuted -
             execution.scheduledQuantity,
         })
-        .useTransaction(trx)
-        .save();
+        .useTransaction(trx);
     });
   }
 }

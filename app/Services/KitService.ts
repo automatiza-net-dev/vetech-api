@@ -7,13 +7,14 @@ import KitItem from 'App/Models/KitItem';
 import ProductVariation from 'App/Models/ProductVariation';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   id?: string;
   productCode?: string;
   description?: string;
-  fromExpiration?: string;
-  toExpiration?: string;
+  // fromExpiration?: string;
+  // toExpiration?: string;
   active?: number;
 }
 
@@ -26,6 +27,10 @@ export default class KitService {
 
     const qb = Kit.query()
       .where('economic_group_id', group.id)
+      .whereRaw(
+        '((from_expiration is null or to_expiration is null) or (now() between from_expiration and to_expiration))',
+        [],
+      )
       .where('active', true);
 
     if (data.id) {
@@ -36,21 +41,21 @@ export default class KitService {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    if (data.fromExpiration) {
-      qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
-        data.fromExpiration,
-      ]);
-    }
-
-    if (data.toExpiration) {
-      qb.whereRaw('(to_expiration <= ? or to_expiration is null)', [
-        data.toExpiration,
-      ]);
-    }
-
-    if (!data.fromExpiration && !data.toExpiration) {
-      qb.whereRaw('(from_expiration is null or to_expiration is null)');
-    }
+    // if (data.fromExpiration) {
+    //   qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
+    //     data.fromExpiration,
+    //   ]);
+    // }
+    //
+    // if (data.toExpiration) {
+    //   qb.whereRaw('(to_expiration <= ? or to_expiration is null)', [
+    //     data.toExpiration,
+    //   ]);
+    // }
+    //
+    // if (!data.fromExpiration && !data.toExpiration) {
+    //   qb.whereRaw('(from_expiration is null or to_expiration is null)');
+    // }
 
     if (data.productCode) {
       qb.whereHas('items', query => {

@@ -1260,3 +1260,9 @@ Route.group(() => {
 })
   .prefix('productivity-items')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/finances', 'ReportsController.finances');
+})
+  .prefix('reports')
+  .middleware('auth');

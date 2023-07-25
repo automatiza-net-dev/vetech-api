@@ -7,7 +7,6 @@ import KitItem from 'App/Models/KitItem';
 import ProductVariation from 'App/Models/ProductVariation';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
-import { DateTime } from 'luxon';
 
 interface ISearch {
   id?: string;

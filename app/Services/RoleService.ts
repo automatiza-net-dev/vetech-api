@@ -244,4 +244,53 @@ export default class RoleService {
       await Promise.all(promises);
     });
   }
+
+  public async searchRolePermissions(
+    authCtx: AuthContext,
+    data: { id?: string; active?: string },
+  ) {
+    const qb = Role.query().where('economic_group_id', authCtx.group.id);
+
+    if (data.id) {
+      qb.where('id', data.id);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active !== '0');
+    }
+
+    qb.preload('permissions');
+    qb.preload('accesses', query => {
+      query.preload('profile');
+    });
+
+    const result = await qb;
+
+    if (data.id) {
+      if (result.length === 0) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const [elem] = result;
+      return {
+        id: elem.id,
+        name: elem.name,
+        active: elem.active,
+        profiles: elem.accesses.map(access => ({
+          id: access.profile.id,
+          description: access.profile.description,
+        })),
+      };
+    }
+
+    return result.map(elem => ({
+      id: elem.id,
+      name: elem.name,
+      active: elem.active,
+      profiles: elem.accesses.map(access => ({
+        id: access.profile.id,
+        description: access.profile.description,
+      })),
+    }));
+  }
 }

@@ -134,15 +134,16 @@ Route.group(() => {
 }).prefix('business-units');
 
 Route.group(() => {
+  Route.get('/search', 'RolesController.searchInfo');
+  Route.get('/metadata/:id', 'RolesController.permissionMetadata');
+  Route.post('/add-permissions', 'RolesController.addPermissions');
+  Route.post('/permissions', 'RolesController.managePermissions');
+
   Route.get('/', 'RolesController.index');
   Route.post('/', 'RolesController.store');
   Route.get('/:id', 'RolesController.show');
   Route.put('/:id', 'RolesController.update');
   Route.delete('/:id', 'RolesController.destroy');
-
-  Route.get('/metadata/:id', 'RolesController.permissionMetadata');
-  Route.post('/add-permissions', 'RolesController.addPermissions');
-  Route.post('/permissions', 'RolesController.managePermissions');
 })
   .prefix('roles')
   .middleware('auth');

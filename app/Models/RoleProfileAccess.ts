@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import ProfileAccess from 'App/Models/ProfileAccess';
 
 export default class RoleProfileAccess extends BaseModel {
   @column({ isPrimary: true })
@@ -20,4 +21,10 @@ export default class RoleProfileAccess extends BaseModel {
     serializeAs: null,
   })
   public profile_access_id: number;
+
+  @belongsTo(() => ProfileAccess, {
+    foreignKey: 'profile_access_id',
+    localKey: 'id',
+  })
+  public profile: BelongsTo<typeof ProfileAccess>;
 }

@@ -113,4 +113,18 @@ export default class RolesController {
 
     return response.noContent();
   }
+
+  public async searchInfo({ request, response, auth }: HttpContextContract) {
+    const qs = request.qs();
+
+    response.ok(
+      await this.roleService.searchRolePermissions(
+        await this.sharedService.getAuthContext(auth),
+        {
+          id: qs.id,
+          active: qs.active,
+        },
+      ),
+    );
+  }
 }

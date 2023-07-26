@@ -217,7 +217,13 @@ export default class TreatmentService {
         .preload('treatmentItem')
         .first();
 
-      if (!execution) {
+      const treatmentItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('id', data.treatmentItemId)
+        .where('treatment_id', data.treatmentId)
+        .first();
+
+      if (!execution || !treatmentItem) {
         throw this.shared.ResourceNotFound();
       }
 
@@ -245,10 +251,9 @@ export default class TreatmentService {
         .where('treatment_id', execution.treatment_id)
         .where('id', data.treatmentItemId)
         .update({
-          quantityExecuted:
-            execution.treatmentItem.quantityExecuted + data.quantity,
+          quantityExecuted: treatmentItem.quantityExecuted + data.quantity,
           scheduledQuantity:
-            execution.treatmentItem.scheduledQuantity -
+            treatmentItem.scheduledQuantity -
             (execution.scheduledQuantity - data.quantity),
         })
         .useTransaction(trx);
@@ -276,8 +281,7 @@ export default class TreatmentService {
         .whereIn(
           'treatment_item_id',
           data.executionList.map(e => e.itemId),
-        )
-        .preload('treatmentItem');
+        );
 
       if (executions.length !== data.executionList.length) {
         throw new BadRequestException(
@@ -294,6 +298,14 @@ export default class TreatmentService {
           'E_ERR',
         );
       }
+
+      const treatmentItems = await TreatmentItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.executionList.map(elem => elem.itemId),
+        )
+        .where('treatment_id', data.treatmentId);
 
       const tasks = executions.map(elem => {
         const entry = data.executionList.find(entry => entry.id === elem.id);
@@ -313,14 +325,18 @@ export default class TreatmentService {
       const updatedExecutions = await Promise.all(tasks);
 
       const updateTasks = updatedExecutions.map(elem => {
+        const item = treatmentItems.find(
+          entry => entry.id === elem.treatment_item_id,
+        );
+
         return TreatmentItem.query()
           .where('treatment_id', elem.treatment_id)
           .where('id', elem.treatment_id)
           .update({
             quantityExecuted:
-              elem.treatmentItem.quantityExecuted + elem.quantityExecuted,
+              (item?.quantityExecuted ?? 0) + elem.quantityExecuted,
             scheduledQuantity:
-              elem.treatmentItem.scheduledQuantity -
+              (item?.scheduledQuantity ?? 0) -
               (elem.scheduledQuantity - elem.quantityExecuted),
           })
           .useTransaction(trx);
@@ -866,7 +882,13 @@ export default class TreatmentService {
         .preload('treatmentItem')
         .first();
 
-      if (!execution) {
+      const treatmentItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('id', execution?.treatment_item_id ?? -1)
+        .where('treatment_id', data.treatmentId)
+        .first();
+
+      if (!execution || !treatmentItem) {
         throw this.shared.ResourceNotFound();
       }
 
@@ -889,8 +911,7 @@ export default class TreatmentService {
         .where('treatment_id', execution.treatment_id)
         .update({
           scheduledQuantity:
-            execution.treatmentItem.quantityExecuted +
-            execution.scheduledQuantity,
+            treatmentItem.scheduledQuantity - execution.scheduledQuantity,
         })
         .useTransaction(trx);
     });
@@ -915,7 +936,13 @@ export default class TreatmentService {
         .preload('treatmentItem')
         .first();
 
-      if (!execution) {
+      const treatmentItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('id', execution?.treatment_item_id ?? -1)
+        .where('treatment_id', data.treatmentId)
+        .first();
+
+      if (!execution || !treatmentItem) {
         throw this.shared.ResourceNotFound();
       }
 
@@ -938,8 +965,7 @@ export default class TreatmentService {
         .where('treatment_id', execution.treatment_id)
         .update({
           scheduledQuantity:
-            execution.treatmentItem.quantityExecuted -
-            execution.scheduledQuantity,
+            treatmentItem.scheduledQuantity - execution.scheduledQuantity,
         })
         .useTransaction(trx);
     });

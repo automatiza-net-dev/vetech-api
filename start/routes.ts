@@ -908,6 +908,10 @@ Route.group(() => {
   Route.put('/close-bill/:id', 'BillsController.closeBill');
   Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
+  Route.delete(
+    '/delete-payment-block',
+    'BillsController.deleteBillPaymentBlock',
+  );
 })
   .prefix('bills')
   .middleware('auth');

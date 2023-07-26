@@ -10,6 +10,7 @@ import CreateBillPaymentValidator from 'App/Validators/Bill/CreateBillPaymentVal
 import CreateBillsValidator from 'App/Validators/Bill/CreateBillsValidator';
 import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
 import CreateTreatmentBillValidator from 'App/Validators/Bill/CreateTreatmentBillValidator';
+import DeletePaymentBlockValidator from 'App/Validators/Bill/DeletePaymentBlockValidator';
 import UpdateBillItemValidator from 'App/Validators/Bill/UpdateBillItemValidator';
 
 @inject()
@@ -138,6 +139,19 @@ export default class BillsController {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.deleteBillPayment(unit_id, params.id);
+
+    return response.noContent();
+  }
+
+  public async deleteBillPaymentBlock({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(DeletePaymentBlockValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    await this.service.deleteBillPaymentBlock(unit_id, payload);
 
     return response.noContent();
   }

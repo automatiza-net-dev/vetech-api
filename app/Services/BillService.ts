@@ -788,6 +788,85 @@ export default class BillService {
     });
   }
 
+  async deleteBillPaymentBlock(unitId: string, data: { block: number }) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    await Database.transaction(async trx => {
+      const payments = await BillPayment.query()
+        .useTransaction(trx)
+        .where('block', data.block)
+        .whereHas('bill', query => {
+          query.where('economic_group_id', group.id);
+        })
+        .preload('bill');
+
+      if (payments.length === 0) {
+        throw new BadRequestException(
+          'Nenhum pagamento encontrado',
+          400,
+          'E_NOT_FOUND',
+        );
+      }
+
+      const bill = payments.find(p => !!p.bill)?.bill!;
+
+      // if (!payment || payment.bill.economic_group_id !== group.id) {
+      //   throw this.sharedService.ResourceNotFound();
+      // }
+
+      if (payments.some(p => p.bill.status !== BillStatus.A)) {
+        throw new BadRequestException(
+          'Nota não aberta encontrada',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereIn(
+          'document',
+          payments.map(p => p.bill.tag),
+        )
+        .where('block', data.block);
+      if (finances.some(p => p.status === FinanceStatus.B)) {
+        throw new BadRequestException(
+          'Já foi dado baixa em algum pagamento',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await Finance.query()
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereIn(
+          'document',
+          payments.map(p => p.bill.tag),
+        )
+        .where('block', data.block)
+        .useTransaction(trx)
+        .delete();
+
+      await BillPayment.query()
+        .useTransaction(trx)
+        .where('block', data.block)
+        .whereHas('bill', query => {
+          query.where('economic_group_id', group.id);
+        })
+        .delete();
+
+      await bill
+        .merge({
+          paidValue:
+            bill.paidValue -
+            finances.reduce((acc, curr) => acc + curr.value, 0),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   async searchProducts(unitId: string, data: ISearchProduct) {
     const today = DateTime.now();
 

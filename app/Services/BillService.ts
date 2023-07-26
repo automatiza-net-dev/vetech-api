@@ -770,11 +770,14 @@ export default class BillService {
       }
 
       await Finance.query()
+        .useTransaction(trx)
         .where('origin_flag', FinanceOriginFlag.S)
         .whereILike('document', `%${payment.bill.tag}%`)
         .where('block', payment.block)
-        .useTransaction(trx)
-        .delete();
+        .update({
+          deleted_at: DateTime.now(),
+          status: FinanceStatus.E,
+        });
 
       await payment.useTransaction(trx).delete();
       await payment.bill
@@ -839,14 +842,17 @@ export default class BillService {
       }
 
       await Finance.query()
+        .useTransaction(trx)
         .where('origin_flag', FinanceOriginFlag.S)
         .whereIn(
           'document',
           payments.map(p => p.bill.tag),
         )
         .where('block', data.block)
-        .useTransaction(trx)
-        .delete();
+        .update({
+          deleted_at: DateTime.now(),
+          status: FinanceStatus.E,
+        });
 
       await BillPayment.query()
         .useTransaction(trx)

@@ -837,7 +837,7 @@ test.group('Bill resource', group => {
     assert,
     client,
   }) => {
-    const { user } = await createData();
+    const { user, bill } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -847,6 +847,7 @@ test.group('Bill resource', group => {
       .delete(`/bills/delete-payment-block`)
       .json({
         block: -1,
+        billId: bill.id,
       })
       .bearerToken(token);
 
@@ -874,6 +875,7 @@ test.group('Bill resource', group => {
       .delete(`/bills/delete-payment-block`)
       .json({
         block: payment.block,
+        billId: bill.id,
       })
       .bearerToken(token);
 
@@ -902,6 +904,7 @@ test.group('Bill resource', group => {
       .delete(`/bills/delete-payment-block`)
       .json({
         block: payment.block,
+        billId: bill.id,
       })
       .bearerToken(token);
 

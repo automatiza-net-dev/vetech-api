@@ -788,12 +788,16 @@ export default class BillService {
     });
   }
 
-  async deleteBillPaymentBlock(unitId: string, data: { block: number }) {
+  async deleteBillPaymentBlock(
+    unitId: string,
+    data: { billId: string; block: number },
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
     await Database.transaction(async trx => {
       const payments = await BillPayment.query()
         .useTransaction(trx)
+        .where('bill_id', data.billId)
         .where('block', data.block)
         .whereHas('bill', query => {
           query.where('economic_group_id', group.id);
@@ -809,10 +813,6 @@ export default class BillService {
       }
 
       const bill = payments.find(p => !!p.bill)?.bill!;
-
-      // if (!payment || payment.bill.economic_group_id !== group.id) {
-      //   throw this.sharedService.ResourceNotFound();
-      // }
 
       if (payments.some(p => p.bill.status !== BillStatus.A)) {
         throw new BadRequestException(
@@ -850,6 +850,7 @@ export default class BillService {
 
       await BillPayment.query()
         .useTransaction(trx)
+        .where('bill_id', data.billId)
         .where('block', data.block)
         .whereHas('bill', query => {
           query.where('economic_group_id', group.id);

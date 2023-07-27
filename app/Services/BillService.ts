@@ -645,7 +645,7 @@ export default class BillService {
         bill.id,
       );
 
-      const uniqueBlocks = new Set(existingPayments.map(p => p.block));
+      const max = Math.max(...existingPayments.map(p => p.block));
       const singleValue = data.installmentsValue / installment.installment;
 
       const payments = await BillPayment.createMany(
@@ -660,7 +660,7 @@ export default class BillService {
             tef_flag_id: data.flagId,
             daily_cashier_id: userOpenCashier?.id,
 
-            block: uniqueBlocks.size + 1,
+            block: max + 1,
             expirationDate: data.expirationDate.plus({
               days:
                 paymentMethod.daysFirstInstallment +
@@ -704,7 +704,7 @@ export default class BillService {
 
           type: FinanceType.C,
           installment: v + 1,
-          block: uniqueBlocks.size + 1,
+          block: max + 1,
           originFlag: FinanceOriginFlag.S,
           document: `NFS-${bill.tag}`,
           historic: `NFS-${bill.tag}`,

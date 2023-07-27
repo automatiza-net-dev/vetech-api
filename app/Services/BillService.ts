@@ -645,7 +645,10 @@ export default class BillService {
         bill.id,
       );
 
-      const max = Math.max(...existingPayments.map(p => p.block));
+      const max =
+        existingPayments.length > 0
+          ? Math.max(...existingPayments.map(p => p.block))
+          : 0;
       const singleValue = data.installmentsValue / installment.installment;
 
       const payments = await BillPayment.createMany(

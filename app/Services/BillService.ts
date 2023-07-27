@@ -758,8 +758,9 @@ export default class BillService {
 
       const finances = await Finance.query()
         .useTransaction(trx)
+        .where('business_unit_id', unitId)
         .where('origin_flag', FinanceOriginFlag.S)
-        .whereILike('document', `%${payment.bill.tag}%`)
+        .whereILike('document', `%NFS-${payment.bill.tag}%`)
         .where('block', payment.block);
       if (finances.some(p => p.status === FinanceStatus.B)) {
         throw new BadRequestException(
@@ -771,8 +772,9 @@ export default class BillService {
 
       await Finance.query()
         .useTransaction(trx)
+        .where('business_unit_id', unitId)
         .where('origin_flag', FinanceOriginFlag.S)
-        .whereILike('document', `%${payment.bill.tag}%`)
+        .whereILike('document', `%NFS-${payment.bill.tag}%`)
         .where('block', payment.block)
         .update({
           deleted_at: DateTime.now(),
@@ -780,6 +782,7 @@ export default class BillService {
         });
 
       await payment.useTransaction(trx).delete();
+
       await payment.bill
         .merge({
           paidValue:
@@ -827,10 +830,11 @@ export default class BillService {
 
       const finances = await Finance.query()
         .useTransaction(trx)
+        .where('business_unit_id', unitId)
         .where('origin_flag', FinanceOriginFlag.S)
         .whereIn(
           'document',
-          payments.map(p => p.bill.tag),
+          payments.map(p => `NFS-${p.bill.tag}`),
         )
         .where('block', data.block);
       if (finances.some(p => p.status === FinanceStatus.B)) {
@@ -843,14 +847,15 @@ export default class BillService {
 
       await Finance.query()
         .useTransaction(trx)
+        .where('business_unit_id', unitId)
         .where('origin_flag', FinanceOriginFlag.S)
         .whereIn(
           'document',
-          payments.map(p => p.bill.tag),
+          payments.map(p => `NFS-${p.bill.tag}`),
         )
         .where('block', data.block)
         .update({
-          deleted_at: DateTime.now(),
+          deleted_at: new Date(),
           status: FinanceStatus.E,
         });
 

@@ -817,7 +817,7 @@ export default class ScheduleService {
       });
 
     if (wFiltered.length === 0) {
-      throw exception;
+      throw new BadRequestException('Pessoa não trabalha neste horário');
     }
 
     const unavailableDays = await scheduleUser
@@ -840,7 +840,7 @@ export default class ScheduleService {
       });
 
     if (uFiltered.length !== 0) {
-      throw exception;
+      throw new BadRequestException('Pessoa não está disponível neste horário');
     }
   }
 

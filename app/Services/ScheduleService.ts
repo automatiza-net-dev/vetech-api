@@ -199,8 +199,8 @@ export default class ScheduleService {
           data.userId ?? authCtx.user.id,
           authCtx.unit.id,
           {
-            start: data.startHour.toJSDate(),
-            end: data.endHour.toJSDate(),
+            start: data.startHour.plus({ hours: 3 }).toJSDate(),
+            end: data.endHour.plus({ hours: 3 }).toJSDate(),
           },
           exception,
         );
@@ -831,30 +831,19 @@ export default class ScheduleService {
       .debug(true)
       .where('active', true)
       .where('business_unit_id', unitId)
-      .whereRaw(
-        '(start_date <= ? or start_date is null) or (end_date >= ? or end_date is null)',
-        [data.start, data.end],
-      );
-
-    console.log(unavailableDays.map(elem => elem.toJSON()));
+      .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)
+      .whereRaw('(start_date <= ? or start_date is null)', [data.start])
+      .whereRaw('(end_date >= ? or end_date is null)', [data.end]);
 
     const uFiltered = unavailableDays
       .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
       .filter(w => {
-        console.log({
-          start: w.startHour,
-          formattedStart: format(data.start, 'HH:mm'),
-          end: w.endHour,
-          formattedEnd: format(data.end, 'HH:mm'),
-        });
-
         return w.startHour <= format(data.start, 'HH:mm');
       })
       .filter(w => {
         return w.endHour >= format(data.end, 'HH:mm');
       });
 
-    console.log(uFiltered.map(elem => elem.toJSON()));
     if (uFiltered.length !== 0) {
       throw new BadRequestException(
         'Pessoa não está disponível neste horário',

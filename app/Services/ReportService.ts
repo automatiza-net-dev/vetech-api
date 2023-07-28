@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
-import Finance, { FinanceType } from 'App/Models/Finance';
+import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
@@ -211,6 +211,53 @@ export default class ReportService {
       id: elem.id,
       identification: elem.identification ?? '-',
       total: dataSet.get(elem.id) ?? 0,
+    }));
+  }
+  async expiredFinancesReport(
+    authCtx: AuthContext,
+    data: {
+      businessUnit?: string;
+    },
+  ) {
+    const qb = Finance.query().preload('unit');
+    // .where('economic_group_id', authCtx.group.id)
+    // .whereRaw('expiration_date::date < now()::date', [])
+    // .where('status', FinanceStatus.A)
+    // .whereNull('deleted_at');
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    const result = await qb;
+
+    const unitsSet = new Set<string>(result.map(r => r.unit.id));
+    const uniqueUnitIds = Array.from(unitsSet);
+    const units = uniqueUnitIds
+      .map(elem => result.find(r => r.unit.id === elem)?.unit)
+      .filter(Boolean) as BusinessUnit[];
+
+    const dataSet = new Map<string, { credit: number; debit: number }>();
+    result.forEach(r => {
+      const key = r.business_unit_id;
+      if (!dataSet.has(key)) {
+        dataSet.set(key, { credit: 0, debit: 0 });
+      }
+
+      const entry = dataSet.get(key)!;
+      if (r.type === FinanceType.C) {
+        entry.credit += r.totalValue;
+      } else {
+        entry.debit += r.totalValue;
+      }
+
+      dataSet.set(key, entry);
+    });
+
+    return units.map(elem => ({
+      id: elem.id,
+      identification: elem.identification ?? '-',
+      total: dataSet.get(elem.id) ?? null,
     }));
   }
 

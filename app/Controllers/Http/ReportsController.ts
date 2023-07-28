@@ -40,4 +40,17 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async expiredFinancesReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.expiredFinancesReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

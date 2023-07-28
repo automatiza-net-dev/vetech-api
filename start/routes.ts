@@ -1268,6 +1268,7 @@ Route.group(() => {
 Route.group(() => {
   Route.get('/finances', 'ReportsController.finances');
   Route.get('/flow', 'ReportsController.dailyFlow');
+  Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
 })
   .prefix('reports')
   .middleware('auth');

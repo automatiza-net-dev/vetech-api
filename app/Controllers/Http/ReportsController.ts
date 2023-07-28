@@ -27,4 +27,17 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async checkingAccountsBalance({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.checkingAccountReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

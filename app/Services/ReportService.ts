@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceType } from 'App/Models/Finance';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -170,6 +171,46 @@ export default class ReportService {
       flow: this.calculateDailyFlow(
         result.filter(r => r.business_unit_id === elem.id),
       ),
+    }));
+  }
+
+  async checkingAccountReport(
+    authCtx: AuthContext,
+    data: {
+      businessUnit?: string;
+    },
+  ) {
+    const qb = CheckingAccount.query()
+      .preload('unit')
+      .where('economic_group_id', authCtx.group.id);
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    const result = await qb;
+
+    const unitsSet = new Set<string>(result.map(r => r.unit.id));
+    const uniqueUnitIds = Array.from(unitsSet);
+    const units = uniqueUnitIds
+      .map(elem => result.find(r => r.unit.id === elem)?.unit)
+      .filter(Boolean) as BusinessUnit[];
+
+    const dataSet = new Map<string, number>();
+    result.forEach(r => {
+      const key = r.business_unit_id;
+      if (!dataSet.has(key)) {
+        dataSet.set(key, 0);
+      }
+
+      const entry = dataSet.get(key)!;
+      dataSet.set(key, entry + r.balance);
+    });
+
+    return units.map(elem => ({
+      id: elem.id,
+      identification: elem.identification ?? '-',
+      total: dataSet.get(elem.id) ?? 0,
     }));
   }
 

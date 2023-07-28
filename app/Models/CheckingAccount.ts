@@ -2,6 +2,8 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  belongsTo,
+  BelongsTo,
   column,
   HasMany,
   hasMany,
@@ -10,6 +12,7 @@ import PaymentMethod from 'App/Models/PaymentMethod';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import BusinessUnit from './BusinessUnit';
 
 export enum CheckingAccountOperation {
   C = 'CREDITO',
@@ -114,6 +117,11 @@ export default class CheckingAccount extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @hasMany(() => PaymentMethod, {
     foreignKey: 'checking_account_id',

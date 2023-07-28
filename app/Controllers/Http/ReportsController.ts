@@ -18,4 +18,13 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async dailyFlow({ request, response, auth }: HttpContextContract) {
+    response.ok(
+      await this.service.cashierFlowReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

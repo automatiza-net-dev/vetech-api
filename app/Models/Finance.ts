@@ -14,6 +14,7 @@ import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import AccountPlan from './AccountPlan';
+import BusinessUnit from './BusinessUnit';
 import Patient from './Patient';
 import PaymentMethod from './PaymentMethod';
 
@@ -243,6 +244,11 @@ export default class Finance extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

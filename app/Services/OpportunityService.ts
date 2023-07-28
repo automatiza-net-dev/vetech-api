@@ -455,6 +455,46 @@ export default class OpportunityService {
     });
   }
 
+  public async updateActivity(
+    authCtx: AuthContext,
+    data: {
+      id: number;
+      userId: string;
+      activityId: number;
+
+      executionDate: DateTime;
+      duration: number;
+      description?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await OpportunityActivity.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .whereHas('opportunity', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        })
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await model
+        .merge({
+          opening_user_id: authCtx.user.id,
+          user_id: data.userId,
+          activity_id: data.activityId,
+
+          executionDate: data.executionDate,
+          duration: data.duration,
+          description: data.description,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   public async executeActivity(
     authCtx: AuthContext,
     id: number,

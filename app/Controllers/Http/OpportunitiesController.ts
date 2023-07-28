@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import OpportunityService from 'App/Services/OpportunityService';
 import SharedService from 'App/Services/SharedService';
+import CancelOpportunityActivityValidator from 'App/Validators/Opportunity/CancelOpportunityActivityValidator';
 import CreateOpportunityActivityValidator from 'App/Validators/Opportunity/CreateOpportunityActivityValidator';
 import CreateOpportunityValidator from 'App/Validators/Opportunity/CreateOpportunityValidator';
 import UpdateOpportunityActivityValidator from 'App/Validators/Opportunity/UpdateOpportunityActivityValidator';
@@ -96,10 +97,23 @@ export default class OpportunitiesController {
     auth,
     params,
   }: HttpContextContract) {
-    const payload = await request.validate(UpdateOpportunityActivityValidator);
+    const payload = await request.validate(CancelOpportunityActivityValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.executeActivity(authCtx, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async updateActivity({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateOpportunityActivityValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateActivity(authCtx, payload);
 
     return response.noContent();
   }
@@ -110,7 +124,7 @@ export default class OpportunitiesController {
     auth,
     params,
   }: HttpContextContract) {
-    const payload = await request.validate(UpdateOpportunityActivityValidator);
+    const payload = await request.validate(CancelOpportunityActivityValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.cancelActivity(authCtx, params.id, payload);

@@ -1154,6 +1154,7 @@ Route.group(() => {
   Route.put('/:id', 'OpportunitiesController.update');
 
   Route.post('/create-activity', 'OpportunitiesController.createActivity');
+  Route.post('/update-activity', 'OpportunitiesController.updateActivity');
   Route.post(
     '/execute-activity/:id',
     'OpportunitiesController.executeActivity',

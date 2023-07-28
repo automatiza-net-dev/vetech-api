@@ -171,6 +171,9 @@ export default class OpportunityService {
       .preload('unit')
       .preload('activities', query => {
         query.where('status', 'Aberta');
+
+        query.preload('activity');
+        query.preload('openingUser');
       });
 
     if (data.technician) {
@@ -237,6 +240,13 @@ export default class OpportunityService {
           executionDate: elem.executionDate,
           duration: elem.duration,
           status: elem.status,
+          activity: elem.activity,
+          user: elem.openingUser
+            ? {
+                id: elem.openingUser.id,
+                name: elem.openingUser.name,
+              }
+            : null,
         })),
       });
       // statusMap.set(op.status.description, updatedData);

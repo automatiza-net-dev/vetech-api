@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/fold';
+import Bill from 'App/Models/Bill';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
@@ -259,6 +260,93 @@ export default class ReportService {
       id: elem.id,
       identification: elem.identification ?? '-',
       total: dataSet.get(elem.id) ?? null,
+    }));
+  }
+
+  async salesReport(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      client?: string;
+      patient?: string;
+      businessUnit?: string;
+    },
+  ) {
+    const qb = Bill.query()
+      .preload('businessUnit')
+      .preload('seller')
+      .preload('client')
+      .preload('patient')
+      .where('economic_group_id', authCtx.group.id)
+      .whereNull('deleted_at')
+      .orderBy('created_at', 'desc');
+
+    if (data.fromDate) {
+      qb.whereRaw('bill_date::date >= ?', [
+        DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.whereRaw('bill_date::date <= ?', [
+        DateTime.fromISO(data.toDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      billDate: elem.billDate,
+      productValue: elem.productValue,
+      serviceValue: elem.serviceValue,
+      discountValue: elem.discountValue,
+      totalValue: elem.totalValue,
+      paidValue: elem.paidValue,
+      missingPaymentValue: elem.totalValue - elem.paidValue,
+      status: elem.status,
+
+      unit: {
+        id: elem.businessUnit.id,
+        identification: elem.businessUnit.identification,
+      },
+      seller: elem.seller
+        ? {
+            id: elem.seller.id,
+            name: elem.seller.name,
+          }
+        : null,
+      client: elem.seller
+        ? {
+            id: elem.client.id,
+            name: elem.client.name,
+          }
+        : null,
+      patient: elem.seller
+        ? {
+            id: elem.patient.id,
+            name: elem.patient.name,
+          }
+        : null,
     }));
   }
 

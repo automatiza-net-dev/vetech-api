@@ -6,8 +6,8 @@ export default class UpdateKitValidator {
 
   public schema = schema.create({
     description: schema.string(),
-    fromExpiration: schema.date(),
-    toExpiration: schema.date(),
+    fromExpiration: schema.date.optional(),
+    toExpiration: schema.date.optional(),
     active: schema.boolean(),
   });
 

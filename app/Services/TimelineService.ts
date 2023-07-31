@@ -45,12 +45,13 @@ export default class TimelineService {
         _id: id,
         'timeline_type.description': {
           $in: [
-            'Documentos',
+            'Documento',
             'Exames',
             'Fotos',
             'Observação',
             'Patologia',
-            authCtx.system.name === 'Sanclá' && 'Atendimento',
+            'Formato Receita Médica',
+            authCtx.system.name === 'Sanclá' && 'Consulta',
             authCtx.system.name === 'LiftOne' && 'Avaliação',
           ].filter(Boolean),
         },

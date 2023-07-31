@@ -267,9 +267,32 @@ test.group('Treatment resource', group => {
         treatmentItemId: item.id,
         scheduleId: schedule.id,
 
-        quantityExecuted: 5,
+        scheduledQuantity: 5,
         scheduleDate: new Date().toISOString(),
         executionDate: new Date().toISOString(),
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should batch create a treatment execution', async ({
+    assert,
+    client,
+  }) => {
+    const { user, treatment, item, schedule } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/batch-create-execution`)
+      .json({
+        treatmentId: treatment.id,
+        treatmentItems: [{ id: item.id, quantity: 10 }],
+        scheduleId: schedule.id,
+        scheduleDate: new Date().toISOString(),
       })
       .bearerToken(token);
 
@@ -280,7 +303,7 @@ test.group('Treatment resource', group => {
     assert,
     client,
   }) => {
-    const { user, execution } = await createData();
+    const { user, execution, item } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -293,7 +316,9 @@ test.group('Treatment resource', group => {
       .json({
         executionId: execution.id,
         treatmentId: execution.treatment_id,
+        treatmentItemId: item.id,
 
+        quantity: 1,
         executionDate: new Date().toISOString(),
         observations: 'some',
       })
@@ -303,7 +328,7 @@ test.group('Treatment resource', group => {
   });
 
   test('should complete execution', async ({ assert, client }) => {
-    const { user, execution } = await createData();
+    const { user, execution, item } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -313,6 +338,69 @@ test.group('Treatment resource', group => {
       .post(`/treatments/execute-execution`)
       .json({
         executionId: execution.id,
+        treatmentId: execution.treatment_id,
+        treatmentItemId: item.id,
+
+        quantity: 1,
+        executionDate: new Date().toISOString(),
+        observations: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should cancel execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/cancel-treatment-execution`)
+      .json({
+        treatmentExecutionId: execution.id,
+        treatmentId: execution.treatment_id,
+
+        reason: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should exclude execution', async ({ assert, client }) => {
+    const { user, execution } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/exclude-treatment-execution`)
+      .json({
+        treatmentExecutionId: execution.id,
+        treatmentId: execution.treatment_id,
+
+        reason: 'some',
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should batch complete execution', async ({ assert, client }) => {
+    const { user, execution, item } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/batch-execute-execution`)
+      .json({
+        executionList: [{ id: execution.id, itemId: item.id, quantity: 1 }],
         treatmentId: execution.treatment_id,
 
         executionDate: new Date().toISOString(),
@@ -492,6 +580,41 @@ test.group('Treatment resource', group => {
 
     const response = await client
       .get(`/treatments/search-scheduling?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should fetch date executions', async ({ assert, client }) => {
+    const { user, treatment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('date', new Date().toISOString());
+    qs.append('treatment', treatment.id.toString());
+
+    const response = await client
+      .get(`/treatments/search-date?${qs.toString()}`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
+
+  test('should not exucuted', async ({ assert, client }) => {
+    const { user, treatment } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const qs = new URLSearchParams();
+    qs.append('client', treatment.client_id.toString());
+
+    const response = await client
+      .get(`/treatments/search-not-executed?${qs.toString()}`)
       .bearerToken(token);
 
     assert.equal(200, response.status());

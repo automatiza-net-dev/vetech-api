@@ -8,7 +8,7 @@ export interface IUpsertBankingData {
   paymentMethodId: string;
   checkingAccountId: string;
   document: string;
-  historic: string;
+  historic?: string;
   issueDate: DateTime;
   documentValue: number;
   feeValue: number;

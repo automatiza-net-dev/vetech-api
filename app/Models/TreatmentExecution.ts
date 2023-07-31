@@ -3,12 +3,24 @@ import Schedule from 'App/Models/Schedule';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
 
-const TreatmentExecutionStatus = ['Ativo', 'Confirmado', 'Cancelado'] as const;
+import TreatmentItem from './TreatmentItem';
+
+const TreatmentExecutionStatus = [
+  'Ativo',
+  'Confirmado',
+  'Cancelado',
+  'Excluido',
+] as const;
 export type TreatmentExecutionStatus = typeof TreatmentExecutionStatus[number];
 
 export default class TreatmentExecution extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
+
+  @column({
+    columnName: 'scheduled_quantity',
+  })
+  public scheduledQuantity: number;
 
   @column({
     columnName: 'quantity_executed',
@@ -23,7 +35,12 @@ export default class TreatmentExecution extends BaseModel {
   @column.dateTime({
     columnName: 'execution_date',
   })
-  public executionDate: DateTime;
+  public executionDate: DateTime | null;
+
+  @column.dateTime({
+    columnName: 'exclusion_date',
+  })
+  public exclusionDate: DateTime | null;
 
   @column()
   public observations: string;
@@ -57,6 +74,11 @@ export default class TreatmentExecution extends BaseModel {
   })
   public treatment_item_id: number;
 
+  @belongsTo(() => TreatmentItem, {
+    foreignKey: 'treatment_item_id',
+  })
+  public treatmentItem: BelongsTo<typeof TreatmentItem>;
+
   @column({
     serializeAs: null,
   })
@@ -86,4 +108,14 @@ export default class TreatmentExecution extends BaseModel {
     foreignKey: 'execution_user_id',
   })
   public executionUser: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
+  public exclusion_user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'exclusion_user_id',
+  })
+  public exclusionUser: BelongsTo<typeof User>;
 }

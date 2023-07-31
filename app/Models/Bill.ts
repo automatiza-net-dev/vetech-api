@@ -262,6 +262,7 @@ export default class Bill extends BaseModel {
     foreignKey: 'user_who_closed_id',
   })
   public userWhoClosed: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })

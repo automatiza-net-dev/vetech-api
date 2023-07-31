@@ -251,6 +251,14 @@ export default class BillService {
           query.preload('product');
         });
 
+      if (billItems.at(0)?.bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
       const ufList = billItems.map(i => i.taxRule?.toUf).filter(Boolean);
       const ufIcms = await UfIcms.query()
         .useTransaction(trx)
@@ -485,6 +493,13 @@ export default class BillService {
       const bill = await Bill.findOrFail(billItem.bill_id, {
         client: trx,
       });
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
 
       const validItems = await BillItem.query()
         .useTransaction(trx)
@@ -589,6 +604,15 @@ export default class BillService {
       const bill = await Bill.findOrFail(data.billId, {
         client: trx,
       });
+
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
       const paymentMethod = await PaymentMethod.query()
         .useTransaction(trx)
         .where('id', data.paymentMethodId)
@@ -621,7 +645,10 @@ export default class BillService {
         bill.id,
       );
 
-      const uniqueBlocks = new Set(existingPayments.map(p => p.block));
+      const max =
+        existingPayments.length > 0
+          ? Math.max(...existingPayments.map(p => p.block))
+          : 0;
       const singleValue = data.installmentsValue / installment.installment;
 
       const payments = await BillPayment.createMany(
@@ -636,7 +663,7 @@ export default class BillService {
             tef_flag_id: data.flagId,
             daily_cashier_id: userOpenCashier?.id,
 
-            block: uniqueBlocks.size + 1,
+            block: max + 1,
             expirationDate: data.expirationDate.plus({
               days:
                 paymentMethod.daysFirstInstallment +
@@ -680,7 +707,7 @@ export default class BillService {
 
           type: FinanceType.C,
           installment: v + 1,
-          block: uniqueBlocks.size + 1,
+          block: max + 1,
           originFlag: FinanceOriginFlag.S,
           document: `NFS-${bill.tag}`,
           historic: `NFS-${bill.tag}`,
@@ -724,10 +751,19 @@ export default class BillService {
         throw this.sharedService.ResourceNotFound();
       }
 
+      if (payment.bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
       const finances = await Finance.query()
         .useTransaction(trx)
+        .where('business_unit_id', unitId)
         .where('origin_flag', FinanceOriginFlag.S)
-        .whereILike('document', `%${payment.bill.tag}%`)
+        .whereILike('document', `%NFS-${payment.bill.tag}%`)
         .where('block', payment.block);
       if (finances.some(p => p.status === FinanceStatus.B)) {
         throw new BadRequestException(
@@ -738,13 +774,18 @@ export default class BillService {
       }
 
       await Finance.query()
-        .where('origin_flag', FinanceOriginFlag.S)
-        .whereILike('document', `%${payment.bill.tag}%`)
-        .where('block', payment.block)
         .useTransaction(trx)
-        .delete();
+        .where('business_unit_id', unitId)
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereILike('document', `%NFS-${payment.bill.tag}%`)
+        .where('block', payment.block)
+        .update({
+          deleted_at: DateTime.now(),
+          status: FinanceStatus.E,
+        });
 
       await payment.useTransaction(trx).delete();
+
       await payment.bill
         .merge({
           paidValue:
@@ -756,7 +797,94 @@ export default class BillService {
     });
   }
 
+  async deleteBillPaymentBlock(
+    unitId: string,
+    data: { billId: string; block: number },
+  ) {
+    const group = await this.sharedService.getUserGroup(unitId);
+
+    await Database.transaction(async trx => {
+      const payments = await BillPayment.query()
+        .useTransaction(trx)
+        .where('bill_id', data.billId)
+        .where('block', data.block)
+        .whereHas('bill', query => {
+          query.where('economic_group_id', group.id);
+        })
+        .preload('bill');
+
+      if (payments.length === 0) {
+        throw new BadRequestException(
+          'Nenhum pagamento encontrado',
+          400,
+          'E_NOT_FOUND',
+        );
+      }
+
+      const bill = payments.find(p => !!p.bill)?.bill!;
+
+      if (payments.some(p => p.bill.status !== BillStatus.A)) {
+        throw new BadRequestException(
+          'Nota não aberta encontrada',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereIn(
+          'document',
+          payments.map(p => `NFS-${p.bill.tag}`),
+        )
+        .where('block', data.block);
+      if (finances.some(p => p.status === FinanceStatus.B)) {
+        throw new BadRequestException(
+          'Já foi dado baixa em algum pagamento',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await Finance.query()
+        .useTransaction(trx)
+        .where('business_unit_id', unitId)
+        .where('origin_flag', FinanceOriginFlag.S)
+        .whereIn(
+          'document',
+          payments.map(p => `NFS-${p.bill.tag}`),
+        )
+        .where('block', data.block)
+        .update({
+          deleted_at: new Date(),
+          status: FinanceStatus.E,
+        });
+
+      await BillPayment.query()
+        .useTransaction(trx)
+        .where('bill_id', data.billId)
+        .where('block', data.block)
+        .whereHas('bill', query => {
+          query.where('economic_group_id', group.id);
+        })
+        .delete();
+
+      await bill
+        .merge({
+          paidValue:
+            bill.paidValue -
+            finances.reduce((acc, curr) => acc + curr.value, 0),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   async searchProducts(unitId: string, data: ISearchProduct) {
+    const today = DateTime.now();
+
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Product.query()
@@ -800,10 +928,24 @@ export default class BillService {
 
       query.preload('kitItems', query => {
         query.whereHas('kit', query => {
+          qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
+            today.startOf('day').toISO()!,
+          ]);
+          qb.whereRaw('(from_expiration <= ? or from_expiration is null)', [
+            today.endOf('day').toISO()!,
+          ]);
+
           query.where('active', true);
         });
 
         query.preload('kit', query => {
+          qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
+            today.startOf('day').toISO()!,
+          ]);
+          qb.whereRaw('(from_expiration <= ? or from_expiration is null)', [
+            today.endOf('day').toISO()!,
+          ]);
+
           query.preload('items', query => {
             query.where('business_unit_id', unitId);
 
@@ -818,7 +960,14 @@ export default class BillService {
     qb.preload('unit');
     const products = await qb;
 
-    const kits = await Kit.query().where('economic_group_id', group.id);
+    const kits = await Kit.query()
+      .where('economic_group_id', group.id)
+      .whereRaw('(to_expiration <= ? or to_expiration is null)', [
+        today.endOf('day').toISO()!,
+      ])
+      .whereRaw('(from_expiration >= ? or from_expiration is null)', [
+        today.startOf('day').toISO()!,
+      ]);
     // const kits = await Kit.query()
     //   .where('economic_group_id', group.id)
     //   .preload('items', query => {

@@ -199,8 +199,8 @@ export default class ScheduleService {
           data.userId ?? authCtx.user.id,
           authCtx.unit.id,
           {
-            start: data.startHour.toJSDate(),
-            end: data.endHour.toJSDate(),
+            start: data.startHour.plus({ hours: 3 }).toJSDate(),
+            end: data.endHour.plus({ hours: 3 }).toJSDate(),
           },
           exception,
         );
@@ -805,6 +805,7 @@ export default class ScheduleService {
     const scheduleUser = await User.findOrFail(user);
 
     const workingDays = await WorkingDay.query()
+      .debug(true)
       .where('business_unit_id', unitId)
       .andWhere('day_of_week', ScheduleService.GetWD(data.start));
 
@@ -817,18 +818,22 @@ export default class ScheduleService {
       });
 
     if (wFiltered.length === 0) {
-      throw exception;
+      throw new BadRequestException(
+        'Pessoa não trabalha neste horário',
+        400,
+        'WORKING_DAY',
+      );
     }
 
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
+      .debug(true)
       .where('active', true)
       .where('business_unit_id', unitId)
-      .whereRaw(
-        '(start_date <= ? or start_date is null) or (end_date >= ? or end_date is null)',
-        [data.start, data.end],
-      );
+      .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)
+      .whereRaw('(start_date <= ? or start_date is null)', [data.start])
+      .whereRaw('(end_date >= ? or end_date is null)', [data.end]);
 
     const uFiltered = unavailableDays
       .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
@@ -840,7 +845,11 @@ export default class ScheduleService {
       });
 
     if (uFiltered.length !== 0) {
-      throw exception;
+      throw new BadRequestException(
+        'Pessoa não está disponível neste horário',
+        400,
+        'UNAVAILABLE_DAY',
+      );
     }
   }
 

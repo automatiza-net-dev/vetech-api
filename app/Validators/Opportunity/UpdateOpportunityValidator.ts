@@ -39,7 +39,7 @@ export default class UpdateOpportunityValidator {
     statusId: schema.number([
       rules.exists({ table: 'crm_statuses', column: 'id' }),
     ]),
-    observation: schema.string(),
+    observation: schema.string.optional(),
     value: schema.number(),
     active: schema.boolean(),
   });

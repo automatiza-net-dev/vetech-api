@@ -1,7 +1,16 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+} from '@ioc:Adonis/Lucid/Orm';
 import Kit from 'App/Models/Kit';
 import ProductVariation from 'App/Models/ProductVariation';
 import { DateTime } from 'luxon';
+
+import TreatmentExecution from './TreatmentExecution';
 
 export const TreatmentItemStatus = ['Ativo'] as const;
 export type TreatmentItemStatus = typeof TreatmentItemStatus[number];
@@ -12,6 +21,11 @@ export default class TreatmentItem extends BaseModel {
 
   @column()
   public quantity: number;
+
+  @column({
+    columnName: 'scheduled_quantity',
+  })
+  public scheduledQuantity = 0;
 
   @column({
     columnName: 'quantity_executed',
@@ -64,4 +78,9 @@ export default class TreatmentItem extends BaseModel {
     foreignKey: 'product_variation_id',
   })
   public productVariation: BelongsTo<typeof ProductVariation>;
+
+  @hasMany(() => TreatmentExecution, {
+    foreignKey: 'treatment_item_id',
+  })
+  public executions: HasMany<typeof TreatmentExecution>;
 }

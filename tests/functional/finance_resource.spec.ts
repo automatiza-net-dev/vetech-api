@@ -10,6 +10,7 @@ import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -150,11 +151,30 @@ test.group('Finance resource', group => {
       password: '102030',
     });
 
-    const qs = new URLSearchParams();
-    qs.append('type', 'DEBITO');
-    qs.append('order', 'doc');
-    qs.append('fromIssue', '2023-05-29T03:00:00.000Z');
-    qs.append('toIssue', '2023-06-01T02:59:59.999Z');
+    const qs = new URLSearchParams({
+      fromIssueDate: new Date().toISOString(),
+      toIssueDate: new Date().toISOString(),
+
+      fromExpirationDate: new Date().toISOString(),
+      toExpirationDate: new Date().toISOString(),
+
+      fromPaymentDate: new Date().toISOString(),
+      toPaymentDate: new Date().toISOString(),
+
+      id: v4(),
+      client: v4(),
+      document: v4(),
+      fiscalNote: v4(),
+      paymentMethod: v4(),
+      nsu: v4(),
+      status: v4(),
+      accept: v4(),
+      reconciled: v4(),
+      type: v4(),
+      unit: v4(),
+      plan: v4(),
+      competence: v4(),
+    });
 
     const response = await client
       .get(`/finances?${qs.toString()}`)

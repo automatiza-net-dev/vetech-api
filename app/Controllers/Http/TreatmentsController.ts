@@ -2,10 +2,13 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import SharedService from 'App/Services/SharedService';
 import TreatmentService from 'App/Services/TreatmentService';
+import BatchCreateExecutionValidator from 'App/Validators/Treatment/BatchCreateExecutionValidator';
+import BatchExecuteExecutionValidator from 'App/Validators/Treatment/BatchExecuteExecutionValidator';
 import CancelTreatmentValidator from 'App/Validators/Treatment/CancelTreatmentValidator';
 import CreateTreatmentExecutionValidator from 'App/Validators/Treatment/CreateTreatmentExecutionValidator';
 import CreateTreatmentItemValidator from 'App/Validators/Treatment/CreateTreatmentItemValidator';
 import CreateTreatmentValidator from 'App/Validators/Treatment/CreateTreatmentValidator';
+import ExcludeTreatmentExecutionValidator from 'App/Validators/Treatment/ExcludeTreatmentExecutionValidator';
 import ExecuteTreatmentExecutionValidator from 'App/Validators/Treatment/ExecuteTreatmentExecutionValidator';
 import UpdateTreatmentExecutionValidator from 'App/Validators/Treatment/UpdateTreatmentExecutionValidator';
 
@@ -50,6 +53,20 @@ export default class TreatmentsController {
     return response.created();
   }
 
+  public async batchCreateExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(BatchCreateExecutionValidator);
+
+    await this.service.batchCreateExecution(authCtx, data);
+
+    return response.created();
+  }
+
   public async executeExecution({
     request,
     response,
@@ -60,6 +77,20 @@ export default class TreatmentsController {
     const data = await request.validate(ExecuteTreatmentExecutionValidator);
 
     await this.service.executeExecution(authCtx, data);
+
+    return response.noContent();
+  }
+
+  public async batchExecuteExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(BatchExecuteExecutionValidator);
+
+    await this.service.batchExecuteExecution(authCtx, data);
 
     return response.noContent();
   }
@@ -117,6 +148,34 @@ export default class TreatmentsController {
     return response.ok(result);
   }
 
+  public async searchDateExecutions({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchDateExecutions(authCtx, qs);
+
+    return response.ok(result);
+  }
+
+  public async searchNotExecutedItems({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const qs = request.qs();
+    const result = await this.service.searchSomething(authCtx, {
+      client: qs.client,
+    });
+
+    return response.ok(result);
+  }
+
   public async searchTreatmentExecutions({
     request,
     response,
@@ -153,6 +212,34 @@ export default class TreatmentsController {
     const data = await request.validate(UpdateTreatmentExecutionValidator);
 
     await this.service.updateTreatmentExecution(authCtx, data);
+
+    return response.noContent();
+  }
+
+  public async cancelTreatmentExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(ExcludeTreatmentExecutionValidator);
+
+    await this.service.cancelTreatmentExecution(authCtx, data);
+
+    return response.noContent();
+  }
+
+  public async excludeTreatmentExecution({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(ExcludeTreatmentExecutionValidator);
+
+    await this.service.excludeTreatmentExecution(authCtx, data);
 
     return response.noContent();
   }

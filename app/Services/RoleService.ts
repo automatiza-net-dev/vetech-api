@@ -160,9 +160,9 @@ export default class RoleService {
       .related('permissions')
       .query()
       .preload('screen')
-      .pivotColumns(['active']);
+      .pivotColumns(['active', 'status']);
 
-    const screens = permissions.map(p => p.screen);
+    const screens = permissions.map(p => p.screen).filter(Boolean);
     const uniqueScreens = screens.filter(
       (v, i, a) => a.findIndex(t => t.id === v.id) === i,
     );
@@ -178,7 +178,7 @@ export default class RoleService {
         permissions: screenPermissions.map(p => ({
           id: p.id,
           description: p.description,
-          active: p.$extras.pivot_active,
+          active: p.$extras.pivot_status,
         })),
       };
     });
@@ -216,6 +216,7 @@ export default class RoleService {
 
       const roles = await Role.query()
         .useTransaction(trx)
+        .debug(true)
         .where('system_id', authCtx.system.id)
         .where('economic_group_id', authCtx.group.id)
         .whereIn(
@@ -234,7 +235,7 @@ export default class RoleService {
               .from('role_permissions')
               .where('role_id', role.id)
               .where('permission_id', permission.id)
-              .update({ active: permission.active });
+              .update({ status: permission.active });
           });
 
           await Promise.all(promises);
@@ -242,5 +243,54 @@ export default class RoleService {
       });
       await Promise.all(promises);
     });
+  }
+
+  public async searchRolePermissions(
+    authCtx: AuthContext,
+    data: { id?: string; active?: string },
+  ) {
+    const qb = Role.query().where('economic_group_id', authCtx.group.id);
+
+    if (data.id) {
+      qb.where('id', data.id);
+    }
+
+    if (data.active) {
+      qb.where('active', data.active !== '0');
+    }
+
+    qb.preload('permissions');
+    qb.preload('accesses', query => {
+      query.preload('profile');
+    });
+
+    const result = await qb;
+
+    if (data.id) {
+      if (result.length === 0) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const [elem] = result;
+      return {
+        id: elem.id,
+        name: elem.name,
+        active: elem.active,
+        profiles: elem.accesses.map(access => ({
+          id: access.profile.id,
+          description: access.profile.description,
+        })),
+      };
+    }
+
+    return result.map(elem => ({
+      id: elem.id,
+      name: elem.name,
+      active: elem.active,
+      profiles: elem.accesses.map(access => ({
+        id: access.profile.id,
+        description: access.profile.description,
+      })),
+    }));
   }
 }

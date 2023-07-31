@@ -84,7 +84,8 @@ test.group('kit resource', group => {
     });
 
     const qs = new URLSearchParams({
-      active: '1',
+      id: '1',
+      productCode: 'some',
       description: 'asd',
       fromExpiration: new Date().toISOString(),
       toExpiration: new Date().toISOString(),

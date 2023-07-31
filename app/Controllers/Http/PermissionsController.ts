@@ -13,6 +13,11 @@ export default class PermissionsController {
     private readonly service: PermissionService,
   ) {}
 
+  // public async sync({ response }: HttpContextContract) {
+  //   await this.service.syncPermissions();
+  //   return response.noContent();
+  // }
+
   public async index({ request, response, auth }: HttpContextContract) {
     const qs = request.qs();
 

@@ -6,6 +6,7 @@ import {
   belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
+import CheckingAccount from 'App/Models/CheckingAccount';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
@@ -13,6 +14,7 @@ import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import AccountPlan from './AccountPlan';
+import BusinessUnit from './BusinessUnit';
 import Patient from './Patient';
 import PaymentMethod from './PaymentMethod';
 
@@ -243,6 +245,11 @@ export default class Finance extends BaseModel {
   })
   public business_unit_id: string;
 
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
+
   @column({
     serializeAs: null,
   })
@@ -267,6 +274,11 @@ export default class Finance extends BaseModel {
     serializeAs: null,
   })
   public daily_cashier_id: string;
+
+  @belongsTo(() => CheckingAccount, {
+    foreignKey: 'checking_account_id',
+  })
+  public checkingAccount: BelongsTo<typeof CheckingAccount>;
 
   @column({
     serializeAs: null,

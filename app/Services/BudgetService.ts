@@ -184,6 +184,7 @@ export default class BudgetService {
   }
 
   public async searchProducts(unitId: string, data: ISearchProduct) {
+    const today = DateTime.now();
     const group = await this.sharedService.getUserGroup(unitId);
 
     const qb = Product.query()
@@ -263,6 +264,13 @@ export default class BudgetService {
         });
 
         query.preload('kit', query => {
+          qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
+            today.startOf('day').toISO()!,
+          ]);
+          qb.whereRaw('(from_expiration <= ? or from_expiration is null)', [
+            today.endOf('day').toISO()!,
+          ]);
+
           query.preload('items', query => {
             query.where('business_unit_id', unitId);
 
@@ -298,7 +306,14 @@ export default class BudgetService {
     qb.preload('unit');
     const products = await qb;
 
-    const kits = await Kit.query().where('economic_group_id', group.id);
+    const kits = await Kit.query()
+      .where('economic_group_id', group.id)
+      .whereRaw('(to_expiration <= ? or to_expiration is null)', [
+        today.endOf('day').toISO()!,
+      ])
+      .whereRaw('(from_expiration >= ? or from_expiration is null)', [
+        today.startOf('day').toISO()!,
+      ]);
     // const kits = await Kit.query()
     //   .where('economic_group_id', group.id)
     //   .preload('items', query => {

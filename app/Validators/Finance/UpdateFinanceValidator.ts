@@ -12,7 +12,7 @@ export default class UpdateFinanceValidator {
       rules.uuid(),
       rules.exists({ table: 'payment_methods', column: 'id' }),
     ]),
-    historic: schema.string({ trim: true }),
+    historic: schema.string.optional(),
     originalValue: schema.number(),
     reconciled: schema.boolean(),
     expirationDate: schema.date(),

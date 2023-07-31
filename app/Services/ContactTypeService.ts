@@ -14,10 +14,9 @@ export default class ContactTypeService {
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = ContactType.query()
       .where('system_id', authCtx.system.id)
-      .whereRaw(
-        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-        [authCtx.group.id],
-      )
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
       .where('type', 'crm');
 
     if (data.description) {
@@ -34,10 +33,9 @@ export default class ContactTypeService {
   public async show(authCtx: AuthContext, id: string) {
     const model = await ContactType.query()
       .where('system_id', authCtx.system.id)
-      .whereRaw(
-        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-        [authCtx.group.id],
-      )
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
       .where('id', id)
       .first();
 

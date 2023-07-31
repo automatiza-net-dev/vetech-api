@@ -11,6 +11,7 @@ import {
 import Permission from 'App/Models/Permission';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import RoleProfileAccess from './RoleProfileAccess';
 import UserUnitRole from './UserUnitRole';
 
 export const RoleType = ['system', 'controller'] as const;
@@ -70,4 +71,10 @@ export default class Role extends BaseModel {
     localKey: 'id',
   })
   public users: HasMany<typeof UserUnitRole>;
+
+  @hasMany(() => RoleProfileAccess, {
+    foreignKey: 'role_id',
+    localKey: 'id',
+  })
+  public accesses: HasMany<typeof RoleProfileAccess>;
 }

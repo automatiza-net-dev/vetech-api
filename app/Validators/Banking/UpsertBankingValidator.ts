@@ -23,7 +23,7 @@ export default class UpsertBankingValidator {
       rules.exists({ table: 'checking_accounts', column: 'id' }),
     ]),
     document: schema.string({ trim: true }),
-    historic: schema.string({ trim: true }),
+    historic: schema.string.optional(),
     issueDate: schema.date(),
     documentValue: schema.number(),
     feeValue: schema.number(),

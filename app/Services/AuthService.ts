@@ -1,6 +1,5 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
-import Env from '@ioc:Adonis/Core/Env';
 import Hash from '@ioc:Adonis/Core/Hash';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';

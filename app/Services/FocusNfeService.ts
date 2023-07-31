@@ -390,7 +390,7 @@ export default class FocusNfeService {
       uf_destinatario: data.buyer.location.uf,
       cep_destinatario: data.buyer.location.code,
       telefone_destinatario: data.buyer.phone,
-      inscricao_estadual_destinatario: data.buyer.ie,
+      // inscricao_estadual_destinatario: data.buyer.ie,
       indicador_inscricao_estadual_destinatario: '9',
       email_destinatario: data.buyer.email,
       pessoas_autorizadas: [], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS

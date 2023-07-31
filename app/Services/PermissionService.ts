@@ -2,8 +2,10 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Permission from 'App/Models/Permission';
+import Role from 'App/Models/Role';
 import { AuthContext } from 'App/Services/SharedService';
 import IPermissionData from 'Contracts/interfaces/PermissionData';
+import { DateTime } from 'luxon';
 
 interface ISearch {
   description?: string;
@@ -108,5 +110,66 @@ export default class PermissionService {
     const permission = await this.show(authCtx, id);
 
     await permission.softDelete();
+  }
+
+  async syncPermissions() {
+    await Database.transaction(async trx => {
+      const permissions = await Permission.query()
+        .useTransaction(trx)
+        .whereNull('updated_at')
+        .preload('systems')
+        .preload('roles');
+
+      const syncTasks = permissions.map(async permission => {
+        return permission
+          .related('systems')
+          .sync(permission.$systems, true, trx);
+      });
+      await Promise.all(syncTasks);
+
+      // TODO same systems_permissions as above?
+
+      // const map = new Map<string, number[]>();
+
+      // const entriesTasks = permissions.map(async permission => {
+      //   const rawData: {
+      //     id: number;
+      //     permission_id: number;
+      //     system_id: number;
+      //   }[] = await Database.from('systems_permissions')
+      //     .where('permission_id', permission.id)
+      //     .whereIn('system_id', permission.$systems);
+
+      //   map.set(
+      //     permission.id.toString(),
+      //     rawData.map(item => item.id),
+      //   );
+      // });
+      // await Promise.all(entriesTasks);
+
+      // console.log(map);
+
+      const roles = await Role.query().useTransaction(trx);
+      const rolesTasks = roles.map(async role => {
+        return role.related('permissions').sync(
+          permissions
+            .filter(p => p.$systems.includes(role.system_id))
+            .map(p => p.id),
+          true,
+          trx,
+        );
+      });
+      await Promise.all(rolesTasks);
+
+      await Role.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          roles.map(r => r.id),
+        )
+        .update({
+          updated_at: DateTime.now(),
+        });
+    });
   }
 }

@@ -245,10 +245,10 @@ export default class BusinessUnitFiscalDocumentService {
       const nfePayload: ISendNfe = {
         nfe_series: issuedDocument.series,
         nfe_number: issuedDocument.sequence,
-        issuedAt: issuedDocument.authorizationDate.minus({ hours: 3 }).toISO(),
-        authorizedAt: issuedDocument.authorizationDate
-          .minus({ hours: 3 })
-          .toISO(),
+        issuedAt:
+          issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? '',
+        authorizedAt:
+          issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? '',
         purpose: issuedDocument.purpose,
 
         seller: {
@@ -384,7 +384,7 @@ export default class BusinessUnitFiscalDocumentService {
               ? null
               : unit.acquirers.find(a => a.id === item.tef_acquirer_id)
                   ?.document,
-          flag: item.flag.nfe_code,
+          flag: item?.flag?.nfe_code,
           nsu: item.nsuDocument,
         })),
         totalizers: {
@@ -489,7 +489,7 @@ export default class BusinessUnitFiscalDocumentService {
           const result = await this.focusNfe.sendNfse(
             serviceDocument.id,
             {
-              issuedAt: DateTime.now().toISO(),
+              issuedAt: new Date().toISOString(),
               simple: unit.simple,
               seller: {
                 document: unit.document ?? '',
@@ -1029,6 +1029,11 @@ export default class BusinessUnitFiscalDocumentService {
     console.log('document:', document.toJSON());
     console.log('focus payload', data);
 
+    const urlPrefix =
+      process.env.NODE_ENV === 'production'
+        ? 'https://api.focusnfe.com.br'
+        : 'https://homologacao.focusnfe.com.br';
+
     return document.merge({
       sefazStatus:
         document.sefazStatus === 'Inutilizado'
@@ -1042,9 +1047,9 @@ export default class BusinessUnitFiscalDocumentService {
           ].join(' - ')
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
-      authorizationXmlPath: data.caminho_xml_nota_fiscal,
-      authorizationPdfPath: data.caminho_danfe,
-      cancellationXmlPath: data.caminho_xml_cancelamento,
+      authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(''),
+      authorizationPdfPath: [urlPrefix, data.caminho_danfe].join(''),
+      cancellationXmlPath: [urlPrefix, data.caminho_xml_cancelamento].join(''),
 
       authorizationReceipt: data.protocolo_nota_fiscal?.numero_protocolo,
       authorizationReceiptDate: data.protocolo_nota_fiscal?.data_recebimento
@@ -1065,6 +1070,11 @@ export default class BusinessUnitFiscalDocumentService {
     console.log('document:', document.toJSON());
     console.log('focus nfse payload', data);
 
+    const urlPrefix =
+      process.env.NODE_ENV === 'production'
+        ? 'https://api.focusnfe.com.br'
+        : 'https://homologacao.focusnfe.com.br';
+
     return document.merge({
       status: data.status,
       sequence: data.numero,
@@ -1078,9 +1088,9 @@ export default class BusinessUnitFiscalDocumentService {
         data.status === 'autorizado' ? DateTime.now() : undefined,
       cancellationDate:
         data.status === 'cancelado' ? DateTime.now() : undefined,
-      mirrorPath: data.url,
-      authorizationPdfPath: data.url_danfse,
-      authorizationXmlPath: data.caminho_xml_nota_fiscal,
+      mirrorPath: [urlPrefix, data.url].join(''),
+      authorizationPdfPath: [urlPrefix, data.url_danfse].join(''),
+      authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(''),
     });
   }
 

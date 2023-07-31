@@ -21,28 +21,41 @@ export default class FinancesController {
 
     const qs = request.qs();
     const result = await this.service.index(unit_id, {
-      accept: qs.accept,
-      client: qs.client,
-      document: qs.document,
-      fromExpirationDate: qs.fromExpiration,
-      toExpirationDate: qs.toExpiration,
-      fiscalNote: qs.fiscalNote,
       fromIssueDate: qs.fromIssue,
       toIssueDate: qs.toIssue,
-      nsu: qs.nsu,
+
+      fromExpirationDate: qs.fromExpiration,
+      toExpirationDate: qs.toExpiration,
+
       fromPaymentDate: qs.fromPayment,
       toPaymentDate: qs.toPayment,
+
+      id: qs.id,
+      client: qs.client,
+      document: qs.document,
+      fiscalNote: qs.fiscalNote,
       paymentMethod: qs.paymentMethod,
+      nsu: qs.nsu,
       status: qs.status,
-      type: qs.type,
+      accept: qs.accept,
       reconciled: qs.reconciled,
-      plan: qs.plan,
+      type: qs.type,
       unit: qs.unit,
+      plan: qs.plan,
       competence: qs.competence,
     });
 
     return response.ok(result);
   }
+
+  // async show({ params, auth, response }: HttpContextContract) {
+  //   const result = await this.service.show(
+  //     await this.sharedService.getAuthContext(auth),
+  //     params.id,
+  //   );
+
+  //   return response.ok(result);
+  // }
 
   async storeFinance({ auth, request, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
@@ -182,6 +195,22 @@ export default class FinancesController {
 
   async revisedCashiersResume({ auth, response }: HttpContextContract) {
     const result = await this.service.getRevisedDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async todayCashiersResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getTodayDailyCashiers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
+  async overallResume({ auth, response }: HttpContextContract) {
+    const result = await this.service.getOverallResume(
       await this.sharedService.getAuthContext(auth),
     );
 

@@ -593,6 +593,35 @@ test.group('Daily cashier resource', group => {
     assert.equal(response.status(), 204);
   });
 
+  test('should create new cashier expense (opt vals)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyMovement } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/expense/${cashier.id}`)
+      .json({
+        description: 'test',
+        value: 100,
+        entryDate: DateTime.now(),
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 204);
+  });
+
   test('should throw BadRequestException if adding receipt on invalid status cashier', async ({
     assert,
     client,
@@ -659,7 +688,10 @@ test.group('Daily cashier resource', group => {
     assert.equal(response.status(), 204);
   });
 
-  test('should clear cashier payments', async ({ assert, client }) => {
+  test('should create new cashier receipt (opt vals)', async ({
+    assert,
+    client,
+  }) => {
     const { user, dailyMovement } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -673,16 +705,12 @@ test.group('Daily cashier resource', group => {
       status: DailyCashierStatus.A,
     });
 
-    const billPayment = await cashier.related('billPayments').create({
-      conferenceDate: DateTime.now(),
-      user_id: user.id,
-    });
-
     const response = await client
-      .post(`/daily-cashiers/clear-payments`)
+      .post(`/daily-cashiers/receipt/${cashier.id}`)
       .json({
-        dailyCashierId: cashier.id,
-        items: [billPayment.id],
+        description: 'test',
+        value: 100,
+        entryDate: DateTime.now(),
       })
       .bearerToken(token);
 

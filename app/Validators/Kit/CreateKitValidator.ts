@@ -6,8 +6,8 @@ export default class CreateKitValidator {
 
   public schema = schema.create({
     description: schema.string(),
-    fromExpiration: schema.date(),
-    toExpiration: schema.date(),
+    fromExpiration: schema.date.optional(),
+    toExpiration: schema.date.optional(),
   });
 
   public messages: CustomMessages = {};

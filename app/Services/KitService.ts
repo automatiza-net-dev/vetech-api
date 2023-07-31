@@ -9,9 +9,11 @@ import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IKitData, { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
 
 interface ISearch {
+  id?: string;
+  productCode?: string;
   description?: string;
-  fromExpiration?: string;
-  toExpiration?: string;
+  // fromExpiration?: string;
+  // toExpiration?: string;
   active?: number;
 }
 
@@ -22,22 +24,46 @@ export default class KitService {
   public async index(unitId: string, data: ISearch) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = Kit.query().where('economic_group_id', group.id);
+    const qb = Kit.query()
+      .where('economic_group_id', group.id)
+      .whereRaw(
+        '((from_expiration is null or to_expiration is null) or (now() between from_expiration and to_expiration))',
+        [],
+      )
+      .where('active', true);
+
+    if (data.id) {
+      qb.where('id', data.id);
+    }
 
     if (data.description) {
       qb.where('description', 'ilike', `%${data.description}%`);
     }
 
-    if (data.fromExpiration) {
-      qb.where('from_expiration', '>=', data.fromExpiration);
-    }
+    // if (data.fromExpiration) {
+    //   qb.whereRaw('(from_expiration >= ? or from_expiration is null)', [
+    //     data.fromExpiration,
+    //   ]);
+    // }
+    //
+    // if (data.toExpiration) {
+    //   qb.whereRaw('(to_expiration <= ? or to_expiration is null)', [
+    //     data.toExpiration,
+    //   ]);
+    // }
+    //
+    // if (!data.fromExpiration && !data.toExpiration) {
+    //   qb.whereRaw('(from_expiration is null or to_expiration is null)');
+    // }
 
-    if (data.toExpiration) {
-      qb.where('to_expiration', '<=', data.toExpiration);
-    }
-
-    if (data.active) {
-      qb.where('active', Boolean(data.active));
+    if (data.productCode) {
+      qb.whereHas('items', query => {
+        query.whereHas('productVariation', query => {
+          query.whereHas('product', query => {
+            query.where('reference_code', 'ilike', `%${data.productCode}%`);
+          });
+        });
+      });
     }
 
     qb.preload('items', query => {

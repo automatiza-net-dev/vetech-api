@@ -779,7 +779,6 @@ test.group('Bill resource', group => {
 
     const response = await client
       .delete(`/bills/delete-payment/${payment.id}`)
-
       .bearerToken(token);
 
     assert.equal(404, response.status());
@@ -829,6 +828,84 @@ test.group('Bill resource', group => {
 
     const response = await client
       .delete(`/bills/delete-payment/${payment.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should return NotFoundException when deleting invalid bill payment block', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment-block`)
+      .json({
+        block: -1,
+        billId: bill.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should return BadRequestException when deleting bill payment with existing finance down', async ({
+    assert,
+    client,
+  }) => {
+    const { user, payment, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await Finance.create({
+      originFlag: FinanceOriginFlag.S,
+      document: bill.tag,
+      block: payment.block,
+      status: FinanceStatus.B,
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment-block`)
+      .json({
+        block: payment.block,
+        billId: bill.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should delete bill payment block', async ({ assert, client }) => {
+    const { user, payment, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await payment.merge({ status: FinanceStatus.A }).save();
+    await bill.merge({ paidValue: 1000 }).save();
+    await Finance.create({
+      originFlag: FinanceOriginFlag.S,
+      origin_id: payment.id,
+      document: bill.tag,
+      block: payment.block,
+      status: FinanceStatus.A,
+      totalValue: 100,
+    });
+
+    const response = await client
+      .delete(`/bills/delete-payment-block`)
+      .json({
+        block: payment.block,
+        billId: bill.id,
+      })
       .bearerToken(token);
 
     assert.equal(204, response.status());

@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
@@ -213,17 +212,19 @@ export default class ReportService {
       total: dataSet.get(elem.id) ?? 0,
     }));
   }
+
   async expiredFinancesReport(
     authCtx: AuthContext,
     data: {
       businessUnit?: string;
     },
   ) {
-    const qb = Finance.query().preload('unit');
-    // .where('economic_group_id', authCtx.group.id)
-    // .whereRaw('expiration_date::date < now()::date', [])
-    // .where('status', FinanceStatus.A)
-    // .whereNull('deleted_at');
+    const qb = Finance.query()
+      .preload('unit')
+      .where('economic_group_id', authCtx.group.id)
+      .whereRaw('expiration_date::date < now()::date', [])
+      .where('status', FinanceStatus.A)
+      .whereNull('deleted_at');
 
     if (data.businessUnit) {
       qb.where('business_unit_id', data.businessUnit);

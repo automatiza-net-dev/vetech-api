@@ -820,8 +820,10 @@ export default class ScheduleService {
       .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)
       .whereRaw('(start_date <= ? or start_date is null)', [data.start])
       .whereRaw('(end_date >= ? or end_date is null)', [data.end])
-      .whereRaw('start_hour <= ?', [format(data.start, 'HH:mm')])
-      .whereRaw('end_hour >= ?', [format(data.end, 'HH:mm')]);
+      .whereRaw(
+        '(? between start_hour and end_hour or ? between start_hour and end_hour)',
+        [format(data.start, 'HH:mm'), format(data.end, 'HH:mm')],
+      );
 
     if (unavailableDays.length !== 0) {
       throw new BadRequestException(

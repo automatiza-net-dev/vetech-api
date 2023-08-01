@@ -796,15 +796,9 @@ export default class ScheduleService {
       .where('business_unit_id', unitId)
       .andWhere('day_of_week', ScheduleService.GetWD(data.start));
 
-    console.log(
-      'workingdays??',
-      workingDays.map(w => w.toJSON()),
-    );
 
     const wFiltered = workingDays
       .filter(w => {
-        console.log('startHour', w.startHour, format(data.start, 'HH:mm'));
-
         return w.startHour <= format(data.start, 'HH:mm');
       })
       .filter(w => {
@@ -822,7 +816,6 @@ export default class ScheduleService {
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
-      .debug(true)
       .where('active', true)
       .where('business_unit_id', unitId)
       .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)

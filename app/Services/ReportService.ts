@@ -120,7 +120,7 @@ export default class ReportService {
             description: elem.paymentMethod.description,
           }
         : null,
-      accountPlan: elem.client
+      accountPlan: elem.accountPlan
         ? {
             id: elem.accountPlan.id,
             description: elem.accountPlan.description,

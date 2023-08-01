@@ -216,7 +216,6 @@ export default class RoleService {
 
       const roles = await Role.query()
         .useTransaction(trx)
-        .debug(true)
         .where('system_id', authCtx.system.id)
         .where('economic_group_id', authCtx.group.id)
         .whereIn(

@@ -1143,6 +1143,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/search', 'OpportunitiesController.search');
+  Route.get('/search-activities', 'OpportunitiesController.searchActivities');
   Route.get('/search-kanban', 'OpportunitiesController.searchKanban');
   Route.get(
     '/search-kanban-activities',
@@ -1271,6 +1272,7 @@ Route.group(() => {
   Route.get('/flow', 'ReportsController.dailyFlow');
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
+  Route.get('/sales', 'ReportsController.salesReport');
 })
   .prefix('reports')
   .middleware('auth');

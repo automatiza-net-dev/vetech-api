@@ -792,16 +792,19 @@ export default class ScheduleService {
     const scheduleUser = await User.findOrFail(user);
 
     const workingDays = await WorkingDay.query()
+      .debug(true)
       .where('user_id', scheduleUser.id)
       .where('business_unit_id', unitId)
       .andWhere('day_of_week', ScheduleService.GetWD(data.start));
 
-
     const wFiltered = workingDays
       .filter(w => {
+        console.log('wo', w.startHour, format(data.start, 'HH:mm'));
+
         return w.startHour <= format(data.start, 'HH:mm');
       })
       .filter(w => {
+        console.log('wo', w.endHour, format(data.end, 'HH:mm'));
         return w.endHour >= format(data.end, 'HH:mm');
       });
 
@@ -816,6 +819,7 @@ export default class ScheduleService {
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
+      .debug(true)
       .where('active', true)
       .where('business_unit_id', unitId)
       .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)
@@ -825,9 +829,11 @@ export default class ScheduleService {
     const uFiltered = unavailableDays
       .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
       .filter(w => {
+        console.log('un', w.startHour, format(data.start, 'HH:mm'));
         return w.startHour <= format(data.start, 'HH:mm');
       })
       .filter(w => {
+        console.log('un', w.endHour, format(data.end, 'HH:mm'));
         return w.endHour >= format(data.end, 'HH:mm');
       });
 

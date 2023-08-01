@@ -83,6 +83,11 @@ export default class OpportunityActivity extends BaseModel {
   })
   public user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })

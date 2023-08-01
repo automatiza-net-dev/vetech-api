@@ -1143,6 +1143,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/search', 'OpportunitiesController.search');
+  Route.get('/search-activities', 'OpportunitiesController.searchActivities');
   Route.get('/search-kanban', 'OpportunitiesController.searchKanban');
   Route.get(
     '/search-kanban-activities',

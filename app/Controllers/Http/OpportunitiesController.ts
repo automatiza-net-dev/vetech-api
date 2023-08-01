@@ -33,6 +33,19 @@ export default class OpportunitiesController {
     return response.ok(result);
   }
 
+  public async searchActivities({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const result = await this.service.searchActivities(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
   public async searchKanban({ request, response, auth }: HttpContextContract) {
     const result = await this.service.searchKanbanOpportunities(
       await this.sharedService.getAuthContext(auth),

@@ -151,6 +151,110 @@ export default class OpportunityService {
     }));
   }
 
+  public async searchActivities(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      description?: string;
+      contactName?: string;
+      patientName?: string;
+      technicianName?: string;
+      status?: string;
+    },
+  ) {
+    const qb = OpportunityActivity.query()
+      .preload('activity')
+      .preload('opportunity', query => {
+        query.preload('client').preload('contact').preload('user');
+      })
+      .preload('executionUser')
+      .whereHas('opportunity', query => {
+        query.where('economic_group_id', authCtx.group.id);
+      });
+
+    if (data.fromDate) {
+      qb.where('execution_date', '>=', data.fromDate);
+    }
+
+    if (data.toDate) {
+      qb.where('execution_date', '<=', data.toDate);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.technicianName) {
+      qb.whereHas('user', query => {
+        query.whereILike('name', `%${data.technicianName!}%`);
+      });
+    }
+
+    if (data.description) {
+      qb.whereHas('activity', query => {
+        query.whereILike('description', `%${data.description!}%`);
+      });
+    }
+
+    if (data.patientName || data.contactName) {
+      qb.whereHas('opportunity', query => {
+        if (data.patientName) {
+          query.whereHas('client', query => {
+            query.whereILike('name', `%${data.patientName!}%`);
+          });
+        }
+
+        if (data.contactName) {
+          query.whereHas('contact', query => {
+            query.whereILike('name', `%${data.contactName!}%`);
+          });
+        }
+      });
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      issueDate: elem.issueDate,
+      executionDate: elem.executionDate,
+      executedDate: elem.executedDate,
+      description: elem.description,
+      observation: elem.observation,
+      status: elem.status,
+
+      activity: {
+        id: elem.activity.id,
+        description: elem.activity.description,
+      },
+      client: elem.opportunity?.client
+        ? {
+            id: elem.opportunity?.client.id,
+            name: elem.opportunity?.client.name,
+          }
+        : null,
+      contact: elem.opportunity?.contact
+        ? {
+            id: elem.opportunity?.contact.id,
+            name: elem.opportunity?.contact.name,
+          }
+        : null,
+      user: elem.opportunity.user
+        ? {
+            id: elem.opportunity.user.id,
+            name: elem.opportunity.user.name,
+          }
+        : null,
+      executionUser: elem.executionUser
+        ? {
+            id: elem.executionUser.id,
+            name: elem.executionUser.name,
+          }
+        : null,
+    }));
+  }
+
   public async searchKanbanOpportunities(
     authCtx: AuthContext,
     data: {

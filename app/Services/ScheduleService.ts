@@ -193,8 +193,8 @@ export default class ScheduleService {
           data.userId ?? authCtx.user.id,
           authCtx.unit.id,
           {
-            start: data.startHour.plus({ hours: 3 }).toJSDate(),
-            end: data.endHour.plus({ hours: 3 }).toJSDate(),
+            start: data.startHour.toJSDate(),
+            end: data.endHour.toJSDate(),
           },
         );
       }
@@ -795,20 +795,15 @@ export default class ScheduleService {
       .debug(true)
       .where('user_id', scheduleUser.id)
       .where('business_unit_id', unitId)
-      .andWhere('day_of_week', ScheduleService.GetWD(data.start));
+      .andWhere('day_of_week', ScheduleService.GetWD(data.start))
+      .andWhereRaw('(start_hour <= ? or start_hour is null)', [
+        format(data.start, 'HH:mm'),
+      ])
+      .andWhereRaw('(end_hour >= ? or end_hour is null)', [
+        format(data.end, 'HH:mm'),
+      ]);
 
-    const wFiltered = workingDays
-      .filter(w => {
-        console.log('wo', w.startHour, format(data.start, 'HH:mm'));
-
-        return w.startHour <= format(data.start, 'HH:mm');
-      })
-      .filter(w => {
-        console.log('wo', w.endHour, format(data.end, 'HH:mm'));
-        return w.endHour >= format(data.end, 'HH:mm');
-      });
-
-    if (wFiltered.length === 0) {
+    if (workingDays.length === 0) {
       throw new BadRequestException(
         'Pessoa não trabalha neste horário',
         400,
@@ -824,20 +819,11 @@ export default class ScheduleService {
       .where('business_unit_id', unitId)
       .whereILike('frequency', `%${ScheduleService.GetWD(data.start)}%`)
       .whereRaw('(start_date <= ? or start_date is null)', [data.start])
-      .whereRaw('(end_date >= ? or end_date is null)', [data.end]);
+      .whereRaw('(end_date >= ? or end_date is null)', [data.end])
+      .whereRaw('start_hour <= ?', [format(data.start, 'HH:mm')])
+      .whereRaw('end_hour >= ?', [format(data.end, 'HH:mm')]);
 
-    const uFiltered = unavailableDays
-      .filter(w => ScheduleService.dayOfWeekMatches(data.start, w.frequency))
-      .filter(w => {
-        console.log('un', w.startHour, format(data.start, 'HH:mm'));
-        return w.startHour <= format(data.start, 'HH:mm');
-      })
-      .filter(w => {
-        console.log('un', w.endHour, format(data.end, 'HH:mm'));
-        return w.endHour >= format(data.end, 'HH:mm');
-      });
-
-    if (uFiltered.length !== 0) {
+    if (unavailableDays.length !== 0) {
       throw new BadRequestException(
         'Pessoa não está disponível neste horário',
         400,

@@ -28,6 +28,22 @@ export default class AccountPlansController {
     return response.ok(data);
   }
 
+  public async tree({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    const qs = request.qs();
+
+    const data = await this.service.tree(authCtx, {
+      description: qs.description,
+      code: qs.code,
+      type: qs.type,
+      group: qs.group,
+      parent: qs.parent,
+      unit: qs.unit,
+    });
+
+    return response.ok(data);
+  }
+
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateAccountPlanValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);

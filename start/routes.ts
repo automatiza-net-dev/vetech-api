@@ -767,11 +767,16 @@ Route.group(() => {
   .prefix('daily-cashiers')
   .middleware('auth');
 
-Route.resource('account-plans', 'AccountPlansController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/tree', 'AccountPlansController.tree');
+  Route.get('/', 'AccountPlansController.index');
+  Route.get('/:id', 'AccountPlansController.show');
+  Route.post('/', 'AccountPlansController.store');
+  Route.put('/:id', 'AccountPlansController.update');
+  Route.delete('/:id', 'AccountPlansController.destroy');
+})
+  .prefix('account-plans')
+  .middleware('auth');
 
 Route.resource('banks', 'BanksController')
   .only(['index'])

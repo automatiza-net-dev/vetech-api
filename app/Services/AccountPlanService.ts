@@ -53,6 +53,63 @@ export default class AccountPlanService {
     return qb;
   }
 
+  async tree(authCtx: AuthContext, data: ISearch) {
+    const qb = AccountPlan.query()
+      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
+        authCtx.group.id,
+      ])
+      .where('system_id', authCtx.system.id);
+
+    if (data.unit) {
+      qb.where('business_unit_id', data.unit);
+    }
+
+    if (data.description) {
+      qb.where('description', 'ilike', `%${data.description}%`);
+    }
+
+    if (data.code) {
+      qb.where('code', 'ilike', `%${data.code}%`);
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.group) {
+      qb.where('account_plan_group_id', data.group);
+    }
+
+    if (data.parent) {
+      qb.where('parent_id', data.parent);
+    }
+
+    const result = await qb;
+
+    const map = new Map();
+
+    result.forEach(item => {
+      map.set(item.id, {
+        id: item.id,
+        description: item.description,
+        canSelect: true,
+        children: [],
+      });
+    });
+
+    result.forEach(item => {
+      const node = map.get(item.id)!;
+
+      if (item.parent_id) {
+        const parent = map.get(item.parent_id)!;
+        parent.children.push(node);
+        parent.canSelect = false;
+      }
+    });
+
+    return Array.from(map.values()).filter(node => node.children.length > 0);
+  }
+
   async store(authCtx: AuthContext, data: Omit<IAccountPlanData, 'active'>) {
     return AccountPlan.create({
       code: data.code,

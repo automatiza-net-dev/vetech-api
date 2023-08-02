@@ -114,7 +114,7 @@ export default class ReportService {
             description: elem.checkingAccount.description,
           }
         : null,
-      paymentMethod: elem.client
+      paymentMethod: elem.paymentMethod
         ? {
             id: elem.paymentMethod.id,
             description: elem.paymentMethod.description,
@@ -335,13 +335,13 @@ export default class ReportService {
             name: elem.seller.name,
           }
         : null,
-      client: elem.seller
+      client: elem.client
         ? {
             id: elem.client.id,
             name: elem.client.name,
           }
         : null,
-      patient: elem.seller
+      patient: elem.patient
         ? {
             id: elem.patient.id,
             name: elem.patient.name,
@@ -369,6 +369,11 @@ export default class ReportService {
       dataSet.set(date, entry);
     });
 
-    return Object.fromEntries(dataSet.entries());
+    const result = Object.fromEntries(dataSet.entries());
+    const keys = Object.keys(result).sort();
+
+    return keys.map(k => ({
+      [k]: result[k],
+    }));
   }
 }

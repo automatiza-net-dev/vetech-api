@@ -1273,6 +1273,7 @@ Route.group(() => {
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
   Route.get('/sales', 'ReportsController.salesReport');
+  Route.get('/entries', 'ReportsController.entriesReport');
 })
   .prefix('reports')
   .middleware('auth');

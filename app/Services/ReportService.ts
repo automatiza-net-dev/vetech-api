@@ -350,6 +350,56 @@ export default class ReportService {
     }));
   }
 
+  async entriesReport(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      businessUnit?: string;
+    },
+  ) {
+    const qb = Finance.query()
+      .preload('unit')
+      .where('economic_group_id', authCtx.group.id);
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    if (data.fromDate) {
+      qb.whereRaw('expiration_date::date >= ?', [
+        DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.whereRaw('expiration_date::date <= ?', [
+        DateTime.fromISO(data.toDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    const result = await qb;
+
+    const unitsSet = new Set<string>(result.map(r => r.unit.id));
+    const uniqueUnitIds = Array.from(unitsSet);
+    const units = uniqueUnitIds
+      .map(elem => result.find(r => r.unit.id === elem)?.unit)
+      .filter(Boolean) as BusinessUnit[];
+
+    return units.map(elem => ({
+      id: elem.id,
+      identification: elem.identification ?? '-',
+      credits: result
+        .filter(r => r.business_unit_id === elem.id && r.type === FinanceType.C)
+        .map(r => r.totalValue)
+        .reduce((a, b) => a + b, 0),
+      debits: result
+        .filter(r => r.business_unit_id === elem.id && r.type === FinanceType.D)
+        .map(r => r.totalValue)
+        .reduce((a, b) => a + b, 0),
+    }));
+  }
+
   private calculateDailyFlow(finances: Finance[]) {
     const dataSet = new Map<string, { credit: number; debit: number }>();
 

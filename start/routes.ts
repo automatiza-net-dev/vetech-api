@@ -1279,6 +1279,7 @@ Route.group(() => {
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
   Route.get('/sales', 'ReportsController.salesReport');
   Route.get('/entries', 'ReportsController.entriesReport');
+  Route.get('/budgets', 'ReportsController.budgetsReport');
 })
   .prefix('reports')
   .middleware('auth');

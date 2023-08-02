@@ -1,13 +1,16 @@
 import { inject } from '@adonisjs/fold';
 import Bill from 'App/Models/Bill';
+import Budget from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
 @inject()
 export default class ReportService {
+  constructor(private sharedService: SharedService) {}
+
   async financeReport(
     authCtx: AuthContext,
     data: {
@@ -397,6 +400,127 @@ export default class ReportService {
         .filter(r => r.business_unit_id === elem.id && r.type === FinanceType.D)
         .map(r => r.totalValue)
         .reduce((a, b) => a + b, 0),
+    }));
+  }
+
+  async budgetsReport(
+    authCtx: AuthContext,
+    data: {
+      fromBudgetDate?: string;
+      toBudgetDate?: string;
+      fromExpirationDate?: string;
+      toExpirationDate?: string;
+      fromFinishedDate?: string;
+      toFinishedDate?: string;
+      clientName?: string;
+      patientName?: string;
+      businessUnit?: string;
+      status?: string;
+    },
+  ) {
+    const qb = Budget.query()
+      .preload('unit')
+      .preload('client')
+      .preload('patient')
+      .preload('user')
+      .preload('seller')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .where('economic_group_id', authCtx.group.id)
+      .whereNull('deleted_at');
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    if (data.patientName) {
+      qb.andWhereHas('patient', query => {
+        query.whereILike('name', `%${data.patientName!}%`);
+      });
+    }
+
+    if (data.clientName) {
+      qb.andWhereHas('client', query => {
+        query.whereILike('name', `%${data.clientName!}%`);
+      });
+    }
+
+    if (data.fromBudgetDate) {
+      qb.whereRaw('budget_date::date >= ?', [
+        DateTime.fromISO(data.fromBudgetDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toBudgetDate) {
+      qb.whereRaw('budget_date::date <= ?', [
+        DateTime.fromISO(data.toBudgetDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.fromExpirationDate) {
+      qb.whereRaw('expiration_date::date >= ?', [
+        DateTime.fromISO(data.fromExpirationDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toExpirationDate) {
+      qb.whereRaw('expiration_date::date <= ?', [
+        DateTime.fromISO(data.toExpirationDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.fromFinishedDate) {
+      qb.whereRaw('finished_at::date >= ?', [
+        DateTime.fromISO(data.fromFinishedDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toFinishedDate) {
+      qb.whereRaw('finished_at::date <= ?', [
+        DateTime.fromISO(data.toFinishedDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      budgetDate: elem.budgetDate,
+      expirationDate: elem.expirationDate,
+      finishedDate: elem.finishedAt,
+      productValue: elem.productValue,
+      serviceValue: elem.serviceValue,
+      discountValue: elem.discountValue,
+      totalValue: elem.totalValue,
+      status: elem.status,
+      unit: {
+        id: elem.unit.id,
+        identification: elem.unit.identification,
+      },
+      client: this.sharedService.captureGroup(elem.client, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      patient: this.sharedService.captureGroup(elem.patient, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      seller: this.sharedService.captureGroup(elem.seller, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      conclusionUser: this.sharedService.captureGroup(
+        elem.conclusionUser,
+        v => ({
+          id: v.id,
+          name: v.name,
+        }),
+      ),
+      reason: this.sharedService.captureGroup(elem.cancelationReason, v => ({
+        id: v.id,
+        description: v.reason,
+      })),
     }));
   }
 

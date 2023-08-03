@@ -116,6 +116,8 @@ export default class FinanceService {
 
     if (data.status) {
       qb.where('status', data.status);
+    } else {
+      qb.whereNot('status', FinanceStatus.E);
     }
 
     if (data.accept) {

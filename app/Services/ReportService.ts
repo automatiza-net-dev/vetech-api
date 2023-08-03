@@ -142,7 +142,8 @@ export default class ReportService {
   ) {
     const financeQbs = Finance.query()
       .preload('unit')
-      .where('economic_group_id', authCtx.group.id);
+      .where('economic_group_id', authCtx.group.id)
+      .whereNot('status', FinanceStatus.E);
 
     if (data.businessUnit) {
       financeQbs.where('business_unit_id', data.businessUnit);

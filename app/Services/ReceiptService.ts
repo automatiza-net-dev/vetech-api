@@ -8,6 +8,7 @@ import Finance, {
   FinanceOriginFlag,
   FinanceStatus,
 } from 'App/Models/Finance';
+import Patient from 'App/Models/Patient';
 import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodUsage,
@@ -610,6 +611,20 @@ export default class ReceiptService {
       item: ReceiptPayment;
     },
   ) {
+    const supplier = await Patient.query()
+      .useTransaction(trx)
+      .where('id', data.supplierId)
+      .preload('tutor')
+      .first();
+
+    if (!supplier) {
+      throw new BadRequestException(
+        'Fornecedor não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
     await Finance.create(
       {
         economic_group_id: authCtx.group.id,
@@ -618,7 +633,9 @@ export default class ReceiptService {
         client_id: data.supplierId,
         daily_cashier_id: data.dailyCashierId,
         daily_movement_id: data.dailyMovementId,
-        account_plan_id: authCtx.unit?.unitConfig?.order_entry_account_plan_id,
+        account_plan_id:
+          supplier?.tutor?.account_plan_id ??
+          authCtx.unit?.unitConfig?.order_entry_account_plan_id,
         payment_method_id: data.paymentMethodId,
         tef_flag_id: data.tefFlagId,
         acquirer_id: data.tefAcquirerId,

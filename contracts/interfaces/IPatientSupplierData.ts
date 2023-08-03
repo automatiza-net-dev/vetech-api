@@ -26,4 +26,5 @@ export default interface IPatientSupplierData {
   city?: string;
   state?: string;
   cityCode?: string;
+  accountPlanId?: string;
 }

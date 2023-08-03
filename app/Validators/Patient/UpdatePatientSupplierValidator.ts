@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 import { TutorResidences } from 'App/Models/PatientTutor';
 
 export default class UpdatePatientSupplierValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     name: schema.string({}),
@@ -31,6 +31,13 @@ export default class UpdatePatientSupplierValidator {
     state: schema.string.optional({}, []),
     cityCode: schema.string.optional({}),
     active: schema.boolean(),
+
+    accountPlanId: schema.string.optional({}, [
+      rules.exists({
+        column: 'id',
+        table: 'account_plans',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

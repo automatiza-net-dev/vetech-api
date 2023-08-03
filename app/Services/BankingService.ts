@@ -64,7 +64,11 @@ export default class BankingService {
 
     qb.preload('checkingAccount')
       .preload('paymentMethod')
-      .preload('client')
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      })
       .preload('accountPlan');
 
     return qb;

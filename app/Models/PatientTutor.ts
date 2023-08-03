@@ -12,6 +12,7 @@ import Profession from 'App/Models/Profession';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import AccountPlan from './AccountPlan';
 
 export const TutorResidences = [
   'CASA',
@@ -142,4 +143,15 @@ export default class PatientTutor extends BaseModel {
     foreignKey: 'profession_id',
   })
   public profession: BelongsTo<typeof Profession>;
+
+  @column({
+    serializeAs: null,
+  })
+  public account_plan_id: string;
+
+  @belongsTo(() => AccountPlan, {
+    localKey: 'id',
+    foreignKey: 'account_plan_id',
+  })
+  public accountPlan: BelongsTo<typeof AccountPlan>;
 }

@@ -139,7 +139,9 @@ export default class FinanceService {
     }
 
     qb.preload('client', query => {
-      query.preload('tutor');
+      query.preload('tutor', query => {
+        query.preload('accountPlan');
+      });
     })
       .preload('paymentMethod')
       .preload('accountPlan')
@@ -714,7 +716,11 @@ export default class FinanceService {
       ])
       .whereNull('payment_date')
       .preload('paymentMethod')
-      .preload('client');
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      });
 
     return finances.map(elem => ({
       id: elem.id,
@@ -728,6 +734,13 @@ export default class FinanceService {
       supplier: {
         id: elem.client.id,
         name: elem.client.name,
+        accountPlan: this.sharedService.captureGroup(
+          elem.client?.tutor?.accountPlan,
+          v => ({
+            id: v.id,
+            description: v.description,
+          }),
+        ),
       },
     }));
   }
@@ -746,7 +759,11 @@ export default class FinanceService {
       ])
       .whereNull('payment_date')
       .preload('paymentMethod')
-      .preload('client');
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      });
 
     return finances.map(elem => ({
       id: elem.id,
@@ -760,6 +777,13 @@ export default class FinanceService {
       supplier: {
         id: elem.client.id,
         name: elem.client.name,
+        accountPlan: this.sharedService.captureGroup(
+          elem.client?.tutor?.accountPlan,
+          v => ({
+            id: v.id,
+            description: v.description,
+          }),
+        ),
       },
     }));
   }

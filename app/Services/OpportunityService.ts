@@ -630,7 +630,7 @@ export default class OpportunityService {
       await activity
         .merge({
           execution_user_id: authCtx.user.id,
-          executionDate: DateTime.now(),
+          executedDate: DateTime.now(),
           observation: data.observation,
           status: 'Executada',
         })

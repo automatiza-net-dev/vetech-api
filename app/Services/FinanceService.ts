@@ -817,6 +817,7 @@ export default class FinanceService {
       salesTotal: this.parseDecimal(elem.salesTotal),
       receiptsTotal: this.parseDecimal(elem.receiptsTotal),
       cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
 
       userWhoOpened: {
         id: elem.userWhoOpened.id,
@@ -839,6 +840,8 @@ export default class FinanceService {
       salesTotal: this.parseDecimal(elem.salesTotal),
       receiptsTotal: this.parseDecimal(elem.receiptsTotal),
       cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
+      closingDate: elem.closingDate,
 
       userWhoClosed: {
         id: elem.userWhoClosed.id,
@@ -861,6 +864,9 @@ export default class FinanceService {
       salesTotal: this.parseDecimal(elem.salesTotal),
       receiptsTotal: this.parseDecimal(elem.receiptsTotal),
       cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
+      closingDate: elem.closingDate,
+      revisionDate: elem.revisionDate,
 
       userWhoRevised: {
         id: elem.userWhoRevised.id,
@@ -884,6 +890,9 @@ export default class FinanceService {
       id: elem.id,
       tag: elem.tag,
       openingDate: elem.openingDate,
+      closingDate: elem.closingDate,
+      revisionDate: elem.revisionDate,
+
       openingBalance: this.parseDecimal(elem.openingBalance),
       cashierFunds: this.parseDecimal(elem.cashierFunds),
       salesTotal: this.parseDecimal(elem.salesTotal),

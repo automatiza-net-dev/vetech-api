@@ -812,12 +812,11 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
 
       userWhoOpened: {
         id: elem.userWhoOpened.id,
@@ -835,12 +834,11 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
 
       userWhoClosed: {
         id: elem.userWhoClosed.id,
@@ -858,12 +856,11 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
 
       userWhoRevised: {
         id: elem.userWhoRevised.id,
@@ -887,11 +884,11 @@ export default class FinanceService {
       id: elem.id,
       tag: elem.tag,
       openingDate: elem.openingDate,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
 
       openingUser: {
         id: elem.userWhoOpened.id,
@@ -982,5 +979,11 @@ export default class FinanceService {
         total: fifth.sum ?? 0,
       },
     ];
+  }
+
+  private parseDecimal(value: string | number) {
+    if (!value) return null;
+
+    return parseFloat(value as string);
   }
 }

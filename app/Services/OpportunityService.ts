@@ -75,9 +75,12 @@ export default class OpportunityService {
         query.preload('tutor');
       })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
       .preload('status')
       .preload('user')
-      .preload('unit');
+      .preload('unit')
+      .preload('clientOrigin');
 
     if (data.unit) {
       qb.where('business_unit_id', data.unit);
@@ -136,9 +139,15 @@ export default class OpportunityService {
       openingDate: elem.openingDate,
       contactDate: elem.contactDate,
       value: elem.value,
+      description: elem.description,
+      observation: elem.observation,
+
       status: elem.status,
       contact: elem.contact,
+      contactType: elem.contactType,
+      contactSubject: elem.contactSubject,
       client: elem.client,
+      clientOrigin: elem.clientOrigin,
       user: {
         id: elem.user.id,
         name: elem.user.name,

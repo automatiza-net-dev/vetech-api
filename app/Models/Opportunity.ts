@@ -12,6 +12,9 @@ import OpportunityActivity from 'App/Models/OpportunityActivity';
 import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
+import ClientOrigin from './ClientOrigin';
+import ContactSubject from './ContactSubject';
+import ContactType from './ContactType';
 
 export default class Opportunity extends BaseModel {
   @column({ isPrimary: true })
@@ -115,6 +118,11 @@ export default class Opportunity extends BaseModel {
   })
   public client_origin_id: string;
 
+  @belongsTo(() => ClientOrigin, {
+    foreignKey: 'client_origin_id',
+  })
+  public clientOrigin: BelongsTo<typeof ClientOrigin>;
+
   @column({
     serializeAs: null,
   })
@@ -140,10 +148,20 @@ export default class Opportunity extends BaseModel {
   })
   public contact_type_id: number;
 
+  @belongsTo(() => ContactType, {
+    foreignKey: 'contact_type_id',
+  })
+  public contactType: BelongsTo<typeof ContactType>;
+
   @column({
     serializeAs: null,
   })
   public contact_subject_id: number;
+
+  @belongsTo(() => ContactSubject, {
+    foreignKey: 'contact_subject_id',
+  })
+  public contactSubject: BelongsTo<typeof ContactSubject>;
 
   @column({
     serializeAs: null,

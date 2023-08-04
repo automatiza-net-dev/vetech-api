@@ -151,7 +151,6 @@ test.group('Opportunity resource', group => {
 
     const response = await props.client
       .get(`/opportunities/search?${params.toString()}`)
-
       .bearerToken(token);
 
     props.assert.equal(response.status(), 200);

@@ -162,7 +162,7 @@ export default class FinancesController {
   }
 
   async expiringPayments({ auth, response }: HttpContextContract) {
-    const result = await this.service.getExpiringExpenses(
+    const result = await this.service.getExpiringPayments(
       await this.sharedService.getAuthContext(auth),
     );
 

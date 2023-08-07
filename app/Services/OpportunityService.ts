@@ -19,6 +19,9 @@ export default class OpportunityService {
         query.preload('tutor');
       })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
+      .preload('clientOrigin')
       .preload('status')
       .preload('user')
       .preload('unit')
@@ -38,9 +41,14 @@ export default class OpportunityService {
       openingDate: result.openingDate,
       contactDate: result.contactDate,
       value: result.value,
+
       status: result.status,
       contact: result.contact,
+      contactType: result.contactType,
+      contactSubject: result.contactSubject,
       client: result.client,
+      clientOrigin: result.clientOrigin,
+
       user: {
         id: result.user.id,
         name: result.user.name,
@@ -148,6 +156,7 @@ export default class OpportunityService {
       contactSubject: elem.contactSubject,
       client: elem.client,
       clientOrigin: elem.clientOrigin,
+
       user: {
         id: elem.user.id,
         name: elem.user.name,
@@ -277,14 +286,20 @@ export default class OpportunityService {
   ) {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
-      .preload('client')
+      .preload('client', query => {
+        query.preload('tutor');
+      })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
+      .preload('clientOrigin')
       .preload('status')
       .preload('user')
       .preload('unit')
       .preload('activities', query => {
         query.where('status', 'Aberta');
 
+        query.preload('executionUser');
         query.preload('activity');
         query.preload('openingUser');
       });
@@ -330,14 +345,12 @@ export default class OpportunityService {
         id: op.id,
         openingDate: op.openingDate,
         value: op.value,
-        contact: {
-          id: op.contact.id,
-          name: op.contact.name,
-        },
-        client: {
-          id: op.client.id,
-          name: op.client.name,
-        },
+        status: op.status,
+        contact: op.contact,
+        contactType: op.contactType,
+        contactSubject: op.contactSubject,
+        client: op.client,
+        clientOrigin: op.clientOrigin,
         user: {
           id: op.user.id,
           name: op.user.name,
@@ -347,6 +360,7 @@ export default class OpportunityService {
           companyName: op.unit.companyName,
           fantasyName: op.unit.fantasyName,
         },
+
         activities: op.activities.map(elem => ({
           id: elem.id,
           description: elem.description,
@@ -354,12 +368,10 @@ export default class OpportunityService {
           duration: elem.duration,
           status: elem.status,
           activity: elem.activity,
-          user: elem.openingUser
-            ? {
-                id: elem.openingUser.id,
-                name: elem.openingUser.name,
-              }
-            : null,
+          user: this.sharedService.captureGroup(elem.openingUser, v => ({
+            id: v.id,
+            name: v.name,
+          })),
         })),
       });
       // statusMap.set(op.status.description, updatedData);

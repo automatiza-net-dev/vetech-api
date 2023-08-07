@@ -236,6 +236,7 @@ export default class OpportunityService {
     return result.map(elem => ({
       id: elem.id,
       issueDate: elem.issueDate,
+      duration: elem.duration,
       executionDate: elem.executionDate,
       executedDate: elem.executedDate,
       description: elem.description,

@@ -345,6 +345,9 @@ export default class OpportunityService {
         id: op.id,
         openingDate: op.openingDate,
         value: op.value,
+        description: op.description,
+        observation: op.observation,
+
         status: op.status,
         contact: op.contact,
         contactType: op.contactType,

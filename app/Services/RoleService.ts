@@ -278,6 +278,7 @@ export default class RoleService {
         id: elem.id,
         name: elem.name,
         active: elem.active,
+        externalAccess: elem.externalAccess,
         profiles: elem.accesses.map(access => ({
           id: access.profile.id,
           description: access.profile.description,

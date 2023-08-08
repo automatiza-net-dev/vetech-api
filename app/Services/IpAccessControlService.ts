@@ -7,7 +7,7 @@ import { AuthContext } from 'App/Services/SharedService';
 export default class IpAccessControlService {
   constructor() {}
 
-  public async index(authCtx: AuthContext) {
+  public async index(authCtx: AuthContext, data: { term?: string }) {
     return IpAccessControl.query()
       .preload('user', query => {
         query.select(['id', 'name', 'email']);
@@ -16,7 +16,8 @@ export default class IpAccessControlService {
         query.select(['id', 'identification']);
       })
       .where('business_unit_id', authCtx.unit.id)
-      .where('active', true);
+      .where('active', true)
+      .whereILike('ip_address', `%${data.term ?? ''}%`);
   }
 
   public async store(

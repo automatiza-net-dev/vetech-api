@@ -41,6 +41,8 @@ export default class OpportunityService {
       openingDate: result.openingDate,
       contactDate: result.contactDate,
       value: result.value,
+      description: result.description,
+      observation: result.observation,
 
       status: result.status,
       contact: result.contact,

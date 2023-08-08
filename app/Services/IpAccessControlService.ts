@@ -46,6 +46,7 @@ export default class IpAccessControlService {
     }
 
     const [count] = await IpAccessControl.query()
+      .debug(true)
       .where('ip_address', ip)
       .where('business_unit_id', props.unit)
       .where('active', true)

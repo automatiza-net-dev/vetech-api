@@ -83,7 +83,7 @@ export default class AuthService {
         const canAccess = await this.ipService.checkAccess(
           {
             role: contextRole,
-            group: unit.economicGroupId,
+            unit: unit.id,
             user: user.id,
           },
           reqIp,
@@ -156,7 +156,7 @@ export default class AuthService {
       const canAccess = await this.ipService.checkAccess(
         {
           role: contextRole,
-          group: unit.economicGroupId,
+          unit: unit.id,
           user: user.id,
         },
         reqIp,

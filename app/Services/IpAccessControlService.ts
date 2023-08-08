@@ -7,6 +7,18 @@ import { AuthContext } from 'App/Services/SharedService';
 export default class IpAccessControlService {
   constructor() {}
 
+  public async index(authCtx: AuthContext) {
+    return IpAccessControl.query()
+      .preload('user', query => {
+        query.select(['id', 'name', 'email']);
+      })
+      .preload('unit', query => {
+        query.select(['id', 'identification']);
+      })
+      .where('business_unit_id', authCtx.unit.id)
+      .where('active', true);
+  }
+
   public async store(
     authCtx: AuthContext,
     data: {
@@ -14,7 +26,7 @@ export default class IpAccessControlService {
     },
   ) {
     await IpAccessControl.create({
-      economic_group_id: authCtx.group.id,
+      business_unit_id: authCtx.unit.id,
       user_id: authCtx.user.id,
 
       ipAddress: data.ipAddress,
@@ -24,7 +36,7 @@ export default class IpAccessControlService {
   public async checkAccess(
     props: {
       role: Role;
-      group: string;
+      unit: string;
       user: string;
     },
     ip: string,
@@ -35,7 +47,7 @@ export default class IpAccessControlService {
 
     const [count] = await IpAccessControl.query()
       .where('ip_address', ip)
-      .where('economic_group_id', props.group)
+      .where('business_unit_id', props.unit)
       .where('active', true)
       .count('id');
 
@@ -43,7 +55,7 @@ export default class IpAccessControlService {
       console.log(
         'IpAccessControlService.checkAccess: ',
         ip,
-        props.group,
+        props.unit,
         count,
       );
       return false;

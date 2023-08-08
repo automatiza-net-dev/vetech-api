@@ -1,6 +1,7 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 import User from 'App/Models/User';
+import BusinessUnit from './BusinessUnit';
 
 export default class IpAccessControl extends BaseModel {
   @column({ isPrimary: true })
@@ -20,7 +21,13 @@ export default class IpAccessControl extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public economic_group_id: string;
+  public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+    localKey: 'id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

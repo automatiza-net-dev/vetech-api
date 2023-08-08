@@ -1285,6 +1285,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/search', 'IpAccessControlsController.index');
   Route.post('/store', 'IpAccessControlsController.store');
 })
   .prefix('ip-access')

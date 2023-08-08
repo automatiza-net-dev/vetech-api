@@ -34,6 +34,7 @@ test.group('Role resource', group => {
       system_id: system.id,
       economic_group_id: group.id,
       type: 'system',
+      externalAccess: true,
     });
 
     await role.related('permissions').attach([permission.id]);
@@ -64,8 +65,6 @@ test.group('Role resource', group => {
 
     const response = await client.get(`/roles/${role.id}`).bearerToken(token);
 
-    console.log(JSON.stringify(response.body(), null, 2));
-
     assert.equal(200, response.status());
   });
 
@@ -89,10 +88,7 @@ test.group('Role resource', group => {
     );
   });
 
-  test('=============================================== should create a new role', async ({
-    client,
-    assert,
-  }) => {
+  test('should create a new role', async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -104,6 +100,7 @@ test.group('Role resource', group => {
       .json({
         name: v4(),
         type: 'system',
+        externalAccess: false,
       })
       .bearerToken(token);
 
@@ -122,6 +119,7 @@ test.group('Role resource', group => {
       .json({
         name: v4(),
         type: 'system',
+        externalAccess: false,
         active: true,
       })
       .bearerToken(token);

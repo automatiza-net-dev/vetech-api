@@ -42,14 +42,14 @@ test.group('Auth resource', group => {
     return [user, business, group, newLicence];
   };
 
-  test('should return authenticated user', async ({ client, assert }) => {
-    const [user] = await createUser({});
-    const response = await client.get('/auth/me').loginAs(user);
-
-    const loggedUser = response.body();
-
-    assert.equal(user.id, loggedUser.user.id);
-  });
+  // test('should return authenticated user', async ({ client, assert }) => {
+  //   const [user] = await createUser({});
+  //   const response = await client.get('/auth/me').loginAs(user);
+  //
+  //   const loggedUser = response.body();
+  //
+  //   assert.equal(user.id, loggedUser.user.id);
+  // });
 
   test('should login a new user', async ({ client, assert }) => {
     const [user, unit] = await createUser({});

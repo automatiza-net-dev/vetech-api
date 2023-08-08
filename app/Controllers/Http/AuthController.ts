@@ -21,7 +21,7 @@ export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(LoginValidator);
 
-    const result = await this.authService.login(payload, auth);
+    const result = await this.authService.login(payload, auth, request.ip());
 
     return response.ok(result);
   }

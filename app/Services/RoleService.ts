@@ -49,6 +49,7 @@ export default class RoleService {
           type: 'system',
           system_id: authCtx.system.id,
           economic_group_id: authCtx.group.id,
+          externalAccess: data.externalAccess,
         },
         {
           client: trx,
@@ -83,6 +84,7 @@ export default class RoleService {
       id: role.id,
       name: role.name,
       type: role.type,
+      externalAccess: role.externalAccess,
     };
   }
 
@@ -108,6 +110,7 @@ export default class RoleService {
     return role
       .merge({
         name: data.name,
+        externalAccess: data.externalAccess,
         active: data.active,
       })
       .save();

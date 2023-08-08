@@ -6,6 +6,7 @@ export default class CreateRoleValidator {
 
   public schema = schema.create({
     name: schema.string({}, []),
+    externalAccess: schema.boolean(),
   });
 
   public messages: CustomMessages = {};

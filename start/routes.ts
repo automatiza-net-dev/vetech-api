@@ -1283,3 +1283,9 @@ Route.group(() => {
 })
   .prefix('reports')
   .middleware('auth');
+
+Route.group(() => {
+  Route.post('/store', 'IpAccessControlsController.store');
+})
+  .prefix('ip-access')
+  .middleware('auth');

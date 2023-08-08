@@ -10,12 +10,13 @@ import System from 'App/Models/System';
 import User from 'App/Models/User';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
+import IpAccessControlService from 'App/Services/IpAccessControlService';
 
 @inject()
 export default class AuthService {
-  // constructor(private readonly businessUnitService: BusinessUnitService) {}
+  constructor(private readonly ipService: IpAccessControlService) {}
 
-  public async login(data: ILoginData, auth: AuthContract) {
+  public async login(data: ILoginData, auth: AuthContract, reqIp: string) {
     return Database.transaction(async trx => {
       const system = await System.query()
         .useTransaction(trx)
@@ -47,6 +48,7 @@ export default class AuthService {
       const roles = await user
         .related('roles')
         .query()
+        .preload('role')
         .preload('unit', query => {
           query.whereHas('economicGroup', query => {
             query.where('system_id', system.id);
@@ -67,14 +69,32 @@ export default class AuthService {
         .map(r => r.unit)
         .filter(u => u !== null) as BusinessUnit[];
 
+      const contextRole = roles.find(r => Boolean(r.role))?.role;
+      if (!contextRole) {
+        throw new BadRequestException(
+          'Cargo não encontrado',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
       if (validUnits.length === 1) {
         const [unit] = validUnits;
-
-        // const status = await this.checkLicence(unit);
-
-        // if (status) {
-        //   throw new BadRequestException('Erro', 400, status);
-        // }
+        const canAccess = await this.ipService.checkAccess(
+          {
+            role: contextRole,
+            group: unit.economicGroupId,
+            user: user.id,
+          },
+          reqIp,
+        );
+        if (!canAccess) {
+          throw new BadRequestException(
+            'Acesso não permitido para o IP informado',
+            400,
+            'E_IP_NOT_ALLOWED',
+          );
+        }
 
         return auth.use('api').generate(user, {
           expiresIn: '7d',
@@ -130,6 +150,22 @@ export default class AuthService {
           'Credenciais inválidas',
           400,
           'E_BAD_CREDENTIALS',
+        );
+      }
+
+      const canAccess = await this.ipService.checkAccess(
+        {
+          role: contextRole,
+          group: unit.economicGroupId,
+          user: user.id,
+        },
+        reqIp,
+      );
+      if (!canAccess) {
+        throw new BadRequestException(
+          'Acesso não permitido para o IP informado',
+          400,
+          'E_IP_NOT_ALLOWED',
         );
       }
 

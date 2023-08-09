@@ -23,7 +23,11 @@ export default class AuthController {
 
     const payload = await request.validate(LoginValidator);
 
-    const result = await this.authService.login(payload, auth, request.ip());
+    const result = await this.authService.login(
+      payload,
+      auth,
+      payload.ipAddress,
+    );
 
     return response.ok(result);
   }

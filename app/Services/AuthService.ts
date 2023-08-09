@@ -16,7 +16,7 @@ import IpAccessControlService from 'App/Services/IpAccessControlService';
 export default class AuthService {
   constructor(private readonly ipService: IpAccessControlService) {}
 
-  public async login(data: ILoginData, auth: AuthContract, reqIp: string) {
+  public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {
     return Database.transaction(async trx => {
       const system = await System.query()
         .useTransaction(trx)
@@ -80,20 +80,22 @@ export default class AuthService {
 
       if (validUnits.length === 1) {
         const [unit] = validUnits;
-        const canAccess = await this.ipService.checkAccess(
-          {
-            role: contextRole,
-            unit: unit.id,
-            user: user.id,
-          },
-          reqIp,
-        );
-        if (!canAccess) {
-          throw new BadRequestException(
-            'Acesso não permitido para o IP informado',
-            400,
-            'E_IP_NOT_ALLOWED',
+        if (reqIp) {
+          const canAccess = await this.ipService.checkAccess(
+            {
+              role: contextRole,
+              unit: unit.id,
+              user: user.id,
+            },
+            reqIp,
           );
+          if (!canAccess) {
+            throw new BadRequestException(
+              'Acesso não permitido para o IP informado',
+              400,
+              'E_IP_NOT_ALLOWED',
+            );
+          }
         }
 
         return auth.use('api').generate(user, {
@@ -153,22 +155,23 @@ export default class AuthService {
         );
       }
 
-      const canAccess = await this.ipService.checkAccess(
-        {
-          role: contextRole,
-          unit: unit.id,
-          user: user.id,
-        },
-        reqIp,
-      );
-      if (!canAccess) {
-        throw new BadRequestException(
-          'Acesso não permitido para o IP informado',
-          400,
-          'E_IP_NOT_ALLOWED',
+      if (reqIp) {
+        const canAccess = await this.ipService.checkAccess(
+          {
+            role: contextRole,
+            unit: unit.id,
+            user: user.id,
+          },
+          reqIp,
         );
+        if (!canAccess) {
+          throw new BadRequestException(
+            'Acesso não permitido para o IP informado',
+            400,
+            'E_IP_NOT_ALLOWED',
+          );
+        }
       }
-
       // const status = await this.checkLicence(unit);
 
       // if (status) {

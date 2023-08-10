@@ -12,6 +12,7 @@ import OpportunityActivity from 'App/Models/OpportunityActivity';
 import Patient from 'App/Models/Patient';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
+
 import ClientOrigin from './ClientOrigin';
 import ContactSubject from './ContactSubject';
 import ContactType from './ContactType';
@@ -34,6 +35,9 @@ export default class Opportunity extends BaseModel {
     columnName: 'contact_date',
   })
   public contactDate: DateTime;
+
+  @column({})
+  public balance: string;
 
   @column()
   public description: string;
@@ -166,7 +170,7 @@ export default class Opportunity extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public reason_id: number;
+  public reason_id: string;
 
   @hasMany(() => OpportunityActivity, {
     foreignKey: 'opportunity_id',

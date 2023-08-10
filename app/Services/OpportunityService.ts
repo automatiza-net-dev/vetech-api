@@ -496,6 +496,12 @@ export default class OpportunityService {
       userId: string;
       statusId: number;
       contactId: string;
+      clientId: string;
+      contactTypeId: number;
+      contactSubjectId: number;
+
+      contactDate: DateTime;
+      description: string;
       observation?: string;
       value: number;
       active: boolean;
@@ -511,17 +517,154 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
+      const result = await model
+        .merge({
+          user_id: data.userId,
+          client_id: data.clientId,
+          contact_id: data.contactId,
+          status_id: data.statusId,
+          contact_type_id: data.contactTypeId,
+          contact_subject_id: data.contactSubjectId,
+
+          contactDate: data.contactDate,
+          description: data.description,
+          observation: data.observation,
+          value: data.value,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async closeWinningOpportunity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      reasonId: string;
+      value: number;
+      observation?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await model
+        .merge({
+          reason_id: data.reasonId,
+          closing_user_id: authCtx.user.id,
+
+          closingDate: DateTime.now(),
+          balance: 'Ganho',
+          resultObservation: data.observation,
+          value: data.value,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async closeLoosingOpportunity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      reasonId: string;
+      observation?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await model
+        .merge({
+          reason_id: data.reasonId,
+          closing_user_id: authCtx.user.id,
+
+          closingDate: DateTime.now(),
+          balance: 'Perda',
+          resultObservation: data.observation,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async reopenOpportunity(authCtx: AuthContext, id: number) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
       await OpportunityLog.create(
         {
           opportunity_id: model.id,
+
           economic_group_id: authCtx.group.id,
           business_unit_id: model.business_unit_id,
           user_id: model.user_id,
-          opening_user_id: model.opening_user_id,
+          client_id: model.client_id,
+          contact_subject_id: model.contact_subject_id,
+          contact_type_id: model.contact_type_id,
           status_id: model.status_id,
           contact_id: model.contact_id,
+
+          balance: model.balance,
+          description: model.description,
+          observation: model.observation,
+          reason_id: model.reason_id,
+          profitValue: model.profitValue,
+          resultObservation: model.resultObservation,
           value: model.value,
+          contactDate: model.contactDate,
           openingDate: model.openingDate,
+          closingDate: model.closingDate,
         },
         {
           client: trx,
@@ -530,16 +673,125 @@ export default class OpportunityService {
 
       await model
         .merge({
-          business_unit_id: data.businessUnitId,
-          user_id: data.userId,
-          status_id: data.statusId,
-          contact_id: data.contactId,
-          observation: data.observation,
-          value: data.value,
-          active: data.active,
+          reason_id: undefined,
+          closing_user_id: undefined,
+
+          closingDate: undefined,
+          balance: undefined,
+          resultObservation: undefined,
         })
         .useTransaction(trx)
         .save();
+    });
+  }
+
+  public async updateStatus(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      statusId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await model
+        .merge({
+          status_id: data.statusId,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async updateUser(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      userId: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await model
+        .merge({
+          user_id: data.userId,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 

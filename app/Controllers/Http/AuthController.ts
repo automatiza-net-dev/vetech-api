@@ -19,7 +19,9 @@ export default class AuthController {
   ) {}
 
   public async login({ auth, request, response }: HttpContextContract) {
-    console.log(request.headers());
+    if (process.env.NODE_ENV === 'development') {
+      console.log(request.headers());
+    }
 
     const payload = await request.validate(LoginValidator);
 

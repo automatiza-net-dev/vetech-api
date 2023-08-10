@@ -3,9 +3,13 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import OpportunityService from 'App/Services/OpportunityService';
 import SharedService from 'App/Services/SharedService';
 import CancelOpportunityActivityValidator from 'App/Validators/Opportunity/CancelOpportunityActivityValidator';
+import CloseLoosingOpportunityValidator from 'App/Validators/Opportunity/CloseLoosingOpportunityValidator';
+import CloseWinningOpportunityValidator from 'App/Validators/Opportunity/CloseWinningOpportunityValidator';
 import CreateOpportunityActivityValidator from 'App/Validators/Opportunity/CreateOpportunityActivityValidator';
 import CreateOpportunityValidator from 'App/Validators/Opportunity/CreateOpportunityValidator';
 import UpdateOpportunityActivityValidator from 'App/Validators/Opportunity/UpdateOpportunityActivityValidator';
+import UpdateOpportunityStatusValidator from 'App/Validators/Opportunity/UpdateOpportunityStatusValidator';
+import UpdateOpportunityUserValidator from 'App/Validators/Opportunity/UpdateOpportunityUserValidator';
 import UpdateOpportunityValidator from 'App/Validators/Opportunity/UpdateOpportunityValidator';
 
 @inject()
@@ -87,6 +91,70 @@ export default class OpportunitiesController {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.update(authCtx, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async closeWinning({
+    request,
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const payload = await request.validate(CloseWinningOpportunityValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.closeWinningOpportunity(authCtx, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async closeLoosing({
+    request,
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const payload = await request.validate(CloseLoosingOpportunityValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.closeLoosingOpportunity(authCtx, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async reopen({ response, auth, params }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.reopenOpportunity(authCtx, params.id);
+
+    return response.noContent();
+  }
+
+  public async updateStatus({
+    request,
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateOpportunityStatusValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateStatus(authCtx, params.id, payload);
+
+    return response.noContent();
+  }
+
+  public async updateUser({
+    request,
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateOpportunityUserValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateUser(authCtx, params.id, payload);
 
     return response.noContent();
   }

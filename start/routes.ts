@@ -1155,6 +1155,12 @@ Route.group(() => {
     'OpportunitiesController.searchKanbanActivities',
   );
 
+  Route.post('/close-winning/:id', 'OpportunitiesController.closeWinning');
+  Route.post('/close-losing/:id', 'OpportunitiesController.closeLoosing');
+  Route.post('/reopen/:id', 'OpportunitiesController.reopen');
+  Route.post('/update-status/:id', 'OpportunitiesController.updateStatus');
+  Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
+
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
   Route.put('/:id', 'OpportunitiesController.update');

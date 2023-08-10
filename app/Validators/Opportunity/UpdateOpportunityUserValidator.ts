@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class UpdateOpportunityValidator {
+export default class UpdateOpportunityUserValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   /*
@@ -24,37 +24,10 @@ export default class UpdateOpportunityValidator {
    *    ```
    */
   public schema = schema.create({
-    businessUnitId: schema.string.optional([
-      rules.uuid(),
-      rules.exists({ table: 'business_units', column: 'id' }),
-    ]),
     userId: schema.string([
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
-    contactId: schema.string([
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
-    contactTypeId: schema.number([
-      rules.exists({ table: 'contact_types', column: 'id' }),
-    ]),
-    contactSubjectId: schema.number([
-      rules.exists({ table: 'contact_subjects', column: 'id' }),
-    ]),
-    statusId: schema.number([
-      rules.exists({ table: 'crm_statuses', column: 'id' }),
-    ]),
-    clientId: schema.string([
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
-
-    contactDate: schema.date(),
-    description: schema.string(),
-    observation: schema.string.optional(),
-    value: schema.number(),
-    active: schema.boolean(),
   });
 
   /**

@@ -705,17 +705,13 @@ export default class FinanceService {
   }
 
   async getExpiringExpenses(authCtx: AuthContext) {
-    const today = DateTime.now();
-
     const finances = await Finance.query()
+      .debug(true)
       .where('economic_group_id', authCtx.group.id)
       .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
-      .whereBetween('expiration_date', [
-        today.startOf('day').toISO() ?? '',
-        today.endOf('day').toISO() ?? '',
-      ])
+      .whereRaw('expiration_date::date = now()::date', [])
       .whereNull('payment_date')
       .preload('paymentMethod')
       .preload('client', query => {
@@ -724,27 +720,45 @@ export default class FinanceService {
         });
       });
 
-    return finances.map(elem => ({
-      id: elem.id,
-      document: elem.document,
-      installment: elem.installment,
-      paymentMethod: {
-        id: elem.paymentMethod.id,
-        description: elem.paymentMethod.description,
-      },
-      totalValue: elem.totalValue,
-      supplier: {
-        id: elem.client.id,
-        name: elem.client.name,
-        accountPlan: this.sharedService.captureGroup(
-          elem.client?.tutor?.accountPlan,
-          v => ({
-            id: v.id,
-            description: v.description,
-          }),
-        ),
-      },
+    const dataSet = new Map<string, { value: number }>();
+    finances.forEach(elem => {
+      const key = elem.client_id;
+      if (!dataSet.has(key)) {
+        dataSet.set(key, { value: 0 });
+      }
+
+      const entry = dataSet.get(key)!;
+      entry.value += elem.totalValue;
+
+      dataSet.set(key, entry);
+    });
+
+    return Array.from(dataSet.keys()).map(elem => ({
+      supplier: finances.find(e => e.client_id === elem)?.client?.name ?? '',
+      value: dataSet.get(elem)?.value ?? 0,
     }));
+
+    // return finances.map(elem => ({
+    //   id: elem.id,
+    //   document: elem.document,
+    //   installment: elem.installment,
+    //   paymentMethod: {
+    //     id: elem.paymentMethod.id,
+    //     description: elem.paymentMethod.description,
+    //   },
+    //   totalValue: elem.totalValue,
+    //   supplier: {
+    //     id: elem.client.id,
+    //     name: elem.client.name,
+    //     accountPlan: this.sharedService.captureGroup(
+    //       elem.client?.tutor?.accountPlan,
+    //       v => ({
+    //         id: v.id,
+    //         description: v.description,
+    //       }),
+    //     ),
+    //   },
+    // }));
   }
 
   async getExpiringPayments(authCtx: AuthContext) {
@@ -909,59 +923,51 @@ export default class FinanceService {
   async getOverallResume(authCtx: AuthContext) {
     // 1.8.1.1
     const first = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where(
-        'expiration_date',
-        '<',
-        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
-      )
+      .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.2
     const second = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.C)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where(
-        'expiration_date',
-        '<',
-        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
-      )
+      .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.3
     const third = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.4
     const fourth = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.C)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.5
     const fifth = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .whereNull('deleted_at')
       .sum('total_value')
       .first();

@@ -706,7 +706,6 @@ export default class FinanceService {
 
   async getExpiringExpenses(authCtx: AuthContext) {
     const finances = await Finance.query()
-      .debug(true)
       .where('economic_group_id', authCtx.group.id)
       .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
@@ -806,7 +805,7 @@ export default class FinanceService {
 
   async getCheckingAccountsResume(authCtx: AuthContext) {
     const result = await CheckingAccount.query()
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('active', true);
 
     return result.map(elem => ({
@@ -966,10 +965,9 @@ export default class FinanceService {
       .first();
 
     // 1.8.1.5
-    const fifth = await Database.from('finances')
+    const fifth = await Database.from('checking_accounts')
       .where('business_unit_id', authCtx.unit.id)
-      .whereNull('deleted_at')
-      .sum('total_value')
+      .andWhereNull('deleted_at')
       .first();
 
     return [
@@ -991,7 +989,7 @@ export default class FinanceService {
       },
       {
         type: 'ContasCorrentes',
-        total: fifth.sum ?? 0,
+        total: this.parseDecimal(fifth.balance) ?? 0,
       },
     ];
   }

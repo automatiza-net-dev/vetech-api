@@ -910,6 +910,7 @@ Route.group(() => {
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
 
+  Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');
   Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');

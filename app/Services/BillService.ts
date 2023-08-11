@@ -1109,6 +1109,42 @@ export default class BillService {
     });
   }
 
+  async excludeBill(ctx: AuthContext, id: string) {
+    await Database.transaction(async trx => {
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('economic_group_id', ctx.group.id)
+        .where('id', id)
+        .preload('payments')
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (bill.status === BillStatus.EX) {
+        throw new BadRequestException('Venda já excluída', 400, 'E_ERR');
+      }
+
+      if (bill.payments.length > 0) {
+        throw new BadRequestException(
+          'Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await bill
+        .merge({
+          exclusion_user_id: ctx.user.id,
+          deletedAt: DateTime.now(),
+          status: BillStatus.EX,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   async reopenBill(unitId: string, _: User, id: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 

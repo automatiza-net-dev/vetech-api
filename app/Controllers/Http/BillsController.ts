@@ -190,6 +190,14 @@ export default class BillsController {
     return response.ok(result);
   }
 
+  public async excludeBill({ params, auth, response }: HttpContextContract) {
+    await this.service.excludeBill(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+    return response.noContent();
+  }
+
   public async closeBill({ params, auth, response }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 

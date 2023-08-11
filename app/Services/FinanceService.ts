@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Attendance from 'App/Models/Attendance';
 import Banking, {
   BankingOriginFlag,
   BankingStatus,
@@ -992,6 +993,41 @@ export default class FinanceService {
         total: this.parseDecimal(fifth.balance) ?? 0,
       },
     ];
+  }
+
+  async getOpenAttendances(authCtx: AuthContext) {
+    const result = await Attendance.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereNull('end_date')
+      .preload('tutor')
+      .preload('patient')
+      .preload('openUser')
+      .preload('scheduleService')
+      .orderBy('start_date', 'desc');
+
+    return result.map(elem => ({
+      id: elem.id,
+      scheduleId: elem.schedule_id,
+      tutor: this.sharedService.captureGroup(elem.tutor, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      patient: this.sharedService.captureGroup(elem.patient, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      openUser: this.sharedService.captureGroup(elem.openUser, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      scheduleService: this.sharedService.captureGroup(
+        elem.scheduleService,
+        v => ({
+          id: v.id,
+          description: v.description,
+        }),
+      ),
+    }));
   }
 
   private parseDecimal(value: string | number) {

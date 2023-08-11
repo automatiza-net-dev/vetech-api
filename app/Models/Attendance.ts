@@ -9,6 +9,8 @@ import {
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import Patient from './Patient';
+import User from './User';
 
 export default class Attendance extends BaseModel {
   @column({ isPrimary: true })
@@ -75,6 +77,11 @@ export default class Attendance extends BaseModel {
   })
   public open_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'open_user_id',
+  })
+  public openUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
@@ -90,8 +97,18 @@ export default class Attendance extends BaseModel {
   })
   public tutor_id: string;
 
+  @belongsTo(() => Patient, {
+    foreignKey: 'tutor_id',
+  })
+  public tutor: BelongsTo<typeof Patient>;
+
   @column({
     serializeAs: null,
   })
   public patient_id: string;
+
+  @belongsTo(() => Patient, {
+    foreignKey: 'patient_id',
+  })
+  public patient: BelongsTo<typeof Patient>;
 }

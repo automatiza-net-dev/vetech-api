@@ -834,6 +834,7 @@ Route.group(() => {
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
   Route.delete('/delete/:id', 'FinancesController.deleteFinance');
 
+  Route.get('/open-attendances', 'FinancesController.openAttendances');
   Route.get('/expiring-expenses', 'FinancesController.expiringExpenses');
   Route.get('/expiring-payments', 'FinancesController.expiringPayments');
   Route.get(

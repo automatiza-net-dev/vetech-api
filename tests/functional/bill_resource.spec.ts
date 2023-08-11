@@ -989,6 +989,39 @@ test.group('Bill resource', group => {
     assert.equal(204, response.status());
   });
 
+  test('should return BadRequestException if bill is not fully paid when excluding', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/exclude-bill/${bill.id}`)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should exclude bill', async ({ assert, client }) => {
+    const { user, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await bill.related('payments').query().delete();
+
+    const response = await client
+      .put(`/bills/exclude-bill/${bill.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   test('should return NotFoundException if no bill was found when reopening', async ({
     assert,
     client,

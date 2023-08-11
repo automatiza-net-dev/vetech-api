@@ -1,5 +1,13 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+} from '@ioc:Adonis/Lucid/Orm';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
 export default class Attendance extends BaseModel {
@@ -23,6 +31,19 @@ export default class Attendance extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
+
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
+
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
+
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 
   @column({
     serializeAs: null,
@@ -58,6 +79,11 @@ export default class Attendance extends BaseModel {
     serializeAs: null,
   })
   public close_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public exclusion_user_id: string;
 
   @column({
     serializeAs: null,

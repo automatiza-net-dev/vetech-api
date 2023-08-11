@@ -36,11 +36,12 @@ import { v4 } from 'uuid';
 
 import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
 import { AuthContext } from 'App/Services/SharedService';
+import Attendance from 'App/Models/Attendance';
 
 @inject()
 export default class TimelineService {
   public async softDeleteRecord(authCtx: AuthContext, id: string) {
-    const res = await AnimalTimeline.updateOne(
+    const res = await AnimalTimeline.findOneAndUpdate(
       {
         _id: id,
         'timeline_type.description': {
@@ -51,7 +52,6 @@ export default class TimelineService {
             'Observação',
             'Patologia',
             'Formato Receita Médica',
-            authCtx.system.name === 'Sanclá' && 'Consulta',
             authCtx.system.name === 'LiftOne' && 'Avaliação',
           ].filter(Boolean),
         },
@@ -67,13 +67,21 @@ export default class TimelineService {
       },
     );
 
-    if (res.modifiedCount === 0) {
+    if (!res) {
       throw new BadRequestException(
         'Nenhum registro encontrado',
         400,
         'E_NOT_FOUND',
       );
     }
+
+    await Attendance.query()
+      // @ts-ignore
+      .where('id', res.timeline_info?.attendance?.id ?? v4())
+      .update({
+        exclusion_user_id: authCtx.user.id,
+        deleted_at: DateTime.now(),
+      });
   }
 
   public async all(tag: string) {

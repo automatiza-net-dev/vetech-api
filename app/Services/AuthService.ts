@@ -16,6 +16,52 @@ import IpAccessControlService from 'App/Services/IpAccessControlService';
 export default class AuthService {
   constructor(private readonly ipService: IpAccessControlService) {}
 
+  public async getRoles(user: User, sID: number) {
+    if (!user.type) {
+      throw new BadRequestException('Usuário sem tipo', 400, 'E_NO_TYPE');
+    }
+
+    const qb = user
+      .related('roles')
+      .query()
+      .preload('role')
+      .preload('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', sID);
+        });
+
+        query.where('active', true);
+      })
+      .whereHas('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', sID);
+        });
+
+        query.where('active', true);
+      })
+      .where('active', true);
+
+    if (user.type === 'user') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['user', 'both']);
+      });
+    }
+
+    if (user.type === 'controller') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['controller', 'both']);
+      });
+    }
+
+    if (user.type === 'system') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['system']);
+      });
+    }
+
+    return qb;
+  }
+
   public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {
     return Database.transaction(async trx => {
       const system = await System.query()
@@ -45,25 +91,7 @@ export default class AuthService {
         );
       }
 
-      const roles = await user
-        .related('roles')
-        .query()
-        .preload('role')
-        .preload('unit', query => {
-          query.whereHas('economicGroup', query => {
-            query.where('system_id', system.id);
-          });
-
-          query.where('active', true);
-        })
-        .whereHas('unit', query => {
-          query.whereHas('economicGroup', query => {
-            query.where('system_id', system.id);
-          });
-
-          query.where('active', true);
-        })
-        .where('active', true);
+      const roles = await this.getRoles(user, system.id);
 
       const validUnits = roles
         .map(r => r.unit)

@@ -21,6 +21,9 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
+export const UserType = ['system', 'controller', 'user', 'both'] as const;
+export type TUserType = typeof UserType[number];
+
 export default class User extends BaseModel {
   @column({ isPrimary: true })
   public id: string;
@@ -33,6 +36,9 @@ export default class User extends BaseModel {
 
   @column({ serializeAs: null })
   public password: string;
+
+  @column()
+  public type: TUserType;
 
   @column()
   public document?: string;

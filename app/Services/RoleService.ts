@@ -23,7 +23,7 @@ export default class RoleService {
     const qb = Role.query()
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
-      .where('type', 'system');
+      .where('type', 'user');
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -46,7 +46,7 @@ export default class RoleService {
       const newRole = await Role.create(
         {
           name: data.name,
-          type: 'system',
+          type: 'user',
           system_id: authCtx.system.id,
           economic_group_id: authCtx.group.id,
           externalAccess: data.externalAccess,

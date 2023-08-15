@@ -1,6 +1,5 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import AuthService from 'App/Services/AuthService';
 import SharedService from 'App/Services/SharedService';
@@ -48,12 +47,9 @@ export default class AuthController {
   }
 
   public async whoAmI({ auth, response }: HttpContextContract) {
-    const { user, unit_id } = this.sharedService.extractUser(auth);
-
-    const unit = await BusinessUnit.query()
-      .where('id', unit_id)
-      .preload('unitConfig')
-      .firstOrFail();
+    const { user, unit, system } = await this.sharedService.getAuthContext(
+      auth,
+    );
 
     const economicGroup = await EconomicGroup.query()
       .where('id', unit.economicGroupId)
@@ -64,19 +60,7 @@ export default class AuthController {
       })
       .firstOrFail();
 
-    const userRoles = await user
-      .related('roles')
-      .query()
-      .where('active', true)
-      .where('unit_id', unit_id)
-      .preload('role', query => {
-        query.where('active', true);
-
-        query.preload('permissions', query => {
-          query.where('active', true);
-          query.where('status', true);
-        });
-      });
+    const userRoles = await this.authService.getRoles(user, system.id);
 
     const controlIds = userRoles
       .map(r => r.role.permissions.map(p => p.control_id))

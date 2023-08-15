@@ -14,6 +14,9 @@ import System from 'App/Models/System';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
+export const PermissionType = ['system', 'controller', 'user', 'both'] as const;
+export type TPermissionType = typeof PermissionType[number];
+
 export default class Permission extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
@@ -26,6 +29,9 @@ export default class Permission extends BaseModel {
 
   @column()
   public control_id: string;
+
+  @column()
+  public type: TPermissionType;
 
   @column({
     columnName: 'systems',

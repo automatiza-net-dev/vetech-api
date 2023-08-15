@@ -153,6 +153,7 @@ export default class BankingService {
           userDocument: data.userDocument,
           nsuDocument: data.nsuDocument,
           barCode: data.barCode,
+          qtyInstallments: 1,
         },
         {
           client: trx,

@@ -104,6 +104,7 @@ export default class ReportService {
       paymentValue: elem.paymentValue,
       nsuDocument: elem.nsuDocument,
       status: elem.status,
+      qtyInstallments: elem.qtyInstallments,
 
       client: elem.client
         ? {

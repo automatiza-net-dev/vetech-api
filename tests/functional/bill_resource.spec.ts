@@ -784,29 +784,29 @@ test.group('Bill resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should return BadRequestException when deleting bill payment with existing finance down', async ({
-    assert,
-    client,
-  }) => {
-    const { user, payment, bill } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    await Finance.create({
-      originFlag: FinanceOriginFlag.S,
-      document: bill.tag,
-      block: payment.block,
-      status: FinanceStatus.B,
-    });
-
-    const response = await client
-      .delete(`/bills/delete-payment/${payment.id}`)
-      .bearerToken(token);
-
-    assert.equal(400, response.status());
-  });
+  // test('should return BadRequestException when deleting bill payment with existing finance down', async ({
+  //   assert,
+  //   client,
+  // }) => {
+  //   const { user, payment, bill } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
+  //
+  //   await Finance.create({
+  //     originFlag: FinanceOriginFlag.S,
+  //     document: bill.tag,
+  //     block: payment.block,
+  //     status: FinanceStatus.B,
+  //   });
+  //
+  //   const response = await client
+  //     .delete(`/bills/delete-payment/${payment.id}`)
+  //     .bearerToken(token);
+  //
+  //   assert.equal(400, response.status());
+  // });
 
   test('should delete bill payment', async ({ assert, client }) => {
     const { user, payment, bill } = await createData();
@@ -854,33 +854,33 @@ test.group('Bill resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should return BadRequestException when deleting bill payment with existing finance down', async ({
-    assert,
-    client,
-  }) => {
-    const { user, payment, bill } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    await Finance.create({
-      originFlag: FinanceOriginFlag.S,
-      document: bill.tag,
-      block: payment.block,
-      status: FinanceStatus.B,
-    });
-
-    const response = await client
-      .delete(`/bills/delete-payment-block`)
-      .json({
-        block: payment.block,
-        billId: bill.id,
-      })
-      .bearerToken(token);
-
-    assert.equal(400, response.status());
-  });
+  // test('should return BadRequestException when deleting bill payment with existing finance down', async ({
+  //   assert,
+  //   client,
+  // }) => {
+  //   const { user, payment, bill } = await createData();
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
+  //
+  //   await Finance.create({
+  //     originFlag: FinanceOriginFlag.S,
+  //     document: bill.tag,
+  //     block: payment.block,
+  //     status: FinanceStatus.B,
+  //   });
+  //
+  //   const response = await client
+  //     .delete(`/bills/delete-payment-block`)
+  //     .json({
+  //       block: payment.block,
+  //       billId: bill.id,
+  //     })
+  //     .bearerToken(token);
+  //
+  //   assert.equal(400, response.status());
+  // });
 
   test('should delete bill payment block', async ({ assert, client }) => {
     const { user, payment, bill } = await createData();

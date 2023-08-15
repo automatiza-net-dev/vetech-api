@@ -66,6 +66,11 @@ export default class BillPayment extends BaseModel {
   })
   public totalValue: number;
 
+  @column({
+    columnName: 'qty_installments',
+  })
+  public qtyInstallments: number;
+
   @column()
   public status: string;
 

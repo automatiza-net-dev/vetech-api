@@ -681,6 +681,7 @@ export default class BillService {
             nsuDocument: data.nsuDocument,
             paymentMethodDiscountPercentage: installment.fee,
             paymentMethodDiscountValue: (singleValue * installment.fee) / 100,
+            qtyInstallments: data.installments,
           }),
           {
             client: trx,
@@ -729,6 +730,7 @@ export default class BillService {
           tef_flag_id: payments.at(v)?.tef_flag_id,
           acquirer_id: payments.at(v)?.tef_acquirer_id,
           status: FinanceStatus.A,
+          qtyInstallments: data.installments,
         })),
         {
           client: trx,

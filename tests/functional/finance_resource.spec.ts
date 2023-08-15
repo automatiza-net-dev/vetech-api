@@ -95,6 +95,7 @@ test.group('Finance resource', group => {
         bank: '123',
         agency: '123',
         account: '123',
+        qtyInstallments: 1,
       })
       .bearerToken(token);
 
@@ -138,6 +139,7 @@ test.group('Finance resource', group => {
         account: '123',
         tefAcquirerId: tefAcq.id,
         tefFlagId: tefFlag.id,
+        qtyInstallments: 1,
       })
       .bearerToken(token);
 

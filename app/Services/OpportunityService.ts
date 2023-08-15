@@ -281,7 +281,10 @@ export default class OpportunityService {
     data: {
       openingFrom?: string;
       openingTo?: string;
+      contactFrom?: string;
+      contactTo?: string;
       contactName?: string;
+      contactPhone?: string;
       patientName?: string;
       technician?: string;
       status?: string;
@@ -319,6 +322,14 @@ export default class OpportunityService {
       qb.where('opening_date', '<=', data.openingTo);
     }
 
+    if (data.contactFrom) {
+      qb.where('contact_date', '>=', data.contactFrom);
+    }
+
+    if (data.contactTo) {
+      qb.where('contact_date', '<=', data.contactTo);
+    }
+
     if (data.contactName) {
       qb.whereHas('contact', query => {
         if (data.contactName) {
@@ -331,6 +342,16 @@ export default class OpportunityService {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+      });
+    }
+
+    if (data.contactPhone) {
+      qb.whereHas('contact', query => {
+        if (data.contactPhone) {
+          query.whereHas('tutor', query => {
+            query.where('cellphone', 'ilike', `%${data.contactPhone}%`);
+          });
         }
       });
     }
@@ -353,6 +374,7 @@ export default class OpportunityService {
 
         status: op.status,
         contact: op.contact,
+        contactDate: op.contactDate,
         contactType: op.contactType,
         contactSubject: op.contactSubject,
         client: op.client,

@@ -153,6 +153,14 @@ export default class FinancesController {
     return response.noContent();
   }
 
+  async openAttendances({ auth, response }: HttpContextContract) {
+    const result = await this.service.getOpenAttendances(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
   async expiringExpenses({ auth, response }: HttpContextContract) {
     const result = await this.service.getExpiringExpenses(
       await this.sharedService.getAuthContext(auth),
@@ -162,7 +170,7 @@ export default class FinancesController {
   }
 
   async expiringPayments({ auth, response }: HttpContextContract) {
-    const result = await this.service.getExpiringExpenses(
+    const result = await this.service.getExpiringPayments(
       await this.sharedService.getAuthContext(auth),
     );
 

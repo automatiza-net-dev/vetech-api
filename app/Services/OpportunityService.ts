@@ -19,6 +19,9 @@ export default class OpportunityService {
         query.preload('tutor');
       })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
+      .preload('clientOrigin')
       .preload('status')
       .preload('user')
       .preload('unit')
@@ -38,9 +41,16 @@ export default class OpportunityService {
       openingDate: result.openingDate,
       contactDate: result.contactDate,
       value: result.value,
+      description: result.description,
+      observation: result.observation,
+
       status: result.status,
       contact: result.contact,
+      contactType: result.contactType,
+      contactSubject: result.contactSubject,
       client: result.client,
+      clientOrigin: result.clientOrigin,
+
       user: {
         id: result.user.id,
         name: result.user.name,
@@ -75,9 +85,12 @@ export default class OpportunityService {
         query.preload('tutor');
       })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
       .preload('status')
       .preload('user')
-      .preload('unit');
+      .preload('unit')
+      .preload('clientOrigin');
 
     if (data.unit) {
       qb.where('business_unit_id', data.unit);
@@ -136,9 +149,16 @@ export default class OpportunityService {
       openingDate: elem.openingDate,
       contactDate: elem.contactDate,
       value: elem.value,
+      description: elem.description,
+      observation: elem.observation,
+
       status: elem.status,
       contact: elem.contact,
+      contactType: elem.contactType,
+      contactSubject: elem.contactSubject,
       client: elem.client,
+      clientOrigin: elem.clientOrigin,
+
       user: {
         id: elem.user.id,
         name: elem.user.name,
@@ -218,6 +238,7 @@ export default class OpportunityService {
     return result.map(elem => ({
       id: elem.id,
       issueDate: elem.issueDate,
+      duration: elem.duration,
       executionDate: elem.executionDate,
       executedDate: elem.executedDate,
       description: elem.description,
@@ -268,14 +289,20 @@ export default class OpportunityService {
   ) {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
-      .preload('client')
+      .preload('client', query => {
+        query.preload('tutor');
+      })
       .preload('contact')
+      .preload('contactType')
+      .preload('contactSubject')
+      .preload('clientOrigin')
       .preload('status')
       .preload('user')
       .preload('unit')
       .preload('activities', query => {
         query.where('status', 'Aberta');
 
+        query.preload('executionUser');
         query.preload('activity');
         query.preload('openingUser');
       });
@@ -321,14 +348,15 @@ export default class OpportunityService {
         id: op.id,
         openingDate: op.openingDate,
         value: op.value,
-        contact: {
-          id: op.contact.id,
-          name: op.contact.name,
-        },
-        client: {
-          id: op.client.id,
-          name: op.client.name,
-        },
+        description: op.description,
+        observation: op.observation,
+
+        status: op.status,
+        contact: op.contact,
+        contactType: op.contactType,
+        contactSubject: op.contactSubject,
+        client: op.client,
+        clientOrigin: op.clientOrigin,
         user: {
           id: op.user.id,
           name: op.user.name,
@@ -338,6 +366,7 @@ export default class OpportunityService {
           companyName: op.unit.companyName,
           fantasyName: op.unit.fantasyName,
         },
+
         activities: op.activities.map(elem => ({
           id: elem.id,
           description: elem.description,
@@ -345,12 +374,10 @@ export default class OpportunityService {
           duration: elem.duration,
           status: elem.status,
           activity: elem.activity,
-          user: elem.openingUser
-            ? {
-                id: elem.openingUser.id,
-                name: elem.openingUser.name,
-              }
-            : null,
+          user: this.sharedService.captureGroup(elem.openingUser, v => ({
+            id: v.id,
+            name: v.name,
+          })),
         })),
       });
       // statusMap.set(op.status.description, updatedData);
@@ -469,6 +496,12 @@ export default class OpportunityService {
       userId: string;
       statusId: number;
       contactId: string;
+      clientId: string;
+      contactTypeId: number;
+      contactSubjectId: number;
+
+      contactDate: DateTime;
+      description: string;
       observation?: string;
       value: number;
       active: boolean;
@@ -484,17 +517,154 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
+      const result = await model
+        .merge({
+          user_id: data.userId,
+          client_id: data.clientId,
+          contact_id: data.contactId,
+          status_id: data.statusId,
+          contact_type_id: data.contactTypeId,
+          contact_subject_id: data.contactSubjectId,
+
+          contactDate: data.contactDate,
+          description: data.description,
+          observation: data.observation,
+          value: data.value,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async closeWinningOpportunity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      reasonId: string;
+      value: number;
+      observation?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await model
+        .merge({
+          reason_id: data.reasonId,
+          closing_user_id: authCtx.user.id,
+
+          closingDate: DateTime.now(),
+          balance: 'Ganho',
+          resultObservation: data.observation,
+          value: data.value,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async closeLoosingOpportunity(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      reasonId: string;
+      observation?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      await model
+        .merge({
+          reason_id: data.reasonId,
+          closing_user_id: authCtx.user.id,
+
+          closingDate: DateTime.now(),
+          balance: 'Perda',
+          resultObservation: data.observation,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async reopenOpportunity(authCtx: AuthContext, id: number) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
       await OpportunityLog.create(
         {
           opportunity_id: model.id,
+
           economic_group_id: authCtx.group.id,
           business_unit_id: model.business_unit_id,
           user_id: model.user_id,
-          opening_user_id: model.opening_user_id,
+          client_id: model.client_id,
+          contact_subject_id: model.contact_subject_id,
+          contact_type_id: model.contact_type_id,
           status_id: model.status_id,
           contact_id: model.contact_id,
+
+          balance: model.balance,
+          description: model.description,
+          observation: model.observation,
+          reason_id: model.reason_id,
+          profitValue: model.profitValue,
+          resultObservation: model.resultObservation,
           value: model.value,
+          contactDate: model.contactDate,
           openingDate: model.openingDate,
+          closingDate: model.closingDate,
         },
         {
           client: trx,
@@ -503,16 +673,125 @@ export default class OpportunityService {
 
       await model
         .merge({
-          business_unit_id: data.businessUnitId,
-          user_id: data.userId,
-          status_id: data.statusId,
-          contact_id: data.contactId,
-          observation: data.observation,
-          value: data.value,
-          active: data.active,
+          reason_id: undefined,
+          closing_user_id: undefined,
+
+          closingDate: undefined,
+          balance: undefined,
+          resultObservation: undefined,
         })
         .useTransaction(trx)
         .save();
+    });
+  }
+
+  public async updateStatus(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      statusId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await model
+        .merge({
+          status_id: data.statusId,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
+    });
+  }
+
+  public async updateUser(
+    authCtx: AuthContext,
+    id: number,
+    data: {
+      userId: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const result = await model
+        .merge({
+          user_id: data.userId,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await OpportunityLog.create(
+        {
+          opportunity_id: result.id,
+
+          economic_group_id: authCtx.group.id,
+          business_unit_id: result.business_unit_id,
+          user_id: result.user_id,
+          client_id: result.client_id,
+          contact_subject_id: result.contact_subject_id,
+          contact_type_id: result.contact_type_id,
+          status_id: result.status_id,
+          contact_id: result.contact_id,
+
+          balance: result.balance,
+          description: result.description,
+          observation: result.observation,
+          reason_id: result.reason_id,
+          profitValue: result.profitValue,
+          resultObservation: result.resultObservation,
+          value: result.value,
+          contactDate: result.contactDate,
+          openingDate: result.openingDate,
+          closingDate: result.closingDate,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 
@@ -630,7 +909,7 @@ export default class OpportunityService {
       await activity
         .merge({
           execution_user_id: authCtx.user.id,
-          executionDate: DateTime.now(),
+          executedDate: DateTime.now(),
           observation: data.observation,
           status: 'Executada',
         })

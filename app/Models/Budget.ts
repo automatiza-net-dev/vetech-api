@@ -16,6 +16,7 @@ import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import BusinessUnit from 'App/Models/BusinessUnit';
 
 export enum BudgetStatus {
   A = 'ABERTO',
@@ -110,6 +111,11 @@ export default class Budget extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

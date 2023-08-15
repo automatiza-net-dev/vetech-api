@@ -27,6 +27,11 @@ export default class Role extends BaseModel {
   @column()
   public type: TRoleType;
 
+  @column({
+    columnName: 'external_access',
+  })
+  public externalAccess: boolean;
+
   @column()
   public active: boolean;
 

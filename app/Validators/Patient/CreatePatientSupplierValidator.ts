@@ -31,6 +31,13 @@ export default class CreatePatientSupplierValidator {
     city: schema.string.optional({}, []),
     state: schema.string.optional({}, []),
     cityCode: schema.string.optional({}),
+
+    accountPlanId: schema.string.optional({}, [
+      rules.exists({
+        column: 'id',
+        table: 'account_plans',
+      }),
+    ]),
   });
 
   public messages: CustomMessages = {};

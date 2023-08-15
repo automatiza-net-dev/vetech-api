@@ -22,6 +22,7 @@ export enum BillStatus {
   A = 'ATIVA',
   E = 'EXTORNADA',
   F = 'FECHADA',
+  EX = 'EXCLUIDA',
 }
 
 export default class Bill extends BaseModel {
@@ -262,6 +263,11 @@ export default class Bill extends BaseModel {
     foreignKey: 'user_who_closed_id',
   })
   public userWhoClosed: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
+  public exclusion_user_id: string;
 
   @column({
     serializeAs: null,

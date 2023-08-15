@@ -62,4 +62,22 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async entriesReport({ request, response, auth }: HttpContextContract) {
+    response.ok(
+      await this.service.entriesReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
+
+  public async budgetsReport({ request, response, auth }: HttpContextContract) {
+    response.ok(
+      await this.service.budgetsReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

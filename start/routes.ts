@@ -767,11 +767,16 @@ Route.group(() => {
   .prefix('daily-cashiers')
   .middleware('auth');
 
-Route.resource('account-plans', 'AccountPlansController')
-  .apiOnly()
-  .middleware({
-    '*': ['auth'],
-  });
+Route.group(() => {
+  Route.get('/tree', 'AccountPlansController.tree');
+  Route.get('/', 'AccountPlansController.index');
+  Route.get('/:id', 'AccountPlansController.show');
+  Route.post('/', 'AccountPlansController.store');
+  Route.put('/:id', 'AccountPlansController.update');
+  Route.delete('/:id', 'AccountPlansController.destroy');
+})
+  .prefix('account-plans')
+  .middleware('auth');
 
 Route.resource('banks', 'BanksController')
   .only(['index'])
@@ -829,6 +834,7 @@ Route.group(() => {
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
   Route.delete('/delete/:id', 'FinancesController.deleteFinance');
 
+  Route.get('/open-attendances', 'FinancesController.openAttendances');
   Route.get('/expiring-expenses', 'FinancesController.expiringExpenses');
   Route.get('/expiring-payments', 'FinancesController.expiringPayments');
   Route.get(
@@ -905,6 +911,7 @@ Route.group(() => {
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
 
+  Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');
   Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
@@ -1150,6 +1157,12 @@ Route.group(() => {
     'OpportunitiesController.searchKanbanActivities',
   );
 
+  Route.post('/close-winning/:id', 'OpportunitiesController.closeWinning');
+  Route.post('/close-losing/:id', 'OpportunitiesController.closeLoosing');
+  Route.post('/reopen/:id', 'OpportunitiesController.reopen');
+  Route.post('/update-status/:id', 'OpportunitiesController.updateStatus');
+  Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
+
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
   Route.put('/:id', 'OpportunitiesController.update');
@@ -1273,6 +1286,15 @@ Route.group(() => {
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
   Route.get('/sales', 'ReportsController.salesReport');
+  Route.get('/entries', 'ReportsController.entriesReport');
+  Route.get('/budgets', 'ReportsController.budgetsReport');
 })
   .prefix('reports')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/search', 'IpAccessControlsController.index');
+  Route.post('/store', 'IpAccessControlsController.store');
+})
+  .prefix('ip-access')
   .middleware('auth');

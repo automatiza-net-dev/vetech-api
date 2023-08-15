@@ -62,7 +62,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
     const group = await this.getEconomicGroup(unitId);
@@ -200,7 +200,9 @@ export default class PatientService {
           query.where('inscription', 'ilike', `%${data.document}%`);
         }
       })
-      .preload('tutor');
+      .preload('tutor', query => {
+        query.preload('accountPlan');
+      });
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);
@@ -217,6 +219,13 @@ export default class PatientService {
       tag: elem.tag,
       telephone: elem.tutor.telephone,
       cellphone: elem.tutor.cellphone,
+      accountPlan: this.sharedService.captureGroup(
+        elem.tutor.accountPlan,
+        v => ({
+          id: v.id,
+          description: v.description,
+        }),
+      ),
     }));
   }
 
@@ -410,7 +419,9 @@ export default class PatientService {
     }
 
     if (patient.type === PatientType.SUPPLIER) {
-      await patient.load('tutor');
+      await patient.load('tutor', query => {
+        query.preload('accountPlan');
+      });
     }
 
     return patient;
@@ -833,6 +844,8 @@ export default class PatientService {
       );
 
       await patient.related('tutor').create({
+        account_plan_id: data.accountPlanId,
+
         residence: data.residence,
         document: data.document,
         inscription: data.inscription,
@@ -1154,6 +1167,8 @@ export default class PatientService {
 
       await supplier.tutor
         .merge({
+          account_plan_id: data.accountPlanId,
+
           residence: data.residence,
           document: data.document,
           inscription: data.inscription,

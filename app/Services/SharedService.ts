@@ -127,4 +127,12 @@ export default class SharedService {
       .filter(Boolean)
       .reduce((acc: number, cur: number) => acc + cur, 0);
   }
+
+  public captureGroup<T>(val: T | null | undefined, fn: (val: T) => unknown) {
+    if (!val) {
+      return null;
+    }
+
+    return fn(val);
+  }
 }

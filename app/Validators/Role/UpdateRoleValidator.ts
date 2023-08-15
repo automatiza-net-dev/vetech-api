@@ -6,6 +6,7 @@ export default class UpdateRoleValidator {
 
   public schema = schema.create({
     name: schema.string({}, []),
+    externalAccess: schema.boolean(),
     active: schema.boolean(),
   });
 

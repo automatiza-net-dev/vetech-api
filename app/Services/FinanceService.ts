@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Attendance from 'App/Models/Attendance';
 import Banking, {
   BankingOriginFlag,
   BankingStatus,
@@ -116,6 +117,8 @@ export default class FinanceService {
 
     if (data.status) {
       qb.where('status', data.status);
+    } else {
+      qb.whereNot('status', FinanceStatus.E);
     }
 
     if (data.accept) {
@@ -139,7 +142,9 @@ export default class FinanceService {
     }
 
     qb.preload('client', query => {
-      query.preload('tutor');
+      query.preload('tutor', query => {
+        query.preload('accountPlan');
+      });
     })
       .preload('paymentMethod')
       .preload('accountPlan')
@@ -701,35 +706,59 @@ export default class FinanceService {
   }
 
   async getExpiringExpenses(authCtx: AuthContext) {
-    const today = DateTime.now();
-
     const finances = await Finance.query()
       .where('economic_group_id', authCtx.group.id)
       .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
-      .whereBetween('expiration_date', [
-        today.startOf('day').toISO() ?? '',
-        today.endOf('day').toISO() ?? '',
-      ])
+      .whereRaw('expiration_date::date = now()::date', [])
       .whereNull('payment_date')
       .preload('paymentMethod')
-      .preload('client');
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      });
 
-    return finances.map(elem => ({
-      id: elem.id,
-      document: elem.document,
-      installment: elem.installment,
-      paymentMethod: {
-        id: elem.paymentMethod.id,
-        description: elem.paymentMethod.description,
-      },
-      totalValue: elem.totalValue,
-      supplier: {
-        id: elem.client.id,
-        name: elem.client.name,
-      },
+    const dataSet = new Map<string, { value: number }>();
+    finances.forEach(elem => {
+      const key = elem.client_id;
+      if (!dataSet.has(key)) {
+        dataSet.set(key, { value: 0 });
+      }
+
+      const entry = dataSet.get(key)!;
+      entry.value += elem.totalValue;
+
+      dataSet.set(key, entry);
+    });
+
+    return Array.from(dataSet.keys()).map(elem => ({
+      supplier: finances.find(e => e.client_id === elem)?.client?.name ?? '',
+      value: dataSet.get(elem)?.value ?? 0,
     }));
+
+    // return finances.map(elem => ({
+    //   id: elem.id,
+    //   document: elem.document,
+    //   installment: elem.installment,
+    //   paymentMethod: {
+    //     id: elem.paymentMethod.id,
+    //     description: elem.paymentMethod.description,
+    //   },
+    //   totalValue: elem.totalValue,
+    //   supplier: {
+    //     id: elem.client.id,
+    //     name: elem.client.name,
+    //     accountPlan: this.sharedService.captureGroup(
+    //       elem.client?.tutor?.accountPlan,
+    //       v => ({
+    //         id: v.id,
+    //         description: v.description,
+    //       }),
+    //     ),
+    //   },
+    // }));
   }
 
   async getExpiringPayments(authCtx: AuthContext) {
@@ -746,7 +775,11 @@ export default class FinanceService {
       ])
       .whereNull('payment_date')
       .preload('paymentMethod')
-      .preload('client');
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      });
 
     return finances.map(elem => ({
       id: elem.id,
@@ -760,13 +793,20 @@ export default class FinanceService {
       supplier: {
         id: elem.client.id,
         name: elem.client.name,
+        accountPlan: this.sharedService.captureGroup(
+          elem.client?.tutor?.accountPlan,
+          v => ({
+            id: v.id,
+            description: v.description,
+          }),
+        ),
       },
     }));
   }
 
   async getCheckingAccountsResume(authCtx: AuthContext) {
     const result = await CheckingAccount.query()
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('active', true);
 
     return result.map(elem => ({
@@ -786,12 +826,12 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
 
       userWhoOpened: {
         id: elem.userWhoOpened.id,
@@ -809,12 +849,13 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
+      closingDate: elem.closingDate,
 
       userWhoClosed: {
         id: elem.userWhoClosed.id,
@@ -832,12 +873,14 @@ export default class FinanceService {
     return result.map(elem => ({
       id: elem.id,
       tag: elem.tag,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      expensesTotal: elem.expensesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
+      openingDate: elem.openingDate,
+      closingDate: elem.closingDate,
+      revisionDate: elem.revisionDate,
 
       userWhoRevised: {
         id: elem.userWhoRevised.id,
@@ -861,11 +904,14 @@ export default class FinanceService {
       id: elem.id,
       tag: elem.tag,
       openingDate: elem.openingDate,
-      openingBalance: elem.openingBalance,
-      cashierFunds: elem.cashierFunds,
-      salesTotal: elem.salesTotal,
-      receiptsTotal: elem.receiptsTotal,
-      cashierTotal: elem.cashierTotal,
+      closingDate: elem.closingDate,
+      revisionDate: elem.revisionDate,
+
+      openingBalance: this.parseDecimal(elem.openingBalance),
+      cashierFunds: this.parseDecimal(elem.cashierFunds),
+      salesTotal: this.parseDecimal(elem.salesTotal),
+      receiptsTotal: this.parseDecimal(elem.receiptsTotal),
+      cashierTotal: this.parseDecimal(elem.cashierTotal),
 
       openingUser: {
         id: elem.userWhoOpened.id,
@@ -877,61 +923,52 @@ export default class FinanceService {
   async getOverallResume(authCtx: AuthContext) {
     // 1.8.1.1
     const first = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where(
-        'expiration_date',
-        '<',
-        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
-      )
+      .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.2
     const second = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.C)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where(
-        'expiration_date',
-        '<',
-        DateTime.now().minus({ days: 1 }).startOf('day').toJSDate(),
-      )
+      .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.3
     const third = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.D)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.4
     const fourth = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
       .where('type', FinanceType.C)
       .where('status', FinanceStatus.A)
       .whereNull('payment_date')
-      .where('expiration_date', '>', DateTime.now().startOf('day').toJSDate())
+      .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
       .sum('total_value')
       .first();
 
     // 1.8.1.5
-    const fifth = await Database.from('finances')
-      .where('economic_group_id', authCtx.group.id)
-      .whereNull('deleted_at')
-      .sum('total_value')
+    const fifth = await Database.from('checking_accounts')
+      .where('business_unit_id', authCtx.unit.id)
+      .andWhereNull('deleted_at')
       .first();
 
     return [
@@ -953,8 +990,49 @@ export default class FinanceService {
       },
       {
         type: 'ContasCorrentes',
-        total: fifth.sum ?? 0,
+        total: this.parseDecimal(fifth.balance) ?? 0,
       },
     ];
+  }
+
+  async getOpenAttendances(authCtx: AuthContext) {
+    const result = await Attendance.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereNull('end_date')
+      .preload('tutor')
+      .preload('patient')
+      .preload('openUser')
+      .preload('scheduleService')
+      .orderBy('start_date', 'desc');
+
+    return result.map(elem => ({
+      id: elem.id,
+      scheduleId: elem.schedule_id,
+      tutor: this.sharedService.captureGroup(elem.tutor, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      patient: this.sharedService.captureGroup(elem.patient, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      openUser: this.sharedService.captureGroup(elem.openUser, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      scheduleService: this.sharedService.captureGroup(
+        elem.scheduleService,
+        v => ({
+          id: v.id,
+          description: v.description,
+        }),
+      ),
+    }));
+  }
+
+  private parseDecimal(value: string | number) {
+    if (!value) return null;
+
+    return parseFloat(value as string);
   }
 }

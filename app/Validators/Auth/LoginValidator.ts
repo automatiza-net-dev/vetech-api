@@ -22,6 +22,7 @@ export default class LoginValidator {
         column: 'name',
       }),
     ]),
+    ipAddress: schema.string.optional({}),
   });
 
   public messages: CustomMessages = {};

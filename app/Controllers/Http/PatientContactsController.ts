@@ -5,6 +5,7 @@ import SharedService from 'App/Services/SharedService';
 import PatientContactService from 'App/Services/PatientContactService';
 import CreatePatientContactValidator from 'App/Validators/PatientContact/CreatePatientContactValidator';
 import UpdatePatientContactValidator from 'App/Validators/PatientContact/UpdatePatientContactValidator';
+import CreateBatchPatientContactValidator from 'App/Validators/PatientContact/CreateBatchPatientContactValidator';
 
 @inject()
 export default class PatientContactsController {
@@ -25,6 +26,17 @@ export default class PatientContactsController {
     const payload = await request.validate(CreatePatientContactValidator);
 
     const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.created(result);
+  }
+
+  public async batchStore({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateBatchPatientContactValidator);
+
+    const result = await this.service.batchStore(
       await this.sharedService.getAuthContext(auth),
       payload,
     );

@@ -1240,6 +1240,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/:id', 'PatientContactsController.index');
+  Route.post('/batch', 'PatientContactsController.batchStore');
   Route.post('/', 'PatientContactsController.store');
   Route.put('/:id', 'PatientContactsController.update');
   Route.delete('/:id', 'PatientContactsController.destroy');

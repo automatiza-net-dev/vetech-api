@@ -552,6 +552,7 @@ export default class OpportunityService {
           description: data.description,
           observation: data.observation,
           value: data.value,
+          active: data.active,
         })
         .useTransaction(trx)
         .save();
@@ -560,6 +561,7 @@ export default class OpportunityService {
         {
           opportunity_id: result.id,
 
+          issue_user_id: authCtx.user.id,
           economic_group_id: authCtx.group.id,
           business_unit_id: result.business_unit_id,
           user_id: result.user_id,
@@ -568,11 +570,13 @@ export default class OpportunityService {
           contact_type_id: result.contact_type_id,
           status_id: result.status_id,
           contact_id: result.contact_id,
+          opening_user_id: result.opening_user_id,
+          closing_user_id: result.closing_user_id,
+          reason_id: result.reason_id,
 
           balance: result.balance,
           description: result.description,
           observation: result.observation,
-          reason_id: result.reason_id,
           profitValue: result.profitValue,
           resultObservation: result.resultObservation,
           value: result.value,

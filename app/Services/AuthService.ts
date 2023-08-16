@@ -24,7 +24,9 @@ export default class AuthService {
     const qb = user
       .related('roles')
       .query()
-      .preload('role')
+      .preload('role', query => {
+        query.preload('permissions');
+      })
       .preload('unit', query => {
         query.whereHas('economicGroup', query => {
           query.where('system_id', sID);
@@ -59,7 +61,7 @@ export default class AuthService {
       });
     }
 
-    return qb;
+    return await qb;
   }
 
   public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {

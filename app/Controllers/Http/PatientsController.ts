@@ -49,6 +49,16 @@ export default class PatientsController {
     return response.ok(result);
   }
 
+  public async checkPhone({ params, response, auth }: HttpContextContract) {
+    const { phone } = params;
+    const result = await this.service.checkExistingPhone(
+      await this.sharedService.getAuthContext(auth),
+      phone,
+    );
+
+    return response.ok(result);
+  }
+
   public async metadata({ auth, params, response }: HttpContextContract) {
     const data = await this.service.metadata(
       await this.sharedService.getAuthContext(auth),

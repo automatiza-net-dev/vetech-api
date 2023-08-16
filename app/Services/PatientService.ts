@@ -1338,6 +1338,52 @@ export default class PatientService {
     };
   }
 
+  public async checkExistingPhone(authContext: AuthContext, phone: string) {
+    const tutor = await Patient.query()
+      .where('type', PatientType.TUTOR)
+      .whereHas('economicGroup', query => {
+        query.where('economic_group_id', authContext.group.id);
+      })
+      .whereHas('tutor', query => {
+        query.whereRaw(`cellphone LIKE ? or telephone LIKE ?`, [
+          `%${phone}%`,
+          `%${phone}%`,
+        ]);
+      })
+      .preload('dependents', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
+      .preload('tutor', query => {
+        query.preload('clientOrigin');
+      })
+      .first();
+
+    if (!tutor) {
+      return null;
+    }
+
+    return {
+      id: tutor.id,
+      name: tutor.name,
+      email: tutor.tutor.email,
+      cellphone: tutor.tutor.cellphone,
+      telephone: tutor.tutor.telephone,
+      clientOrigin: tutor.tutor.clientOrigin,
+      dependents: tutor.dependents.map(d => {
+        return {
+          id: d.id,
+          name: d.name,
+          gender: d.gender,
+          race: d?.patientAnimal?.race.toJSON(),
+        };
+      }),
+    };
+  }
+
   private async getEconomicGroup(unitId: string) {
     const businessUnit = await BusinessUnit.findOrFail(unitId);
     return EconomicGroup.findOrFail(businessUnit.economicGroupId);

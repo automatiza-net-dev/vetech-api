@@ -450,6 +450,27 @@ test.group('Patient resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create patient and tutor (fast) 2', async ({
+    client,
+    assert,
+  }) => {
+    const { user, group } = await createData();
+    await createGroupData(group);
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/patients/fast`)
+      .json({
+        tutorPhone: 'some value',
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should search for suppliers', async ({ client, assert }) => {
     const { user, patient } = await createData();
     const token = await generateJwtToken(client, {

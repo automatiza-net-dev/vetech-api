@@ -23,11 +23,11 @@ export default interface IPatientData {
 }
 
 export interface IFastStorePatient {
-  tutorName: string;
-  tutorEmail: string;
+  tutorName?: string;
+  tutorEmail?: string;
   tutorPhone: string;
 
-  patientName: string;
-  patientRaceId: string;
-  patientGender: PatientGender;
+  patientName?: string;
+  patientRaceId?: string;
+  patientGender?: PatientGender;
 }

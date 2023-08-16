@@ -427,7 +427,7 @@ test.group('Patient resource', group => {
   });
 
   test('should create patient and tutor (fast)', async ({ client, assert }) => {
-    const { user, race, group } = await createData();
+    const { user, race, group, origin } = await createData();
     await createGroupData(group);
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -440,6 +440,7 @@ test.group('Patient resource', group => {
         tutorName: 'some value',
         tutorEmail: 'some-value@mail.com',
         tutorPhone: 'some value',
+        tutorOriginId: origin.id,
 
         patientName: 'some value',
         patientRaceId: race.id,

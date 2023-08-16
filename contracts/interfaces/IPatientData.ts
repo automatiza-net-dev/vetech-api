@@ -26,6 +26,7 @@ export interface IFastStorePatient {
   tutorName?: string;
   tutorEmail?: string;
   tutorPhone: string;
+  tutorOriginId?: string;
 
   patientName?: string;
   patientRaceId?: string;

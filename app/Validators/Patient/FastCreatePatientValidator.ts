@@ -9,7 +9,12 @@ export default class FastCreatePatientValidator {
     tutorName: schema.string.optional({}),
     tutorEmail: schema.string.optional({}, [rules.email()]),
     tutorPhone: schema.string({}),
-
+    tutorOriginId: schema.string.optional({}, [
+      rules.exists({
+        table: 'client_origins',
+        column: 'id',
+      }),
+    ]),
     patientName: schema.string.optional({}),
     patientRaceId: schema.string.optional({}, [
       rules.uuid(),

@@ -570,6 +570,7 @@ export default class PatientService {
         email: data.tutorEmail,
         cellphone: data.tutorPhone,
         telephone: data.tutorPhone,
+        client_origin_id: data.tutorOriginId,
       });
 
       await group.related('patients').attach([tutor.id], trx);

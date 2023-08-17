@@ -12,6 +12,7 @@ import CreateBillValidator from 'App/Validators/Bill/CreateBillValidator';
 import CreateTreatmentBillValidator from 'App/Validators/Bill/CreateTreatmentBillValidator';
 import DeletePaymentBlockValidator from 'App/Validators/Bill/DeletePaymentBlockValidator';
 import UpdateBillItemValidator from 'App/Validators/Bill/UpdateBillItemValidator';
+import UpdatePaymentExpirationValidator from 'App/Validators/Bill/UpdatePaymentExpirationValidator';
 
 @inject()
 export default class BillsController {
@@ -269,6 +270,19 @@ export default class BillsController {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.createTreatmentFromBill(authCtx, payload);
+
+    return response.noContent();
+  }
+
+  public async updatePaymentExpiration({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdatePaymentExpirationValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updatePaymentExpiration(authCtx, payload.items);
 
     return response.noContent();
   }

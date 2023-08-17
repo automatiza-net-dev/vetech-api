@@ -1,10 +1,18 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasOne,
+  hasOne,
+} from '@ioc:Adonis/Lucid/Orm';
 import Bill from 'App/Models/Bill';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag from 'App/Models/TefFlag';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import Finance from './Finance';
 
 export enum BillPaymentFeeType {
   S = 'COM_JUROS',
@@ -144,4 +152,9 @@ export default class BillPayment extends BaseModel {
     foreignKey: 'tef_acquirer_id',
   })
   public acquirer: BelongsTo<typeof TefAcquirer>;
+
+  @hasOne(() => Finance, {
+    foreignKey: 'origin_id',
+  })
+  public finance: HasOne<typeof Finance>;
 }

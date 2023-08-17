@@ -2197,6 +2197,72 @@ export default class BillService {
     });
   }
 
+  async updatePaymentExpiration(
+    authCtx: AuthContext,
+    data: {
+      billPaymentId: string;
+      expirationDate: DateTime;
+    }[],
+  ) {
+    return Database.transaction(async trx => {
+      const payments = await BillPayment.query()
+        .useTransaction(trx)
+        .preload('finance')
+        .where('business_unit_id', authCtx.unit.id)
+        .whereIn(
+          'id',
+          data.map(elem => elem.billPaymentId),
+        );
+
+      if (payments.length != data.length) {
+        throw new BadRequestException(
+          'Algum pagamento não foi encontrado',
+          400,
+          'E_NO_PAYMENTS',
+        );
+      }
+
+      if (payments.some(p => p?.finance?.status === FinanceStatus.B)) {
+        throw new BadRequestException(
+          'Algum pagamento já foi baixado',
+          400,
+          'E_DOWN',
+        );
+      }
+
+      const tasks = payments.map(elem => {
+        const payment = data.find(p => p.billPaymentId === elem.id);
+
+        return elem
+          .merge({
+            expirationDate: payment?.expirationDate,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+      const updatedPayments = await Promise.all(tasks);
+
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .whereIn(
+          'origin_id',
+          updatedPayments.map(elem => elem.id),
+        );
+
+      const tasks2 = finances.map(elem =>
+        elem
+          .merge({
+            expirationDate:
+              updatedPayments.find(p => p.id === elem.origin_id)
+                ?.expirationDate ?? elem.expirationDate,
+          })
+          .useTransaction(trx)
+          .save(),
+      );
+      await Promise.all(tasks2);
+    });
+  }
+
   async createTreatmentFromBill(
     authCtx: AuthContext,
     data: { billId: string; sellerId: string },

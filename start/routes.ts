@@ -916,6 +916,7 @@ Route.group(() => {
   Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');
   Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
+  Route.put('/update-expiration', 'BillsController.updatePaymentExpiration');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
   Route.delete(
     '/delete-payment-block',

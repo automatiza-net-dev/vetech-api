@@ -154,4 +154,18 @@ export default class DailyCashiersController {
 
     return response.noContent();
   }
+
+  public async updateConference({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const data = await request.validate(ClearPaymentValidator);
+    await this.service.updateCashierPaymentsConference(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
+
+    return response.noContent();
+  }
 }

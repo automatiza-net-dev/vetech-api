@@ -761,6 +761,7 @@ Route.group(() => {
   Route.post('/reopen/:id', 'DailyCashiersController.reopenDailyCashier');
   Route.post('/check/:id', 'DailyCashiersController.checkDailyCashier');
   Route.post('/review/:id', 'DailyCashiersController.reviewDailyCashier');
+  Route.post('/update-conference', 'DailyCashiersController.updateConference');
 
   Route.post('/expense/:id', 'DailyCashiersController.createCashierExpense');
   Route.post('/receipt/:id', 'DailyCashiersController.createCashierReceipt');

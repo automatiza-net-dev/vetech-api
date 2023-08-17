@@ -355,6 +355,171 @@ export default class ReportService {
     }));
   }
 
+  async detailedSalesReport(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      client?: string;
+      patient?: string;
+      businessUnit?: string;
+    },
+  ) {
+    const qb = Bill.query()
+      .preload('businessUnit')
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('profession');
+          query.preload('clientOrigin');
+        });
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product', query => {
+            query.preload('subgroup');
+          });
+        });
+      })
+      .preload('budget')
+      .preload('payments', query => {
+        query.preload('flag').preload('paymentMethod');
+      })
+      .where('economic_group_id', authCtx.group.id)
+      .whereNull('deleted_at')
+      .orderBy('bill_date', 'desc');
+
+    if (data.fromDate) {
+      qb.whereRaw('bill_date::date >= ?', [
+        DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.whereRaw('bill_date::date <= ?', [
+        DateTime.fromISO(data.toDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    if (data.businessUnit) {
+      qb.where('business_unit_id', data.businessUnit);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      billDate: elem.billDate,
+      productValue: elem.productValue,
+      serviceValue: elem.serviceValue,
+      discountValue: elem.discountValue,
+      totalValue: elem.totalValue,
+      paidValue: elem.paidValue,
+      missingPaymentValue: elem.totalValue - elem.paidValue,
+      status: elem.status,
+
+      unit: {
+        id: elem.businessUnit.id,
+        identification: elem.businessUnit.identification,
+      },
+      seller: elem.seller
+        ? {
+            id: elem.seller.id,
+            name: elem.seller.name,
+          }
+        : null,
+      client: elem.client
+        ? {
+            id: elem.client.id,
+            name: elem.client.name,
+            profession: elem.client.tutor?.profession?.description ?? null,
+            origin: elem.client.tutor?.clientOrigin?.description ?? null,
+            document: elem.client.tutor?.document ?? null,
+            createdAt: elem.client.createdAt,
+            address: [
+              elem.client.tutor?.postalCode,
+              elem.client.tutor?.street,
+              elem.client.tutor?.number,
+              elem.client.tutor?.complement,
+              elem.client.tutor?.district,
+              elem.client.tutor?.city,
+              elem.client.tutor?.state,
+            ]
+              .filter(Boolean)
+              .join(', '),
+          }
+        : null,
+      patient: elem.patient
+        ? {
+            id: elem.patient.id,
+            name: elem.patient.name,
+            race: elem.patient.patientAnimal.race,
+            gender: elem.patient.gender ?? null,
+            castrated: elem.patient?.patientAnimal?.castrated ?? null,
+          }
+        : null,
+      budget: this.sharedService.captureGroup(elem.budget, v => ({
+        id: v.id,
+        tag: v.tag,
+        budgetDate: v.budgetDate,
+      })),
+      payments: elem.payments.map(inner => ({
+        id: inner.id,
+        block: inner.block,
+        qtyInstallments: inner.qtyInstallments,
+        totalValue: inner.totalValue,
+
+        paymentMethod: this.sharedService.captureGroup(
+          inner.paymentMethod,
+          v => ({
+            id: v.id,
+            description: v.description,
+          }),
+        ),
+        flag: this.sharedService.captureGroup(inner.flag, v => ({
+          id: v.id,
+          description: v.description,
+        })),
+      })),
+      items: elem.items.map(inner => ({
+        id: inner.id,
+        quantity: inner.quantity,
+        costValue: inner.costValue,
+        saleValue: inner.saleValue,
+        discountValue: inner.discountValue,
+        totalValue: inner.totalValue,
+        product: {
+          description: inner.productVariation.product.description ?? null,
+          type: inner.productVariation.product.type ?? null,
+          subgroup: this.sharedService.captureGroup(
+            inner.productVariation.product?.subgroup,
+            v => ({ id: v.id, description: v.description }),
+          ),
+        },
+      })),
+    }));
+  }
+
   async entriesReport(
     authCtx: AuthContext,
     data: {

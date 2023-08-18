@@ -651,38 +651,48 @@ export default class BillService {
           : 0;
       const singleValue = data.installmentsValue / installment.installment;
 
+      const lastInstallment = Math.max(installment.installment - 1, 1);
+      const meta2 = singleValue * (installment.installment - 1);
+      const withOffset = data.installmentsValue - meta2;
+
       const payments = await BillPayment.createMany(
         Array.from(
           { length: installment.installment ?? 1 },
-          (_, v) => ({
-            economic_group_id: group.id,
-            business_unit_id: unitId,
-            bill_id: bill.id,
-            payment_method_id: data.paymentMethodId,
-            tef_acquirer_id: data.acquirerId,
-            tef_flag_id: data.flagId,
-            daily_cashier_id: userOpenCashier?.id,
+          (_, v) => {
+            const installmentValue =
+              v === lastInstallment ? withOffset : singleValue;
 
-            block: max + 1,
-            expirationDate: data.expirationDate.plus({
-              days:
-                paymentMethod.daysFirstInstallment +
-                paymentMethod.daysBetweenInstallments * v,
-            }),
-            feeType:
-              paymentMethod.fee > 0
-                ? BillPaymentFeeType.S
-                : BillPaymentFeeType.N,
-            feeValue: 0,
-            feePercentage: 0,
-            installments: v + 1,
-            installmentValue: singleValue,
-            totalValue: singleValue, // TODO: add fee
-            nsuDocument: data.nsuDocument,
-            paymentMethodDiscountPercentage: installment.fee,
-            paymentMethodDiscountValue: (singleValue * installment.fee) / 100,
-            qtyInstallments: data.installments,
-          }),
+            return {
+              economic_group_id: group.id,
+              business_unit_id: unitId,
+              bill_id: bill.id,
+              payment_method_id: data.paymentMethodId,
+              tef_acquirer_id: data.acquirerId,
+              tef_flag_id: data.flagId,
+              daily_cashier_id: userOpenCashier?.id,
+
+              block: max + 1,
+              expirationDate: data.expirationDate.plus({
+                days:
+                  paymentMethod.daysFirstInstallment +
+                  paymentMethod.daysBetweenInstallments * v,
+              }),
+              feeType:
+                paymentMethod.fee > 0
+                  ? BillPaymentFeeType.S
+                  : BillPaymentFeeType.N,
+              feeValue: 0,
+              feePercentage: 0,
+              installments: v + 1,
+              installmentValue,
+              totalValue: installmentValue, // TODO: add fee
+              nsuDocument: data.nsuDocument,
+              paymentMethodDiscountPercentage: installment.fee,
+              paymentMethodDiscountValue:
+                (installmentValue * installment.fee) / 100,
+              qtyInstallments: data.installments,
+            };
+          },
           {
             client: trx,
           },
@@ -697,41 +707,48 @@ export default class BillService {
         .save();
 
       await Finance.createMany(
-        Array.from({ length: installment.installment }, (_, v) => ({
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          daily_movement_id: bill.daily_movement_id,
-          daily_cashier_id: bill.daily_cashier_id,
-          client_id: bill.client_id,
-          payment_method_id: paymentMethod.id,
-          origin_id: payments.at(v)?.id,
+        Array.from({ length: installment.installment }, (_, v) => {
+          const installmentValue =
+            v === lastInstallment ? withOffset : singleValue;
 
-          type: FinanceType.C,
-          installment: v + 1,
-          block: max + 1,
-          originFlag: FinanceOriginFlag.S,
-          document: `NFS-${bill.tag}`,
-          historic: `NFS-${bill.tag}`,
-          issueDate: DateTime.now(),
-          expirationDate: payments.at(v)?.expirationDate,
-          originalValue: singleValue,
-          value: singleValue - (singleValue * installment.fee) / 100,
-          totalValue: singleValue - (singleValue * installment.fee) / 100,
-          feeDiscountValue:
-            (payments.at(v)?.installmentValue ?? 0) -
-            (singleValue - (singleValue * installment.fee) / 100),
-          feeValue: 0,
-          feeDiscountPercentage: paymentMethod.fee,
-          feePercentage: 0,
-          accept: FinanceAccept.N,
-          reconciled: false,
-          competenceDate: DateTime.now().toFormat('MM/yyyy'),
-          nsuDocument: payments.at(v)?.nsuDocument,
-          tef_flag_id: payments.at(v)?.tef_flag_id,
-          acquirer_id: payments.at(v)?.tef_acquirer_id,
-          status: FinanceStatus.A,
-          qtyInstallments: data.installments,
-        })),
+          return {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            daily_movement_id: bill.daily_movement_id,
+            daily_cashier_id: bill.daily_cashier_id,
+            client_id: bill.client_id,
+            payment_method_id: paymentMethod.id,
+            origin_id: payments.at(v)?.id,
+
+            type: FinanceType.C,
+            installment: v + 1,
+            block: max + 1,
+            originFlag: FinanceOriginFlag.S,
+            document: `NFS-${bill.tag}`,
+            historic: `NFS-${bill.tag}`,
+            issueDate: DateTime.now(),
+            expirationDate: payments.at(v)?.expirationDate,
+            originalValue: installmentValue,
+            value:
+              installmentValue - (installmentValue * installment.fee) / 100,
+            totalValue:
+              installmentValue - (installmentValue * installment.fee) / 100,
+            feeDiscountValue:
+              (payments.at(v)?.installmentValue ?? 0) -
+              (installmentValue - (installmentValue * installment.fee) / 100),
+            feeValue: 0,
+            feeDiscountPercentage: paymentMethod.fee,
+            feePercentage: 0,
+            accept: FinanceAccept.N,
+            reconciled: false,
+            competenceDate: DateTime.now().toFormat('MM/yyyy'),
+            nsuDocument: payments.at(v)?.nsuDocument,
+            tef_flag_id: payments.at(v)?.tef_flag_id,
+            acquirer_id: payments.at(v)?.tef_acquirer_id,
+            status: FinanceStatus.A,
+            qtyInstallments: data.installments,
+          };
+        }),
         {
           client: trx,
         },
@@ -1443,6 +1460,10 @@ export default class BillService {
     //   .preload('tutor')
     //   .firstOrFail();
 
+    const [{ count }] = await Database.from('bills')
+      .where('business_unit_id', unitId)
+      .count('*');
+
     const bills = await Bill.query().select('id');
 
     const productVariations = await ProductVariation.query()
@@ -1503,7 +1524,7 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(bills.length + 1),
+        tag: GenerateTag(parseInt(count) + 1),
       },
       {
         client: trx,

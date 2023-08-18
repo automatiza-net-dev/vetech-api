@@ -24,7 +24,7 @@ export default class CancelOpportunityActivityValidator {
    *    ```
    */
   public schema = schema.create({
-    observation: schema.string(),
+    observation: schema.string.optional(),
   });
 
   /**

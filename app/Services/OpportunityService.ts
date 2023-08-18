@@ -908,7 +908,7 @@ export default class OpportunityService {
     authCtx: AuthContext,
     id: number,
     data: {
-      observation: string;
+      observation?: string;
     },
   ) {
     await Database.transaction(async trx => {

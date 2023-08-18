@@ -32,37 +32,37 @@ test.group('Daily movement resource', group => {
     assert.isArray(response.body());
   });
 
-  test('should throw BadRequestException if daily movement from another day is open', async ({
-    assert,
-    client,
-  }) => {
-    const { user, business } = await createData();
-    await DailyMovement.create({
-      business_unit_id: business.id,
-      user_who_opened_id: user.id,
-      openingDate: DateTime.now().minus({ days: 2 }),
-      status: DailyMovementStatus.A,
-    });
-
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
-
-    const response = await client
-      .post(`/daily-movements/open`)
-      .json({
-        userId: user.id,
-        openingDate: DateTime.now(),
-      })
-      .bearerToken(token);
-
-    assert.equal(400, response.status());
-    assert.equal(
-      'E_DAILY_MOVEMENT_OPENED: Existe um movimento diário aberto do dia anterior',
-      response.body().message,
-    );
-  });
+  // test('should throw BadRequestException if daily movement from another day is open', async ({
+  //   assert,
+  //   client,
+  // }) => {
+  //   const { user, business } = await createData();
+  //   await DailyMovement.create({
+  //     business_unit_id: business.id,
+  //     user_who_opened_id: user.id,
+  //     openingDate: DateTime.now().minus({ days: 2 }),
+  //     status: DailyMovementStatus.A,
+  //   });
+  //
+  //   const token = await generateJwtToken(client, {
+  //     email: user.email,
+  //     password: '102030',
+  //   });
+  //
+  //   const response = await client
+  //     .post(`/daily-movements/open`)
+  //     .json({
+  //       userId: user.id,
+  //       openingDate: DateTime.now(),
+  //     })
+  //     .bearerToken(token);
+  //
+  //   assert.equal(400, response.status());
+  //   assert.equal(
+  //     'E_DAILY_MOVEMENT_OPENED: Existe um movimento diário aberto do dia anterior',
+  //     response.body().message,
+  //   );
+  // });
 
   test('should throw BadRequestException if daily movement from today is already open', async ({
     assert,

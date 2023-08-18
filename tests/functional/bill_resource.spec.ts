@@ -642,6 +642,8 @@ test.group('Bill resource', group => {
       password: '102030',
     });
 
+    await flagInstallment.merge({ installment: 3 }).save();
+
     const response = await client
       .post(`/bills/create-payment`)
       .json({
@@ -649,7 +651,7 @@ test.group('Bill resource', group => {
         paymentMethodId: paymentMethod.id,
         expirationDate: new Date(),
         paymentMethodFlagInstallmentId: flagInstallment.id,
-        installmentsValue: 10,
+        installmentsValue: 1000,
         acquirerId: tefAcq.id,
         flagId: tefFlag.id,
         nsuDocument: 'some document',

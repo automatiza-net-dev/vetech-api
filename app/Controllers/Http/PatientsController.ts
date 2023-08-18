@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import PatientService from 'App/Services/PatientService';
 import SharedService from 'App/Services/SharedService';
+import CheckPhoneValidator from 'App/Validators/Patient/CheckPhoneValidator';
 import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidator';
 import FastCreatePatientValidator from 'App/Validators/Patient/FastCreatePatientValidator';
 import UpdatePatientValidator from 'App/Validators/Patient/UpdatePatientValidator';
@@ -49,11 +50,11 @@ export default class PatientsController {
     return response.ok(result);
   }
 
-  public async checkPhone({ params, response, auth }: HttpContextContract) {
-    const { phone } = params;
+  public async checkPhone({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(CheckPhoneValidator);
     const result = await this.service.checkExistingPhone(
       await this.sharedService.getAuthContext(auth),
-      phone,
+      payload.phone,
     );
 
     return response.ok(result);

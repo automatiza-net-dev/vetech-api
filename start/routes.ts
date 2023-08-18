@@ -189,7 +189,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/check-document/:document', 'PatientsController.checkDocument');
-  Route.get('/check-phone/:phone', 'PatientsController.checkPhone');
+  Route.post('/check-phone/', 'PatientsController.checkPhone');
   Route.get('/search', 'PatientsController.search');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');

@@ -416,6 +416,7 @@ export default class PatientService {
         query.preload('profession');
       });
       await patient.load('dependents');
+      await patient.load('contacts');
     }
 
     if (patient.type === PatientType.SUPPLIER) {

@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import PatientContact, { PatientContactType } from 'App/Models/PatientContact';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 
@@ -116,6 +117,65 @@ export default class PatientContactService {
       }
 
       await contact.merge(data).useTransaction(trx).save();
+    });
+  }
+  async batchUpdate(
+    authCtx: AuthContext,
+    data: {
+      items: {
+        id: number;
+        main: boolean;
+        contact: string;
+        observation: string;
+        type: typeof PatientContactType[number];
+        active: boolean;
+      }[];
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const contacts = await PatientContact.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.items.map(i => i.id),
+        )
+        .whereHas('patient', query => {
+          query.whereHas('economicGroup', query => {
+            query.where('economic_group_id', authCtx.group.id);
+          });
+        });
+
+      if (contacts.length < data.items.length) {
+        throw new BadRequestException(
+          'Algum contato não foi encontrado',
+          400,
+          'E_MISSING',
+        );
+      }
+
+      const tasks = contacts.map(elem => {
+        const entry = data.items.find(f => f.id === elem.id);
+
+        if (!entry) {
+          throw new BadRequestException(
+            'Algum contato não foi encontrado',
+            400,
+            'E_MISSING',
+          );
+        }
+
+        return elem
+          .merge({
+            main: entry.main,
+            contact: entry.contact,
+            observation: entry.observation,
+            type: entry.type,
+            active: entry.active,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+      await Promise.all(tasks);
     });
   }
 

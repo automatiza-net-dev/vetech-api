@@ -19,6 +19,7 @@ import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 import Hospitalization from 'App/Models/Hospitalization';
 import PatientContact from './PatientContact';
+import Bill from './Bill';
 
 export enum PatientType {
   TUTOR = 'tutor',
@@ -73,6 +74,11 @@ export default class Patient extends BaseModel {
     columnName: 'birth_date',
   })
   public birthDate?: Date;
+
+  @column.dateTime({
+    columnName: 'first_sale',
+  })
+  public firstSale?: DateTime;
 
   @column()
   public weight: number;
@@ -186,4 +192,10 @@ export default class Patient extends BaseModel {
     foreignKey: 'patient_id',
   })
   public contacts: HasMany<typeof PatientContact>;
+
+  @hasMany(() => Bill, {
+    localKey: 'id',
+    foreignKey: 'client_id',
+  })
+  public bills: HasMany<typeof Bill>;
 }

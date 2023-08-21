@@ -1304,3 +1304,25 @@ Route.group(() => {
 })
   .prefix('ip-access')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/median-ticket', 'IndicatorsController.medianTicket');
+  Route.get(
+    '/median-ticket-origin',
+    'IndicatorsController.medianTicketByOrigin',
+  );
+  Route.get(
+    '/invoicing-product-type',
+    'IndicatorsController.invoicingByProductType',
+  );
+  Route.get(
+    '/invoicing-payment-method',
+    'IndicatorsController.invoicingByPaymentMethod',
+  );
+  Route.get(
+    '/invoicing-new-clients',
+    'IndicatorsController.invoicingByNewClients',
+  );
+})
+  .prefix('indicators')
+  .middleware('auth');

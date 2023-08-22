@@ -66,12 +66,13 @@ export default class AuthController {
       .map(r => r.role.permissions.map(p => p.control_id))
       .flat()
       .filter(Boolean);
+    const uniqueControls = Array.from(new Set(controlIds));
 
     return response.ok({
       user,
       unit,
       url: economicGroup.system.systemUrls.at(0) ?? null,
-      cl: controlIds,
+      cl: uniqueControls,
     });
   }
 

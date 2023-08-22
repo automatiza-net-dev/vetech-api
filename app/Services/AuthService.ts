@@ -25,7 +25,9 @@ export default class AuthService {
       .related('roles')
       .query()
       .preload('role', query => {
-        query.preload('permissions');
+        query.preload('permissions', query => {
+          query.where('status', true);
+        });
       })
       .preload('unit', query => {
         query.whereHas('economicGroup', query => {

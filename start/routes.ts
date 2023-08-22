@@ -1177,6 +1177,10 @@ Route.group(() => {
     'OpportunitiesController.executeActivity',
   );
   Route.post('/cancel-activity/:id', 'OpportunitiesController.cancelActivity');
+  Route.post(
+    '/exclude-activity/:id',
+    'OpportunitiesController.excludeActivity',
+  );
 })
   .prefix('opportunities')
   .middleware('auth');

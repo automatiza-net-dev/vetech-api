@@ -212,4 +212,16 @@ export default class OpportunitiesController {
 
     return response.noContent();
   }
+
+  public async excludeActivity({
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.excludeActivity(authCtx, params.id);
+
+    return response.noContent();
+  }
 }

@@ -470,4 +470,19 @@ test.group('Opportunity resource', group => {
 
     props.assert.equal(response.status(), 204);
   });
+
+  test('should exclude an opportunity activity', async props => {
+    const { user, activity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/exclude-activity/${activity.id}`)
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
+  });
 });

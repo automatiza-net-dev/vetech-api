@@ -983,4 +983,37 @@ export default class OpportunityService {
         .save();
     });
   }
+
+  public async excludeActivity(authCtx: AuthContext, id: number) {
+    await Database.transaction(async trx => {
+      const activity = await OpportunityActivity.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .whereHas('opportunity', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        })
+        .first();
+
+      if (!activity) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (activity.status !== 'Aberta') {
+        throw new BadRequestException(
+          'Atividade já executada, cancelada ou excluída',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await activity
+        .merge({
+          exclusion_user_id: authCtx.user.id,
+          deletedAt: DateTime.now(),
+          status: 'Excluida',
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 }

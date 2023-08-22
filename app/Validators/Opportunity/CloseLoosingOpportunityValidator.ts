@@ -30,7 +30,7 @@ export default class CloseLoosingOpportunityValidator {
         column: 'id',
       }),
     ]),
-    description: schema.string.optional(),
+    observation: schema.string.optional(),
   });
 
   /**

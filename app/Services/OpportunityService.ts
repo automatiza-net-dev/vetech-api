@@ -618,7 +618,7 @@ export default class OpportunityService {
           closingDate: DateTime.now(),
           balance: 'Ganho',
           resultObservation: data.observation,
-          value: data.value,
+          profitValue: data.value,
         })
         .useTransaction(trx)
         .save();

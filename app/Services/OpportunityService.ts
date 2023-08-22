@@ -292,6 +292,7 @@ export default class OpportunityService {
   ) {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
+      .whereNull('closing_date')
       .preload('client', query => {
         query.preload('tutor');
       })

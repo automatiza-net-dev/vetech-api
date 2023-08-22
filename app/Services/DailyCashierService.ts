@@ -1,7 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
-import Bill from 'App/Models/Bill';
 import BillPaymentConference from 'App/Models/BillPaymentConference';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
@@ -10,7 +9,6 @@ import {
 } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, { FinanceAccept } from 'App/Models/Finance';
-import { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import {
   ICheckCashierData,
@@ -62,19 +60,23 @@ export default class DailyCashierService {
       throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
     }
 
-    const bills = await Bill.query()
-      .whereHas('payments', query => {
-        query.preload('bill');
-
-        query.where('daily_cashier_id', dailyCashier.id);
+    const payments = await BillPayment.query()
+      .where('daily_cashier_id', dailyCashier.id)
+      .preload('bill', query => {
+        query.preload('client').preload('payments', query => {
+          query.preload('paymentMethod');
+        });
       })
-      .preload('client')
-      .preload('payments', query => {
-        query.preload('paymentMethod');
-      });
+      .orderBy('block', 'asc');
 
-    const tefSet = new Set();
-    const noTefSet = new Set();
+    const uniqueBlockPayments: BillPayment[] = [];
+    for (const payment of payments) {
+      if (uniqueBlockPayments.some(f => f.block === payment.block)) {
+        continue;
+      }
+
+      uniqueBlockPayments.push(payment);
+    }
 
     return {
       cashier: {
@@ -86,36 +88,40 @@ export default class DailyCashierService {
         },
         tag: dailyCashier.tag,
 
-        opening_user: dailyCashier.userWhoOpened
-          ? {
-              id: dailyCashier.userWhoOpened.id,
-              name: dailyCashier.userWhoOpened.name,
-            }
-          : null,
+        opening_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoOpened,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
         opening_date: dailyCashier.openingDate,
 
-        closing_user: dailyCashier.userWhoClosed
-          ? {
-              id: dailyCashier.userWhoClosed.id,
-              name: dailyCashier.userWhoClosed.name,
-            }
-          : null,
+        closing_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoClosed,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
         closing_date: dailyCashier.closingDate,
 
-        checking_user: dailyCashier.userWhoChecked
-          ? {
-              id: dailyCashier.userWhoChecked.id,
-              name: dailyCashier.userWhoChecked.name,
-            }
-          : null,
+        checking_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoChecked,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
         checking_date: dailyCashier.checkingDate,
 
-        revision_user: dailyCashier.userWhoRevised
-          ? {
-              id: dailyCashier.userWhoRevised.id,
-              name: dailyCashier.userWhoRevised.name,
-            }
-          : null,
+        revision_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoRevised,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
         revision_date: dailyCashier.revisionDate,
 
         opening_balance: dailyCashier.openingBalance,
@@ -127,182 +133,34 @@ export default class DailyCashierService {
         cashier_balance: dailyCashier.cashierBalance,
         observations: dailyCashier.observations,
         status: dailyCashier.status,
+
+        bill_payments: uniqueBlockPayments.map(elem => ({
+          bill_id: elem.bill_id,
+          bill_tag: elem.bill.tag,
+          created_at: elem.createdAt,
+          block: elem.block,
+          nsuDocument: elem.nsuDocument,
+          qtyInstallments: elem.installments,
+          totalValue: elem.totalValue,
+          conferenceDate: elem.conferenceDate,
+          tutor: this.sharedService.captureGroup(elem.bill?.client, v => ({
+            id: v.id,
+            name: v.name,
+          })),
+          patient: this.sharedService.captureGroup(elem.bill?.patient, v => ({
+            id: v.id,
+            name: v.name,
+          })),
+          paymentMethod: this.sharedService.captureGroup(
+            elem.paymentMethod,
+            v => ({
+              id: v.id,
+              description: v.description,
+              flag: elem.flag?.description ?? null,
+            }),
+          ),
+        })),
       },
-      expenses: dailyCashier.entries
-        .filter(e => e.type === DailyCashierEntryType.D)
-        .map(e => {
-          return {
-            id: e.id,
-            entry_date: e.entryDate,
-            description: e.description,
-            value: e.value,
-            status: e.status,
-            created_at: e.createdAt,
-
-            paymentMethod: e.paymentMethod
-              ? {
-                  id: e.paymentMethod.id,
-                  description: e.paymentMethod.description,
-                }
-              : null,
-            accountPlan: e.accountPlan
-              ? {
-                  id: e.accountPlan.id,
-                  description: e.accountPlan.description,
-                }
-              : null,
-          };
-        }),
-      receipts: dailyCashier.entries
-        .filter(e => e.type === DailyCashierEntryType.C)
-        .map(e => {
-          return {
-            id: e.id,
-            entry_date: e.entryDate,
-            description: e.description,
-            value: e.value,
-            status: e.status,
-            created_at: e.createdAt,
-
-            paymentMethod: e.paymentMethod
-              ? {
-                  id: e.paymentMethod.id,
-                  description: e.paymentMethod.description,
-                }
-              : null,
-            accountPlan: e.accountPlan
-              ? {
-                  id: e.accountPlan.id,
-                  description: e.accountPlan.description,
-                }
-              : null,
-          };
-        }),
-      bill_payments: {
-        tef_pos: bills
-          .reduce((acc, bill) => {
-            const tefs = bill.payments.filter(p =>
-              [PaymentMethodTef.P, PaymentMethodTef.T].includes(
-                p.paymentMethod.tef,
-              ),
-            );
-            return [...acc, ...tefs];
-          }, [])
-          .filter(elem => {
-            if (tefSet.has(elem.block)) {
-              return false;
-            }
-
-            tefSet.add(elem.block);
-            return true;
-          })
-          .reduce((acc, curr) => {
-            const data = {
-              id: curr.id,
-              block: curr.block,
-              createdAt: curr.createdAt,
-              nsuDocument: curr.nsuDocument,
-              tag: curr?.bill?.tag ?? '-',
-              qtyInstallments: curr.qtyInstallments,
-              totalValue: curr.totalValue,
-              conferenceDate: curr.conferenceDate,
-
-              paymentMethod: curr.paymentMethod,
-              flag: curr.flag,
-            };
-
-            const root = acc[curr.payment_method_id];
-
-            if (!root) {
-              acc[curr.payment_method_id] = {
-                [curr.flag?.id ?? '-']: {
-                  flag: curr.flag
-                    ? {
-                        id: curr.flag.id,
-                        description: curr.flag.description,
-                      }
-                    : null,
-                  payments: [data],
-                },
-              };
-            }
-
-            return acc;
-          }, {} as Record<string, Record<string, unknown>>),
-        no_tef: bills
-          .reduce((acc, bill) => {
-            const no_tefs = bill.payments.filter(p =>
-              [PaymentMethodTef.N].includes(p.paymentMethod.tef),
-            );
-            return [...acc, ...no_tefs];
-          }, [])
-          .filter(elem => {
-            if (noTefSet.has(elem.block)) {
-              return false;
-            }
-
-            noTefSet.add(elem.block);
-            return true;
-          })
-          .reduce((acc, curr) => {
-            const data = {
-              id: curr.id,
-              block: curr.block,
-              createdAt: curr.createdAt,
-              nsuDocument: curr.nsuDocument,
-              tag: curr?.bill?.tag ?? '-',
-              qtyInstallments: curr.qtyInstallments,
-              totalValue: curr.totalValue,
-              conferenceDate: curr.conferenceDate,
-
-              paymentMethod: curr.paymentMethod,
-              flag: curr.flag,
-            };
-
-            if (acc[curr.payment_method_id]) {
-              acc[curr.payment_method_id].payments.push(data);
-              return acc;
-            }
-
-            acc[curr.payment_method_id] = {
-              payments: [data],
-            };
-            return acc;
-          }, {}),
-      },
-      // 2.10.5
-      payments: bills.map(bill => {
-        return bill.payments.map(p => ({
-          id: p.id,
-          description: p.paymentMethod.description,
-          flag: p.flag ?? null,
-          type: p.paymentMethod.type,
-          created_at: p.createdAt,
-          installments: p.installments,
-          client: bill.client
-            ? {
-                id: bill.client.id,
-                name: bill.client.name,
-              }
-            : null,
-          installment_value: p.installmentValue,
-          nsuDocument: p.nsuDocument,
-          expirationDate: p.expirationDate,
-          conferenceDate: p.conferenceDate ?? null,
-          bill: {
-            id: bill.id,
-            billDate: bill.billDate,
-            closingDate: bill.closingDate,
-            productValue: bill.productValue,
-            serviceValue: bill.serviceValue,
-            discountValue: bill.discountValue,
-            feeValue: bill.feeValue,
-            deliveryValue: bill.deliveryValue,
-            totalValue: bill.totalValue,
-            paidValue: bill.paidValue,
-          },
-        }));
-      }),
     };
   }
 

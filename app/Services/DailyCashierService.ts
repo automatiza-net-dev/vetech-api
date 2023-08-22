@@ -63,10 +63,9 @@ export default class DailyCashierService {
     const payments = await BillPayment.query()
       .where('daily_cashier_id', dailyCashier.id)
       .preload('bill', query => {
-        query.preload('client').preload('payments', query => {
-          query.preload('paymentMethod');
-        });
+        query.preload('client').preload('patient');
       })
+      .preload('paymentMethod')
       .orderBy('block', 'asc');
 
     const uniqueBlockPayments: BillPayment[] = [];
@@ -155,7 +154,7 @@ export default class DailyCashierService {
             elem.paymentMethod,
             v => ({
               id: v.id,
-              description: v.description,
+              description: v.description ?? null,
               flag: elem.flag?.description ?? null,
             }),
           ),

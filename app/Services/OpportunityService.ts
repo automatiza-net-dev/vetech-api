@@ -77,6 +77,7 @@ export default class OpportunityService {
       technician?: string;
       unit?: string;
       status?: string;
+      balance?: string;
     },
   ) {
     const qb = Opportunity.query()
@@ -118,6 +119,10 @@ export default class OpportunityService {
 
     if (data.status) {
       qb.where('status_id', data.status);
+    }
+
+    if (data.balance) {
+      qb.where('balance', data.balance);
     }
 
     if (data.contactName || data.contactPhone) {

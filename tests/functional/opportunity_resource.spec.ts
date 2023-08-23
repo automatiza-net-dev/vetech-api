@@ -287,7 +287,7 @@ test.group('Opportunity resource', group => {
   });
 
   test('should search for opportunities', async props => {
-    const { user, business } = await createData();
+    const { user, business, opportunity } = await createData();
 
     const token = await generateJwtToken(props.client, {
       email: user.email,
@@ -304,6 +304,8 @@ test.group('Opportunity resource', group => {
       patientName: 'some',
       technician: user.id,
       unit: business.id,
+      status: opportunity.status_id.toString(),
+      balance: 'Ganho',
     });
 
     const response = await props.client

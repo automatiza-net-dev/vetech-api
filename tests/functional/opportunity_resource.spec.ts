@@ -305,7 +305,8 @@ test.group('Opportunity resource', group => {
       technician: user.id,
       unit: business.id,
       status: opportunity.status_id.toString(),
-      balance: 'Ganho',
+      'balance[0]': 'Ganho',
+      'balance[1]': 'Perda',
     });
 
     const response = await props.client

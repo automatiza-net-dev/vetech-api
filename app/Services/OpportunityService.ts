@@ -77,9 +77,10 @@ export default class OpportunityService {
       technician?: string;
       unit?: string;
       status?: string;
-      balance?: string;
+      balance?: string[];
     },
   ) {
+
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
       .preload('client', query => {
@@ -121,8 +122,8 @@ export default class OpportunityService {
       qb.where('status_id', data.status);
     }
 
-    if (data.balance) {
-      qb.where('balance', data.balance);
+    if (data.balance && Array.isArray(data.balance)) {
+      qb.whereIn('balance', data.balance);
     }
 
     if (data.contactName || data.contactPhone) {

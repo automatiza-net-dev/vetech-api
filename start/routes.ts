@@ -1327,6 +1327,27 @@ Route.group(() => {
     '/invoicing-new-clients',
     'IndicatorsController.invoicingByNewClients',
   );
+
+  Route.get(
+    '/median-ticket-consolidated',
+    'IndicatorsController.medianTicketConsolidated',
+  );
+  Route.get(
+    '/median-ticket-origin-consolidated',
+    'IndicatorsController.medianTicketByOriginConsolidated',
+  );
+  Route.get(
+    '/invoicing-product-type-consolidated',
+    'IndicatorsController.invoicingByProductTypeConsolidated',
+  );
+  Route.get(
+    '/invoicing-payment-method-consolidated',
+    'IndicatorsController.invoicingByPaymentMethodConsolidated',
+  );
+  Route.get(
+    '/invoicing-new-clients-consolidated',
+    'IndicatorsController.invoicingByNewClientsConsolidated',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

@@ -70,4 +70,69 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async medianTicketConsolidated({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.medianTicketConsolidated(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async medianTicketByOriginConsolidated({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.medianTicketByOriginConsolidated(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async invoicingByProductTypeConsolidated({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.invoicingByProductTypeConsolidated(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async invoicingByPaymentMethodConsolidated({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.invoicingByPaymentMethodConsolidated(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async invoicingByNewClientsConsolidated({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.invoicingByNewClientsConsolidated(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

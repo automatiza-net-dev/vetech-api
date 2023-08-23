@@ -256,6 +256,7 @@ export default class BusinessUnitService {
           email: props.email,
           password: props.password,
           system_id: authCtx.system.id,
+          type: 'user',
         },
         {
           client: trx,

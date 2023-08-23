@@ -145,7 +145,7 @@ export default class UserService {
       }
 
       const user = await User.create(
-        { ...userData, system_id: system.id },
+        { ...userData, system_id: system.id, type: 'user' },
         {
           client: trx,
         },

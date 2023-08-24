@@ -26,6 +26,8 @@ Route.get('/', () => {
 
 Route.group(() => {
   Route.get('me', 'AuthController.whoAmI').middleware('auth');
+  Route.post('swap-unit', 'AuthController.swapUnit').middleware('auth');
+
   Route.post('controller-login', 'AuthController.controllerLogin');
   Route.post('login', 'AuthController.login');
   Route.post('register', 'AuthController.register');

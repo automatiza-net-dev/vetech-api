@@ -7,7 +7,7 @@ import RoleFactory from 'Database/factories/RoleFactory';
 import { addDays } from 'date-fns';
 import { v4 } from 'uuid';
 
-import { userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from '../utils';
 
 test.group('Auth resource', group => {
   group.each.setup(async () => {
@@ -49,6 +49,47 @@ test.group('Auth resource', group => {
   //
   //   assert.equal(user.id, loggedUser.user.id);
   // });
+
+  test('should throw BadRequestException if swapping for a wrong unit', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createUser({});
+    const { business } = await createUser({});
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/auth/swap-unit`)
+      .json({
+        unitId: business.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should return new token with swapped unit', async ({
+    client,
+    assert,
+  }) => {
+    const { user, business } = await createUser({});
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/auth/swap-unit`)
+      .json({
+        unitId: business.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 
   test('should login a new user', async ({ client, assert }) => {
     const { user, business } = await createUser({});

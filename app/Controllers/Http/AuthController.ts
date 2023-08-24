@@ -5,6 +5,7 @@ import AuthService from 'App/Services/AuthService';
 import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
 import LoginValidator from 'App/Validators/Auth/LoginValidator';
+import SwapUnitValidator from 'App/Validators/Auth/SwapUnitValidator';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
 import ForgotPasswordValidator from 'App/Validators/User/ForgotPasswordValidator';
 import ResetPasswordValidator from 'App/Validators/User/ResetPasswordValidator';
@@ -48,6 +49,18 @@ export default class AuthController {
       payload,
       auth,
       payload.ipAddress,
+    );
+
+    return response.ok(result);
+  }
+
+  public async swapUnit({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(SwapUnitValidator);
+
+    const result = await this.authService.swapUnit(
+      await this.sharedService.getAuthContext(auth),
+      auth,
+      payload,
     );
 
     return response.ok(result);

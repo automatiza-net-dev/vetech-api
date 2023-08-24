@@ -11,6 +11,7 @@ import User from 'App/Models/User';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
 import IpAccessControlService from 'App/Services/IpAccessControlService';
+import { AuthContext } from './SharedService';
 
 @inject()
 export default class AuthService {
@@ -68,6 +69,36 @@ export default class AuthService {
     }
 
     return await qb;
+  }
+
+  public async swapUnit(
+    authCtx: AuthContext,
+    contract: AuthContract,
+    data: {
+      unitId: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', data.unitId)
+        .where('economic_group_id', authCtx.unit.economicGroupId)
+        .first();
+
+      if (!unit) {
+        throw new BadRequestException(
+          'Unidade não encontrada',
+          400,
+          'E_UNIT_NOT_FOUND',
+        );
+      }
+
+      return contract.use('api').generate(authCtx.user, {
+        expiresIn: '7d',
+        unit_id: unit.id,
+        system_id: authCtx.system.id,
+      });
+    });
   }
 
   public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {

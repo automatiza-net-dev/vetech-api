@@ -33,6 +33,26 @@ export default class AuthController {
     return response.ok(result);
   }
 
+  public async controllerLogin({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(request.headers());
+    }
+
+    const payload = await request.validate(LoginValidator);
+
+    const result = await this.authService.controllerLogin(
+      payload,
+      auth,
+      payload.ipAddress,
+    );
+
+    return response.ok(result);
+  }
+
   public async register({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUserValidator);
     const { user, unit, system } = await this.service.store(payload);
@@ -60,7 +80,7 @@ export default class AuthController {
       })
       .firstOrFail();
 
-    const userRoles = await this.authService.getRoles(user, system.id);
+    const userRoles = await this.authService.getRoles(user, system.id, false);
 
     const controlIds = userRoles
       .map(r => r.role.permissions.map(p => p.control_id))

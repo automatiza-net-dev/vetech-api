@@ -16,7 +16,7 @@ import IpAccessControlService from 'App/Services/IpAccessControlService';
 export default class AuthService {
   constructor(private readonly ipService: IpAccessControlService) {}
 
-  public async getRoles(user: User, sID: number) {
+  public async getRoles(user: User, sID: number, isLogin: boolean) {
     if (!user.type) {
       throw new BadRequestException('Usuário sem tipo', 400, 'E_NO_TYPE');
     }
@@ -27,6 +27,10 @@ export default class AuthService {
       .preload('role', query => {
         query.preload('permissions', query => {
           query.where('status', true);
+
+          if (isLogin) {
+            query.where('type', 'user');
+          }
         });
       })
       .preload('unit', query => {
@@ -95,7 +99,7 @@ export default class AuthService {
         );
       }
 
-      const roles = await this.getRoles(user, system.id);
+      const roles = await this.getRoles(user, system.id, true);
 
       const validUnits = roles
         .map(r => r.unit)
@@ -153,6 +157,7 @@ export default class AuthService {
 
             return {
               id: group?.id,
+              userType: user.type,
               fantasyName: group?.fantasyName,
               companyName: group?.companyName,
               businessUnits: await Promise.all(
@@ -204,13 +209,174 @@ export default class AuthService {
           );
         }
       }
-      // const status = await this.checkLicence(unit);
-
-      // if (status) {
-      //   throw new BadRequestException('Erro', 400, status);
-      // }
 
       return AuthService.generateAuthToken(auth, user, unit.id, system.id);
+    });
+  }
+
+  public async controllerLogin(
+    data: ILoginData,
+    auth: AuthContract,
+    reqIp?: string,
+  ) {
+    return Database.transaction(async trx => {
+      const system = await System.query()
+        .useTransaction(trx)
+        .where('name', data.system)
+        .firstOrFail();
+
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('email', data.email)
+        .where('system_id', system.id)
+        .first();
+
+      if (!user || user.type !== 'controller') {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (!(await Hash.verify(user.password, data.password))) {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      const roles = await user
+        .related('roles')
+        .query()
+        .preload('role', query => {
+          query.preload('permissions', query => {
+            query.where('status', true);
+            query.where('type', 'controller');
+          });
+        })
+        .preload('unit', query => {
+          query.where('active', true);
+        })
+        .whereHas('unit', query => {
+          query.where('active', true);
+        })
+        .whereHas('role', query => {
+          query.whereIn('type', ['controller', 'both']);
+        })
+        .where('active', true);
+
+      const validUnits = roles
+        .map(r => r.unit)
+        .filter(u => u !== null) as BusinessUnit[];
+
+      const contextRole = roles.find(r => Boolean(r.role))?.role;
+      if (!contextRole) {
+        throw new BadRequestException(
+          'Cargo não encontrado',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (validUnits.length === 1) {
+        const [unit] = validUnits;
+        if (reqIp) {
+          const canAccess = await this.ipService.checkAccess(
+            {
+              role: contextRole,
+              unit: unit.id,
+              user: user.id,
+            },
+            reqIp,
+          );
+          if (!canAccess) {
+            throw new BadRequestException(
+              'Acesso não permitido para o IP informado',
+              400,
+              'E_IP_NOT_ALLOWED',
+            );
+          }
+        }
+
+        return auth.use('controllerApi').generate(user, {
+          expiresIn: '7d',
+        });
+      }
+
+      const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
+        'id',
+        validUnits.map(u => u.economicGroupId),
+      );
+
+      const dataMap = new Map<string, BusinessUnit[]>();
+      uniqueEconomicGroups.forEach(eg => dataMap.set(eg.id, []));
+      validUnits.forEach(u => dataMap.get(u.economicGroupId)?.push(u));
+
+      if (!data.business_unit_id) {
+        const result = await Promise.all(
+          Array.from(dataMap.keys()).map(async key => {
+            const group = uniqueEconomicGroups.find(eg => eg.id === key);
+
+            return {
+              id: group?.id,
+              userType: user.type,
+              fantasyName: group?.fantasyName,
+              companyName: group?.companyName,
+              businessUnits: await Promise.all(
+                dataMap.get(key)!.map(async bu => ({
+                  id: bu.id,
+                  identification: bu.identification,
+                  status: 'VALID',
+                })),
+              ),
+            };
+          }),
+        );
+
+        if (result.length === 0) {
+          throw new BadRequestException(
+            'Credenciais inválidas',
+            400,
+            'E_BAD_CREDENTIALS',
+          );
+        }
+
+        return result;
+      }
+
+      const unit = validUnits.find(u => u.id === data.business_unit_id);
+
+      if (!unit) {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (reqIp) {
+        const canAccess = await this.ipService.checkAccess(
+          {
+            role: contextRole,
+            unit: unit.id,
+            user: user.id,
+          },
+          reqIp,
+        );
+        if (!canAccess) {
+          throw new BadRequestException(
+            'Acesso não permitido para o IP informado',
+            400,
+            'E_IP_NOT_ALLOWED',
+          );
+        }
+      }
+
+      return auth.use('controllerApi').generate(user, {
+        expiresIn: '7d',
+      });
     });
   }
 

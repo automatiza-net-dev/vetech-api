@@ -22,4 +22,7 @@ export default class System extends BaseModel {
     foreignKey: 'system_id',
   })
   public systemUrls: HasMany<typeof SystemUrl>;
+
+  @column({ serializeAs: null })
+  public default_role_id: number;
 }

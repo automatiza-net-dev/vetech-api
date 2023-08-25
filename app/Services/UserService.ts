@@ -105,12 +105,7 @@ export default class UserService {
         );
       }
 
-      const adminRole = await Role.findBy('name', 'admin', {
-        client: trx,
-      });
-      if (!adminRole) {
-        Logger.error('No admin role');
-        // should have admin role
+      if (!system.default_role_id) {
         throw new InternalErrorException(
           'Erro na criação de usuário',
           400,
@@ -197,7 +192,7 @@ export default class UserService {
 
       await user.related('roles').create(
         {
-          role_id: adminRole.id,
+          role_id: system.default_role_id,
           unit_id: newBusinessUnit.id,
         },
         {

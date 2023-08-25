@@ -223,9 +223,7 @@ export default class UserService {
 
       if (system.name === 'LiftOne') {
         await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
-      }
-
-      if (system.name === 'Vetech' || system.name === 'Sanclá') {
+      } else {
         await this.seedData(newGroup, newBusinessUnit, trx);
       }
 
@@ -811,7 +809,7 @@ export default class UserService {
 
     const rawSubgroups = liftOneServices.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description'],
+      ['description', 'system_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
@@ -962,8 +960,7 @@ export default class UserService {
     const brands = await Brand.query()
       .useTransaction(trx)
       .where('system_id', group.system_id)
-      .whereNull('economic_group_id')
-      .where('system_id', group.system_id);
+      .whereNull('economic_group_id');
 
     await group.related('paymentMethods').createMany(
       [
@@ -1402,7 +1399,7 @@ export default class UserService {
 
     const rawSubgroups = vetechProducts.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description'],
+      ['description', 'system_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,

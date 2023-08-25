@@ -10,6 +10,7 @@ import System from 'App/Models/System';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
+import axios from 'axios';
 
 @inject()
 export default class ThirdPartyService {
@@ -19,7 +20,67 @@ export default class ThirdPartyService {
     'E_INVALID',
   );
 
+  private getBaseUrl() {
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:3333';
+    }
+
+    return 'https://vetech-api.automatiza.net';
+  }
+
   constructor(private sharedService: SharedService) {}
+
+  public async updateToken(
+    tpUser: ThirdPartyUserPermission,
+    data: {
+      userToken: string;
+      unitId: string;
+    },
+  ) {
+    await tpUser.load('system');
+
+    if (!tpUser.system) {
+      throw new BadRequestException(
+        'Sistema não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    const unit = await BusinessUnit.query()
+      .where('id', data.unitId)
+      .preload('economicGroup')
+      .firstOrFail();
+    if (unit.economicGroup.system_id !== tpUser.system.id) {
+      throw new BadRequestException(
+        'Unidade não encontrada',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    // make request to change user token
+    try {
+      await axios.post(
+        `${this.getBaseUrl()}/auth/swap-tp-unit`,
+        {
+          unitId: data.unitId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${data.userToken}`,
+          },
+        },
+      );
+    } catch (error) {
+      // console.log('err?', (error as AxiosError).response?.data);
+
+      throw new BadRequestException(
+        error.response?.data?.message ?? 'Token de usuário inválido',
+        400,
+      );
+    }
+  }
 
   public async authenticate(
     authContract: AuthContract,
@@ -124,6 +185,7 @@ export default class ThirdPartyService {
 
     const userToken = await authContract.use('api').generate(user, {
       expiresIn: '1w',
+      system_id: tpUser.system_id,
     });
 
     const appToken = await authContract.use('tpApi').generate(tpUser, {

@@ -66,6 +66,16 @@ export default class AuthController {
     return response.ok(result);
   }
 
+  public async swapTpUnit({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(SwapUnitValidator);
+
+    const { token } = auth.use('api');
+
+    await this.authService.swapTpUnit(token!, payload);
+
+    return response.noContent();
+  }
+
   public async register({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUserValidator);
     const { user, unit, system } = await this.service.store(payload);

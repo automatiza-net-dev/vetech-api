@@ -27,6 +27,7 @@ Route.get('/', () => {
 Route.group(() => {
   Route.get('me', 'AuthController.whoAmI').middleware('auth');
   Route.post('swap-unit', 'AuthController.swapUnit').middleware('auth');
+  Route.post('swap-tp-unit', 'AuthController.swapTpUnit').middleware('auth');
 
   Route.post('controller-login', 'AuthController.controllerLogin');
   Route.post('login', 'AuthController.login');
@@ -1213,6 +1214,10 @@ Route.group(() => {
   Route.post(
     '/extended-authenticate-vetech',
     'ThirdPartiesController.extendedAuthenticateVetech',
+  );
+
+  Route.post('/update-token', 'ThirdPartiesController.updateToken').middleware(
+    'auth:tpApi',
   );
 
   Route.get('/profile', 'ThirdPartiesController.profile').middleware(

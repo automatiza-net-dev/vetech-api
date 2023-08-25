@@ -9,7 +9,6 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
-import ContactType from 'App/Models/ContactType';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Hospitalization, {
   HospitalizationType,

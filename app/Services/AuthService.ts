@@ -1,5 +1,5 @@
 import { inject } from '@adonisjs/fold';
-import { AuthContract } from '@ioc:Adonis/Addons/Auth';
+import { AuthContract, ProviderTokenContract } from '@ioc:Adonis/Addons/Auth';
 import Hash from '@ioc:Adonis/Core/Hash';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
@@ -105,6 +105,26 @@ export default class AuthService {
     });
   }
 
+  public async swapTpUnit(
+    token: ProviderTokenContract,
+    data: {
+      unitId: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const result = (await Database.from('api_tokens')
+        .useTransaction(trx)
+        .where('id', token.meta?.id ?? -1)
+        .andWhereNull('unit_id')
+        .update({
+          unit_id: data.unitId,
+        })) as unknown as number;
+
+      if (result === 0) {
+        throw new BadRequestException('Token inválido', 400, 'E_INVALID_TOKEN');
+      }
+    });
+  }
   public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {
     return Database.transaction(async trx => {
       const system = await System.query()
@@ -120,7 +140,7 @@ export default class AuthService {
 
       if (!user) {
         throw new BadRequestException(
-          'Credenciais inválidas',
+          'Credenciais inválidas 1',
           400,
           'E_BAD_CREDENTIALS',
         );
@@ -128,7 +148,7 @@ export default class AuthService {
 
       if (!(await Hash.verify(user.password, data.password))) {
         throw new BadRequestException(
-          'Credenciais inválidas',
+          'Credenciais inválidas 2',
           400,
           'E_BAD_CREDENTIALS',
         );

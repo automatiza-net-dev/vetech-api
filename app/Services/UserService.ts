@@ -133,7 +133,7 @@ export default class UserService {
 
       const existingUser = await User.query()
         .useTransaction(trx)
-        .where('email', userData.email)
+        .whereILike('email', `%${userData.email}%`)
         .where('system_id', system.id)
         .first();
       if (existingUser) {

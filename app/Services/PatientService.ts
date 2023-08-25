@@ -9,6 +9,7 @@ import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException'
 import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import ContactType from 'App/Models/ContactType';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import Hospitalization, {
   HospitalizationType,
@@ -1345,11 +1346,8 @@ export default class PatientService {
       .whereHas('economicGroup', query => {
         query.where('economic_group_id', authContext.group.id);
       })
-      .whereHas('tutor', query => {
-        query.whereRaw(`cellphone LIKE ? or telephone LIKE ?`, [
-          `%${phone}%`,
-          `%${phone}%`,
-        ]);
+      .whereHas('contacts', query => {
+        query.whereNot('type', 'email').andWhere('contact', phone);
       })
       .preload('dependents', query => {
         query.preload('patientAnimal', query => {

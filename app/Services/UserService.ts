@@ -815,6 +815,7 @@ export default class UserService {
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
+        system_id: group.system_id,
       })),
       { client: trx },
     );
@@ -1405,6 +1406,7 @@ export default class UserService {
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
+        system_id: group.system_id,
       })),
       { client: trx },
     );

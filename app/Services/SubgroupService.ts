@@ -17,6 +17,7 @@ export default class SubgroupService {
       .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
         authCtx.group.id,
       ])
+      .where('system_id', authCtx.system.id)
       .preload('parent');
 
     if (data.description) {
@@ -29,6 +30,7 @@ export default class SubgroupService {
   public async show(authCtx: AuthContext, id: string): Promise<Subgroup> {
     const subgroup = await Subgroup.query()
       .where('id', id)
+      .where('system_id', authCtx.system.id)
       .preload('variationGroup')
       .preload('parent')
       .first();
@@ -59,9 +61,10 @@ export default class SubgroupService {
     authCtx: AuthContext,
     data: Omit<ISubgroupData, 'active'>,
   ) {
-    const tree = await this.getTree(data.parent);
+    const tree = await this.getTree(authCtx.system.id, data.parent);
 
     return authCtx.group.related('subgroups').create({
+      system_id: authCtx.system.id,
       parent_id: data.parent,
       tree,
       description: data.description,
@@ -76,7 +79,7 @@ export default class SubgroupService {
       throw this.sharedService.SystemResource();
     }
 
-    const tree = await this.getTree(data.parent);
+    const tree = await this.getTree(authCtx.system.id, data.parent);
 
     return subgroup
       .merge({
@@ -100,6 +103,7 @@ export default class SubgroupService {
   }
 
   private async getTree(
+    sID: number,
     parent?: string,
     tree: Array<string> = [],
   ): Promise<Array<string>> {
@@ -107,12 +111,15 @@ export default class SubgroupService {
       return tree;
     }
 
-    const parentModel = await Subgroup.find(parent);
+    const parentModel = await Subgroup.query()
+      .where('id', parent)
+      .where('system_id', sID)
+      .first();
     if (!parentModel) {
-      return this.getTree(undefined, tree);
+      return this.getTree(sID, undefined, tree);
     }
 
-    return this.getTree(parentModel.parent_id, [parentModel.id, ...tree]);
+    return this.getTree(sID, parentModel.parent_id, [parentModel.id, ...tree]);
   }
 
   // private listToTree(arr: Array<ModelObject> = []) {

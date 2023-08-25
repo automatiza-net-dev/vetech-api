@@ -65,6 +65,11 @@ export default class Subgroup extends BaseModel {
   })
   public variationGroup: BelongsTo<typeof VariationGroup>;
 
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
+
   @column()
   public parent_id?: string;
 

@@ -5,7 +5,6 @@
  * file.
  */
 
-import ThirdPartyUser from 'App/Models/ThirdPartyUser';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
 
@@ -76,10 +75,6 @@ declare module '@ioc:Adonis/Addons/Auth' {
     */
     api: {
       implementation: OATGuardContract<'user', 'api'>;
-      config: OATGuardConfig<'user'>;
-    };
-    controllerApi: {
-      implementation: OATGuardContract<'user', 'controllerApi'>;
       config: OATGuardConfig<'user'>;
     };
     tpApi: {

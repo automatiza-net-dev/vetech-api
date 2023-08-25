@@ -9,6 +9,7 @@ import { ApiClient } from '@japa/api-client';
 import System from 'App/Models/System';
 import ProfileAccess from 'App/Models/ProfileAccess';
 import Role from 'App/Models/Role';
+import Permission from 'App/Models/Permission';
 
 test.group('Third party resource', group => {
   group.each.setup(async () => {
@@ -34,6 +35,11 @@ test.group('Third party resource', group => {
         })
       : defaultSystem;
 
+    await system.related('systemUrls').create({
+      url: 'http://localhost:3333',
+      active: true,
+    });
+
     const role = await Role.create({
       name: v4(),
       system_id: system.id,
@@ -41,9 +47,19 @@ test.group('Third party resource', group => {
       type: 'system',
     });
 
-    if (systemName) {
-      await user.merge({ system_id: system.id }).save();
-    }
+    await user.merge({ system_id: system.id }).save();
+
+    // const permission = await Permission.create({
+    //   control: v4(),
+    //   description: v4(),
+    // });
+    // await permission.related('systems').attach([system.id]);
+    // await user.related('roles').create({
+    //   role_id: role.id,
+    //   unit_id: business.id,
+    // });
+
+    await group.merge({ system_id: system.id }).save();
 
     const tpPermission = await ThirdPartyUserPermission.create({
       key: v4(),

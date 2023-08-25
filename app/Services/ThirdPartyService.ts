@@ -6,9 +6,10 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import ProfileAccess from 'App/Models/ProfileAccess';
 import RoleProfileAccess from 'App/Models/RoleProfileAccess';
+import System from 'App/Models/System';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 
 @inject()
 export default class ThirdPartyService {
@@ -17,6 +18,8 @@ export default class ThirdPartyService {
     400,
     'E_INVALID',
   );
+
+  constructor(private sharedService: SharedService) {}
 
   public async authenticate(
     authContract: AuthContract,
@@ -90,6 +93,35 @@ export default class ThirdPartyService {
       throw this.unauthotizedException;
     }
 
+    const userSystem = await System.query()
+      .where('id', tpUser.system_id)
+      .preload('systemUrls')
+      .firstOrFail();
+
+    const userRoles = await user
+      .related('roles')
+      .query()
+      .preload('role', query => {
+        query.preload('permissions', query => {
+          query.where('status', true);
+        });
+      })
+      .preload('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', tpUser.system_id);
+        });
+
+        query.where('active', true);
+      })
+      .whereHas('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', tpUser.system_id);
+        });
+
+        query.where('active', true);
+      })
+      .where('active', true);
+
     const userToken = await authContract.use('api').generate(user, {
       expiresIn: '1w',
     });
@@ -107,6 +139,14 @@ export default class ThirdPartyService {
         token: userToken.token,
         expirates_at: userToken.expiresAt,
       },
+      units: userRoles.map(elem => ({
+        id: elem.unit.id,
+        identification: elem.unit.identification,
+      })),
+      url: this.sharedService.captureGroup(userSystem.systemUrls.at(0), v => ({
+        systemId: v.system_id,
+        url: v.url,
+      })),
     };
   }
 

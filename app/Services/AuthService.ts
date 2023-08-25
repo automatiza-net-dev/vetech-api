@@ -29,8 +29,12 @@ export default class AuthService {
         query.preload('permissions', query => {
           query.where('status', true);
 
-          if (isLogin) {
+          if (isLogin && user.type === 'user') {
             query.where('type', 'user');
+          }
+
+          if (user.type === 'controller') {
+            query.where('type', 'controller');
           }
         });
       })
@@ -331,8 +335,9 @@ export default class AuthService {
           }
         }
 
-        return auth.use('controllerApi').generate(user, {
+        return auth.use('api').generate(user, {
           expiresIn: '7d',
+          system_id: system,
         });
       }
 
@@ -405,8 +410,9 @@ export default class AuthService {
         }
       }
 
-      return auth.use('controllerApi').generate(user, {
+      return auth.use('api').generate(user, {
         expiresIn: '7d',
+        system_id: system,
       });
     });
   }

@@ -8,9 +8,10 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
+import IpAccessControlService from 'App/Services/IpAccessControlService';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
-import IpAccessControlService from 'App/Services/IpAccessControlService';
+
 import { AuthContext } from './SharedService';
 
 @inject()
@@ -72,7 +73,7 @@ export default class AuthService {
       });
     }
 
-    return await qb;
+    return qb;
   }
 
   public async swapUnit(
@@ -140,7 +141,7 @@ export default class AuthService {
 
       if (!user) {
         throw new BadRequestException(
-          'Credenciais inválidas 1',
+          'Credenciais inválidas',
           400,
           'E_BAD_CREDENTIALS',
         );
@@ -148,7 +149,7 @@ export default class AuthService {
 
       if (!(await Hash.verify(user.password, data.password))) {
         throw new BadRequestException(
-          'Credenciais inválidas 2',
+          'Credenciais inválidas',
           400,
           'E_BAD_CREDENTIALS',
         );

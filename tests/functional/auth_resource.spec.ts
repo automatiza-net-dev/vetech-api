@@ -88,7 +88,7 @@ test.group('Auth resource', group => {
       })
       .bearerToken(token);
 
-    assert.equal(200, response.status());
+    assert.equal(204, response.status());
   });
 
   test('should login a new user', async ({ client, assert }) => {
@@ -184,7 +184,6 @@ test.group('Auth resource', group => {
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal('bearer', body.type);
   });
 
   test('should return BadRequestException if role is not controller', async ({

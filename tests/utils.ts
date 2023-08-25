@@ -22,7 +22,8 @@ export const generateJwtToken = async (
     system: data.systemName ?? 'SUT',
   });
 
-    const { token } = loginResponse.body();
+  const { token } = loginResponse.body();
+
   return token;
 };
 

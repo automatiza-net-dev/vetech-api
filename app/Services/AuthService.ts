@@ -78,7 +78,7 @@ export default class AuthService {
 
   public async swapUnit(
     authCtx: AuthContext,
-    contract: AuthContract,
+    token: ProviderTokenContract,
     data: {
       unitId: string;
     },
@@ -98,11 +98,16 @@ export default class AuthService {
         );
       }
 
-      return contract.use('api').generate(authCtx.user, {
-        expiresIn: '7d',
-        unit_id: unit.id,
-        system_id: authCtx.system.id,
-      });
+      const result = (await Database.from('api_tokens')
+        .useTransaction(trx)
+        .where('id', token.meta?.id ?? -1)
+        .update({
+          unit_id: data.unitId,
+        })) as unknown as number;
+
+      if (result === 0) {
+        throw new BadRequestException('Token inválido', 400, 'E_INVALID_TOKEN');
+      }
     });
   }
 
@@ -358,7 +363,7 @@ export default class AuthService {
 
         return auth.use('api').generate(user, {
           expiresIn: '7d',
-          system_id: system,
+          system_id: system.id,
         });
       }
 

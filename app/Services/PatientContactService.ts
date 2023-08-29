@@ -43,6 +43,31 @@ export default class PatientContactService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (data.type === 'celular') {
+      await Database.from('patient_tutors')
+        .where('patient_id', data.patientId)
+        .update({
+          cellphone: data.contact,
+        });
+    }
+
+    if (data.type === 'email') {
+      await Database.from('patient_tutors')
+        .where('patient_id', data.patientId)
+        .update({
+          email: data.contact,
+        });
+    }
+
+
+    if (['residencial', 'comercial', 'recado'].includes(data.type)) {
+      await Database.from('patient_tutors')
+        .where('patient_id', data.patientId)
+        .update({
+          telephone: data.contact,
+        });
+    }
+
     await patient.related('contacts').create({
       main: data.main,
       contact: data.contact,

@@ -7,6 +7,7 @@ import CloseLoosingOpportunityValidator from 'App/Validators/Opportunity/CloseLo
 import CloseWinningOpportunityValidator from 'App/Validators/Opportunity/CloseWinningOpportunityValidator';
 import CreateOpportunityActivityValidator from 'App/Validators/Opportunity/CreateOpportunityActivityValidator';
 import CreateOpportunityValidator from 'App/Validators/Opportunity/CreateOpportunityValidator';
+import SyncScheduleValidator from 'App/Validators/Opportunity/SyncScheduleValidator';
 import UpdateOpportunityActivityValidator from 'App/Validators/Opportunity/UpdateOpportunityActivityValidator';
 import UpdateOpportunityStatusValidator from 'App/Validators/Opportunity/UpdateOpportunityStatusValidator';
 import UpdateOpportunityUserValidator from 'App/Validators/Opportunity/UpdateOpportunityUserValidator';
@@ -221,6 +222,15 @@ export default class OpportunitiesController {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.excludeActivity(authCtx, params.id);
+
+    return response.noContent();
+  }
+
+  public async syncSchedule({ response, auth, request }: HttpContextContract) {
+    const payload = await request.validate(SyncScheduleValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.syncSchedules(authCtx, payload);
 
     return response.noContent();
   }

@@ -1169,6 +1169,8 @@ Route.group(() => {
   Route.post('/reopen/:id', 'OpportunitiesController.reopen');
   Route.post('/update-status/:id', 'OpportunitiesController.updateStatus');
   Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
+  Route.post('/sync-schedule', 'OpportunitiesController.syncSchedule');
+
 
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');

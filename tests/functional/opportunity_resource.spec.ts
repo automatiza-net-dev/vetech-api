@@ -9,7 +9,10 @@ import Opportunity from 'App/Models/Opportunity';
 import OpportunityActivity from 'App/Models/OpportunityActivity';
 import { PatientType } from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
+import Schedule from 'App/Models/Schedule';
 import PatientFactory from 'Database/factories/PatientFactory';
+import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
+import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
 import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -487,5 +490,52 @@ test.group('Opportunity resource', group => {
       .bearerToken(token);
 
     props.assert.equal(response.status(), 204);
+  });
+
+  test('should throw BadRequestException if schedule has opportunity', async props => {
+    const { user, opportunity } = await createData();
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      business_unit_id: opportunity.business_unit_id,
+      opportunity_id: opportunity.id,
+    });
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/sync-schedule`)
+      .json({
+        scheduleId: schedule.id,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 400);
+  });
+
+  test('should throw BadRequestException if schedule has no patient', async props => {
+    const { user, opportunity } = await createData();
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      business_unit_id: opportunity.business_unit_id,
+    });
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/sync-schedule`)
+      .json({
+        scheduleId: schedule.id,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 400);
   });
 });

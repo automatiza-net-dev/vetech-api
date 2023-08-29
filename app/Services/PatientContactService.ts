@@ -45,28 +45,21 @@ export default class PatientContactService {
     }
 
     if (data.type === 'celular') {
-      await PatientTutor.query()
-        .where('patient_id', data.patientId)
-        .update({
-          cellphone: data.contact,
-        });
+      await PatientTutor.query().where('patient_id', data.patientId).update({
+        cellphone: data.contact,
+      });
     }
 
     if (data.type === 'email') {
-      await PatientTutor.query()
-        .where('patient_id', data.patientId)
-        .update({
-          email: data.contact,
-        });
+      await PatientTutor.query().where('patient_id', data.patientId).update({
+        email: data.contact,
+      });
     }
 
-
     if (['residencial', 'comercial', 'recado'].includes(data.type)) {
-      await PatientTutor.query()
-        .where('patient_id', data.patientId)
-        .update({
-          telephone: data.contact,
-        });
+      await PatientTutor.query().where('patient_id', data.patientId).update({
+        telephone: data.contact,
+      });
     }
 
     await patient.related('contacts').create({

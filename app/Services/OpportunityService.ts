@@ -1,9 +1,14 @@
 import { inject } from '@adonisjs/fold';
-import Database from '@ioc:Adonis/Lucid/Database';
+import Database, {
+  QueryClientContract,
+  TransactionClientContract,
+} from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import CrmStatus from 'App/Models/CrmStatus';
 import Opportunity from 'App/Models/Opportunity';
 import OpportunityActivity from 'App/Models/OpportunityActivity';
 import OpportunityLog from 'App/Models/OpportunityLog';
+import Schedule from 'App/Models/Schedule';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
@@ -176,6 +181,9 @@ export default class OpportunityService {
         id: elem.unit.id,
         companyName: elem.unit.companyName,
         fantasyName: elem.unit.fantasyName,
+      },
+      schedule: {
+        id: elem.schedule_id ?? null,
       },
     }));
   }
@@ -398,6 +406,9 @@ export default class OpportunityService {
           companyName: op.unit.companyName,
           fantasyName: op.unit.fantasyName,
         },
+        schedule: {
+          id: op.schedule_id ?? null,
+        },
 
         activities: op.activities.map(elem => ({
           id: elem.id,
@@ -507,11 +518,13 @@ export default class OpportunityService {
           economic_group_id: authCtx.group.id,
           business_unit_id: data.businessUnitId,
           opening_user_id: authCtx.user.id,
-          openingDate: DateTime.now(),
           status_id: data.statusId,
           user_id: data.userId,
           contact_id: data.contactId,
+          schedule_id: model.schedule_id,
+
           value: data.value,
+          openingDate: DateTime.now(),
         },
         {
           client: trx,
@@ -567,37 +580,7 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          issue_user_id: authCtx.user.id,
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-          opening_user_id: result.opening_user_id,
-          closing_user_id: result.closing_user_id,
-          reason_id: result.reason_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -678,34 +661,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: model.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: model.business_unit_id,
-          user_id: model.user_id,
-          client_id: model.client_id,
-          contact_subject_id: model.contact_subject_id,
-          contact_type_id: model.contact_type_id,
-          status_id: model.status_id,
-          contact_id: model.contact_id,
-
-          balance: model.balance,
-          description: model.description,
-          observation: model.observation,
-          reason_id: model.reason_id,
-          profitValue: model.profitValue,
-          resultObservation: model.resultObservation,
-          value: model.value,
-          contactDate: model.contactDate,
-          openingDate: model.openingDate,
-          closingDate: model.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(model, trx);
 
       await model
         .merge({
@@ -745,34 +701,7 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          reason_id: result.reason_id,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -800,34 +729,7 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          reason_id: result.reason_id,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -1025,5 +927,189 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
     });
+  }
+
+  public async syncSchedules(
+    authCtx: AuthContext,
+    data: {
+      scheduleId: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.scheduleId)
+        .first();
+
+      if (!schedule) {
+        throw this.sharedService.ResourceNotFound('Agendamento não encontrado');
+      }
+
+      if (schedule.opportunity_id) {
+        throw new BadRequestException(
+          'Agendamento já contem oportunidade',
+          400,
+          'E_ERR',
+        );
+      }
+
+      if (!schedule.patient_id) {
+        throw new BadRequestException(
+          'Agendamento não possui paciente',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const model = await Opportunity.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('patient_id', schedule.patient_id)
+        .whereNull('schedule_id')
+        .whereNull('closing_date')
+        .first();
+      if (!model) {
+        throw this.sharedService.ResourceNotFound(
+          'Oportunidade não encontrada',
+        );
+      }
+
+      const status = await CrmStatus.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('type', 'OP')
+        .where('tag', 'A')
+        .where('active', true)
+        .first();
+      if (!status) {
+        throw this.sharedService.ResourceNotFound('Status não encontrado');
+      }
+
+      const result = await model
+        .merge({
+          schedule_id: schedule.id,
+          status_id: status.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await schedule
+        .merge({
+          opportunity_id: model.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await this.createLog(result, trx);
+    });
+  }
+
+  public async updateOpportunityScheduleAsAttended(
+    authCtx: AuthContext,
+    schedule: Schedule,
+    trx: TransactionClientContract,
+  ) {
+    if (!schedule.opportunity_id) {
+      return;
+    }
+
+    const model = await Opportunity.query()
+      .where('business_unit_id', schedule.business_unit_id)
+      .where('id', schedule.opportunity_id)
+      .first();
+    if (!model) {
+      return;
+    }
+
+    const status = await CrmStatus.query()
+      .useTransaction(trx)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'OP')
+      .where('tag', 'C')
+      .where('active', true)
+      .first();
+    if (!status) {
+      return;
+    }
+
+    await model
+      .merge({
+        status_id: status.id,
+      })
+      .useTransaction(trx)
+      .save();
+
+    await this.createLog(model, trx);
+  }
+
+  public async updateOpportunityScheduleAsUnchecked(
+    authCtx: AuthContext,
+    schedule: Schedule,
+    trx: TransactionClientContract,
+  ) {
+    if (!schedule.opportunity_id) {
+      return;
+    }
+
+    const model = await Opportunity.query()
+      .where('business_unit_id', schedule.business_unit_id)
+      .where('id', schedule.opportunity_id)
+      .first();
+    if (!model) {
+      return;
+    }
+
+    const status = await CrmStatus.query()
+      .useTransaction(trx)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'OP')
+      .where('tag', 'D')
+      .where('active', true)
+      .first();
+    if (!status) {
+      return;
+    }
+
+    await model
+      .merge({
+        status_id: status.id,
+      })
+      .useTransaction(trx)
+      .save();
+
+    await this.createLog(model, trx);
+  }
+
+  private async createLog(model: Opportunity, client?: QueryClientContract) {
+    await OpportunityLog.create(
+      {
+        opportunity_id: model.id,
+
+        economic_group_id: model.economic_group_id,
+        business_unit_id: model.business_unit_id,
+        user_id: model.user_id,
+        client_id: model.client_id,
+        contact_subject_id: model.contact_subject_id,
+        contact_type_id: model.contact_type_id,
+        status_id: model.status_id,
+        contact_id: model.contact_id,
+        schedule_id: model.schedule_id,
+
+        balance: model.balance,
+        description: model.description,
+        observation: model.observation,
+        reason_id: model.reason_id,
+        profitValue: model.profitValue,
+        resultObservation: model.resultObservation,
+        value: model.value,
+        contactDate: model.contactDate,
+        openingDate: model.openingDate,
+        closingDate: model.closingDate,
+      },
+      {
+        client,
+      },
+    );
   }
 }

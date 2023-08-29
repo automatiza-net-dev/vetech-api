@@ -135,4 +135,9 @@ export default class OpportunityLog extends BaseModel {
     serializeAs: null,
   })
   public reason_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public schedule_id: string;
 }

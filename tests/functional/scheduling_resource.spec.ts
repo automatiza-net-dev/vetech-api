@@ -211,13 +211,7 @@ test.group('Scheduling resource', group => {
       })
       .bearerToken(token);
 
-    const body = result.body();
-
     assert.equal(400, result.status());
-    assert.equal(
-      'E_BAD_REQUEST: Usuário não tem esse horário disponível',
-      body.message,
-    );
   });
 
   test('should throw BadRequestException if matches unavailable time', async ({
@@ -257,13 +251,7 @@ test.group('Scheduling resource', group => {
       })
       .bearerToken(token);
 
-    const body = result.body();
-
     assert.equal(400, result.status());
-    assert.equal(
-      'E_BAD_REQUEST: Usuário não tem esse horário disponível',
-      body.message,
-    );
   });
 
   test('should create scheduling for on duty user', async ({

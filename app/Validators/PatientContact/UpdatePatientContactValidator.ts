@@ -27,7 +27,7 @@ export default class UpdatePatientContactValidator {
   public schema = schema.create({
     main: schema.boolean(),
     contact: schema.string(),
-    observation: schema.string(),
+    observation: schema.string.optional(),
     type: schema.enum(Object.values(PatientContactType)),
     active: schema.boolean(),
   });

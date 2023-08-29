@@ -35,7 +35,7 @@ export default class UpdateBatchPatientContactValidator {
         ]),
         main: schema.boolean(),
         contact: schema.string(),
-        observation: schema.string(),
+        observation: schema.string.optional(),
         type: schema.enum(Object.values(PatientContactType)),
         active: schema.boolean(),
       }),

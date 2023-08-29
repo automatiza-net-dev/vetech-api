@@ -33,7 +33,7 @@ export default class CreatePatientContactValidator {
     ]),
     main: schema.boolean(),
     contact: schema.string(),
-    observation: schema.string(),
+    observation: schema.string.optional(),
     type: schema.enum(Object.values(PatientContactType)),
   });
 

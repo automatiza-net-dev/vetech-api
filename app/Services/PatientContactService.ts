@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import PatientContact, { PatientContactType } from 'App/Models/PatientContact';
+import PatientTutor from 'App/Models/PatientTutor';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 
 @inject()
@@ -29,7 +30,7 @@ export default class PatientContactService {
       patientId: string;
       main: boolean;
       contact: string;
-      observation: string;
+      observation?: string;
       type: typeof PatientContactType[number];
     },
   ) {
@@ -44,7 +45,7 @@ export default class PatientContactService {
     }
 
     if (data.type === 'celular') {
-      await Database.from('patient_tutors')
+      await PatientTutor.query()
         .where('patient_id', data.patientId)
         .update({
           cellphone: data.contact,
@@ -52,7 +53,7 @@ export default class PatientContactService {
     }
 
     if (data.type === 'email') {
-      await Database.from('patient_tutors')
+      await PatientTutor.query()
         .where('patient_id', data.patientId)
         .update({
           email: data.contact,
@@ -61,7 +62,7 @@ export default class PatientContactService {
 
 
     if (['residencial', 'comercial', 'recado'].includes(data.type)) {
-      await Database.from('patient_tutors')
+      await PatientTutor.query()
         .where('patient_id', data.patientId)
         .update({
           telephone: data.contact,
@@ -83,7 +84,7 @@ export default class PatientContactService {
         patientId: string;
         main: boolean;
         contact: string;
-        observation: string;
+        observation?: string;
         type: typeof PatientContactType[number];
       }[];
     },
@@ -121,7 +122,7 @@ export default class PatientContactService {
     data: {
       main: boolean;
       contact: string;
-      observation: string;
+      observation?: string;
       type: typeof PatientContactType[number];
       active: boolean;
     },
@@ -151,7 +152,7 @@ export default class PatientContactService {
         id: number;
         main: boolean;
         contact: string;
-        observation: string;
+        observation?: string;
         type: typeof PatientContactType[number];
         active: boolean;
       }[];

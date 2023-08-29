@@ -105,7 +105,34 @@ export default class PatientContactService {
         );
       });
 
-      await Promise.all(tasks);
+      const result = await Promise.all(tasks);
+
+      const updateTasks = result.flat().map(elem => {
+        if (elem.type === 'celular') {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              cellphone: elem.contact,
+            });
+        }
+
+        if (elem.type === 'email') {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              email: elem.contact,
+            });
+        }
+
+        if (['residencial', 'comercial', 'recado'].includes(elem.type)) {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              telephone: elem.contact,
+            });
+        }
+      });
+      await Promise.all(updateTasks);
     });
   }
 
@@ -133,6 +160,30 @@ export default class PatientContactService {
 
       if (!contact) {
         throw this.sharedService.ResourceNotFound();
+      }
+
+      if (data.type === 'celular') {
+        await PatientTutor.query()
+          .where('patient_id', contact.patient_id)
+          .update({
+            cellphone: data.contact,
+          });
+      }
+
+      if (data.type === 'email') {
+        await PatientTutor.query()
+          .where('patient_id', contact.patient_id)
+          .update({
+            email: data.contact,
+          });
+      }
+
+      if (['residencial', 'comercial', 'recado'].includes(data.type)) {
+        await PatientTutor.query()
+          .where('patient_id', contact.patient_id)
+          .update({
+            telephone: data.contact,
+          });
       }
 
       await contact.merge(data).useTransaction(trx).save();
@@ -194,7 +245,34 @@ export default class PatientContactService {
           .useTransaction(trx)
           .save();
       });
-      await Promise.all(tasks);
+      const result = await Promise.all(tasks);
+
+      const updateTasks = result.map(elem => {
+        if (elem.type === 'celular') {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              cellphone: elem.contact,
+            });
+        }
+
+        if (elem.type === 'email') {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              email: elem.contact,
+            });
+        }
+
+        if (['residencial', 'comercial', 'recado'].includes(elem.type)) {
+          return PatientTutor.query()
+            .where('patient_id', elem.patient_id)
+            .update({
+              telephone: elem.contact,
+            });
+        }
+      });
+      await Promise.all(updateTasks);
     });
   }
 

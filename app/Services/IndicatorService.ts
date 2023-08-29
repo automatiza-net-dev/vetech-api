@@ -66,7 +66,7 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb = Database.from('bill_payments')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
@@ -75,12 +75,9 @@ export default class IndicatorService {
             client_origins.id as id,
             client_origins.description,
             count(bills.id) as qty_sales,
-            sum(bill_payments.total_value) total_payments`,
+            sum(bills.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      })
       .leftJoin('patients', query => {
         query.on('patients.id', '=', 'bills.client_id');
       })
@@ -230,13 +227,10 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bill_payments')
+    const qb1 = Database.from('bills')
       .select(
-        Database.raw('sum(bill_payments.total_value) as total_bill_payments'),
+        Database.raw('sum(bills.total_value) as total_bill_payments'),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      })
       .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
 
     if (data.fromDate) {
@@ -258,7 +252,7 @@ export default class IndicatorService {
           business_units.identification,
           payment_methods.id as pID,
           payment_methods.description,
-          sum(bill_payments.total_value) total_payments`,
+          sum(bills.total_value) total_payments`,
         ),
       )
       .leftJoin('bills', query => {
@@ -310,13 +304,10 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bill_payments')
+    const qb1 = Database.from('bills')
       .select(
-        Database.raw('sum(bill_payments.total_value) as total_bill_payments'),
+        Database.raw('sum(bills.total_value) as total_bill_payments'),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      })
       .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
 
     if (data.fromDate) {
@@ -330,19 +321,16 @@ export default class IndicatorService {
     const [{ total_bill_payments = '0' }] = await qb1;
     const parsedTotal = parseFloat(total_bill_payments);
 
-    const qb2 = Database.from('bill_payments')
+    const qb2 = Database.from('bills')
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
           count('bills.client_id'),
-          sum(bill_payments.total_value) total_payments`,
+          sum(bills.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      })
       .leftJoin('patients', query => {
         query.on('patients.id', '=', 'bills.client_id');
       })
@@ -352,19 +340,16 @@ export default class IndicatorService {
       .groupBy('business_units.id')
       .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
 
-    const qb3 = Database.from('bill_payments')
+    const qb3 = Database.from('bills')
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
           count('bills.client_id'),
-          sum(bill_payments.total_value) total_payments`,
+          sum(bills.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      })
       .leftJoin('patients', query => {
         query.on('patients.id', '=', 'bills.client_id');
       })
@@ -376,12 +361,14 @@ export default class IndicatorService {
 
     if (data.fromDate) {
       qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+
       qb3.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
       qb3.andWhereRaw('patients.first_sale::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
       qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+
       qb3.andWhereRaw('bill_date::date <= ?', [data.toDate]);
       qb3.andWhereRaw('patients.first_sale::date <= ?', [data.toDate]);
     }
@@ -639,13 +626,10 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bill_payments')
+    const qb1 = Database.from('bills')
       .select(
-        Database.raw('sum(bill_payments.total_value) as total_bill_payments'),
+        Database.raw('sum(bills.total_value) as total_bill_payments'),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
-      });
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);

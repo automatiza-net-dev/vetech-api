@@ -166,8 +166,14 @@ export default class ThirdPartyService {
         query.preload('permissions', query => {
           query.where('status', true);
         });
+
+        query.preload('accesses', query => {
+          query.preload('profile');
+        });
       })
       .preload('unit', query => {
+        query.preload('economicGroup');
+
         query.whereHas('economicGroup', query => {
           query.where('system_id', tpUser.system_id);
         });
@@ -192,6 +198,13 @@ export default class ThirdPartyService {
       expiresIn: '1y',
     });
 
+    const profiles = userRoles
+      .map(r => r.role.accesses)
+      .map(ac => ac.map(a => a.profile))
+      .map(pa => pa.map(p => p.description))
+      .flat()
+      .filter((v, i, a) => a.indexOf(v) === i);
+
     return {
       app: {
         token: appToken.token,
@@ -204,11 +217,17 @@ export default class ThirdPartyService {
       units: userRoles.map(elem => ({
         id: elem.unit.id,
         identification: elem.unit.identification,
+
+        group: {
+          id: elem.unit.economicGroup.id,
+          fantasyName: elem.unit.economicGroup.fantasyName,
+        },
       })),
       url: this.sharedService.captureGroup(userSystem.systemUrls.at(0), v => ({
         systemId: v.system_id,
         url: v.url,
       })),
+      profiles,
     };
   }
 

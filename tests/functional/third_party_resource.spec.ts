@@ -9,7 +9,6 @@ import { ApiClient } from '@japa/api-client';
 import System from 'App/Models/System';
 import ProfileAccess from 'App/Models/ProfileAccess';
 import Role from 'App/Models/Role';
-import Permission from 'App/Models/Permission';
 
 test.group('Third party resource', group => {
   group.each.setup(async () => {
@@ -107,7 +106,17 @@ test.group('Third party resource', group => {
   });
 
   test('should extended authenticate', async ({ client, assert }) => {
-    const { tpPermission, user } = await createData('Vetech');
+    const { tpPermission, user, role } = await createData('Vetech');
+
+    const pa = await ProfileAccess.create({
+      description: 'Test',
+      active: true,
+      system_id: user.system_id,
+    });
+
+    await role.related('accesses').create({
+      profile_access_id: pa.id,
+    });
 
     const response = await client
       .post('/external/extended-authenticate-vetech')

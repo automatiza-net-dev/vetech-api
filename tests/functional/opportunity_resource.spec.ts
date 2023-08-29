@@ -11,8 +11,6 @@ import { PatientType } from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
 import Schedule from 'App/Models/Schedule';
 import PatientFactory from 'Database/factories/PatientFactory';
-import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
-import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
 import { DateTime } from 'luxon';
 
 import { generateJwtToken, userBootstrap } from '../utils';

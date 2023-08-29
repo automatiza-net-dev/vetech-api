@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import OpportunityService from 'App/Models/OpportunityService';
+import OpportunityService from 'App/Services/OpportunityService';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';

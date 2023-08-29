@@ -634,7 +634,15 @@ export default class BudgetService {
     const client = await Patient.query()
       .where('id', model.client_id)
       .preload('tutor')
+      .preload('bills')
       .firstOrFail();
+    if (client.bills.length === 0) {
+      await client
+        .merge({
+          firstSale: DateTime.now(),
+        })
+        .save();
+    }
 
     const ufIcms = await UfIcms.query()
       .where('origin_uf', unit.state ?? '')
@@ -658,7 +666,9 @@ export default class BudgetService {
       ),
     });
 
-    const bills = await Bill.query().select('id');
+    const [{ count }] = await Database.from('bills')
+      .where('business_unit_id', unitId)
+      .count('*');
 
     return Database.transaction(async trx => {
       const totalProductValue = items
@@ -689,7 +699,7 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
-          tag: GenerateTag(bills.length + 1),
+          tag: GenerateTag(parseInt(count) + 1),
         },
         { client: trx },
       );

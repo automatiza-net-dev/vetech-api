@@ -1,9 +1,14 @@
 import { inject } from '@adonisjs/fold';
-import Database from '@ioc:Adonis/Lucid/Database';
+import Database, {
+  QueryClientContract,
+  TransactionClientContract,
+} from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import CrmStatus from 'App/Models/CrmStatus';
 import Opportunity from 'App/Models/Opportunity';
 import OpportunityActivity from 'App/Models/OpportunityActivity';
 import OpportunityLog from 'App/Models/OpportunityLog';
+import Schedule from 'App/Models/Schedule';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
@@ -77,6 +82,7 @@ export default class OpportunityService {
       technician?: string;
       unit?: string;
       status?: string;
+      balance?: string;
     },
   ) {
     const qb = Opportunity.query()
@@ -118,6 +124,14 @@ export default class OpportunityService {
 
     if (data.status) {
       qb.where('status_id', data.status);
+    }
+
+    if (data.balance) {
+      if (data.balance === 'Em Aberto') {
+        qb.whereNull('closing_date');
+      } else {
+        qb.where('balance', data.balance);
+      }
     }
 
     if (data.contactName || data.contactPhone) {
@@ -167,6 +181,9 @@ export default class OpportunityService {
         id: elem.unit.id,
         companyName: elem.unit.companyName,
         fantasyName: elem.unit.fantasyName,
+      },
+      schedule: {
+        id: elem.schedule_id ?? null,
       },
     }));
   }
@@ -281,7 +298,10 @@ export default class OpportunityService {
     data: {
       openingFrom?: string;
       openingTo?: string;
+      contactFrom?: string;
+      contactTo?: string;
       contactName?: string;
+      contactPhone?: string;
       patientName?: string;
       technician?: string;
       status?: string;
@@ -289,6 +309,7 @@ export default class OpportunityService {
   ) {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
+      .whereNull('closing_date')
       .preload('client', query => {
         query.preload('tutor');
       })
@@ -319,6 +340,14 @@ export default class OpportunityService {
       qb.where('opening_date', '<=', data.openingTo);
     }
 
+    if (data.contactFrom) {
+      qb.where('contact_date', '>=', data.contactFrom);
+    }
+
+    if (data.contactTo) {
+      qb.where('contact_date', '<=', data.contactTo);
+    }
+
     if (data.contactName) {
       qb.whereHas('contact', query => {
         if (data.contactName) {
@@ -331,6 +360,16 @@ export default class OpportunityService {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+      });
+    }
+
+    if (data.contactPhone) {
+      qb.whereHas('contact', query => {
+        if (data.contactPhone) {
+          query.whereHas('tutor', query => {
+            query.where('cellphone', 'ilike', `%${data.contactPhone}%`);
+          });
         }
       });
     }
@@ -353,6 +392,7 @@ export default class OpportunityService {
 
         status: op.status,
         contact: op.contact,
+        contactDate: op.contactDate,
         contactType: op.contactType,
         contactSubject: op.contactSubject,
         client: op.client,
@@ -365,6 +405,9 @@ export default class OpportunityService {
           id: op.unit.id,
           companyName: op.unit.companyName,
           fantasyName: op.unit.fantasyName,
+        },
+        schedule: {
+          id: op.schedule_id ?? null,
         },
 
         activities: op.activities.map(elem => ({
@@ -475,11 +518,13 @@ export default class OpportunityService {
           economic_group_id: authCtx.group.id,
           business_unit_id: data.businessUnitId,
           opening_user_id: authCtx.user.id,
-          openingDate: DateTime.now(),
           status_id: data.statusId,
           user_id: data.userId,
           contact_id: data.contactId,
+          schedule_id: model.schedule_id,
+
           value: data.value,
+          openingDate: DateTime.now(),
         },
         {
           client: trx,
@@ -530,38 +575,12 @@ export default class OpportunityService {
           description: data.description,
           observation: data.observation,
           value: data.value,
+          active: data.active,
         })
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          reason_id: result.reason_id,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -592,7 +611,7 @@ export default class OpportunityService {
           closingDate: DateTime.now(),
           balance: 'Ganho',
           resultObservation: data.observation,
-          value: data.value,
+          profitValue: data.value,
         })
         .useTransaction(trx)
         .save();
@@ -642,34 +661,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: model.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: model.business_unit_id,
-          user_id: model.user_id,
-          client_id: model.client_id,
-          contact_subject_id: model.contact_subject_id,
-          contact_type_id: model.contact_type_id,
-          status_id: model.status_id,
-          contact_id: model.contact_id,
-
-          balance: model.balance,
-          description: model.description,
-          observation: model.observation,
-          reason_id: model.reason_id,
-          profitValue: model.profitValue,
-          resultObservation: model.resultObservation,
-          value: model.value,
-          contactDate: model.contactDate,
-          openingDate: model.openingDate,
-          closingDate: model.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(model, trx);
 
       await model
         .merge({
@@ -709,34 +701,7 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          reason_id: result.reason_id,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -764,34 +729,7 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: result.id,
-
-          economic_group_id: authCtx.group.id,
-          business_unit_id: result.business_unit_id,
-          user_id: result.user_id,
-          client_id: result.client_id,
-          contact_subject_id: result.contact_subject_id,
-          contact_type_id: result.contact_type_id,
-          status_id: result.status_id,
-          contact_id: result.contact_id,
-
-          balance: result.balance,
-          description: result.description,
-          observation: result.observation,
-          reason_id: result.reason_id,
-          profitValue: result.profitValue,
-          resultObservation: result.resultObservation,
-          value: result.value,
-          contactDate: result.contactDate,
-          openingDate: result.openingDate,
-          closingDate: result.closingDate,
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(result, trx);
     });
   }
 
@@ -882,7 +820,7 @@ export default class OpportunityService {
     authCtx: AuthContext,
     id: number,
     data: {
-      observation: string;
+      observation?: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -956,5 +894,222 @@ export default class OpportunityService {
         .useTransaction(trx)
         .save();
     });
+  }
+
+  public async excludeActivity(authCtx: AuthContext, id: number) {
+    await Database.transaction(async trx => {
+      const activity = await OpportunityActivity.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .whereHas('opportunity', query => {
+          query.where('economic_group_id', authCtx.group.id);
+        })
+        .first();
+
+      if (!activity) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (activity.status !== 'Aberta') {
+        throw new BadRequestException(
+          'Atividade já executada, cancelada ou excluída',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await activity
+        .merge({
+          exclusion_user_id: authCtx.user.id,
+          deletedAt: DateTime.now(),
+          status: 'Excluida',
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async syncSchedules(
+    authCtx: AuthContext,
+    data: {
+      scheduleId: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.scheduleId)
+        .first();
+
+      if (!schedule) {
+        throw this.sharedService.ResourceNotFound('Agendamento não encontrado');
+      }
+
+      if (schedule.opportunity_id) {
+        throw new BadRequestException(
+          'Agendamento já contem oportunidade',
+          400,
+          'E_ERR',
+        );
+      }
+
+      if (!schedule.patient_id) {
+        throw new BadRequestException(
+          'Agendamento não possui paciente',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const model = await Opportunity.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('patient_id', schedule.patient_id)
+        .whereNull('schedule_id')
+        .whereNull('closing_date')
+        .first();
+      if (!model) {
+        throw this.sharedService.ResourceNotFound(
+          'Oportunidade não encontrada',
+        );
+      }
+
+      const status = await CrmStatus.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('type', 'OP')
+        .where('tag', 'A')
+        .where('active', true)
+        .first();
+      if (!status) {
+        throw this.sharedService.ResourceNotFound('Status não encontrado');
+      }
+
+      const result = await model
+        .merge({
+          schedule_id: schedule.id,
+          status_id: status.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await schedule
+        .merge({
+          opportunity_id: model.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await this.createLog(result, trx);
+    });
+  }
+
+  public async updateOpportunityScheduleAsAttended(
+    authCtx: AuthContext,
+    schedule: Schedule,
+    trx: TransactionClientContract,
+  ) {
+    if (!schedule.opportunity_id) {
+      return;
+    }
+
+    const model = await Opportunity.query()
+      .where('business_unit_id', schedule.business_unit_id)
+      .where('id', schedule.opportunity_id)
+      .first();
+    if (!model) {
+      return;
+    }
+
+    const status = await CrmStatus.query()
+      .useTransaction(trx)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'OP')
+      .where('tag', 'C')
+      .where('active', true)
+      .first();
+    if (!status) {
+      return;
+    }
+
+    await model
+      .merge({
+        status_id: status.id,
+      })
+      .useTransaction(trx)
+      .save();
+
+    await this.createLog(model, trx);
+  }
+
+  public async updateOpportunityScheduleAsUnchecked(
+    authCtx: AuthContext,
+    schedule: Schedule,
+    trx: TransactionClientContract,
+  ) {
+    if (!schedule.opportunity_id) {
+      return;
+    }
+
+    const model = await Opportunity.query()
+      .where('business_unit_id', schedule.business_unit_id)
+      .where('id', schedule.opportunity_id)
+      .first();
+    if (!model) {
+      return;
+    }
+
+    const status = await CrmStatus.query()
+      .useTransaction(trx)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'OP')
+      .where('tag', 'D')
+      .where('active', true)
+      .first();
+    if (!status) {
+      return;
+    }
+
+    await model
+      .merge({
+        status_id: status.id,
+      })
+      .useTransaction(trx)
+      .save();
+
+    await this.createLog(model, trx);
+  }
+
+  private async createLog(model: Opportunity, client?: QueryClientContract) {
+    await OpportunityLog.create(
+      {
+        opportunity_id: model.id,
+
+        economic_group_id: model.economic_group_id,
+        business_unit_id: model.business_unit_id,
+        user_id: model.user_id,
+        client_id: model.client_id,
+        contact_subject_id: model.contact_subject_id,
+        contact_type_id: model.contact_type_id,
+        status_id: model.status_id,
+        contact_id: model.contact_id,
+        schedule_id: model.schedule_id,
+
+        balance: model.balance,
+        description: model.description,
+        observation: model.observation,
+        reason_id: model.reason_id,
+        profitValue: model.profitValue,
+        resultObservation: model.resultObservation,
+        value: model.value,
+        contactDate: model.contactDate,
+        openingDate: model.openingDate,
+        closingDate: model.closingDate,
+      },
+      {
+        client,
+      },
+    );
   }
 }

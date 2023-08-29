@@ -1,5 +1,5 @@
 import { inject } from '@adonisjs/fold';
-import { AuthContract } from '@ioc:Adonis/Addons/Auth';
+import { AuthContract, ProviderTokenContract } from '@ioc:Adonis/Addons/Auth';
 import Hash from '@ioc:Adonis/Core/Hash';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
@@ -8,14 +8,129 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
+import IpAccessControlService from 'App/Services/IpAccessControlService';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
-import IpAccessControlService from 'App/Services/IpAccessControlService';
+
+import { AuthContext } from './SharedService';
 
 @inject()
 export default class AuthService {
   constructor(private readonly ipService: IpAccessControlService) {}
 
+  public async getRoles(user: User, sID: number, isLogin: boolean) {
+    if (!user.type) {
+      throw new BadRequestException('Usuário sem tipo', 400, 'E_NO_TYPE');
+    }
+
+    const qb = user
+      .related('roles')
+      .query()
+      .preload('role', query => {
+        query.preload('permissions', query => {
+          query.where('status', true);
+
+          if (isLogin && user.type === 'user') {
+            query.where('type', 'user');
+          }
+
+          if (user.type === 'controller') {
+            query.where('type', 'controller');
+          }
+        });
+      })
+      .preload('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', sID);
+        });
+
+        query.where('active', true);
+      })
+      .whereHas('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', sID);
+        });
+
+        query.where('active', true);
+      })
+      .where('active', true);
+
+    if (user.type === 'user') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['user', 'both']);
+      });
+    }
+
+    if (user.type === 'controller') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['controller', 'both']);
+      });
+    }
+
+    if (user.type === 'system') {
+      qb.whereHas('role', query => {
+        query.whereIn('type', ['system']);
+      });
+    }
+
+    return qb;
+  }
+
+  public async swapUnit(
+    authCtx: AuthContext,
+    token: ProviderTokenContract,
+    data: {
+      unitId: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where('id', data.unitId)
+        .where('economic_group_id', authCtx.unit.economicGroupId)
+        .first();
+
+      if (!unit) {
+        throw new BadRequestException(
+          'Unidade não encontrada',
+          400,
+          'E_UNIT_NOT_FOUND',
+        );
+      }
+
+      const result = (await Database.from('api_tokens')
+        .useTransaction(trx)
+        .where('id', token.meta?.id ?? -1)
+        .update({
+          unit_id: data.unitId,
+        })) as unknown as number;
+
+      if (result === 0) {
+        throw new BadRequestException('Token inválido', 400, 'E_INVALID_TOKEN');
+      }
+    });
+  }
+
+  public async swapTpUnit(
+    token: ProviderTokenContract,
+    data: {
+      unitId: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const result = (await Database.from('api_tokens')
+        .useTransaction(trx)
+        .where('id', token.meta?.id ?? -1)
+        .andWhereNull('unit_id')
+        .update({
+          unit_id: data.unitId,
+        })) as unknown as number;
+
+      if (result === 0) {
+        throw new BadRequestException('Token inválido', 400, 'E_INVALID_TOKEN');
+      }
+    });
+  }
   public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {
     return Database.transaction(async trx => {
       const system = await System.query()
@@ -25,7 +140,7 @@ export default class AuthService {
 
       const user = await User.query()
         .useTransaction(trx)
-        .where('email', data.email)
+        .whereILike('email', `%${data.email}%`)
         .where('system_id', system.id)
         .first();
 
@@ -45,25 +160,7 @@ export default class AuthService {
         );
       }
 
-      const roles = await user
-        .related('roles')
-        .query()
-        .preload('role')
-        .preload('unit', query => {
-          query.whereHas('economicGroup', query => {
-            query.where('system_id', system.id);
-          });
-
-          query.where('active', true);
-        })
-        .whereHas('unit', query => {
-          query.whereHas('economicGroup', query => {
-            query.where('system_id', system.id);
-          });
-
-          query.where('active', true);
-        })
-        .where('active', true);
+      const roles = await this.getRoles(user, system.id, true);
 
       const validUnits = roles
         .map(r => r.unit)
@@ -121,6 +218,7 @@ export default class AuthService {
 
             return {
               id: group?.id,
+              userType: user.type,
               fantasyName: group?.fantasyName,
               companyName: group?.companyName,
               businessUnits: await Promise.all(
@@ -172,13 +270,176 @@ export default class AuthService {
           );
         }
       }
-      // const status = await this.checkLicence(unit);
-
-      // if (status) {
-      //   throw new BadRequestException('Erro', 400, status);
-      // }
 
       return AuthService.generateAuthToken(auth, user, unit.id, system.id);
+    });
+  }
+
+  public async controllerLogin(
+    data: ILoginData,
+    auth: AuthContract,
+    reqIp?: string,
+  ) {
+    return Database.transaction(async trx => {
+      const system = await System.query()
+        .useTransaction(trx)
+        .where('name', data.system)
+        .firstOrFail();
+
+      const user = await User.query()
+        .useTransaction(trx)
+        .whereILike('email', `%${data.email}%`)
+        .where('system_id', system.id)
+        .first();
+
+      if (!user || user.type !== 'controller') {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (!(await Hash.verify(user.password, data.password))) {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      const roles = await user
+        .related('roles')
+        .query()
+        .preload('role', query => {
+          query.preload('permissions', query => {
+            query.where('status', true);
+            query.where('type', 'controller');
+          });
+        })
+        .preload('unit', query => {
+          query.where('active', true);
+        })
+        .whereHas('unit', query => {
+          query.where('active', true);
+        })
+        .whereHas('role', query => {
+          query.whereIn('type', ['controller', 'both']);
+        })
+        .where('active', true);
+
+      const validUnits = roles
+        .map(r => r.unit)
+        .filter(u => u !== null) as BusinessUnit[];
+
+      const contextRole = roles.find(r => Boolean(r.role))?.role;
+      if (!contextRole) {
+        throw new BadRequestException(
+          'Cargo não encontrado',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (validUnits.length === 1) {
+        const [unit] = validUnits;
+        if (reqIp) {
+          const canAccess = await this.ipService.checkAccess(
+            {
+              role: contextRole,
+              unit: unit.id,
+              user: user.id,
+            },
+            reqIp,
+          );
+          if (!canAccess) {
+            throw new BadRequestException(
+              'Acesso não permitido para o IP informado',
+              400,
+              'E_IP_NOT_ALLOWED',
+            );
+          }
+        }
+
+        return auth.use('api').generate(user, {
+          expiresIn: '7d',
+          system_id: system.id,
+        });
+      }
+
+      const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
+        'id',
+        validUnits.map(u => u.economicGroupId),
+      );
+
+      const dataMap = new Map<string, BusinessUnit[]>();
+      uniqueEconomicGroups.forEach(eg => dataMap.set(eg.id, []));
+      validUnits.forEach(u => dataMap.get(u.economicGroupId)?.push(u));
+
+      if (!data.business_unit_id) {
+        const result = await Promise.all(
+          Array.from(dataMap.keys()).map(async key => {
+            const group = uniqueEconomicGroups.find(eg => eg.id === key);
+
+            return {
+              id: group?.id,
+              userType: user.type,
+              fantasyName: group?.fantasyName,
+              companyName: group?.companyName,
+              businessUnits: await Promise.all(
+                dataMap.get(key)!.map(async bu => ({
+                  id: bu.id,
+                  identification: bu.identification,
+                  status: 'VALID',
+                })),
+              ),
+            };
+          }),
+        );
+
+        if (result.length === 0) {
+          throw new BadRequestException(
+            'Credenciais inválidas',
+            400,
+            'E_BAD_CREDENTIALS',
+          );
+        }
+
+        return result;
+      }
+
+      const unit = validUnits.find(u => u.id === data.business_unit_id);
+
+      if (!unit) {
+        throw new BadRequestException(
+          'Credenciais inválidas',
+          400,
+          'E_BAD_CREDENTIALS',
+        );
+      }
+
+      if (reqIp) {
+        const canAccess = await this.ipService.checkAccess(
+          {
+            role: contextRole,
+            unit: unit.id,
+            user: user.id,
+          },
+          reqIp,
+        );
+        if (!canAccess) {
+          throw new BadRequestException(
+            'Acesso não permitido para o IP informado',
+            400,
+            'E_IP_NOT_ALLOWED',
+          );
+        }
+      }
+
+      return auth.use('api').generate(user, {
+        expiresIn: '7d',
+        system_id: system,
+      });
     });
   }
 

@@ -28,14 +28,7 @@ export default class ClearPaymentValidator {
       rules.uuid(),
       rules.exists({ table: 'daily_cashiers', column: 'id' }),
     ]),
-    items: schema
-      .array()
-      .members(
-        schema.string({}, [
-          rules.uuid(),
-          rules.exists({ table: 'bill_payments', column: 'id' }),
-        ]),
-      ),
+    items: schema.array().members(schema.number([])),
   });
 
   /**

@@ -69,6 +69,11 @@ export default class OpportunityLog extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public issue_user_id: string;
+
+  @column({
+    serializeAs: null,
+  })
   public opening_user_id: string;
 
   @column({
@@ -130,4 +135,9 @@ export default class OpportunityLog extends BaseModel {
     serializeAs: null,
   })
   public reason_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public schedule_id: string;
 }

@@ -6,19 +6,24 @@ export default class FastCreatePatientValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    tutorName: schema.string({}),
-    tutorEmail: schema.string({}, [rules.email()]),
+    tutorName: schema.string.optional({}),
+    tutorEmail: schema.string.optional({}, [rules.email()]),
     tutorPhone: schema.string({}),
-
-    patientName: schema.string({}),
-    patientRaceId: schema.string({}, [
+    tutorOriginId: schema.string.optional({}, [
+      rules.exists({
+        table: 'client_origins',
+        column: 'id',
+      }),
+    ]),
+    patientName: schema.string.optional({}),
+    patientRaceId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
         table: 'races',
         column: 'id',
       }),
     ]),
-    patientGender: schema.enum(Object.values(PatientGender), []),
+    patientGender: schema.enum.optional(Object.values(PatientGender), []),
   });
 
   public messages: CustomMessages = {};

@@ -216,4 +216,7 @@ export default class Schedule extends BaseModel {
     foreignKey: 'schedule_id',
   })
   public contacts: HasMany<typeof ScheduleContact>;
+
+  @column()
+  public opportunity_id: number;
 }

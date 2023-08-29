@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import OpportunityService from 'App/Services/OpportunityService';
 import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
@@ -47,7 +48,10 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private opportunityService: OpportunityService,
+  ) {}
 
   public async homeContent(unitId: string, data: IHomeSearch) {
     const qb = Schedule.query()
@@ -880,15 +884,21 @@ export default class ScheduleService {
         throw new BadRequestException('Mudança inválida', 400, 'E_INVALID');
       }
 
-      // if (toStatus.description === 'Atendimento cancelado') {
-      //   if (!data.reasonId) {
-      //     throw new BadRequestException(
-      //       'Motivo do cancelamento é obrigatório',
-      //       400,
-      //       'E_INVALID',
-      //     );
-      //   }
-      // }
+      if (toStatus.type === 'REC') {
+        await this.opportunityService.updateOpportunityScheduleAsAttended(
+          authCtx,
+          schedule,
+          trx,
+        );
+      }
+
+      if (toStatus.type === 'CANC') {
+        await this.opportunityService.updateOpportunityScheduleAsUnchecked(
+          authCtx,
+          schedule,
+          trx,
+        );
+      }
 
       await schedule.related('statusChanges').create(
         {

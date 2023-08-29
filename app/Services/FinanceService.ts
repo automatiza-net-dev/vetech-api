@@ -198,6 +198,7 @@ export default class FinanceService {
       installment: data.installment,
       originFlag: data.originFlag,
       checking_account_id: data.checkingAccountId,
+      qtyInstallments: data.qtyInstallments,
 
       paymentDate: data.paymentDate,
       downDate: data.downDate,
@@ -280,6 +281,7 @@ export default class FinanceService {
             installment: item.installment,
             originFlag: item.originFlag,
             checking_account_id: item.checkingAccountId,
+            qtyInstallments: item.qtyInstallments,
 
             paymentDate: item.paymentDate,
             downDate: item.downDate,

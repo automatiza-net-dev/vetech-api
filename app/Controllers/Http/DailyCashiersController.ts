@@ -9,6 +9,7 @@ import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCas
 import CreateCashierReceiptValidator from 'App/Validators/DailyCashier/CreateCashierReceiptValidator';
 import OpenDailyCashierValidator from 'App/Validators/DailyCashier/OpenDailyCashierValidator';
 import ReviewDailyCashierValidator from 'App/Validators/DailyCashier/ReviewDailyCashierValidator';
+import UpdatePaymentConferenceValidator from 'App/Validators/DailyCashier/UpdatePaymentConferenceValidator';
 
 @inject()
 export default class DailyCashiersController {
@@ -148,6 +149,20 @@ export default class DailyCashiersController {
   public async clearPayments({ auth, request, response }: HttpContextContract) {
     const data = await request.validate(ClearPaymentValidator);
     await this.service.clearCashierPayments(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
+
+    return response.noContent();
+  }
+
+  public async updateConference({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const data = await request.validate(UpdatePaymentConferenceValidator);
+    await this.service.updateCashierPaymentsConference(
       await this.sharedService.getAuthContext(auth),
       data,
     );

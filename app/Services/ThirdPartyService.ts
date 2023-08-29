@@ -6,9 +6,11 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import ProfileAccess from 'App/Models/ProfileAccess';
 import RoleProfileAccess from 'App/Models/RoleProfileAccess';
+import System from 'App/Models/System';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
+import axios from 'axios';
 
 @inject()
 export default class ThirdPartyService {
@@ -17,6 +19,68 @@ export default class ThirdPartyService {
     400,
     'E_INVALID',
   );
+
+  private getBaseUrl() {
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:3333';
+    }
+
+    return 'https://vetech-api.automatiza.net';
+  }
+
+  constructor(private sharedService: SharedService) {}
+
+  public async updateToken(
+    tpUser: ThirdPartyUserPermission,
+    data: {
+      userToken: string;
+      unitId: string;
+    },
+  ) {
+    await tpUser.load('system');
+
+    if (!tpUser.system) {
+      throw new BadRequestException(
+        'Sistema não encontrado',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    const unit = await BusinessUnit.query()
+      .where('id', data.unitId)
+      .preload('economicGroup')
+      .firstOrFail();
+    if (unit.economicGroup.system_id !== tpUser.system.id) {
+      throw new BadRequestException(
+        'Unidade não encontrada',
+        400,
+        'E_NOT_FOUND',
+      );
+    }
+
+    // make request to change user token
+    try {
+      await axios.post(
+        `${this.getBaseUrl()}/auth/swap-tp-unit`,
+        {
+          unitId: data.unitId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${data.userToken}`,
+          },
+        },
+      );
+    } catch (error) {
+      // console.log('err?', (error as AxiosError).response?.data);
+
+      throw new BadRequestException(
+        error.response?.data?.message ?? 'Token de usuário inválido',
+        400,
+      );
+    }
+  }
 
   public async authenticate(
     authContract: AuthContract,
@@ -90,13 +154,56 @@ export default class ThirdPartyService {
       throw this.unauthotizedException;
     }
 
+    const userSystem = await System.query()
+      .where('id', tpUser.system_id)
+      .preload('systemUrls')
+      .firstOrFail();
+
+    const userRoles = await user
+      .related('roles')
+      .query()
+      .preload('role', query => {
+        query.preload('permissions', query => {
+          query.where('status', true);
+        });
+
+        query.preload('accesses', query => {
+          query.preload('profile');
+        });
+      })
+      .preload('unit', query => {
+        query.preload('economicGroup');
+
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', tpUser.system_id);
+        });
+
+        query.where('active', true);
+      })
+      .whereHas('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', tpUser.system_id);
+        });
+
+        query.where('active', true);
+      })
+      .where('active', true);
+
     const userToken = await authContract.use('api').generate(user, {
       expiresIn: '1w',
+      system_id: tpUser.system_id,
     });
 
     const appToken = await authContract.use('tpApi').generate(tpUser, {
       expiresIn: '1y',
     });
+
+    const profiles = userRoles
+      .map(r => r.role.accesses)
+      .map(ac => ac.map(a => a.profile))
+      .map(pa => pa.map(p => p.description))
+      .flat()
+      .filter((v, i, a) => a.indexOf(v) === i);
 
     return {
       app: {
@@ -107,6 +214,20 @@ export default class ThirdPartyService {
         token: userToken.token,
         expirates_at: userToken.expiresAt,
       },
+      units: userRoles.map(elem => ({
+        id: elem.unit.id,
+        identification: elem.unit.identification,
+
+        group: {
+          id: elem.unit.economicGroup.id,
+          fantasyName: elem.unit.economicGroup.fantasyName,
+        },
+      })),
+      url: this.sharedService.captureGroup(userSystem.systemUrls.at(0), v => ({
+        systemId: v.system_id,
+        url: v.url,
+      })),
+      profiles,
     };
   }
 

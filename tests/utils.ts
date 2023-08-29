@@ -23,6 +23,7 @@ export const generateJwtToken = async (
   });
 
   const { token } = loginResponse.body();
+
   return token;
 };
 
@@ -84,6 +85,12 @@ export const userBootstrap = async (system_name = 'SUT') => {
   });
 
   const role = await RoleFactory.create();
+
+  await system
+    .merge({
+      default_role_id: role.id,
+    })
+    .save();
 
   await user.related('roles').create({
     role_id: role.id,

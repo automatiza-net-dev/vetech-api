@@ -31,7 +31,7 @@ export default class CloseWinningOpportunityValidator {
       }),
     ]),
     value: schema.number(),
-    description: schema.string.optional(),
+    observation: schema.string.optional(),
   });
 
   /**

@@ -26,6 +26,10 @@ Route.get('/', () => {
 
 Route.group(() => {
   Route.get('me', 'AuthController.whoAmI').middleware('auth');
+  Route.post('swap-unit', 'AuthController.swapUnit').middleware('auth');
+  Route.post('swap-tp-unit', 'AuthController.swapTpUnit').middleware('auth');
+
+  Route.post('controller-login', 'AuthController.controllerLogin');
   Route.post('login', 'AuthController.login');
   Route.post('register', 'AuthController.register');
   Route.post('forgot-password', 'AuthController.forgotPassword');
@@ -189,6 +193,7 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/check-document/:document', 'PatientsController.checkDocument');
+  Route.post('/check-phone/', 'PatientsController.checkPhone');
   Route.get('/search', 'PatientsController.search');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');
@@ -760,6 +765,7 @@ Route.group(() => {
   Route.post('/reopen/:id', 'DailyCashiersController.reopenDailyCashier');
   Route.post('/check/:id', 'DailyCashiersController.checkDailyCashier');
   Route.post('/review/:id', 'DailyCashiersController.reviewDailyCashier');
+  Route.post('/update-conference', 'DailyCashiersController.updateConference');
 
   Route.post('/expense/:id', 'DailyCashiersController.createCashierExpense');
   Route.post('/receipt/:id', 'DailyCashiersController.createCashierReceipt');
@@ -914,6 +920,7 @@ Route.group(() => {
   Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');
   Route.put('/reopen-bill/:id', 'BillsController.reopenBill');
+  Route.put('/update-expiration', 'BillsController.updatePaymentExpiration');
   Route.delete('/delete-payment/:id', 'BillsController.deleteBillPayment');
   Route.delete(
     '/delete-payment-block',
@@ -1162,6 +1169,8 @@ Route.group(() => {
   Route.post('/reopen/:id', 'OpportunitiesController.reopen');
   Route.post('/update-status/:id', 'OpportunitiesController.updateStatus');
   Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
+  Route.post('/sync-schedule', 'OpportunitiesController.syncSchedule');
+
 
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
@@ -1174,6 +1183,10 @@ Route.group(() => {
     'OpportunitiesController.executeActivity',
   );
   Route.post('/cancel-activity/:id', 'OpportunitiesController.cancelActivity');
+  Route.post(
+    '/exclude-activity/:id',
+    'OpportunitiesController.excludeActivity',
+  );
 })
   .prefix('opportunities')
   .middleware('auth');
@@ -1203,6 +1216,10 @@ Route.group(() => {
   Route.post(
     '/extended-authenticate-vetech',
     'ThirdPartiesController.extendedAuthenticateVetech',
+  );
+
+  Route.post('/update-token', 'ThirdPartiesController.updateToken').middleware(
+    'auth:tpApi',
   );
 
   Route.get('/profile', 'ThirdPartiesController.profile').middleware(
@@ -1239,7 +1256,9 @@ Route.group(() => {
 
 Route.group(() => {
   Route.get('/:id', 'PatientContactsController.index');
+  Route.post('/batch', 'PatientContactsController.batchStore');
   Route.post('/', 'PatientContactsController.store');
+  Route.put('/batch', 'PatientContactsController.batchUpdate');
   Route.put('/:id', 'PatientContactsController.update');
   Route.delete('/:id', 'PatientContactsController.destroy');
 })
@@ -1285,6 +1304,7 @@ Route.group(() => {
   Route.get('/flow', 'ReportsController.dailyFlow');
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
+  Route.get('/detailed-sales', 'ReportsController.detailedSalesReport');
   Route.get('/sales', 'ReportsController.salesReport');
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');
@@ -1297,4 +1317,47 @@ Route.group(() => {
   Route.post('/store', 'IpAccessControlsController.store');
 })
   .prefix('ip-access')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/median-ticket', 'IndicatorsController.medianTicket');
+  Route.get(
+    '/median-ticket-origin',
+    'IndicatorsController.medianTicketByOrigin',
+  );
+  Route.get(
+    '/invoicing-product-type',
+    'IndicatorsController.invoicingByProductType',
+  );
+  Route.get(
+    '/invoicing-payment-method',
+    'IndicatorsController.invoicingByPaymentMethod',
+  );
+  Route.get(
+    '/invoicing-new-clients',
+    'IndicatorsController.invoicingByNewClients',
+  );
+
+  Route.get(
+    '/median-ticket-consolidated',
+    'IndicatorsController.medianTicketConsolidated',
+  );
+  Route.get(
+    '/median-ticket-origin-consolidated',
+    'IndicatorsController.medianTicketByOriginConsolidated',
+  );
+  Route.get(
+    '/invoicing-product-type-consolidated',
+    'IndicatorsController.invoicingByProductTypeConsolidated',
+  );
+  Route.get(
+    '/invoicing-payment-method-consolidated',
+    'IndicatorsController.invoicingByPaymentMethodConsolidated',
+  );
+  Route.get(
+    '/invoicing-new-clients-consolidated',
+    'IndicatorsController.invoicingByNewClientsConsolidated',
+  );
+})
+  .prefix('indicators')
   .middleware('auth');

@@ -19,7 +19,7 @@ interface ISearchBusinessUnitUsers {
 
 @inject()
 export default class UserRoleService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async assignUnitRoleToUser(
     unit: BusinessUnit,
@@ -53,6 +53,8 @@ export default class UserRoleService {
         group.businessUnits.map(bu => bu.id),
       )
       .whereHas('user', subquery => {
+        subquery.whereIn('type', ['user', 'both']);
+
         if (data.name) {
           subquery.whereILike('name', `%${data.name}%`);
         }

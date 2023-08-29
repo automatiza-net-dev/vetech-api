@@ -30,6 +30,7 @@ export default class UpsertFinanceValidator {
     accept: schema.enum(Object.values(FinanceAccept)),
     installment: schema.number(),
     originFlag: schema.enum(Object.values(FinanceOriginFlag)),
+    qtyInstallments: schema.number(),
 
     checkingAccountId: schema.string.optional([
       rules.uuid({

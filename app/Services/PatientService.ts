@@ -416,6 +416,7 @@ export default class PatientService {
         query.preload('profession');
       });
       await patient.load('dependents');
+      await patient.load('contacts');
     }
 
     if (patient.type === PatientType.SUPPLIER) {
@@ -558,48 +559,52 @@ export default class PatientService {
 
       const tutor = await Patient.create(
         {
-          name: data.tutorName,
+          name: data.tutorName ?? 'Não informado',
           type: PatientType.TUTOR,
           tag: (tutors.length + 1).toString(),
         },
         { client: trx },
       );
+      let patient: Patient | null = null;
 
       await tutor.related('tutor').create({
         email: data.tutorEmail,
         cellphone: data.tutorPhone,
         telephone: data.tutorPhone,
+        client_origin_id: data.tutorOriginId,
       });
 
       await group.related('patients').attach([tutor.id], trx);
 
-      const patient = await Patient.create(
-        {
-          name: data.patientName,
-          gender: data.patientGender,
-          type: PatientType.ANIMAL,
-          tag: (patients.length + 1).toString(),
-        },
-        {
-          client: trx,
-        },
-      );
+      if (data.patientName || data.patientRaceId || data.patientGender) {
+        patient = await Patient.create(
+          {
+            name: data.patientName,
+            gender: data.patientGender,
+            type: PatientType.ANIMAL,
+            tag: (patients.length + 1).toString(),
+          },
+          {
+            client: trx,
+          },
+        );
 
-      await tutor.related('dependents').attach([patient.id], trx);
-      await group.related('patients').attach([patient.id], trx);
-      await patient.related('patientAnimal').create(
-        {
-          race_id: data.patientRaceId,
-        },
-        trx,
-      );
+        await tutor.related('dependents').attach([patient.id], trx);
+        await group.related('patients').attach([patient.id], trx);
+        await patient.related('patientAnimal').create(
+          {
+            race_id: data.patientRaceId,
+          },
+          trx,
+        );
 
-      await client
-        .from('holder_dependents')
-        .where('dependent_id', patient.id)
-        .where('holder_id', tutor.id)
-        .update({ is_main: true })
-        .useTransaction(trx);
+        await client
+          .from('holder_dependents')
+          .where('dependent_id', patient.id)
+          .where('holder_id', tutor.id)
+          .update({ is_main: true })
+          .useTransaction(trx);
+      }
 
       return {
         tutor,
@@ -1331,6 +1336,49 @@ export default class PatientService {
     return {
       valid: true,
       exists: Boolean(db_doc),
+    };
+  }
+
+  public async checkExistingPhone(authContext: AuthContext, phone: string) {
+    const tutor = await Patient.query()
+      .where('type', PatientType.TUTOR)
+      .whereHas('economicGroup', query => {
+        query.where('economic_group_id', authContext.group.id);
+      })
+      .whereHas('contacts', query => {
+        query.whereNot('type', 'email').andWhere('contact', phone);
+      })
+      .preload('dependents', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      })
+      .preload('tutor', query => {
+        query.preload('clientOrigin');
+      })
+      .first();
+
+    if (!tutor) {
+      return null;
+    }
+
+    return {
+      id: tutor.id,
+      name: tutor.name,
+      email: tutor.tutor.email,
+      cellphone: tutor.tutor.cellphone,
+      telephone: tutor.tutor.telephone,
+      clientOrigin: tutor.tutor.clientOrigin,
+      dependents: tutor.dependents.map(d => {
+        return {
+          id: d.id,
+          name: d.name,
+          gender: d.gender,
+          race: d?.patientAnimal?.race.toJSON(),
+        };
+      }),
     };
   }
 

@@ -5,7 +5,6 @@
  * file.
  */
 
-import ThirdPartyUser from 'App/Models/ThirdPartyUser';
 import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
 import User from 'App/Models/User';
 
@@ -36,6 +35,10 @@ declare module '@ioc:Adonis/Addons/Auth' {
     |
     */
     user: {
+      implementation: LucidProviderContract<typeof User>;
+      config: LucidProviderConfig<typeof User>;
+    };
+    controllerUser: {
       implementation: LucidProviderContract<typeof User>;
       config: LucidProviderConfig<typeof User>;
     };

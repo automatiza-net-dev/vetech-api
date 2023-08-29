@@ -66,7 +66,7 @@ export default class InviteService {
 
     const existingInvite = await Invite.query()
       .where('role_id', role.id)
-      .andWhere('email', data.email)
+      .whereILike('email', `%${data.email}%`)
       .andWhere('user_id', existingUser.id)
       .andWhere('active', true)
       .first();

@@ -105,12 +105,7 @@ export default class UserService {
         );
       }
 
-      const adminRole = await Role.findBy('name', 'admin', {
-        client: trx,
-      });
-      if (!adminRole) {
-        Logger.error('No admin role');
-        // should have admin role
+      if (!system.default_role_id) {
         throw new InternalErrorException(
           'Erro na criação de usuário',
           400,
@@ -133,7 +128,7 @@ export default class UserService {
 
       const existingUser = await User.query()
         .useTransaction(trx)
-        .where('email', userData.email)
+        .whereILike('email', `%${userData.email}%`)
         .where('system_id', system.id)
         .first();
       if (existingUser) {
@@ -145,7 +140,7 @@ export default class UserService {
       }
 
       const user = await User.create(
-        { ...userData, system_id: system.id },
+        { ...userData, system_id: system.id, type: 'user' },
         {
           client: trx,
         },
@@ -197,7 +192,7 @@ export default class UserService {
 
       await user.related('roles').create(
         {
-          role_id: adminRole.id,
+          role_id: system.default_role_id,
           unit_id: newBusinessUnit.id,
         },
         {
@@ -223,9 +218,7 @@ export default class UserService {
 
       if (system.name === 'LiftOne') {
         await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
-      }
-
-      if (system.name === 'Vetech' || system.name === 'Sanclá') {
+      } else {
         await this.seedData(newGroup, newBusinessUnit, trx);
       }
 
@@ -811,10 +804,11 @@ export default class UserService {
 
     const rawSubgroups = liftOneServices.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description'],
+      ['description', 'system_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
+        system_id: group.system_id,
       })),
       { client: trx },
     );
@@ -961,8 +955,7 @@ export default class UserService {
     const brands = await Brand.query()
       .useTransaction(trx)
       .where('system_id', group.system_id)
-      .whereNull('economic_group_id')
-      .where('system_id', group.system_id);
+      .whereNull('economic_group_id');
 
     await group.related('paymentMethods').createMany(
       [
@@ -1401,10 +1394,11 @@ export default class UserService {
 
     const rawSubgroups = vetechProducts.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description'],
+      ['description', 'system_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
+        system_id: group.system_id,
       })),
       { client: trx },
     );

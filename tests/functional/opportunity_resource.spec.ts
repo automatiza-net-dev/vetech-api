@@ -9,6 +9,7 @@ import Opportunity from 'App/Models/Opportunity';
 import OpportunityActivity from 'App/Models/OpportunityActivity';
 import { PatientType } from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
+import Schedule from 'App/Models/Schedule';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
 
@@ -287,7 +288,7 @@ test.group('Opportunity resource', group => {
   });
 
   test('should search for opportunities', async props => {
-    const { user, business } = await createData();
+    const { user, business, opportunity } = await createData();
 
     const token = await generateJwtToken(props.client, {
       email: user.email,
@@ -304,6 +305,9 @@ test.group('Opportunity resource', group => {
       patientName: 'some',
       technician: user.id,
       unit: business.id,
+      status: opportunity.status_id.toString(),
+      'balance[0]': 'Ganho',
+      'balance[1]': 'Perda',
     });
 
     const response = await props.client
@@ -469,5 +473,67 @@ test.group('Opportunity resource', group => {
       .bearerToken(token);
 
     props.assert.equal(response.status(), 204);
+  });
+
+  test('should exclude an opportunity activity', async props => {
+    const { user, activity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/exclude-activity/${activity.id}`)
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
+  });
+
+  test('should throw BadRequestException if schedule has opportunity', async props => {
+    const { user, opportunity } = await createData();
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      business_unit_id: opportunity.business_unit_id,
+      opportunity_id: opportunity.id,
+    });
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/sync-schedule`)
+      .json({
+        scheduleId: schedule.id,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 400);
+  });
+
+  test('should throw BadRequestException if schedule has no patient', async props => {
+    const { user, opportunity } = await createData();
+
+    const schedule = await Schedule.create({
+      patientName: 'any name',
+      patientPhone: 'any phone',
+      business_unit_id: opportunity.business_unit_id,
+    });
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .post(`/opportunities/sync-schedule`)
+      .json({
+        scheduleId: schedule.id,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 400);
   });
 });

@@ -1,11 +1,11 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import BusinessUnit from 'App/Models/BusinessUnit';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import AuthService from 'App/Services/AuthService';
 import SharedService from 'App/Services/SharedService';
 import UserService from 'App/Services/UserService';
 import LoginValidator from 'App/Validators/Auth/LoginValidator';
+import SwapUnitValidator from 'App/Validators/Auth/SwapUnitValidator';
 import CreateUserValidator from 'App/Validators/User/CreateUserValidator';
 import ForgotPasswordValidator from 'App/Validators/User/ForgotPasswordValidator';
 import ResetPasswordValidator from 'App/Validators/User/ResetPasswordValidator';
@@ -34,6 +34,49 @@ export default class AuthController {
     return response.ok(result);
   }
 
+  public async controllerLogin({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(request.headers());
+    }
+
+    const payload = await request.validate(LoginValidator);
+
+    const result = await this.authService.controllerLogin(
+      payload,
+      auth,
+      payload.ipAddress,
+    );
+
+    return response.ok(result);
+  }
+
+  public async swapUnit({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(SwapUnitValidator);
+    const { token } = auth.use('api');
+
+    await this.authService.swapUnit(
+      await this.sharedService.getAuthContext(auth),
+      token!,
+      payload,
+    );
+
+    return response.noContent();
+  }
+
+  public async swapTpUnit({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(SwapUnitValidator);
+
+    const { token } = auth.use('api');
+
+    await this.authService.swapTpUnit(token!, payload);
+
+    return response.noContent();
+  }
+
   public async register({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUserValidator);
     const { user, unit, system } = await this.service.store(payload);
@@ -48,12 +91,9 @@ export default class AuthController {
   }
 
   public async whoAmI({ auth, response }: HttpContextContract) {
-    const { user, unit_id } = this.sharedService.extractUser(auth);
-
-    const unit = await BusinessUnit.query()
-      .where('id', unit_id)
-      .preload('unitConfig')
-      .firstOrFail();
+    const { user, unit, system } = await this.sharedService.getAuthContext(
+      auth,
+    );
 
     const economicGroup = await EconomicGroup.query()
       .where('id', unit.economicGroupId)
@@ -64,30 +104,19 @@ export default class AuthController {
       })
       .firstOrFail();
 
-    const userRoles = await user
-      .related('roles')
-      .query()
-      .where('active', true)
-      .where('unit_id', unit_id)
-      .preload('role', query => {
-        query.where('active', true);
-
-        query.preload('permissions', query => {
-          query.where('active', true);
-          query.where('status', true);
-        });
-      });
+    const userRoles = await this.authService.getRoles(user, system.id, false);
 
     const controlIds = userRoles
       .map(r => r.role.permissions.map(p => p.control_id))
       .flat()
       .filter(Boolean);
+    const uniqueControls = Array.from(new Set(controlIds));
 
     return response.ok({
       user,
       unit,
       url: economicGroup.system.systemUrls.at(0) ?? null,
-      cl: controlIds,
+      cl: uniqueControls,
     });
   }
 

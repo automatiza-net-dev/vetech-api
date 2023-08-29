@@ -499,7 +499,7 @@ test.group('Daily cashier resource', group => {
     );
   });
 
-  test('should check a daily cashier', async ({ assert, client }) => {
+  test('should review a daily cashier', async ({ assert, client }) => {
     const { user, dailyMovement } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -711,6 +711,134 @@ test.group('Daily cashier resource', group => {
         description: 'test',
         value: 100,
         entryDate: DateTime.now(),
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 204);
+  });
+
+  test('should clear daily cashier', async ({ assert, client }) => {
+    const { user, dailyMovement, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await dailyMovement.merge({ status: DailyMovementStatus.F }).save();
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.F,
+      openingBalance: 0,
+      cashierTotal: 0,
+    });
+
+    const bill = await Bill.create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: dailyMovement.business_unit_id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      status: BillStatus.A,
+      totalValue: 100,
+      daily_cashier_id: cashier.id,
+    });
+    const payment1 = await bill.related('payments').create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      block: 1,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.N,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10,
+    });
+
+    const payment2 = await bill.related('payments').create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      block: 2,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.N,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/clear-payments`)
+      .json({
+        dailyCashierId: cashier.id,
+        items: [payment1.block, payment2.block],
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 204);
+  });
+
+  test('should update conference', async ({ assert, client }) => {
+    const { user, dailyMovement, business } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const cashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.F,
+      openingBalance: 0,
+      cashierTotal: 0,
+    });
+
+    const bill = await Bill.create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: dailyMovement.business_unit_id,
+      user_id: user.id,
+      seller_id: user.id,
+      daily_movement_id: dailyMovement.id,
+      status: BillStatus.A,
+      totalValue: 100,
+      daily_cashier_id: cashier.id,
+    });
+    const payment1 = await bill.related('payments').create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      block: 1,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.N,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10,
+    });
+
+    const payment2 = await bill.related('payments').create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      block: 2,
+      expirationDate: DateTime.now(),
+      feeType: BillPaymentFeeType.N,
+      feeValue: 0,
+      feePercentage: 0,
+      installments: 1,
+      installmentValue: 10,
+      totalValue: 10,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/update-conference`)
+      .json({
+        dailyCashierId: cashier.id,
+        items: [payment1.block, payment2.block],
       })
       .bearerToken(token);
 

@@ -15,6 +15,7 @@ import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import BillPayment from './BillPayment';
+import Budget from './Budget';
 import Patient from './Patient';
 import User from './User';
 
@@ -293,6 +294,11 @@ export default class Bill extends BaseModel {
     serializeAs: null,
   })
   public budget_id: string;
+
+  @belongsTo(() => Budget, {
+    foreignKey: 'budget_id',
+  })
+  public budget: BelongsTo<typeof Budget>;
 
   @column({
     serializeAs: null,

@@ -19,6 +19,7 @@ export interface IUpsertFinance {
   accept: FinanceAccept;
   installment: number;
   originFlag: FinanceOriginFlag;
+  qtyInstallments: number;
 
   observation?: string;
   checkingAccountId?: string;

@@ -80,6 +80,11 @@ export default class Finance extends BaseModel {
   @column()
   public historic: string;
 
+  @column({
+    columnName: 'qty_installments',
+  })
+  public qtyInstallments: number;
+
   @column.dateTime({
     columnName: 'issue_date',
   })

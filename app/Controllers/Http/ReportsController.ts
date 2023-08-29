@@ -63,6 +63,19 @@ export default class ReportsController {
     );
   }
 
+  public async detailedSalesReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.detailedSalesReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
+
   public async entriesReport({ request, response, auth }: HttpContextContract) {
     response.ok(
       await this.service.entriesReport(

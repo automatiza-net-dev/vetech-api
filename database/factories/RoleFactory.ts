@@ -5,5 +5,6 @@ export default Factory.define(Role, ({ faker }) => {
   return {
     name: faker.string.uuid(),
     externalAccess: true,
+    type: 'user',
   };
 }).build();

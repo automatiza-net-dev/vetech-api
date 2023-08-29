@@ -14,7 +14,7 @@ import { DateTime } from 'luxon';
 import RoleProfileAccess from './RoleProfileAccess';
 import UserUnitRole from './UserUnitRole';
 
-export const RoleType = ['system', 'controller'] as const;
+export const RoleType = ['system', 'controller', 'user', 'both'] as const;
 export type TRoleType = typeof RoleType[number];
 
 export default class Role extends BaseModel {

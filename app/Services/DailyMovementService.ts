@@ -52,6 +52,7 @@ export default class DailyMovementService {
   async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
     const lastDailyMovement = await DailyMovement.query()
       .where('business_unit_id', unitId)
+      .whereRaw('opening_date::date = now()::date', [])
       .orderBy('opening_date', 'desc')
       .first();
 

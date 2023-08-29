@@ -1,6 +1,14 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import {
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+} from '@ioc:Adonis/Lucid/Orm';
 import Activity from 'App/Models/Activity';
 import User from 'App/Models/User';
+import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 
 import Opportunity from './Opportunity';
@@ -9,6 +17,7 @@ export const OpportunityActivityStatus = [
   'Aberta',
   'Executada',
   'Cancelada',
+  'Excluida',
 ] as const;
 
 export default class OpportunityActivity extends BaseModel {
@@ -48,6 +57,19 @@ export default class OpportunityActivity extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
 
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
+
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
+
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
+
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
+
   @column({
     serializeAs: null,
   })
@@ -57,6 +79,16 @@ export default class OpportunityActivity extends BaseModel {
     foreignKey: 'opportunity_id',
   })
   public opportunity: BelongsTo<typeof Opportunity>;
+
+  @column({
+    serializeAs: null,
+  })
+  public exclusion_user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'exclusion_user_id',
+  })
+  public exclusionUser: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

@@ -176,4 +176,9 @@ export default class Opportunity extends BaseModel {
     foreignKey: 'opportunity_id',
   })
   public activities: HasMany<typeof OpportunityActivity>;
+
+  @column({
+    serializeAs: null,
+  })
+  public schedule_id: string;
 }

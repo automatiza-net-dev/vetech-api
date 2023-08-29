@@ -1,10 +1,11 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { inject } from '@adonisjs/fold';
-import AuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/AuthenticateThirdPartyValidator';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import SharedService from 'App/Services/SharedService';
 import ThirdPartyService from 'App/Services/ThirdPartyService';
+import AuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/AuthenticateThirdPartyValidator';
 import ExtendedAuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator';
 import SyncProfileAccessValidator from 'App/Validators/ThirdParty/SyncProfileAccessValidator';
-import SharedService from 'App/Services/SharedService';
+import UnitLoginValidator from 'App/Validators/ThirdParty/UnitLoginValidator';
 
 @inject()
 export default class ThirdPartiesController {
@@ -101,6 +102,16 @@ export default class ThirdPartiesController {
     );
 
     return response.ok(result);
+  }
+
+  public async updateToken({ request, auth, response }: HttpContextContract) {
+    const payload = await request.validate(UnitLoginValidator);
+
+    const { user } = auth.use('tpApi');
+
+    await this.service.updateToken(user!, payload);
+
+    return response.noContent();
   }
 
   public async profile({ auth, response }: HttpContextContract) {

@@ -181,6 +181,7 @@ export default class RoleService {
         permissions: screenPermissions.map(p => ({
           id: p.id,
           description: p.description,
+          controlId: p.control_id,
           active: p.$extras.pivot_status,
         })),
       };

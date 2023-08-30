@@ -207,7 +207,7 @@ export default class ScheduleService {
         const overlapping = await Schedule.query()
           .where('user_id', data.userId ?? authCtx.user.id)
           .andWhere('business_unit_id', authCtx.unit.id)
-          .andWhereRaw('start_hour <= ? and end_hour >= ?', [
+          .andWhereRaw('start_hour between ? and ?', [
             data.startHour.toJSDate(),
             data.endHour.toJSDate(),
           ])

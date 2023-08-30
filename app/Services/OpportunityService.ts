@@ -80,9 +80,9 @@ export default class OpportunityService {
       contactPhone?: string;
       patientName?: string;
       technician?: string;
-      unit?: string;
-      status?: string;
-      balance?: string;
+      unit?: string[];
+      status?: string[];
+      balance?: string[];
     },
   ) {
     const qb = Opportunity.query()
@@ -98,8 +98,8 @@ export default class OpportunityService {
       .preload('unit')
       .preload('clientOrigin');
 
-    if (data.unit) {
-      qb.where('business_unit_id', data.unit);
+    if (data.unit && Array.isArray(data.unit)) {
+      qb.whereIn('business_unit_id', data.unit);
     }
 
     if (data.technician) {
@@ -122,15 +122,18 @@ export default class OpportunityService {
       qb.where('contact_date', '<=', data.contactTo);
     }
 
-    if (data.status) {
-      qb.where('status_id', data.status);
+    if (data.status && Array.isArray(data.status)) {
+      qb.whereIn('status_id', data.status);
     }
 
-    if (data.balance) {
-      if (data.balance === 'Em Aberto') {
+    if (data.balance && Array.isArray(data.balance)) {
+      if (data.balance.includes('Em Aberto')) {
         qb.whereNull('closing_date');
       } else {
-        qb.where('balance', data.balance);
+        qb.whereIn(
+          'balance',
+          data.balance.filter(v => ['Ganho', 'Perda'].includes(v)),
+        );
       }
     }
 
@@ -165,6 +168,10 @@ export default class OpportunityService {
       value: elem.value,
       description: elem.description,
       observation: elem.observation,
+      closingDate: elem.closingDate,
+      profitValue: elem.profitValue,
+      resultObservation: elem.resultObservation,
+      balance: elem.balance,
 
       status: elem.status,
       contact: elem.contact,
@@ -184,6 +191,9 @@ export default class OpportunityService {
       },
       schedule: {
         id: elem.schedule_id ?? null,
+      },
+      closingUser: {
+        id: elem.closing_user_id ?? null,
       },
     }));
   }

@@ -211,6 +211,10 @@ export default class ScheduleService {
             data.startHour.toJSDate(),
             data.endHour.toJSDate(),
           ])
+          .andWhereRaw('end_hour between ? and ?', [
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
+          ])
           .andWhereHas('serviceStatus', query => {
             query.whereNotIn('type', ['CANC']);
           })

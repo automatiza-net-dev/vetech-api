@@ -60,107 +60,49 @@ export default class DailyCashierService {
       throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
     }
 
-    const payments = await BillPayment.query()
-      .where('daily_cashier_id', dailyCashier.id)
-      .preload('bill', query => {
-        query.preload('client').preload('patient');
+    const result = await Database.from('bill_payments')
+      .select(
+        Database.raw(
+          `
+          bill_payments.bill_id,
+          bills.tag,
+          patients.name,
+          bill_payments.qty_installments,
+          payment_methods.description as payment_method,
+          tef_flags.description       as flag,
+          bill_payments.nsu_document,
+          bill_payments.block,
+          sum(bill_payments.total_value)
+          `,
+        ),
+      )
+      .join('bills', query => {
+        query
+          .on('bills.business_unit_id', '=', 'bill_payments.business_unit_id')
+          .andOn('bills.id', '=', 'bill_payments.bill_id');
       })
-      .preload('paymentMethod')
-      .orderBy('block', 'asc');
+      .join('patients', query => {
+        query.on('patients.id', '=', 'bills.client_id');
+      })
+      .join('payment_methods', query => {
+        query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
+      })
+      .leftJoin('tef_flags', query => {
+        query.on('tef_flags.id', '=', 'bill_payments.tef_flag_id');
+      })
+      .where('bill_payments.daily_cashier_id', dailyCashier.id)
+      .groupBy(
+        'bill_payments.bill_id',
+        'bills.tag',
+        'patients.name',
+        'bill_payments.qty_installments',
+        'payment_methods.description',
+        'tef_flags.description',
+        'bill_payments.nsu_document',
+        'bill_payments.block',
+      );
 
-    const uniqueBlockPayments: BillPayment[] = [];
-    for (const payment of payments) {
-      if (uniqueBlockPayments.some(f => f.block === payment.block)) {
-        continue;
-      }
-
-      uniqueBlockPayments.push(payment);
-    }
-
-    return {
-      cashier: {
-        id: dailyCashier.id,
-        unit: {
-          id: dailyCashier.businessUnit.id,
-          name: dailyCashier.businessUnit.fantasyName,
-          company: dailyCashier.businessUnit.companyName,
-        },
-        tag: dailyCashier.tag,
-
-        opening_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoOpened,
-          v => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
-        opening_date: dailyCashier.openingDate,
-
-        closing_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoClosed,
-          v => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
-        closing_date: dailyCashier.closingDate,
-
-        checking_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoChecked,
-          v => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
-        checking_date: dailyCashier.checkingDate,
-
-        revision_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoRevised,
-          v => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
-        revision_date: dailyCashier.revisionDate,
-
-        opening_balance: dailyCashier.openingBalance,
-        sales_total: dailyCashier.salesTotal,
-        expenses_total: dailyCashier.expensesTotal,
-        receipts_total: dailyCashier.receiptsTotal,
-
-        cashier_funds: dailyCashier.cashierFunds,
-        cashier_balance: dailyCashier.cashierBalance,
-        observations: dailyCashier.observations,
-        status: dailyCashier.status,
-
-        bill_payments: uniqueBlockPayments.map(elem => ({
-          bill_id: elem.bill_id,
-          bill_tag: elem.bill.tag,
-          created_at: elem.createdAt,
-          block: elem.block,
-          nsuDocument: elem.nsuDocument,
-          qtyInstallments: elem.installments,
-          totalValue: elem.totalValue,
-          conferenceDate: elem.conferenceDate,
-          tutor: this.sharedService.captureGroup(elem.bill?.client, v => ({
-            id: v.id,
-            name: v.name,
-          })),
-          patient: this.sharedService.captureGroup(elem.bill?.patient, v => ({
-            id: v.id,
-            name: v.name,
-          })),
-          paymentMethod: this.sharedService.captureGroup(
-            elem.paymentMethod,
-            v => ({
-              id: v.id,
-              description: v.description ?? null,
-              flag: elem.flag?.description ?? null,
-            }),
-          ),
-        })),
-      },
-    };
+    return result;
   }
 
   async dump(unitId: string, id: string) {

@@ -305,6 +305,7 @@ export default class OpportunityService {
       patientName?: string;
       technician?: string;
       status?: string;
+      unit?: string;
     },
   ) {
     const qb = Opportunity.query()
@@ -330,6 +331,10 @@ export default class OpportunityService {
 
     if (data.technician) {
       qb.where('user_id', data.technician);
+    }
+
+    if (data.unit) {
+      qb.where('business_unit_id', data.unit);
     }
 
     if (data.openingFrom) {

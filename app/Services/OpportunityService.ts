@@ -394,6 +394,9 @@ export default class OpportunityService {
         value: op.value,
         description: op.description,
         observation: op.observation,
+        profitValue: op.profitValue,
+        resultObservation: op.resultObservation,
+        balance: op.balance,
 
         status: op.status,
         contact: op.contact,

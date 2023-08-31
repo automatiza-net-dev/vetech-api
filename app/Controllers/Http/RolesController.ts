@@ -3,6 +3,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import RoleService from 'App/Services/RoleService';
 import SharedService from 'App/Services/SharedService';
 import AddRolePermissionsValidator from 'App/Validators/Role/AddRolePermissionsValidator';
+import CopyRoleValidator from 'App/Validators/Role/CopyRoleValidator';
 import CreateRoleValidator from 'App/Validators/Role/CreateRoleValidator';
 import ManageRolePermissionValidator from 'App/Validators/Role/ManageRolePermissionValidator';
 import UpdateRoleValidator from 'App/Validators/Role/UpdateRoleValidator';
@@ -126,5 +127,15 @@ export default class RolesController {
         },
       ),
     );
+  }
+
+  public async copyRole({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(CopyRoleValidator);
+    const result = await this.roleService.copyRole(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.created(result);
   }
 }

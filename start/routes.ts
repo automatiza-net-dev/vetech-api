@@ -142,6 +142,7 @@ Route.group(() => {
   Route.get('/metadata/:id', 'RolesController.permissionMetadata');
   Route.post('/add-permissions', 'RolesController.addPermissions');
   Route.post('/permissions', 'RolesController.managePermissions');
+  Route.post('/copy', 'RolesController.copyRole');
 
   Route.get('/', 'RolesController.index');
   Route.post('/', 'RolesController.store');
@@ -1171,7 +1172,6 @@ Route.group(() => {
   Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
   Route.post('/sync-schedule', 'OpportunitiesController.syncSchedule');
 
-
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
   Route.put('/:id', 'OpportunitiesController.update');
@@ -1358,6 +1358,8 @@ Route.group(() => {
     '/invoicing-new-clients-consolidated',
     'IndicatorsController.invoicingByNewClientsConsolidated',
   );
+
+  Route.get('/scheduling', 'IndicatorsController.schedulingIndicators');
 })
   .prefix('indicators')
   .middleware('auth');

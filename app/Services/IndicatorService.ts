@@ -53,7 +53,7 @@ export default class IndicatorService {
       id: result?.id,
       identification: result.identification ?? null,
       salesTotal: result.total_vendas,
-      qtySales: parseInt(result.qtd_vendas),
+      qtySales: parseInt(result.qtd_vendas, 10),
       medianTicket: result.ticket_medio,
     };
   }
@@ -113,7 +113,7 @@ export default class IndicatorService {
       identification: elem.identification,
       originId: elem.id,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales),
+      qtySales: parseInt(elem.qty_sales, 10),
       totalPayments: elem.total_payments,
     }));
   }
@@ -212,8 +212,8 @@ export default class IndicatorService {
       identification: elem.identification,
       productId: elem.pID,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales),
-      qtyClients: parseInt(elem.qty_clients),
+      qtySales: parseInt(elem.qty_sales, 10),
+      qtyClients: parseInt(elem.qty_clients, 10),
       totalSales: elem.total_sales,
       percentage: (elem.total_sales / parsedTotal) * 100,
     }));
@@ -228,9 +228,7 @@ export default class IndicatorService {
     },
   ) {
     const qb1 = Database.from('bills')
-      .select(
-        Database.raw('sum(bills.total_value) as total_bill_payments'),
-      )
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
       .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
 
     if (data.fromDate) {
@@ -305,9 +303,7 @@ export default class IndicatorService {
     },
   ) {
     const qb1 = Database.from('bills')
-      .select(
-        Database.raw('sum(bills.total_value) as total_bill_payments'),
-      )
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
       .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
 
     if (data.fromDate) {
@@ -381,13 +377,13 @@ export default class IndicatorService {
       oldClients: oldClients.map(elem => ({
         id: elem.id,
         identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0'),
+        qtySales: parseInt(elem?.count ?? '0', 10),
         totalSales: elem?.total_payments ?? 0,
       })),
       newClients: newClients.map(elem => ({
         id: elem.id,
         identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0'),
+        qtySales: parseInt(elem?.count ?? '0', 10),
         totalSales: elem?.total_payments ?? 0,
       })),
     };
@@ -443,7 +439,7 @@ export default class IndicatorService {
       id: result?.id,
       identification: result.identification ?? null,
       salesTotal: result.total_vendas,
-      qtySales: parseInt(result.qtd_vendas),
+      qtySales: parseInt(result.qtd_vendas, 10),
       medianTicket: result.ticket_medio,
     };
   }
@@ -506,7 +502,7 @@ export default class IndicatorService {
       identification: elem.identification,
       originId: elem.id,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales),
+      qtySales: parseInt(elem.qty_sales, 10),
       totalPayments: elem.total_payments,
     }));
   }
@@ -611,8 +607,8 @@ export default class IndicatorService {
       identification: elem.identification,
       productId: elem.pID,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales),
-      qtyClients: parseInt(elem.qty_clients),
+      qtySales: parseInt(elem.qty_sales, 10),
+      qtyClients: parseInt(elem.qty_clients, 10),
       totalSales: elem.total_sales,
       percentage: (elem.total_sales / parsedTotal) * 100,
     }));
@@ -626,10 +622,9 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills')
-      .select(
-        Database.raw('sum(bills.total_value) as total_bill_payments'),
-      )
+    const qb1 = Database.from('bills').select(
+      Database.raw('sum(bills.total_value) as total_bill_payments'),
+    );
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);
@@ -708,10 +703,9 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills')
-      .select(
-        Database.raw('sum(bills.total_value) as total_bill_payments'),
-      )
+    const qb1 = Database.from('bills').select(
+      Database.raw('sum(bills.total_value) as total_bill_payments'),
+    );
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);
@@ -798,15 +792,71 @@ export default class IndicatorService {
       oldClients: oldClients.map(elem => ({
         id: elem.id,
         identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0'),
+        qtySales: parseInt(elem?.count ?? '0', 10),
         totalSales: elem?.total_payments ?? 0,
       })),
       newClients: newClients.map(elem => ({
         id: elem.id,
         identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0'),
+        qtySales: parseInt(elem?.count ?? '0', 10),
         totalSales: elem?.total_payments ?? 0,
       })),
     };
+  }
+
+  public async schedulingIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('schedules')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          count(schedules.id)               as agendados,
+          count(schedule_status_changes.id) as confirmados,
+          count(schedules.finished_at)      as atendidos,
+          count(cancellation_user_id)       as cancelados
+        `,
+        ),
+      )
+      .joinRaw(
+        `join (schedule_status_changes join schedule_statuses on schedule_status_changes.schedule_status_id = schedule_statuses.id
+                  and schedule_statuses.type = 'AC')
+                  on schedules.id = schedule_status_changes.schedule_id`,
+        [],
+      )
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'schedules.business_unit_id');
+      })
+      .groupBy('business_units.id');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('schedules.business_unit_id', data.units);
+    } else {
+      qb.where('schedules.business_unit_id', authCtx.unit.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('schedules.start_hour::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('schedules.start_hour::date <= ?', [data.toDate]);
+    }
+
+    return (await qb).map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      scheduled: parseInt(elem.agendados, 10),
+      confirmed: parseInt(elem.confirmados, 10),
+      attended: parseInt(elem.atendidos, 10),
+      canceled: parseInt(elem.cancelados, 10),
+    }));
   }
 }

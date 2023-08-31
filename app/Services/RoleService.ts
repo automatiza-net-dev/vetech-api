@@ -297,4 +297,54 @@ export default class RoleService {
       })),
     }));
   }
+
+  public async copyRole(authCtx: AuthContext, data: { roleId: number }) {
+    return await Database.transaction(async trx => {
+      const role = await Role.query()
+        .useTransaction(trx)
+        .where('id', data.roleId)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!role) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const rolePermissions = await Database.from('role_permissions')
+        .useTransaction(trx)
+        .where('role_id', role.id);
+
+      const roleProfileAccesses = await Database.from('role_profile_accesses')
+        .useTransaction(trx)
+        .where('role_id', role.id);
+
+      const newRole = await Role.create(
+        {
+          name: `${role.name} - Cópia`,
+          system_id: role.system_id,
+          type: role.type,
+          economic_group_id: role.economic_group_id,
+          active: role.active,
+          externalAccess: role.externalAccess,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await newRole.related('permissions').attach(
+        rolePermissions.map(p => p.permission_id),
+        trx,
+      );
+
+      await newRole.related('accesses').createMany(
+        roleProfileAccesses.map(p => ({
+          profile_access_id: p.profile_access_id,
+        })),
+        trx,
+      );
+
+      return newRole;
+    });
+  }
 }

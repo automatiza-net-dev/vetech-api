@@ -281,7 +281,7 @@ export default class FinanceService {
             installment: item.installment,
             originFlag: item.originFlag,
             checking_account_id: item.checkingAccountId,
-            qtyInstallments: item.qtyInstallments,
+            qtyInstallments: item.qtyInstallments ?? 1,
 
             paymentDate: item.paymentDate,
             downDate: item.downDate,

@@ -152,6 +152,7 @@ export default class DailyCashierService {
         sales_total: dailyCashier.salesTotal,
         expenses_total: dailyCashier.expensesTotal,
         receipts_total: dailyCashier.receiptsTotal,
+        cashier_total: dailyCashier.cashierTotal,
 
         cashier_funds: dailyCashier.cashierFunds,
         cashier_balance: dailyCashier.cashierBalance,

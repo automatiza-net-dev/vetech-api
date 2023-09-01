@@ -859,4 +859,181 @@ export default class IndicatorService {
       canceled: parseInt(elem.cancelados, 10),
     }));
   }
+
+  public async subgroupIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const totalQb = Database.from('bills').select(
+      Database.raw('sum(bills.total_value) as total_bill_payments'),
+    );
+
+    if (data.units && Array.isArray(data.units)) {
+      totalQb.whereIn('bills.business_unit_id', data.units);
+    } else {
+      totalQb.where('bills.business_unit_id', authCtx.unit.id);
+    }
+
+    if (data.fromDate) {
+      totalQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      totalQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const [{ total_bill_payments = '0' }] = await totalQb;
+    const parsedTotal = parseFloat(total_bill_payments);
+
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+        business_units.id,
+       business_units.identification,
+       subgroups.id                    as sID,
+       subgroups.description,
+       count(bill_items.id)            as count,
+       sum(bill_items.quantity)        as quantity,
+       sum(bill_items.total_value)     as total,
+       count(distinct bills.client_id) as clients
+          `,
+        ),
+      )
+      .leftJoin('bill_items', query => {
+        query.on('bill_items.bill_id', '=', 'bills.id');
+      })
+      .leftJoin('product_variations', query => {
+        query.on(
+          'product_variations.id',
+          '=',
+          'bill_items.product_variation_id',
+        );
+      })
+      .leftJoin('products', query => {
+        query.on('products.id', '=', 'product_variations.product_id');
+      })
+      .leftJoin('subgroups', query => {
+        query.on('subgroups.id', '=', 'products.subgroup_id');
+      })
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'bills.business_unit_id');
+      })
+      .groupBy('subgroups.id', 'subgroups.description', 'business_units.id');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('bills.business_unit_id', data.units);
+    } else {
+      qb.where('bills.business_unit_id', authCtx.unit.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bills.bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      subgroupID: elem.sid,
+      description: elem.description,
+      count: parseInt(elem.count, 10),
+      quantity: parseInt(elem.quantity, 10),
+      total: elem.total,
+      uniqueClients: parseInt(elem.clients, 10),
+      percentage: (elem.total / parsedTotal) * 100,
+    }));
+  }
+
+  public async consolidatedSubgroupIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const totalQb = Database.from('bills').select(
+      Database.raw('sum(bills.total_value) as total_bill_payments'),
+    );
+
+    if (data.units && Array.isArray(data.units)) {
+      totalQb.whereIn('bills.business_unit_id', data.units);
+    } else {
+      totalQb.where('bills.business_unit_id', authCtx.unit.id);
+    }
+
+    if (data.fromDate) {
+      totalQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      totalQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const [{ total_bill_payments = '0' }] = await totalQb;
+    const parsedTotal = parseFloat(total_bill_payments);
+
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          subgroups.id,
+          subgroups.description,
+          sum(bill_items.total_value)     as total,
+          count(distinct bills.client_id) as clients
+          `,
+        ),
+      )
+      .leftJoin('bill_items', query => {
+        query.on('bill_items.bill_id', '=', 'bills.id');
+      })
+      .leftJoin('product_variations', query => {
+        query.on(
+          'product_variations.id',
+          '=',
+          'bill_items.product_variation_id',
+        );
+      })
+      .leftJoin('products', query => {
+        query.on('products.id', '=', 'product_variations.product_id');
+      })
+      .leftJoin('subgroups', query => {
+        query.on('subgroups.id', '=', 'products.subgroup_id');
+      })
+      .groupBy('subgroups.id', 'subgroups.description');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('bills.business_unit_id', data.units);
+    } else {
+      qb.where('bills.business_unit_id', authCtx.unit.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bills.bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      subgroupID: elem.id,
+      description: elem.description,
+      total: elem.total,
+      uniqueClients: parseInt(elem.clients, 10),
+      percentage: (elem.total / parsedTotal) * 100,
+    }));
+  }
 }

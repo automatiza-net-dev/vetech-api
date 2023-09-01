@@ -1360,6 +1360,12 @@ Route.group(() => {
   );
 
   Route.get('/scheduling', 'IndicatorsController.schedulingIndicators');
+
+  Route.get('/subgroups', 'IndicatorsController.subgroupIndicators');
+  Route.get(
+    '/subgroups-consolidated',
+    'IndicatorsController.consolidatedSubgroupIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

@@ -1096,6 +1096,8 @@ export default class OpportunityService {
         status_id: model.status_id,
         contact_id: model.contact_id,
         schedule_id: model.schedule_id,
+        closing_user_id: model.closing_user_id,
+        opening_user_id: model.opening_user_id,
 
         balance: model.balance,
         description: model.description,

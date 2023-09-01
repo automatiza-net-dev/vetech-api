@@ -530,24 +530,7 @@ export default class OpportunityService {
         },
       );
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: model.id,
-          economic_group_id: authCtx.group.id,
-          business_unit_id: data.businessUnitId,
-          opening_user_id: authCtx.user.id,
-          status_id: data.statusId,
-          user_id: data.userId,
-          contact_id: data.contactId,
-          schedule_id: model.schedule_id,
-
-          value: data.value,
-          openingDate: DateTime.now(),
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(model, trx);
     });
   }
 

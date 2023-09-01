@@ -103,6 +103,14 @@ export default class AuthController {
         });
       })
       .firstOrFail();
+    await unit.load('unitConfig', query => {
+      query.select([
+        'id',
+        'requires_schedule_tutor',
+        'requires_bill_patient',
+        'allow_change_schedule_duration',
+      ]);
+    });
 
     const userRoles = await this.authService.getRoles(user, system.id, false);
 

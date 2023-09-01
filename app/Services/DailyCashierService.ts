@@ -102,7 +102,65 @@ export default class DailyCashierService {
         'bill_payments.block',
       );
 
-    return result;
+    return {
+      cashier: {
+        id: dailyCashier.id,
+        unit: {
+          id: dailyCashier.businessUnit.id,
+          name: dailyCashier.businessUnit.fantasyName,
+          company: dailyCashier.businessUnit.companyName,
+        },
+        tag: dailyCashier.tag,
+
+        opening_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoOpened,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
+        opening_date: dailyCashier.openingDate,
+
+        closing_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoClosed,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
+        closing_date: dailyCashier.closingDate,
+
+        checking_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoChecked,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
+        checking_date: dailyCashier.checkingDate,
+
+        revision_user: this.sharedService.captureGroup(
+          dailyCashier.userWhoRevised,
+          v => ({
+            id: v.id,
+            name: v.name,
+          }),
+        ),
+        revision_date: dailyCashier.revisionDate,
+
+        opening_balance: dailyCashier.openingBalance,
+        sales_total: dailyCashier.salesTotal,
+        expenses_total: dailyCashier.expensesTotal,
+        receipts_total: dailyCashier.receiptsTotal,
+
+        cashier_funds: dailyCashier.cashierFunds,
+        cashier_balance: dailyCashier.cashierBalance,
+        observations: dailyCashier.observations,
+        status: dailyCashier.status,
+
+        payments: result,
+      },
+    };
   }
 
   async dump(unitId: string, id: string) {

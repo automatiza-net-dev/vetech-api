@@ -866,6 +866,7 @@ export default class IndicatorService {
       units?: string[];
       fromDate?: string;
       toDate?: string;
+      type?: string;
     },
   ) {
     const totalQb = Database.from('bills').select(
@@ -939,6 +940,10 @@ export default class IndicatorService {
       qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
     }
 
+    if (data.type) {
+      qb.andWhere('products.type', data.type);
+    }
+
     const result = await qb;
 
     return result.map(elem => ({
@@ -960,6 +965,7 @@ export default class IndicatorService {
       units?: string[];
       fromDate?: string;
       toDate?: string;
+      type?: string;
     },
   ) {
     const totalQb = Database.from('bills').select(
@@ -1024,6 +1030,10 @@ export default class IndicatorService {
 
     if (data.toDate) {
       qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
+    }
+
+    if (data.type) {
+      qb.andWhere('products.type', data.type);
     }
 
     const result = await qb;

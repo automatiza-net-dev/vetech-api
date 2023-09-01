@@ -72,7 +72,8 @@ export default class DailyCashierService {
           tef_flags.description       as flag,
           bill_payments.nsu_document,
           bill_payments.block,
-          sum(bill_payments.total_value)
+          sum(bill_payments.total_value),
+          bill_payments.conference_date
           `,
         ),
       )
@@ -100,6 +101,7 @@ export default class DailyCashierService {
         'tef_flags.description',
         'bill_payments.nsu_document',
         'bill_payments.block',
+        'bill_payments.conference_date',
       );
 
     return {

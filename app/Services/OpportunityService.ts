@@ -23,6 +23,7 @@ export default class OpportunityService {
       .preload('client', query => {
         query.preload('tutor');
       })
+      .preload('closingUser')
       .preload('contact')
       .preload('contactType')
       .preload('contactSubject')
@@ -48,6 +49,8 @@ export default class OpportunityService {
       value: result.value,
       description: result.description,
       observation: result.observation,
+      balance: result.balance,
+      closingDate: result.closingDate,
 
       status: result.status,
       contact: result.contact,
@@ -60,6 +63,10 @@ export default class OpportunityService {
         id: result.user.id,
         name: result.user.name,
       },
+      closingUser: this.sharedService.captureGroup(result.closingUser, v => ({
+        id: v.id,
+        name: v.name,
+      })),
       unit: {
         id: result.unit.id,
         companyName: result.unit.companyName,

@@ -92,10 +92,20 @@ export default class Opportunity extends BaseModel {
   })
   public opening_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'opening_user_id',
+  })
+  public openingUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public closing_user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'closing_user_id',
+  })
+  public closingUser: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

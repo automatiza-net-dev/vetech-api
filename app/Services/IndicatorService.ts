@@ -26,7 +26,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.unit) {
       qb.where('business_unit_id', data.unit);
@@ -90,7 +91,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('client_origins.id', 'business_units.id');
+      .groupBy('client_origins.id', 'business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.unit) {
       qb.where('bills.business_unit_id', data.unit);
@@ -129,7 +131,8 @@ export default class IndicatorService {
   ) {
     const qb1 = Database.from('bills')
       .select(Database.raw('sum(total_value) as total_sales'))
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
+      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
+      .whereNull('bills.deleted_at');
 
     if (data.fromDate) {
       qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
@@ -185,7 +188,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('products.id', 'products.description', 'business_units.id');
+      .groupBy('products.id', 'products.description', 'business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.unit) {
       qb.where('bills.business_unit_id', data.unit);
@@ -229,7 +233,8 @@ export default class IndicatorService {
   ) {
     const qb1 = Database.from('bills')
       .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
+      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
+      .whereNull('bills.deleted_at');
 
     if (data.fromDate) {
       qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
@@ -266,7 +271,8 @@ export default class IndicatorService {
         'payment_methods.id',
         'payment_methods.description',
         'business_units.id',
-      );
+      )
+      .whereNull('bills.deleted_at');
 
     if (data.unit) {
       qb.where('bills.business_unit_id', data.unit);
@@ -304,7 +310,8 @@ export default class IndicatorService {
   ) {
     const qb1 = Database.from('bills')
       .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
+      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
+      .whereNull('bills.deleted_at');
 
     if (data.fromDate) {
       qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
@@ -334,7 +341,8 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
+      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
+      .whereNull('bills.deleted_at');
 
     const qb3 = Database.from('bills')
       .select(
@@ -353,7 +361,8 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id);
+      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
+      .whereNull('bills.deleted_at');
 
     if (data.fromDate) {
       qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
@@ -412,7 +421,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('business_unit_id', data.units);
@@ -479,7 +489,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('client_origins.id', 'business_units.id');
+      .groupBy('client_origins.id', 'business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('bills.business_unit_id', data.units);
@@ -516,9 +527,9 @@ export default class IndicatorService {
       type?: string;
     },
   ) {
-    const qb1 = Database.from('bills').select(
-      Database.raw('sum(total_value) as total_sales'),
-    );
+    const qb1 = Database.from('bills')
+      .select(Database.raw('sum(total_value) as total_sales'))
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);
@@ -580,7 +591,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('products.id', 'products.description', 'business_units.id');
+      .groupBy('products.id', 'products.description', 'business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('bills.business_unit_id', data.units);
@@ -622,9 +634,9 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills').select(
-      Database.raw('sum(bills.total_value) as total_bill_payments'),
-    );
+    const qb1 = Database.from('bills')
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);
@@ -667,7 +679,8 @@ export default class IndicatorService {
         'payment_methods.id',
         'payment_methods.description',
         'business_units.id',
-      );
+      )
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('bills.business_unit_id', data.units);
@@ -703,9 +716,9 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills').select(
-      Database.raw('sum(bills.total_value) as total_bill_payments'),
-    );
+    const qb1 = Database.from('bills')
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb1.whereIn('bills.business_unit_id', data.units);
@@ -740,7 +753,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb2.whereIn('bills.business_unit_id', data.units);
@@ -764,7 +778,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb3.whereIn('bills.business_unit_id', data.units);
@@ -869,9 +884,9 @@ export default class IndicatorService {
       type?: string;
     },
   ) {
-    const totalQb = Database.from('bills').select(
-      Database.raw('sum(bills.total_value) as total_bill_payments'),
-    );
+    const totalQb = Database.from('bills')
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       totalQb.whereIn('bills.business_unit_id', data.units);
@@ -924,7 +939,8 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('subgroups.id', 'subgroups.description', 'business_units.id');
+      .groupBy('subgroups.id', 'subgroups.description', 'business_units.id')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('bills.business_unit_id', data.units);
@@ -968,9 +984,10 @@ export default class IndicatorService {
       type?: string;
     },
   ) {
-    const totalQb = Database.from('bills').select(
-      Database.raw('sum(bills.total_value) as total_bill_payments'),
-    );
+    const totalQb = Database.from('bills')
+      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
+
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       totalQb.whereIn('bills.business_unit_id', data.units);
@@ -1016,7 +1033,8 @@ export default class IndicatorService {
       .leftJoin('subgroups', query => {
         query.on('subgroups.id', '=', 'products.subgroup_id');
       })
-      .groupBy('subgroups.id', 'subgroups.description');
+      .groupBy('subgroups.id', 'subgroups.description')
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('bills.business_unit_id', data.units);

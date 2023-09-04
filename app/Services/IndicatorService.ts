@@ -953,7 +953,7 @@ export default class IndicatorService {
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
+      qb.andWhereRaw('bills.bill_date::date <= ?', [data.toDate]);
     }
 
     if (data.type) {
@@ -1047,7 +1047,7 @@ export default class IndicatorService {
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bills.bills_date::date <= ?', [data.toDate]);
+      qb.andWhereRaw('bills.bill_date::date <= ?', [data.toDate]);
     }
 
     if (data.type) {

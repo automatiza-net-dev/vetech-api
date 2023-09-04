@@ -232,71 +232,83 @@ export default class IndicatorService {
     },
   ) {
     const qb1 = Database.from('bills')
-      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
-      .whereNull('bills.deleted_at');
-
-    if (data.fromDate) {
-      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-    }
-
-    if (data.toDate) {
-      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-    }
-
-    const [{ total_bill_payments = '0' }] = await qb1;
-    const parsedTotal = parseFloat(total_bill_payments);
-
-    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
-          payment_methods.id as pID,
-          payment_methods.description,
-          sum(bills.total_value) total_payments`,
+          'Em Aberto'                               as description,
+          sum(bills.total_value - bills.paid_value) as totalPayments,
+          sum(distinct bills.total_value)           as totalBills
+          `,
         ),
       )
-      .leftJoin('bill_payments', query => {
-        query.on('bill_payments.id', '=', 'bills.id');
-      })
-      .leftJoin('payment_methods', query => {
-        query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
-      })
-      .leftJoin('business_units', query => {
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy(
-        'payment_methods.id',
-        'payment_methods.description',
-        'business_units.id',
+      .groupBy('business_units.id', 'business_units.identification')
+      .whereNull('bills.deleted_at');
+
+    const qb2 = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          payment_methods.description || coalesce(' - ' || tef_flags.description, '') as description,
+          sum(bill_payments.total_value) as totalPayments
+        `,
+        ),
+      )
+      .joinRaw(
+        `
+          join bill_payments left join tef_flags on bill_payments.tef_flag_id = tef_flags.id
+            on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id
+               `,
+        [],
+      )
+      .join('payment_methods', query => {
+        query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
+      })
+      .join('business_units', query => {
+        query.on('business_units.id', '=', 'bills.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .groupByRaw(
+        `payment_methods.description || coalesce(' - ' || tef_flags.description, '')`,
+        [],
       )
       .whereNull('bills.deleted_at');
 
     if (data.unit) {
-      qb.where('bills.business_unit_id', data.unit);
+      qb1.where('bills.business_unit_id', data.unit);
+      qb2.where('bills.business_unit_id', data.unit);
     } else {
-      qb.where('bills.business_unit_id', authCtx.unit.id);
+      qb1.where('bills.business_unit_id', authCtx.unit.id);
+      qb2.where('bills.business_unit_id', authCtx.unit.id);
     }
 
     if (data.fromDate) {
-      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const result = await qb;
+    const [result1, result2] = await Promise.all([qb1, qb2]);
+    const result = result1.concat(result2);
 
+    const total = result1.at(0)?.totalbills ?? 0;
+    //
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,
-      paymentMethodId: elem.pID,
       description: elem.description,
-      totalSales: elem.total_payments,
-      percentage: (elem.total_payments / parsedTotal) * 100,
+      totalSales: elem.totalpayments,
+      percentage: (elem.totalpayments / total) * 100,
     }));
   }
 
@@ -635,79 +647,87 @@ export default class IndicatorService {
     },
   ) {
     const qb1 = Database.from('bills')
-      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .whereNull('bills.deleted_at');
-
-    if (data.units && Array.isArray(data.units)) {
-      qb1.whereIn('bills.business_unit_id', data.units);
-    } else {
-      qb1.where('bills.business_unit_id', authCtx.unit.id);
-    }
-
-    if (data.fromDate) {
-      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-    }
-
-    if (data.toDate) {
-      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-    }
-
-    const [{ total_bill_payments = '0' }] = await qb1;
-    const parsedTotal = parseFloat(total_bill_payments);
-
-    const qb = Database.from('bills')
+      .debug(true)
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
-          payment_methods.id as pID,
-          payment_methods.description,
-          sum(bill_payments.total_value) total_payments`,
+          'Em Aberto'                               as description,
+          sum(bills.total_value - bills.paid_value) as totalPayments,
+          sum(distinct bills.total_value)           as totalBills
+          `,
         ),
       )
-      .leftJoin('bill_payments', query => {
-        query.on('bill_payments.id', '=', 'bills.id');
-      })
-      .leftJoin('payment_methods', query => {
-        query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
-      })
-      .leftJoin('business_units', query => {
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy(
-        'payment_methods.id',
-        'payment_methods.description',
-        'business_units.id',
+      .groupBy('business_units.id', 'business_units.identification')
+      .whereNull('bills.deleted_at');
+
+    const qb2 = Database.from('bills')
+      .debug(true)
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          payment_methods.description || coalesce(' - ' || tef_flags.description, '') as description,
+          sum(bill_payments.total_value) as totalPayments
+        `,
+        ),
+      )
+      .joinRaw(
+        `
+          join bill_payments left join tef_flags on bill_payments.tef_flag_id = tef_flags.id
+            on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id
+               `,
+        [],
+      )
+      .join('payment_methods', query => {
+        query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
+      })
+      .join('business_units', query => {
+        query.on('business_units.id', '=', 'bills.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .groupByRaw(
+        `payment_methods.description || coalesce(' - ' || tef_flags.description, '')`,
+        [],
       )
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
-      qb.whereIn('bills.business_unit_id', data.units);
+      qb1.whereIn('bills.business_unit_id', data.units);
+      qb2.whereIn('bills.business_unit_id', data.units);
     } else {
-      qb.where('bills.business_unit_id', authCtx.unit.id);
+      qb1.where('bills.business_unit_id', authCtx.unit.id);
+      qb2.where('bills.business_unit_id', authCtx.unit.id);
     }
 
     if (data.fromDate) {
-      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const result = await qb;
+    const [result1, result2] = await Promise.all([qb1, qb2]);
+    const result = result1.concat(result2);
 
+    const total = result1.at(0)?.totalbills ?? 0;
+    //
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,
-      paymentMethodId: elem.pID,
       description: elem.description,
-      totalSales: elem.total_payments,
-      percentage: (elem.total_payments / parsedTotal) * 100,
+      totalSales: elem.totalpayments,
+      percentage: (elem.totalpayments / total) * 100,
     }));
   }
-
   public async invoicingByNewClientsConsolidated(
     authCtx: AuthContext,
     data: {

@@ -247,7 +247,7 @@ export default class IndicatorService {
     const [{ total_bill_payments = '0' }] = await qb1;
     const parsedTotal = parseFloat(total_bill_payments);
 
-    const qb = Database.from('bill_payments')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
@@ -258,8 +258,8 @@ export default class IndicatorService {
           sum(bills.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
+      .leftJoin('bill_payments', query => {
+        query.on('bill_payments.id', '=', 'bills.id');
       })
       .leftJoin('payment_methods', query => {
         query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');
@@ -462,7 +462,7 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb = Database.from('bill_payments')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
@@ -474,8 +474,8 @@ export default class IndicatorService {
             sum(bill_payments.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
+      .leftJoin('bill_payments', query => {
+        query.on('bill_payments.bill_id', '=', 'bills.id');
       })
       .leftJoin('patients', query => {
         query.on('patients.id', '=', 'bills.client_id');
@@ -655,7 +655,7 @@ export default class IndicatorService {
     const [{ total_bill_payments = '0' }] = await qb1;
     const parsedTotal = parseFloat(total_bill_payments);
 
-    const qb = Database.from('bill_payments')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
@@ -666,8 +666,8 @@ export default class IndicatorService {
           sum(bill_payments.total_value) total_payments`,
         ),
       )
-      .leftJoin('bills', query => {
-        query.on('bills.id', '=', 'bill_payments.bill_id');
+      .leftJoin('bill_payments', query => {
+        query.on('bill_payments.id', '=', 'bills.id');
       })
       .leftJoin('payment_methods', query => {
         query.on('payment_methods.id', '=', 'bill_payments.payment_method_id');

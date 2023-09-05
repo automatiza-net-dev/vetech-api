@@ -320,50 +320,25 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills')
-      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
-      .whereNull('bills.deleted_at');
-
-    if (data.fromDate) {
-      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-    }
-
-    if (data.toDate) {
-      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-    }
-
-    const [{ total_bill_payments = '0' }] = await qb1;
-    const parsedTotal = parseFloat(total_bill_payments);
-
-    const qb2 = Database.from('bills')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
-          count('bills.client_id'),
-          sum(bills.total_value) total_payments`,
-        ),
-      )
-      .leftJoin('patients', query => {
-        query.on('patients.id', '=', 'bills.client_id');
-      })
-      .leftJoin('business_units', query => {
-        query.on('business_units.id', '=', 'bills.business_unit_id');
-      })
-      .groupBy('business_units.id')
-      .where('bills.business_unit_id', data.unit ?? authCtx.unit.id)
-      .whereNull('bills.deleted_at');
-
-    const qb3 = Database.from('bills')
-      .select(
-        Database.raw(
-          `
-          business_units.id,
-          business_units.identification,
-          count('bills.client_id'),
-          sum(bills.total_value) total_payments`,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end) as totalNovos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end) as totalRecorrentes,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end) as qtdNovos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end) as qtdRecorrentes
+          `,
         ),
       )
       .leftJoin('patients', query => {
@@ -377,37 +352,27 @@ export default class IndicatorService {
       .whereNull('bills.deleted_at');
 
     if (data.fromDate) {
-      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-
-      qb3.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-      qb3.andWhereRaw('patients.first_sale::date >= ?', [data.fromDate]);
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-
-      qb3.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-      qb3.andWhereRaw('patients.first_sale::date <= ?', [data.toDate]);
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const oldClients = await qb2;
-    const newClients = await qb3;
+    const result = await qb;
 
-    return {
-      total: parsedTotal,
-      oldClients: oldClients.map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0', 10),
-        totalSales: elem?.total_payments ?? 0,
-      })),
-      newClients: newClients.map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0', 10),
-        totalSales: elem?.total_payments ?? 0,
-      })),
-    };
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: {
+        total: elem.totalnovos,
+        qty: parseInt(elem.qtdnovos, 10),
+      },
+      recurrent: {
+        total: elem.totalrecorrentes,
+        qty: parseInt(elem.qtdrecorrentes, 10),
+      },
+    }));
   }
 
   public async medianTicketConsolidated(
@@ -728,6 +693,7 @@ export default class IndicatorService {
       percentage: (elem.totalpayments / total) * 100,
     }));
   }
+
   public async invoicingByNewClientsConsolidated(
     authCtx: AuthContext,
     data: {
@@ -736,35 +702,25 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb1 = Database.from('bills')
-      .select(Database.raw('sum(bills.total_value) as total_bill_payments'))
-      .whereNull('bills.deleted_at');
-
-    if (data.units && Array.isArray(data.units)) {
-      qb1.whereIn('bills.business_unit_id', data.units);
-    } else {
-      qb1.where('bills.business_unit_id', authCtx.unit.id);
-    }
-
-    if (data.fromDate) {
-      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-    }
-
-    if (data.toDate) {
-      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-    }
-
-    const [{ total_bill_payments = '0' }] = await qb1;
-    const parsedTotal = parseFloat(total_bill_payments);
-
-    const qb2 = Database.from('bills')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
-          count('bills.client_id'),
-          sum(bills.total_value) total_payments`,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end) as totalNovos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end) as totalRecorrentes,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end) as qtdNovos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end) as qtdRecorrentes
+          `,
         ),
       )
       .leftJoin('patients', query => {
@@ -777,66 +733,33 @@ export default class IndicatorService {
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
-      qb2.whereIn('bills.business_unit_id', data.units);
+      qb.whereIn('bills.business_unit_id', data.units);
     } else {
-      qb2.where('bills.business_unit_id', authCtx.unit.id);
-    }
-
-    const qb3 = Database.from('bills')
-      .select(
-        Database.raw(
-          `
-          business_units.id,
-          business_units.identification,
-          count('bills.client_id'),
-          sum(bills.total_value) total_payments`,
-        ),
-      )
-      .leftJoin('patients', query => {
-        query.on('patients.id', '=', 'bills.client_id');
-      })
-      .leftJoin('business_units', query => {
-        query.on('business_units.id', '=', 'bills.business_unit_id');
-      })
-      .groupBy('business_units.id')
-      .whereNull('bills.deleted_at');
-
-    if (data.units && Array.isArray(data.units)) {
-      qb3.whereIn('bills.business_unit_id', data.units);
-    } else {
-      qb3.where('bills.business_unit_id', authCtx.unit.id);
+      qb.where('bills.business_unit_id', authCtx.unit.id);
     }
 
     if (data.fromDate) {
-      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-      qb3.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
-      qb3.andWhereRaw('patients.first_sale::date >= ?', [data.fromDate]);
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-      qb3.andWhereRaw('bill_date::date <= ?', [data.toDate]);
-      qb3.andWhereRaw('patients.first_sale::date <= ?', [data.toDate]);
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const oldClients = await qb2;
-    const newClients = await qb3;
+    const result = await qb;
 
-    return {
-      total: parsedTotal,
-      oldClients: oldClients.map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0', 10),
-        totalSales: elem?.total_payments ?? 0,
-      })),
-      newClients: newClients.map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        qtySales: parseInt(elem?.count ?? '0', 10),
-        totalSales: elem?.total_payments ?? 0,
-      })),
-    };
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: {
+        total: elem.totalnovos,
+        qty: parseInt(elem.qtdnovos, 10),
+      },
+      recurrent: {
+        total: elem.totalrecorrentes,
+        qty: parseInt(elem.qtdrecorrentes, 10),
+      },
+    }));
   }
 
   public async schedulingIndicators(

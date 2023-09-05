@@ -67,56 +67,90 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb = Database.from('bills')
+    const qb1 = Database.from('bills')
       .select(
         Database.raw(
           `
             business_units.id,
             business_units.identification,
-            client_origins.id as id,
-            client_origins.description,
-            count(bills.id) as qty_sales,
-            sum(bills.total_value) total_payments`,
+            'Recorrentes'          as description,
+            sum(bills.total_value) as total
+          `,
         ),
       )
-      .leftJoin('patients', query => {
-        query.on('patients.id', '=', 'bills.client_id');
-      })
-      .leftJoin('patient_tutors', query => {
-        query.on('patient_tutors.patient_id', '=', 'patients.id');
-      })
-      .leftJoin('client_origins', query => {
-        query.on('client_origins.id', '=', 'patient_tutors.client_origin_id');
-      })
-      .leftJoin('business_units', query => {
+      .joinRaw(
+        `
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+        [],
+      )
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('client_origins.id', 'business_units.id')
-      .whereNull('bills.deleted_at');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at')
+      .andWhereRaw(
+        `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+        [],
+      );
+
+    const qb2 = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          client_origins.description,
+          sum(bills.total_value) as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+        [],
+      )
+      .join('business_units', query => {
+        query.on('business_units.id', '=', 'bills.business_unit_id');
+      })
+      .groupBy('business_units.id', 'client_origins.description')
+      .whereNull('bills.deleted_at')
+      .andWhereRaw(
+        `to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+        [],
+      );
 
     if (data.unit) {
-      qb.where('bills.business_unit_id', data.unit);
+      qb1.where('bills.business_unit_id', data.unit);
+      qb2.where('bills.business_unit_id', data.unit);
     } else {
-      qb.where('bills.business_unit_id', authCtx.unit.id);
+      qb1.where('bills.business_unit_id', authCtx.unit.id);
+      qb2.where('bills.business_unit_id', authCtx.unit.id);
     }
 
     if (data.fromDate) {
-      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const result = await qb;
+    const [r1, r2] = await Promise.all([qb1, qb2]);
+    const result = r1.concat(r2);
 
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,
-      originId: elem.id,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales, 10),
-      totalPayments: elem.total_payments,
+      total: elem.total,
     }));
   }
 
@@ -439,59 +473,90 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const qb = Database.from('bills')
+    const qb1 = Database.from('bills')
       .select(
         Database.raw(
           `
-            business_units.id,
-            business_units.identification,
-            client_origins.id as id,
-            client_origins.description,
-            count(bills.id) as qty_sales,
-            sum(bill_payments.total_value) total_payments`,
+          business_units.id,
+          business_units.identification,
+          'Recorrentes'          as description,
+          sum(bills.total_value) as total
+          `,
         ),
       )
-      .leftJoin('bill_payments', query => {
-        query.on('bill_payments.bill_id', '=', 'bills.id');
-      })
-      .leftJoin('patients', query => {
-        query.on('patients.id', '=', 'bills.client_id');
-      })
-      .leftJoin('patient_tutors', query => {
-        query.on('patient_tutors.patient_id', '=', 'patients.id');
-      })
-      .leftJoin('client_origins', query => {
-        query.on('client_origins.id', '=', 'patient_tutors.client_origin_id');
-      })
-      .leftJoin('business_units', query => {
+      .joinRaw(
+        `
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+        [],
+      )
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('client_origins.id', 'business_units.id')
-      .whereNull('bills.deleted_at');
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at')
+      .andWhereRaw(
+        `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+        [],
+      );
+
+    const qb2 = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          client_origins.description,
+          sum(bills.total_value) as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+        [],
+      )
+      .join('business_units', query => {
+        query.on('business_units.id', '=', 'bills.business_unit_id');
+      })
+      .groupBy('business_units.id', 'client_origins.description')
+      .whereNull('bills.deleted_at')
+      .andWhereRaw(
+        `to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+        [],
+      );
 
     if (data.units && Array.isArray(data.units)) {
-      qb.whereIn('bills.business_unit_id', data.units);
+      qb1.whereIn('bills.business_unit_id', data.units);
+      qb2.whereIn('bills.business_unit_id', data.units);
     } else {
-      qb.where('bills.business_unit_id', authCtx.unit.id);
+      qb1.where('bills.business_unit_id', authCtx.unit.id);
+      qb2.where('bills.business_unit_id', authCtx.unit.id);
     }
 
     if (data.fromDate) {
-      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const result = await qb;
+    const [r1, r2] = await Promise.all([qb1, qb2]);
+    const result = r1.concat(r2);
 
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,
-      originId: elem.id,
       description: elem.description,
-      qtySales: parseInt(elem.qty_sales, 10),
-      totalPayments: elem.total_payments,
+      total: elem.total,
     }));
   }
 

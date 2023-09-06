@@ -948,6 +948,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('subgroups.id', 'subgroups.description', 'business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1042,6 +1043,7 @@ export default class IndicatorService {
         query.on('subgroups.id', '=', 'products.subgroup_id');
       })
       .groupBy('subgroups.id', 'subgroups.description')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {

@@ -289,7 +289,7 @@ export default class IndicatorService {
           `
           business_units.id,
           business_units.identification,
-          payment_methods.description || coalesce(' - ' || tef_flags.description, '') as description,
+          payment_methods.description,
           sum(bill_payments.total_value) as totalPayments
         `,
         ),
@@ -307,11 +307,7 @@ export default class IndicatorService {
       .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id')
-      .groupByRaw(
-        `payment_methods.description || coalesce(' - ' || tef_flags.description, '')`,
-        [],
-      )
+      .groupBy('business_units.id', 'payment_methods.description')
       .whereNull('bills.deleted_at');
 
     if (data.unit) {
@@ -336,7 +332,7 @@ export default class IndicatorService {
     const result = result1.concat(result2);
 
     const total = result1.at(0)?.totalbills ?? 0;
-    //
+
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,
@@ -677,7 +673,6 @@ export default class IndicatorService {
     },
   ) {
     const qb1 = Database.from('bills')
-      .debug(true)
       .select(
         Database.raw(
           `
@@ -696,13 +691,12 @@ export default class IndicatorService {
       .whereNull('bills.deleted_at');
 
     const qb2 = Database.from('bills')
-      .debug(true)
       .select(
         Database.raw(
           `
           business_units.id,
           business_units.identification,
-          payment_methods.description || coalesce(' - ' || tef_flags.description, '') as description,
+          payment_methods.description,
           sum(bill_payments.total_value) as totalPayments
         `,
         ),
@@ -720,11 +714,7 @@ export default class IndicatorService {
       .join('business_units', query => {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
-      .groupBy('business_units.id')
-      .groupByRaw(
-        `payment_methods.description || coalesce(' - ' || tef_flags.description, '')`,
-        [],
-      )
+      .groupBy('business_units.id', 'payment_methods.description')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -749,7 +739,7 @@ export default class IndicatorService {
     const result = result1.concat(result2);
 
     const total = result1.at(0)?.totalbills ?? 0;
-    //
+
     return result.map(elem => ({
       id: elem.id,
       identification: elem.identification,

@@ -611,7 +611,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await model
+      const result = await model
         .merge({
           reason_id: data.reasonId,
           closing_user_id: authCtx.user.id,
@@ -623,6 +623,26 @@ export default class OpportunityService {
         })
         .useTransaction(trx)
         .save();
+
+      const status = await CrmStatus.firstOrCreate(
+        {
+          type: 'OPR',
+          tag: 'G',
+          description: 'Ganho',
+          system_id: authCtx.system.id,
+        },
+        {
+          type: 'OPR',
+          tag: 'G',
+          description: 'Ganho',
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+      const stubResult = result.merge({ status_id: status.id });
+      await this.createLog(stubResult, trx);
     });
   }
 
@@ -644,7 +664,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await model
+      const result = await model
         .merge({
           reason_id: data.reasonId,
           closing_user_id: authCtx.user.id,
@@ -655,6 +675,26 @@ export default class OpportunityService {
         })
         .useTransaction(trx)
         .save();
+
+      const status = await CrmStatus.firstOrCreate(
+        {
+          type: 'OPR',
+          tag: 'P',
+          description: 'Perda',
+          system_id: authCtx.system.id,
+        },
+        {
+          type: 'OPR',
+          tag: 'P',
+          description: 'Perda',
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+      const stubResult = result.merge({ status_id: status.id });
+      await this.createLog(stubResult, trx);
     });
   }
 

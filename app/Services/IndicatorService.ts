@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
 
@@ -1060,6 +1061,193 @@ export default class IndicatorService {
       total: elem.total,
       uniqueClients: parseInt(elem.clients, 10),
       percentage: (elem.total / parsedTotal) * 100,
+    }));
+  }
+
+  public async opportunitiesIndicators(
+    _: AuthContext,
+    data: {
+      unit?: string;
+      group?: string;
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    if (!data.unit) {
+      throw new BadRequestException('Informe a unidade', 400, 'E_ERR');
+    }
+
+    const qb = Database.from('opportunity_logs')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          sum(case when crm_statuses.tag = 'N' then 1 else 0 end) as novas,
+          sum(case when crm_statuses.tag = 'A' then 1 else 0 end) as agendadas,
+          sum(case when crm_statuses.tag = 'C' then 1 else 0 end) as comparecidas,
+          sum(case when crm_statuses.tag = 'G' then 1 else 0 end) as ganhos
+          `,
+        ),
+      )
+      .leftJoin('crm_statuses', query => {
+        query.on('crm_statuses.id', '=', 'opportunity_logs.status_id');
+      })
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'opportunity_logs.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .where('opportunity_logs.business_unit_id', data.unit);
+
+    if (data.group) {
+      qb.andWhere('opportunity_logs.economic_group_id', data.group);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date >= ?', [
+        data.fromDate,
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: parseInt(elem.novas, 10),
+      scheduled: parseInt(elem.agendadas, 10),
+      attended: parseInt(elem.comparecidas, 10),
+      gained: parseInt(elem.ganhos, 10),
+    }));
+  }
+
+  public async generalOpportunitiesIndicators(
+    _: AuthContext,
+    data: {
+      unit?: string;
+      group?: string;
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    if (!data.unit) {
+      throw new BadRequestException('Informe a unidade', 400, 'E_ERR');
+    }
+
+    const qb = Database.from('opportunities')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          sum(case when crm_statuses.tag = 'N' then 1 else 0 end) as novas,
+          sum(case when crm_statuses.tag = 'A' then 1 else 0 end) as agendadas,
+          sum(case when crm_statuses.tag = 'C' then 1 else 0 end) as comparecidas,
+          sum(case when crm_statuses.tag = 'G' then 1 else 0 end) as ganhos
+          `,
+        ),
+      )
+      .joinRaw(
+        `
+        join
+     (opportunity_logs join crm_statuses on opportunity_logs.status_id = crm_statuses.id)
+     on opportunities.id = opportunity_logs.opportunity_id and
+        opportunities.economic_group_id = opportunity_logs.economic_group_id
+               `,
+        [],
+      )
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'opportunity_logs.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .where('opportunities.business_unit_id', data.unit);
+
+    if (data.group) {
+      qb.andWhere('opportunities.economic_group_id', data.group);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('opportunities.contact_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('opportunities.contact_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: parseInt(elem.novas, 10),
+      scheduled: parseInt(elem.agendadas, 10),
+      attended: parseInt(elem.comparecidas, 10),
+      gained: parseInt(elem.ganhos, 10),
+    }));
+  }
+
+  public async crmIndicators(
+    _: AuthContext,
+    data: {
+      unit?: string;
+      group?: string;
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    if (!data.unit) {
+      throw new BadRequestException('Informe a unidade', 400, 'E_ERR');
+    }
+
+    const qb = Database.from('opportunity_logs')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          sum(case when crm_statuses.tag = 'N' then 1 else 0 end) as novas,
+          sum(case when crm_statuses.tag = 'A' then 1 else 0 end) as agendadas,
+          sum(case when crm_statuses.tag = 'C' then 1 else 0 end) as comparecidas,
+          sum(case when crm_statuses.tag = 'G' then 1 else 0 end) as ganhos
+          `,
+        ),
+      )
+      .leftJoin('crm_statuses', query => {
+        query.on('crm_statuses.id', '=', 'opportunity_logs.status_id');
+      })
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'opportunity_logs.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .where('opportunity_logs.business_unit_id', data.unit);
+
+    if (data.group) {
+      qb.andWhere('opportunity_logs.economic_group_id', data.group);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date >= ?', [
+        data.fromDate,
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: parseInt(elem.novas, 10),
+      scheduled: parseInt(elem.agendadas, 10),
+      attended: parseInt(elem.comparecidas, 10),
+      gained: parseInt(elem.ganhos, 10),
     }));
   }
 }

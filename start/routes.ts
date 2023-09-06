@@ -1366,6 +1366,13 @@ Route.group(() => {
     '/subgroups-consolidated',
     'IndicatorsController.consolidatedSubgroupIndicators',
   );
+
+  Route.get('/opportunities', 'IndicatorsController.opportunitiesIndicators');
+  Route.get(
+    '/general-opportunities',
+    'IndicatorsController.generalOpportunitiesIndicators',
+  );
+  Route.get('/crm', 'IndicatorsController.crmIndicators');
 })
   .prefix('indicators')
   .middleware('auth');

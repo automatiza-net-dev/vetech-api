@@ -174,4 +174,39 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async opportunitiesIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.opportunitiesIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async generalOpportunitiesIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.generalOpportunitiesIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async crmIndicators({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.crmIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

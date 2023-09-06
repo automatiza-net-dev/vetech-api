@@ -95,6 +95,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
@@ -500,6 +501,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
@@ -529,6 +531,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'client_origins.description')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,

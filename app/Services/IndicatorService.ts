@@ -17,11 +17,14 @@ export default class IndicatorService {
     const qb = Database.from('bills')
       .select(
         Database.raw(
-          `business_units.id,
+          `
+          business_units.id,
           business_units.identification,
-          sum(total_value) as total_vendas,
-          count(bills.id) qtd_vendas,
-          sum(total_value) / count(bills.id) ticket_medio`,
+          sum(total_value) as                total_vendas,
+          count(bills.id)                    qtd_vendas,
+          count(distinct client_id) as qtd_clientes,
+          count(distinct patient_id) as qtd_pacientes
+          `,
         ),
       )
       .leftJoin('business_units', query => {
@@ -56,7 +59,8 @@ export default class IndicatorService {
       identification: result.identification ?? null,
       salesTotal: result.total_vendas,
       qtySales: parseInt(result.qtd_vendas, 10),
-      medianTicket: result.ticket_medio,
+      qtyClients: parseInt(result.qtd_clientes, 10),
+      qtyPatients: parseInt(result.qtd_pacientes, 10),
     };
   }
 
@@ -420,9 +424,10 @@ export default class IndicatorService {
           `
           business_units.id,
           business_units.identification,
-          sum(total_value) as total_vendas,
-          count(bills.id) qtd_vendas,
-          sum(total_value) / count(bills.id) ticket_medio
+          sum(total_value) as                total_vendas,
+          count(bills.id)                    qtd_vendas,
+          count(distinct client_id) as qtd_clientes,
+          count(distinct patient_id) as qtd_pacientes
           `,
         ),
       )
@@ -458,7 +463,8 @@ export default class IndicatorService {
       identification: result.identification ?? null,
       salesTotal: result.total_vendas,
       qtySales: parseInt(result.qtd_vendas, 10),
-      medianTicket: result.ticket_medio,
+      qtyClients: parseInt(result.qtd_clientes, 10),
+      qtyPatients: parseInt(result.qtd_pacientes, 10),
     };
   }
 

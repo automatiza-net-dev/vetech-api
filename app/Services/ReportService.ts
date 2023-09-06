@@ -105,6 +105,7 @@ export default class ReportService {
       nsuDocument: elem.nsuDocument,
       status: elem.status,
       qtyInstallments: elem.qtyInstallments,
+      installment: elem.installment,
 
       client: elem.client
         ? {

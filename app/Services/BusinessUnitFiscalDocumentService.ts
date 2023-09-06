@@ -532,6 +532,14 @@ export default class BusinessUnitFiscalDocumentService {
             token,
           );
 
+          if (!result.success) {
+            throw new BadRequestException(
+              result.message ?? 'Erro ao emitir NFSe',
+              400,
+              'E_EXTERNAL_ERROR',
+            );
+          }
+
           await serviceDocument
             .merge({
               rpsNumber: result.data?.numero_rps,

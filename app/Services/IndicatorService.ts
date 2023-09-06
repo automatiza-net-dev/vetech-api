@@ -95,6 +95,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
@@ -124,6 +125,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'client_origins.description')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
@@ -286,6 +288,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'business_units.identification')
+      .orderBy('totalpayments', 'desc')
       .whereNull('bills.deleted_at');
 
     const qb2 = Database.from('bills')
@@ -313,6 +316,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'payment_methods.description')
+      .orderBy('totalpayments', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.unit) {
@@ -499,6 +503,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
@@ -528,6 +533,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'client_origins.description')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at')
       .andWhereRaw(
         `to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
@@ -695,6 +701,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'business_units.identification')
+      .orderBy('totalpayments', 'desc')
       .whereNull('bills.deleted_at');
 
     const qb2 = Database.from('bills')
@@ -722,6 +729,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('business_units.id', 'payment_methods.description')
+      .orderBy('totalpayments', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -945,6 +953,7 @@ export default class IndicatorService {
         query.on('business_units.id', '=', 'bills.business_unit_id');
       })
       .groupBy('subgroups.id', 'subgroups.description', 'business_units.id')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1039,6 +1048,7 @@ export default class IndicatorService {
         query.on('subgroups.id', '=', 'products.subgroup_id');
       })
       .groupBy('subgroups.id', 'subgroups.description')
+      .orderBy('total', 'desc')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {

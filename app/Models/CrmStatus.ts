@@ -1,7 +1,7 @@
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
 import { DateTime } from 'luxon';
 
-export const CrmStatusTypes = ['OP'] as const;
+export const CrmStatusTypes = ['OP', 'OPR'] as const;
 export type CrmStatusType = typeof CrmStatusTypes[number];
 
 export default class CrmStatus extends BaseModel {

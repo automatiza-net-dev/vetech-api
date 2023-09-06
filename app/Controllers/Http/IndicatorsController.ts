@@ -135,4 +135,78 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async schedulingIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.schedulingIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async subgroupIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.subgroupIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async consolidatedSubgroupIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.consolidatedSubgroupIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async opportunitiesIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.opportunitiesIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async generalOpportunitiesIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.generalOpportunitiesIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async crmIndicators({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.crmIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

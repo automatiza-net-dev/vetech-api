@@ -23,6 +23,7 @@ export default class OpportunityService {
       .preload('client', query => {
         query.preload('tutor');
       })
+      .preload('closingUser')
       .preload('contact')
       .preload('contactType')
       .preload('contactSubject')
@@ -48,6 +49,8 @@ export default class OpportunityService {
       value: result.value,
       description: result.description,
       observation: result.observation,
+      balance: result.balance,
+      closingDate: result.closingDate,
 
       status: result.status,
       contact: result.contact,
@@ -60,6 +63,10 @@ export default class OpportunityService {
         id: result.user.id,
         name: result.user.name,
       },
+      closingUser: this.sharedService.captureGroup(result.closingUser, v => ({
+        id: v.id,
+        name: v.name,
+      })),
       unit: {
         id: result.unit.id,
         companyName: result.unit.companyName,
@@ -80,9 +87,9 @@ export default class OpportunityService {
       contactPhone?: string;
       patientName?: string;
       technician?: string;
-      unit?: string;
-      status?: string;
-      balance?: string;
+      unit?: string[];
+      status?: string[];
+      balance?: string[];
     },
   ) {
     const qb = Opportunity.query()
@@ -98,8 +105,8 @@ export default class OpportunityService {
       .preload('unit')
       .preload('clientOrigin');
 
-    if (data.unit) {
-      qb.where('business_unit_id', data.unit);
+    if (data.unit && Array.isArray(data.unit)) {
+      qb.whereIn('business_unit_id', data.unit);
     }
 
     if (data.technician) {
@@ -122,15 +129,18 @@ export default class OpportunityService {
       qb.where('contact_date', '<=', data.contactTo);
     }
 
-    if (data.status) {
-      qb.where('status_id', data.status);
+    if (data.status && Array.isArray(data.status)) {
+      qb.whereIn('status_id', data.status);
     }
 
-    if (data.balance) {
-      if (data.balance === 'Em Aberto') {
+    if (data.balance && Array.isArray(data.balance)) {
+      if (data.balance.includes('Em Aberto')) {
         qb.whereNull('closing_date');
       } else {
-        qb.where('balance', data.balance);
+        qb.whereIn(
+          'balance',
+          data.balance.filter(v => ['Ganho', 'Perda'].includes(v)),
+        );
       }
     }
 
@@ -165,6 +175,10 @@ export default class OpportunityService {
       value: elem.value,
       description: elem.description,
       observation: elem.observation,
+      closingDate: elem.closingDate,
+      profitValue: elem.profitValue,
+      resultObservation: elem.resultObservation,
+      balance: elem.balance,
 
       status: elem.status,
       contact: elem.contact,
@@ -184,6 +198,9 @@ export default class OpportunityService {
       },
       schedule: {
         id: elem.schedule_id ?? null,
+      },
+      closingUser: {
+        id: elem.closing_user_id ?? null,
       },
     }));
   }
@@ -305,6 +322,7 @@ export default class OpportunityService {
       patientName?: string;
       technician?: string;
       status?: string;
+      unit?: string;
     },
   ) {
     const qb = Opportunity.query()
@@ -330,6 +348,10 @@ export default class OpportunityService {
 
     if (data.technician) {
       qb.where('user_id', data.technician);
+    }
+
+    if (data.unit) {
+      qb.where('business_unit_id', data.unit);
     }
 
     if (data.openingFrom) {
@@ -389,6 +411,9 @@ export default class OpportunityService {
         value: op.value,
         description: op.description,
         observation: op.observation,
+        profitValue: op.profitValue,
+        resultObservation: op.resultObservation,
+        balance: op.balance,
 
         status: op.status,
         contact: op.contact,
@@ -512,24 +537,7 @@ export default class OpportunityService {
         },
       );
 
-      await OpportunityLog.create(
-        {
-          opportunity_id: model.id,
-          economic_group_id: authCtx.group.id,
-          business_unit_id: data.businessUnitId,
-          opening_user_id: authCtx.user.id,
-          status_id: data.statusId,
-          user_id: data.userId,
-          contact_id: data.contactId,
-          schedule_id: model.schedule_id,
-
-          value: data.value,
-          openingDate: DateTime.now(),
-        },
-        {
-          client: trx,
-        },
-      );
+      await this.createLog(model, trx);
     });
   }
 
@@ -603,7 +611,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await model
+      const result = await model
         .merge({
           reason_id: data.reasonId,
           closing_user_id: authCtx.user.id,
@@ -615,6 +623,26 @@ export default class OpportunityService {
         })
         .useTransaction(trx)
         .save();
+
+      const status = await CrmStatus.firstOrCreate(
+        {
+          type: 'OPR',
+          tag: 'G',
+          description: 'Ganho',
+          system_id: authCtx.system.id,
+        },
+        {
+          type: 'OPR',
+          tag: 'G',
+          description: 'Ganho',
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+      const stubResult = result.merge({ status_id: status.id });
+      await this.createLog(stubResult, trx);
     });
   }
 
@@ -636,7 +664,7 @@ export default class OpportunityService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      await model
+      const result = await model
         .merge({
           reason_id: data.reasonId,
           closing_user_id: authCtx.user.id,
@@ -647,6 +675,26 @@ export default class OpportunityService {
         })
         .useTransaction(trx)
         .save();
+
+      const status = await CrmStatus.firstOrCreate(
+        {
+          type: 'OPR',
+          tag: 'P',
+          description: 'Perda',
+          system_id: authCtx.system.id,
+        },
+        {
+          type: 'OPR',
+          tag: 'P',
+          description: 'Perda',
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+      const stubResult = result.merge({ status_id: status.id });
+      await this.createLog(stubResult, trx);
     });
   }
 
@@ -1095,6 +1143,8 @@ export default class OpportunityService {
         status_id: model.status_id,
         contact_id: model.contact_id,
         schedule_id: model.schedule_id,
+        closing_user_id: model.closing_user_id,
+        opening_user_id: model.opening_user_id,
 
         balance: model.balance,
         description: model.description,

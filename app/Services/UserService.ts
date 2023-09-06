@@ -22,7 +22,6 @@ import {
 } from 'App/Models/PaymentMethod';
 import Plan from 'App/Models/Plan';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
-import Role from 'App/Models/Role';
 import Subgroup from 'App/Models/Subgroup';
 import System from 'App/Models/System';
 import {
@@ -804,7 +803,7 @@ export default class UserService {
 
     const rawSubgroups = liftOneServices.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description', 'system_id'],
+      ['description', 'system_id', 'economic_group_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,
@@ -1394,7 +1393,7 @@ export default class UserService {
 
     const rawSubgroups = vetechProducts.map(elem => elem.subgroups);
     const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description', 'system_id'],
+      ['description', 'system_id', 'economic_group_id'],
       rawSubgroups.map(elem => ({
         description: elem,
         economic_group_id: undefined,

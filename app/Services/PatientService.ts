@@ -499,7 +499,7 @@ export default class PatientService {
           return 'Venda em Aberto';
         }
 
-        if (s.status === BillStatus.F) {
+        if (s.status === BillStatus.B) {
           return 'Venda Finalizada';
         }
 

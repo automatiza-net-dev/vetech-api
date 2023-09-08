@@ -1122,7 +1122,7 @@ export default class BillService {
         .merge({
           user_who_closed_id: user.id,
           closingDate: DateTime.now(),
-          status: BillStatus.F,
+          status: BillStatus.B,
         })
         .useTransaction(trx)
         .save();
@@ -1177,7 +1177,7 @@ export default class BillService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (bill.status !== BillStatus.F) {
+    if (bill.status !== BillStatus.B) {
       throw new BadRequestException(
         'Apenas notas de saídas fechadas podem ser abertas',
         400,

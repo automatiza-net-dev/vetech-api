@@ -1065,7 +1065,7 @@ test.group('Bill resource', group => {
       password: '102030',
     });
 
-    await bill.merge({ status: BillStatus.F }).save();
+    await bill.merge({ status: BillStatus.B }).save();
 
     const response = await client
       .put(`/bills/reopen-bill/${bill.id}`)
@@ -1251,7 +1251,7 @@ test.group('Bill resource', group => {
 
     await bill
       .merge({
-        status: BillStatus.F,
+        status: BillStatus.B,
       })
       .save();
 

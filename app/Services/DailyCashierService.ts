@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Bill from 'App/Models/Bill';
 import BillPaymentConference from 'App/Models/BillPaymentConference';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import {
@@ -755,25 +756,26 @@ export default class DailyCashierService {
   async updateCashierPaymentsConference(
     authCtx: AuthContext,
     data: {
-      dailyCashierId: string;
+      billId: string;
       items: number[];
     },
   ) {
     await Database.transaction(async trx => {
-      const dailyCashier = await DailyCashier.query()
+      const bill = await Bill.query()
         .useTransaction(trx)
-        .where('id', data.dailyCashierId)
+        .where('id', data.billId)
         .where('business_unit_id', authCtx.unit.id)
+        .preload('payments', query => {
+          query.whereIn('block', data.items);
+        })
         .first();
 
-      if (!dailyCashier) {
-        throw this.sharedService.ResourceNotFound(
-          'Caixa diário não encontrado',
-        );
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound('Venda não encontrada');
       }
 
-      await dailyCashier
-        .related('billPayments')
+      await bill
+        .related('payments')
         .query()
         .useTransaction(trx)
         .whereIn('block', data.items)
@@ -784,8 +786,10 @@ export default class DailyCashierService {
 
       await Finance.query()
         .useTransaction(trx)
-        .where('daily_cashier_id', dailyCashier.id)
-        .whereIn('block', data.items)
+        .whereIn(
+          'origin_id',
+          bill.payments.map(p => p.id),
+        )
         .update({
           accept: FinanceAccept.S,
           acceptedDate: DateTime.now(),

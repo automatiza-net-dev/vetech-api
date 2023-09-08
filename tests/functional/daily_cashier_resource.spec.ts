@@ -837,7 +837,7 @@ test.group('Daily cashier resource', group => {
     const response = await client
       .post(`/daily-cashiers/update-conference`)
       .json({
-        dailyCashierId: cashier.id,
+        billId: bill.id,
         items: [payment1.block, payment2.block],
       })
       .bearerToken(token);

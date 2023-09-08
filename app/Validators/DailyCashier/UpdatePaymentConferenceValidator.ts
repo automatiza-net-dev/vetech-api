@@ -24,9 +24,9 @@ export default class UpdatePaymentConferenceValidator {
    *    ```
    */
   public schema = schema.create({
-    dailyCashierId: schema.string({}, [
+    billId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'daily_cashiers', column: 'id' }),
+      rules.exists({ table: 'bills', column: 'id' }),
     ]),
     items: schema.array().members(schema.number([])),
   });

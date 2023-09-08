@@ -41,6 +41,16 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public allowChangeScheduleDuration: string;
 
+  @column({
+    columnName: 'bill_counter',
+  })
+  public billCounter: number;
+
+  @column({
+    columnName: 'budget_counter',
+  })
+  public budgetCounter: number;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

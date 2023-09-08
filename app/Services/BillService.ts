@@ -1475,10 +1475,6 @@ export default class BillService {
         .save();
     }
 
-    const [{ count }] = await Database.from('bills')
-      .where('business_unit_id', unitId)
-      .count('*');
-
     const productVariations = await ProductVariation.query()
       .useTransaction(trx)
       .whereIn(
@@ -1537,12 +1533,19 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(parseInt(count) + 1),
+        tag: GenerateTag(unit.unitConfig.billCounter + 1),
       },
       {
         client: trx,
       },
     );
+
+    await unit.unitConfig
+      .merge({
+        billCounter: unit.unitConfig.billCounter + 1,
+      })
+      .useTransaction(trx)
+      .save();
 
     const items = data.items.map(item => {
       const variation = productVariations.find(

@@ -799,6 +799,7 @@ export default class BillService {
         .where('origin_flag', FinanceOriginFlag.S)
         .whereILike('document', `%NFS-${payment.bill.tag}%`)
         .where('block', payment.block)
+        .where('origin_id', payment.id)
         .update({
           deleted_at: DateTime.now(),
           status: FinanceStatus.E,
@@ -859,7 +860,11 @@ export default class BillService {
           'document',
           payments.map(p => `NFS-${p.bill.tag}`),
         )
-        .where('block', data.block);
+        .where('block', data.block)
+        .whereIn(
+          'origin_id',
+          payments.map(p => p.id),
+        );
       if (finances.some(p => p.status === FinanceStatus.B)) {
         throw new BadRequestException(
           'Já foi dado baixa em algum pagamento',

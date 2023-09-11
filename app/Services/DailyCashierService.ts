@@ -692,108 +692,96 @@ export default class DailyCashierService {
     });
   }
 
-  async clearCashierPayments(
-    authCtx: AuthContext,
-    data: {
-      dailyCashierId: string;
-      items: number[];
-    },
-  ) {
-    await Database.transaction(async trx => {
-      const dailyCashier = await DailyCashier.query()
-        .useTransaction(trx)
-        .where('id', data.dailyCashierId)
-        .where('business_unit_id', authCtx.unit.id)
-        .first();
-
-      if (!dailyCashier) {
-        throw this.sharedService.ResourceNotFound(
-          'Caixa diário não encontrado',
-        );
-      }
-
-      if (
-        ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
-          dailyCashier.status,
-        )
-      ) {
-        throw new BadRequestException(
-          'Caixa diário não está em estado válido',
-          400,
-          'E_DAILY_CASHIER_NOT_VALID',
-        );
-      }
-
-      const oldPayments = await dailyCashier
-        .related('billPayments')
-        .query()
-        .useTransaction(trx)
-        .whereIn('block', data.items);
-
-      await BillPaymentConference.createMany(
-        oldPayments.map(elem => ({
-          issueDate: DateTime.now(),
-          issue_user_id: authCtx.user.id,
-
-          conferenceDate: elem.conferenceDate,
-          conference_user_id: elem.user_id,
-        })),
-        { client: trx },
-      );
-
-      await dailyCashier
-        .related('billPayments')
-        .query()
-        .useTransaction(trx)
-        .whereIn('block', data.items)
-        .update({
-          conferenceDate: null,
-          user_id: null,
-        });
-    });
-  }
-
   async updateCashierPaymentsConference(
     authCtx: AuthContext,
     data: {
-      billId: string;
-      items: number[];
+      dailyCashierId: string;
+      items: { billId: string; block: number; conference: boolean }[];
     },
   ) {
     await Database.transaction(async trx => {
       const bill = await Bill.query()
         .useTransaction(trx)
-        .where('id', data.billId)
+        .whereIn(
+          'id',
+          data.items.map(b => b.billId),
+        )
         .where('business_unit_id', authCtx.unit.id)
         .preload('payments', query => {
-          query.whereIn('block', data.items);
+          query.where('daily_cashier_id', data.dailyCashierId);
         })
         .first();
 
       if (!bill) {
-        throw this.sharedService.ResourceNotFound('Venda não encontrada');
+        throw this.sharedService.ResourceNotFound(
+          'Nota de saída não encontrada',
+        );
       }
 
-      await bill
-        .related('payments')
-        .query()
-        .useTransaction(trx)
-        .whereIn('block', data.items)
-        .update({
-          conferenceDate: DateTime.now(),
-          user_id: authCtx.user.id,
-        });
+      const uniqueBills = Array.from(new Set(data.items.map(b => b.billId)));
 
-      await Finance.query()
-        .useTransaction(trx)
-        .whereIn(
-          'origin_id',
-          bill.payments.map(p => p.id),
-        )
-        .update({
-          accept: FinanceAccept.S,
-          acceptedDate: DateTime.now(),
-        });
+      const tasks = uniqueBills.map(async billId => {
+        const items = data.items.filter(b => b.billId === billId);
+
+        const truthyOnes = items.filter(b => b.conference);
+        const falsyOnes = items.filter(b => !b.conference);
+
+        const bps = await BillPayment.query()
+          .useTransaction(trx)
+          .where('bill_id', billId)
+          .whereIn(
+            'block',
+            truthyOnes.map(b => b.block),
+          );
+
+        await BillPayment.query()
+          .useTransaction(trx)
+          .where('bill_id', billId)
+          .whereIn(
+            'block',
+            truthyOnes.map(b => b.block),
+          )
+          .update({
+            conferenceDate: DateTime.now(),
+            user_id: authCtx.user.id,
+          });
+
+        await Finance.query()
+          .useTransaction(trx)
+          .whereIn(
+            'origin_id',
+            bps.map(p => p.id),
+          )
+          .update({
+            accept: FinanceAccept.S,
+            acceptedDate: DateTime.now(),
+          });
+
+        const falsyBlocks = falsyOnes.map(b => b.block);
+        await BillPayment.query()
+          .useTransaction(trx)
+          .where('bill_id', billId)
+          .whereIn('block', falsyBlocks)
+          .update({
+            conferenceDate: null,
+            user_id: null,
+          });
+
+        await BillPaymentConference.createMany(
+          bill.payments
+            .filter(p => falsyBlocks.includes(p.block))
+            .map(elem => ({
+              issueDate: DateTime.now(),
+              issue_user_id: authCtx.user.id,
+
+              conferenceDate: elem.conferenceDate,
+              conference_user_id: elem.user_id,
+            })),
+          { client: trx },
+        );
+      });
+
+      await Promise.all(tasks);
     });
   }
 }

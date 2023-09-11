@@ -24,11 +24,20 @@ export default class UpdatePaymentConferenceValidator {
    *    ```
    */
   public schema = schema.create({
-    billId: schema.string({}, [
+    dailyCashierId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'bills', column: 'id' }),
+      rules.exists({ table: 'daily_cashiers', column: 'id' }),
     ]),
-    items: schema.array().members(schema.number([])),
+    items: schema.array().members(
+      schema.object().members({
+        billId: schema.string({}, [
+          rules.uuid(),
+          rules.exists({ table: 'bills', column: 'id' }),
+        ]),
+        block: schema.number(),
+        conference: schema.boolean(),
+      }),
+    ),
   });
 
   /**

@@ -49,6 +49,57 @@ export default class DailyMovementService {
     return qb;
   }
 
+  async search(
+    unitId: string,
+    data: {
+      groupId?: string;
+      unitId?: string;
+      from?: string;
+      to?: string;
+      status?: string;
+    },
+  ) {
+    const qb = DailyMovement.query()
+      .where('business_unit_id', unitId)
+      .orderBy('openingDate', 'desc')
+      .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
+      .preload('userWhoClosed', query => query.select('id', 'name', 'email'))
+      .preload('userWhoChecked', query => query.select('id', 'name', 'email'))
+      .preload('logs', query => {
+        query.preload('userWhoReopened', query => {
+          query.select('id', 'name', 'email');
+        });
+
+        query.preload('userWhoClosed', query => {
+          query.select('id', 'name', 'email');
+        });
+      });
+
+    if (data.groupId) {
+      qb.whereHas('unit', query => {
+        query.where('economic_group_id', data.groupId!);
+      });
+    }
+
+    if (data.unitId) {
+      qb.where('business_unit_id', data.unitId);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.from) {
+      qb.where('created_at', '>=', data.from);
+    }
+
+    if (data.to) {
+      qb.where('created_at', '<=', data.to);
+    }
+
+    return qb;
+  }
+
   async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
     const lastDailyMovement = await DailyMovement.query()
       .where('business_unit_id', unitId)

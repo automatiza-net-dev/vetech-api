@@ -747,6 +747,7 @@ Route.resource('client-origins', 'ClientOriginsController')
   });
 
 Route.group(() => {
+  Route.get('/search', 'DailyMovementsController.search');
   Route.get('/', 'DailyMovementsController.index');
   Route.post('/open', 'DailyMovementsController.openDailyMovement');
   Route.post('/close/:id', 'DailyMovementsController.closeDailyMovement');

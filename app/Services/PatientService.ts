@@ -503,7 +503,11 @@ export default class PatientService {
           return 'Venda Finalizada';
         }
 
-        return '';
+        if (s.status === BillStatus.E) {
+          return 'Venda Extornada';
+        }
+
+        return 'Venda Excluída';
       };
 
       result.push({

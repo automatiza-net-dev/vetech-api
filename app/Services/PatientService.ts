@@ -1350,7 +1350,7 @@ export default class PatientService {
         query.where('economic_group_id', authContext.group.id);
       })
       .whereHas('contacts', query => {
-        query.whereNot('type', 'email').andWhere('contact', phone);
+        query.where('contact', phone).andWhereNot('type', 'email');
       })
       .preload('dependents', query => {
         query.preload('patientAnimal', query => {

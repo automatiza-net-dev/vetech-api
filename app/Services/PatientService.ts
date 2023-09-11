@@ -1344,13 +1344,15 @@ export default class PatientService {
   }
 
   public async checkExistingPhone(authContext: AuthContext, phone: string) {
+    const sanitizedValue = phone.replace(/\D/g, '');
+
     const tutor = await Patient.query()
       .where('type', PatientType.TUTOR)
       .whereHas('economicGroup', query => {
         query.where('economic_group_id', authContext.group.id);
       })
       .whereHas('contacts', query => {
-        query.where('contact', phone).andWhereNot('type', 'email');
+        query.where('contact', sanitizedValue).andWhereNot('type', 'email');
       })
       .preload('dependents', query => {
         query.preload('patientAnimal', query => {
@@ -1372,8 +1374,8 @@ export default class PatientService {
       id: tutor.id,
       name: tutor.name,
       email: tutor.tutor.email,
-      cellphone: tutor.tutor.cellphone,
-      telephone: tutor.tutor.telephone,
+      cellphone: tutor.tutor?.cellphone?.replace(/\D/g, ''),
+      telephone: tutor.tutor?.telephone?.replace(/\D/g, ''),
       clientOrigin: tutor.tutor.clientOrigin,
       dependents: tutor.dependents.map(d => {
         return {

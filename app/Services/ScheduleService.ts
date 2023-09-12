@@ -211,9 +211,9 @@ export default class ScheduleService {
             '((start_hour between ? and ?) or (end_hour between ? and ?))',
             [
               data.startHour.toJSDate(),
-              data.endHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
               data.startHour.toJSDate(),
-              data.endHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
             ],
           )
           .andWhereHas('serviceStatus', query => {
@@ -253,7 +253,7 @@ export default class ScheduleService {
           holder_id: data.holderId,
           age: data.age,
           startHour: data.startHour,
-          endHour: data.endHour.minus({ minutes: 1 }),
+          endHour: data.endHour,
           majorComplaint: data.majorComplaint,
           business_unit_id: authCtx.unit.id,
           user_id: data.userId ?? authCtx.user.id,

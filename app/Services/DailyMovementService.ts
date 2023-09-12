@@ -101,16 +101,15 @@ export default class DailyMovementService {
   }
 
   async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
-    const lastDailyMovement = await DailyMovement.query()
+    const someOpen = await DailyMovement.query()
       .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .whereRaw('opening_date::date = now()::date', [])
+      .whereRaw(`(status = 'Aberto') or (opening_date::date = now()::date)`, [])
       .orderBy('opening_date', 'desc')
       .first();
 
-    if (lastDailyMovement) {
+    if (someOpen) {
       throw new BadRequestException(
-        'Já existe um movimento diário aberto para hoje',
+        'Já existe um movimento diário aberto',
         400,
         'E_DAILY_MOVEMENT_OPENED',
       );

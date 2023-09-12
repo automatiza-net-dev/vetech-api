@@ -282,7 +282,7 @@ export default class IndicatorService {
           business_units.identification,
           'Em Aberto'                               as description,
           sum(bills.total_value - bills.paid_value) as totalPayments,
-          sum(distinct bills.total_value)           as totalBills
+          sum(bills.total_value)           as totalBills
           `,
         ),
       )

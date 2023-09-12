@@ -882,6 +882,10 @@ export default class BillService {
           payments.map(p => `NFS-${p.bill.tag}`),
         )
         .where('block', data.block)
+        .whereIn(
+          'origin_id',
+          payments.map(p => p.id),
+        )
         .update({
           deleted_at: new Date(),
           status: FinanceStatus.E,

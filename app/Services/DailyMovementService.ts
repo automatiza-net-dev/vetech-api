@@ -49,32 +49,70 @@ export default class DailyMovementService {
     return qb;
   }
 
-  async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
-    const lastDailyMovement = await DailyMovement.query()
+  async search(
+    unitId: string,
+    data: {
+      groupId?: string;
+      unitId?: string;
+      from?: string;
+      to?: string;
+      status?: string;
+    },
+  ) {
+    const qb = DailyMovement.query()
       .where('business_unit_id', unitId)
-      .whereRaw('opening_date::date = now()::date', [])
+      .orderBy('openingDate', 'desc')
+      .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
+      .preload('userWhoClosed', query => query.select('id', 'name', 'email'))
+      .preload('userWhoChecked', query => query.select('id', 'name', 'email'))
+      .preload('logs', query => {
+        query.preload('userWhoReopened', query => {
+          query.select('id', 'name', 'email');
+        });
+
+        query.preload('userWhoClosed', query => {
+          query.select('id', 'name', 'email');
+        });
+      });
+
+    if (data.groupId) {
+      qb.whereHas('unit', query => {
+        query.where('economic_group_id', data.groupId!);
+      });
+    }
+
+    if (data.unitId) {
+      qb.where('business_unit_id', data.unitId);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    }
+
+    if (data.from) {
+      qb.where('created_at', '>=', data.from);
+    }
+
+    if (data.to) {
+      qb.where('created_at', '<=', data.to);
+    }
+
+    return qb;
+  }
+
+  async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
+    const someOpen = await DailyMovement.query()
+      .where('business_unit_id', unitId)
+      .whereRaw(`(status = 'Aberto') or (opening_date::date = now()::date)`, [])
       .orderBy('opening_date', 'desc')
       .first();
 
-    if (lastDailyMovement) {
-      const shortDate = lastDailyMovement.openingDate.toJSDate();
-      const sameDay = isSameDay(shortDate, new Date());
-
-      if (!sameDay && lastDailyMovement.status === DailyMovementStatus.A) {
-        throw new BadRequestException(
-          'Existe um movimento diário aberto do dia anterior',
-          400,
-          'E_DAILY_MOVEMENT_OPENED',
-        );
-      }
-
-      if (sameDay) {
-        throw new BadRequestException(
-          'Já existe um movimento diário aberto para hoje',
-          400,
-          'E_DAILY_MOVEMENT_OPENED',
-        );
-      }
+    if (someOpen) {
+      throw new BadRequestException(
+        'Já existe um movimento diário aberto',
+        400,
+        'E_DAILY_MOVEMENT_OPENED',
+      );
     }
 
     return DailyMovement.create({

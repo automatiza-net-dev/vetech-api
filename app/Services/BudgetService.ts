@@ -362,8 +362,6 @@ export default class BudgetService {
           data.items.map(({ productVariationId }) => productVariationId),
         );
 
-      const budgets = await Budget.query().useTransaction(trx).select('id');
-
       const budget = await Budget.create(
         {
           economic_group_id: group.id,
@@ -383,12 +381,18 @@ export default class BudgetService {
           totalValue: 0,
           observation: data.observation,
           status: BudgetStatus.A,
-          tag: GenerateTag(budgets.length + 1),
+          tag: GenerateTag(unit.unitConfig.budgetCounter + 1),
         },
         {
           client: trx,
         },
       );
+      await unit.unitConfig
+        .merge({
+          budgetCounter: unit.unitConfig.budgetCounter + 1,
+        })
+        .useTransaction(trx)
+        .save();
 
       data.items.forEach(async item => {
         const variation = items.find(
@@ -666,10 +670,6 @@ export default class BudgetService {
       ),
     });
 
-    const [{ count }] = await Database.from('bills')
-      .where('business_unit_id', unitId)
-      .count('*');
-
     return Database.transaction(async trx => {
       const totalProductValue = items
         .filter(item => !data.notConfirmedItems.includes(item.id))
@@ -699,10 +699,16 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
-          tag: GenerateTag(parseInt(count) + 1),
+          tag: GenerateTag(unit.unitConfig.billCounter + 1),
         },
         { client: trx },
       );
+      await unit.unitConfig
+        .merge({
+          billCounter: unit.unitConfig.billCounter + 1,
+        })
+        .useTransaction(trx)
+        .save();
 
       await bill.related('items').createMany(
         items

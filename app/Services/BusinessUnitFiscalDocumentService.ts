@@ -182,6 +182,14 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .firstOrFail();
 
+      if (bill.status !== BillStatus.B) {
+        throw new BadRequestException(
+          'Documento em estado inválido',
+          400,
+          'E_INVALID_STATE',
+        );
+      }
+
       const issuedDocumentAlready = await IssuedFiscalDocument.query({
         client: trx,
       })
@@ -451,6 +459,15 @@ export default class BusinessUnitFiscalDocumentService {
           query.preload('tutor');
         })
         .firstOrFail();
+
+      if (bill.status !== BillStatus.B) {
+        throw new BadRequestException(
+          'Documento em estado inválido',
+          400,
+          'E_INVALID_STATE',
+        );
+      }
+
       const items = await BillItem.query()
         .useTransaction(trx)
         .where('bill_id', bill.id)

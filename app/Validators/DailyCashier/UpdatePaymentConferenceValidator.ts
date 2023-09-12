@@ -28,7 +28,16 @@ export default class UpdatePaymentConferenceValidator {
       rules.uuid(),
       rules.exists({ table: 'daily_cashiers', column: 'id' }),
     ]),
-    items: schema.array().members(schema.number([])),
+    items: schema.array().members(
+      schema.object().members({
+        billId: schema.string({}, [
+          rules.uuid(),
+          rules.exists({ table: 'bills', column: 'id' }),
+        ]),
+        block: schema.number(),
+        conference: schema.boolean(),
+      }),
+    ),
   });
 
   /**

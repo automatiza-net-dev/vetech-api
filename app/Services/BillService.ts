@@ -799,6 +799,7 @@ export default class BillService {
         .where('origin_flag', FinanceOriginFlag.S)
         .whereILike('document', `%NFS-${payment.bill.tag}%`)
         .where('block', payment.block)
+        .where('origin_id', payment.id)
         .update({
           deleted_at: DateTime.now(),
           status: FinanceStatus.E,
@@ -808,9 +809,7 @@ export default class BillService {
 
       await payment.bill
         .merge({
-          paidValue:
-            payment.bill.paidValue -
-            finances.reduce((acc, curr) => acc + curr.value, 0),
+          paidValue: payment.bill.paidValue - payment.totalValue,
         })
         .useTransaction(trx)
         .save();
@@ -859,7 +858,11 @@ export default class BillService {
           'document',
           payments.map(p => `NFS-${p.bill.tag}`),
         )
-        .where('block', data.block);
+        .where('block', data.block)
+        .whereIn(
+          'origin_id',
+          payments.map(p => p.id),
+        );
       if (finances.some(p => p.status === FinanceStatus.B)) {
         throw new BadRequestException(
           'Já foi dado baixa em algum pagamento',
@@ -877,6 +880,10 @@ export default class BillService {
           payments.map(p => `NFS-${p.bill.tag}`),
         )
         .where('block', data.block)
+        .whereIn(
+          'origin_id',
+          payments.map(p => p.id),
+        )
         .update({
           deleted_at: new Date(),
           status: FinanceStatus.E,
@@ -895,7 +902,7 @@ export default class BillService {
         .merge({
           paidValue:
             bill.paidValue -
-            finances.reduce((acc, curr) => acc + curr.value, 0),
+            payments.reduce((acc, curr) => acc + curr.totalValue, 0),
         })
         .useTransaction(trx)
         .save();
@@ -1122,7 +1129,7 @@ export default class BillService {
         .merge({
           user_who_closed_id: user.id,
           closingDate: DateTime.now(),
-          status: BillStatus.F,
+          status: BillStatus.B,
         })
         .useTransaction(trx)
         .save();
@@ -1177,7 +1184,7 @@ export default class BillService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (bill.status !== BillStatus.F) {
+    if (bill.status !== BillStatus.B) {
       throw new BadRequestException(
         'Apenas notas de saídas fechadas podem ser abertas',
         400,
@@ -1475,10 +1482,6 @@ export default class BillService {
         .save();
     }
 
-    const [{ count }] = await Database.from('bills')
-      .where('business_unit_id', unitId)
-      .count('*');
-
     const productVariations = await ProductVariation.query()
       .useTransaction(trx)
       .whereIn(
@@ -1537,12 +1540,19 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(parseInt(count) + 1),
+        tag: GenerateTag(unit.unitConfig.billCounter + 1),
       },
       {
         client: trx,
       },
     );
+
+    await unit.unitConfig
+      .merge({
+        billCounter: unit.unitConfig.billCounter + 1,
+      })
+      .useTransaction(trx)
+      .save();
 
     const items = data.items.map(item => {
       const variation = productVariations.find(

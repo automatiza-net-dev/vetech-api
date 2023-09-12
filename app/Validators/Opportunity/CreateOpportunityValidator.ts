@@ -1,6 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import { DateTime } from 'luxon';
 
 export default class CreateOpportunityValidator {
   constructor(protected ctx: HttpContextContract) {}

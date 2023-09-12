@@ -153,12 +153,14 @@ export default class IndicatorService {
     const [r1, r2] = await Promise.all([qb1, qb2]);
     const result = r1.concat(r2);
 
-    return result.map(elem => ({
-      id: elem.id,
-      identification: elem.identification,
-      description: elem.description,
-      total: elem.total,
-    }));
+    return result
+      .map(elem => ({
+        id: elem.id,
+        identification: elem.identification,
+        description: elem.description,
+        total: elem.total,
+      }))
+      .sort((a, b) => b.total - a.total);
   }
 
   public async invoicingByProductType(
@@ -280,7 +282,7 @@ export default class IndicatorService {
           business_units.identification,
           'Em Aberto'                               as description,
           sum(bills.total_value - bills.paid_value) as totalPayments,
-          sum(distinct bills.total_value)           as totalBills
+          sum(bills.total_value)           as totalBills
           `,
         ),
       )
@@ -561,12 +563,14 @@ export default class IndicatorService {
     const [r1, r2] = await Promise.all([qb1, qb2]);
     const result = r1.concat(r2);
 
-    return result.map(elem => ({
-      id: elem.id,
-      identification: elem.identification,
-      description: elem.description,
-      total: elem.total,
-    }));
+    return result
+      .map(elem => ({
+        id: elem.id,
+        identification: elem.identification,
+        description: elem.description,
+        total: elem.total,
+      }))
+      .sort((a, b) => b.total - a.total);
   }
 
   public async invoicingByProductTypeConsolidated(

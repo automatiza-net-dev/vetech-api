@@ -14,6 +14,7 @@ import User from 'App/Models/User';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import BusinessUnit from './BusinessUnit';
 
 export enum DailyMovementStatus {
   'A' = 'Aberto',
@@ -87,6 +88,11 @@ export default class DailyMovement extends BaseModel {
     serializeAs: null,
   })
   public business_unit_id: string;
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
 
   @column({
     serializeAs: null,

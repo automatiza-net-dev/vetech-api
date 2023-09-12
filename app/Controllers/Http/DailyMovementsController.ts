@@ -25,6 +25,12 @@ export default class DailyMovementsController {
     return response.ok(dailyMovements);
   }
 
+  public async search({ auth, request, response }) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const dailyMovements = await this.service.search(unit_id, request.qs());
+    return response.ok(dailyMovements);
+  }
+
   public async openDailyMovement({
     auth,
     request,

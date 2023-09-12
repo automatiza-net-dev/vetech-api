@@ -20,9 +20,9 @@ import Patient from './Patient';
 import User from './User';
 
 export enum BillStatus {
-  A = 'ATIVA',
+  A = 'ABERTA',
   E = 'EXTORNADA',
-  F = 'FECHADA',
+  B = 'BAIXADA',
   EX = 'EXCLUIDA',
 }
 

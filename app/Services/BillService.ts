@@ -809,9 +809,7 @@ export default class BillService {
 
       await payment.bill
         .merge({
-          paidValue:
-            payment.bill.paidValue -
-            finances.reduce((acc, curr) => acc + curr.value, 0),
+          paidValue: payment.bill.paidValue - payment.totalValue,
         })
         .useTransaction(trx)
         .save();
@@ -904,7 +902,7 @@ export default class BillService {
         .merge({
           paidValue:
             bill.paidValue -
-            finances.reduce((acc, curr) => acc + curr.value, 0),
+            payments.reduce((acc, curr) => acc + curr.totalValue, 0),
         })
         .useTransaction(trx)
         .save();

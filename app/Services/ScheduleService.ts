@@ -253,7 +253,7 @@ export default class ScheduleService {
           holder_id: data.holderId,
           age: data.age,
           startHour: data.startHour,
-          endHour: data.endHour,
+          endHour: data.endHour.minus({ minutes: 1 }),
           majorComplaint: data.majorComplaint,
           business_unit_id: authCtx.unit.id,
           user_id: data.userId ?? authCtx.user.id,

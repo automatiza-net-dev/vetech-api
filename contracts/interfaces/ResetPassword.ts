@@ -5,6 +5,5 @@ export interface IForgotPassword {
 
 export interface IResetPassword {
   hash: string;
-  email: string;
   password: string;
 }

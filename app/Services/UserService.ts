@@ -400,6 +400,7 @@ export default class UserService {
       user_id: authCtx.user.id,
       hash,
       expiresAt: DateTime.now().plus({ hour: 1 }),
+      type: 'change',
     });
 
     await Mail.send(message => {
@@ -408,6 +409,7 @@ export default class UserService {
         .to(authCtx.user.email)
         .subject('Troca de Senha')
         .htmlView('emails/change_password', {
+          email: authCtx.user.email,
           url: `${
             authCtx.system.systemUrls.find(r => r.url)?.url
           }/change-password/${hash}`,
@@ -493,6 +495,14 @@ export default class UserService {
 
     const hash = Encryption.encrypt(email, '30min');
 
+    await UserPasswordChange.create({
+      system_id: user.system_id,
+      user_id: user.id,
+      hash,
+      expiresAt: DateTime.now().plus({ hour: 1 }),
+      type: 'forgot',
+    });
+
     await Mail.send(message => {
       message
         .from('sysvetech@gmail.com')
@@ -507,18 +517,59 @@ export default class UserService {
 
   public async resetPassword({
     hash,
-    email,
     password,
   }: IResetPassword): Promise<void> {
-    const decryptedEmail = Encryption.decrypt(hash);
+    await Database.transaction(async trx => {
+      const validEmailChange = await UserPasswordChange.query()
+        .useTransaction(trx)
+        .preload('user')
+        .where('hash', hash)
+        .first();
 
-    if (decryptedEmail !== email) {
-      throw new UnauthorizedException('Token inválido', 400, 'E_UNAUTHORIZED');
-    }
+      if (!validEmailChange) {
+        throw new BadRequestException('Token inválido', 400, 'E_INVALID_TOKEN');
+      }
 
-    const user = await User.findByOrFail('email', email);
-    user.password = password;
-    await user.save();
+      if (validEmailChange.expiresAt.diffNow('seconds').seconds < 0) {
+        throw new BadRequestException(
+          'O link de alteração de senha expirou',
+          400,
+          'E_EXPIRED_LINK',
+        );
+      }
+
+      if (validEmailChange.completed) {
+        throw new BadRequestException(
+          'O link de alteração de senha já foi utilizado',
+          400,
+          'E_COMPLETED_LINK',
+        );
+      }
+
+      const decryptedEmail = Encryption.decrypt(hash);
+
+      if (decryptedEmail !== validEmailChange.user.email) {
+        throw new UnauthorizedException(
+          'Token inválido',
+          400,
+          'E_UNAUTHORIZED',
+        );
+      }
+
+      await validEmailChange.user
+        .merge({
+          password,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await validEmailChange
+        .merge({
+          completed: true,
+        })
+        .useTransaction(trx)
+        .save();
+    });
   }
 
   private async seedLiftOneData(

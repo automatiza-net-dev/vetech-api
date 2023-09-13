@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import User from './User';
 
 export default class UserPasswordChange extends BaseModel {
   @column({ isPrimary: true })
@@ -10,6 +11,9 @@ export default class UserPasswordChange extends BaseModel {
 
   @column()
   public completed: boolean;
+
+  @column()
+  public type: string;
 
   @column.dateTime({})
   public expiresAt: DateTime;
@@ -39,4 +43,9 @@ export default class UserPasswordChange extends BaseModel {
     serializeAs: null,
   })
   public user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
 }

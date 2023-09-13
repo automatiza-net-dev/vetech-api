@@ -412,7 +412,7 @@ export default class UserService {
           email: authCtx.user.email,
           url: `${
             authCtx.system.systemUrls.find(r => r.url)?.url
-          }/change-password/${hash}`,
+          }/senha/change/${hash}`,
         });
     });
   }
@@ -510,7 +510,9 @@ export default class UserService {
         .subject('Recuperação de Senha')
         .htmlView('emails/reset_password', {
           email,
-          url: `${user.system.systemUrls.find(r => r.url)?.url}/reset/${hash}`,
+          url: `${
+            user.system.systemUrls.find(r => r.url)?.url
+          }/senha/reset/${hash}`,
         });
     });
   }

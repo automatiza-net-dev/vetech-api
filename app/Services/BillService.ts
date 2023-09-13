@@ -1540,7 +1540,7 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(unit.unitConfig.billCounter + 1),
+        tag: GenerateTag(parseInt(unit.unitConfig.billCounter) + 1),
       },
       {
         client: trx,
@@ -1549,7 +1549,7 @@ export default class BillService {
 
     await unit.unitConfig
       .merge({
-        billCounter: unit.unitConfig.billCounter + 1,
+        billCounter: (parseInt(unit.unitConfig.billCounter) + 1).toString(),
       })
       .useTransaction(trx)
       .save();

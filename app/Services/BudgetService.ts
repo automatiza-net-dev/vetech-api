@@ -381,7 +381,7 @@ export default class BudgetService {
           totalValue: 0,
           observation: data.observation,
           status: BudgetStatus.A,
-          tag: GenerateTag(unit.unitConfig.budgetCounter + 1),
+          tag: GenerateTag(parseInt(unit.unitConfig.budgetCounter) + 1),
         },
         {
           client: trx,
@@ -389,7 +389,7 @@ export default class BudgetService {
       );
       await unit.unitConfig
         .merge({
-          budgetCounter: unit.unitConfig.budgetCounter + 1,
+          budgetCounter: (unit.unitConfig.budgetCounter + 1).toString(),
         })
         .useTransaction(trx)
         .save();
@@ -699,13 +699,13 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
-          tag: GenerateTag(unit.unitConfig.billCounter + 1),
+          tag: GenerateTag(parseInt(unit.unitConfig.billCounter) + 1),
         },
         { client: trx },
       );
       await unit.unitConfig
         .merge({
-          billCounter: unit.unitConfig.billCounter + 1,
+          billCounter: (parseInt(unit.unitConfig.billCounter) + 1).toString(),
         })
         .useTransaction(trx)
         .save();

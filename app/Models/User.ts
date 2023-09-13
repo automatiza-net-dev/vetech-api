@@ -5,6 +5,8 @@ import {
   beforeFetch,
   beforeFind,
   beforeSave,
+  BelongsTo,
+  belongsTo,
   column,
   HasMany,
   hasMany,
@@ -20,6 +22,7 @@ import WorkingDay from 'App/Models/WorkingDay';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import System from './System';
 
 export const UserType = ['system', 'controller', 'user', 'both'] as const;
 export type TUserType = typeof UserType[number];
@@ -171,4 +174,9 @@ export default class User extends BaseModel {
     serializeAs: null,
   })
   public system_id: number;
+
+  @belongsTo(() => System, {
+    foreignKey: 'system_id',
+  })
+  public system: BelongsTo<typeof System>;
 }

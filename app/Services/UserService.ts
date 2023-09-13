@@ -373,17 +373,6 @@ export default class UserService {
     await user.softDelete();
   }
 
-  public async forgotPassword({ email }: IForgotPassword): Promise<void> {
-    const encryptedEmail = Encryption.encrypt(email, '30min');
-    await Mail.send(message => {
-      message
-        .from('sysvetech@gmail.com')
-        .to(email)
-        .subject('Recuperação de Senha')
-        .htmlView('emails/reset_password', { hash: encryptedEmail });
-    });
-  }
-
   public async sendChangePasswordEmail(authCtx: AuthContext) {
     const validEmailChange = await UserPasswordChange.query()
       .where('system_id', authCtx.system.id)
@@ -477,6 +466,42 @@ export default class UserService {
         })
         .useTransaction(trx)
         .save();
+    });
+  }
+
+  public async forgotPassword({
+    email,
+    systemName,
+  }: IForgotPassword): Promise<void> {
+    const user = await User.query()
+      .where('email', email)
+      .whereHas('system', query => {
+        query.where('name', systemName);
+      })
+      .preload('system', query => {
+        query.preload('systemUrls');
+      })
+      .first();
+
+    if (!user) {
+      throw new BadRequestException(
+        'Usuário não encontrado',
+        400,
+        'E_USER_NOT_FOUND',
+      );
+    }
+
+    const hash = Encryption.encrypt(email, '30min');
+
+    await Mail.send(message => {
+      message
+        .from('sysvetech@gmail.com')
+        .to(user.email)
+        .subject('Recuperação de Senha')
+        .htmlView('emails/reset_password', {
+          email,
+          url: `${user.system.systemUrls.find(r => r.url)?.url}/reset/${hash}`,
+        });
     });
   }
 

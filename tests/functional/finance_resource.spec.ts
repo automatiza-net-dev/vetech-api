@@ -1,9 +1,13 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import AccountPlan, { AccountPlanType } from 'App/Models/AccountPlan';
+import CheckingAccount, {
+  CheckingAccountType,
+} from 'App/Models/CheckingAccount';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
+  FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
@@ -30,8 +34,28 @@ test.group('Finance resource', group => {
       type: AccountPlanType.C,
       business_unit_id: business.id,
     });
+
+    const checkingAccount = await CheckingAccount.create({
+      economic_group_id: business.economicGroupId,
+      business_unit_id: business.id,
+      description: 'some description',
+      accountNumber: 'some',
+      bankCode: 'some',
+      bankName: 'some',
+      agency: 'some',
+      type: CheckingAccountType.CC,
+      balance: 0,
+
+      limit: 0,
+      agencyPhone: 'some',
+      managerName: 'some',
+      managerEmail: 'some',
+      managerPhone: 'some',
+    });
+
     const paymentMethod = await PaymentMethod.create({
       economicGroupId: group.id,
+      checkingAccountId: checkingAccount.id,
       tef: PaymentMethodTef.T,
     });
 
@@ -50,6 +74,9 @@ test.group('Finance resource', group => {
     const finance = await Finance.create({
       economic_group_id: group.id,
       business_unit_id: business.id,
+      payment_method_id: paymentMethod.id,
+      tef_flag_id: tefFlag.id,
+      status: FinanceStatus.A,
     });
 
     return {

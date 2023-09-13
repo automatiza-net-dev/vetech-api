@@ -8,6 +8,9 @@ export default class ForgotPasswordValidator {
       rules.email(),
       rules.exists({ table: 'users', column: 'email' }),
     ]),
+    systemName: schema.string({}, [
+      rules.exists({ table: 'systems', column: 'name' }),
+    ]),
   });
   public messages: CustomMessages = {};
 }

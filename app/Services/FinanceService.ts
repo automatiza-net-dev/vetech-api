@@ -65,7 +65,23 @@ export default class FinanceService {
       units.push(data.unit);
     }
 
-    const qb = Finance.query().whereIn('business_unit_id', units);
+    const qb = Finance.query()
+      .whereIn('business_unit_id', units)
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      })
+      .preload('paymentMethod', query => {
+        query.preload('checkingAccount', query => {
+          query.select(['id', 'description']);
+        });
+      })
+      .preload('accountPlan')
+      .preload('checkingAccount')
+      .preload('flag', query => {
+        query.select(['id', 'description']);
+      })
 
     if (data.id) {
       qb.where('id', data.id);
@@ -140,15 +156,6 @@ export default class FinanceService {
     if (data.competence) {
       qb.where('competence_date', data.competence);
     }
-
-    qb.preload('client', query => {
-      query.preload('tutor', query => {
-        query.preload('accountPlan');
-      });
-    })
-      .preload('paymentMethod')
-      .preload('accountPlan')
-      .preload('checkingAccount');
 
     return qb;
   }

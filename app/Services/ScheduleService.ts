@@ -210,10 +210,10 @@ export default class ScheduleService {
           .andWhereRaw(
             '((start_hour between ? and ?) or (end_hour between ? and ?))',
             [
-              data.startHour.plus({ minutes: 1 }).toJSDate(),
-              data.endHour.minus({ minutes: 1 }).toJSDate(),
-              data.startHour.plus({ minutes: 1 }).toJSDate(),
-              data.endHour.minus({ minutes: 1 }).toJSDate(),
+              data.startHour.minus({ minutes: 1 }).toJSDate(),
+              data.endHour.plus({ minutes: 1 }).toJSDate(),
+              data.startHour.minus({ minutes: 1 }).toJSDate(),
+              data.endHour.plus({ minutes: 1 }).toJSDate(),
             ],
           )
           .andWhereHas('serviceStatus', query => {

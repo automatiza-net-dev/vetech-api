@@ -44,12 +44,12 @@ export default class BusinessUnitConfig extends BaseModel {
   @column({
     columnName: 'bill_counter',
   })
-  public billCounter: number;
+  public billCounter: string;
 
   @column({
     columnName: 'budget_counter',
   })
-  public budgetCounter: number;
+  public budgetCounter: string;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

@@ -208,12 +208,10 @@ export default class ScheduleService {
           .where('user_id', data.userId ?? authCtx.user.id)
           .andWhere('business_unit_id', authCtx.unit.id)
           .andWhereRaw(
-            '((start_hour > ? and start_hour < ?) or (end_hour > ? and end_hour < ?))',
+            '((? between start_hour and end_hour) or (? between start_hour and end_hour))',
             [
               data.startHour.toJSDate(),
-              data.endHour.toJSDate(),
-              data.startHour.toJSDate(),
-              data.endHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
             ],
           )
           .andWhereHas('serviceStatus', query => {
@@ -253,7 +251,7 @@ export default class ScheduleService {
           holder_id: data.holderId,
           age: data.age,
           startHour: data.startHour,
-          endHour: data.endHour,
+          endHour: data.endHour.minus({ minutes: 1 }),
           majorComplaint: data.majorComplaint,
           business_unit_id: authCtx.unit.id,
           user_id: data.userId ?? authCtx.user.id,

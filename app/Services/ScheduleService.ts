@@ -208,8 +208,25 @@ export default class ScheduleService {
           .where('user_id', data.userId ?? authCtx.user.id)
           .andWhere('business_unit_id', authCtx.unit.id)
           .andWhereRaw(
-            '((? between start_hour and end_hour) or (? between start_hour and end_hour))',
+            `
+            (
+              (
+                (? BETWEEN start_hour AND end_hour) OR
+                (? BETWEEN start_hour AND end_hour)
+              )
+              OR
+              (
+                (start_hour BETWEEN ? AND ?)
+                OR
+                (end_hour BETWEEN ? AND ?)
+              )
+            )
+            `,
             [
+              data.startHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
+              data.startHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
               data.startHour.toJSDate(),
               data.endHour.minus({ minutes: 1 }).toJSDate(),
             ],

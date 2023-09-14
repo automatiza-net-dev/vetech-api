@@ -207,15 +207,10 @@ export default class ScheduleService {
         const overlapping = await Schedule.query()
           .where('user_id', data.userId ?? authCtx.user.id)
           .andWhere('business_unit_id', authCtx.unit.id)
-          .andWhereRaw(
-            '((start_hour between ? and ?) or (end_hour between ? and ?))',
-            [
-              data.startHour.minus({ minutes: 1 }).toJSDate(),
-              data.endHour.plus({ minutes: 1 }).toJSDate(),
-              data.startHour.minus({ minutes: 1 }).toJSDate(),
-              data.endHour.plus({ minutes: 1 }).toJSDate(),
-            ],
-          )
+          .andWhereRaw('start_hour < ? and end_hour > ?', [
+            data.startHour.toJSDate(),
+            data.endHour.toJSDate(),
+          ])
           .andWhereHas('serviceStatus', query => {
             query.whereNotIn('type', ['CANC']);
           })

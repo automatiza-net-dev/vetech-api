@@ -563,7 +563,7 @@ export default class PatientService {
 
       const tutor = await Patient.create(
         {
-          name: data.tutorName ?? 'Não informado',
+          name: data.tutorName ?? `Não informado - ${data.tutorPhone}`,
           type: PatientType.TUTOR,
           tag: (tutors.length + 1).toString(),
         },
@@ -574,9 +574,18 @@ export default class PatientService {
       await tutor.related('tutor').create({
         email: data.tutorEmail,
         cellphone: data.tutorPhone,
-        telephone: data.tutorPhone,
         client_origin_id: data.tutorOriginId,
       });
+
+      await tutor.related('contacts').create(
+        {
+          main: true,
+          contact: data.tutorPhone,
+          observation: 'Contato principal',
+          type: 'celular',
+        },
+        { client: trx },
+      );
 
       await group.related('patients').attach([tutor.id], trx);
 

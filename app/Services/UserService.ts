@@ -880,15 +880,25 @@ export default class UserService {
     );
 
     const rawSubgroups = liftOneServices.map(elem => elem.subgroups);
-    const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description', 'system_id', 'economic_group_id'],
-      rawSubgroups.map(elem => ({
-        description: elem,
-        economic_group_id: undefined,
-        system_id: group.system_id,
-      })),
-      { client: trx },
+    const existingSubgroups = await Subgroup.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id')
+      .whereIn('description', rawSubgroups)
+      .where('system_id', group.system_id);
+    const toCreate = await Promise.all(
+      rawSubgroups
+        .filter(s => !existingSubgroups.find(es => es.description === s))
+        .map(async s => {
+          return Subgroup.create(
+            {
+              description: s,
+              system_id: group.system_id,
+            },
+            { client: trx },
+          );
+        }),
     );
+    const subgroups = existingSubgroups.concat(toCreate);
 
     const pData: Array<Partial<Product>> = liftOneServices.map(elem => {
       const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());
@@ -1470,15 +1480,25 @@ export default class UserService {
     );
 
     const rawSubgroups = vetechProducts.map(elem => elem.subgroups);
-    const subgroups = await Subgroup.fetchOrCreateMany(
-      ['description', 'system_id', 'economic_group_id'],
-      rawSubgroups.map(elem => ({
-        description: elem,
-        economic_group_id: undefined,
-        system_id: group.system_id,
-      })),
-      { client: trx },
+    const existingSubgroups = await Subgroup.query()
+      .useTransaction(trx)
+      .whereNull('economic_group_id')
+      .whereIn('description', rawSubgroups)
+      .where('system_id', group.system_id);
+    const toCreate = await Promise.all(
+      rawSubgroups
+        .filter(s => !existingSubgroups.find(es => es.description === s))
+        .map(async s => {
+          return Subgroup.create(
+            {
+              description: s,
+              system_id: group.system_id,
+            },
+            { client: trx },
+          );
+        }),
     );
+    const subgroups = existingSubgroups.concat(toCreate);
 
     const pData: Array<Partial<Product>> = vetechProducts.map(elem => {
       const unit = units.find(u => u.tag === elem.Unidade.toLowerCase());

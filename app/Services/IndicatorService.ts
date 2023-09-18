@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import { BillStatus } from 'App/Models/Bill';
+import { BudgetStatus } from 'App/Models/Budget';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
 
@@ -1272,6 +1273,51 @@ export default class IndicatorService {
       scheduled: parseInt(elem.agendadas, 10),
       attended: parseInt(elem.comparecidas, 10),
       gained: parseInt(elem.ganhos, 10),
+    }));
+  }
+
+  public async unconfirmedBudgetsIndicators(
+    authCtx: AuthContext,
+    data: {
+      unit?: string;
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('budgets')
+      .select(
+        Database.raw(
+          `
+            business_units.id,
+            business_units.identification,
+            sum(budget_items.total_value) as total
+          `,
+        ),
+      )
+      .leftJoin('budget_items', query => {
+        query.on('budget_items.budget_id', '=', 'budgets.id');
+      })
+      .leftJoin('business_units', query => {
+        query.on('business_units.id', '=', 'budgets.business_unit_id');
+      })
+      .groupBy('business_units.id')
+      .where('budgets.business_unit_id', data.unit ?? authCtx.unit.id)
+      .where('budget_items.status', '<>', BudgetStatus.C);
+
+    if (data.fromDate) {
+      qb.andWhereRaw('budgets.budget_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('budgets.budget_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      total: elem.total,
     }));
   }
 }

@@ -847,7 +847,11 @@ export default class IndicatorService {
     },
   ) {
     const salesQb = Database.from('bills')
-      .select(Database.raw('count(distinct id) as sales'))
+      .select(
+        Database.raw(
+          'bills.business_unit_id as id, count(distinct id) as sales',
+        ),
+      )
       .groupBy('bills.business_unit_id')
       .whereNot('status', BillStatus.EX);
 
@@ -893,7 +897,7 @@ export default class IndicatorService {
       identification: elem.identification,
       scheduled: parseInt(elem.agendados, 10),
       attended: parseInt(elem.atendidos, 10),
-      sales: salesResult.find(r => r.id === elem.id)?.sales ?? 0,
+      sales: parseInt(salesResult.find(r => r.id === elem.id)?.sales ?? '0'),
     }));
   }
 

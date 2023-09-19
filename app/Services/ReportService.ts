@@ -335,24 +335,18 @@ export default class ReportService {
         id: elem.businessUnit.id,
         identification: elem.businessUnit.identification,
       },
-      seller: elem.seller
-        ? {
-            id: elem.seller.id,
-            name: elem.seller.name,
-          }
-        : null,
-      client: elem.client
-        ? {
-            id: elem.client.id,
-            name: elem.client.name,
-          }
-        : null,
-      patient: elem.patient
-        ? {
-            id: elem.patient.id,
-            name: elem.patient.name,
-          }
-        : null,
+      seller: this.sharedService.captureGroup(elem.seller, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      client: this.sharedService.captureGroup(elem.client, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      patient: this.sharedService.captureGroup(elem.patient, v => ({
+        id: v.id,
+        name: v.name,
+      })),
     }));
   }
 
@@ -369,6 +363,7 @@ export default class ReportService {
   ) {
     const qb = Bill.query()
       .preload('businessUnit')
+      .preload('seller')
       .preload('client', query => {
         query.preload('tutor', query => {
           query.preload('profession');
@@ -443,12 +438,10 @@ export default class ReportService {
         id: elem.businessUnit.id,
         identification: elem.businessUnit.identification,
       },
-      seller: elem.seller
-        ? {
-            id: elem.seller.id,
-            name: elem.seller.name,
-          }
-        : null,
+      seller: this.sharedService.captureGroup(elem.seller, v => ({
+        id: v.id,
+        name: v.name,
+      })),
       client: elem.client
         ? {
             id: elem.client.id,
@@ -470,15 +463,13 @@ export default class ReportService {
               .join(', '),
           }
         : null,
-      patient: elem.patient
-        ? {
-            id: elem.patient.id,
-            name: elem.patient.name,
-            race: elem.patient.patientAnimal.race,
-            gender: elem.patient.gender ?? null,
-            castrated: elem.patient?.patientAnimal?.castrated ?? null,
-          }
-        : null,
+      patient: this.sharedService.captureGroup(elem.patient, v => ({
+        id: v.id,
+        name: v.name,
+        race: v.patientAnimal.race,
+        gender: v.gender ?? null,
+        castrated: v?.patientAnimal?.castrated ?? null,
+      })),
       budget: this.sharedService.captureGroup(elem.budget, v => ({
         id: v.id,
         tag: v.tag,
@@ -489,6 +480,7 @@ export default class ReportService {
         block: inner.block,
         qtyInstallments: inner.qtyInstallments,
         totalValue: inner.totalValue,
+        installments: inner.installments,
 
         paymentMethod: this.sharedService.captureGroup(
           inner.paymentMethod,

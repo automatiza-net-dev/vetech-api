@@ -31,6 +31,7 @@ export default class OpportunityService {
       .preload('status')
       .preload('user')
       .preload('unit')
+      .preload('reason')
       .preload('activities', query => {
         query.preload('openingUser');
         query.preload('executionUser');
@@ -51,6 +52,8 @@ export default class OpportunityService {
       observation: result.observation,
       balance: result.balance,
       closingDate: result.closingDate,
+      profitValue: result.profitValue,
+      resultObservation: result.resultObservation,
 
       status: result.status,
       contact: result.contact,
@@ -71,6 +74,13 @@ export default class OpportunityService {
         id: result.unit.id,
         companyName: result.unit.companyName,
         fantasyName: result.unit.fantasyName,
+      },
+      reason: this.sharedService.captureGroup(result.reason, v => ({
+        id: v.id,
+        reason: v.reason,
+      })),
+      schedule: {
+        id: result.schedule_id ?? null,
       },
       activities: result.activities,
     };
@@ -103,6 +113,7 @@ export default class OpportunityService {
       .preload('status')
       .preload('user')
       .preload('unit')
+      .preload('reason')
       .preload('clientOrigin');
 
     if (data.unit && Array.isArray(data.unit)) {
@@ -202,6 +213,10 @@ export default class OpportunityService {
       closingUser: {
         id: elem.closing_user_id ?? null,
       },
+      reason: this.sharedService.captureGroup(elem.reason, v => ({
+        id: v.id,
+        reason: v.reason,
+      })),
     }));
   }
 
@@ -322,7 +337,7 @@ export default class OpportunityService {
       patientName?: string;
       technician?: string;
       status?: string;
-      unit?: string;
+      units?: string[];
     },
   ) {
     const qb = Opportunity.query()
@@ -338,6 +353,7 @@ export default class OpportunityService {
       .preload('status')
       .preload('user')
       .preload('unit')
+      .preload('reason')
       .preload('activities', query => {
         query.where('status', 'Aberta');
 
@@ -350,8 +366,8 @@ export default class OpportunityService {
       qb.where('user_id', data.technician);
     }
 
-    if (data.unit) {
-      qb.where('business_unit_id', data.unit);
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_unit_id', data.units);
     }
 
     if (data.openingFrom) {
@@ -434,6 +450,10 @@ export default class OpportunityService {
         schedule: {
           id: op.schedule_id ?? null,
         },
+        reason: this.sharedService.captureGroup(op.reason, v => ({
+          id: v.id,
+          reason: v.reason,
+        })),
 
         activities: op.activities.map(elem => ({
           id: elem.id,

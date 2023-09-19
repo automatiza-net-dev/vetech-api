@@ -16,6 +16,7 @@ import { DateTime } from 'luxon';
 import ClientOrigin from './ClientOrigin';
 import ContactSubject from './ContactSubject';
 import ContactType from './ContactType';
+import Reason from './Reason';
 
 export default class Opportunity extends BaseModel {
   @column({ isPrimary: true })
@@ -181,6 +182,11 @@ export default class Opportunity extends BaseModel {
     serializeAs: null,
   })
   public reason_id: string;
+
+  @belongsTo(() => Reason, {
+    foreignKey: 'reason_id',
+  })
+  public reason: BelongsTo<typeof Reason>;
 
   @hasMany(() => OpportunityActivity, {
     foreignKey: 'opportunity_id',

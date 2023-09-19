@@ -260,7 +260,7 @@ export default class BusinessUnitFiscalDocumentService {
         purpose: issuedDocument.purpose,
 
         seller: {
-          cnpj: unit.document,
+          cnpj: unit.document?.replace(/\D/g, '') ?? '',
           name: unit.companyName,
           fantasy_name: unit.fantasyName,
           phone: unit.phone,
@@ -283,10 +283,10 @@ export default class BusinessUnitFiscalDocumentService {
             unit.unitConfig.fiscalDocumentEnvironment === 'H'
               ? 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL'
               : bill.client.name,
-          cpf_document: bill.client.tutor.document ?? '',
+          cpf_document: bill.client.tutor.document?.replaceAll(/\D/g, '') ?? '',
           cnpj_document:
             bill.client.tutor.document?.length === 14
-              ? bill.client.tutor.document
+              ? bill.client.tutor.document.replaceAll(/\D/g, '')
               : null,
           phone: bill.client.tutor.cellphone,
           ie: bill.client.tutor.inscription ?? '',
@@ -514,10 +514,11 @@ export default class BusinessUnitFiscalDocumentService {
                 city_code: unit.cityCode ?? '',
               },
               buyer: {
-                cpf_document: bill.client.tutor.document ?? '',
+                cpf_document:
+                  bill.client.tutor.document?.replaceAll(/\D/g, '') ?? '',
                 cnpj_document:
                   bill.client.tutor.document?.length === 14
-                    ? bill.client.tutor.document
+                    ? bill.client.tutor.document.replaceAll(/\D/g, '')
                     : null,
                 name: bill.client.name,
                 email: bill.client.tutor.email,
@@ -1095,11 +1096,6 @@ export default class BusinessUnitFiscalDocumentService {
     console.log('document:', document.toJSON());
     console.log('focus nfse payload', data);
 
-    const urlPrefix =
-      process.env.NODE_ENV === 'production'
-        ? 'https://api.focusnfe.com.br'
-        : 'https://homologacao.focusnfe.com.br';
-
     return document.merge({
       status: data.status,
       sequence: data.numero,
@@ -1113,9 +1109,9 @@ export default class BusinessUnitFiscalDocumentService {
         data.status === 'autorizado' ? DateTime.now() : undefined,
       cancellationDate:
         data.status === 'cancelado' ? DateTime.now() : undefined,
-      mirrorPath: [urlPrefix, data.url].join(''),
-      authorizationPdfPath: [urlPrefix, data.url_danfse].join(''),
-      authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(''),
+      mirrorPath: data.url,
+      authorizationPdfPath: data.url_danfse,
+      authorizationXmlPath: data.caminho_xml_nota_fiscal,
     });
   }
 

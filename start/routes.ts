@@ -1373,6 +1373,11 @@ Route.group(() => {
     'IndicatorsController.generalOpportunitiesIndicators',
   );
   Route.get('/crm', 'IndicatorsController.crmIndicators');
+
+  Route.get(
+    '/unconfirmed-budgets',
+    'IndicatorsController.unconfirmedBudgetsIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

@@ -1096,11 +1096,6 @@ export default class BusinessUnitFiscalDocumentService {
     console.log('document:', document.toJSON());
     console.log('focus nfse payload', data);
 
-    const urlPrefix =
-      process.env.NODE_ENV === 'production'
-        ? 'https://api.focusnfe.com.br'
-        : 'https://homologacao.focusnfe.com.br';
-
     return document.merge({
       status: data.status,
       sequence: data.numero,
@@ -1114,9 +1109,9 @@ export default class BusinessUnitFiscalDocumentService {
         data.status === 'autorizado' ? DateTime.now() : undefined,
       cancellationDate:
         data.status === 'cancelado' ? DateTime.now() : undefined,
-      mirrorPath: [urlPrefix, data.url].join(''),
-      authorizationPdfPath: [urlPrefix, data.url_danfse].join(''),
-      authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(''),
+      mirrorPath: data.url,
+      authorizationPdfPath: data.url_danfse,
+      authorizationXmlPath: data.caminho_xml_nota_fiscal,
     });
   }
 

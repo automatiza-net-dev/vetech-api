@@ -29,19 +29,17 @@ export default class ProductivityItemService {
   public async searchItemProducts(
     authCtx: AuthContext,
     data: {
-      variation?: string;
+      product?: string;
       active?: string;
     },
   ) {
     const qb = ProductivityItemProduct.query()
-      .preload('productVariation', query => {
-        query.preload('product');
-      })
+      .preload('product')
       .where('economic_group_id', authCtx.group.id)
       .where('active', data.active ? data.active === '1' : true);
 
-    if (data.variation) {
-      qb.where('product_variation_id', data.variation);
+    if (data.product) {
+      qb.where('product_id', data.product);
     }
 
     const result = await qb;
@@ -49,7 +47,7 @@ export default class ProductivityItemService {
     return result.map(elem => ({
       id: elem.id,
       quantity: elem.quantity,
-      description: elem.productVariation.product.description,
+      description: elem.product.description,
     }));
   }
 
@@ -57,11 +55,13 @@ export default class ProductivityItemService {
     authCtx: AuthContext,
     data: {
       description: string;
+      reservedMinutes: number;
     },
   ) {
     await ProductivityItem.create({
       economic_group_id: authCtx.group.id,
       description: data.description,
+      reservedMinutes: data.reservedMinutes,
     });
   }
 
@@ -70,6 +70,7 @@ export default class ProductivityItemService {
     data: {
       id: number;
       description: string;
+      reservedMinutes: number;
       active: boolean;
     },
   ) {
@@ -85,7 +86,11 @@ export default class ProductivityItemService {
       }
 
       await item
-        .merge({ description: data.description, active: data.active })
+        .merge({
+          description: data.description,
+          reservedMinutes: data.reservedMinutes,
+          active: data.active,
+        })
         .useTransaction(trx)
         .save();
     });
@@ -96,7 +101,7 @@ export default class ProductivityItemService {
     data: {
       items: {
         productivityItemId: number;
-        productVariationId: string;
+        productId: string;
         quantity: number;
       }[];
     },
@@ -116,7 +121,7 @@ export default class ProductivityItemService {
             .filter(inner => inner.productivityItemId === elem.id)
             .map(inner => ({
               economic_group_id: authCtx.group.id,
-              product_variation_id: inner.productVariationId,
+              product_id: inner.productId,
               quantity: inner.quantity,
             })),
           trx,

@@ -1088,6 +1088,7 @@ Route.group(() => {
 
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
+  Route.post('/create-productivity-item', 'TreatmentsController.createProductivityItem');
   Route.post('/create-execution', 'TreatmentsController.createExecution');
   Route.post(
     '/batch-create-execution',

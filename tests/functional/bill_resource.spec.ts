@@ -11,6 +11,7 @@ import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductPurpose, ProductType } from 'App/Models/Product';
+import ProductivityItem from 'App/Models/ProductivityItem';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
@@ -189,6 +190,19 @@ test.group('Bill resource', group => {
     await variation.related('variationOptions').create({
       description: 'some variation option',
       active: true,
+    });
+
+    const productivity = await ProductivityItem.create({
+      economic_group_id: group.id,
+
+      description: 'some description',
+    });
+
+    await productivity.related('products').create({
+      economic_group_id: group.id,
+      product_id: product.id,
+
+      quantity: 10,
     });
 
     /*

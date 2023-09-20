@@ -21,6 +21,7 @@ import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallment';
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
+import ProductivityItem from 'App/Models/ProductivityItem';
 import ProductVariation from 'App/Models/ProductVariation';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
@@ -2353,7 +2354,7 @@ export default class BillService {
         .useTransaction(trx)
         .save();
 
-      await TreatmentItem.createMany(
+      const treatmentItems = await TreatmentItem.createMany(
         elem.items.map((inner, index) => ({
           id: index + 1,
           economic_group_id: authCtx.group.id,
@@ -2366,6 +2367,69 @@ export default class BillService {
         })),
         { client: trx },
       );
+
+      const products = await Product.query()
+        .useTransaction(trx)
+        .whereHas('variations', query => {
+          query.whereIn(
+            'id',
+            elem.items.map(i => i.product_variation_id),
+          );
+        })
+        .preload('variations', query => {
+          query.whereIn(
+            'id',
+            elem.items.map(i => i.product_variation_id),
+          );
+        });
+
+      const productivityItems = await ProductivityItem.query()
+        .useTransaction(trx)
+        .whereHas('products', query => {
+          query.whereIn(
+            'product_id',
+            products.map(p => p.id),
+          );
+        })
+        .preload('products', query => {
+          query.whereIn(
+            'product_id',
+            products.map(p => p.id),
+          );
+        });
+
+      const tasks = treatmentItems.map(elem => {
+        const product = products.find(
+          p => p.variations.find(v => v.id === elem.product_variation_id)?.id,
+        );
+        const relatedItems = productivityItems.filter(p =>
+          p.products.some(p => p.product_id === (product?.id ?? '')),
+        );
+
+        const innerTasks = relatedItems.map(async (innerItem, idx) => {
+          return TreatmentItem.create(
+            {
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
+              treatment_id: treatment.id,
+              id: treatmentItems.length + 1 + idx,
+              reference_item_id: innerItem.id,
+              productivity_item_id: innerItem.id,
+
+              quantity: elem.quantity,
+              quantityExecuted: 0,
+              scheduledQuantity: 0,
+              status: 'Ativo',
+            },
+            {
+              client: trx,
+            },
+          );
+        });
+
+        return Promise.all(innerTasks);
+      });
+      await Promise.all(tasks);
     });
   }
 }

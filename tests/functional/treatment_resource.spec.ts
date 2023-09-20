@@ -6,6 +6,7 @@ import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import { ProductType } from 'App/Models/Product';
+import ProductivityItem from 'App/Models/ProductivityItem';
 import Reason from 'App/Models/Reason';
 import Schedule from 'App/Models/Schedule';
 import { SS_NOT_CONFIRMED } from 'App/Models/ScheduleStatus';
@@ -117,6 +118,19 @@ test.group('Treatment resource', group => {
       status: 'Ativo',
     });
 
+    const productivityItem = await ProductivityItem.create({
+      economic_group_id: group.id,
+
+      description: 'some description',
+    });
+
+    await productivityItem.related('products').create({
+      economic_group_id: group.id,
+      product_id: product.id,
+
+      quantity: 10,
+    });
+
     const serviceType = await ScheduleServiceTypeFactory.create();
     const schedule = await Schedule.create({
       patientName: 'any name',
@@ -167,6 +181,7 @@ test.group('Treatment resource', group => {
       schedule,
       execution,
       reason,
+      productivityItem,
     };
   };
 
@@ -245,6 +260,30 @@ test.group('Treatment resource', group => {
         treatmentId: treatment.id,
         productVariationId: variation.id,
         kitId: kit.id,
+
+        quantity: 10,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
+  test('should create a treatment productivity item', async ({
+    assert,
+    client,
+  }) => {
+    const { user, treatment, productivityItem, item } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/treatments/create-productivity-item`)
+      .json({
+        treatmentId: treatment.id,
+        treatmentItemId: item.id,
+        productivityItemId: productivityItem.id,
 
         quantity: 10,
       })

@@ -218,6 +218,45 @@ export default class BillService {
     });
   }
 
+  async updateBill(
+    authCtx: AuthContext,
+    data: {
+      billId: string;
+      sellerId: string;
+      clientId: string;
+      patientId?: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.billId)
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (bill.status !== BillStatus.A) {
+        throw new BadRequestException(
+          'Nota não está aberta',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
+
+      await bill
+        .merge({
+          seller_id: data.sellerId,
+          client_id: data.clientId,
+          patient_id: data.patientId,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   async createBillItem(unitId: string, data: ICreateBillItemData) {
     const group = await this.sharedService.getUserGroup(unitId);
 

@@ -360,6 +360,26 @@ test.group('Bill resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should update bill', async ({ assert, client }) => {
+    const { user, client: holder, patient, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/update`)
+      .json({
+        billId: bill.id,
+        sellerId: user.id,
+        clientId: holder.id,
+        patientId: patient.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
   // test('should create multiple bills', async ({ assert, client }) => {
   //   const {
   //     user,

@@ -900,6 +900,7 @@ Route.group(() => {
   Route.post('/create-treatment', 'BillsController.createTreatment');
 
   Route.post('/create', 'BillsController.createBill');
+  Route.post('/update', 'BillsController.updateBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/create-items', 'BillsController.createBillItems');
   Route.post('/add-kit', 'BillsController.addKitToBill');
@@ -1088,7 +1089,10 @@ Route.group(() => {
 
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
-  Route.post('/create-productivity-item', 'TreatmentsController.createProductivityItem');
+  Route.post(
+    '/create-productivity-item',
+    'TreatmentsController.createProductivityItem',
+  );
   Route.post('/create-execution', 'TreatmentsController.createExecution');
   Route.post(
     '/batch-create-execution',

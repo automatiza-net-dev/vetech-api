@@ -4,6 +4,7 @@ import Budget from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
+import Schedule from 'App/Models/Schedule';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
@@ -966,6 +967,196 @@ export default class ReportService {
         description: v.reason,
       })),
     }));
+  }
+
+  async schedulingReport(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      holder?: string;
+      patient?: string;
+      businessUnits?: string[];
+      economicGroups?: string[];
+      businessStates?: string[];
+      businessCities?: string[];
+    },
+  ) {
+    const qb = Schedule.query()
+      .preload('businessUnit', query => {
+        query.preload('economicGroup');
+      })
+      .preload('cancellationUser')
+      .preload('serviceType')
+      .preload('serviceStatus')
+      .preload('holder', query => {
+        query.preload('tutor', query => {
+          query.preload('profession');
+          query.preload('clientOrigin');
+        });
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.preload('specie');
+          });
+        });
+      });
+
+    if (
+      data.economicGroups &&
+      Array.isArray(data.economicGroups) &&
+      data.economicGroups.length > 0
+    ) {
+      qb.whereHas('businessUnit', query => {
+        query.whereIn('economic_group_id', data.economicGroups ?? []);
+      });
+    } else {
+      qb.whereHas('businessUnit', query => {
+        query.where('economic_group_id', authCtx.group.id);
+      });
+    }
+
+    if (
+      data.businessUnits &&
+      Array.isArray(data.businessUnits) &&
+      data.businessUnits.length > 0
+    ) {
+      qb.whereIn('business_unit_id', data.businessUnits);
+    } else {
+      qb.where('business_unit_id', authCtx.unit.id);
+    }
+
+    const withBusinessStates =
+      data.businessStates &&
+      Array.isArray(data.businessStates) &&
+      data.businessStates.length > 0;
+    const withBusinessCities =
+      data.businessCities &&
+      Array.isArray(data.businessCities) &&
+      data.businessCities.length > 0;
+    if (withBusinessStates || withBusinessCities) {
+      qb.whereHas('businessUnit', query => {
+        if (withBusinessStates) {
+          query.whereIn('state', data.businessStates ?? []);
+        }
+
+        if (withBusinessCities) {
+          query.whereIn('city', data.businessCities ?? []);
+        }
+      });
+    }
+    if (data.fromDate) {
+      qb.whereRaw('start_hour::date >= ?', [
+        DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.whereRaw('start_hour::date <= ?', [
+        DateTime.fromISO(data.toDate).toFormat('yyyy-MM-dd'),
+      ]);
+    }
+
+    if (data.status) {
+      qb.where('schedule_status_id', data.status);
+    }
+
+    if (data.holder) {
+      qb.where('holder_id', data.holder);
+    }
+
+    if (data.patient) {
+      qb.where('patient_id', data.patient);
+    }
+
+    const result = await qb;
+
+    return result
+      .map(elem => ({
+        id: elem.id,
+        startHour: elem.startHour,
+        endHour: elem.endHour,
+        duration: elem.endHour.diff(elem.startHour).minutes,
+        finishedAt: elem.finishedAt,
+        deletedAt: elem.deletedAt,
+        cancelledAt: elem.cancellation_user_id ? elem.updatedAt : null,
+        hasReturn: !!elem.scheduleReturnId,
+        isReturn: !!elem.scheduleOriginId,
+        type: elem.onDuty ? 'Plantão / Avulso' : 'Normal',
+
+        group: {
+          id: elem.businessUnit.economicGroup.id,
+          name: elem.businessUnit.economicGroup.companyName,
+        },
+        unit: {
+          id: elem.businessUnit.id,
+          identification: elem.businessUnit.identification ?? '-',
+          city: elem.businessUnit.city,
+          state: elem.businessUnit.state,
+        },
+        cancellationUser: this.sharedService.captureGroup(
+          elem.cancellationUser,
+          v => ({
+            id: v.id,
+            name: v.name,
+          })),
+        serviceType: this.sharedService.captureGroup(elem.serviceType, v => ({
+          id: v.id,
+          description: v.description,
+        })),
+        serviceStatus: this.sharedService.captureGroup(
+          elem.serviceStatus,
+          v => ({
+            id: v.id,
+            description: v.description,
+          }),
+        ),
+        holder: this.sharedService.captureGroup(elem.holder, v => ({
+          id: v.id,
+          name: v.name,
+          tag: v.tag,
+          gender: v.gender,
+          profession: v.tutor?.profession?.description ?? null,
+          origin: v.tutor?.clientOrigin?.description ?? null,
+          document: v.tutor?.document ?? null,
+          cellphone: v.tutor?.cellphone ?? null,
+          createdAt: v.createdAt,
+          address: [
+            v.tutor?.postalCode,
+            v.tutor?.street,
+            v.tutor?.number,
+            v.tutor?.complement,
+            v.tutor?.district,
+            v.tutor?.city,
+            v.tutor?.state,
+          ]
+            .filter(Boolean)
+            .join(', '),
+        })),
+        patient: this.sharedService.captureGroup(elem.patient, v => ({
+          id: v.id,
+          name: v.name,
+          race: v.patientAnimal.race,
+          tag: v.tag ?? null,
+          gender: v.gender ?? null,
+          castrated: v?.patientAnimal?.castrated ?? null,
+        })),
+      }))
+      .sort((a, b) => {
+        if (a.group.name.localeCompare(b.group.name) !== 0) {
+          return a.group.name.localeCompare(b.group.name);
+        }
+
+        if (a.unit.identification.localeCompare(b.unit.identification) !== 0) {
+          return a.unit.identification.localeCompare(b.unit.identification);
+        }
+
+        return (
+          a.startHour.toJSDate().getTime() - b.startHour.toJSDate().getTime()
+        );
+      });
   }
 
   private calculateDailyFlow(finances: Finance[]) {

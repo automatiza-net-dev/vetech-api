@@ -1314,6 +1314,7 @@ Route.group(() => {
   Route.get('/sales', 'ReportsController.salesReport');
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');
+  Route.get('/scheduling', 'ReportsController.schedulingReport');
 })
   .prefix('reports')
   .middleware('auth');

@@ -90,7 +90,10 @@ export default class Schedule extends BaseModel {
   @column()
   public business_unit_id: string;
 
-  @belongsTo(() => BusinessUnit)
+  @belongsTo(() => BusinessUnit, {
+    localKey: 'id',
+    foreignKey: 'business_unit_id',
+  })
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column()

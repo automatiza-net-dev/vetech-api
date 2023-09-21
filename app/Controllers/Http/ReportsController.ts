@@ -106,4 +106,17 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async schedulingReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.schedulingReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

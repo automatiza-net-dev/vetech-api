@@ -737,6 +737,7 @@ export default class ReportService {
           id: v.id,
           name: v.name,
           race: v.patientAnimal.race,
+          tag: v.tag ?? null,
           gender: v.gender ?? null,
           castrated: v?.patientAnimal?.castrated ?? null,
         })),

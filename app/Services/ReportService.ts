@@ -753,6 +753,8 @@ export default class ReportService {
           qtyInstallments: inner.qtyInstallments,
           totalValue: inner.totalValue,
           installments: inner.installments,
+          epxirationDate: inner.expirationDate,
+          nsuDocument: inner.nsuDocument,
 
           paymentMethod: this.sharedService.captureGroup(
             inner.paymentMethod,
@@ -1101,7 +1103,8 @@ export default class ReportService {
           v => ({
             id: v.id,
             name: v.name,
-          })),
+          }),
+        ),
         serviceType: this.sharedService.captureGroup(elem.serviceType, v => ({
           id: v.id,
           description: v.description,

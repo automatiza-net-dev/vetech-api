@@ -16,6 +16,7 @@ import { v4 } from 'uuid';
 
 import BillPayment from './BillPayment';
 import Budget from './Budget';
+import EconomicGroup from './EconomicGroup';
 import Patient from './Patient';
 import User from './User';
 
@@ -214,6 +215,11 @@ export default class Bill extends BaseModel {
     serializeAs: null,
   })
   public economic_group_id: string;
+
+  @belongsTo(() => EconomicGroup, {
+    foreignKey: 'economic_group_id',
+  })
+  public economicGroup: BelongsTo<typeof EconomicGroup>;
 
   @column({
     serializeAs: null,

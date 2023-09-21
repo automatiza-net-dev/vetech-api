@@ -1310,6 +1310,7 @@ Route.group(() => {
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
   Route.get('/detailed-sales', 'ReportsController.detailedSalesReport');
+  Route.get('/sale-analytics', 'ReportsController.saleAnalyticsReport');
   Route.get('/sales', 'ReportsController.salesReport');
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');

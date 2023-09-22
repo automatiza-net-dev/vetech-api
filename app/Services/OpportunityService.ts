@@ -97,12 +97,12 @@ export default class OpportunityService {
       contactPhone?: string;
       patientName?: string;
       technician?: string;
-      minWeight?: string;
-      maxWeight?: string;
-      specie?: string;
-      race?: string;
-      gender?: string;
-      castrated?: string;
+      // minWeight?: string;
+      // maxWeight?: string;
+      // specie?: string;
+      // race?: string;
+      // gender?: string;
+      // castrated?: string;
       unit?: string[];
       status?: string[];
       balance?: string[];
@@ -111,9 +111,23 @@ export default class OpportunityService {
     const qb = Opportunity.query()
       .where('economic_group_id', authCtx.group.id)
       .preload('client', query => {
+        query.select('id', 'name', 'weight', 'gender');
+
         query.preload('tutor');
+
+        query.preload('patientAnimal', query => {
+          query.select('id', 'castrated', 'race_id');
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
       })
-      .preload('contact')
+      .preload('contact', query => {
+        query.select('id', 'name');
+      })
       .preload('contactType')
       .preload('contactSubject')
       .preload('status')
@@ -175,50 +189,10 @@ export default class OpportunityService {
       });
     }
 
-    if (
-      data.patientName ||
-      data.minWeight ||
-      data.maxWeight ||
-      data.specie ||
-      data.race ||
-      data.gender ||
-      typeof data.castrated !== 'undefined'
-    ) {
+    if (data.patientName) {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
-        }
-
-        if (data.minWeight) {
-          query.where('weight', '>=', data.minWeight);
-        }
-
-        if (data.maxWeight) {
-          query.where('weight', '<=', data.maxWeight);
-        }
-
-        if (data.gender) {
-          query.where('gender', data.gender);
-        }
-
-        if (typeof data.castrated !== 'undefined') {
-          query.whereHas('patientAnimal', query => {
-            query.where('castrated', data.castrated === 'true');
-          });
-        }
-
-        if (data.race) {
-          query.whereHas('patientAnimal', query => {
-            query.where('race_id', data.race!);
-          });
-        }
-
-        if (data.specie) {
-          query.whereHas('patientAnimal', query => {
-            query.whereHas('race', query => {
-              query.where('specie_id', data.specie!);
-            });
-          });
         }
       });
     }
@@ -381,12 +355,12 @@ export default class OpportunityService {
       contactName?: string;
       contactPhone?: string;
       patientName?: string;
-      minWeight?: string;
-      maxWeight?: string;
-      specie?: string;
-      race?: string;
-      gender?: string;
-      castrated?: string;
+      // minWeight?: string;
+      // maxWeight?: string;
+      // specie?: string;
+      // race?: string;
+      // gender?: string;
+      // castrated?: string;
       technician?: string;
       status?: string;
       units?: string[];
@@ -396,7 +370,19 @@ export default class OpportunityService {
       .where('economic_group_id', authCtx.group.id)
       .whereNull('closing_date')
       .preload('client', query => {
+        query.select('id', 'name', 'weight', 'gender');
+
         query.preload('tutor');
+
+        query.preload('patientAnimal', query => {
+          query.select('id', 'castrated', 'race_id');
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
       })
       .preload('contact')
       .preload('contactType')
@@ -446,50 +432,10 @@ export default class OpportunityService {
       });
     }
 
-    if (
-      data.patientName ||
-      data.minWeight ||
-      data.maxWeight ||
-      data.specie ||
-      data.race ||
-      data.gender ||
-      typeof data.castrated !== 'undefined'
-    ) {
+    if (data.patientName) {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
-        }
-
-        if (data.minWeight) {
-          query.where('weight', '>=', data.minWeight);
-        }
-
-        if (data.maxWeight) {
-          query.where('weight', '<=', data.maxWeight);
-        }
-
-        if (data.gender) {
-          query.where('gender', data.gender);
-        }
-
-        if (typeof data.castrated !== 'undefined') {
-          query.whereHas('patientAnimal', query => {
-            query.where('castrated', data.castrated === 'true');
-          });
-        }
-
-        if (data.race) {
-          query.whereHas('patientAnimal', query => {
-            query.where('race_id', data.race!);
-          });
-        }
-
-        if (data.specie) {
-          query.whereHas('patientAnimal', query => {
-            query.whereHas('race', query => {
-              query.where('specie_id', data.specie!);
-            });
-          });
         }
       });
     }
@@ -627,7 +573,7 @@ export default class OpportunityService {
       const model = await Opportunity.create(
         {
           system_id: authCtx.system.id,
-          business_unit_id: data.businessUnitId,
+          business_unit_id: data.businessUnitId ?? authCtx.unit.id,
           economic_group_id: authCtx.group.id,
           opening_user_id: authCtx.user.id,
           user_id: data.userId,

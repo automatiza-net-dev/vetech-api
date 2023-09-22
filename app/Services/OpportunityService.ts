@@ -611,16 +611,16 @@ export default class OpportunityService {
     data: {
       businessUnitId?: string;
       userId: string;
-      clientId: string;
-      contactId: string;
+      clientId?: string;
+      contactId?: string;
       statusId: number;
       contactDate: DateTime;
-      contactTypeId: number;
-      contactSubjectId: number;
-      originId: string;
-      description: string;
+      contactTypeId?: number;
+      contactSubjectId?: number;
+      originId?: string;
+      description?: string;
       observation?: string;
-      value: number;
+      value?: number;
     },
   ) {
     await Database.transaction(async trx => {
@@ -659,17 +659,17 @@ export default class OpportunityService {
     data: {
       businessUnitId?: string;
       userId: string;
+      clientId?: string;
+      contactId?: string;
       statusId: number;
-      contactId: string;
-      clientId: string;
-      contactTypeId: number;
-      contactSubjectId: number;
-
       contactDate: DateTime;
-      description: string;
+      contactTypeId?: number;
+      contactSubjectId?: number;
+      originId?: string;
+      description?: string;
       observation?: string;
-      value: number;
-      active: boolean;
+      value?: number;
+      active?: boolean;
     },
   ) {
     await Database.transaction(async trx => {

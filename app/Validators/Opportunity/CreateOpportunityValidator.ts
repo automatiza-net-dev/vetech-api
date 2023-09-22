@@ -24,39 +24,40 @@ export default class CreateOpportunityValidator {
    *    ```
    */
   public schema = schema.create({
-    businessUnitId: schema.string.optional([
-      rules.uuid(),
-      rules.exists({ table: 'business_units', column: 'id' }),
-    ]),
     userId: schema.string([
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
-    ]),
-    clientId: schema.string([
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
-    contactId: schema.string([
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
     ]),
     statusId: schema.number([
       rules.exists({ table: 'crm_statuses', column: 'id' }),
     ]),
     contactDate: schema.date(),
-    contactTypeId: schema.number([
+
+    businessUnitId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'business_units', column: 'id' }),
+    ]),
+    clientId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'patients', column: 'id' }),
+    ]),
+    contactId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'patients', column: 'id' }),
+    ]),
+    contactTypeId: schema.number.optional([
       rules.exists({ table: 'contact_types', column: 'id' }),
     ]),
-    contactSubjectId: schema.number([
+    contactSubjectId: schema.number.optional([
       rules.exists({ table: 'contact_subjects', column: 'id' }),
     ]),
-    originId: schema.string([
+    originId: schema.string.optional([
       rules.uuid(),
       rules.exists({ table: 'client_origins', column: 'id' }),
     ]),
-    description: schema.string(),
+    description: schema.string.optional(),
     observation: schema.string.optional(),
-    value: schema.number(),
+    value: schema.number.optional(),
   });
 
   /**

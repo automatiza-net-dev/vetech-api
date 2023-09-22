@@ -97,6 +97,12 @@ export default class OpportunityService {
       contactPhone?: string;
       patientName?: string;
       technician?: string;
+      minWeight?: string;
+      maxWeight?: string;
+      specie?: string;
+      race?: string;
+      gender?: string;
+      castrated?: string;
       unit?: string[];
       status?: string[];
       balance?: string[];
@@ -169,10 +175,50 @@ export default class OpportunityService {
       });
     }
 
-    if (data.patientName) {
+    if (
+      data.patientName ||
+      data.minWeight ||
+      data.maxWeight ||
+      data.specie ||
+      data.race ||
+      data.gender ||
+      typeof data.castrated !== 'undefined'
+    ) {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+
+        if (data.minWeight) {
+          query.where('weight', '>=', data.minWeight);
+        }
+
+        if (data.maxWeight) {
+          query.where('weight', '<=', data.maxWeight);
+        }
+
+        if (data.gender) {
+          query.where('gender', data.gender);
+        }
+
+        if (typeof data.castrated !== 'undefined') {
+          query.whereHas('patientAnimal', query => {
+            query.where('castrated', data.castrated === 'true');
+          });
+        }
+
+        if (data.race) {
+          query.whereHas('patientAnimal', query => {
+            query.where('race_id', data.race!);
+          });
+        }
+
+        if (data.specie) {
+          query.whereHas('patientAnimal', query => {
+            query.whereHas('race', query => {
+              query.where('specie_id', data.specie!);
+            });
+          });
         }
       });
     }
@@ -335,6 +381,12 @@ export default class OpportunityService {
       contactName?: string;
       contactPhone?: string;
       patientName?: string;
+      minWeight?: string;
+      maxWeight?: string;
+      specie?: string;
+      race?: string;
+      gender?: string;
+      castrated?: string;
       technician?: string;
       status?: string;
       units?: string[];
@@ -394,10 +446,50 @@ export default class OpportunityService {
       });
     }
 
-    if (data.patientName) {
+    if (
+      data.patientName ||
+      data.minWeight ||
+      data.maxWeight ||
+      data.specie ||
+      data.race ||
+      data.gender ||
+      typeof data.castrated !== 'undefined'
+    ) {
       qb.whereHas('client', query => {
         if (data.patientName) {
           query.where('name', 'ilike', `%${data.patientName}%`);
+        }
+
+        if (data.minWeight) {
+          query.where('weight', '>=', data.minWeight);
+        }
+
+        if (data.maxWeight) {
+          query.where('weight', '<=', data.maxWeight);
+        }
+
+        if (data.gender) {
+          query.where('gender', data.gender);
+        }
+
+        if (typeof data.castrated !== 'undefined') {
+          query.whereHas('patientAnimal', query => {
+            query.where('castrated', data.castrated === 'true');
+          });
+        }
+
+        if (data.race) {
+          query.whereHas('patientAnimal', query => {
+            query.where('race_id', data.race!);
+          });
+        }
+
+        if (data.specie) {
+          query.whereHas('patientAnimal', query => {
+            query.whereHas('race', query => {
+              query.where('specie_id', data.specie!);
+            });
+          });
         }
       });
     }

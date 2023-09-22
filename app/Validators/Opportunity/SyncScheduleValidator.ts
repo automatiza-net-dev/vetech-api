@@ -30,6 +30,12 @@ export default class SyncScheduleValidator {
         column: 'id',
       }),
     ]),
+    opportunityId: schema.number([
+      rules.exists({
+        table: 'opportunities',
+        column: 'id',
+      }),
+    ]),
   });
 
   /**

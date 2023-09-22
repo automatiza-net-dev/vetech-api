@@ -1035,13 +1035,64 @@ export default class OpportunityService {
     });
   }
 
+  public async searchSyncableOpportunities(
+    authCtx: AuthContext,
+    data: {
+      group?: string;
+      client?: string;
+    },
+  ) {
+    if (!data.client) {
+      throw new BadRequestException('Cliente não informado', 400, 'E_ERR');
+    }
+
+    const qb = Opportunity.query()
+      .preload('contact', query => {
+        query.select('id', 'name');
+      })
+      .preload('client', query => {
+        query.select('id', 'name');
+      })
+      .preload('status', query => {
+        query.select('id', 'description');
+      })
+      .select('id', 'description', 'contact_id', 'status_id', 'client_id')
+      .where('economic_group_id', data.group ?? authCtx.group.id)
+      .whereNull('schedule_id')
+      .whereNull('closing_date')
+      .where('client_id', data.client);
+
+    return await qb;
+  }
+
   public async syncSchedules(
     authCtx: AuthContext,
     data: {
       scheduleId: string;
+      opportunityId: number;
     },
   ) {
     await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', data.opportunityId)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound(
+          'Oportunidade não encontrada',
+        );
+      }
+
+      if (model.schedule_id) {
+        throw new BadRequestException(
+          'Oportunidade já possui agendamento',
+          400,
+          'E_ERR',
+        );
+      }
+
       const schedule = await Schedule.query()
         .useTransaction(trx)
         .where('business_unit_id', authCtx.unit.id)
@@ -1065,19 +1116,6 @@ export default class OpportunityService {
           'Agendamento não possui paciente',
           400,
           'E_ERR',
-        );
-      }
-
-      const model = await Opportunity.query()
-        .useTransaction(trx)
-        .where('economic_group_id', authCtx.group.id)
-        .where('patient_id', schedule.patient_id)
-        .whereNull('schedule_id')
-        .whereNull('closing_date')
-        .first();
-      if (!model) {
-        throw this.sharedService.ResourceNotFound(
-          'Oportunidade não encontrada',
         );
       }
 

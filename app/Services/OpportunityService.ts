@@ -650,6 +650,35 @@ export default class OpportunityService {
     });
   }
 
+  public async exclude(authCtx: AuthContext, id: number) {
+    await Database.transaction(async trx => {
+      const model = await Opportunity.query()
+        .where('economic_group_id', authCtx.group.id)
+        .where('id', id)
+        .first();
+
+      if (!model) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (model.closingDate) {
+        throw new BadRequestException(
+          'Não é possível excluir uma oportunidade fechada.',
+          400,
+          'E_ERR',
+        );
+      }
+
+      await model
+        .merge({
+          exclusion_user_id: authCtx.user.id,
+          deletedAt: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   public async closeWinningOpportunity(
     authCtx: AuthContext,
     id: number,

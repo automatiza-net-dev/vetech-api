@@ -1185,6 +1185,7 @@ Route.group(() => {
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
   Route.put('/:id', 'OpportunitiesController.update');
+  Route.delete('/:id', 'OpportunitiesController.excludeOpportunity');
 
   Route.post('/create-activity', 'OpportunitiesController.createActivity');
   Route.post('/update-activity', 'OpportunitiesController.updateActivity');

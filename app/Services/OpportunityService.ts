@@ -126,7 +126,9 @@ export default class OpportunityService {
         });
       })
       .preload('contact', query => {
-        query.select('id', 'name');
+        query.preload('tutor', query => {
+          query.select('id', 'email', 'cellphone', 'telephone');
+        });
       })
       .preload('contactType')
       .preload('contactSubject')
@@ -145,19 +147,19 @@ export default class OpportunityService {
     }
 
     if (data.openingFrom) {
-      qb.where('opening_date', '>=', data.openingFrom);
+      qb.whereRaw('opening_date::date >= ?', [data.openingFrom]);
     }
 
     if (data.openingTo) {
-      qb.where('opening_date', '<=', data.openingTo);
+      qb.whereRaw('opening_date::date <= ?', [data.openingTo]);
     }
 
     if (data.contactFrom) {
-      qb.where('contact_date', '>=', data.contactFrom);
+      qb.whereRaw('contact_date::date >= ?', [data.contactFrom]);
     }
 
     if (data.contactTo) {
-      qb.where('contact_date', '<=', data.contactTo);
+      qb.whereRaw('contact_date::date <= ?', [data.contactTo]);
     }
 
     if (data.status && Array.isArray(data.status)) {
@@ -212,7 +214,14 @@ export default class OpportunityService {
       balance: elem.balance,
 
       status: elem.status,
-      contact: elem.contact,
+      contact: {
+        id: elem.contact.id,
+        name: elem.contact.name,
+        email: elem.contact.tutor?.email ?? null,
+        cellphone: elem.contact.tutor?.cellphone ?? null,
+        telephone: elem.contact.tutor?.telephone ?? null,
+      },
+
       contactType: elem.contactType,
       contactSubject: elem.contactSubject,
       client: elem.client,
@@ -384,7 +393,11 @@ export default class OpportunityService {
           });
         });
       })
-      .preload('contact')
+      .preload('contact', query => {
+        query.preload('tutor', query => {
+          query.select('id', 'email', 'cellphone', 'telephone');
+        });
+      })
       .preload('contactType')
       .preload('contactSubject')
       .preload('clientOrigin')
@@ -409,19 +422,19 @@ export default class OpportunityService {
     }
 
     if (data.openingFrom) {
-      qb.where('opening_date', '>=', data.openingFrom);
+      qb.whereRaw('opening_date::date >= ?', [data.openingFrom]);
     }
 
     if (data.openingTo) {
-      qb.where('opening_date', '<=', data.openingTo);
+      qb.whereRaw('opening_date::date <= ?', [data.openingTo]);
     }
 
     if (data.contactFrom) {
-      qb.where('contact_date', '>=', data.contactFrom);
+      qb.whereRaw('contact_date::date >= ?', [data.contactFrom]);
     }
 
     if (data.contactTo) {
-      qb.where('contact_date', '<=', data.contactTo);
+      qb.whereRaw('contact_date::date <= ?', [data.contactTo]);
     }
 
     if (data.contactName) {
@@ -470,7 +483,13 @@ export default class OpportunityService {
         balance: op.balance,
 
         status: op.status,
-        contact: op.contact,
+        contact: {
+          id: op.contact.id,
+          name: op.contact.name,
+          email: op.contact.tutor?.email ?? null,
+          cellphone: op.contact.tutor?.cellphone ?? null,
+          telephone: op.contact.tutor?.telephone ?? null,
+        },
         contactDate: op.contactDate,
         contactType: op.contactType,
         contactSubject: op.contactSubject,

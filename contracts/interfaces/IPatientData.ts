@@ -4,20 +4,20 @@ import { DateTime } from 'luxon';
 
 export default interface IPatientData {
   name: string;
+  active: boolean;
+
+  holderId?: string;
+  raceId?: string;
+  castrated?: boolean;
   photo?: MultipartFileContract;
   gender?: PatientGender;
   tags?: string;
   birthDate?: DateTime;
-  active: boolean;
-  holderId: string;
-  castrated: boolean;
   microchip?: string;
   hypertension?: boolean;
   diabetes?: boolean;
   glycemia?: number;
   pressure?: string;
-
-  raceId: string;
   vaccineOrigin?: PatientVaccineOrigin;
   hairId?: string;
 }

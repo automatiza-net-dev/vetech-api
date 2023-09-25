@@ -436,6 +436,22 @@ export default class BusinessUnitFiscalDocumentService {
         Logger.info(JSON.stringify(result, undefined, 2));
       }
 
+      await BillItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          items.map(i => i.id),
+        )
+        .update({
+          nfe_issued: result.success,
+        });
+
+      // await item
+      //   .merge({
+      //     nfeIssued: result.success,
+      //   })
+      //   .useTransaction(trx)
+      //   .save();
       // await issuedDocument
       //   .merge({
       //     sefazMessage: result.message,

@@ -1,7 +1,7 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 
-export default class CreateOpportunityValidator {
+export default class UpdateBillValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   /*
@@ -24,47 +24,22 @@ export default class CreateOpportunityValidator {
    *    ```
    */
   public schema = schema.create({
-    userId: schema.string([
+    billId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'bills', column: 'id' }),
+    ]),
+    sellerId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
-    statusId: schema.number([
-      rules.exists({ table: 'crm_statuses', column: 'id' }),
-    ]),
-    contactDate: schema.date(),
-
-    raceId: schema.string.optional([
-      rules.uuid(),
-      rules.exists({ table: 'races', column: 'id' }),
-    ]),
-    businessUnitId: schema.string.optional([
-      rules.uuid(),
-      rules.exists({ table: 'business_units', column: 'id' }),
-    ]),
-    clientId: schema.string.optional([
+    clientId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    contactId: schema.string.optional([
+    patientId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    contactTypeId: schema.number.optional([
-      rules.exists({ table: 'contact_types', column: 'id' }),
-    ]),
-    contactSubjectId: schema.number.optional([
-      rules.exists({ table: 'contact_subjects', column: 'id' }),
-    ]),
-    originId: schema.string.optional([
-      rules.uuid(),
-      rules.exists({ table: 'client_origins', column: 'id' }),
-    ]),
-    description: schema.string.optional(),
-    observation: schema.string.optional(),
-    value: schema.number.optional(),
-    gender: schema.string.optional(),
-    weight: schema.number.optional(),
-    castrated: schema.boolean.optional(),
   });
 
   /**

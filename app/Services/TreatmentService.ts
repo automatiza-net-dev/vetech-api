@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Product from 'App/Models/Product';
+import ProductivityItem from 'App/Models/ProductivityItem';
 import Schedule from 'App/Models/Schedule';
 import Treatment from 'App/Models/Treatment';
 import TreatmentExecution from 'App/Models/TreatmentExecution';
@@ -57,9 +59,10 @@ export default class TreatmentService {
     return Database.transaction(async trx => {
       const existingItem = await TreatmentItem.query()
         .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
         .where('treatment_id', data.treatmentId);
 
-      return TreatmentItem.create(
+      const item = await TreatmentItem.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
@@ -77,6 +80,105 @@ export default class TreatmentService {
           client: trx,
         },
       );
+
+      const product = await Product.query()
+        .useTransaction(trx)
+        .whereHas('variations', query => {
+          query.where('id', data.productVariationId);
+        })
+        .first();
+      if (product) {
+        const productivityItems = await ProductivityItem.query()
+          .useTransaction(trx)
+          .whereHas('products', query => {
+            query.where('product_id', product.id);
+          });
+
+        const tasks = productivityItems.map(async (elem, idx) => {
+          return TreatmentItem.create(
+            {
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
+              treatment_id: data.treatmentId,
+              id: existingItem.length + 2 + idx, // 2 pois o primeiro item já foi criado
+              reference_item_id: item.id,
+              productivity_item_id: elem.id,
+
+              quantity: data.quantity,
+              quantityExecuted: 0,
+              scheduledQuantity: 0,
+              status: 'Ativo',
+            },
+            {
+              client: trx,
+            },
+          );
+        });
+        await Promise.all(tasks);
+      }
+
+      return item;
+    });
+  }
+
+  public async createProductivityItem(
+    authCtx: AuthContext,
+    data: {
+      treatmentId: number;
+      treatmentItemId: number;
+      productivityItemId: number;
+
+      quantity: number;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const existingItem = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('treatment_id', data.treatmentId)
+        .where('id', data.treatmentItemId)
+        .first();
+
+      if (!existingItem) {
+        throw new BadRequestException(
+          'Item não encontrado',
+          400,
+          'E_NOT_FOUND',
+        );
+      }
+
+      const existingItems = await TreatmentItem.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('treatment_id', data.treatmentId);
+
+      const product = await Product.query()
+        .useTransaction(trx)
+        .whereHas('variations', query => {
+          query.where('id', existingItem.product_variation_id);
+        })
+        .first();
+
+      if (product) {
+        await TreatmentItem.create(
+          {
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
+            treatment_id: data.treatmentId,
+            id: existingItems.length + 1,
+            reference_item_id: existingItem.id,
+            productivity_item_id: data.productivityItemId,
+
+            quantity: data.quantity,
+            quantityExecuted: 0,
+            scheduledQuantity: 0,
+            status: 'Ativo',
+          },
+          {
+            client: trx,
+          },
+        );
+      }
     });
   }
 

@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator'
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 
 export default class UpdateProductivityItemValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -28,11 +28,12 @@ export default class UpdateProductivityItemValidator {
       rules.exists({
         table: 'productivity_items',
         column: 'id',
-      })
+      }),
     ]),
     description: schema.string({ trim: true }),
+    reservedMinutes: schema.number(),
     active: schema.boolean(),
-  })
+  });
 
   /**
    * Custom messages for validation failures. You can make use of dot notation `(.)`
@@ -45,5 +46,5 @@ export default class UpdateProductivityItemValidator {
    * }
    *
    */
-  public messages: CustomMessages = {}
+  public messages: CustomMessages = {};
 }

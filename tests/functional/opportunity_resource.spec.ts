@@ -508,6 +508,7 @@ test.group('Opportunity resource', group => {
       .post(`/opportunities/sync-schedule`)
       .json({
         scheduleId: schedule.id,
+        opportunityId: opportunity.id,
       })
       .bearerToken(token);
 
@@ -531,9 +532,29 @@ test.group('Opportunity resource', group => {
       .post(`/opportunities/sync-schedule`)
       .json({
         scheduleId: schedule.id,
+        opportunityId: opportunity.id,
       })
       .bearerToken(token);
 
     props.assert.equal(response.status(), 400);
+  });
+
+  test('should update an opportunity patient', async props => {
+    const { user, opportunity } = await createData();
+
+    const token = await generateJwtToken(props.client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await props.client
+      .put(`/opportunities/patient`)
+      .json({
+        opportunityId: opportunity.id,
+        patientId: opportunity.client_id,
+      })
+      .bearerToken(token);
+
+    props.assert.equal(response.status(), 204);
   });
 });

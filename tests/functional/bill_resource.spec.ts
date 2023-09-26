@@ -11,6 +11,7 @@ import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductPurpose, ProductType } from 'App/Models/Product';
+import ProductivityItem from 'App/Models/ProductivityItem';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
@@ -191,6 +192,19 @@ test.group('Bill resource', group => {
       active: true,
     });
 
+    const productivity = await ProductivityItem.create({
+      economic_group_id: group.id,
+
+      description: 'some description',
+    });
+
+    await productivity.related('products').create({
+      economic_group_id: group.id,
+      product_id: product.id,
+
+      quantity: 10,
+    });
+
     /*
     await bill.related('items').create({
       economic_group_id: group.id,
@@ -344,6 +358,26 @@ test.group('Bill resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should update bill', async ({ assert, client }) => {
+    const { user, client: holder, patient, bill } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bills/update`)
+      .json({
+        billId: bill.id,
+        sellerId: user.id,
+        clientId: holder.id,
+        patientId: patient.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 
   // test('should create multiple bills', async ({ assert, client }) => {

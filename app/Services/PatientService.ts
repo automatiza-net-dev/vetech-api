@@ -631,21 +631,16 @@ export default class PatientService {
     data: Omit<IPatientData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
-    const holder = await Patient.findOrFail(data.holderId);
-
-    if (holder.type !== PatientType.TUTOR) {
-      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
-    }
-
-    const patients = await group
-      .related('patients')
-      .query()
-      .where('type', PatientType.ANIMAL)
-      .select('id');
 
     const trx = await Database.transaction();
 
     try {
+      const patients = await group
+        .related('patients')
+        .query()
+        .where('type', PatientType.ANIMAL)
+        .select('id');
+
       const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
       const patient = await Patient.create(
@@ -668,7 +663,16 @@ export default class PatientService {
         },
       );
 
-      await holder.related('dependents').attach([patient.id], trx);
+      if (data.holderId) {
+        const holder = await Patient.findOrFail(data.holderId, {
+          client: trx,
+        });
+
+        if (holder.type !== PatientType.TUTOR) {
+          throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+        }
+        await holder.related('dependents').attach([patient.id], trx);
+      }
 
       await group.related('patients').attach([patient.id], trx);
 

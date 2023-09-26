@@ -389,7 +389,9 @@ export default class BudgetService {
       );
       await unit.unitConfig
         .merge({
-          budgetCounter: (unit.unitConfig.budgetCounter + 1).toString(),
+          budgetCounter: (
+            parseInt(unit.unitConfig.budgetCounter) + 1
+          ).toString(),
         })
         .useTransaction(trx)
         .save();

@@ -900,6 +900,7 @@ Route.group(() => {
   Route.post('/create-treatment', 'BillsController.createTreatment');
 
   Route.post('/create', 'BillsController.createBill');
+  Route.post('/update', 'BillsController.updateBill');
   Route.post('/create-item', 'BillsController.createBillItem');
   Route.post('/create-items', 'BillsController.createBillItems');
   Route.post('/add-kit', 'BillsController.addKitToBill');
@@ -1088,6 +1089,10 @@ Route.group(() => {
 
   Route.post('/create', 'TreatmentsController.create');
   Route.post('/create-item', 'TreatmentsController.createItem');
+  Route.post(
+    '/create-productivity-item',
+    'TreatmentsController.createProductivityItem',
+  );
   Route.post('/create-execution', 'TreatmentsController.createExecution');
   Route.post(
     '/batch-create-execution',
@@ -1170,11 +1175,18 @@ Route.group(() => {
   Route.post('/reopen/:id', 'OpportunitiesController.reopen');
   Route.post('/update-status/:id', 'OpportunitiesController.updateStatus');
   Route.post('/update-user/:id', 'OpportunitiesController.updateUser');
+
+  Route.get(
+    '/search-syncable-opportunities',
+    'OpportunitiesController.searchSyncableOpportunities',
+  );
   Route.post('/sync-schedule', 'OpportunitiesController.syncSchedule');
 
   Route.post('/', 'OpportunitiesController.store');
   Route.get('/show/:id', 'OpportunitiesController.show');
+  Route.put('/patient', 'OpportunitiesController.updateOpportunityPatient');
   Route.put('/:id', 'OpportunitiesController.update');
+  Route.delete('/:id', 'OpportunitiesController.excludeOpportunity');
 
   Route.post('/create-activity', 'OpportunitiesController.createActivity');
   Route.post('/update-activity', 'OpportunitiesController.updateActivity');
@@ -1305,9 +1317,11 @@ Route.group(() => {
   Route.get('/checking-accounts', 'ReportsController.checkingAccountsBalance');
   Route.get('/expired', 'ReportsController.expiredFinancesReport');
   Route.get('/detailed-sales', 'ReportsController.detailedSalesReport');
+  Route.get('/sale-analytics', 'ReportsController.saleAnalyticsReport');
   Route.get('/sales', 'ReportsController.salesReport');
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');
+  Route.get('/scheduling', 'ReportsController.schedulingReport');
 })
   .prefix('reports')
   .middleware('auth');

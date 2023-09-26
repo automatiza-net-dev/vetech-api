@@ -7,17 +7,18 @@ export default class CreatePatientValidator {
 
   public schema = schema.create({
     name: schema.string({}),
+
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png', 'jpeg'],
     }),
     gender: schema.enum.optional(Object.values(PatientGender), []),
     tags: schema.string.optional({}, []),
     birthDate: schema.date.optional({}),
-    holderId: schema.string({}, [
+    holderId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
-    raceId: schema.string({}, [
+    raceId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'races', column: 'id' }),
     ]),
@@ -29,7 +30,7 @@ export default class CreatePatientValidator {
       rules.uuid(),
       rules.exists({ table: 'patient_animal_hairs', column: 'id' }),
     ]),
-    castrated: schema.boolean(),
+    castrated: schema.boolean.optional(),
     microchip: schema.string.optional(),
     hypertension: schema.boolean.optional(),
     diabetes: schema.boolean.optional(),

@@ -32,10 +32,10 @@ export default class CreateProductivityItemProductValidator {
             column: 'id',
           }),
         ]),
-        productVariationId: schema.string([
+        productId: schema.string([
           rules.uuid(),
           rules.exists({
-            table: 'product_variations',
+            table: 'products',
             column: 'id',
           }),
         ]),

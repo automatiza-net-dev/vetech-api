@@ -55,7 +55,7 @@ test.group('Productivity item resource', group => {
 
     const item = await productivity.related('products').create({
       economic_group_id: group.id,
-      product_variation_id: variation.id,
+      product_id: product.id,
 
       quantity: 10,
     });
@@ -90,7 +90,7 @@ test.group('Productivity item resource', group => {
 
     const params = new URLSearchParams({
       active: '1',
-      variation: v4(),
+      product: v4(),
     });
 
     const response = await client
@@ -111,6 +111,7 @@ test.group('Productivity item resource', group => {
       .post(`/productivity-items/create-item`)
       .json({
         description: 'some',
+        reservedMinutes: 10,
       })
       .bearerToken(token);
 
@@ -129,6 +130,7 @@ test.group('Productivity item resource', group => {
       .json({
         id: productivity.id,
         description: 'some',
+        reservedMinutes: 10,
         active: true,
       })
       .bearerToken(token);
@@ -152,7 +154,7 @@ test.group('Productivity item resource', group => {
         items: [
           {
             productivityItemId: productivity.id,
-            productVariationId: variation.id,
+            productId: variation.product_id,
             quantity: 10,
           },
         ],

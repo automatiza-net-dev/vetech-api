@@ -12,6 +12,7 @@ import UpdateOpportunityActivityValidator from 'App/Validators/Opportunity/Updat
 import UpdateOpportunityStatusValidator from 'App/Validators/Opportunity/UpdateOpportunityStatusValidator';
 import UpdateOpportunityUserValidator from 'App/Validators/Opportunity/UpdateOpportunityUserValidator';
 import UpdateOpportunityValidator from 'App/Validators/Opportunity/UpdateOpportunityValidator';
+import UpdatePatientValidator from 'App/Validators/Opportunity/UpdatePatientValidator';
 
 @inject()
 export default class OpportunitiesController {
@@ -226,11 +227,50 @@ export default class OpportunitiesController {
     return response.noContent();
   }
 
+  public async searchSyncableOpportunities({
+    response,
+    auth,
+    request,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.searchSyncableOpportunities(
+      authCtx,
+      request.qs(),
+    );
+    return response.ok(result);
+  }
+
   public async syncSchedule({ response, auth, request }: HttpContextContract) {
     const payload = await request.validate(SyncScheduleValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.syncSchedules(authCtx, payload);
+
+    return response.noContent();
+  }
+
+  public async excludeOpportunity({
+    response,
+    auth,
+    params,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.exclude(authCtx, params.id);
+
+    return response.noContent();
+  }
+
+  public async updateOpportunityPatient({
+    response,
+    auth,
+    request,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdatePatientValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateOpportunityPatient(authCtx, payload);
 
     return response.noContent();
   }

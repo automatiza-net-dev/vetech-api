@@ -108,30 +108,25 @@ export default class ReportService {
       qtyInstallments: elem.qtyInstallments,
       installment: elem.installment,
 
-      client: elem.client
-        ? {
-            id: elem.client.id,
-            name: elem.client.name,
-          }
-        : null,
-      checkingAccount: elem.checkingAccount
-        ? {
-            id: elem.checkingAccount.id,
-            description: elem.checkingAccount.description,
-          }
-        : null,
-      paymentMethod: elem.paymentMethod
-        ? {
-            id: elem.paymentMethod.id,
-            description: elem.paymentMethod.description,
-          }
-        : null,
-      accountPlan: elem.accountPlan
-        ? {
-            id: elem.accountPlan.id,
-            description: elem.accountPlan.description,
-          }
-        : null,
+      client: this.sharedService.captureGroup(elem.client, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+      checkingAccount: this.sharedService.captureGroup(
+        elem.checkingAccount,
+        v => ({
+          id: v.id,
+          description: v.description,
+        }),
+      ),
+      paymentMethod: this.sharedService.captureGroup(elem.paymentMethod, v => ({
+        id: v.id,
+        description: v.description,
+      })),
+      accountPlan: this.sharedService.captureGroup(elem.accountPlan, v => ({
+        id: v.id,
+        description: v.description,
+      })),
     }));
   }
 
@@ -867,7 +862,11 @@ export default class ReportService {
   ) {
     const qb = Budget.query()
       .preload('unit')
-      .preload('client')
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('clientOrigin');
+        });
+      })
       .preload('patient')
       .preload('user')
       .preload('seller')
@@ -941,13 +940,20 @@ export default class ReportService {
       discountValue: elem.discountValue,
       totalValue: elem.totalValue,
       status: elem.status,
+      observation: elem.observation,
+      canceledObservation: elem.canceledObservation,
       unit: {
         id: elem.unit.id,
         identification: elem.unit.identification,
+        city: elem.unit.city,
+        state: elem.unit.state,
       },
       client: this.sharedService.captureGroup(elem.client, v => ({
         id: v.id,
         name: v.name,
+        cellphone: v?.tutor?.cellphone ?? null,
+        telephone: v?.tutor?.telephone ?? null,
+        origin: v?.tutor?.clientOrigin?.description ?? null,
       })),
       patient: this.sharedService.captureGroup(elem.patient, v => ({
         id: v.id,

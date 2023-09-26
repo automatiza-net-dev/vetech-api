@@ -1000,7 +1000,7 @@ export default class ReportService {
       .preload('serviceType')
       .preload('serviceStatus')
       .preload('reason', query => {
-        query.select('id', 'description');
+        query.select('id', 'reason');
       })
       .preload('holder', query => {
         query.preload('tutor', query => {

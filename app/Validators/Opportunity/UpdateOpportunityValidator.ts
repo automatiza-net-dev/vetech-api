@@ -51,11 +51,18 @@ export default class UpdateOpportunityValidator {
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),
     ]),
+    raceId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'races', column: 'id' }),
+    ]),
 
     description: schema.string.optional(),
     observation: schema.string.optional(),
     value: schema.number.optional(),
     active: schema.boolean.optional(),
+    gender: schema.string.optional(),
+    weight: schema.number.optional(),
+    castrated: schema.boolean.optional(),
   });
 
   /**

@@ -62,6 +62,15 @@ export default class Opportunity extends BaseModel {
   })
   public profitValue: number;
 
+  @column({})
+  public gender: string;
+
+  @column({})
+  public weight: number;
+
+  @column({})
+  public castrated: boolean;
+
   @column()
   public active: boolean;
 
@@ -225,4 +234,9 @@ export default class Opportunity extends BaseModel {
     serializeAs: null,
   })
   public schedule_id: string;
+
+  @column({
+    serializeAs: null,
+  })
+  public race_id: string;
 }

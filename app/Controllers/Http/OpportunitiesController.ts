@@ -12,6 +12,7 @@ import UpdateOpportunityActivityValidator from 'App/Validators/Opportunity/Updat
 import UpdateOpportunityStatusValidator from 'App/Validators/Opportunity/UpdateOpportunityStatusValidator';
 import UpdateOpportunityUserValidator from 'App/Validators/Opportunity/UpdateOpportunityUserValidator';
 import UpdateOpportunityValidator from 'App/Validators/Opportunity/UpdateOpportunityValidator';
+import UpdatePatientValidator from 'App/Validators/Opportunity/UpdatePatientValidator';
 
 @inject()
 export default class OpportunitiesController {
@@ -257,6 +258,19 @@ export default class OpportunitiesController {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.exclude(authCtx, params.id);
+
+    return response.noContent();
+  }
+
+  public async updateOpportunityPatient({
+    response,
+    auth,
+    request,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdatePatientValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    await this.service.updateOpportunityPatient(authCtx, payload);
 
     return response.noContent();
   }

@@ -33,6 +33,10 @@ export default class CreateOpportunityValidator {
     ]),
     contactDate: schema.date(),
 
+    raceId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'races', column: 'id' }),
+    ]),
     businessUnitId: schema.string.optional([
       rules.uuid(),
       rules.exists({ table: 'business_units', column: 'id' }),
@@ -58,6 +62,9 @@ export default class CreateOpportunityValidator {
     description: schema.string.optional(),
     observation: schema.string.optional(),
     value: schema.number.optional(),
+    gender: schema.string.optional(),
+    weight: schema.number.optional(),
+    castrated: schema.boolean.optional(),
   });
 
   /**

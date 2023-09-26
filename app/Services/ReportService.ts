@@ -1087,7 +1087,7 @@ export default class ReportService {
         id: elem.id,
         startHour: elem.startHour,
         endHour: elem.endHour,
-        duration: elem.endHour.diff(elem.startHour, 'hours').hours,
+        duration: elem.endHour.diff(elem.startHour, 'minutes').minutes,
         finishedAt: elem.finishedAt,
         deletedAt: elem.deletedAt,
         cancelledAt: elem.cancellation_user_id ? elem.updatedAt : null,

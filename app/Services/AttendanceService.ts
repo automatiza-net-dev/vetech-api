@@ -154,10 +154,13 @@ export default class AttendanceService {
               holder_id: mainTutor.id,
               patient_id: patient.id,
               startHour: DateTime.now().minus({ hours: 3 }),
-              endHour: DateTime.now().minus({
-                hours: 3,
-                minutes: serviceType.reservedMinutes,
-              }),
+              endHour: DateTime.now()
+                .minus({
+                  hours: 3,
+                })
+                .plus({
+                  minutes: serviceType.reservedMinutes,
+                }),
               majorComplaint: data.resume,
               onDuty: false,
             },

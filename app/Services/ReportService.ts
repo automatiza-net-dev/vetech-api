@@ -999,6 +999,9 @@ export default class ReportService {
       .preload('cancellationUser')
       .preload('serviceType')
       .preload('serviceStatus')
+      .preload('reason', query => {
+        query.select('id', 'description');
+      })
       .preload('holder', query => {
         query.preload('tutor', query => {
           query.preload('profession');
@@ -1105,6 +1108,7 @@ export default class ReportService {
           city: elem.businessUnit.city,
           state: elem.businessUnit.state,
         },
+        reason: elem.reason,
         cancellationUser: this.sharedService.captureGroup(
           elem.cancellationUser,
           v => ({

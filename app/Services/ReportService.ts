@@ -392,6 +392,7 @@ export default class ReportService {
         patient: this.sharedService.captureGroup(elem.patient, v => ({
           id: v.id,
           name: v.name,
+          tag: v.tag,
         })),
       }))
       .sort((a, b) => {

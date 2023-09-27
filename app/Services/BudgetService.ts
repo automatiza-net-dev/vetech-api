@@ -66,19 +66,19 @@ export default class BudgetService {
     const qb = Budget.query().where('business_unit_id', unitId);
 
     if (data.fromCreation) {
-      qb.where('budget_date', '>=', data.fromCreation);
+      qb.whereRaw('budget_date::date >= ?', [data.fromCreation]);
     }
 
     if (data.toCreation) {
-      qb.where('budget_date', '<=', data.toCreation);
+      qb.whereRaw('budget_date::date <= ?', [data.toCreation]);
     }
 
     if (data.fromExpiration) {
-      qb.where('expiration_date', '>=', data.fromExpiration);
+      qb.whereRaw('expiration_date::date >= ?', [data.fromExpiration]);
     }
 
     if (data.toExpiration) {
-      qb.where('expiration_date', '<=', data.toExpiration);
+      qb.whereRaw('expiration_date::date <= ?', [data.toExpiration]);
     }
 
     if (data.seller) {

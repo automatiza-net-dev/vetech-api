@@ -8,6 +8,7 @@ import EconomicGroup from 'App/Models/EconomicGroup';
 import { LicenceType } from 'App/Models/Licence';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
+import UserUnitRole from 'App/Models/UserUnitRole';
 import IpAccessControlService from 'App/Services/IpAccessControlService';
 import ILoginData from 'Contracts/interfaces/ILoginData';
 import { isAfter } from 'date-fns';
@@ -87,7 +88,6 @@ export default class AuthService {
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
         .where('id', data.unitId)
-        .where('economic_group_id', authCtx.unit.economicGroupId)
         .first();
 
       if (!unit) {
@@ -95,6 +95,19 @@ export default class AuthService {
           'Unidade não encontrada',
           400,
           'E_UNIT_NOT_FOUND',
+        );
+      }
+
+      const userRoles = await UserUnitRole.query()
+        .useTransaction(trx)
+        .where('user_id', authCtx.user.id)
+        .where('unit_id', data.unitId)
+        .where('active', true);
+      if (userRoles.length === 0) {
+        throw new BadRequestException(
+          'Usuário não possui permissão para acessar a unidade',
+          400,
+          'E_USER_NOT_ALLOWED',
         );
       }
 

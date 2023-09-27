@@ -530,6 +530,8 @@ export default class BusinessUnitService {
         if (data.identification) {
           query.where('identification', 'ilike', `%${data.identification}%`);
         }
+
+        query.preload('economicGroup');
       });
 
     const entities = await qb;
@@ -544,6 +546,7 @@ export default class BusinessUnitService {
         fantasyName: elem.fantasyName,
         companyName: elem.companyName,
         phone: elem.phone,
+        group: elem.economicGroup,
       }));
   }
 

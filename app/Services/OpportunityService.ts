@@ -23,6 +23,9 @@ export default class OpportunityService {
       .preload('client', query => {
         query.preload('tutor');
       })
+      .preload('race', query => {
+        query.select('id', 'description');
+      })
       .preload('closingUser')
       .preload('contact')
       .preload('contactType')
@@ -54,6 +57,9 @@ export default class OpportunityService {
       closingDate: result.closingDate,
       profitValue: result.profitValue,
       resultObservation: result.resultObservation,
+      weight: result.weight,
+      castrated: result.castrated,
+      gender: result.gender,
 
       status: result.status,
       contact: result.contact,
@@ -61,6 +67,7 @@ export default class OpportunityService {
       contactSubject: result.contactSubject,
       client: result.client,
       clientOrigin: result.clientOrigin,
+      race: result.race,
 
       user: {
         id: result.user.id,

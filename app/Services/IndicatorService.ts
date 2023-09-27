@@ -946,25 +946,17 @@ export default class IndicatorService {
           `,
         ),
       )
-      .leftJoin('bill_items', query => {
-        query.on('bill_items.bill_id', '=', 'bills.id');
-      })
-      .leftJoin('product_variations', query => {
-        query.on(
-          'product_variations.id',
-          '=',
-          'bill_items.product_variation_id',
-        );
-      })
-      .leftJoin('products', query => {
-        query.on('products.id', '=', 'product_variations.product_id');
-      })
-      .leftJoin('subgroups', query => {
-        query.on('subgroups.id', '=', 'products.subgroup_id');
-      })
-      .leftJoin('business_units', query => {
-        query.on('business_units.id', '=', 'bills.business_unit_id');
-      })
+      .joinRaw(
+        `join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA'`,
+      )
+      .join(
+        'product_variations',
+        'product_variations.id',
+        'bill_items.product_variation_id',
+      )
+      .join('products', 'products.id', 'product_variations.product_id')
+      .join('subgroups', 'subgroups.id', 'products.subgroup_id')
+      .join('business_units', 'business_units.id', 'bills.business_unit_id')
       .groupBy('subgroups.id', 'subgroups.description', 'business_units.id')
       .orderBy('total', 'desc')
       .whereNull('bills.deleted_at');

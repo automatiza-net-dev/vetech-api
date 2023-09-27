@@ -24,7 +24,11 @@ export default class OpportunityService {
         query.preload('tutor');
       })
       .preload('race', query => {
-        query.select('id', 'description');
+        query.select('id', 'description', 'specie_id');
+
+        query.preload('specie', query => {
+          query.select('id', 'description');
+        });
       })
       .preload('closingUser')
       .preload('contact')

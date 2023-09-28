@@ -109,6 +109,7 @@ export default class AuthController {
         'requires_schedule_tutor',
         'requires_bill_patient',
         'allow_change_schedule_duration',
+        'interval',
       ]);
     });
 

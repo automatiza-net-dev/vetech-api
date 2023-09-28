@@ -51,6 +51,9 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public budgetCounter: string;
 
+  @column({})
+  public interval: number;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

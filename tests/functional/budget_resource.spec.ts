@@ -215,6 +215,8 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
@@ -244,6 +246,8 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         budgetDate: new Date(),
@@ -352,6 +356,26 @@ test.group('Budget resource', group => {
       .bearerToken(token);
 
     assert.equal(400, response.status());
+  });
+
+  test('should update budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/update/${budget.id}`)
+      .json({
+        sellerId: user.id,
+        clientId: budget.client_id,
+        patientId: budget.patient_id,
+        reviewerId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 
   test('should update budget observation', async ({ assert, client }) => {

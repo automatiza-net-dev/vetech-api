@@ -10,6 +10,7 @@ import CreateBudgetItemValidator from 'App/Validators/Budget/CreateBudgetItemVal
 import CreateBudgetValidator from 'App/Validators/Budget/CreateBudgetValidator';
 import UpdateBudgetItemValidator from 'App/Validators/Budget/UpdateBudgetItemValidator';
 import UpdateBudgetObservationValidator from 'App/Validators/Budget/UpdateBudgetObservationValidator';
+import UpdateBudgetValidator from 'App/Validators/Budget/UpdateBudgetValidator';
 
 @inject()
 export default class BudgetsController {
@@ -87,6 +88,23 @@ export default class BudgetsController {
     const result = await this.service.createBudget(unit_id, user, payload);
 
     return response.created(result);
+  }
+
+  public async updateBudget({
+    request,
+    response,
+    params,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateBudgetValidator);
+
+    await this.service.updateBudget(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
+
+    return response.noContent();
   }
 
   public async updateBudgetObservation({

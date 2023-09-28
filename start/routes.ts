@@ -881,6 +881,7 @@ Route.group(() => {
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
   Route.post('/create-items', 'BudgetsController.createBudgetItems');
 
+  Route.put('/update/:id', 'BudgetsController.updateBudget');
   Route.put(
     '/update-observation/:id',
     'BudgetsController.updateBudgetObservation',

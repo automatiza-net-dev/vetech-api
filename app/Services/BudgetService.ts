@@ -369,9 +369,10 @@ export default class BudgetService {
           client_id: data.clientId,
           patient_id: data.patientId,
           user_id: user.id,
-          seller_id: user.id,
+          seller_id: data.sellerId,
           daily_movement_id: data.dailyMovementId,
           evaluation_id: data.evaluationId,
+          reviewer_id: data.reviewerId,
 
           budgetDate: data.budgetDate,
           expirationDate: data.expirationDate,
@@ -446,6 +447,47 @@ export default class BudgetService {
         .save();
 
       return budget;
+    });
+  }
+
+  public async updateBudget(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      sellerId: string;
+      clientId: string;
+      reviewerId: string;
+      patientId?: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const budget = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .andWhere('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!budget) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (budget.status !== BudgetStatus.A) {
+        throw new BadRequestException(
+          'Não é possível alterar um orçamento que não esteja em aberto',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      return budget
+        .merge({
+          seller_id: data.sellerId,
+          client_id: data.clientId,
+          reviewer_id: data.reviewerId,
+          patient_id: data.patientId,
+        })
+        .useTransaction(trx)
+        .save();
     });
   }
 

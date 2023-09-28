@@ -545,7 +545,17 @@ export default class BusinessUnitService {
   }
 
   async searchUser(authCtx: AuthContext, id: string) {
-    const user = await User.find(id);
+    const user = await User.query()
+      .where('id', id)
+      .preload('roles', query => {
+        query.preload('role');
+        query.preload('unit');
+
+        query.whereHas('unit', q => {
+          q.where('economic_group_id', authCtx.group.id);
+        });
+      })
+      .first();
 
     if (!user) {
       throw new ResourceNotFoundException(
@@ -554,15 +564,6 @@ export default class BusinessUnitService {
         'E_NOT_FOUND',
       );
     }
-
-    await user.load('roles', q => {
-      q.preload('role');
-      q.preload('unit');
-
-      q.whereHas('unit', q => {
-        q.where('economic_group_id', authCtx.group.id);
-      });
-    });
 
     return {
       ...user.toJSON(),

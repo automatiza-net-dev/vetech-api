@@ -209,9 +209,34 @@ export default class KitService {
       const variation = await ProductVariation.query()
         .useTransaction(trx)
         .where('id', data.productVariationId)
+        .whereHas('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
         .preload('product')
-        .preload('businessUnitProducts')
-        .firstOrFail();
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .first();
+      if (!variation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      if (
+        variation.businessUnitProducts.some(
+          p => p.maximumDiscountValue < data.discountPrice,
+        )
+      ) {
+        throw new BadRequestException(
+          'Desconto lançado é superior ao permitido - ' +
+            variation.product.description,
+          400,
+          'E_MAX_DISCOUNT',
+        );
+      }
 
       const allUnits = await BusinessUnit.query()
         .useTransaction(trx)

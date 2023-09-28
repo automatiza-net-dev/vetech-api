@@ -481,6 +481,38 @@ export default class BudgetService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const productVariation = await ProductVariation.query()
+        .useTransaction(trx)
+        .where('id', data.productVariationId)
+        .whereHas('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .preload('product')
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .first();
+      if (!productVariation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      if (
+        productVariation.businessUnitProducts.some(
+          p => p.maximumDiscountValue < data.discountValue,
+        )
+      ) {
+        throw new BadRequestException(
+          'Desconto lançado é superior ao permitido - ' +
+            productVariation.product.description,
+          400,
+          'E_MAX_DISCOUNT',
+        );
+      }
+
       const item = await budget.related('items').create(
         {
           economic_group_id: group.id,
@@ -516,6 +548,45 @@ export default class BudgetService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const productVariations = await ProductVariation.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.map(d => d.productVariationId),
+        )
+        .whereHas('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .preload('product')
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        });
+
+      const overdiscountedItems = data.filter(elem => {
+        const variation = productVariations.find(
+          p => p.id === elem.productVariationId,
+        );
+        if (!variation) {
+          throw new BadRequestException(
+            'Não foi possível encontrar um preço para esse produto',
+            400,
+            'E_NO_VARIATION',
+          );
+        }
+
+        return variation.businessUnitProducts.some(
+          p => p.maximumDiscountValue < elem.discountValue,
+        );
+      });
+      if (overdiscountedItems.length > 0) {
+        throw new BadRequestException(
+          'Desconto lançado é superior ao permitido - ' +
+            overdiscountedItems.map(elem => elem.productVariationId).join(', '),
+          400,
+          'E_MAX_DISCOUNT',
+        );
+      }
+
       const tasks = data.map(async item => {
         const budget = await Budget.findOrFail(item.budgetId);
         const dbItem = await budget.related('items').create(

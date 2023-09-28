@@ -261,6 +261,13 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      await this.checkDiscount(trx, unitId, [
+        {
+          variationId: data.productVariationId,
+          discountValue: data.discountValue,
+        },
+      ]);
+
       return this.createBillItemWithTrx(trx, unitId, group, data);
     });
   }
@@ -269,6 +276,15 @@ export default class BillService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      await this.checkDiscount(
+        trx,
+        unitId,
+        data.map(elem => ({
+          variationId: elem.productVariationId,
+          discountValue: elem.discountValue,
+        })),
+      );
+
       const tasks = data.map(d =>
         this.createBillItemWithTrx(trx, unitId, group, d),
       );
@@ -2110,6 +2126,52 @@ export default class BillService {
       .save();
 
     return billItem;
+  }
+
+  private async checkDiscount(
+    trx: TransactionClientContract,
+    unitId: string,
+    data: {
+      variationId: string;
+      discountValue: number;
+    }[],
+  ) {
+    const productVariations = await ProductVariation.query()
+      .useTransaction(trx)
+      .whereIn(
+        'id',
+        data.map(d => d.variationId),
+      )
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
+
+    const overdiscountedItems = data.filter(elem => {
+      const variation = productVariations.find(p => p.id === elem.variationId);
+      if (!variation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      return variation.businessUnitProducts.some(
+        p => p.maximumDiscountValue < elem.discountValue,
+      );
+    });
+    if (overdiscountedItems.length > 0) {
+      throw new BadRequestException(
+        'Desconto lançado é superior ao permitido - ' +
+          overdiscountedItems.map(elem => elem.variationId).join(', '),
+        400,
+        'E_MAX_DISCOUNT',
+      );
+    }
   }
 
   public async addFromKit(

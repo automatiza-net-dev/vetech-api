@@ -513,44 +513,38 @@ export default class BusinessUnitService {
     return user;
   }
 
-  public async getUserBusinessUnits(user: User, data: ISearchClinic) {
-    const qb = user
-      .related('economicGroups')
-      .query()
-      .preload('businessUnits', query => {
-        if (data.document) {
-          query.where('document', 'ilike', `%${data.document}%`);
-        }
+  public async getUserBusinessUnits(authCtx: AuthContext, data: ISearchClinic) {
+    const query = BusinessUnit.query()
+      .preload('economicGroup')
+      .where('economic_group_id', authCtx.group.id);
 
-        if (data.name) {
-          query.orWhere('fantasyName', 'ilike', `%${data.name}%`);
-          query.orWhere('companyName', 'ilike', `%${data.name}%`);
-        }
+    if (data.document) {
+      query.where('document', 'ilike', `%${data.document}%`);
+    }
 
-        if (data.identification) {
-          query.where('identification', 'ilike', `%${data.identification}%`);
-        }
+    if (data.name) {
+      query.orWhere('fantasyName', 'ilike', `%${data.name}%`);
+      query.orWhere('companyName', 'ilike', `%${data.name}%`);
+    }
 
-        query.preload('economicGroup');
-      });
+    if (data.identification) {
+      query.where('identification', 'ilike', `%${data.identification}%`);
+    }
 
-    const entities = await qb;
+    const entities = await query;
 
-    return entities
-      .map(ent => ent.businessUnits)
-      .flat()
-      .map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        document: elem.document,
-        fantasyName: elem.fantasyName,
-        companyName: elem.companyName,
-        phone: elem.phone,
-        group: elem.economicGroup,
-      }));
+    return entities.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      document: elem.document,
+      fantasyName: elem.fantasyName,
+      companyName: elem.companyName,
+      phone: elem.phone,
+      group: elem.economicGroup,
+    }));
   }
 
-  async searchUser(_: string, id: string) {
+  async searchUser(authCtx: AuthContext, id: string) {
     const user = await User.find(id);
 
     if (!user) {
@@ -564,6 +558,10 @@ export default class BusinessUnitService {
     await user.load('roles', q => {
       q.preload('role');
       q.preload('unit');
+
+      q.whereHas('unit', q => {
+        q.where('economic_group_id', authCtx.group.id);
+      });
     });
 
     return {

@@ -69,9 +69,15 @@ export default class BudgetService {
         query.preload('tutor');
       })
       .preload('patient')
-      .preload('user')
-      .preload('seller')
-      .preload('reviewer')
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
       .preload('dailyMovement')
       .preload('conclusionUser')
       .preload('cancelationReason')
@@ -125,9 +131,15 @@ export default class BudgetService {
       .preload('patient', query => {
         query.preload('patientAnimal');
       })
-      .preload('user')
-      .preload('seller')
-      .preload('reviewer')
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
       .preload('dailyMovement')
       .preload('conclusionUser')
       .preload('cancelationReason')
@@ -163,10 +175,15 @@ export default class BudgetService {
       .preload('patient', query => {
         query.preload('patientAnimal');
       })
-      .preload('user')
-      .preload('seller')
-      .preload('reviewer')
-      .preload('dailyMovement')
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
       .preload('conclusionUser')
       .preload('cancelationReason')
       .preload('items', query => {

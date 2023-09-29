@@ -32,10 +32,6 @@ export default class CreateReceiptValidator {
       rules.uuid(),
       rules.exists({ table: 'daily_movements', column: 'id' }),
     ]),
-    dailyCashierId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({ table: 'daily_cashiers', column: 'id' }),
-    ]),
     reversalUserId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'reasons', column: 'id' }),

@@ -541,42 +541,84 @@ export default class DailyCashierService {
   }
 
   async reopenDailyCashier(authCtx: AuthContext, id: string) {
-    const dailyCashier = await DailyCashier.query()
-      .where('id', id)
-      .where('business_unit_id', authCtx.unit.id)
-      .first();
+    return await Database.transaction(async trx => {
+      const dailyCashier = await DailyCashier.query()
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
 
-    if (!dailyCashier) {
-      throw this.sharedService.ResourceNotFound('Caixa diário não encontrado');
-    }
+      if (!dailyCashier) {
+        throw this.sharedService.ResourceNotFound(
+          'Caixa diário não encontrado',
+        );
+      }
 
-    if (
-      ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
-        dailyCashier.status,
-      )
-    ) {
-      throw new BadRequestException(
-        'Caixa diário não está fechado',
-        400,
-        'E_DAILY_CASHIER_NOT_CLOSED',
-      );
-    }
+      if (
+        ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
+          dailyCashier.status,
+        )
+      ) {
+        throw new BadRequestException(
+          'Caixa diário não está fechado',
+          400,
+          'E_DAILY_CASHIER_NOT_CLOSED',
+        );
+      }
 
-    const openCashier = await DailyCashier.query()
-      .where('business_unit_id', authCtx.unit.id)
-      .where('user_who_opened_id', authCtx.user.id)
-      .whereNot('id', id)
-      .where('status', DailyCashierStatus.A)
-      .first();
-    if (openCashier) {
-      throw new BadRequestException(
-        'Já existe um caixa diário aberto para este usuário',
-        400,
-        'E_DAILY_CASHIER_ALREADY_OPENED',
-      );
-    }
+      const unitDailyMovement = await DailyMovement.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('status', DailyMovementStatus.A)
+        .first();
 
-    return Database.transaction(async trx => {
+      if (!unitDailyMovement) {
+        throw new BadRequestException(
+          'Nenhum movimento diário aberto para a unidade',
+          400,
+          'E_DAILY_MOVEMENT_NOT_OPENED',
+        );
+      }
+
+      if (dailyCashier.daily_movement_id !== unitDailyMovement.id) {
+        throw new BadRequestException(
+          'Caixa diário não pertence ao movimento diário aberto para a unidade',
+          400,
+          'E_DAILY_CASHIER_NOT_OPENED',
+        );
+      }
+
+      if (authCtx.unit.unitConfig.dailyCashierType === 'usuario') {
+        const anotherOpenCashiers = await DailyCashier.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .where('user_who_opened_id', authCtx.user.id)
+          .whereRaw(`(status = ?)`, [DailyCashierStatus.A])
+          .orderBy('opening_date', 'desc');
+
+        if (anotherOpenCashiers.length > 0) {
+          throw new BadRequestException(
+            'Já existe um caixa diário hoje para este usuário',
+            400,
+            'E_DAILY_CASHIER_ALREADY_OPENED',
+          );
+        }
+      }
+
+      if (authCtx.unit.unitConfig.dailyCashierType === 'geral') {
+        const anotherOpenCashiers = await DailyCashier.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .whereNot('status', DailyCashierStatus.A);
+
+        if (anotherOpenCashiers.length > 0) {
+          throw new BadRequestException(
+            'Já existe um caixa diário aberto para esta unidade',
+            400,
+            'E_DAILY_CASHIER_ALREADY_OPENED',
+          );
+        }
+      }
+
       await dailyCashier.related('logs').create(
         {
           business_unit_id: authCtx.unit.id,

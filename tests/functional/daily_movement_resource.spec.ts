@@ -14,9 +14,9 @@ test.group('Daily movement resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, config } = await userBootstrap();
 
-    return { user, business };
+    return { user, business, config };
   };
 
   test('should return all daily movements', async ({ assert, client }) => {
@@ -90,10 +90,6 @@ test.group('Daily movement resource', group => {
       .bearerToken(token);
 
     assert.equal(400, response.status());
-    assert.equal(
-      'E_DAILY_MOVEMENT_OPENED: Já existe um movimento diário aberto para hoje',
-      response.body().message,
-    );
   });
 
   test('should open a new daily movement', async ({ assert, client }) => {
@@ -320,6 +316,48 @@ test.group('Daily movement resource', group => {
       'E_DAILY_MOVEMENT_NOT_SAME_DAY: Movimento diário só pode ser reaberto no mesmo dia',
       response.body().message,
     );
+  });
+
+  test('should throw BadRequestException if reopen with another movement open (locked false)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, business, config } = await createData();
+
+    await config
+      .merge({
+        lockedDailyMovementDate: false,
+      })
+      .save();
+
+    await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now().minus({ seconds: 1 }),
+      status: DailyMovementStatus.A,
+    });
+
+    const movement = await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now().minus({ seconds: 1 }),
+      status: DailyMovementStatus.F,
+    });
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/daily-movements/reopen/${movement.id}`)
+      .json({
+        userId: user.id,
+        openingDate: DateTime.now(),
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should reopen a daily movement', async ({ assert, client }) => {

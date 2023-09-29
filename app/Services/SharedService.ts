@@ -56,6 +56,7 @@ export default class SharedService {
           query.preload('systemUrls');
         });
       })
+      .preload('unitConfig')
       .firstOrFail();
 
     return {

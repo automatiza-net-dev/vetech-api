@@ -42,10 +42,10 @@ interface ISearch {
 export default class DailyCashierService {
   constructor(private readonly sharedService: SharedService) {}
 
-  async listSaleItems(unitId: string, id: string) {
+  async listSaleItems(authCtx: AuthContext, id: string) {
     const dailyCashier = await DailyCashier.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .preload('businessUnit')
       .preload('userWhoOpened')
       .preload('userWhoClosed')
@@ -167,11 +167,11 @@ export default class DailyCashierService {
     };
   }
 
-  async dump(unitId: string, id: string) {
+  async dump(authCtx: AuthContext, id: string) {
     return Database.transaction(async trx => {
       const result = await DailyCashier.query()
         .useTransaction(trx)
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .where('id', id)
         .preload('bills', query => {
           query.preload('client', query => {
@@ -294,9 +294,9 @@ export default class DailyCashierService {
     });
   }
 
-  async index(unitId: string, data: ISearch) {
+  async index(authCtx: AuthContext, data: ISearch) {
     const query = DailyCashier.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .preload('userWhoOpened')
       .preload('userWhoClosed')
       .preload('userWhoRevised')
@@ -355,9 +355,80 @@ export default class DailyCashierService {
     return query;
   }
 
-  async openDailyCashier(unitId: string, data: IOpenCashierData) {
+  async openDailyCashier(authCtx: AuthContext, data: IOpenCashierData) {
     return Database.transaction(async trx => {
-      // já validado no request, nunca vai "falhar"
+      if (authCtx.unit.unitConfig.dailyCashierType === 'usuario') {
+        const anotherOpenCashiers = await DailyCashier.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .where('user_who_opened_id', data.userId)
+          .whereRaw(`(status = ?) or (opening_date::date = now()::date)`, [
+            DailyCashierStatus.A,
+          ])
+          .orderBy('opening_date', 'desc');
+
+        if (anotherOpenCashiers.some(c => c.status === DailyCashierStatus.A)) {
+          throw new BadRequestException(
+            'Já existe um caixa diário aberto para este usuário',
+            400,
+            'E_DAILY_CASHIER_ALREADY_OPENED',
+          );
+        }
+
+        if (anotherOpenCashiers.length > 0) {
+          throw new BadRequestException(
+            'Já existe um caixa diário hoje para este usuário',
+            400,
+            'E_DAILY_CASHIER_ALREADY_OPENED',
+          );
+        }
+      }
+
+      if (authCtx.unit.unitConfig.dailyCashierType === 'geral') {
+        const anotherOpenCashiers = await DailyCashier.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .whereNot('status', DailyCashierStatus.A)
+          .first();
+
+        if (anotherOpenCashiers) {
+          throw new BadRequestException(
+            'Já existe um caixa diário aberto para esta unidade',
+            400,
+            'E_DAILY_CASHIER_ALREADY_OPENED',
+          );
+        }
+      }
+
+      if (authCtx.unit.unitConfig.lockedDailyMovementDate) {
+        const anotherOpenDailyMovement = await DailyMovement.query()
+          .where('business_unit_id', authCtx.unit.id)
+          .where('status', DailyMovementStatus.A)
+          .whereRaw(`(opening_date::date = now()::date)`)
+          .first();
+
+        if (!anotherOpenDailyMovement) {
+          throw new BadRequestException(
+            'Não existe movimento diário aberto para a data de hoje',
+            400,
+            'E_DAILY_MOVEMENT_OPENED',
+          );
+        }
+      } else {
+        const anotherOpenDailyMovement = await DailyMovement.query()
+          .where('business_unit_id', authCtx.unit.id)
+          .where('status', DailyMovementStatus.A)
+          .first();
+
+        if (!anotherOpenDailyMovement) {
+          throw new BadRequestException(
+            'Não existe movimento diário aberto',
+            400,
+            'E_DAILY_MOVEMENT_OPENED',
+          );
+        }
+      }
+
       const dailyMovement = await DailyMovement.findOrFail(
         data.dailyMovementId,
         {
@@ -390,11 +461,11 @@ export default class DailyCashierService {
       }
 
       const count = await DailyCashier.query()
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .select(['id']);
 
       return dailyMovement.related('cashiers').create({
-        business_unit_id: unitId,
+        business_unit_id: authCtx.unit.id,
         user_who_opened_id: data.userId,
         openingDate: data.openingDate,
         status: DailyCashierStatus.A,
@@ -404,10 +475,14 @@ export default class DailyCashierService {
     });
   }
 
-  async closeDailyCashier(unitId: string, id: string, data: ICloseCashierData) {
+  async closeDailyCashier(
+    authCtx: AuthContext,
+    id: string,
+    data: ICloseCashierData,
+  ) {
     const dailyCashier = await DailyCashier.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyCashier) {
@@ -465,10 +540,10 @@ export default class DailyCashierService {
       .save();
   }
 
-  async reopenDailyCashier(unitId: string, id: string, userId: string) {
+  async reopenDailyCashier(authCtx: AuthContext, id: string) {
     const dailyCashier = await DailyCashier.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyCashier) {
@@ -488,8 +563,8 @@ export default class DailyCashierService {
     }
 
     const openCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('user_who_opened_id', userId)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('user_who_opened_id', authCtx.user.id)
       .whereNot('id', id)
       .where('status', DailyCashierStatus.A)
       .first();
@@ -504,9 +579,9 @@ export default class DailyCashierService {
     return Database.transaction(async trx => {
       await dailyCashier.related('logs').create(
         {
-          business_unit_id: unitId,
+          business_unit_id: authCtx.unit.id,
           user_who_closed_id: dailyCashier.user_who_closed_id,
-          user_who_reopened_id: userId,
+          user_who_reopened_id: authCtx.user.id,
           openingBalance: dailyCashier.openingBalance,
           cashierFunds: dailyCashier.cashierFunds,
           salesTotal: dailyCashier.salesTotal,
@@ -579,7 +654,7 @@ export default class DailyCashierService {
   }
 
   async reviewDailyCashier(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IReviewCashierData,
   ) {
@@ -587,7 +662,7 @@ export default class DailyCashierService {
       const dailyCashier = await DailyCashier.query()
         .useTransaction(trx)
         .where('id', id)
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .first();
 
       if (!dailyCashier) {
@@ -619,13 +694,13 @@ export default class DailyCashierService {
   }
 
   async createCashierExpenseEntry(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: ICreateCashierExpenseEntryData,
   ) {
     const dailyCashier = await DailyCashier.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyCashier) {
@@ -641,7 +716,7 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      business_unit_id: unitId,
+      business_unit_id: authCtx.unit.id,
       account_plan_id: data.accountPlanId,
       payment_method_id: data.paymentMethodId,
 
@@ -656,13 +731,13 @@ export default class DailyCashierService {
   }
 
   async createCashierReceiptEntry(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: ICreateCashierReceiptEntryData,
   ) {
     const dailyCashier = await DailyCashier.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyCashier) {
@@ -678,7 +753,7 @@ export default class DailyCashierService {
     }
 
     await dailyCashier.related('entries').create({
-      business_unit_id: unitId,
+      business_unit_id: authCtx.unit.id,
       account_plan_id: data.accountPlanId,
       payment_method_id: data.paymentMethodId,
 

@@ -54,6 +54,16 @@ export default class BusinessUnitConfig extends BaseModel {
   @column({})
   public interval: number;
 
+  @column({
+    columnName: 'locked_daily_movement_date',
+  })
+  public lockedDailyMovementDate: boolean;
+
+  @column({
+    columnName: 'daily_cashier_type',
+  })
+  public dailyCashierType: 'usuario' | 'geral';
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

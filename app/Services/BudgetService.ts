@@ -63,7 +63,19 @@ export default class BudgetService {
   ) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
-    const qb = Budget.query().where('business_unit_id', unitId);
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient')
+      .preload('user')
+      .preload('seller')
+      .preload('reviewer')
+      .preload('dailyMovement')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .orderBy('created_at', 'desc');
 
     if (data.fromCreation) {
       qb.whereRaw('budget_date::date >= ?', [data.fromCreation]);
@@ -101,23 +113,30 @@ export default class BudgetService {
       qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient');
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-
-    qb.orderBy('created_at', 'desc');
-
     return qb;
   }
 
   public async completeIndex(unitId: string, data: ISearchComplete) {
-    const qb = Budget.query().where('business_unit_id', unitId);
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal');
+      })
+      .preload('user')
+      .preload('seller')
+      .preload('reviewer')
+      .preload('dailyMovement')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
+      .orderBy('created_at', 'desc');
 
     if (data.budget) {
       qb.where('id', data.budget);
@@ -131,48 +150,31 @@ export default class BudgetService {
       qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient', query => {
-      query.preload('patientAnimal');
-    });
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-    qb.preload('items', query => {
-      query.preload('productVariation', query => {
-        query.preload('product');
-      });
-    });
-
-    qb.orderBy('created_at', 'desc');
-
     return qb;
   }
 
   public async show(unitId: string, id: string) {
-    const qb = Budget.query().where('business_unit_id', unitId).where('id', id);
-
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient', query => {
-      query.preload('patientAnimal');
-    });
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-    qb.preload('items', query => {
-      query.preload('productVariation', query => {
-        query.preload('variationOptions');
-        query.preload('product');
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .where('id', id)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal');
+      })
+      .preload('user')
+      .preload('seller')
+      .preload('reviewer')
+      .preload('dailyMovement')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('variationOptions');
+          query.preload('product');
+        });
       });
-    });
 
     const result = await qb.first();
 

@@ -4,6 +4,8 @@ import AccountPlan, { AccountPlanType } from 'App/Models/AccountPlan';
 import CheckingAccount, {
   CheckingAccountType,
 } from 'App/Models/CheckingAccount';
+import { DailyCashierStatus } from 'App/Models/DailyCashier';
+import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
@@ -14,6 +16,7 @@ import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import TefAcquirer from 'App/Models/TefAcquirer';
 import TefFlag, { TefFlagType } from 'App/Models/TefFlag';
 import PatientFactory from 'Database/factories/PatientFactory';
+import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -25,7 +28,7 @@ test.group('Finance resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, config } = await userBootstrap();
 
     const tutor = await PatientFactory.create();
     const accountPlan = await AccountPlan.create({
@@ -79,6 +82,20 @@ test.group('Finance resource', group => {
       status: FinanceStatus.A,
     });
 
+    const dailyMovement = await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyMovementStatus.A,
+    });
+
+    const dailyCashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
+
     return {
       user,
       business,
@@ -88,6 +105,8 @@ test.group('Finance resource', group => {
       tefAcq,
       tefFlag,
       finance,
+      dailyCashier,
+      config,
     };
   };
 
@@ -127,6 +146,96 @@ test.group('Finance resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if no cashier was found (type = usuario)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, accountPlan, tutor, paymentMethod, dailyCashier } =
+      await createData();
+    await dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/finances/create`)
+      .json({
+        clientId: tutor.id,
+        type: FinanceType.C,
+        accountPlanId: accountPlan.id,
+        paymentMethodId: paymentMethod.id,
+        document: 'some document',
+        historic: 'some historic',
+        issueDate: new Date(),
+        expirationDate: new Date(),
+        originalValue: 192,
+        accept: FinanceAccept.S,
+        installment: 1,
+        originFlag: FinanceOriginFlag.C,
+        paymentValue: 20,
+        competenceDate: '12/2022',
+        fiscalNote: 'some note reversal',
+        userDocument: '123',
+        nsuDocument: '123',
+        barCode: '123',
+        bank: '123',
+        agency: '123',
+        account: '123',
+        qtyInstallments: 1,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if no cashier was found (type = geral)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, accountPlan, tutor, paymentMethod, dailyCashier, config } =
+      await createData();
+
+    await config.merge({ dailyCashierType: 'geral' }).save();
+    await dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/finances/create`)
+      .json({
+        clientId: tutor.id,
+        type: FinanceType.C,
+        accountPlanId: accountPlan.id,
+        paymentMethodId: paymentMethod.id,
+        document: 'some document',
+        historic: 'some historic',
+        issueDate: new Date(),
+        expirationDate: new Date(),
+        originalValue: 192,
+        accept: FinanceAccept.S,
+        installment: 1,
+        originFlag: FinanceOriginFlag.C,
+        paymentValue: 20,
+        competenceDate: '12/2022',
+        fiscalNote: 'some note reversal',
+        userDocument: '123',
+        nsuDocument: '123',
+        barCode: '123',
+        bank: '123',
+        agency: '123',
+        account: '123',
+        qtyInstallments: 1,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should create finance (with tef related)', async ({

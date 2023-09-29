@@ -81,7 +81,7 @@ export default class FinanceService {
       .preload('checkingAccount')
       .preload('flag', query => {
         query.select(['id', 'description']);
-      })
+      });
 
     if (data.id) {
       qb.where('id', data.id);
@@ -161,72 +161,100 @@ export default class FinanceService {
   }
 
   // 2.1
-  async createFinance(unitId: string, user: User, data: IUpsertFinance) {
-    const group = await this.sharedService.getUserGroup(unitId);
+  async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
+    return await Database.transaction(async trx => {
+      const paymentMethod = await PaymentMethod.findOrFail(
+        data.paymentMethodId,
+        {
+          client: trx,
+        },
+      );
 
-    const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
-    const dailyMovement = await DailyMovement.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .first();
-    const dailyCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .where('user_who_opened_id', user.id)
-      .first();
+      const dailyMovement = await DailyMovement.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('status', DailyMovementStatus.A)
+        .first();
+      const dailyCashier =
+        authCtx.unit.unitConfig.dailyCashierType === 'usuario'
+          ? await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('user_who_opened_id', authCtx.user.id)
+              .where('status', DailyCashierStatus.A)
+              .first()
+          : await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('status', DailyCashierStatus.A)
+              .first();
 
-    const discount = data.originalValue * (paymentMethod.fee / 100);
+      if (!dailyCashier) {
+        throw new BadRequestException(
+          'Não existe caixa diário aberto',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
 
-    return Finance.create({
-      daily_movement_id: dailyMovement?.id,
-      daily_cashier_id: dailyCashier?.id,
-      status: FinanceStatus.A,
-      feeDiscountPercentage: paymentMethod.fee,
-      feeDiscountValue: discount,
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      client_id: data.clientId,
-      type: data.type,
-      account_plan_id: data.accountPlanId,
-      payment_method_id: data.paymentMethodId,
-      document: data.document,
-      historic: data.historic,
-      issueDate: data.issueDate,
-      expirationDate: data.expirationDate,
-      originalValue: data.originalValue,
-      value: data.originalValue - discount,
-      totalValue:
-        data.originalValue +
-        (data.feeValue || 0) +
-        (data.increaseValue || 0) -
-        (data.discountValue || 0) -
-        discount,
-      accept: data.accept,
-      installment: data.installment,
-      originFlag: data.originFlag,
-      checking_account_id: data.checkingAccountId,
-      qtyInstallments: data.qtyInstallments,
+      const discount = data.originalValue * (paymentMethod.fee / 100);
 
-      paymentDate: data.paymentDate,
-      downDate: data.downDate,
-      paymentValue: data.paymentValue,
-      feeValue: data.feeValue,
-      feePercentage: data.feePercentage,
-      discountValue: data.discountValue,
-      discountPercentage: data.discountPercentage,
-      additionPercentage: data.increasePercentage,
-      additionValue: data.increaseValue,
-      observation: data.observation,
-      competenceDate: data.competenceDate,
-      fiscalNote: data.fiscalNote,
-      userDocument: data.userDocument,
-      nsuDocument: data.nsuDocument,
-      barCode: data.barCode,
-      bank: data.bank,
-      agency: data.agency,
-      account: data.account,
-      acquirer_id: data.tefAcquirerId,
-      tef_flag_id: data.tefFlagId,
+      return Finance.create(
+        {
+          daily_movement_id: dailyMovement?.id,
+          daily_cashier_id: dailyCashier?.id,
+          status: FinanceStatus.A,
+          feeDiscountPercentage: paymentMethod.fee,
+          feeDiscountValue: discount,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          client_id: data.clientId,
+          type: data.type,
+          account_plan_id: data.accountPlanId,
+          payment_method_id: data.paymentMethodId,
+          document: data.document,
+          historic: data.historic,
+          issueDate: data.issueDate,
+          expirationDate: data.expirationDate,
+          originalValue: data.originalValue,
+          value: data.originalValue - discount,
+          totalValue:
+            data.originalValue +
+            (data.feeValue || 0) +
+            (data.increaseValue || 0) -
+            (data.discountValue || 0) -
+            discount,
+          accept: data.accept,
+          installment: data.installment,
+          originFlag: data.originFlag,
+          checking_account_id: data.checkingAccountId,
+          qtyInstallments: data.qtyInstallments,
+
+          paymentDate: data.paymentDate,
+          downDate: data.downDate,
+          paymentValue: data.paymentValue,
+          feeValue: data.feeValue,
+          feePercentage: data.feePercentage,
+          discountValue: data.discountValue,
+          discountPercentage: data.discountPercentage,
+          additionPercentage: data.increasePercentage,
+          additionValue: data.increaseValue,
+          observation: data.observation,
+          competenceDate: data.competenceDate,
+          fiscalNote: data.fiscalNote,
+          userDocument: data.userDocument,
+          nsuDocument: data.nsuDocument,
+          barCode: data.barCode,
+          bank: data.bank,
+          agency: data.agency,
+          account: data.account,
+          acquirer_id: data.tefAcquirerId,
+          tef_flag_id: data.tefFlagId,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 

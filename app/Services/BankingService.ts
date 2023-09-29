@@ -1,8 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, { BankingStatus, BankingType } from 'App/Models/Banking';
 import CheckingAccount from 'App/Models/CheckingAccount';
-import DailyCashier from 'App/Models/DailyCashier';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
@@ -12,7 +13,7 @@ import Finance, {
 } from 'App/Models/Finance';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IUpsertBankingData } from 'Contracts/interfaces/IBankingData';
 import { DateTime } from 'luxon';
 
@@ -74,9 +75,7 @@ export default class BankingService {
     return qb;
   }
 
-  async storeBanking(unitId: string, user: User, data: IUpsertBankingData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async storeBanking(authCtx: AuthContext, data: IUpsertBankingData) {
     return Database.transaction(async trx => {
       const paymentMethod = await PaymentMethod.findOrFail(
         data.paymentMethodId,
@@ -87,16 +86,31 @@ export default class BankingService {
 
       const dailyMovement = await DailyMovement.query()
         .useTransaction(trx)
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .where('status', DailyMovementStatus.A)
         .first();
 
-      const dailyCashier = await DailyCashier.query()
-        .useTransaction(trx)
-        .where('business_unit_id', unitId)
-        .where('status', DailyMovementStatus.A)
-        .where('user_who_opened_id', user.id)
-        .first();
+      const dailyCashier =
+        authCtx.unit.unitConfig.dailyCashierType === 'usuario'
+          ? await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('user_who_opened_id', authCtx.user.id)
+              .where('status', DailyCashierStatus.A)
+              .first()
+          : await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('status', DailyCashierStatus.A)
+              .first();
+
+      if (!dailyCashier) {
+        throw new BadRequestException(
+          'Não existe caixa diário aberto',
+          400,
+          'E_NOT_OPEN',
+        );
+      }
 
       const checkingAccount = await CheckingAccount.findOrFail(
         data.checkingAccountId,
@@ -115,8 +129,8 @@ export default class BankingService {
 
       const finance = await Finance.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
           type: FinanceType[data.type],
           account_plan_id: data.accountPlanId,
@@ -161,7 +175,7 @@ export default class BankingService {
       );
 
       const existingBankingsBefore = await Banking.query()
-        .where('economic_group_id', group.id)
+        .where('economic_group_id', authCtx.group.id)
         .whereRaw('issue_date::date <= ?', [data.issueDate.toJSDate()])
         .limit(1)
         .orderBy('created_at', 'desc');
@@ -208,8 +222,8 @@ export default class BankingService {
 
       const banking = await Banking.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
           account_plan_id: data.accountPlanId,
           payment_method_id: data.paymentMethodId,

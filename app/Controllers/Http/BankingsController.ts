@@ -30,10 +30,12 @@ export default class BankingsController {
   }
 
   async storeBanking({ auth, request, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpsertBankingValidator);
 
-    const result = await this.service.storeBanking(unit_id, user, payload);
+    const result = await this.service.storeBanking(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

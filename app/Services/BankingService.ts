@@ -90,27 +90,10 @@ export default class BankingService {
         .where('status', DailyMovementStatus.A)
         .first();
 
-      const dailyCashier =
-        authCtx.unit.unitConfig.dailyCashierType === 'usuario'
-          ? await DailyCashier.query()
-              .useTransaction(trx)
-              .where('business_unit_id', authCtx.unit.id)
-              .where('user_who_opened_id', authCtx.user.id)
-              .where('status', DailyCashierStatus.A)
-              .first()
-          : await DailyCashier.query()
-              .useTransaction(trx)
-              .where('business_unit_id', authCtx.unit.id)
-              .where('status', DailyCashierStatus.A)
-              .first();
-
-      if (!dailyCashier) {
-        throw new BadRequestException(
-          'Não existe caixa diário aberto',
-          400,
-          'E_NOT_OPEN',
-        );
-      }
+      const dailyCashier = await this.sharedService.getContextCashier(
+        authCtx,
+        trx,
+      );
 
       const checkingAccount = await CheckingAccount.findOrFail(
         data.checkingAccountId,

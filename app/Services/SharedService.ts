@@ -1,8 +1,11 @@
 import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
+import { TransactionClientContract } from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import EconomicGroup from 'App/Models/EconomicGroup';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
@@ -135,5 +138,34 @@ export default class SharedService {
     }
 
     return fn(val);
+  }
+
+  public async getContextCashier(
+    authCtx: AuthContext,
+    trx: TransactionClientContract,
+  ) {
+    const dailyCashier =
+      authCtx.unit.unitConfig.dailyCashierType === 'usuario'
+        ? await DailyCashier.query()
+            .useTransaction(trx)
+            .where('business_unit_id', authCtx.unit.id)
+            .where('user_who_opened_id', authCtx.user.id)
+            .where('status', DailyCashierStatus.A)
+            .first()
+        : await DailyCashier.query()
+            .useTransaction(trx)
+            .where('business_unit_id', authCtx.unit.id)
+            .where('status', DailyCashierStatus.A)
+            .first();
+
+    if (!dailyCashier) {
+      throw new BadRequestException(
+        'Não existe caixa diário aberto',
+        400,
+        'E_NOT_OPEN',
+      );
+    }
+
+    return dailyCashier;
   }
 }

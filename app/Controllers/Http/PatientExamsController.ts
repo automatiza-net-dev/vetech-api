@@ -34,9 +34,11 @@ export default class PatientExamsController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientExamValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const patient = await this.service.store(unit_id, user, payload);
+    const patient = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(patient);
   }

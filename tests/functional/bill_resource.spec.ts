@@ -39,7 +39,7 @@ test.group('Bill resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, config } = await userBootstrap();
 
     const tefAcq = await TefAcquirer.create({
       economic_group_id: group.id,
@@ -276,6 +276,7 @@ test.group('Bill resource', group => {
       client,
       kit,
       kitItem,
+      config,
     };
   };
 
@@ -327,6 +328,80 @@ test.group('Bill resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(response.body());
+  });
+
+  test('should throw BadRequestException when creating bill with no daily cashier was found', async ({
+    assert,
+    client,
+  }) => {
+    const {
+      user,
+      client: holder,
+      patient,
+      dailyCashier,
+      dailyMovement,
+    } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+    await dailyCashier.softDelete();
+
+    const response = await client
+      .post(`/bills/create`)
+      .json({
+        clientId: holder.id,
+        patientId: patient.id,
+        dailyMovementId: dailyMovement.id,
+        billDate: new Date(),
+        productValue: 100,
+        serviceValue: 200,
+        discountValue: 55,
+        items: [],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException when creating bill with no daily cashier was found (type = geral)', async ({
+    assert,
+    client,
+  }) => {
+    const {
+      user,
+      client: holder,
+      patient,
+      dailyCashier,
+      dailyMovement,
+      config,
+    } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+    await config
+      .merge({
+        dailyCashierType: 'geral',
+      })
+      .save();
+    await dailyCashier.softDelete();
+
+    const response = await client
+      .post(`/bills/create`)
+      .json({
+        clientId: holder.id,
+        patientId: patient.id,
+        dailyMovementId: dailyMovement.id,
+        billDate: new Date(),
+        productValue: 100,
+        serviceValue: 200,
+        discountValue: 55,
+        items: [],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should create bill', async ({ assert, client }) => {

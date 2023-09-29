@@ -4,7 +4,6 @@ export interface ICreateBillData {
   clientId: string;
   patientId?: string;
   dailyMovementId?: string;
-  dailyCashierId?: string;
   billDate: DateTime;
 
   items: Array<{

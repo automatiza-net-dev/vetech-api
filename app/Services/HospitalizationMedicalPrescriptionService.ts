@@ -940,11 +940,14 @@ export default class HospitalizationMedicalPrescriptionService {
     if (prescription.type === MedicalPrescriptionType.MEDICATION) {
       return [
         prescription.description,
-        [prescription.dose, prescription.prescriptionUnit.name].join(' '),
-        `volume: ${prescription.volume}`,
-        `via de aplicação: ${
-          prescription.drugAdministration?.description ?? '-'
-        }`,
+        [prescription?.dose, prescription?.prescriptionUnit?.name]
+          .filter(Boolean)
+          .join(' '),
+        prescription.volume && `volume: ${prescription.volume}`,
+        prescription.drugAdministration?.description &&
+          `via de aplicação: ${
+            prescription.drugAdministration?.description ?? '-'
+          }`,
         `(${prescription.hospitalization.patient.weight ?? ''} ${
           prescription.hospitalization.patient.weightDate
             ? [
@@ -965,11 +968,16 @@ export default class HospitalizationMedicalPrescriptionService {
 
     return [
       prescription.description,
-      `${prescription.dose} ${prescription.prescriptionUnit.name}`,
-      `volume: ${prescription.volume}`,
-      `via aplicação: ${prescription.drugAdministration.description}`,
-      MedicalPrescriptionFluidSetLabel[prescription.fluidSet],
-      `${prescription.fluidSpeed} ${prescription.fluidUnit?.name}`,
+      prescription.dose &&
+        prescription.prescriptionUnit &&
+        `${prescription.dose} ${prescription.prescriptionUnit.name}`,
+      prescription.volume && `volume: ${prescription.volume}`,
+      prescription.drugAdministration &&
+        `via aplicação: ${prescription.drugAdministration.description}`,
+      MedicalPrescriptionFluidSetLabel[prescription.fluidSet] ?? null,
+      prescription.fluidUnit &&
+        prescription.fluidUnit &&
+        `${prescription.fluidSpeed} ${prescription.fluidUnit?.name}`,
       prescription.supplement,
     ]
       .filter(Boolean)

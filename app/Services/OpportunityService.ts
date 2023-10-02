@@ -1147,6 +1147,7 @@ export default class OpportunityService {
         `full join crm_statuses on crm_statuses.id = opportunities.status_id`,
       )
       .where('opportunities.economic_group_id', data.group ?? authCtx.group.id)
+      .where('schedules.patient_id', data.client)
       .whereNull('opportunities.schedule_id')
       .whereNull('opportunities.closing_date')
       .whereRaw(

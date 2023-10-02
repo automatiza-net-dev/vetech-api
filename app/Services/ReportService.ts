@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/fold';
-import Bill from 'App/Models/Bill';
+import Database from '@ioc:Adonis/Lucid/Database';
+import Bill, { BillStatus } from 'App/Models/Bill';
 import Budget from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
@@ -1171,6 +1172,156 @@ export default class ReportService {
           a.startHour.toJSDate().getTime() - b.startHour.toJSDate().getTime()
         );
       });
+  }
+
+  async productTypeReport(
+    authCtx: AuthContext,
+    data: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      type?: string;
+      holder?: string;
+      patient?: string;
+      businessUnits?: string[];
+      economicGroups?: string[];
+      businessStates?: string[];
+      businessCities?: string[];
+    },
+  ) {
+    const qb1 = Database.from('bills')
+      .select(Database.raw('sum(bill_items.total_value) as total_sales'))
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join product_variations on bill_items.product_variation_id = product_variations.id`,
+      )
+      .joinRaw(`join products on product_variations.product_id = products.id`)
+      .whereNull('bills.deleted_at')
+      .whereNot('bills.status', BillStatus.EX);
+
+    const qb2 = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+            economic_groups.id,
+            economic_groups.company_name,
+            business_units.id,
+            business_units.identification,
+            products.description,
+            products.type,
+            sum(bill_items.quantity)         as quantity,
+            count(distinct bills.id)         as sales,
+            count(distinct bills.client_id)  as clients,
+            count(distinct bills.patient_id) as patients,
+            sum(bill_items.total_value)      as total_value
+          `,
+        ),
+      )
+      .groupBy(
+        'economic_groups.id',
+        'business_units.id',
+        'products.id',
+        'products.description',
+      )
+      .joinRaw(
+        `join economic_groups on bills.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join product_variations on bill_items.product_variation_id = product_variations.id`,
+      )
+      .joinRaw(`join products on product_variations.product_id = products.id`)
+      .orderByRaw(`sum(bill_items.total_value) desc, products.description`)
+      .whereNull('bills.deleted_at')
+      .whereNot('bills.status', BillStatus.EX);
+
+    if (data.type) {
+      qb1.andWhere('products.type', data.type);
+      qb2.andWhere('products.type', data.type);
+    }
+
+    if (data.fromDate) {
+      qb1.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb2.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb1.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb2.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    if (data.status) {
+      qb1.andWhere('bills.status', data.status);
+      qb2.andWhere('bills.status', data.status);
+    }
+
+    if (data.holder) {
+      qb1.andWhere('bills.client_id', data.holder);
+      qb2.andWhere('bills.client_id', data.holder);
+    }
+
+    if (data.patient) {
+      qb1.andWhere('bills.patient_id', data.patient);
+      qb2.andWhere('bills.patient_id', data.patient);
+    }
+
+    if (data.businessUnits && Array.isArray(data.businessUnits)) {
+      qb1.andWhereIn('bills.business_unit_id', data.businessUnits);
+      qb2.andWhereIn('bills.business_unit_id', data.businessUnits);
+    } else {
+      qb1.andWhereIn('bills.business_unit_id', [authCtx.unit.id]);
+      qb2.andWhereIn('bills.business_unit_id', [authCtx.unit.id]);
+    }
+
+    if (data.economicGroups && Array.isArray(data.economicGroups)) {
+      qb1.andWhereIn('bills.economic_group_id', data.economicGroups);
+      qb2.andWhereIn('bills.economic_group_id', data.economicGroups);
+    } else {
+      qb1.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
+      qb2.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
+    }
+
+    if (data.businessStates && Array.isArray(data.businessStates)) {
+      qb1.andWhereIn('business_units.state', data.businessStates);
+      qb2.andWhereIn('business_units.state', data.businessStates);
+    }
+
+    if (data.businessCities && Array.isArray(data.businessCities)) {
+      qb1.andWhereIn('business_units.city', data.businessCities);
+      qb2.andWhereIn('business_units.city', data.businessCities);
+    }
+
+    const [{ total_sales = '0' }] = await qb1;
+    const parsedTotal = parseFloat(total_sales);
+
+    const result = await qb2;
+
+    return result.map(elem => ({
+      group: {
+        id: elem.id,
+        name: elem.company_name,
+      },
+      unit: {
+        id: elem.id,
+        identification: elem.identification,
+      },
+      product: {
+        description: elem.description,
+        type: elem.type,
+      },
+      quantity: elem.quantity,
+      sales: parseInt(elem.sales, 10),
+      clients: parseInt(elem.clients, 10),
+      patients: parseInt(elem.patients, 10),
+      totalValue: elem.total_value,
+      percentage: (elem.total_value / parsedTotal) * 100,
+    }));
   }
 
   private calculateDailyFlow(finances: Finance[]) {

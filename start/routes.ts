@@ -1323,6 +1323,7 @@ Route.group(() => {
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');
   Route.get('/scheduling', 'ReportsController.schedulingReport');
+  Route.get('/product-types', 'ReportsController.productTypesReport');
 })
   .prefix('reports')
   .middleware('auth');

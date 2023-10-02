@@ -119,4 +119,17 @@ export default class ReportsController {
       ),
     );
   }
+
+  public async productTypesReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.productTypeReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
 }

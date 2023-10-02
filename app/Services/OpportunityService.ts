@@ -1117,10 +1117,15 @@ export default class OpportunityService {
     data: {
       group?: string;
       client?: string;
+      contact?: string;
     },
   ) {
     if (!data.client) {
       throw new BadRequestException('Cliente não informado', 400, 'E_ERR');
+    }
+
+    if (!data.contact) {
+      throw new BadRequestException('Contato não informado', 400, 'E_ERR');
     }
 
     const qb = Database.from('opportunities')
@@ -1135,28 +1140,24 @@ export default class OpportunityService {
         'crm_statuses.description as statusDescription',
       )
       .joinRaw(
-        `full join schedules on schedules.id = opportunities.schedule_id`,
+        `left join patients client on client.id = opportunities.client_id`,
       )
       .joinRaw(
-        `full join patients client on client.id = opportunities.client_id`,
+        `left join patients contact on contact.id = opportunities.contact_id`,
       )
       .joinRaw(
-        `full join patients contact on contact.id = opportunities.contact_id`,
-      )
-      .joinRaw(
-        `full join crm_statuses on crm_statuses.id = opportunities.status_id`,
+        `left join crm_statuses on crm_statuses.id = opportunities.status_id`,
       )
       .where('opportunities.economic_group_id', data.group ?? authCtx.group.id)
-      .where('schedules.patient_id', data.client)
       .whereNull('opportunities.schedule_id')
       .whereNull('opportunities.closing_date')
       .whereRaw(
         `
               (
-                (opportunities.client_id = schedules.patient_id) or
-                (opportunities.contact_id = schedules.holder_id and opportunities.client_id is null)
+                (opportunities.client_id = ?) or
+                (opportunities.contact_id = ? and opportunities.client_id is null)
               )`,
-        [],
+        [data.client, data.contact],
       )
       .whereNull('opportunities.deleted_at');
 

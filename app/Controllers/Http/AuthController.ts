@@ -110,6 +110,8 @@ export default class AuthController {
         'requires_bill_patient',
         'allow_change_schedule_duration',
         'interval',
+        'locked_daily_movement_date',
+        'daily_cashier_type',
       ]);
     });
 

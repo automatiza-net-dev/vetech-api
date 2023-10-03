@@ -362,7 +362,7 @@ export default class DailyCashierService {
           .useTransaction(trx)
           .where('business_unit_id', authCtx.unit.id)
           .where('user_who_opened_id', data.userId)
-          .whereRaw(`(status = ?) or (opening_date::date = now()::date)`, [
+          .whereRaw(`(status = ? or opening_date::date = now()::date)`, [
             DailyCashierStatus.A,
           ])
           .orderBy('opening_date', 'desc');

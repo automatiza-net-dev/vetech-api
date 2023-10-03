@@ -388,7 +388,7 @@ export default class DailyCashierService {
         const anotherOpenCashiers = await DailyCashier.query()
           .useTransaction(trx)
           .where('business_unit_id', authCtx.unit.id)
-          .whereNot('status', DailyCashierStatus.A)
+          .where('status', DailyCashierStatus.A)
           .first();
 
         if (anotherOpenCashiers) {
@@ -608,7 +608,7 @@ export default class DailyCashierService {
         const anotherOpenCashiers = await DailyCashier.query()
           .useTransaction(trx)
           .where('business_unit_id', authCtx.unit.id)
-          .whereNot('status', DailyCashierStatus.A);
+          .where('status', DailyCashierStatus.A);
 
         if (anotherOpenCashiers.length > 0) {
           throw new BadRequestException(

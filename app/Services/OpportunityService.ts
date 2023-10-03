@@ -1243,7 +1243,10 @@ export default class OpportunityService {
 
       const status = await CrmStatus.query()
         .useTransaction(trx)
-        .where('economic_group_id', authCtx.group.id)
+        .where('system_id', authCtx.system.id)
+        .whereRaw('((economic_group_id = ?) or (economic_group_id is null))', [
+          authCtx.group.id,
+        ])
         .where('type', 'OP')
         .where('tag', 'A')
         .where('active', true)

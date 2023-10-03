@@ -768,6 +768,8 @@ export default class BillService {
             client_id: bill.client_id,
             payment_method_id: paymentMethod.id,
             origin_id: payments.at(v)?.id,
+            account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
+            checking_account_id: paymentMethod.checkingAccountId,
 
             type: FinanceType.C,
             installment: v + 1,

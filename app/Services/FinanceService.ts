@@ -210,7 +210,8 @@ export default class FinanceService {
           accept: data.accept,
           installment: data.installment,
           originFlag: data.originFlag,
-          checking_account_id: data.checkingAccountId,
+          checking_account_id:
+            data.checkingAccountId ?? paymentMethod.checkingAccountId,
           qtyInstallments: data.qtyInstallments,
 
           paymentDate: data.paymentDate,
@@ -298,7 +299,8 @@ export default class FinanceService {
             accept: item.accept,
             installment: item.installment,
             originFlag: item.originFlag,
-            checking_account_id: item.checkingAccountId,
+            checking_account_id:
+              item.checkingAccountId ?? paymentMethod.checkingAccountId,
             qtyInstallments: item.qtyInstallments,
 
             paymentDate: item.paymentDate,
@@ -368,7 +370,7 @@ export default class FinanceService {
           discount,
         reconciled: data.reconciled,
 
-        checking_account_id: data.checkingAccountId,
+        checking_account_id: paymentMethod.checkingAccountId ?? data.checkingAccountId,
         feeValue: data.feeValue,
         feePercentage: data.feePercentage,
         discountValue: data.discountValue,

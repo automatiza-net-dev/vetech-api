@@ -88,27 +88,27 @@ export default class FinanceService {
     }
 
     if (data.fromIssueDate) {
-      qb.where('issue_date', '>=', new Date(data.fromIssueDate));
+      qb.whereRaw('issue_date::date >= ?', [data.fromIssueDate]);
     }
 
     if (data.toIssueDate) {
-      qb.where('issue_date', '<=', new Date(data.toIssueDate));
+      qb.whereRaw('issue_date::date <= ?', [data.toIssueDate]);
     }
 
     if (data.fromExpirationDate) {
-      qb.where('expiration_date', '>=', new Date(data.fromExpirationDate));
+      qb.whereRaw('expiration_date::date >= ?', [data.fromExpirationDate]);
     }
 
     if (data.toExpirationDate) {
-      qb.where('expiration_date', '<=', new Date(data.toExpirationDate));
+      qb.whereRaw('expiration_date::date <= ?', [data.toExpirationDate]);
     }
 
     if (data.fromPaymentDate) {
-      qb.where('payment_date', '>=', new Date(data.fromPaymentDate));
+      qb.whereRaw('payment_date::date >= ?', [data.fromPaymentDate]);
     }
 
     if (data.toPaymentDate) {
-      qb.where('payment_date', '<=', new Date(data.toPaymentDate));
+      qb.whereRaw('payment_date::date <= ?', [data.toPaymentDate]);
     }
 
     if (data.client) {

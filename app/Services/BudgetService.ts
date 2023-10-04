@@ -473,9 +473,9 @@ export default class BudgetService {
     authCtx: AuthContext,
     id: string,
     data: {
-      sellerId: string;
+      sellerId?: string;
       clientId: string;
-      reviewerId: string;
+      reviewerId?: string;
       patientId?: string;
     },
   ) {

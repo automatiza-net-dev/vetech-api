@@ -11,8 +11,8 @@ export interface ICreateBudgetItemData {
 
 export interface ICreateBudgetData {
   clientId: string;
-  sellerId: string;
-  reviewerId: string;
+  sellerId?: string;
+  reviewerId?: string;
   patientId?: string;
   dailyMovementId?: string;
   evaluationId?: string;

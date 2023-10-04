@@ -789,7 +789,7 @@ export default class BillService {
               (installmentValue - (installmentValue * installment.fee) / 100),
             feeValue: 0,
             feeDiscountPercentage: paymentMethod.fee,
-            feePercentage: 0,
+            feePercentage: payments.at(v)?.paymentMethodDiscountPercentage,
             accept: FinanceAccept.N,
             reconciled: false,
             competenceDate: DateTime.now().toFormat('MM/yyyy'),

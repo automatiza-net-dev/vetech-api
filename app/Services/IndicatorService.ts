@@ -869,6 +869,9 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'schedules.business_unit_id');
       })
+      .joinRaw(
+        `join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
+      )
       .groupBy('business_units.id');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1211,67 +1214,6 @@ export default class IndicatorService {
     }));
   }
 
-  public async crmIndicators(
-    _: AuthContext,
-    data: {
-      unit?: string;
-      group?: string;
-      fromDate?: string;
-      toDate?: string;
-    },
-  ) {
-    if (!data.unit) {
-      throw new BadRequestException('Informe a unidade', 400, 'E_ERR');
-    }
-
-    const qb = Database.from('opportunity_logs')
-      .select(
-        Database.raw(
-          `
-          business_units.id,
-          business_units.identification,
-          sum(case when crm_statuses.tag = 'N' then 1 else 0 end) as novas,
-          sum(case when crm_statuses.tag = 'A' then 1 else 0 end) as agendadas,
-          sum(case when crm_statuses.tag = 'C' then 1 else 0 end) as comparecidas,
-          sum(case when crm_statuses.tag = 'G' then 1 else 0 end) as ganhos
-          `,
-        ),
-      )
-      .leftJoin('crm_statuses', query => {
-        query.on('crm_statuses.id', '=', 'opportunity_logs.status_id');
-      })
-      .leftJoin('business_units', query => {
-        query.on('business_units.id', '=', 'opportunity_logs.business_unit_id');
-      })
-      .groupBy('business_units.id')
-      .where('opportunity_logs.business_unit_id', data.unit);
-
-    if (data.group) {
-      qb.andWhere('opportunity_logs.economic_group_id', data.group);
-    }
-
-    if (data.fromDate) {
-      qb.andWhereRaw('opportunity_logs.contact_date::date >= ?', [
-        data.fromDate,
-      ]);
-    }
-
-    if (data.toDate) {
-      qb.andWhereRaw('opportunity_logs.contact_date::date <= ?', [data.toDate]);
-    }
-
-    const result = await qb;
-
-    return result.map(elem => ({
-      id: elem.id,
-      identification: elem.identification,
-      new: parseInt(elem.novas, 10),
-      scheduled: parseInt(elem.agendadas, 10),
-      attended: parseInt(elem.comparecidas, 10),
-      gained: parseInt(elem.ganhos, 10),
-    }));
-  }
-
   public async unconfirmedBudgetsIndicators(
     authCtx: AuthContext,
     data: {
@@ -1314,6 +1256,74 @@ export default class IndicatorService {
       id: elem.id,
       identification: elem.identification,
       total: elem.total,
+    }));
+  }
+
+  public async crmIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('opportunity_logs')
+      .select(
+        Database.raw(
+          `
+          business_units.id,
+          business_units.identification,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
+          `,
+        ),
+      )
+      .joinRaw(
+        `join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null`,
+        [],
+      )
+      .joinRaw(
+        `join business_units on opportunity_logs.business_unit_id = business_units.id`,
+        [],
+      )
+      .joinRaw(
+        `join crm_statuses on opportunity_logs.status_id = crm_statuses.id`,
+        [],
+      )
+      .groupBy('business_units.id');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('opportunities.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date >= ?', [
+        data.fromDate,
+      ]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('opportunity_logs.contact_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      new: parseInt(elem.novas_oportunidades, 10),
+      scheduled: parseInt(elem.agendados, 10),
+      attended: parseInt(elem.comparecidos, 10),
+      gained: parseInt(elem.ganhos, 10),
     }));
   }
 }

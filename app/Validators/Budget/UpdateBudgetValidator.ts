@@ -1,7 +1,7 @@
+import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
 
-export default class CreateReceiptValidator {
+export default class UpdateBudgetValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   /*
@@ -24,41 +24,22 @@ export default class CreateReceiptValidator {
    *    ```
    */
   public schema = schema.create({
-    supplierId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
-    dailyMovementId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({ table: 'daily_movements', column: 'id' }),
-    ]),
-    reversalUserId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({ table: 'reasons', column: 'id' }),
-    ]),
-    reversalReasonId: schema.string.optional({}, [
+    sellerId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),
-
-    receiptDate: schema.date(),
-    otherValue: schema.number.optional(),
-    additionalInformation: schema.string.optional(),
-    reversalObservation: schema.string.optional(),
-    reversedAt: schema.date.optional(),
-
-    items: schema.array().members(
-      schema.object().members({
-        productVariationId: schema.string({ trim: true }, [
-          rules.uuid(),
-          rules.exists({ table: 'product_variations', column: 'id' }),
-        ]),
-        quantity: schema.number([]),
-        costValue: schema.number([]),
-        unitaryValue: schema.number([]),
-        discountValue: schema.number([]),
-      }),
-    ),
+    reviewerId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
+    clientId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({ table: 'patients', column: 'id' }),
+    ]),
+    patientId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'patients', column: 'id' }),
+    ]),
   });
 
   /**

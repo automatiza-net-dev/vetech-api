@@ -29,7 +29,7 @@ test.group('Receipt resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group } = await userBootstrap();
+    const { user, business, group, config } = await userBootstrap();
 
     const tefAcq = await TefAcquirer.create({
       economic_group_id: group.id,
@@ -216,6 +216,7 @@ test.group('Receipt resource', group => {
       unit,
       paymentMethodFlag,
       flagInstallment,
+      config,
     };
   };
 
@@ -258,6 +259,76 @@ test.group('Receipt resource', group => {
 
     assert.equal(200, response.status());
     assert.isArray(response.body());
+  });
+
+  test('should throw BadRequestException if no daily cashier was found (type = usuario)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, supplier, dailyCashier, dailyMovement, variation } =
+      await createData();
+    await dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/receipts/create`)
+      .json({
+        supplierId: supplier.id,
+        dailyMovementId: dailyMovement.id,
+        receiptDate: new Date(),
+        items: [
+          {
+            productVariationId: variation.id,
+            quantity: 10,
+            costValue: 10,
+            unitaryValue: 20,
+            discountValue: 20,
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if no daily cashier was found (type = geral)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, supplier, dailyCashier, dailyMovement, variation, config } =
+      await createData();
+
+    await config.merge({ dailyCashierType: 'geral' }).save();
+    await dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/receipts/create`)
+      .json({
+        supplierId: supplier.id,
+        dailyMovementId: dailyMovement.id,
+        receiptDate: new Date(),
+        items: [
+          {
+            productVariationId: variation.id,
+            quantity: 10,
+            costValue: 10,
+            unitaryValue: 20,
+            discountValue: 20,
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   test('should create receipt', async ({ assert, client }) => {

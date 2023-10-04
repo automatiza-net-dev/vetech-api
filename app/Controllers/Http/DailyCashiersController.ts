@@ -3,7 +3,6 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import DailyCashierService from 'App/Services/DailyCashierService';
 import SharedService from 'App/Services/SharedService';
 import CheckDailyCashierValidator from 'App/Validators/DailyCashier/CheckDailyCashierValidator';
-import ClearPaymentValidator from 'App/Validators/DailyCashier/ClearPaymentValidator';
 import CloseDailyCashierValidator from 'App/Validators/DailyCashier/CloseDailyCashierValidator';
 import CreateCashierExpenseValidator from 'App/Validators/DailyCashier/CreateCashierExpenseValidator';
 import CreateCashierReceiptValidator from 'App/Validators/DailyCashier/CreateCashierReceiptValidator';
@@ -19,25 +18,29 @@ export default class DailyCashiersController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const dailyMovement = await this.service.index(unit_id, qs);
+    const dailyMovement = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      qs,
+    );
 
     return response.ok(dailyMovement);
   }
 
   public async dump({ auth, response, params }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const result = await this.service.dump(unit_id, params.id);
+    const result = await this.service.dump(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(result);
   }
 
   public async check({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const result = await this.service.listSaleItems(unit_id, params.id);
+    const result = await this.service.listSaleItems(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(result);
   }
@@ -47,9 +50,11 @@ export default class DailyCashiersController {
     request,
     response,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(OpenDailyCashierValidator);
-    const dailyMovement = await this.service.openDailyCashier(unit_id, data);
+    const dailyMovement = await this.service.openDailyCashier(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.created(dailyMovement);
   }
@@ -60,10 +65,9 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CloseDailyCashierValidator);
     const dailyMovement = await this.service.closeDailyCashier(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       data,
     );
@@ -76,11 +80,9 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     const dailyMovement = await this.service.reopenDailyCashier(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
-      user.id,
     );
 
     return response.ok(dailyMovement);
@@ -109,10 +111,9 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(ReviewDailyCashierValidator);
     const dailyMovement = await this.service.reviewDailyCashier(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       data,
     );
@@ -126,9 +127,12 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateCashierExpenseValidator);
-    await this.service.createCashierExpenseEntry(unit_id, params.id, data);
+    await this.service.createCashierExpenseEntry(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      data,
+    );
 
     return response.noContent();
   }
@@ -139,9 +143,12 @@ export default class DailyCashiersController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CreateCashierReceiptValidator);
-    await this.service.createCashierReceiptEntry(unit_id, params.id, data);
+    await this.service.createCashierReceiptEntry(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      data,
+    );
 
     return response.noContent();
   }

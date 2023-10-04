@@ -19,6 +19,7 @@ import { DateTime } from 'luxon';
 import ClientOrigin from './ClientOrigin';
 import ContactSubject from './ContactSubject';
 import ContactType from './ContactType';
+import Race from './Race';
 import Reason from './Reason';
 
 export default class Opportunity extends BaseModel {
@@ -239,4 +240,9 @@ export default class Opportunity extends BaseModel {
     serializeAs: null,
   })
   public race_id: string;
+
+  @belongsTo(() => Race, {
+    foreignKey: 'race_id',
+  })
+  public race: BelongsTo<typeof Race>;
 }

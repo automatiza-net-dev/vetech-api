@@ -3,7 +3,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import CheckingAccount, {
   CheckingAccountOperation,
 } from 'App/Models/CheckingAccount';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import {
   IOpenCheckingAccountData,
   IUpdateCheckingAccountBalanceData,
@@ -20,8 +20,11 @@ interface ISearch {
 export default class CheckingAccountService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const qb = CheckingAccount.query().where('business_unit_id', unitId);
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = CheckingAccount.query().where(
+      'economic_group_id',
+      authCtx.group.id,
+    );
 
     if (data.name) {
       qb.where('description', 'ilike', `%${data.name}%`);
@@ -32,16 +35,16 @@ export default class CheckingAccountService {
     }
 
     if (data.type) {
-      qb.where('type', `${data.type}`);
+      qb.where('type', data.type);
     }
 
     return qb;
   }
 
-  public async show(unitId: string, id: string) {
+  public async show(authCtx: AuthContext, id: string) {
     const account = await CheckingAccount.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('economic_group_id', authCtx.group.id)
       .first();
 
     if (!account) {
@@ -51,10 +54,10 @@ export default class CheckingAccountService {
     return account;
   }
 
-  public async checkBalance(unitId: string, id: string) {
+  public async checkBalance(authCtx: AuthContext, id: string) {
     const account = await CheckingAccount.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('economic_group_id', authCtx.group.id)
       .first();
 
     if (!account) {
@@ -68,12 +71,15 @@ export default class CheckingAccountService {
     };
   }
 
-  public async openAccount(unitId: string, data: IOpenCheckingAccountData) {
-    const group = await this.sharedService.getUserGroup(unitId);
+  public async openAccount(
+    authCtx: AuthContext,
+    data: IOpenCheckingAccountData,
+  ) {
+    const group = await this.sharedService.getUserGroup(authCtx.unit.id);
 
     return CheckingAccount.create({
       economic_group_id: group.id,
-      business_unit_id: unitId,
+      business_unit_id: authCtx.unit.id,
       description: data.description,
       accountNumber: data.accountNumber,
       bankCode: data.bankCode,
@@ -91,13 +97,13 @@ export default class CheckingAccountService {
   }
 
   public async updateAccount(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IUpdateCheckingAccountData,
   ) {
     const account = await CheckingAccount.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('economic_group_id', authCtx.group.id)
       .first();
 
     if (!account) {
@@ -122,13 +128,13 @@ export default class CheckingAccountService {
   }
 
   public async updateBalance(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IUpdateCheckingAccountBalanceData,
   ) {
     const account = await CheckingAccount.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('economic_group_id', authCtx.group.id)
       .first();
 
     if (!account) {
@@ -145,10 +151,10 @@ export default class CheckingAccountService {
     await account.save();
   }
 
-  public async deleteAccount(unitId: string, id: string) {
+  public async deleteAccount(authCtx: AuthContext, id: string) {
     const account = await CheckingAccount.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('economic_group_id', authCtx.group.id)
       .first();
 
     if (!account) {

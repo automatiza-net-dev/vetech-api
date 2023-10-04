@@ -81,34 +81,34 @@ export default class FinanceService {
       .preload('checkingAccount')
       .preload('flag', query => {
         query.select(['id', 'description']);
-      })
+      });
 
     if (data.id) {
       qb.where('id', data.id);
     }
 
     if (data.fromIssueDate) {
-      qb.where('issue_date', '>=', new Date(data.fromIssueDate));
+      qb.whereRaw('issue_date::date >= ?', [data.fromIssueDate]);
     }
 
     if (data.toIssueDate) {
-      qb.where('issue_date', '<=', new Date(data.toIssueDate));
+      qb.whereRaw('issue_date::date <= ?', [data.toIssueDate]);
     }
 
     if (data.fromExpirationDate) {
-      qb.where('expiration_date', '>=', new Date(data.fromExpirationDate));
+      qb.whereRaw('expiration_date::date >= ?', [data.fromExpirationDate]);
     }
 
     if (data.toExpirationDate) {
-      qb.where('expiration_date', '<=', new Date(data.toExpirationDate));
+      qb.whereRaw('expiration_date::date <= ?', [data.toExpirationDate]);
     }
 
     if (data.fromPaymentDate) {
-      qb.where('payment_date', '>=', new Date(data.fromPaymentDate));
+      qb.whereRaw('payment_date::date >= ?', [data.fromPaymentDate]);
     }
 
     if (data.toPaymentDate) {
-      qb.where('payment_date', '<=', new Date(data.toPaymentDate));
+      qb.whereRaw('payment_date::date <= ?', [data.toPaymentDate]);
     }
 
     if (data.client) {
@@ -161,72 +161,84 @@ export default class FinanceService {
   }
 
   // 2.1
-  async createFinance(unitId: string, user: User, data: IUpsertFinance) {
-    const group = await this.sharedService.getUserGroup(unitId);
+  async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
+    return await Database.transaction(async trx => {
+      const paymentMethod = await PaymentMethod.findOrFail(
+        data.paymentMethodId,
+        {
+          client: trx,
+        },
+      );
+      const dailyMovement = await DailyMovement.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('status', DailyMovementStatus.A)
+        .first();
 
-    const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
-    const dailyMovement = await DailyMovement.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .first();
-    const dailyCashier = await DailyCashier.query()
-      .where('business_unit_id', unitId)
-      .where('status', DailyMovementStatus.A)
-      .where('user_who_opened_id', user.id)
-      .first();
+      const dailyCashier = await this.sharedService.getContextCashier(
+        authCtx,
+        trx,
+      );
 
-    const discount = data.originalValue * (paymentMethod.fee / 100);
+      const discount = data.originalValue * (paymentMethod.fee / 100);
 
-    return Finance.create({
-      daily_movement_id: dailyMovement?.id,
-      daily_cashier_id: dailyCashier?.id,
-      status: FinanceStatus.A,
-      feeDiscountPercentage: paymentMethod.fee,
-      feeDiscountValue: discount,
-      economic_group_id: group.id,
-      business_unit_id: unitId,
-      client_id: data.clientId,
-      type: data.type,
-      account_plan_id: data.accountPlanId,
-      payment_method_id: data.paymentMethodId,
-      document: data.document,
-      historic: data.historic,
-      issueDate: data.issueDate,
-      expirationDate: data.expirationDate,
-      originalValue: data.originalValue,
-      value: data.originalValue - discount,
-      totalValue:
-        data.originalValue +
-        (data.feeValue || 0) +
-        (data.increaseValue || 0) -
-        (data.discountValue || 0) -
-        discount,
-      accept: data.accept,
-      installment: data.installment,
-      originFlag: data.originFlag,
-      checking_account_id: data.checkingAccountId,
-      qtyInstallments: data.qtyInstallments,
+      return Finance.create(
+        {
+          daily_movement_id: dailyMovement?.id,
+          daily_cashier_id: dailyCashier?.id,
+          status: FinanceStatus.A,
+          feeDiscountPercentage: paymentMethod.fee,
+          feeDiscountValue: discount,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          client_id: data.clientId,
+          type: data.type,
+          account_plan_id: data.accountPlanId,
+          payment_method_id: data.paymentMethodId,
+          document: data.document,
+          historic: data.historic,
+          issueDate: data.issueDate,
+          expirationDate: data.expirationDate,
+          originalValue: data.originalValue,
+          value: data.originalValue - discount,
+          totalValue:
+            data.originalValue +
+            (data.feeValue || 0) +
+            (data.increaseValue || 0) -
+            (data.discountValue || 0) -
+            discount,
+          accept: data.accept,
+          installment: data.installment,
+          originFlag: data.originFlag,
+          checking_account_id:
+            data.checkingAccountId ?? paymentMethod.checkingAccountId,
+          qtyInstallments: data.qtyInstallments,
 
-      paymentDate: data.paymentDate,
-      downDate: data.downDate,
-      paymentValue: data.paymentValue,
-      feeValue: data.feeValue,
-      feePercentage: data.feePercentage,
-      discountValue: data.discountValue,
-      discountPercentage: data.discountPercentage,
-      additionPercentage: data.increasePercentage,
-      additionValue: data.increaseValue,
-      observation: data.observation,
-      competenceDate: data.competenceDate,
-      fiscalNote: data.fiscalNote,
-      userDocument: data.userDocument,
-      nsuDocument: data.nsuDocument,
-      barCode: data.barCode,
-      bank: data.bank,
-      agency: data.agency,
-      account: data.account,
-      acquirer_id: data.tefAcquirerId,
-      tef_flag_id: data.tefFlagId,
+          paymentDate: data.paymentDate,
+          downDate: data.downDate,
+          paymentValue: data.paymentValue,
+          feeValue: data.feeValue ?? 0,
+          feePercentage: data.feePercentage ?? 0,
+          discountValue: data.discountValue ?? 0,
+          discountPercentage: data.discountPercentage ?? 0,
+          additionPercentage: data.increasePercentage,
+          additionValue: data.increaseValue,
+          observation: data.observation,
+          competenceDate: data.competenceDate,
+          fiscalNote: data.fiscalNote,
+          userDocument: data.userDocument,
+          nsuDocument: data.nsuDocument,
+          barCode: data.barCode,
+          bank: data.bank,
+          agency: data.agency,
+          account: data.account,
+          acquirer_id: data.tefAcquirerId,
+          tef_flag_id: data.tefFlagId,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 
@@ -287,16 +299,17 @@ export default class FinanceService {
             accept: item.accept,
             installment: item.installment,
             originFlag: item.originFlag,
-            checking_account_id: item.checkingAccountId,
-            qtyInstallments: item.qtyInstallments ?? 1,
+            checking_account_id:
+              item.checkingAccountId ?? paymentMethod.checkingAccountId,
+            qtyInstallments: item.qtyInstallments,
 
             paymentDate: item.paymentDate,
             downDate: item.downDate,
             paymentValue: item.paymentValue,
-            feeValue: item.feeValue,
-            feePercentage: item.feePercentage,
-            discountValue: item.discountValue,
-            discountPercentage: item.discountPercentage,
+            feeValue: item.feeValue ?? 0,
+            feePercentage: item.feePercentage ?? 0,
+            discountValue: item.discountValue ?? 0,
+            discountPercentage: item.discountPercentage ?? 0,
             additionPercentage: item.increasePercentage,
             additionValue: item.increaseValue,
             observation: item.observation,
@@ -357,11 +370,13 @@ export default class FinanceService {
           discount,
         reconciled: data.reconciled,
 
-        checking_account_id: data.checkingAccountId,
-        feeValue: data.feeValue,
-        feePercentage: data.feePercentage,
-        discountValue: data.discountValue,
-        discountPercentage: data.discountPercentage,
+        checking_account_id:
+          paymentMethod.checkingAccountId ?? data.checkingAccountId,
+
+        feeValue: data.feeValue ?? 0,
+        feePercentage: data.feePercentage ?? 0,
+        discountValue: data.discountValue ?? 0,
+        discountPercentage: data.discountPercentage ?? 0,
         additionPercentage: data.increasePercentage,
         additionValue: data.increaseValue,
         observation: data.observation,
@@ -406,10 +421,11 @@ export default class FinanceService {
         paymentDate: data.paymentDate,
         originDownFlag: data.originDownFlag,
 
-        feeValue: data.feeValue,
-        feePercentage: data.feePercentage,
-        discountValue: data.discountValue,
-        discountPercentage: data.discountPercentage,
+        feeValue: data.feeValue ?? 0,
+        feePercentage: data.feePercentage ?? 0,
+        discountValue: data.discountValue ?? 0,
+        discountPercentage: data.discountPercentage ?? 0,
+
         additionPercentage: data.increasePercentage,
         additionValue: data.increaseValue,
         observation: data.observation,

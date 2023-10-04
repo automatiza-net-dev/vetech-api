@@ -14,36 +14,43 @@ export default class CheckingAccountsController {
   ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const account = await this.service.index(unit_id, {
-      name: qs.name,
-      bank: qs.bank,
-      type: qs.type,
-    });
+    const account = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      {
+        name: qs.name,
+        bank: qs.bank,
+        type: qs.type,
+      },
+    );
 
     return response.ok(account);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const account = await this.service.show(unit_id, params.id);
+    const account = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(account);
   }
 
   public async check({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const account = await this.service.checkBalance(unit_id, params.id);
+    const account = await this.service.checkBalance(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(account);
   }
 
   public async openAccount({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(OpenCheckingAccountValidator);
-    const account = await this.service.openAccount(unit_id, data);
+    const account = await this.service.openAccount(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.created(account);
   }
@@ -54,9 +61,12 @@ export default class CheckingAccountsController {
     request,
     response,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(UpdateCheckingAccountValidator);
-    const account = await this.service.updateAccount(unit_id, params.id, data);
+    const account = await this.service.updateAccount(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      data,
+    );
 
     return response.ok(account);
   }
@@ -67,16 +77,21 @@ export default class CheckingAccountsController {
     request,
     response,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(UpdateCheckingAccountBalanceValidator);
-    const account = await this.service.updateBalance(unit_id, params.id, data);
+    const account = await this.service.updateBalance(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      data,
+    );
 
     return response.ok(account);
   }
 
   public async deleteAccount({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    await this.service.deleteAccount(unit_id, params.id);
+    await this.service.deleteAccount(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

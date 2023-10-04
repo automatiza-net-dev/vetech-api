@@ -215,6 +215,8 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
@@ -244,6 +246,8 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         budgetDate: new Date(),
@@ -277,6 +281,30 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should throw BadRequestException if discount item if bigger than max discount', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/create-item`)
+      .json({
+        budgetId: budget.id,
+        productVariationId: variation.id,
+        quantity: 5,
+        unitaryValue: 10,
+        discountValue: 10000,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should create budget items', async ({ assert, client }) => {
     const { user, budget, variation } = await createData();
     const token = await generateJwtToken(client, {
@@ -300,6 +328,54 @@ test.group('Budget resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if some discount item if bigger than max discount', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/create-items`)
+      .json({
+        items: [
+          {
+            budgetId: budget.id,
+            productVariationId: variation.id,
+            quantity: 5,
+            unitaryValue: 10,
+            discountValue: 10000,
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should update budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/update/${budget.id}`)
+      .json({
+        sellerId: user.id,
+        clientId: budget.client_id,
+        patientId: budget.patient_id,
+        reviewerId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 
   test('should update budget observation', async ({ assert, client }) => {

@@ -5,6 +5,14 @@ export default class CreateBudgetValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
+    sellerId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
+    reviewerId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
     clientId: schema.string({}, [
       rules.uuid(),
       rules.exists({ table: 'patients', column: 'id' }),

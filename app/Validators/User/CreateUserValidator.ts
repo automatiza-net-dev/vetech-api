@@ -10,6 +10,7 @@ export default class CreateUserValidator {
     password: schema.string({}, [rules.confirmed()]),
     document: schema.string.optional({}, [
       rules.unique({ table: 'users', column: 'document' }),
+      rules.documento(),
     ]),
     phone: schema.string.optional({}, [rules.maxLength(20)]),
     postalCode: schema.string.optional({}),

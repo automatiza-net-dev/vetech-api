@@ -75,7 +75,7 @@ export const userBootstrap = async (system_name = 'SUT') => {
     simple: true,
   });
 
-  await business.related('unitConfig').create({});
+  const config = await business.related('unitConfig').create({});
 
   const licence = await business.related('licences').create({
     id: v4(),
@@ -97,5 +97,5 @@ export const userBootstrap = async (system_name = 'SUT') => {
     unit_id: business.id,
   });
 
-  return { user, group, business, licence, role, system };
+  return { user, group, business, licence, role, system, config };
 };

@@ -23,6 +23,13 @@ export default class OpportunityService {
       .preload('client', query => {
         query.preload('tutor');
       })
+      .preload('race', query => {
+        query.select('id', 'description', 'specie_id');
+
+        query.preload('specie', query => {
+          query.select('id', 'description');
+        });
+      })
       .preload('closingUser')
       .preload('contact')
       .preload('contactType')
@@ -54,6 +61,9 @@ export default class OpportunityService {
       closingDate: result.closingDate,
       profitValue: result.profitValue,
       resultObservation: result.resultObservation,
+      weight: result.weight,
+      castrated: result.castrated,
+      gender: result.gender,
 
       status: result.status,
       contact: result.contact,
@@ -61,6 +71,7 @@ export default class OpportunityService {
       contactSubject: result.contactSubject,
       client: result.client,
       clientOrigin: result.clientOrigin,
+      race: result.race,
 
       user: {
         id: result.user.id,
@@ -1106,10 +1117,15 @@ export default class OpportunityService {
     data: {
       group?: string;
       client?: string;
+      contact?: string;
     },
   ) {
     if (!data.client) {
       throw new BadRequestException('Cliente não informado', 400, 'E_ERR');
+    }
+
+    if (!data.contact) {
+      throw new BadRequestException('Contato não informado', 400, 'E_ERR');
     }
 
     const qb = Database.from('opportunities')
@@ -1124,16 +1140,13 @@ export default class OpportunityService {
         'crm_statuses.description as statusDescription',
       )
       .joinRaw(
-        `full join schedules on schedules.id = opportunities.schedule_id`,
+        `left join patients client on client.id = opportunities.client_id`,
       )
       .joinRaw(
-        `full join patients client on client.id = opportunities.client_id`,
+        `left join patients contact on contact.id = opportunities.contact_id`,
       )
       .joinRaw(
-        `full join patients contact on contact.id = opportunities.contact_id`,
-      )
-      .joinRaw(
-        `full join crm_statuses on crm_statuses.id = opportunities.status_id`,
+        `left join crm_statuses on crm_statuses.id = opportunities.status_id`,
       )
       .where('opportunities.economic_group_id', data.group ?? authCtx.group.id)
       .whereNull('opportunities.schedule_id')
@@ -1141,10 +1154,10 @@ export default class OpportunityService {
       .whereRaw(
         `
               (
-                (opportunities.client_id = schedules.patient_id) or
-                (opportunities.contact_id = schedules.holder_id and opportunities.client_id is null)
+                (opportunities.client_id = ?) or
+                (opportunities.contact_id = ? and opportunities.client_id is null)
               )`,
-        [],
+        [data.client, data.contact],
       )
       .whereNull('opportunities.deleted_at');
 
@@ -1230,7 +1243,10 @@ export default class OpportunityService {
 
       const status = await CrmStatus.query()
         .useTransaction(trx)
-        .where('economic_group_id', authCtx.group.id)
+        .where('system_id', authCtx.system.id)
+        .whereRaw('((economic_group_id = ?) or (economic_group_id is null))', [
+          authCtx.group.id,
+        ])
         .where('type', 'OP')
         .where('tag', 'A')
         .where('active', true)

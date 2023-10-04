@@ -57,18 +57,22 @@ export default class BillsController {
 
   public async createBill({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateBillValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBill(unit_id, user, payload);
+    const result = await this.service.createBill(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }
 
   public async createBills({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateBillsValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBills(unit_id, user, payload.items);
+    const result = await this.service.createBills(
+      await this.sharedService.getAuthContext(auth),
+      payload.items,
+    );
 
     return response.created(result);
   }
@@ -90,9 +94,11 @@ export default class BillsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBillItemValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBillItem(unit_id, payload);
+    const result = await this.service.createBillItem(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }
@@ -103,9 +109,11 @@ export default class BillsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBillItemsValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBillItems(unit_id, payload.items);
+    const result = await this.service.createBillItems(
+      await this.sharedService.getAuthContext(auth),
+      payload.items,
+    );
 
     return response.created(result);
   }
@@ -137,9 +145,11 @@ export default class BillsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBillPaymentValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBillPayment(unit_id, user, payload);
+    const result = await this.service.createBillPayment(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }
@@ -238,9 +248,11 @@ export default class BillsController {
 
   public async addKitToBill({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(AddKitToBillValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    await this.service.addFromKit(unit_id, payload);
+    await this.service.addFromKit(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.noContent();
   }

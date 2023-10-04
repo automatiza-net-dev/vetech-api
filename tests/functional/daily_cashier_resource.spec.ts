@@ -27,7 +27,7 @@ test.group('Daily cashier resource', group => {
   });
 
   const createData = async () => {
-    const { user, business, group, system } = await userBootstrap();
+    const { user, business, group, system, config } = await userBootstrap();
 
     const dailyMovement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -68,7 +68,7 @@ test.group('Daily cashier resource', group => {
       maxInstallments: 10,
     });
 
-    return { user, business, dailyMovement, ap, paymentMethod };
+    return { user, business, dailyMovement, ap, paymentMethod, config };
   };
 
   test('should return all daily cashiers', async ({ client, assert }) => {
@@ -140,6 +140,101 @@ test.group('Daily cashier resource', group => {
     assert.equal(response.status(), 200);
   });
 
+  test('should throw BadRequestException if daily movement is already open (type = usuario | status = A)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyMovement, config } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await config.merge({ dailyCashierType: 'usuario' }).save();
+    await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+      tag: 1,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/open`)
+      .json({
+        dailyMovementId: dailyMovement.id,
+        userId: user.id,
+        openingDate: DateTime.now(),
+        initialBalance: 100,
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 400);
+  });
+
+  test('should throw BadRequestException if daily movement is already open (type = usuario | status != A)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyMovement, config } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await config.merge({ dailyCashierType: 'usuario' }).save();
+    await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.C,
+      tag: 1,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/open`)
+      .json({
+        dailyMovementId: dailyMovement.id,
+        userId: user.id,
+        openingDate: DateTime.now(),
+        initialBalance: 100,
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 400);
+  });
+
+  test('should throw BadRequestException if daily movement is already open (type = geral)', async ({
+    assert,
+    client,
+  }) => {
+    const { user, dailyMovement, config } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await config.merge({ dailyCashierType: 'geral' }).save();
+    await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.C,
+      tag: 1,
+    });
+
+    const response = await client
+      .post(`/daily-cashiers/open`)
+      .json({
+        dailyMovementId: dailyMovement.id,
+        userId: user.id,
+        openingDate: DateTime.now(),
+        initialBalance: 100,
+      })
+      .bearerToken(token);
+
+    assert.equal(response.status(), 400);
+  });
+
   test('should throw BadRequestException if daily movement is not opened', async ({
     assert,
     client,
@@ -163,10 +258,6 @@ test.group('Daily cashier resource', group => {
       .bearerToken(token);
 
     assert.equal(response.status(), 400);
-    assert.equal(
-      response.body().message,
-      'E_DAILY_MOVEMENT_NOT_OPENED: Movimento diário não está aberto',
-    );
   });
 
   test('should throw BadRequestException if daily cashier is open for te user', async ({
@@ -197,10 +288,6 @@ test.group('Daily cashier resource', group => {
       .bearerToken(token);
 
     assert.equal(response.status(), 400);
-    assert.equal(
-      response.body().message,
-      'E_DAILY_CASHIER_ALREADY_OPENED: Caixa já está aberto para este usuário',
-    );
   });
 
   test('should create new daily cashier for te user', async ({

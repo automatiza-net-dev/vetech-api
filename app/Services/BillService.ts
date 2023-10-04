@@ -9,7 +9,6 @@ import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BillPayment, { BillPaymentFeeType } from 'App/Models/BillPayment';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
-import EconomicGroup from 'App/Models/EconomicGroup';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
@@ -182,9 +181,7 @@ export default class BillService {
     return bill;
   }
 
-  async createBill(unitId: string, user: User, data: ICreateBillData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async createBill(authCtx: AuthContext, data: ICreateBillData) {
     // if (ufIcms.length !== taxRules.length) {
     //   throw new InternalErrorException(
     //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
@@ -194,13 +191,11 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      return this.createBillWithTrx(trx, unitId, group, user, data);
+      return this.createBillWithTrx(trx, authCtx, data);
     });
   }
 
-  async createBills(unitId: string, user: User, data: ICreateBillData[]) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async createBills(authCtx: AuthContext, data: ICreateBillData[]) {
     // if (ufIcms.length !== taxRules.length) {
     //   throw new InternalErrorException(
     //     'Não foi possível encontrar a alíquota de ICMS para a UF de origem e destino',
@@ -210,9 +205,7 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      const tasks = data.map(d =>
-        this.createBillWithTrx(trx, unitId, group, user, d),
-      );
+      const tasks = data.map(d => this.createBillWithTrx(trx, authCtx, d));
 
       return Promise.all(tasks);
     });
@@ -257,21 +250,31 @@ export default class BillService {
     });
   }
 
-  async createBillItem(unitId: string, data: ICreateBillItemData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
     return Database.transaction(async trx => {
-      return this.createBillItemWithTrx(trx, unitId, group, data);
+      await this.checkDiscount(trx, authCtx.unit.id, [
+        {
+          variationId: data.productVariationId,
+          discountValue: data.discountValue,
+        },
+      ]);
+
+      return this.createBillItemWithTrx(trx, authCtx, data);
     });
   }
 
-  async createBillItems(unitId: string, data: ICreateBillItemData[]) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async createBillItems(authCtx: AuthContext, data: ICreateBillItemData[]) {
     return Database.transaction(async trx => {
-      const tasks = data.map(d =>
-        this.createBillItemWithTrx(trx, unitId, group, d),
+      await this.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        data.map(elem => ({
+          variationId: elem.productVariationId,
+          discountValue: elem.discountValue,
+        })),
       );
+
+      const tasks = data.map(d => this.createBillItemWithTrx(trx, authCtx, d));
       return Promise.all(tasks);
     });
   }
@@ -634,13 +637,7 @@ export default class BillService {
     });
   }
 
-  async createBillPayment(
-    unitId: string,
-    user: User,
-    data: ICreateBillPaymentData,
-  ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async createBillPayment(authCtx: AuthContext, data: ICreateBillPaymentData) {
     return Database.transaction(async trx => {
       const bill = await Bill.findOrFail(data.billId, {
         client: trx,
@@ -666,18 +663,29 @@ export default class BillService {
             .firstOrFail()
         : { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
-      const userOpenCashier = await DailyCashier.query()
-        .useTransaction(trx)
-        .where('business_unit_id', unitId)
-        .where('user_who_opened_id', user.id)
-        .where('status', DailyCashierStatus.A)
-        .first();
+      const dailyCashier =
+        authCtx.unit.unitConfig.dailyCashierType === 'usuario'
+          ? await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('user_who_opened_id', authCtx.user.id)
+              .where('status', DailyCashierStatus.A)
+              .whereRaw('opening_date::date = now()::date')
+              .first()
+          : await DailyCashier.query()
+              .useTransaction(trx)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('status', DailyCashierStatus.A)
+              .whereRaw('opening_date::date = now()::date')
+              .first();
 
-      if (!userOpenCashier) {
+      if (!dailyCashier) {
         throw new BadRequestException(
-          'Não foi possível encontrar o caixa aberto para o usuário',
+          authCtx.unit.unitConfig.dailyCashierType === 'usuario'
+            ? 'Não existe caixa aberto para o seu login na data de hoje'
+            : 'Não existe caixa aberto na data de hoje',
           400,
-          'E_BAD_REQUEST',
+          'E_NOT_OPEN',
         );
       }
 
@@ -704,13 +712,13 @@ export default class BillService {
               v === lastInstallment ? withOffset : singleValue;
 
             return {
-              economic_group_id: group.id,
-              business_unit_id: unitId,
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
               bill_id: bill.id,
               payment_method_id: data.paymentMethodId,
               tef_acquirer_id: data.acquirerId,
               tef_flag_id: data.flagId,
-              daily_cashier_id: userOpenCashier?.id,
+              daily_cashier_id: dailyCashier.id,
 
               block: max + 1,
               expirationDate: data.expirationDate.plus({
@@ -753,13 +761,15 @@ export default class BillService {
             v === lastInstallment ? withOffset : singleValue;
 
           return {
-            economic_group_id: group.id,
-            business_unit_id: unitId,
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
             daily_movement_id: bill.daily_movement_id,
             daily_cashier_id: bill.daily_cashier_id,
             client_id: bill.client_id,
             payment_method_id: paymentMethod.id,
             origin_id: payments.at(v)?.id,
+            account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
+            checking_account_id: paymentMethod.checkingAccountId,
 
             type: FinanceType.C,
             installment: v + 1,
@@ -779,7 +789,7 @@ export default class BillService {
               (installmentValue - (installmentValue * installment.fee) / 100),
             feeValue: 0,
             feeDiscountPercentage: paymentMethod.fee,
-            feePercentage: 0,
+            feePercentage: payments.at(v)?.paymentMethodDiscountPercentage,
             accept: FinanceAccept.N,
             reconciled: false,
             competenceDate: DateTime.now().toFormat('MM/yyyy'),
@@ -1094,6 +1104,8 @@ export default class BillService {
     }
 
     qb.preload('rules', query => {
+      query.preload('taxOperation');
+
       query.where('active', true);
 
       if (data.origin) {
@@ -1484,17 +1496,10 @@ export default class BillService {
 
   async createBillWithTrx(
     trx: TransactionClientContract,
-    unitId: string,
-    group: EconomicGroup,
-    user: User,
+    authCtx: AuthContext,
     data: ICreateBillData,
   ) {
-    const unit = await BusinessUnit.query()
-      .where('id', unitId)
-      .preload('unitConfig')
-      .firstOrFail();
-
-    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
+    if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
       throw new BadRequestException(
         'É necessário informar o paciente para realizar o orçamento',
         400,
@@ -1530,7 +1535,7 @@ export default class BillService {
       )
       .preload('product')
       .preload('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
+        query.where('businness_unit_id', authCtx.unit.id);
       });
 
     const taxRules = await TaxationGroupRule.query()
@@ -1543,8 +1548,8 @@ export default class BillService {
       })
       .where('movementType', MovementType.S)
       .where('movementCategory', MovementCategory.NS)
-      .where('fromUf', unit.state ?? '')
-      .where('toUf', unit.state ?? '')
+      .where('fromUf', authCtx.unit.state ?? '')
+      .where('toUf', authCtx.unit.state ?? '')
       .preload('taxationGroup')
       .preload('taxOperation');
 
@@ -1558,14 +1563,19 @@ export default class BillService {
         taxRules.map(rule => rule.toUf),
       );
 
+    const dailyCashier = await this.sharedService.getContextCashier(
+      authCtx,
+      trx,
+    );
+
     const bill = await Bill.create(
       {
-        economic_group_id: group.id,
-        business_unit_id: unitId,
-        user_id: user.id,
-        seller_id: user.id,
+        economic_group_id: authCtx.group.id,
+        business_unit_id: authCtx.unit.id,
+        user_id: authCtx.user.id,
+        seller_id: authCtx.user.id,
         daily_movement_id: data.dailyMovementId,
-        daily_cashier_id: data.dailyCashierId,
+        daily_cashier_id: dailyCashier.id,
         budget_id: data.budgetId,
 
         client_id: data.clientId,
@@ -1580,16 +1590,18 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(parseInt(unit.unitConfig.billCounter) + 1),
+        tag: GenerateTag(parseInt(authCtx.unit.unitConfig.billCounter) + 1),
       },
       {
         client: trx,
       },
     );
 
-    await unit.unitConfig
+    await authCtx.unit.unitConfig
       .merge({
-        billCounter: (parseInt(unit.unitConfig.billCounter) + 1).toString(),
+        billCounter: (
+          parseInt(authCtx.unit.unitConfig.billCounter) + 1
+        ).toString(),
       })
       .useTransaction(trx)
       .save();
@@ -1604,7 +1616,7 @@ export default class BillService {
       );
 
       const price = variation.businessUnitProducts.find(
-        bup => bup.businness_unit_id === unitId,
+        bup => bup.businness_unit_id === authCtx.unit.id,
       );
 
       const ufIcmsRule = ufIcms.find(
@@ -1628,8 +1640,8 @@ export default class BillService {
 
       return BillItem.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           bill_id: bill.id,
           product_variation_id: item.productVariationId,
           tax_rule_id: rule?.id,
@@ -1828,14 +1840,9 @@ export default class BillService {
 
   async createBillItemWithTrx(
     trx: TransactionClientContract,
-    unitId: string,
-    group: EconomicGroup,
+    authCtx: AuthContext,
     data: ICreateBillItemData & { kitId?: number },
   ) {
-    const unit = await BusinessUnit.findOrFail(unitId, {
-      client: trx,
-    });
-
     const bill = await Bill.query()
       .useTransaction(trx)
       .where('id', data.billId)
@@ -1856,11 +1863,11 @@ export default class BillService {
       .useTransaction(trx)
       .where('id', data.productVariationId)
       .whereHas('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
+        query.where('businness_unit_id', authCtx.unit.id);
       })
       .preload('product')
       .preload('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
+        query.where('businness_unit_id', authCtx.unit.id);
       })
       .first();
     if (!productVariation) {
@@ -1878,9 +1885,12 @@ export default class BillService {
       })
       .where('movementType', MovementType.S)
       .where('movementCategory', MovementCategory.NS)
-      .where('fromUf', unit.state ?? '')
-      .where('toUf', unit.state ?? '')
-      .where('company_type', unit.simple ? CompanyType.S : CompanyType.N)
+      .where('fromUf', authCtx.unit.state ?? '')
+      .where('toUf', authCtx.unit.state ?? '')
+      .where(
+        'company_type',
+        authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+      )
       .preload('taxationGroup')
       .preload('taxOperation')
       .first();
@@ -1929,8 +1939,8 @@ export default class BillService {
 
     const billItem = await BillItem.create(
       {
-        economic_group_id: group.id,
-        business_unit_id: unitId,
+        economic_group_id: authCtx.group.id,
+        business_unit_id: authCtx.unit.id,
         bill_id: bill.id,
         product_variation_id: data.productVariationId,
         tax_rule_id: rule?.id,
@@ -2112,25 +2122,64 @@ export default class BillService {
     return billItem;
   }
 
-  public async addFromKit(
+  private async checkDiscount(
+    trx: TransactionClientContract,
     unitId: string,
+    data: {
+      variationId: string;
+      discountValue: number;
+    }[],
+  ) {
+    const productVariations = await ProductVariation.query()
+      .useTransaction(trx)
+      .whereIn(
+        'id',
+        data.map(d => d.variationId),
+      )
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
+
+    const overdiscountedItems = data.filter(elem => {
+      const variation = productVariations.find(p => p.id === elem.variationId);
+      if (!variation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      return variation.businessUnitProducts.some(
+        p => p.maximumDiscountValue < elem.discountValue,
+      );
+    });
+    if (overdiscountedItems.length > 0) {
+      throw new BadRequestException(
+        'Desconto lançado é superior ao permitido - ' +
+          overdiscountedItems.map(elem => elem.variationId).join(', '),
+        400,
+        'E_MAX_DISCOUNT',
+      );
+    }
+  }
+
+  public async addFromKit(
+    authCtx: AuthContext,
     data: {
       billId: string;
       kitId: number;
     },
   ) {
     await Database.transaction(async trx => {
-      const unit = await BusinessUnit.findOrFail(unitId, {
-        client: trx,
-      });
-      const group = await EconomicGroup.findOrFail(unit.economicGroupId, {
-        client: trx,
-      });
-
       const bill = await Bill.query()
         .useTransaction(trx)
         .where('id', data.billId)
-        .andWhere('business_unit_id', unitId)
+        .andWhere('business_unit_id', authCtx.unit.id)
         .first();
 
       if (!bill) {
@@ -2148,9 +2197,9 @@ export default class BillService {
       const kit = await Kit.query()
         .useTransaction(trx)
         .where('id', data.kitId)
-        .andWhere('economic_group_id', unit.economicGroupId)
+        .andWhere('economic_group_id', authCtx.group.id)
         .preload('items', query => {
-          query.where('business_unit_id', unitId);
+          query.where('business_unit_id', authCtx.unit.id);
 
           query.preload('productVariation', query => {
             query.preload('product');
@@ -2168,7 +2217,7 @@ export default class BillService {
 
       await Promise.all(
         kit.items.map(async item =>
-          this.createBillItemWithTrx(trx, unitId, group, {
+          this.createBillItemWithTrx(trx, authCtx, {
             billId: data.billId,
             quantity: item.quantity,
             discountValue: item.discountPrice,

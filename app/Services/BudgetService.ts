@@ -8,7 +8,7 @@ import BudgetItem from 'App/Models/BudgetItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Kit from 'App/Models/Kit';
 import Patient from 'App/Models/Patient';
-import Product, { ProductPurpose } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
@@ -63,7 +63,25 @@ export default class BudgetService {
   ) {}
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
-    const qb = Budget.query().where('business_unit_id', unitId);
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient')
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
+      .preload('dailyMovement')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .orderBy('created_at', 'desc');
 
     if (data.fromCreation) {
       qb.whereRaw('budget_date::date >= ?', [data.fromCreation]);
@@ -101,23 +119,36 @@ export default class BudgetService {
       qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient');
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-
-    qb.orderBy('created_at', 'desc');
-
     return qb;
   }
 
   public async completeIndex(unitId: string, data: ISearchComplete) {
-    const qb = Budget.query().where('business_unit_id', unitId);
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal');
+      })
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
+      .preload('dailyMovement')
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('product');
+        });
+      })
+      .orderBy('created_at', 'desc');
 
     if (data.budget) {
       qb.where('id', data.budget);
@@ -131,48 +162,36 @@ export default class BudgetService {
       qb.where('tag', 'ilike', `%${data.tag}%`);
     }
 
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient', query => {
-      query.preload('patientAnimal');
-    });
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-    qb.preload('items', query => {
-      query.preload('productVariation', query => {
-        query.preload('product');
-      });
-    });
-
-    qb.orderBy('created_at', 'desc');
-
     return qb;
   }
 
   public async show(unitId: string, id: string) {
-    const qb = Budget.query().where('business_unit_id', unitId).where('id', id);
-
-    qb.preload('client', query => {
-      query.preload('tutor');
-    });
-    qb.preload('patient', query => {
-      query.preload('patientAnimal');
-    });
-    qb.preload('user');
-    qb.preload('seller');
-    qb.preload('dailyMovement');
-    qb.preload('conclusionUser');
-    qb.preload('cancelationReason');
-    qb.preload('items', query => {
-      query.preload('productVariation', query => {
-        query.preload('variationOptions');
-        query.preload('product');
+    const qb = Budget.query()
+      .where('business_unit_id', unitId)
+      .where('id', id)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .preload('patient', query => {
+        query.preload('patientAnimal');
+      })
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('reviewer', query => {
+        query.select('id', 'name');
+      })
+      .preload('conclusionUser')
+      .preload('cancelationReason')
+      .preload('items', query => {
+        query.preload('productVariation', query => {
+          query.preload('variationOptions');
+          query.preload('product');
+        });
       });
-    });
 
     const result = await qb.first();
 
@@ -369,9 +388,10 @@ export default class BudgetService {
           client_id: data.clientId,
           patient_id: data.patientId,
           user_id: user.id,
-          seller_id: user.id,
+          seller_id: data.sellerId,
           daily_movement_id: data.dailyMovementId,
           evaluation_id: data.evaluationId,
+          reviewer_id: data.reviewerId,
 
           budgetDate: data.budgetDate,
           expirationDate: data.expirationDate,
@@ -449,6 +469,47 @@ export default class BudgetService {
     });
   }
 
+  public async updateBudget(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      sellerId?: string;
+      clientId: string;
+      reviewerId?: string;
+      patientId?: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const budget = await Budget.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .andWhere('business_unit_id', authCtx.unit.id)
+        .first();
+
+      if (!budget) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      if (budget.status !== BudgetStatus.A) {
+        throw new BadRequestException(
+          'Não é possível alterar um orçamento que não esteja em aberto',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      return budget
+        .merge({
+          seller_id: data.sellerId,
+          client_id: data.clientId,
+          reviewer_id: data.reviewerId,
+          patient_id: data.patientId,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
   public async updateBudgetObservation(
     authCtx: AuthContext,
     id: string,
@@ -481,6 +542,38 @@ export default class BudgetService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const productVariation = await ProductVariation.query()
+        .useTransaction(trx)
+        .where('id', data.productVariationId)
+        .whereHas('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .preload('product')
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .first();
+      if (!productVariation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      if (
+        productVariation.businessUnitProducts.some(
+          p => p.maximumDiscountValue < data.discountValue,
+        )
+      ) {
+        throw new BadRequestException(
+          'Desconto lançado é superior ao permitido - ' +
+            productVariation.product.description,
+          400,
+          'E_MAX_DISCOUNT',
+        );
+      }
+
       const item = await budget.related('items').create(
         {
           economic_group_id: group.id,
@@ -516,6 +609,45 @@ export default class BudgetService {
     const group = await this.sharedService.getUserGroup(unitId);
 
     return Database.transaction(async trx => {
+      const productVariations = await ProductVariation.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.map(d => d.productVariationId),
+        )
+        .whereHas('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        })
+        .preload('product')
+        .preload('businessUnitProducts', query => {
+          query.where('businness_unit_id', unitId);
+        });
+
+      const overdiscountedItems = data.filter(elem => {
+        const variation = productVariations.find(
+          p => p.id === elem.productVariationId,
+        );
+        if (!variation) {
+          throw new BadRequestException(
+            'Não foi possível encontrar um preço para esse produto',
+            400,
+            'E_NO_VARIATION',
+          );
+        }
+
+        return variation.businessUnitProducts.some(
+          p => p.maximumDiscountValue < elem.discountValue,
+        );
+      });
+      if (overdiscountedItems.length > 0) {
+        throw new BadRequestException(
+          'Desconto lançado é superior ao permitido - ' +
+            overdiscountedItems.map(elem => elem.productVariationId).join(', '),
+          400,
+          'E_MAX_DISCOUNT',
+        );
+      }
+
       const tasks = data.map(async item => {
         const budget = await Budget.findOrFail(item.budgetId);
         const dbItem = await budget.related('items').create(
@@ -745,44 +877,74 @@ export default class BudgetService {
 
               quantity: item.quantity,
               costValue: 0,
-              saleValue: 0,
+              saleValue: item.unitaryValue,
               unitaryValue: item.unitaryValue,
               discountValue: item.discountValue,
-              totalValue:
-                item.quantity * item.unitaryValue - item.discountValue,
+              totalValue,
               status: BillItemStatus.A,
               createdAt: bill.createdAt,
 
               fiscalOperationCode: rule?.taxOperation?.code,
               icmsOriginProduct: item.productVariation.product.icmsOrigin,
-              icmsCst: rule?.icmsCst,
-              icmsBase,
-              icmsPercentage: rule?.icmsPerc,
+              icmsCst:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? rule?.icmsCst
+                  : undefined,
+              icmsBase:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? icmsBase
+                  : undefined,
+              icmsPercentage:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? rule?.icmsPerc
+                  : undefined,
               icmsValue,
               icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
               icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-              icmsStBase,
+              icmsStBase:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? icmsStBase
+                  : undefined,
               icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
               icmsStIva: rule?.ivaIcmsSt,
               icmsStPercentageUfDestination: 0,
-              icmsStValue: ufIcms
-                ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
-                : undefined,
-              issCst: '',
-              issBase: rule?.icmsPerc,
-              issPercentage: rule?.icmsPercRedAliquota,
-              issValue: 0,
-              pisBase: 0,
+              icmsStValue:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? ufIcms
+                    ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+                    : undefined
+                  : undefined,
+              issCst:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? rule?.icmsCst
+                  : undefined,
+              issBase:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? totalValue
+                  : undefined,
+              issPercentage:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? rule?.icmsPerc
+                  : undefined,
+              issValue:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? (totalValue * (rule?.icmsPerc ?? 1)) / 100
+                  : undefined,
+
+              pisBase: totalValue,
               pisPercentage: rule?.pisPerc,
-              pisValue: 0,
+              pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
               pisRetentionValue: 0,
-              cofinsBase: 0,
+              pisCst: rule?.pisCst,
+              cofinsBase: totalValue,
               cofinsPercentage: rule?.cofinsPerc,
-              cofinsValue: 0,
+              cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
               cofinsRetentionValue: 0,
-              ipiBase: 0,
+              cofinsCst: rule?.cofinsCst,
+              ipiBase: totalValue,
               ipiPercentage: rule?.ipiPerc,
-              ipiValue: 0,
+              ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
+              ipiCst: rule?.ipiCst,
               icmsDeferredValue: 0,
               icmsPartitionValue: 0,
               icmsFcpPercentage: rule?.fcpPerc,

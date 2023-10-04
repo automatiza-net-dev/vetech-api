@@ -3,7 +3,7 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import { DailyCashierEntryType } from 'App/Models/DailyCashierEntry';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import {
   ICheckedDailyMovementData,
   ICloseDailyMovementData,
@@ -21,9 +21,9 @@ interface ISearch {
 export default class DailyMovementService {
   constructor(private sharedService: SharedService) {}
 
-  async index(unitId: string, data: ISearch) {
+  async index(authCtx: AuthContext, data: ISearch) {
     const qb = DailyMovement.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .orderBy('openingDate', 'desc')
       .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
       .preload('userWhoClosed', query => query.select('id', 'name', 'email'))
@@ -50,7 +50,7 @@ export default class DailyMovementService {
   }
 
   async search(
-    unitId: string,
+    authCtx: AuthContext,
     data: {
       groupId?: string;
       unitId?: string;
@@ -60,7 +60,7 @@ export default class DailyMovementService {
     },
   ) {
     const qb = DailyMovement.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .orderBy('openingDate', 'desc')
       .preload('userWhoOpened', query => query.select('id', 'name', 'email'))
       .preload('userWhoClosed', query => query.select('id', 'name', 'email'))
@@ -100,9 +100,9 @@ export default class DailyMovementService {
     return qb;
   }
 
-  async openDailyMovement(unitId: string, data: IOpenDailyMovementData) {
+  async openDailyMovement(authCtx: AuthContext, data: IOpenDailyMovementData) {
     const someOpen = await DailyMovement.query()
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .whereRaw(
         `((status = 'Aberto') or (opening_date::date = now()::date))`,
         [],
@@ -119,7 +119,7 @@ export default class DailyMovementService {
     }
 
     return DailyMovement.create({
-      business_unit_id: unitId,
+      business_unit_id: authCtx.unit.id,
       user_who_opened_id: data.userId,
       openingDate: data.openingDate,
       status: DailyMovementStatus.A,
@@ -127,13 +127,13 @@ export default class DailyMovementService {
   }
 
   async closeDailyMovement(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: ICloseDailyMovementData,
   ) {
     const dailyMovement = await DailyMovement.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyMovement) {
@@ -199,10 +199,10 @@ export default class DailyMovementService {
       .save();
   }
 
-  async reopenDailyMovement(unitId: string, id: string, userId: string) {
+  async reopenDailyMovement(authCtx: AuthContext, id: string) {
     const dailyMovement = await DailyMovement.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyMovement) {
@@ -219,16 +219,32 @@ export default class DailyMovementService {
       );
     }
 
-    if (!isSameDay(dailyMovement.openingDate.toJSDate(), new Date())) {
-      throw new BadRequestException(
-        'Movimento diário só pode ser reaberto no mesmo dia',
-        400,
-        'E_DAILY_MOVEMENT_NOT_SAME_DAY',
-      );
+    if (authCtx.unit.unitConfig.lockedDailyMovementDate) {
+      if (!isSameDay(dailyMovement.openingDate.toJSDate(), new Date())) {
+        throw new BadRequestException(
+          'Movimento diário só pode ser reaberto no mesmo dia',
+          400,
+          'E_DAILY_MOVEMENT_NOT_SAME_DAY',
+        );
+      }
+    } else {
+      const anotherOpenDailyMovement = await DailyMovement.query()
+        .where('business_unit_id', authCtx.unit.id)
+        .whereNot('id', id)
+        .where('status', DailyMovementStatus.A)
+        .first();
+
+      if (anotherOpenDailyMovement) {
+        throw new BadRequestException(
+          'Já existe um movimento diário aberto',
+          400,
+          'E_DAILY_MOVEMENT_OPENED',
+        );
+      }
     }
 
     await dailyMovement.related('logs').create({
-      user_who_reopened_id: userId,
+      user_who_reopened_id: authCtx.user.id,
       reopeningDate: DateTime.now(),
       user_who_closed_id: dailyMovement.user_who_closed_id as string,
       closingDate: dailyMovement.closingDate as DateTime,
@@ -250,13 +266,13 @@ export default class DailyMovementService {
   }
 
   async checkDailyMovement(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: ICheckedDailyMovementData,
   ) {
     const dailyMovement = await DailyMovement.query()
       .where('id', id)
-      .where('business_unit_id', unitId)
+      .where('business_unit_id', authCtx.unit.id)
       .first();
 
     if (!dailyMovement) {

@@ -160,6 +160,16 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public reviewer_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'reviewer_id',
+  })
+  public reviewer: BelongsTo<typeof User>;
+
+  @column({
+    serializeAs: null,
+  })
   public daily_movement_id: string;
 
   @belongsTo(() => DailyMovement, {

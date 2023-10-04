@@ -3,6 +3,7 @@ import Database, {
   TransactionClientContract,
 } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
@@ -37,7 +38,6 @@ export default class ReceiptService {
     data: {
       supplierId: string;
       dailyMovementId?: string;
-      dailyCashierId?: string;
       reversalUserId?: string;
       reversalReasonId?: string;
       receiptDate: DateTime;
@@ -61,6 +61,11 @@ export default class ReceiptService {
         .where('economic_group_id', authCtx.group.id)
         .where('business_unit_id', authCtx.unit.id);
 
+      const dailyCashier = await this.sharedService.getContextCashier(
+        authCtx,
+        trx,
+      );
+
       const receipt = await Receipt.create(
         {
           economic_group_id: authCtx.group.id,
@@ -68,7 +73,7 @@ export default class ReceiptService {
           supplier_id: data.supplierId,
           user_id: authCtx.user.id,
           seller_id: authCtx.user.id,
-          daily_cashier_id: data.dailyCashierId,
+          daily_cashier_id: dailyCashier.id,
           daily_movement_id: data.dailyMovementId,
           reversal_user_id: data.reversalUserId,
           reversal_reason_id: data.reversalReasonId,

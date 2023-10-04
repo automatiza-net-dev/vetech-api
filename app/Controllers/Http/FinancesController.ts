@@ -58,10 +58,12 @@ export default class FinancesController {
   // }
 
   async storeFinance({ auth, request, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpsertFinanceValidator);
 
-    const result = await this.service.createFinance(unit_id, user, payload);
+    const result = await this.service.createFinance(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

@@ -881,6 +881,7 @@ Route.group(() => {
   Route.post('/create-item', 'BudgetsController.createBudgetItem');
   Route.post('/create-items', 'BudgetsController.createBudgetItems');
 
+  Route.put('/update/:id', 'BudgetsController.updateBudget');
   Route.put(
     '/update-observation/:id',
     'BudgetsController.updateBudgetObservation',
@@ -1322,6 +1323,7 @@ Route.group(() => {
   Route.get('/entries', 'ReportsController.entriesReport');
   Route.get('/budgets', 'ReportsController.budgetsReport');
   Route.get('/scheduling', 'ReportsController.schedulingReport');
+  Route.get('/product-types', 'ReportsController.productTypesReport');
 })
   .prefix('reports')
   .middleware('auth');

@@ -143,18 +143,20 @@ export default class BusinessUnitsController {
   }
 
   public async searchUser({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    const groups = await this.service.searchUser(unit_id, params.id);
+    const groups = await this.service.searchUser(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(groups);
   }
 
   public async user({ auth, request, response }: HttpContextContract) {
-    const { user } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const groups = await this.service.getUserBusinessUnits(user, qs);
+    const groups = await this.service.getUserBusinessUnits(
+      await this.sharedService.getAuthContext(auth),
+      qs,
+    );
 
     return response.ok(groups);
   }

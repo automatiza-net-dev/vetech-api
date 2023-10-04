@@ -869,6 +869,9 @@ export default class IndicatorService {
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'schedules.business_unit_id');
       })
+      .joinRaw(
+        `join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
+      )
       .groupBy('business_units.id');
 
     if (data.units && Array.isArray(data.units)) {

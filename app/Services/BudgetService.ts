@@ -924,7 +924,7 @@ export default class BudgetService {
                   : undefined,
               issPercentage:
                 item.productVariation.product.type === ProductType.SERVICE
-                  ? rule?.icmsPercRedAliquota
+                  ? rule?.icmsPerc
                   : undefined,
               issValue:
                 item.productVariation.product.type === ProductType.SERVICE

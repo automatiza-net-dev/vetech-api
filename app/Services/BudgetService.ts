@@ -8,7 +8,7 @@ import BudgetItem from 'App/Models/BudgetItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Kit from 'App/Models/Kit';
 import Patient from 'App/Models/Patient';
-import Product, { ProductPurpose } from 'App/Models/Product';
+import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductVariation from 'App/Models/ProductVariation';
 import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
 import UfIcms from 'App/Models/UfIcms';
@@ -877,44 +877,74 @@ export default class BudgetService {
 
               quantity: item.quantity,
               costValue: 0,
-              saleValue: 0,
+              saleValue: item.unitaryValue,
               unitaryValue: item.unitaryValue,
               discountValue: item.discountValue,
-              totalValue:
-                item.quantity * item.unitaryValue - item.discountValue,
+              totalValue,
               status: BillItemStatus.A,
               createdAt: bill.createdAt,
 
               fiscalOperationCode: rule?.taxOperation?.code,
               icmsOriginProduct: item.productVariation.product.icmsOrigin,
-              icmsCst: rule?.icmsCst,
-              icmsBase,
-              icmsPercentage: rule?.icmsPerc,
+              icmsCst:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? rule?.icmsCst
+                  : undefined,
+              icmsBase:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? icmsBase
+                  : undefined,
+              icmsPercentage:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? rule?.icmsPerc
+                  : undefined,
               icmsValue,
               icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
               icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-              icmsStBase,
+              icmsStBase:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? icmsStBase
+                  : undefined,
               icmsStPercentageRedBase: rule?.icmsPercRedAliquota,
               icmsStIva: rule?.ivaIcmsSt,
               icmsStPercentageUfDestination: 0,
-              icmsStValue: ufIcms
-                ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
-                : undefined,
-              issCst: '',
-              issBase: rule?.icmsPerc,
-              issPercentage: rule?.icmsPercRedAliquota,
-              issValue: 0,
-              pisBase: 0,
+              icmsStValue:
+                item.productVariation.product.type === ProductType.PRODUCT
+                  ? ufIcms
+                    ? icmsStBase * (ufIcms.icmsPercentage / 100) - icmsValue
+                    : undefined
+                  : undefined,
+              issCst:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? rule?.icmsCst
+                  : undefined,
+              issBase:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? totalValue
+                  : undefined,
+              issPercentage:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? rule?.icmsPercRedAliquota
+                  : undefined,
+              issValue:
+                item.productVariation.product.type === ProductType.SERVICE
+                  ? (totalValue * (rule?.icmsPercRedAliquota ?? 1)) / 100
+                  : undefined,
+
+              pisBase: totalValue,
               pisPercentage: rule?.pisPerc,
-              pisValue: 0,
+              pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
               pisRetentionValue: 0,
-              cofinsBase: 0,
+              pisCst: rule?.pisCst,
+              cofinsBase: totalValue,
               cofinsPercentage: rule?.cofinsPerc,
-              cofinsValue: 0,
+              cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
               cofinsRetentionValue: 0,
-              ipiBase: 0,
+              cofinsCst: rule?.cofinsCst,
+              ipiBase: totalValue,
               ipiPercentage: rule?.ipiPerc,
-              ipiValue: 0,
+              ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
+              ipiCst: rule?.ipiCst,
               icmsDeferredValue: 0,
               icmsPartitionValue: 0,
               icmsFcpPercentage: rule?.fcpPerc,

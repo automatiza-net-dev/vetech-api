@@ -1104,6 +1104,8 @@ export default class BillService {
     }
 
     qb.preload('rules', query => {
+      query.preload('taxOperation');
+
       query.where('active', true);
 
       if (data.origin) {

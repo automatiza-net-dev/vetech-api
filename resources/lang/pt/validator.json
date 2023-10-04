@@ -46,6 +46,7 @@
     "unique": "Campo já está em uso, escolhe um diferente.",
     "url": "URL inválida.",
     "unsigned": "Valor precisa ser positivo",
-    "uuid": "Campo deve ser um UUID válido."
+    "uuid": "Campo deve ser um UUID válido.",
+    "documento": "Campo deve ser um documento válido."
   }
 }

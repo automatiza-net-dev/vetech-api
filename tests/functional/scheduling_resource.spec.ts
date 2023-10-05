@@ -5,7 +5,7 @@ import { PatientType } from 'App/Models/Patient';
 import Reason from 'App/Models/Reason';
 import Rescheduling from 'App/Models/Rescheduling';
 import Schedule from 'App/Models/Schedule';
-import {
+import ScheduleStatus, {
   SS_ATTENDANCE_CANCELLED,
   SS_CONFIRMED,
   SS_NOT_CONFIRMED,
@@ -445,6 +445,18 @@ test.group('Scheduling resource', group => {
       password: '102030',
     });
 
+    const fromStatus = await ScheduleStatus.create({
+      description: 'Qualquer',
+      color: '#000',
+      type: 'REC',
+    });
+
+    const toStatus = await ScheduleStatus.create({
+      description: 'Qualquer',
+      color: '#000',
+      type: 'ATEND',
+    });
+
     const reason = await Reason.create({
       economicGroupId: business.economicGroupId,
       system_id: system.id,
@@ -463,19 +475,20 @@ test.group('Scheduling resource', group => {
       user_id: user.id,
       patient_id: holder.id,
       schedule_service_type_id: serviceType.id,
-      schedule_status_id: SS_NOT_CONFIRMED,
+      schedule_status_id: fromStatus.id,
     });
 
     const result = await client
       .put('/schedules/status')
       .json({
         scheduleId: schedule.id,
-        statusId: SS_ATTENDANCE_CANCELLED,
+        statusId: toStatus.id,
         reasonId: reason.id,
         observation: 'some',
       } as IUpdateScheduleStatus)
       .bearerToken(token);
 
+    console.log(result.body());
     assert.equal(200, result.status());
   });
 

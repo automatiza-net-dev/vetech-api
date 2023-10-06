@@ -399,20 +399,24 @@ export default class FinanceService {
   async updateFinanceDown(unitId: string, id: string, data: IFinanceDownData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const finance = await Finance.query()
-      .where('id', id)
-      .where('business_unit_id', unitId)
-      .first();
-
-    if (!finance) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    const checkingAccount = await CheckingAccount.findOrFail(
-      data.checkingAccountId,
-    );
-
     return Database.transaction(async trx => {
+      const finance = await Finance.query()
+        .where('id', id)
+        .where('business_unit_id', unitId)
+        .useTransaction(trx)
+        .first();
+
+      if (!finance) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const checkingAccount = await CheckingAccount.findOrFail(
+        data.checkingAccountId,
+        {
+          client: trx
+        }
+      );
+
       finance.merge({
         checking_account_id: data.checkingAccountId,
         status: FinanceStatus.B,
@@ -549,6 +553,8 @@ export default class FinanceService {
         })
         .useTransaction(trx)
         .save();
+    }, {
+      isolationLevel: 'serializable'
     });
   }
 

@@ -169,7 +169,7 @@ export default class BankingService {
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
         }, balance = balance ${
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
-        } where checking_account_id = :id and issue_date > ${`'${data.issueDate}'::date`}`,
+        } where checking_account_id = :id and issue_date::date > ${`'${data.issueDate}'::date`}`,
         {
           id: data.checkingAccountId,
         },

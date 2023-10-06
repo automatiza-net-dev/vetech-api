@@ -421,9 +421,9 @@ export default class FinanceService {
         paymentDate: data.paymentDate,
         originDownFlag: data.originDownFlag,
 
-        feeValue: data.feeValue ?? 0,
-        feePercentage: data.feePercentage ?? 0,
-        discountValue: data.discountValue ?? 0,
+        feeValue: data.feeValue ?? 0,
+        feePercentage: data.feePercentage ?? 0,
+        discountValue: data.discountValue ?? 0,
         discountPercentage: data.discountPercentage ?? 0,
 
         additionPercentage: data.increasePercentage,
@@ -456,7 +456,7 @@ export default class FinanceService {
           paymentMethodDiscountValue: finance.feeDiscountValue,
           paymentMethodDiscountPercentage: finance.feeDiscountPercentage,
 
-          type: BankingType[finance.type],
+          type: finance.type === FinanceType.C ? BankingType.C : BankingType.D,
           document: finance.document,
           historic: finance.historic,
           issueDate: finance.issueDate,

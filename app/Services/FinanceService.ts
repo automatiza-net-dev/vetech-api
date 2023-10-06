@@ -473,7 +473,10 @@ export default class FinanceService {
           observation: finance.observation,
           status: BankingStatus.B,
           prevBalance: checkingAccount.balance,
-          balance: checkingAccount.balance - finance.value,
+          balance:
+            checkingAccount.balance + finance.type === FinanceType.C
+              ? finance.value
+              : -finance.value,
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,

@@ -129,7 +129,8 @@ export default class BankingService {
           value: data.documentValue,
           totalValue: total,
           accept: FinanceAccept.S,
-          installment: data.installment,
+          installment:
+            typeof data.installment != 'undefined' ? data.installment : 1,
           originFlag: FinanceOriginFlag[data.originFlag],
           paymentDate: DateTime.now(),
           downDate: data.issueDate,
@@ -326,7 +327,8 @@ export default class BankingService {
         discountValue: data.discountValue,
         discountPercentage: data.discountPercentage,
         reconciled: data.reconciled,
-        installment: data.installment,
+        installment:
+          typeof data.installment != 'undefined' ? data.installment : 1,
         originFlag: data.originFlag,
 
         observation: data.observation,

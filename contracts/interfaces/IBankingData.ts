@@ -16,9 +16,9 @@ export interface IUpsertBankingData {
   discountValue: number;
   discountPercentage: number;
   reconciled: boolean;
-  installment: number;
   originFlag: BankingOriginFlag;
 
+  installment?: number;
   observation?: string;
   competenceDate?: string;
   fiscalNote?: string;

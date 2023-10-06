@@ -531,7 +531,7 @@ export default class PatientService {
         _type: 'budget' as const,
         tag: item.tag,
         date: item.budgetDate.toJSDate(),
-        seller: item.seller.name,
+        seller: item.seller ? item.seller.name : authCtx.user.name,
         client: key === 'patient_id' ? item.client?.name : item.user?.name,
         total_value: item.totalValue,
         missing_value: null,

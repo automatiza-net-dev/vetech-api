@@ -6,6 +6,7 @@ import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
+  FinanceOriginDownFlag,
   FinanceOriginFlag,
   FinanceStatus,
   FinanceType,
@@ -132,6 +133,7 @@ export default class BankingService {
           installment:
             typeof data.installment != 'undefined' ? data.installment : 1,
           originFlag: FinanceOriginFlag.B,
+          originDownFlag: FinanceOriginDownFlag.B,
           paymentDate: DateTime.now(),
           downDate: data.issueDate,
           paymentValue: total,

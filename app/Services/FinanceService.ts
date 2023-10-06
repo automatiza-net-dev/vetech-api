@@ -474,9 +474,9 @@ export default class FinanceService {
           status: BankingStatus.B,
           prevBalance: checkingAccount.balance,
           balance:
-            checkingAccount.balance + finance.type === FinanceType.C
-              ? finance.value
-              : -finance.value,
+            finance.type === FinanceType.C
+              ? checkingAccount.balance + finance.value
+              : checkingAccount.balance - finance.value,
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
@@ -492,9 +492,9 @@ export default class FinanceService {
       await checkingAccount
         .merge({
           balance:
-            checkingAccount.balance + finance.type === FinanceType.C
-              ? finance.value
-              : -finance.value,
+            finance.type === FinanceType.C
+              ? checkingAccount.balance + finance.value
+              : checkingAccount.balance - finance.value,
         })
         .useTransaction(trx)
         .save();

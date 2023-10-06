@@ -114,7 +114,7 @@ export default class BankingService {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
-          type: FinanceType[data.type],
+          type: data.type === BankingType.C ? FinanceType.C : FinanceType.D,
           account_plan_id: data.accountPlanId,
           payment_method_id: data.paymentMethodId,
           checking_account_id: data.checkingAccountId,
@@ -131,7 +131,7 @@ export default class BankingService {
           accept: FinanceAccept.S,
           installment:
             typeof data.installment != 'undefined' ? data.installment : 1,
-          originFlag: FinanceOriginFlag[data.originFlag],
+          originFlag: FinanceOriginFlag.B,
           paymentDate: DateTime.now(),
           downDate: data.issueDate,
           paymentValue: total,

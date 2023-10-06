@@ -678,6 +678,18 @@ export default class FinanceService {
         },
       );
 
+      if (checkingAccount) {
+        await checkingAccount
+          .merge({
+            balance:
+              finance.type === FinanceType.C
+                ? checkingAccount.balance + finance.totalValue
+                : checkingAccount.balance - finance.totalValue,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
       return finance
         .merge({
           checking_account_id: null,

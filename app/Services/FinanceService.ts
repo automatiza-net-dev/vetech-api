@@ -693,11 +693,14 @@ export default class FinanceService {
       return finance
         .merge({
           checking_account_id: null,
+          banking_id: undefined,
+
           paymentDate: null,
           downDate: null,
           paymentValue: null,
           status: FinanceStatus.A,
           reversalReason: data.reason,
+          originDownFlag: undefined,
         })
         .useTransaction(trx)
         .save();

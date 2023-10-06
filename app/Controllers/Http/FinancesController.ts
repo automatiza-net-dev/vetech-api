@@ -109,13 +109,9 @@ export default class FinancesController {
     const { unit_id } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateFinanceDownValidator);
 
-    const result = await this.service.updateFinanceDown(
-      unit_id,
-      params.id,
-      payload,
-    );
+    await this.service.updateFinanceDown(unit_id, params.id, payload);
 
-    return response.ok(result);
+    return response.noContent();
   }
 
   async updateFinanceReversal({

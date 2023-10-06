@@ -107,6 +107,7 @@ test.group('Finance resource', group => {
       finance,
       dailyCashier,
       config,
+      checkingAccount,
     };
   };
 
@@ -461,5 +462,50 @@ test.group('Finance resource', group => {
     // console.log(response.body());
 
     assert.equal(200, response.status());
+  });
+
+  test('should do finance down', async ({ assert, client }) => {
+    const { user, finance, checkingAccount } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/finances/update-down/${finance.id}`)
+      .json({
+        items: [
+          {
+            checkingAccountId: checkingAccount.id,
+            paymentDate: new Date(),
+            paymentValue: 100,
+            originDownFlag: 'CAIXA_DIARIO',
+            feeValue: 100,
+            feePercentage: 10,
+            discountValue: 10,
+            discountPercentage: 1,
+            increaseValue: 1,
+            increasePercentage: 10,
+            competenceDate: '02/2023',
+          },
+          {
+            checkingAccountId: checkingAccount.id,
+            paymentDate: new Date(),
+            paymentValue: 100,
+            originDownFlag: 'CAIXA_DIARIO',
+            feeValue: 100,
+            feePercentage: 10,
+            discountValue: 10,
+            discountPercentage: 1,
+            increaseValue: 1,
+            increasePercentage: 10,
+            competenceDate: '03/2023',
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

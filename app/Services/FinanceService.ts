@@ -394,28 +394,45 @@ export default class FinanceService {
       .save();
   }
 
-  // 2.4 ?
-  // 2.6 ?
-  async updateFinanceDown(unitId: string, id: string, data: IFinanceDownData) {
+  async updateFinanceDown(
+    unitId: string,
+    id: string,
+    data: { items: IFinanceDownData[] },
+  ) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Database.transaction(
-      async trx => {
-        const finance = await Finance.query()
-          .where('id', id)
-          .where('business_unit_id', unitId)
-          .useTransaction(trx)
-          .first();
+    return Database.transaction(async trx => {
+      const finance = await Finance.query()
+        .where('id', id)
+        .where('business_unit_id', unitId)
+        .useTransaction(trx)
+        .first();
 
-        if (!finance) {
-          throw this.sharedService.ResourceNotFound();
-        }
+      if (!finance) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-        const checkingAccount = await CheckingAccount.findOrFail(
-          data.checkingAccountId,
-          {
-            client: trx,
-          },
+      const uniqueIds = Array.from(
+        new Set(data.items.map(item => item.checkingAccountId)),
+      );
+      const checkingAccounts = await CheckingAccount.query()
+        .useTransaction(trx)
+        .whereIn('id', uniqueIds);
+
+      if (checkingAccounts.length < uniqueIds.length) {
+        throw new BadRequestException(
+          'Alguma conta corrente não foi encontrada',
+          400,
+          'E_ERR',
+        );
+      }
+
+      const diffMap = new Map<string, number>();
+      uniqueIds.forEach(id => diffMap.set(id, 0));
+
+      const tasks = data.items.map(async data => {
+        const checkingAccount = checkingAccounts.find(
+          item => item.id === data.checkingAccountId,
         );
 
         finance.merge({
@@ -454,7 +471,7 @@ export default class FinanceService {
             client_id: finance.client_id,
             account_plan_id: finance.account_plan_id,
             payment_method_id: finance.payment_method_id,
-            checking_account_id: checkingAccount.id,
+            checking_account_id: data.checkingAccountId,
             daily_movement_id: finance.daily_movement_id,
             daily_cashier_id: finance.daily_cashier_id,
             finance_id: finance.id,
@@ -478,11 +495,11 @@ export default class FinanceService {
             originFlag: BankingOriginFlag.F,
             observation: finance.observation,
             status: BankingStatus.B,
-            prevBalance: checkingAccount.balance,
+            prevBalance: checkingAccount?.balance,
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance + finance.value
-                : checkingAccount.balance - finance.value,
+                ? (checkingAccount?.balance ?? 0) + finance.value
+                : (checkingAccount?.balance ?? 0) - finance.value,
 
             competenceDate: finance.competenceDate,
             fiscalNote: finance.fiscalNote,
@@ -495,15 +512,15 @@ export default class FinanceService {
           },
         );
 
-        await checkingAccount
-          .merge({
-            balance:
-              finance.type === FinanceType.C
-                ? checkingAccount.balance + finance.value
-                : checkingAccount.balance - finance.value,
-          })
-          .useTransaction(trx)
-          .save();
+        if (checkingAccount) {
+          const value =
+            finance.type === FinanceType.C ? finance.value : -finance.value;
+
+          diffMap.set(
+            checkingAccount.id,
+            (diffMap.get(checkingAccount.id) ?? 0) + value,
+          );
+        }
 
         await FinanceReversal.create(
           {
@@ -555,11 +572,25 @@ export default class FinanceService {
           })
           .useTransaction(trx)
           .save();
-      },
-      {
-        isolationLevel: 'read uncommitted',
-      },
-    );
+      });
+
+      await Promise.all(tasks);
+
+      const tasks2 = Array.from(diffMap.entries()).map(async ([id, value]) => {
+        const checkingAccount = checkingAccounts.find(item => item.id === id);
+
+        if (checkingAccount) {
+          await checkingAccount
+            .merge({
+              balance: checkingAccount.balance + value,
+            })
+            .useTransaction(trx)
+            .save();
+        }
+      });
+
+      await Promise.all(tasks2);
+    });
   }
 
   // 2.7

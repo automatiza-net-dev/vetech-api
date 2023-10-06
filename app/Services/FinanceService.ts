@@ -399,161 +399,167 @@ export default class FinanceService {
   async updateFinanceDown(unitId: string, id: string, data: IFinanceDownData) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    return Database.transaction(async trx => {
-      const finance = await Finance.query()
-        .where('id', id)
-        .where('business_unit_id', unitId)
-        .useTransaction(trx)
-        .first();
+    return Database.transaction(
+      async trx => {
+        const finance = await Finance.query()
+          .where('id', id)
+          .where('business_unit_id', unitId)
+          .useTransaction(trx)
+          .first();
 
-      if (!finance) {
-        throw this.sharedService.ResourceNotFound();
-      }
+        if (!finance) {
+          throw this.sharedService.ResourceNotFound();
+        }
 
-      const checkingAccount = await CheckingAccount.findOrFail(
-        data.checkingAccountId,
-        {
-          client: trx,
-        },
-      );
+        const checkingAccount = await CheckingAccount.findOrFail(
+          data.checkingAccountId,
+          {
+            client: trx,
+          },
+        );
 
-      finance.merge({
-        checking_account_id: data.checkingAccountId,
-        status: FinanceStatus.B,
-        downDate: DateTime.now(),
-        paymentValue: data.paymentValue,
-        paymentDate: data.paymentDate,
-        originDownFlag: data.originDownFlag,
-
-        feeValue: data.feeValue ?? 0,
-        feePercentage: data.feePercentage ?? 0,
-        discountValue: data.discountValue ?? 0,
-        discountPercentage: data.discountPercentage ?? 0,
-
-        additionPercentage: data.increasePercentage,
-        additionValue: data.increaseValue,
-        observation: data.observation,
-
-        competenceDate: data.competenceDate,
-        fiscalNote: data.fiscalNote,
-        userDocument: data.userDocument,
-        nsuDocument: data.nsuDocument,
-        barCode: data.barCode,
-        bank: data.bank,
-        agency: data.agency,
-        account: data.account,
-        acquirer_id: data.tefAcquirerId,
-        tef_flag_id: data.tefFlagId,
-      });
-
-      const banking = await Banking.create(
-        {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
-          client_id: finance.client_id,
-          account_plan_id: finance.account_plan_id,
-          payment_method_id: finance.payment_method_id,
-          checking_account_id: checkingAccount.id,
-          daily_movement_id: finance.daily_movement_id,
-          daily_cashier_id: finance.daily_cashier_id,
-          finance_id: finance.id,
-
-          paymentMethodDiscountValue: finance.feeDiscountValue,
-          paymentMethodDiscountPercentage: finance.feeDiscountPercentage,
-
-          type: finance.type === FinanceType.C ? BankingType.C : BankingType.D,
-          document: finance.document,
-          historic: finance.historic,
-          issueDate: finance.issueDate,
-          documentValue: finance.value,
-          feeValue: finance.feeValue,
-          feePercentage: finance.feePercentage,
-          discountValue: finance.discountValue,
-          discountPercentage: finance.discountPercentage,
-          totalValue: finance.totalValue,
-          reconciled: true,
-          installment: finance.installment,
-          originFlag: BankingOriginFlag.F,
-          observation: finance.observation,
-          status: BankingStatus.B,
-          prevBalance: checkingAccount.balance,
-          balance:
-            finance.type === FinanceType.C
-              ? checkingAccount.balance + finance.value
-              : checkingAccount.balance - finance.value,
-
-          competenceDate: finance.competenceDate,
-          fiscalNote: finance.fiscalNote,
-          userDocument: finance.userDocument,
-          nsuDocument: finance.nsuDocument,
-          barCode: finance.barCode,
-        },
-        {
-          client: trx,
-        },
-      );
-
-      await checkingAccount
-        .merge({
-          balance:
-            finance.type === FinanceType.C
-              ? checkingAccount.balance + finance.value
-              : checkingAccount.balance - finance.value,
-        })
-        .useTransaction(trx)
-        .save();
-
-      await FinanceReversal.create(
-        {
-          type: FinanceReversalType.B,
+        finance.merge({
+          checking_account_id: data.checkingAccountId,
+          status: FinanceStatus.B,
           downDate: DateTime.now(),
-          reversalOrigin: data.originDownFlag,
+          paymentValue: data.paymentValue,
+          paymentDate: data.paymentDate,
+          originDownFlag: data.originDownFlag,
 
-          economic_group_id: finance.economic_group_id,
-          business_unit_id: finance.business_unit_id,
-          finance_id: finance.id,
-          client_id: finance.client_id,
-          checking_account_id: finance.checking_account_id ?? undefined,
-          account_plan_id: finance.account_plan_id,
-          payment_method_id: finance.payment_method_id,
-          banking_id: banking.id,
+          feeValue: data.feeValue ?? 0,
+          feePercentage: data.feePercentage ?? 0,
+          discountValue: data.discountValue ?? 0,
+          discountPercentage: data.discountPercentage ?? 0,
 
-          feeDiscountPercentage: finance.feeDiscountPercentage,
-          feeDiscountValue: finance.feeDiscountValue,
-          expirationDate: finance.expirationDate,
-          paymentDate: finance.paymentDate ?? undefined,
-          totalValue: finance.totalValue,
-          paymentValue: finance.paymentValue ?? undefined,
-          feeValue: finance.feeValue,
-          feePercentage: finance.feePercentage,
-          discountValue: finance.discountValue,
-          discountPercentage: finance.discountPercentage,
-          additionPercentage: finance.additionPercentage,
-          additionValue: finance.additionValue,
+          additionPercentage: data.increasePercentage,
+          additionValue: data.increaseValue,
+          observation: data.observation,
 
-          competenceDate: finance.competenceDate,
-          fiscalNote: finance.fiscalNote,
-          userDocument: finance.userDocument,
-          nsuDocument: finance.nsuDocument,
-          barCode: finance.barCode,
-          bank: finance.bank,
-          agency: finance.agency,
-          account: finance.account,
-          tef_flag_id: finance.tef_flag_id,
-          acquirer_id: finance.acquirer_id,
-        },
-        {
-          client: trx,
-        },
-      );
+          competenceDate: data.competenceDate,
+          fiscalNote: data.fiscalNote,
+          userDocument: data.userDocument,
+          nsuDocument: data.nsuDocument,
+          barCode: data.barCode,
+          bank: data.bank,
+          agency: data.agency,
+          account: data.account,
+          acquirer_id: data.tefAcquirerId,
+          tef_flag_id: data.tefFlagId,
+        });
 
-      return finance
-        .merge({
-          banking_id: banking.id,
-        })
-        .useTransaction(trx)
-        .save();
-    }, {});
+        const banking = await Banking.create(
+          {
+            economic_group_id: group.id,
+            business_unit_id: unitId,
+            client_id: finance.client_id,
+            account_plan_id: finance.account_plan_id,
+            payment_method_id: finance.payment_method_id,
+            checking_account_id: checkingAccount.id,
+            daily_movement_id: finance.daily_movement_id,
+            daily_cashier_id: finance.daily_cashier_id,
+            finance_id: finance.id,
+
+            paymentMethodDiscountValue: finance.feeDiscountValue,
+            paymentMethodDiscountPercentage: finance.feeDiscountPercentage,
+
+            type:
+              finance.type === FinanceType.C ? BankingType.C : BankingType.D,
+            document: finance.document,
+            historic: finance.historic,
+            issueDate: finance.issueDate,
+            documentValue: finance.value,
+            feeValue: finance.feeValue,
+            feePercentage: finance.feePercentage,
+            discountValue: finance.discountValue,
+            discountPercentage: finance.discountPercentage,
+            totalValue: finance.totalValue,
+            reconciled: true,
+            installment: finance.installment,
+            originFlag: BankingOriginFlag.F,
+            observation: finance.observation,
+            status: BankingStatus.B,
+            prevBalance: checkingAccount.balance,
+            balance:
+              finance.type === FinanceType.C
+                ? checkingAccount.balance + finance.value
+                : checkingAccount.balance - finance.value,
+
+            competenceDate: finance.competenceDate,
+            fiscalNote: finance.fiscalNote,
+            userDocument: finance.userDocument,
+            nsuDocument: finance.nsuDocument,
+            barCode: finance.barCode,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        await checkingAccount
+          .merge({
+            balance:
+              finance.type === FinanceType.C
+                ? checkingAccount.balance + finance.value
+                : checkingAccount.balance - finance.value,
+          })
+          .useTransaction(trx)
+          .save();
+
+        await FinanceReversal.create(
+          {
+            type: FinanceReversalType.B,
+            downDate: DateTime.now(),
+            reversalOrigin: data.originDownFlag,
+
+            economic_group_id: finance.economic_group_id,
+            business_unit_id: finance.business_unit_id,
+            finance_id: finance.id,
+            client_id: finance.client_id,
+            checking_account_id: finance.checking_account_id ?? undefined,
+            account_plan_id: finance.account_plan_id,
+            payment_method_id: finance.payment_method_id,
+            banking_id: banking.id,
+
+            feeDiscountPercentage: finance.feeDiscountPercentage,
+            feeDiscountValue: finance.feeDiscountValue,
+            expirationDate: finance.expirationDate,
+            paymentDate: finance.paymentDate ?? undefined,
+            totalValue: finance.totalValue,
+            paymentValue: finance.paymentValue ?? undefined,
+            feeValue: finance.feeValue,
+            feePercentage: finance.feePercentage,
+            discountValue: finance.discountValue,
+            discountPercentage: finance.discountPercentage,
+            additionPercentage: finance.additionPercentage,
+            additionValue: finance.additionValue,
+
+            competenceDate: finance.competenceDate,
+            fiscalNote: finance.fiscalNote,
+            userDocument: finance.userDocument,
+            nsuDocument: finance.nsuDocument,
+            barCode: finance.barCode,
+            bank: finance.bank,
+            agency: finance.agency,
+            account: finance.account,
+            tef_flag_id: finance.tef_flag_id,
+            acquirer_id: finance.acquirer_id,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        return finance
+          .merge({
+            banking_id: banking.id,
+          })
+          .useTransaction(trx)
+          .save();
+      },
+      {
+        isolationLevel: 'read uncommitted',
+      },
+    );
   }
 
   // 2.7
@@ -677,8 +683,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance + finance.totalValue
-                : checkingAccount.balance - finance.totalValue,
+                ? checkingAccount.balance - finance.totalValue
+                : checkingAccount.balance + finance.totalValue,
           })
           .useTransaction(trx)
           .save();

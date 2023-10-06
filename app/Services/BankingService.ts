@@ -1,9 +1,8 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
-import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, { BankingStatus, BankingType } from 'App/Models/Banking';
 import CheckingAccount from 'App/Models/CheckingAccount';
-import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
+import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,

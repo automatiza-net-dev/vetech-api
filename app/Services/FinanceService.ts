@@ -452,6 +452,7 @@ export default class FinanceService {
           checking_account_id: checkingAccount.id,
           daily_movement_id: finance.daily_movement_id,
           daily_cashier_id: finance.daily_cashier_id,
+          finance_id: finance.id,
 
           paymentMethodDiscountValue: finance.feeDiscountValue,
           paymentMethodDiscountPercentage: finance.feeDiscountPercentage,

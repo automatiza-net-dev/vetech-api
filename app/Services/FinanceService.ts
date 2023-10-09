@@ -399,24 +399,6 @@ export default class FinanceService {
     data: { items: IFinanceDownData[] },
   ) {
     return Database.transaction(async trx => {
-      const uniqueIds = Array.from(
-        new Set(data.items.map(item => item.checkingAccountId)),
-      );
-      const checkingAccounts = await CheckingAccount.query()
-        .useTransaction(trx)
-        .whereIn('id', uniqueIds);
-
-      if (checkingAccounts.length < uniqueIds.length) {
-        throw new BadRequestException(
-          'Alguma conta corrente não foi encontrada',
-          400,
-          'E_ERR',
-        );
-      }
-
-      const diffMap = new Map<string, number>();
-      uniqueIds.forEach(id => diffMap.set(id, 0));
-
       for await (const elem of data.items) {
         const finance = await Finance.query()
           .where('id', elem.financeId)
@@ -428,9 +410,14 @@ export default class FinanceService {
           throw this.sharedService.ResourceNotFound();
         }
 
-        const checkingAccount = checkingAccounts.find(
-          item => item.id === elem.checkingAccountId,
-        );
+        const checkingAccount = await CheckingAccount.query()
+          .useTransaction(trx)
+          .where('id', elem.checkingAccountId)
+          .first();
+
+        if (!checkingAccount) {
+          throw this.sharedService.ResourceNotFound();
+        }
 
         finance.merge({
           checking_account_id: elem.checkingAccountId,
@@ -509,15 +496,15 @@ export default class FinanceService {
           },
         );
 
-        if (checkingAccount) {
-          const value =
-            finance.type === FinanceType.C ? finance.value : -finance.value;
-
-          diffMap.set(
-            checkingAccount.id,
-            (diffMap.get(checkingAccount.id) ?? 0) + value,
-          );
-        }
+        await checkingAccount
+          .merge({
+            balance:
+              finance.type === FinanceType.C
+                ? checkingAccount.balance + finance.value
+                : checkingAccount.balance - finance.value,
+          })
+          .useTransaction(trx)
+          .save();
 
         await FinanceReversal.create(
           {
@@ -570,21 +557,6 @@ export default class FinanceService {
           .useTransaction(trx)
           .save();
       }
-
-      const tasks2 = Array.from(diffMap.entries()).map(async ([id, value]) => {
-        const checkingAccount = checkingAccounts.find(item => item.id === id);
-
-        if (checkingAccount) {
-          await checkingAccount
-            .merge({
-              balance: checkingAccount.balance + value,
-            })
-            .useTransaction(trx)
-            .save();
-        }
-      });
-
-      await Promise.all(tasks2);
     });
   }
 

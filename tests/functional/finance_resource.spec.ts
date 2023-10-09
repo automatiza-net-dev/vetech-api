@@ -80,6 +80,7 @@ test.group('Finance resource', group => {
       payment_method_id: paymentMethod.id,
       tef_flag_id: tefFlag.id,
       status: FinanceStatus.A,
+      value: 100,
     });
 
     const dailyMovement = await DailyMovement.create({

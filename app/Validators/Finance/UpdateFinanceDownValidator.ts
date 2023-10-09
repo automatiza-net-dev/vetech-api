@@ -8,6 +8,10 @@ export default class UpdateFinanceDownValidator {
   public schema = schema.create({
     items: schema.array().members(
       schema.object().members({
+        financeId: schema.string({ trim: true }, [
+          rules.uuid(),
+          rules.exists({ table: 'finances', column: 'id' }),
+        ]),
         checkingAccountId: schema.string({ trim: true }, [
           rules.uuid(),
           rules.exists({ table: 'checking_accounts', column: 'id' }),

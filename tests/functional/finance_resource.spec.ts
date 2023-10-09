@@ -473,10 +473,11 @@ test.group('Finance resource', group => {
     });
 
     const response = await client
-      .put(`/finances/update-down/${finance.id}`)
+      .put(`/finances/update-down`)
       .json({
         items: [
           {
+            financeId: finance.id,
             checkingAccountId: checkingAccount.id,
             paymentDate: new Date(),
             paymentValue: 100,
@@ -490,6 +491,7 @@ test.group('Finance resource', group => {
             competenceDate: '02/2023',
           },
           {
+            financeId: finance.id,
             checkingAccountId: checkingAccount.id,
             paymentDate: new Date(),
             paymentValue: 100,

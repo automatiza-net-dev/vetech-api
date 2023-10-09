@@ -395,23 +395,10 @@ export default class FinanceService {
   }
 
   async updateFinanceDown(
-    unitId: string,
-    id: string,
+    authCtx: AuthContext,
     data: { items: IFinanceDownData[] },
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     return Database.transaction(async trx => {
-      const finance = await Finance.query()
-        .where('id', id)
-        .where('business_unit_id', unitId)
-        .useTransaction(trx)
-        .first();
-
-      if (!finance) {
-        throw this.sharedService.ResourceNotFound();
-      }
-
       const uniqueIds = Array.from(
         new Set(data.items.map(item => item.checkingAccountId)),
       );
@@ -430,48 +417,58 @@ export default class FinanceService {
       const diffMap = new Map<string, number>();
       uniqueIds.forEach(id => diffMap.set(id, 0));
 
-      const tasks = data.items.map(async data => {
+      for await (const elem of data.items) {
+        const finance = await Finance.query()
+          .where('id', elem.financeId)
+          .where('business_unit_id', authCtx.unit.id)
+          .useTransaction(trx)
+          .first();
+
+        if (!finance) {
+          throw this.sharedService.ResourceNotFound();
+        }
+
         const checkingAccount = checkingAccounts.find(
-          item => item.id === data.checkingAccountId,
+          item => item.id === elem.checkingAccountId,
         );
 
         finance.merge({
-          checking_account_id: data.checkingAccountId,
+          checking_account_id: elem.checkingAccountId,
           status: FinanceStatus.B,
           downDate: DateTime.now(),
-          paymentValue: data.paymentValue,
-          paymentDate: data.paymentDate,
-          originDownFlag: data.originDownFlag,
+          paymentValue: elem.paymentValue,
+          paymentDate: elem.paymentDate,
+          originDownFlag: elem.originDownFlag,
 
-          feeValue: data.feeValue ?? 0,
-          feePercentage: data.feePercentage ?? 0,
-          discountValue: data.discountValue ?? 0,
-          discountPercentage: data.discountPercentage ?? 0,
+          feeValue: elem.feeValue ?? 0,
+          feePercentage: elem.feePercentage ?? 0,
+          discountValue: elem.discountValue ?? 0,
+          discountPercentage: elem.discountPercentage ?? 0,
 
-          additionPercentage: data.increasePercentage,
-          additionValue: data.increaseValue,
-          observation: data.observation,
+          additionPercentage: elem.increasePercentage,
+          additionValue: elem.increaseValue,
+          observation: elem.observation,
 
-          competenceDate: data.competenceDate,
-          fiscalNote: data.fiscalNote,
-          userDocument: data.userDocument,
-          nsuDocument: data.nsuDocument,
-          barCode: data.barCode,
-          bank: data.bank,
-          agency: data.agency,
-          account: data.account,
-          acquirer_id: data.tefAcquirerId,
-          tef_flag_id: data.tefFlagId,
+          competenceDate: elem.competenceDate,
+          fiscalNote: elem.fiscalNote,
+          userDocument: elem.userDocument,
+          nsuDocument: elem.nsuDocument,
+          barCode: elem.barCode,
+          bank: elem.bank,
+          agency: elem.agency,
+          account: elem.account,
+          acquirer_id: elem.tefAcquirerId,
+          tef_flag_id: elem.tefFlagId,
         });
 
         const banking = await Banking.create(
           {
-            economic_group_id: group.id,
-            business_unit_id: unitId,
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
             client_id: finance.client_id,
             account_plan_id: finance.account_plan_id,
             payment_method_id: finance.payment_method_id,
-            checking_account_id: data.checkingAccountId,
+            checking_account_id: elem.checkingAccountId,
             daily_movement_id: finance.daily_movement_id,
             daily_cashier_id: finance.daily_cashier_id,
             finance_id: finance.id,
@@ -526,7 +523,7 @@ export default class FinanceService {
           {
             type: FinanceReversalType.B,
             downDate: DateTime.now(),
-            reversalOrigin: data.originDownFlag,
+            reversalOrigin: elem.originDownFlag,
 
             economic_group_id: finance.economic_group_id,
             business_unit_id: finance.business_unit_id,
@@ -566,15 +563,13 @@ export default class FinanceService {
           },
         );
 
-        return finance
+        await finance
           .merge({
             banking_id: banking.id,
           })
           .useTransaction(trx)
           .save();
-      });
-
-      await Promise.all(tasks);
+      }
 
       const tasks2 = Array.from(diffMap.entries()).map(async ([id, value]) => {
         const checkingAccount = checkingAccounts.find(item => item.id === id);

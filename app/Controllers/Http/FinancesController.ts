@@ -100,16 +100,13 @@ export default class FinancesController {
     return response.ok(result);
   }
 
-  async updateFinanceDown({
-    params,
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+  async updateFinanceDown({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateFinanceDownValidator);
 
-    await this.service.updateFinanceDown(unit_id, params.id, payload);
+    await this.service.updateFinanceDown(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.noContent();
   }

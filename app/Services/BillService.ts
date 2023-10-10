@@ -15,6 +15,7 @@ import Finance, {
   FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
+import IssuedFiscalDocument from 'App/Models/IssuedFiscalDocument';
 import Kit from 'App/Models/Kit';
 import Patient from 'App/Models/Patient';
 import PaymentMethod from 'App/Models/PaymentMethod';
@@ -22,6 +23,7 @@ import PaymentMethodFlagInstallment from 'App/Models/PaymentMethodFlagInstallmen
 import Product, { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductivityItem from 'App/Models/ProductivityItem';
 import ProductVariation from 'App/Models/ProductVariation';
+import ServiceIssuedFiscalDocument from 'App/Models/ServiceIssuedFiscalDocument';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
@@ -1577,6 +1579,7 @@ export default class BillService {
         daily_movement_id: data.dailyMovementId,
         daily_cashier_id: dailyCashier.id,
         budget_id: data.budgetId,
+        financial_responsible_id: data.financialResponsibleId,
 
         client_id: data.clientId,
         patient_id: data.patientId,
@@ -2518,6 +2521,53 @@ export default class BillService {
         return Promise.all(innerTasks);
       });
       await Promise.all(tasks);
+    });
+  }
+
+  async updateBillFinancialResponsible(
+    authCtx: AuthContext,
+    data: { billId: string; financialResponsibleId: string },
+  ) {
+    await Database.transaction(async trx => {
+      const bill = await Bill.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('id', data.billId)
+        .first();
+
+      if (!bill) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const [fiscalDocuments, serviceFiscalDocuments] = await Promise.all([
+        IssuedFiscalDocument.query()
+          .useTransaction(trx)
+          .where('bill_id', bill.id),
+        ServiceIssuedFiscalDocument.query()
+          .useTransaction(trx)
+          .where('bill_id', bill.id),
+      ]);
+
+      if(fiscalDocuments.length > 0){
+        throw new BadRequestException(
+          'Não é possível alterar o responsável financeiro de uma nota fiscal já emitida',
+          400,
+          'E_ERR',
+        )
+      }
+
+      if(serviceFiscalDocuments.length > 0){
+        throw new BadRequestException(
+          'Não é possível alterar o responsável financeiro de uma nota fiscal de serviço já emitida',
+          400,
+          'E_ERR',
+        )
+      }
+
+      await bill
+        .merge({ financial_responsible_id: data.financialResponsibleId })
+        .useTransaction(trx)
+        .save();
     });
   }
 }

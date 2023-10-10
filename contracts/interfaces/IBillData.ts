@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 
 export interface ICreateBillData {
   clientId: string;
+  financialResponsibleId?: string;
   patientId?: string;
   dailyMovementId?: string;
   billDate: DateTime;

@@ -922,6 +922,10 @@ Route.group(() => {
   Route.put('/update-conference', 'BillsController.updateCashierConference');
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
+  Route.put(
+    '/financial-responsible',
+    'BillsController.updateBillFinancialResponsible',
+  );
 
   Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');

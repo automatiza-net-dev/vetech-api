@@ -58,6 +58,9 @@ export default class CheckingAccountService {
     const account = await CheckingAccount.query()
       .where('id', id)
       .where('economic_group_id', authCtx.group.id)
+      .preload('unit', query => {
+        query.select('id', 'identification');
+      })
       .first();
 
     if (!account) {

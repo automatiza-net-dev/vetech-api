@@ -54,6 +54,14 @@ export default class AuthController {
     return response.ok(result);
   }
 
+  public async availableSwaps({ auth, response }: HttpContextContract) {
+    const result = await this.authService.getAvailableSwaps(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
   public async swapUnit({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(SwapUnitValidator);
     const { token } = auth.use('api');

@@ -1210,6 +1210,8 @@ export default class ReportService {
             economic_groups.company_name,
             business_units.id,
             business_units.identification,
+            business_units.city,
+            business_units.state,
             products.description,
             products.type,
             sum(bill_items.quantity)         as quantity,
@@ -1310,6 +1312,8 @@ export default class ReportService {
       unit: {
         id: elem.id,
         identification: elem.identification,
+        city: elem.city,
+        state: elem.state,
       },
       product: {
         description: elem.description,

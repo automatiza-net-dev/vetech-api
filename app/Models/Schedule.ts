@@ -47,6 +47,11 @@ export default class Schedule extends BaseModel {
   })
   public endHour: DateTime;
 
+  @column.dateTime({
+    columnName: 'started_at',
+  })
+  public startedAt: DateTime | null;
+
   @column()
   public age?: number;
 

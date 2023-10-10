@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
+import { CustomMessages, schema, rules } from '@ioc:Adonis/Core/Validator';
 import { CheckingAccountType } from 'App/Models/CheckingAccount';
 
 export default class UpdateCheckingAccountValidator {
@@ -7,16 +7,22 @@ export default class UpdateCheckingAccountValidator {
 
   public schema = schema.create({
     description: schema.string(),
+    accountNumber: schema.string(),
     bankCode: schema.string(),
     bankName: schema.string(),
     agency: schema.string(),
-    agencyPhone: schema.string(),
-    managerName: schema.string(),
-    managerPhone: schema.string(),
-    managerEmail: schema.string(),
-    limit: schema.number(),
     type: schema.enum(Object.values(CheckingAccountType)),
     active: schema.boolean(),
+
+    businessUnitId: schema.string.optional([
+      rules.uuid(),
+      rules.exists({ table: 'business_units', column: 'id' }),
+    ]),
+    agencyPhone: schema.string.optional(),
+    managerName: schema.string.optional(),
+    managerPhone: schema.string.optional(),
+    managerEmail: schema.string.optional(),
+    limit: schema.number.optional(),
   });
 
   public messages: CustomMessages = {};

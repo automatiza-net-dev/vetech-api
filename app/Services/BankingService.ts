@@ -1,12 +1,12 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
-import BadRequestException from 'App/Exceptions/BadRequestException';
 import Banking, { BankingStatus, BankingType } from 'App/Models/Banking';
 import CheckingAccount from 'App/Models/CheckingAccount';
-import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
+import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
+  FinanceOriginDownFlag,
   FinanceOriginFlag,
   FinanceStatus,
   FinanceType,
@@ -115,7 +115,7 @@ export default class BankingService {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
-          type: FinanceType[data.type],
+          type: data.type === BankingType.C ? FinanceType.C : FinanceType.D,
           account_plan_id: data.accountPlanId,
           payment_method_id: data.paymentMethodId,
           checking_account_id: data.checkingAccountId,
@@ -130,8 +130,10 @@ export default class BankingService {
           value: data.documentValue,
           totalValue: total,
           accept: FinanceAccept.S,
-          installment: data.installment,
-          originFlag: FinanceOriginFlag[data.originFlag],
+          installment:
+            typeof data.installment != 'undefined' ? data.installment : 1,
+          originFlag: FinanceOriginFlag.B,
+          originDownFlag: FinanceOriginDownFlag.B,
           paymentDate: DateTime.now(),
           downDate: data.issueDate,
           paymentValue: total,
@@ -160,8 +162,9 @@ export default class BankingService {
       const existingBankingsBefore = await Banking.query()
         .where('economic_group_id', authCtx.group.id)
         .whereRaw('issue_date::date <= ?', [data.issueDate.toJSDate()])
+        .where('checking_account_id', data.checkingAccountId)
         .limit(1)
-        .orderBy('created_at', 'desc');
+        .orderBy('issue_date', 'desc');
       const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
 
       await Database.rawQuery(
@@ -169,7 +172,7 @@ export default class BankingService {
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
         }, balance = balance ${
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
-        } where checking_account_id = :id and issue_date > ${`'${data.issueDate}'::date`}`,
+        } where checking_account_id = :id and issue_date::date > ${`'${data.issueDate}'::date`}`,
         {
           id: data.checkingAccountId,
         },
@@ -327,7 +330,8 @@ export default class BankingService {
         discountValue: data.discountValue,
         discountPercentage: data.discountPercentage,
         reconciled: data.reconciled,
-        installment: data.installment,
+        installment:
+          typeof data.installment != 'undefined' ? data.installment : 1,
         originFlag: data.originFlag,
 
         observation: data.observation,

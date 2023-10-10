@@ -14,6 +14,7 @@ interface ISearch {
   name?: string;
   bank?: string;
   type?: string;
+  unit?: string;
 }
 
 @inject()
@@ -21,10 +22,22 @@ export default class CheckingAccountService {
   constructor(private readonly sharedService: SharedService) {}
 
   public async index(authCtx: AuthContext, data: ISearch) {
-    const qb = CheckingAccount.query().where(
-      'economic_group_id',
-      authCtx.group.id,
-    );
+    const qb = CheckingAccount.query().preload('unit', query => {
+      query.select('id', 'identification');
+    });
+
+    if (data.unit) {
+      qb.whereRaw(
+        `
+        (
+          business_unit_id is null or business_unit_id = ?
+        )
+        `,
+        [data.unit],
+      );
+    } else {
+      qb.where('economic_group_id', authCtx.group.id);
+    }
 
     if (data.name) {
       qb.where('description', 'ilike', `%${data.name}%`);
@@ -45,6 +58,9 @@ export default class CheckingAccountService {
     const account = await CheckingAccount.query()
       .where('id', id)
       .where('economic_group_id', authCtx.group.id)
+      .preload('unit', query => {
+        query.select('id', 'identification');
+      })
       .first();
 
     if (!account) {
@@ -75,12 +91,11 @@ export default class CheckingAccountService {
     authCtx: AuthContext,
     data: IOpenCheckingAccountData,
   ) {
-    const group = await this.sharedService.getUserGroup(authCtx.unit.id);
-
     return CheckingAccount.create({
-      economic_group_id: group.id,
-      business_unit_id: authCtx.unit.id,
+      economic_group_id: authCtx.group.id,
+      business_unit_id: data.businessUnitId,
       description: data.description,
+
       accountNumber: data.accountNumber,
       bankCode: data.bankCode,
       bankName: data.bankName,
@@ -112,6 +127,8 @@ export default class CheckingAccountService {
 
     return account
       .merge({
+        business_unit_id: data.businessUnitId,
+
         description: data.description,
         bankCode: data.bankCode,
         bankName: data.bankName,

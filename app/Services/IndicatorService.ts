@@ -862,7 +862,7 @@ export default class IndicatorService {
             business_units.id,
             business_units.identification,
             count(schedules.id)          as agendados,
-            count(schedules.finished_at) as atendidos
+            count(schedules.started_at)  as atendidos
           `,
         ),
       )

@@ -26,6 +26,9 @@ Route.get('/', () => {
 
 Route.group(() => {
   Route.get('me', 'AuthController.whoAmI').middleware('auth');
+  Route.get('available-swaps', 'AuthController.availableSwaps').middleware(
+    'auth',
+  );
   Route.post('swap-unit', 'AuthController.swapUnit').middleware('auth');
   Route.post('swap-tp-unit', 'AuthController.swapTpUnit').middleware('auth');
 
@@ -837,7 +840,7 @@ Route.group(() => {
   Route.post('/create-multiple', 'FinancesController.storeMultipleFinances');
   Route.post('/accept-many', 'FinancesController.acceptManyFinances');
   Route.put('/update/:id', 'FinancesController.updateFinance');
-  Route.put('/update-down/:id', 'FinancesController.updateFinanceDown');
+  Route.put('/update-down', 'FinancesController.updateFinanceDown');
   Route.put('/update-reversal/:id', 'FinancesController.updateFinanceReversal');
   Route.delete('/delete/:id', 'FinancesController.deleteFinance');
 
@@ -919,6 +922,10 @@ Route.group(() => {
   Route.put('/update-conference', 'BillsController.updateCashierConference');
   Route.put('/recalculate/:id', 'BillsController.recalculate');
   Route.put('/disable-item/:id', 'BillsController.disableBillItem');
+  Route.put(
+    '/financial-responsible',
+    'BillsController.updateBillFinancialResponsible',
+  );
 
   Route.put('/exclude-bill/:id', 'BillsController.excludeBill');
   Route.put('/close-bill/:id', 'BillsController.closeBill');

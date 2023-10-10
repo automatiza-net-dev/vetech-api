@@ -7,11 +7,14 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
+import FiscalDocument from 'App/Models/FiscalDocument';
+import IssuedFiscalDocument from 'App/Models/IssuedFiscalDocument';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';
 import PaymentMethod, { PaymentMethodTef } from 'App/Models/PaymentMethod';
 import { ProductPurpose, ProductType } from 'App/Models/Product';
 import ProductivityItem from 'App/Models/ProductivityItem';
+import ServiceIssuedFiscalDocument from 'App/Models/ServiceIssuedFiscalDocument';
 import TaxationGroup from 'App/Models/TaxationGroup';
 import TaxationGroupRule, {
   CompanyType,
@@ -1505,6 +1508,79 @@ test.group('Bill resource', group => {
       .bearerToken(token);
 
     assert.equal(204, response.status());
+  });
+
+  test('should update bill financial responsible', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, client: billClient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/bills/financial-responsible`)
+      .json({
+        billId: bill.id,
+        financialResponsibleId: billClient.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should throw BadRequestException if updating financial responsible from bill with fiscal document', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, client: billClient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await IssuedFiscalDocument.create({
+      id: v4(),
+      bill_id: bill.id,
+    });
+
+    const response = await client
+      .put(`/bills/financial-responsible`)
+      .json({
+        billId: bill.id,
+        financialResponsibleId: billClient.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if updating financial responsible from bill with service fiscal document', async ({
+    assert,
+    client,
+  }) => {
+    const { user, bill, client: billClient } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await ServiceIssuedFiscalDocument.create({
+      id: v4(),
+      bill_id: bill.id,
+    });
+
+    const response = await client
+      .put(`/bills/financial-responsible`)
+      .json({
+        billId: bill.id,
+        financialResponsibleId: billClient.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 
   // test('should recalculate item taxes', async ({ assert, client }) => {

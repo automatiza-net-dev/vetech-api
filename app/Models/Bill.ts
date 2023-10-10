@@ -234,6 +234,16 @@ export default class Bill extends BaseModel {
   @column({
     serializeAs: null,
   })
+  public financial_responsible_id: string;
+
+  @belongsTo(() => Patient, {
+    foreignKey: 'financial_responsible_id',
+  })
+  public financialResponsible: BelongsTo<typeof Patient>;
+
+  @column({
+    serializeAs: null,
+  })
   public client_id: string;
 
   @belongsTo(() => Patient, {

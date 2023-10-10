@@ -33,6 +33,7 @@ export default class BudgetsController {
       patient: qs.patient,
       tag: qs.tag,
       client: qs.client,
+      reviewer: qs.reviewer,
     });
 
     return response.ok(result);

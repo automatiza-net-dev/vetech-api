@@ -44,8 +44,9 @@ export default class AuthService {
         query.whereHas('economicGroup', query => {
           query.where('system_id', sID);
         });
-
         query.where('active', true);
+
+        query.preload('economicGroup');
       })
       .whereHas('unit', query => {
         query.whereHas('economicGroup', query => {
@@ -286,6 +287,20 @@ export default class AuthService {
 
       return AuthService.generateAuthToken(auth, user, unit.id, system.id);
     });
+  }
+
+  public async getAvailableSwaps(authCtx: AuthContext) {
+    const roles = await this.getRoles(authCtx.user, authCtx.system.id, false);
+
+    const validUnits = roles
+      .map(r => r.unit)
+      .filter(u => u !== null) as BusinessUnit[];
+
+    return validUnits.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      group: elem.economicGroup.companyName,
+    }));
   }
 
   public async controllerLogin(

@@ -945,6 +945,7 @@ export default class ScheduleService {
             toStatus.description === 'Atendimento cancelado'
               ? authCtx.user.id
               : undefined,
+          startedAt: toStatus.type === 'ATEND' ? DateTime.now() : null,
         })
         .useTransaction(trx)
         .save();

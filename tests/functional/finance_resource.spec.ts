@@ -80,6 +80,7 @@ test.group('Finance resource', group => {
       payment_method_id: paymentMethod.id,
       tef_flag_id: tefFlag.id,
       status: FinanceStatus.A,
+      value: 100,
     });
 
     const dailyMovement = await DailyMovement.create({
@@ -107,6 +108,7 @@ test.group('Finance resource', group => {
       finance,
       dailyCashier,
       config,
+      checkingAccount,
     };
   };
 
@@ -461,5 +463,52 @@ test.group('Finance resource', group => {
     // console.log(response.body());
 
     assert.equal(200, response.status());
+  });
+
+  test('should do finance down', async ({ assert, client }) => {
+    const { user, finance, checkingAccount } = await createData();
+
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/finances/update-down`)
+      .json({
+        items: [
+          {
+            financeId: finance.id,
+            checkingAccountId: checkingAccount.id,
+            paymentDate: new Date(),
+            paymentValue: 100,
+            originDownFlag: 'CAIXA_DIARIO',
+            feeValue: 100,
+            feePercentage: 10,
+            discountValue: 10,
+            discountPercentage: 1,
+            increaseValue: 1,
+            increasePercentage: 10,
+            competenceDate: '02/2023',
+          },
+          {
+            financeId: finance.id,
+            checkingAccountId: checkingAccount.id,
+            paymentDate: new Date(),
+            paymentValue: 100,
+            originDownFlag: 'CAIXA_DIARIO',
+            feeValue: 100,
+            feePercentage: 10,
+            discountValue: 10,
+            discountPercentage: 1,
+            increaseValue: 1,
+            increasePercentage: 10,
+            competenceDate: '03/2023',
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 });

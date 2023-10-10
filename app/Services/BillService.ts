@@ -1579,10 +1579,10 @@ export default class BillService {
         daily_movement_id: data.dailyMovementId,
         daily_cashier_id: dailyCashier.id,
         budget_id: data.budgetId,
-        financial_responsible_id: data.financialResponsibleId,
-
+        financial_responsible_id: data.financialResponsibleId ?? data.clientId,
         client_id: data.clientId,
         patient_id: data.patientId,
+
         billDate: data.billDate,
         productValue: 0,
         serviceValue: 0,
@@ -2548,20 +2548,20 @@ export default class BillService {
           .where('bill_id', bill.id),
       ]);
 
-      if(fiscalDocuments.length > 0){
+      if (fiscalDocuments.length > 0) {
         throw new BadRequestException(
           'Não é possível alterar o responsável financeiro de uma nota fiscal já emitida',
           400,
           'E_ERR',
-        )
+        );
       }
 
-      if(serviceFiscalDocuments.length > 0){
+      if (serviceFiscalDocuments.length > 0) {
         throw new BadRequestException(
           'Não é possível alterar o responsável financeiro de uma nota fiscal de serviço já emitida',
           400,
           'E_ERR',
-        )
+        );
       }
 
       await bill

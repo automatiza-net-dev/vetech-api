@@ -166,6 +166,9 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('client', query => {
           query.preload('tutor');
         })
+        .preload('financialResponsible', query => {
+          query.preload('tutor');
+        })
         .preload('payments', query => {
           query.preload('paymentMethod');
           query.preload('flag');
@@ -269,6 +272,8 @@ export default class BusinessUnitFiscalDocumentService {
         },
       );
 
+      const responsible = bill.financialResponsible ?? bill.client;
+
       const nfePayload: ISendNfe = {
         nfe_series: issuedDocument.series,
         nfe_number: issuedDocument.sequence,
@@ -301,25 +306,25 @@ export default class BusinessUnitFiscalDocumentService {
           name:
             unit.unitConfig.fiscalDocumentEnvironment === 'H'
               ? 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL'
-              : bill.client.name,
-          cpf_document: bill.client.tutor.document?.replaceAll(/\D/g, '') ?? '',
+              : responsible.name,
+          cpf_document: responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
           cnpj_document:
-            bill.client.tutor.document?.length === 14
-              ? bill.client.tutor.document.replaceAll(/\D/g, '')
+            responsible.tutor.document?.length === 14
+              ? responsible.tutor.document.replaceAll(/\D/g, '')
               : null,
-          phone: bill.client.tutor.cellphone,
-          ie: bill.client.tutor.inscription ?? '',
-          email: bill.client.tutor.email,
+          phone: responsible.tutor.cellphone,
+          ie: responsible.tutor.inscription ?? '',
+          email: responsible.tutor.email,
           authorized: unit.unitConfig.xmlDownloadAuthorization ?? '',
 
           location: {
-            street: bill.client.tutor.street ?? '',
-            number: bill.client.tutor.number ?? '',
-            complement: bill.client.tutor.complement ?? '',
-            district: bill.client.tutor.district ?? '',
-            city: bill.client.tutor.city ?? '',
-            uf: bill.client.tutor.state ?? '',
-            code: bill.client.tutor.postalCode ?? '',
+            street: responsible.tutor.street ?? '',
+            number: responsible.tutor.number ?? '',
+            complement: responsible.tutor.complement ?? '',
+            district: responsible.tutor.district ?? '',
+            city: responsible.tutor.city ?? '',
+            uf: responsible.tutor.state ?? '',
+            code: responsible.tutor.postalCode ?? '',
           },
         },
         items: items.map((item, idx) => {
@@ -502,6 +507,8 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
+      const responsible = bill.financialResponsible ?? bill.client;
+
       const items = await BillItem.query()
         .useTransaction(trx)
         .where('bill_id', bill.id)
@@ -549,22 +556,22 @@ export default class BusinessUnitFiscalDocumentService {
               },
               buyer: {
                 cpf_document:
-                  bill.client.tutor.document?.replaceAll(/\D/g, '') ?? '',
+                  responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
                 cnpj_document:
-                  bill.client.tutor.document?.length === 14
-                    ? bill.client.tutor.document.replaceAll(/\D/g, '')
+                  responsible.tutor.document?.length === 14
+                    ? responsible.tutor.document.replaceAll(/\D/g, '')
                     : null,
-                name: bill.client.name,
-                email: bill.client.tutor.email,
-                phone: bill.client.tutor.telephone ?? '',
+                name: responsible.name,
+                email: responsible.tutor.email,
+                phone: responsible.tutor.telephone ?? '',
                 address: {
-                  street: bill.client.tutor.street ?? '',
-                  number: bill.client.tutor.number ?? '',
-                  district: bill.client.tutor.district ?? '',
-                  city_code: bill.client.tutor.cityCode ?? '',
-                  uf: bill.client.tutor.state ?? '',
-                  postal_code: bill.client.tutor.postalCode ?? '',
-                  complement: bill.client.tutor.complement ?? null,
+                  street: responsible.tutor.street ?? '',
+                  number: responsible.tutor.number ?? '',
+                  district: responsible.tutor.district ?? '',
+                  city_code: responsible.tutor.cityCode ?? '',
+                  uf: responsible.tutor.state ?? '',
+                  postal_code: responsible.tutor.postalCode ?? '',
+                  complement: responsible.tutor.complement ?? null,
                 },
               },
               service: {

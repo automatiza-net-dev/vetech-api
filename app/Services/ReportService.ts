@@ -28,7 +28,8 @@ export default class ReportService {
       paymentMethod?: string;
       accountPlan?: string;
       status?: string;
-      businessUnit?: string;
+      businessUnits?: string[];
+      economicGroups?: string[];
     },
   ) {
     const qb = Finance.query()
@@ -36,7 +37,11 @@ export default class ReportService {
       .preload('checkingAccount')
       .preload('paymentMethod')
       .preload('accountPlan')
-      .where('economic_group_id', authCtx.group.id);
+      .preload('unit', query => {
+        query.preload('economicGroup', query => {
+          query.preload('system');
+        });
+      });
 
     if (data.type) {
       qb.where('type', data.type);
@@ -54,8 +59,14 @@ export default class ReportService {
       qb.where('status', data.status);
     }
 
-    if (data.businessUnit) {
-      qb.where('business_unit_id', data.businessUnit);
+    if (data.businessUnits && Array.isArray(data.businessUnits)) {
+      qb.whereIn('business_unit_id', data.businessUnits);
+    }
+
+    if (data.economicGroups && Array.isArray(data.economicGroups)) {
+      qb.whereIn('economic_group_id', data.economicGroups);
+    } else {
+      qb.where('economic_group_id', authCtx.group.id);
     }
 
     if (data.fromIssueDate) {
@@ -108,7 +119,21 @@ export default class ReportService {
       status: elem.status,
       qtyInstallments: elem.qtyInstallments,
       installment: elem.installment,
+      originFlag: elem.originFlag,
 
+      system: this.sharedService.captureGroup(
+        elem.unit?.economicGroup?.system,
+        v => ({
+          id: v.id,
+          name: v.name,
+        }),
+      ),
+      unit: this.sharedService.captureGroup(elem.unit, v => ({
+        id: v.id,
+        identification: v.identification,
+        city: v.city,
+        state: v.state,
+      })),
       client: this.sharedService.captureGroup(elem.client, v => ({
         id: v.id,
         name: v.name,

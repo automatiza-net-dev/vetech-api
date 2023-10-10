@@ -34,6 +34,7 @@ interface ISearchPartial {
   status?: string;
   patient?: string;
   client?: string;
+  reviewer?: string;
   tag?: string;
 }
 
@@ -113,6 +114,10 @@ export default class BudgetService {
 
     if (data.client) {
       qb.where('client_id', data.client);
+    }
+
+    if (data.reviewer) {
+      qb.where('reviewer_id', data.reviewer);
     }
 
     if (data.tag) {

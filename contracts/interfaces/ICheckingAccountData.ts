@@ -26,7 +26,7 @@ export interface IUpdateCheckingAccountData {
   agency: string;
   active: boolean;
 
-  businessUnitId?: string;
+  businessUnitId?: string | null;
   agencyPhone?: string;
   managerName?: string;
   managerPhone?: string;

@@ -127,7 +127,8 @@ export default class CheckingAccountService {
 
     return account
       .merge({
-        business_unit_id: data.businessUnitId,
+        business_unit_id:
+          typeof data.businessUnitId === 'string' ? data.businessUnitId : null,
 
         description: data.description,
         bankCode: data.bankCode,

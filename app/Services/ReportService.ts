@@ -448,7 +448,11 @@ export default class ReportService {
     },
   ) {
     const qb = Bill.query()
-      .preload('businessUnit')
+      .preload('businessUnit', query => {
+        query.preload('economicGroup', query => {
+          query.preload('system');
+        });
+      })
       .preload('seller')
       .preload('client', query => {
         query.preload('tutor', query => {
@@ -520,9 +524,19 @@ export default class ReportService {
       missingPaymentValue: elem.totalValue - elem.paidValue,
       status: elem.status,
 
+      system: {
+        id: elem.businessUnit.economicGroup.system.id,
+        name: elem.businessUnit.economicGroup.system.name,
+      },
+      group: {
+        id: elem.businessUnit.economicGroup.id,
+        companyName: elem.businessUnit.economicGroup.companyName,
+      },
       unit: {
         id: elem.businessUnit.id,
         identification: elem.businessUnit.identification,
+        city: elem.businessUnit.city,
+        state: elem.businessUnit.state,
       },
       seller: this.sharedService.captureGroup(elem.seller, v => ({
         id: v.id,
@@ -536,6 +550,8 @@ export default class ReportService {
             origin: elem.client.tutor?.clientOrigin?.description ?? null,
             document: elem.client.tutor?.document ?? null,
             createdAt: elem.client.createdAt,
+            cellphone: elem.client?.tutor?.cellphone ?? null,
+            vaccineOrigin: elem.client.vaccineOrigin,
             address: [
               elem.client.tutor?.postalCode,
               elem.client.tutor?.street,
@@ -555,6 +571,11 @@ export default class ReportService {
         race: v.patientAnimal.race,
         gender: v.gender ?? null,
         castrated: v?.patientAnimal?.castrated ?? null,
+        tag: v.tag,
+        birthDate: v.birthDate,
+        vaccineOrigin: v.vaccineOrigin,
+        death: v.patientAnimal.death,
+        deathDate: v.patientAnimal.deathDate,
       })),
       budget: this.sharedService.captureGroup(elem.budget, v => ({
         id: v.id,
@@ -583,6 +604,7 @@ export default class ReportService {
       items: elem.items.map(inner => ({
         id: inner.id,
         quantity: inner.quantity,
+        unitaryValue: inner.unitaryValue,
         costValue: inner.costValue,
         saleValue: inner.saleValue,
         discountValue: inner.discountValue,

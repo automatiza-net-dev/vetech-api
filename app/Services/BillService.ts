@@ -141,23 +141,20 @@ export default class BillService {
   }
 
   async show(unitId: string, id: string) {
-    const qb = Bill.query().where('business_unit_id', unitId).where('id', id);
-
-    const bill = await qb.first();
-
-    if (!bill) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    await Promise.all([
-      bill.load('client', query => {
+    const bill = await Bill.query()
+      .where('business_unit_id', unitId)
+      .where('id', id)
+      .preload('client', query => {
         query.preload('tutor');
-      }),
-      bill.load('patient'),
-      bill.load('seller'),
-      bill.load('user'),
-      bill.load('businessUnit'),
-      bill.load('payments', query => {
+      })
+      .preload('financialResponsible', query => {
+        query.select('id', 'name');
+      })
+      .preload('patient')
+      .preload('seller')
+      .preload('user')
+      .preload('businessUnit')
+      .preload('payments', query => {
         query.preload('acquirer', query => {
           query.select('id', 'description');
         });
@@ -165,8 +162,8 @@ export default class BillService {
           query.select('id', 'description', 'code', 'type');
         });
         query.preload('paymentMethod');
-      }),
-      bill.load('items', query => {
+      })
+      .preload('items', query => {
         query.where('status', BillItemStatus.A);
 
         query.preload('taxRule', query => {
@@ -177,8 +174,14 @@ export default class BillService {
           query.preload('variationOptions');
           query.preload('product');
         });
-      }),
-    ]);
+      })
+      .first();
+
+    if (!bill) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    await Promise.all([]);
 
     return bill;
   }

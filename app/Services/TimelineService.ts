@@ -75,13 +75,16 @@ export default class TimelineService {
       );
     }
 
-    await Attendance.query()
-      // @ts-ignore
-      .where('id', res.timeline_info?.attendance?.id ?? v4())
-      .update({
-        exclusion_user_id: authCtx.user.id,
-        deleted_at: DateTime.now(),
-      });
+    // @ts-ignore
+    if (res.timeline_info?.attendance?.id) {
+      await Attendance.query()
+        // @ts-ignore
+        .where('id', res.timeline_info?.attendance?.id ?? -1)
+        .update({
+          exclusion_user_id: authCtx.user.id,
+          deleted_at: DateTime.now(),
+        });
+    }
   }
 
   public async all(tag: string) {

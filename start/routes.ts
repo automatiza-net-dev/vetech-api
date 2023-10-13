@@ -1404,3 +1404,13 @@ Route.group(() => {
 })
   .prefix('indicators')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'BusinessUnitMetasController.index');
+  Route.get('/:id', 'BusinessUnitMetasController.show');
+  Route.post('/', 'BusinessUnitMetasController.store');
+  Route.put('/:id', 'BusinessUnitMetasController.update');
+  Route.delete('/:id', 'BusinessUnitMetasController.destroy');
+})
+  .prefix('business-unit-metas')
+  .middleware('auth');

@@ -53,6 +53,7 @@ export default class TimelineService {
             'Patologia',
             'Formato Receita Médica',
             authCtx.system.name === 'LiftOne' && 'Avaliação',
+            authCtx.system.name !== 'LiftOne' && 'Atendimento',
           ].filter(Boolean),
         },
         'extras.deletedAt': null,

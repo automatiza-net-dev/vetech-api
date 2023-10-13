@@ -19,9 +19,11 @@ export default class HospitalizationOccurrencesController {
     const payload = await request.validate(
       CreateHospitalizationOccurrenceValidator,
     );
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, user, payload);
+    const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

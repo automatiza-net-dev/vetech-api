@@ -31,10 +31,13 @@ export default class VaccineCalendarsController {
     request,
     response,
   }: HttpContextContract) {
-    const { user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateVaccineCalendarValidator);
 
-    const result = await this.service.update(params.id, user, payload);
+    const result = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
     return response.ok(result);
   }

@@ -3,7 +3,6 @@ import Database, {
   TransactionClientContract,
 } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
-import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,

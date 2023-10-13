@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import MedicalDocumentTemplate from 'App/Models/MedicalDocumentTemplate';
-import { RECIPE_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IMedicalDocumentTemplateData from 'Contracts/interfaces/IMedicalDocumentTemplateData';
 
@@ -54,8 +54,21 @@ export default class MedicalDocumentTemplateService {
     authCtx: AuthContext,
     data: Omit<IMedicalDocumentTemplateData, 'active'>,
   ) {
+    const timeline = await TimelineType.firstOrCreate(
+      {
+        description: 'Formato Receita Médica',
+        system_id: authCtx.system.id,
+      },
+      {
+        description: 'Formato Receita Médica',
+        color: '#000',
+        requiresObservation: false,
+        system_id: authCtx.system.id,
+      },
+    );
+
     return authCtx.group.related('medicalDocumentTemplates').create({
-      timeline_type_id: RECIPE_UUID,
+      timeline_type_id: timeline.id,
       description: data.description,
       title: data.title,
       header: data.header,

@@ -7,7 +7,6 @@ import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import { DailyCashierStatus } from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, { FinanceOriginFlag, FinanceStatus } from 'App/Models/Finance';
-import FiscalDocument from 'App/Models/FiscalDocument';
 import IssuedFiscalDocument from 'App/Models/IssuedFiscalDocument';
 import Kit from 'App/Models/Kit';
 import { PatientType } from 'App/Models/Patient';

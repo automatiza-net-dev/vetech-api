@@ -28,7 +28,8 @@ export default class ReportService {
       paymentMethod?: string;
       accountPlan?: string;
       status?: string;
-      businessUnit?: string;
+      businessUnits?: string[];
+      economicGroups?: string[];
     },
   ) {
     const qb = Finance.query()
@@ -36,7 +37,11 @@ export default class ReportService {
       .preload('checkingAccount')
       .preload('paymentMethod')
       .preload('accountPlan')
-      .where('economic_group_id', authCtx.group.id);
+      .preload('unit', query => {
+        query.preload('economicGroup', query => {
+          query.preload('system');
+        });
+      });
 
     if (data.type) {
       qb.where('type', data.type);
@@ -54,8 +59,14 @@ export default class ReportService {
       qb.where('status', data.status);
     }
 
-    if (data.businessUnit) {
-      qb.where('business_unit_id', data.businessUnit);
+    if (data.businessUnits && Array.isArray(data.businessUnits)) {
+      qb.whereIn('business_unit_id', data.businessUnits);
+    }
+
+    if (data.economicGroups && Array.isArray(data.economicGroups)) {
+      qb.whereIn('economic_group_id', data.economicGroups);
+    } else {
+      qb.where('economic_group_id', authCtx.group.id);
     }
 
     if (data.fromIssueDate) {
@@ -108,7 +119,21 @@ export default class ReportService {
       status: elem.status,
       qtyInstallments: elem.qtyInstallments,
       installment: elem.installment,
+      originFlag: elem.originFlag,
 
+      system: this.sharedService.captureGroup(
+        elem.unit?.economicGroup?.system,
+        v => ({
+          id: v.id,
+          name: v.name,
+        }),
+      ),
+      unit: this.sharedService.captureGroup(elem.unit, v => ({
+        id: v.id,
+        identification: v.identification,
+        city: v.city,
+        state: v.state,
+      })),
       client: this.sharedService.captureGroup(elem.client, v => ({
         id: v.id,
         name: v.name,
@@ -202,12 +227,16 @@ export default class ReportService {
     const dataSet = new Map<string, number>();
     result.forEach(r => {
       const key = r.business_unit_id;
+      if (!key) {
+        return;
+      }
+
       if (!dataSet.has(key)) {
         dataSet.set(key, 0);
       }
 
-      const entry = dataSet.get(key)!;
-      dataSet.set(key, entry + r.balance);
+      const entry = dataSet.get(key);
+      dataSet.set(key, (entry ?? 0) + r.balance);
     });
 
     return units.map(elem => ({
@@ -412,7 +441,7 @@ export default class ReportService {
   }
 
   async detailedSalesReport(
-    authCtx: AuthContext,
+    _authCtx: AuthContext,
     data: {
       fromDate?: string;
       toDate?: string;
@@ -422,156 +451,120 @@ export default class ReportService {
       businessUnit?: string;
     },
   ) {
-    const qb = Bill.query()
-      .preload('businessUnit')
-      .preload('seller')
-      .preload('client', query => {
-        query.preload('tutor', query => {
-          query.preload('profession');
-          query.preload('clientOrigin');
-        });
-      })
-      .preload('patient', query => {
-        query.preload('patientAnimal', query => {
-          query.preload('race', query => {
-            query.preload('specie');
-          });
-        });
-      })
-      .preload('items', query => {
-        query.preload('productVariation', query => {
-          query.preload('product', query => {
-            query.preload('subgroup');
-          });
-        });
-      })
-      .preload('budget')
-      .preload('payments', query => {
-        query.preload('flag').preload('paymentMethod');
-      })
-      .where('economic_group_id', authCtx.group.id)
-      .whereNull('deleted_at')
-      .orderBy('bill_date', 'desc');
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(`
+        systems.name                                                            as Sistema,
+       economic_groups.company_name                                            as Grupo,
+       business_units.city                                                     as Cidade,
+       business_units.state                                                    as UF,
+       bills.bill_date::Date                                                   as data_Venda,
+       bills.bill_date::time                                                   as hora_Venda,
+       bills.tag                                                               as Codigo_Venda,
+       users."name"                                                            as vendedor,
+       bills.service_value                                                     as total_Servicos_Venda,
+       bills.product_value                                                     as Total_Produtos_Venda,
+       bills.discount_value                                                    as total_Desconto_Venda,
+       bills.total_value                                                       as Total_Venda,
+       bills.paid_value                                                        as Total_Pago_Venda,
+       (bills.total_value - bills.paid_value)                                  as Total_Em_Aberto_Venda,
+       CliTu.created_at::date                                                  as data_Cadastro_Cliente,
+       Cli."name"                                                              as nomeCliente,
+       CliTu.document                                                          as cpfCnpj,
+       CliTu.cellphone,
+       client_origins.description                                              as Origem_Cliente,
+       professions.description                                                 as profissao_Cliente,
+       CliTu.postal_code                                                       as cep_Cliente,
+       CliTu.street                                                            as endereço_Cliente,
+       CliTu.number                                                            as numero_Endereco_Cliente,
+       CliTu.complement                                                        as complemento_Endereco_Cliente,
+       CliTu.district                                                          as bairro_Cliente,
+       CliTu.city                                                              as cidade_Cliente,
+       CliTu.state                                                             as uf_Cliente,
+       Dep."name"                                                              as Dependente,
+       Dep.tag                                                                 as dependente_RG,
+       Dep.birth_date                                                          as data_Nasc_Dep,
+       Dep.gender                                                              as genero_Dep,
+       species.description                                                     as especie_Dep,
+       races.description                                                       as raca_Dep,
+       case when CliDep.castrated = true then 'Sim' else 'Não' end             as castrado_Dep,
+       Cli.vaccine_origin                                                      as vacinado_Dep,
+       Dep.weight,
+       case when CliDep.death = true then 'Sim' else 'Não' end                 as obito_Dep,
+       case when CliDep.death = true then CliDep.death_date else null end      as data_Obito_Dep,
+       case when products."type" = 'product' then 'Produto' else 'Serviço' end as tipo_Item,
+       subgroups.description                                                   as subGrupo_Item,
+       products.description                                                    as descricao_Item,
+       bill_items.quantity                                                     as qtd_Item,
+       bill_items.unitary_value                                                as valor_Unitario_Item,
+       (bill_items.quantity * bill_items.unitary_value)                        as valor_Bruto_Item,
+       bill_items.discount_value                                               as valor_Desconto_Item,
+       bill_items.total_value                                                  as valor_Liquido_Item
+        `),
+      )
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id AND bill_items.status <> 'INATIVA'`,
+      )
+      .joinRaw(
+        `join product_variations on bill_items.product_variation_id = product_variations.id`,
+      )
+      .joinRaw(
+        `join (products join subgroups on products.subgroup_id = subgroups.id)
+        on product_variations.product_id = products.id`,
+      )
+      .joinRaw(
+        `JOIN business_units ON bills.business_unit_id = business_units."id"`,
+      )
+      .joinRaw(
+        `JOIN economic_groups ON business_units.economic_group_id = economic_groups."id"`,
+      )
+      .joinRaw(`JOIN systems ON economic_groups.system_id = systems."id"`)
+      .joinRaw(`JOIN patients Cli ON bills.client_id = Cli."id"`)
+      .joinRaw(
+        `JOIN (patient_tutors CliTu left join professions on CliTu.profession_id = professions.id)
+        ON Cli."id" = CliTu.patient_id`,
+      )
+      .joinRaw(
+        `LEFT JOIN (patients Dep JOIN (patient_animals CliDep join races on cliDep.race_id = races.id join species
+          on races.specie_id = species.id) ON Dep."id" = CliDep.patient_id)
+ON bills.patient_id = Dep."id"`,
+      )
+      .joinRaw(
+        `LEFT JOIN client_origins ON CliTu.client_origin_id = client_origins."id"`,
+      )
+      .joinRaw(`join users on bills.seller_id = users.id`)
+      .whereNull('bills.deleted_at')
+      .orderByRaw('Cli."name", Dep.tag, bills.bill_date');
 
     if (data.fromDate) {
-      qb.whereRaw('bill_date::date >= ?', [
+      qb.whereRaw('bills.bill_date::date >= ?', [
         DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
       ]);
     }
 
     if (data.toDate) {
-      qb.whereRaw('bill_date::date <= ?', [
+      qb.whereRaw('bills.bill_date::date <= ?', [
         DateTime.fromISO(data.toDate).toFormat('yyyy-MM-dd'),
       ]);
     }
 
     if (data.status) {
-      qb.where('status', data.status);
+      qb.where('bills.status', data.status);
     }
 
     if (data.client) {
-      qb.where('client_id', data.client);
+      qb.where('bills.client_id', data.client);
     }
 
     if (data.patient) {
-      qb.where('patient_id', data.patient);
+      qb.where('bills.patient_id', data.patient);
     }
 
     if (data.businessUnit) {
-      qb.where('business_unit_id', data.businessUnit);
+      qb.where('bills.business_unit_id', data.businessUnit);
     }
 
-    const result = await qb;
-
-    return result.map(elem => ({
-      id: elem.id,
-      tag: elem.tag,
-      billDate: elem.billDate,
-      productValue: elem.productValue,
-      serviceValue: elem.serviceValue,
-      discountValue: elem.discountValue,
-      totalValue: elem.totalValue,
-      paidValue: elem.paidValue,
-      missingPaymentValue: elem.totalValue - elem.paidValue,
-      status: elem.status,
-
-      unit: {
-        id: elem.businessUnit.id,
-        identification: elem.businessUnit.identification,
-      },
-      seller: this.sharedService.captureGroup(elem.seller, v => ({
-        id: v.id,
-        name: v.name,
-      })),
-      client: elem.client
-        ? {
-            id: elem.client.id,
-            name: elem.client.name,
-            profession: elem.client.tutor?.profession?.description ?? null,
-            origin: elem.client.tutor?.clientOrigin?.description ?? null,
-            document: elem.client.tutor?.document ?? null,
-            createdAt: elem.client.createdAt,
-            address: [
-              elem.client.tutor?.postalCode,
-              elem.client.tutor?.street,
-              elem.client.tutor?.number,
-              elem.client.tutor?.complement,
-              elem.client.tutor?.district,
-              elem.client.tutor?.city,
-              elem.client.tutor?.state,
-            ]
-              .filter(Boolean)
-              .join(', '),
-          }
-        : null,
-      patient: this.sharedService.captureGroup(elem.patient, v => ({
-        id: v.id,
-        name: v.name,
-        race: v.patientAnimal.race,
-        gender: v.gender ?? null,
-        castrated: v?.patientAnimal?.castrated ?? null,
-      })),
-      budget: this.sharedService.captureGroup(elem.budget, v => ({
-        id: v.id,
-        tag: v.tag,
-        budgetDate: v.budgetDate,
-      })),
-      payments: elem.payments.map(inner => ({
-        id: inner.id,
-        block: inner.block,
-        qtyInstallments: inner.qtyInstallments,
-        totalValue: inner.totalValue,
-        installments: inner.installments,
-
-        paymentMethod: this.sharedService.captureGroup(
-          inner.paymentMethod,
-          v => ({
-            id: v.id,
-            description: v.description,
-          }),
-        ),
-        flag: this.sharedService.captureGroup(inner.flag, v => ({
-          id: v.id,
-          description: v.description,
-        })),
-      })),
-      items: elem.items.map(inner => ({
-        id: inner.id,
-        quantity: inner.quantity,
-        costValue: inner.costValue,
-        saleValue: inner.saleValue,
-        discountValue: inner.discountValue,
-        totalValue: inner.totalValue,
-        product: {
-          description: inner.productVariation.product.description ?? null,
-          type: inner.productVariation.product.type ?? null,
-          subgroup: this.sharedService.captureGroup(
-            inner.productVariation.product?.subgroup,
-            v => ({ id: v.id, description: v.description }),
-          ),
-        },
-      })),
-    }));
+    return qb;
   }
 
   async saleAnalyticsReport(

@@ -14,7 +14,7 @@ export default class UpdateCheckingAccountValidator {
     type: schema.enum(Object.values(CheckingAccountType)),
     active: schema.boolean(),
 
-    businessUnitId: schema.string.optional([
+    businessUnitId: schema.string.nullableAndOptional([
       rules.uuid(),
       rules.exists({ table: 'business_units', column: 'id' }),
     ]),

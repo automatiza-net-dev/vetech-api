@@ -1403,4 +1403,109 @@ export default class IndicatorService {
       };
     });
   }
+
+  public async billingIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const sumQb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          business_units.id as b_id,
+          sum(bills.total_value) as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+        [],
+      )
+      .groupBy('business_units.id')
+      .whereNull('bills.deleted_at');
+
+    const metasQb = Database.from('business_unit_metas')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id as e_id,
+          economic_groups.company_name as e_name,
+          business_units.id as b_id,
+          business_units.identification,
+          business_unit_metas.value_type,
+          business_unit_metas.value
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on business_unit_metas.business_unit_id = business_units.id`,
+        [],
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        [],
+      )
+      .groupBy(
+        'business_units.id',
+        'economic_groups.id',
+        'business_unit_metas.value',
+        'business_unit_metas.value_type',
+      )
+      .where('business_unit_metas.type', 'Faturamento')
+      .where('business_unit_metas.active', true)
+      .where(
+        'business_unit_metas.business_unit_id',
+        Database.raw('business_units.id'),
+      );
+
+    if (data.units && Array.isArray(data.units)) {
+      sumQb.whereIn('business_units.id', data.units);
+      metasQb.whereIn('business_units.id', data.units);
+    } else {
+      sumQb.where('business_units.id', authCtx.unit.id);
+      metasQb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      sumQb.whereIn('business_units.economic_group_id', data.groups);
+      metasQb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      sumQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      sumQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const sumResult = await sumQb;
+    const metasResult = await metasQb;
+
+    return metasResult.map(elem => {
+      const sum = sumResult.find(r => r.b_id === elem.b_id)?.total ?? 0;
+
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.e_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        meta: {
+          valueType: elem.value_type,
+          value: elem.value,
+        },
+        sum,
+        percentage: (sum / elem.value) * 100,
+      };
+    });
+  }
 }

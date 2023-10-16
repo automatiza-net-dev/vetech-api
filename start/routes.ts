@@ -1403,6 +1403,7 @@ Route.group(() => {
   );
 
   Route.get('/projection', 'IndicatorsController.projectionIndicators');
+  Route.get('/billing', 'IndicatorsController.billingIndicators');
 })
   .prefix('indicators')
   .middleware('auth');

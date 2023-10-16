@@ -8,9 +8,6 @@ export type TMetaType = typeof MetaType[number];
 export const ValueMetaType = ['Valor R$', 'Percentual', 'Quantidade'] as const;
 export type TValueMetaType = typeof ValueMetaType[number];
 
-export const MetaPeriod = ['Ano', 'Mes'] as const;
-export type TMetaPeriod = typeof MetaPeriod[number];
-
 export default class BusinessUnitMeta extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
@@ -27,7 +24,7 @@ export default class BusinessUnitMeta extends BaseModel {
   public valueType: typeof ValueMetaType[number];
 
   @column()
-  public period: typeof MetaPeriod[number];
+  public period: string;
 
   @column()
   public active: boolean;

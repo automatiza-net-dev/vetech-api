@@ -1,6 +1,5 @@
 import { inject } from '@adonisjs/fold';
 import BusinessUnitMeta, {
-  TMetaPeriod,
   TMetaType,
   TValueMetaType,
 } from 'App/Models/BusinessUnitMeta';
@@ -46,7 +45,7 @@ export default class BusinessUnitMetaService {
       type: TMetaType;
       value: number;
       valueType: TValueMetaType;
-      period: TMetaPeriod;
+      period: string;
     },
   ) {
     return BusinessUnitMeta.create({
@@ -81,7 +80,7 @@ export default class BusinessUnitMetaService {
       type: TMetaType;
       value: number;
       valueType: TValueMetaType;
-      period: TMetaPeriod;
+      period: string;
       active: boolean;
     },
   ) {

@@ -1,10 +1,6 @@
 import { schema, CustomMessages } from '@ioc:Adonis/Core/Validator';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import {
-  MetaPeriod,
-  MetaType,
-  ValueMetaType,
-} from 'App/Models/BusinessUnitMeta';
+import { MetaType, ValueMetaType } from 'App/Models/BusinessUnitMeta';
 
 export default class CreateMetaValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -32,7 +28,7 @@ export default class CreateMetaValidator {
     type: schema.enum(MetaType),
     value: schema.number(),
     valueType: schema.enum(ValueMetaType),
-    period: schema.enum(MetaPeriod),
+    period: schema.string(),
   });
 
   /**

@@ -143,6 +143,7 @@ export default class SharedService {
   public async getContextCashier(
     authCtx: AuthContext,
     trx: TransactionClientContract,
+    shouldThrow = true,
   ) {
     const dailyCashier =
       authCtx.unit.unitConfig.dailyCashierType === 'usuario'
@@ -158,7 +159,7 @@ export default class SharedService {
             .where('status', DailyCashierStatus.A)
             .first();
 
-    if (!dailyCashier) {
+    if (!dailyCashier && shouldThrow) {
       throw new BadRequestException(
         'Não existe caixa diário aberto',
         400,

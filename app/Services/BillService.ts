@@ -1571,6 +1571,7 @@ export default class BillService {
     const dailyCashier = await this.sharedService.getContextCashier(
       authCtx,
       trx,
+      false,
     );
 
     const bill = await Bill.create(
@@ -1580,7 +1581,7 @@ export default class BillService {
         user_id: authCtx.user.id,
         seller_id: authCtx.user.id,
         daily_movement_id: data.dailyMovementId,
-        daily_cashier_id: dailyCashier.id,
+        daily_cashier_id: dailyCashier?.id,
         budget_id: data.budgetId,
         financial_responsible_id: data.financialResponsibleId ?? data.clientId,
         client_id: data.clientId,

@@ -5,6 +5,7 @@ import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
+import { differenceInDays } from 'date-fns';
 
 @inject()
 export default class IndicatorService {
@@ -1325,5 +1326,81 @@ export default class IndicatorService {
       attended: parseInt(elem.comparecidos, 10),
       gained: parseInt(elem.ganhos, 10),
     }));
+  }
+
+  public async projectionIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id as eID,
+          economic_groups.company_name as eName,
+          business_units.id as bID,
+          business_units.identification,
+          sum(bills.total_value) as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+        [],
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        [],
+      )
+      .groupBy('business_units.id', 'economic_groups.id')
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    const diffInDays =
+      Boolean(data.fromDate) && Boolean(data.fromDate)
+        ? differenceInDays(new Date(data.toDate!), new Date(data.fromDate!))
+        : -1;
+
+    return result.map(elem => {
+      const daily = elem.total / diffInDays;
+      const projection = daily * 30;
+
+      return {
+        group: {
+          id: elem.eid,
+          name: elem.ename,
+        },
+        unit: {
+          id: elem.bid,
+          identification: elem.identification,
+        },
+        daily: diffInDays > 0 ? daily : 0,
+        projection: diffInDays > 0 ? projection : 0,
+      };
+    });
   }
 }

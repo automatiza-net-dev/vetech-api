@@ -222,4 +222,17 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async projectionIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.projectionIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

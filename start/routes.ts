@@ -1401,6 +1401,8 @@ Route.group(() => {
     '/unconfirmed-budgets',
     'IndicatorsController.unconfirmedBudgetsIndicators',
   );
+
+  Route.get('/projection', 'IndicatorsController.projectionIndicators');
 })
   .prefix('indicators')
   .middleware('auth');

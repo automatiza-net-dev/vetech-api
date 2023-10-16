@@ -5,7 +5,6 @@ import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
-import { differenceInDays } from 'date-fns';
 
 @inject()
 export default class IndicatorService {
@@ -1411,83 +1410,66 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
-    const sumQb = Database.from('bills')
+    const qb = Database.from('bills')
       .select(
         Database.raw(
           `
-          business_units.id as b_id,
-          sum(bills.total_value) as total
+          economic_groups.id                                                  as e_id,
+          economic_groups.company_name                                        as e_name,
+          business_units.id                                                   as b_id,
+          business_units.identification,
+          coalesce(business_unit_metas.value_type, 'SemMetaDefinida')         as meta_type,
+          business_unit_metas.value                                           as meta,
+          sum(bills.total_value)                                              as total,
+          sum(bills.total_value) / business_unit_metas.value * 100            as percentage,
+          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30 as projection,
+          (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30) / business_unit_metas.value * 100 as meta_projection
           `,
         ),
       )
       .joinRaw(
-        `join business_units on bills.business_unit_id = business_units.id`,
-        [],
-      )
-      .groupBy('business_units.id')
-      .whereNull('bills.deleted_at');
-
-    const metasQb = Database.from('business_unit_metas')
-      .select(
-        Database.raw(
-          `
-          economic_groups.id as e_id,
-          economic_groups.company_name as e_name,
-          business_units.id as b_id,
-          business_units.identification,
-          business_unit_metas.value_type,
-          business_unit_metas.value
-          `,
-        ),
+        `left join business_unit_metas
+                   on bills.business_unit_id = business_unit_metas.business_unit_id and
+                      to_char(bills.bill_date, 'MM/YYYY') = business_unit_metas.period
+                       and business_unit_metas.type = 'Faturamento' and business_unit_metas.active = 'true'`,
       )
       .joinRaw(
         `join business_units on business_unit_metas.business_unit_id = business_units.id`,
-        [],
       )
       .joinRaw(
         `join economic_groups on business_units.economic_group_id = economic_groups.id`,
-        [],
       )
       .groupBy(
-        'business_units.id',
         'economic_groups.id',
-        'business_unit_metas.value',
+        'economic_groups.company_name',
+        'business_units.id',
+        'business_units.identification',
         'business_unit_metas.value_type',
+        'business_unit_metas.value',
       )
-      .where('business_unit_metas.type', 'Faturamento')
-      .where('business_unit_metas.active', true)
-      .where(
-        'business_unit_metas.business_unit_id',
-        Database.raw('business_units.id'),
-      );
+      .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
-      sumQb.whereIn('business_units.id', data.units);
-      metasQb.whereIn('business_units.id', data.units);
+      qb.whereIn('business_units.id', data.units);
     } else {
-      sumQb.where('business_units.id', authCtx.unit.id);
-      metasQb.where('business_units.id', authCtx.unit.id);
+      qb.where('business_units.id', authCtx.unit.id);
     }
 
     if (data.groups && Array.isArray(data.groups)) {
-      sumQb.whereIn('business_units.economic_group_id', data.groups);
-      metasQb.whereIn('business_units.economic_group_id', data.groups);
+      qb.whereIn('business_units.economic_group_id', data.groups);
     }
 
     if (data.fromDate) {
-      sumQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
     }
 
     if (data.toDate) {
-      sumQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const sumResult = await sumQb;
-    const metasResult = await metasQb;
+    const metasResult = await qb;
 
     return metasResult.map(elem => {
-      const sum = sumResult.find(r => r.b_id === elem.b_id)?.total ?? 0;
-
       return {
         group: {
           id: elem.e_id,
@@ -1498,11 +1480,13 @@ export default class IndicatorService {
           identification: elem.identification,
         },
         meta: {
-          valueType: elem.value_type,
-          value: elem.value,
+          valueType: elem.meta_type,
+          value: elem.meta,
         },
-        sum,
-        percentage: (sum / elem.value) * 100,
+        total: elem.total,
+        percentage: elem.percentage,
+        projection: elem.projection,
+        metaProjection: elem.meta_projection,
       };
     });
   }

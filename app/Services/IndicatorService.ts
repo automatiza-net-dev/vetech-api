@@ -1341,11 +1341,12 @@ export default class IndicatorService {
       .select(
         Database.raw(
           `
-          economic_groups.id as eID,
-          economic_groups.company_name as eName,
-          business_units.id as bID,
+          economic_groups.id                                                  as e_id,
+          economic_groups.company_name                                        as e_name,
+          business_units.id                                                   as b_id,
           business_units.identification,
-          sum(bills.total_value) as total
+          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer)      as daily_value,
+          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30 as projecao
           `,
         ),
       )
@@ -1357,7 +1358,12 @@ export default class IndicatorService {
         `join economic_groups on business_units.economic_group_id = economic_groups.id`,
         [],
       )
-      .groupBy('business_units.id', 'economic_groups.id')
+      .groupBy(
+        'economic_groups.id',
+        'economic_groups.company_name',
+        'business_units.id',
+        'business_units.identification',
+      )
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1380,26 +1386,18 @@ export default class IndicatorService {
 
     const result = await qb;
 
-    const diffInDays =
-      Boolean(data.fromDate) && Boolean(data.fromDate)
-        ? differenceInDays(new Date(data.toDate!), new Date(data.fromDate!))
-        : -1;
-
     return result.map(elem => {
-      const daily = elem.total / diffInDays;
-      const projection = daily * 30;
-
       return {
         group: {
-          id: elem.eid,
-          name: elem.ename,
+          id: elem.e_id,
+          name: elem.e_name,
         },
         unit: {
-          id: elem.bid,
+          id: elem.b_id,
           identification: elem.identification,
         },
-        daily: diffInDays > 0 ? daily : 0,
-        projection: diffInDays > 0 ? projection : 0,
+        daily: elem.daily_value,
+        projection: elem.projecao,
       };
     });
   }

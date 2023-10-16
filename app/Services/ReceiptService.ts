@@ -63,7 +63,7 @@ export default class ReceiptService {
 
       const dailyCashier = await this.sharedService.getContextCashier(
         authCtx,
-        trx,
+        trx
       );
 
       const receipt = await Receipt.create(
@@ -73,7 +73,7 @@ export default class ReceiptService {
           supplier_id: data.supplierId,
           user_id: authCtx.user.id,
           seller_id: authCtx.user.id,
-          daily_cashier_id: dailyCashier.id,
+          daily_cashier_id: dailyCashier!.id,
           daily_movement_id: data.dailyMovementId,
           reversal_user_id: data.reversalUserId,
           reversal_reason_id: data.reversalReasonId,

@@ -114,12 +114,16 @@ export default class ReportService {
       fiscalNote: elem.fiscalNote,
       value: elem.value,
       totalValue: elem.totalValue,
+      discountValue: elem.discountValue,
+      feeValue: elem.feeValue,
       paymentValue: elem.paymentValue,
       nsuDocument: elem.nsuDocument,
       status: elem.status,
       qtyInstallments: elem.qtyInstallments,
       installment: elem.installment,
       originFlag: elem.originFlag,
+      historic: elem.historic,
+
 
       system: this.sharedService.captureGroup(
         elem.unit?.economicGroup?.system,

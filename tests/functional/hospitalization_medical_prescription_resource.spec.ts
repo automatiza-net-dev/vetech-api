@@ -5,9 +5,7 @@ import Hospitalization, {
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
-import HospitalizationMedicalPrescriptionScheduling, {
-  HospitalizationSchedulingStatus,
-} from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
@@ -48,7 +46,7 @@ test.group('Hospitalization medical prescription resource', group => {
       hospitalization_id: hospitalization.id,
       resume: 'teste resumo',
       description: 'teste descrição',
-      status: 'A',
+      status: 'Aberto',
     });
 
     const scheduling =
@@ -57,7 +55,7 @@ test.group('Hospitalization medical prescription resource', group => {
         hospitalization_medical_prescription_id: prescription.id,
         resume: 'teste resumo',
         description: 'teste descrição',
-        status: HospitalizationSchedulingStatus.ACTIVE,
+        status: 'Aberto',
       });
 
     const unit = await Unit.create({
@@ -341,7 +339,7 @@ test.group('Hospitalization medical prescription resource', group => {
       password: '102030',
     });
 
-    await prescription.merge({ status: 'I' }).save();
+    await prescription.merge({ status: 'Interrompido' }).save();
 
     const response = await client
       .put(`/hospitalization-prescriptions/interrupt/${prescription.id}`)
@@ -374,7 +372,7 @@ test.group('Hospitalization medical prescription resource', group => {
       password: '102030',
     });
 
-    await prescription.merge({ status: 'I' }).save();
+    await prescription.merge({ status: 'Interrompido' }).save();
 
     const response = await client
       .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)
@@ -393,9 +391,7 @@ test.group('Hospitalization medical prescription resource', group => {
       password: '102030',
     });
 
-    await scheduling
-      .merge({ status: HospitalizationSchedulingStatus.COMPLETE })
-      .save();
+    await scheduling.merge({ status: 'Executado' }).save();
 
     const response = await client
       .put(`/hospitalization-prescriptions/exclude/${prescription.id}`)

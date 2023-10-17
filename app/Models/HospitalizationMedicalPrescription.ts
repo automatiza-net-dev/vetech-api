@@ -24,19 +24,21 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export type HospitalizationMedicalPrescriptionStatus =
-  | 'A'
-  | 'E'
-  | 'I'
-  | 'D'
-  | 'C';
+export const HospitalizationMedicalPrescriptionStatus = [
+  'Aberto',
+  'Cancelado',
+  'Interrompido',
+  'Executado',
+] as const;
+export type THospitalizationMedicalSchedulingStatus =
+  typeof HospitalizationMedicalPrescriptionStatus[number];
 
 export default class HospitalizationMedicalPrescription extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column()
-  public status: HospitalizationMedicalPrescriptionStatus;
+  public status: THospitalizationMedicalSchedulingStatus;
 
   @column()
   public type: MedicalPrescriptionType;

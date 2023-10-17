@@ -7,7 +7,6 @@ import {
 import { DateTime } from 'luxon';
 
 export interface IUpsertFinance {
-  clientId: string;
   type: FinanceType;
   accountPlanId: string;
   paymentMethodId: string;
@@ -21,6 +20,7 @@ export interface IUpsertFinance {
   originFlag: FinanceOriginFlag;
   qtyInstallments?: number;
 
+  clientId?: string;
   observation?: string;
   checkingAccountId?: string;
   paymentDate?: DateTime;

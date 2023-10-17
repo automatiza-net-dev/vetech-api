@@ -120,6 +120,7 @@ export default class AuthController {
         'interval',
         'locked_daily_movement_date',
         'daily_cashier_type',
+        'requires_finance_client',
       ]);
     });
 

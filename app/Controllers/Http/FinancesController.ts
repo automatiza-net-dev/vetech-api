@@ -73,10 +73,12 @@ export default class FinancesController {
     request,
     response,
   }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(CreateMultipleFinancesValidator);
 
-    await this.service.createMultipleFinances(unit_id, user, payload.items);
+    await this.service.createMultipleFinances(
+      await this.sharedService.getAuthContext(auth),
+      payload.items,
+    );
 
     return response.created();
   }

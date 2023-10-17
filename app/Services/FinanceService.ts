@@ -162,6 +162,13 @@ export default class FinanceService {
 
   // 2.1
   async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
+    if (authCtx.unit.unitConfig.requiresFinanceClient && !data.clientId) {
+      throw new BadRequestException(
+        'É preciso adicionar cliente na nota para essa unidade',
+        400,
+        'BAD_REQUEST',
+      );
+    }
     return await Database.transaction(async trx => {
       const paymentMethod = await PaymentMethod.findOrFail(
         data.paymentMethodId,
@@ -243,12 +250,18 @@ export default class FinanceService {
   }
 
   // 2.1
-  async createMultipleFinances(
-    unitId: string,
-    user: User,
-    data: IUpsertFinance[],
-  ) {
-    const group = await this.sharedService.getUserGroup(unitId);
+  async createMultipleFinances(authCtx: AuthContext, data: IUpsertFinance[]) {
+    if (
+      authCtx.unit.unitConfig.requiresFinanceClient &&
+      data.some(item => !item.clientId)
+    ) {
+      throw new BadRequestException(
+        'É preciso adicionar cliente na nota para essa unidade',
+        400,
+        'BAD_REQUEST',
+      );
+    }
+
     await Database.transaction(async trx => {
       const tasks = data.map(async item => {
         const paymentMethod = await PaymentMethod.findOrFail(
@@ -259,14 +272,14 @@ export default class FinanceService {
         );
         const dailyMovement = await DailyMovement.query()
           .useTransaction(trx)
-          .where('business_unit_id', unitId)
+          .where('business_unit_id', authCtx.unit.id)
           .where('status', DailyMovementStatus.A)
           .first();
         const dailyCashier = await DailyCashier.query()
           .useTransaction(trx)
-          .where('business_unit_id', unitId)
+          .where('business_unit_id', authCtx.unit.id)
           .where('status', DailyMovementStatus.A)
-          .where('user_who_opened_id', user.id)
+          .where('user_who_opened_id', authCtx.user.id)
           .first();
 
         const discount = item.originalValue * (paymentMethod.fee / 100);
@@ -278,8 +291,8 @@ export default class FinanceService {
             status: FinanceStatus.A,
             feeDiscountPercentage: paymentMethod.fee,
             feeDiscountValue: discount,
-            economic_group_id: group.id,
-            business_unit_id: unitId,
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
             client_id: item.clientId,
             type: item.type,
             account_plan_id: item.accountPlanId,
@@ -783,7 +796,7 @@ export default class FinanceService {
 
     const dataSet = new Map<string, { value: number }>();
     finances.forEach(elem => {
-      const key = elem.client_id;
+      const key = elem?.client_id ?? '__';
       if (!dataSet.has(key)) {
         dataSet.set(key, { value: 0 });
       }
@@ -795,7 +808,9 @@ export default class FinanceService {
     });
 
     return Array.from(dataSet.keys()).map(elem => ({
-      supplier: finances.find(e => e.client_id === elem)?.client?.name ?? '',
+      supplier:
+        finances.find(e => e.client_id === elem)?.client?.name ??
+        'Título sem fornecedor',
       value: dataSet.get(elem)?.value ?? 0,
     }));
 

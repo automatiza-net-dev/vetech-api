@@ -789,7 +789,7 @@ export default class FinanceService {
       }
 
       const entry = dataSet.get(key)!;
-      entry.value += elem.totalValue;
+      entry.value += elem.value;
 
       dataSet.set(key, entry);
     });
@@ -850,7 +850,7 @@ export default class FinanceService {
         id: elem.paymentMethod.id,
         description: elem.paymentMethod.description,
       },
-      totalValue: elem.totalValue,
+      totalValue: elem.value,
       supplier: {
         id: elem.client.id,
         name: elem.client.name,
@@ -990,7 +990,7 @@ export default class FinanceService {
       .whereNull('payment_date')
       .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
-      .sum('total_value')
+      .sum('value')
       .first();
 
     // 1.8.1.2
@@ -1001,7 +1001,7 @@ export default class FinanceService {
       .whereNull('payment_date')
       .whereRaw('expiration_date::date < now()::date', [])
       .whereNull('deleted_at')
-      .sum('total_value')
+      .sum('value')
       .first();
 
     // 1.8.1.3
@@ -1012,7 +1012,7 @@ export default class FinanceService {
       .whereNull('payment_date')
       .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
-      .sum('total_value')
+      .sum('value')
       .first();
 
     // 1.8.1.4
@@ -1023,7 +1023,7 @@ export default class FinanceService {
       .whereNull('payment_date')
       .whereRaw('expiration_date::date >= now()::date', [])
       .whereNull('deleted_at')
-      .sum('total_value')
+      .sum('value')
       .first();
 
     // 1.8.1.5

@@ -669,6 +669,7 @@ Route.group(() => {
     'HospitalizationMedicalPrescriptionsController.schedulingIndex',
   );
   Route.get('/', 'HospitalizationMedicalPrescriptionsController.index');
+  Route.get('/show/:id', 'HospitalizationMedicalPrescriptionsController.show');
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
   Route.put(
     '/interrupt/:id',

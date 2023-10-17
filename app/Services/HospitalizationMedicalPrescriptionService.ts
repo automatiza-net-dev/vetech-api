@@ -50,6 +50,7 @@ interface ISearch {
   hospitalization?: string;
   fromExecutionDate?: string;
   toExecutionDate?: string;
+  status?: string;
 }
 
 interface ISearchScheduling {
@@ -61,6 +62,27 @@ interface ISearchScheduling {
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
+
+  public async show(unitId: string, id: string) {
+    const result = await HospitalizationMedicalPrescription.query()
+      .where('id', id)
+      .whereHas('hospitalization', query => {
+        query.where('business_unit_id', unitId);
+      })
+      .preload('hospitalization', query => {
+        query.select('id', 'patient_id', 'technician_id');
+        query.preload('patient');
+        query.preload('technician');
+      })
+      .preload('user')
+      .first();
+
+    if (!result) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return result;
+  }
 
   public async index(unitId: string, data: ISearch) {
     const query = HospitalizationMedicalPrescription.query()
@@ -90,6 +112,10 @@ export default class HospitalizationMedicalPrescriptionService {
 
     if (data.toExecutionDate) {
       query.where('execution_start', '<=', new Date(data.toExecutionDate));
+    }
+
+    if (data.status) {
+      query.where('status', data.status);
     }
 
     return query;

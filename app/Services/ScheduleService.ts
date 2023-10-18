@@ -24,7 +24,7 @@ import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRe
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
 import {
   addDays,
-  addHours,
+  differenceInDays,
   endOfDay,
   format,
   intervalToDuration,
@@ -129,40 +129,17 @@ export default class ScheduleService {
     return qb;
   }
 
-  public async usersWithSchedule(
-    unitId: string,
-    props: {
-      onDuty?: number;
-    },
-  ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    // const unit = await BusinessUnit.findOrFail(unitId);
-
-    const now = new Date();
-
-    const qb = group
-      .related('users')
-      .query()
-      .orWhereHas('roles', query => {
-        query.where('unit_id', unitId);
-      })
-      .orWhereHas('workingDays', query => {
-        query.where('weekday_index', now.getDay());
-      })
-      .orWhereHas('schedules', query => {
-        query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
-      });
-
-    if (props.onDuty) {
-      qb.orWhere('on_duty', true);
-    }
-
-    const users = await qb;
-
-    const uniqueIds = new Set(users.map(user => user.id));
-    return Array.from(uniqueIds)
-      .map(id => users.find(user => user.id === id))
-      .filter(Boolean);
+  public async usersWithSchedule(authCtx: AuthContext) {
+    return Database.from('users')
+      .select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+      .joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+      .joinRaw(
+        `left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+      )
+      .where('user_unit_roles.unit_id', authCtx.unit.id)
+      .where('users.type', 'user')
+      .whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
   }
 
   public async returnableSchedules(unitId: string, patientId: string) {
@@ -604,62 +581,92 @@ export default class ScheduleService {
     });
   }
 
-  public async userDailySchedule(unitId: string, user: string, day: Date) {
-    const correctDate = addHours(day, 3);
-    const start = startOfDay(correctDate);
-    const end = endOfDay(correctDate);
+  public async userDailySchedule(
+    authCtx: AuthContext,
+    data: {
+      user?: string;
+      to?: string;
+      from?: string;
+    },
+  ) {
+    if (!data.from || !data.to) {
+      throw new BadRequestException('Data não informada', 400, 'E_BAD_REQUEST');
+    }
 
-    const workingDays = await WorkingDay.query()
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhere('day_of_week', ScheduleService.GetWD(start))
-      .andWhereBetween('start_hour', [
-        format(start, 'HH:mm'),
-        format(end, 'HH:mm'),
-      ]);
+    const usersQb = Database.from('users')
+      .select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+      .joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+      .joinRaw(
+        `left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+      )
+      .where('user_unit_roles.unit_id', authCtx.unit.id)
+      .where('users.type', 'user')
+      .whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
 
-    const unavailableDays = await UnavailableDay.query()
+    if (data.user) {
+      usersQb.where('users.id', data.user);
+    }
+
+    const users = await usersQb;
+    const userIds = Array.from(new Set(users.map(u => u.id)));
+
+    const days = differenceInDays(new Date(data.to), new Date(data.from));
+    const diffDays = Array.from({ length: days + 1 }, (_, k) => {
+      const tmpDate = addDays(new Date(data.from!), k);
+      return ScheduleService.GetWD(tmpDate);
+    });
+
+    const workingDaysQb = WorkingDay.query()
+      .select('id', 'day_of_week', 'user_id', 'start_hour', 'end_hour')
+      .where('business_unit_id', authCtx.unit.id)
+      .whereIn('day_of_week', Array.from(new Set(diffDays))) // add all days
+      .whereIn('user_id', userIds);
+
+    const unavailableDaysQb = UnavailableDay.query()
+      .select(
+        'id',
+        'user_id',
+        'start_hour',
+        'end_hour',
+        'frequency',
+        'start_date',
+        'end_date',
+        'active',
+        'title',
+      )
       .where('active', true)
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
-      .andWhereRaw('(start_date <= ? or start_date is null)', [start])
-      .andWhereRaw('(end_date >= ? or end_date is null)', [end]);
+      .where('business_unit_id', authCtx.unit.id)
+      .whereILike(
+        'frequency',
+        `%${ScheduleService.GetWD(new Date(data.from))}%`,
+      )
+      .whereRaw('(start_date <= ? or start_date is null)', [data.from])
+      .whereRaw('(end_date >= ? or end_date is null)', [data.to])
+      .whereIn('user_id', userIds);
 
-    const schedules = await Schedule.query()
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end])
-      .preload('user', query => {
-        query.select(['id', 'name', 'email', 'phone', 'profilePicture']);
-      })
+    const schedulesQb = Schedule.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereBetween('start_hour', [data.from, data.to])
+      .whereIn('user_id', userIds)
       .preload('serviceType', query => {
         query.select(['id', 'description']);
       })
       .preload('serviceStatus', query => {
         query.select(['id', 'description', 'color']);
       })
-      // .preload('patient', query => {
-      //   query.select(['id', 'name', 'photo', 'tag']);
-
-      //   query.preload('tutor');
-
-      //   query.preload('patientAnimal', subquery => {
-      //     subquery.select(['id', 'race_id']);
-      //     subquery.preload('race', subsubquery => {
-      //       subsubquery.select(['id', 'description', 'specie_id']);
-      //       subsubquery.preload('specie', subsubsubquery => {
-      //         subsubsubquery.select(['id', 'description']);
-      //       });
-      //     });
-      //   });
-      // })
       .preload('holder', query => {
         query.select(['id', 'name']);
         query.preload('tutor', query => {
           query.select(['cellphone', 'telephone']);
         });
       });
+
+    const [workingDays, unavailableDays, schedules] = await Promise.all([
+      workingDaysQb,
+      unavailableDaysQb,
+      schedulesQb,
+    ]);
 
     const patients = await Patient.query()
       .whereIn(
@@ -672,8 +679,15 @@ export default class ScheduleService {
       const jsonKinda = schedule.toJSON();
       const patient = patients.find(p => p.id === schedule.patient_id);
 
+      jsonKinda.user_id = schedule.user_id;
       jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
       jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+      delete jsonKinda.start_hour;
+      delete jsonKinda.end_hour;
+      delete jsonKinda.start;
+      delete jsonKinda.end;
+      delete jsonKinda.created_at;
+      delete jsonKinda.updated_at;
 
       jsonKinda.patient = {
         id: patient?.id,
@@ -688,12 +702,21 @@ export default class ScheduleService {
 
     const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
-    return allEvents.map(day => ({
-      start: day.startHour.toString(),
-      end: day.endHour.toString(),
-      type: this.getEventLabel(day),
-      event: day,
-    }));
+    return users.map(elem => {
+      return {
+        id: elem.id,
+        name: elem.name,
+        onDuty: elem.on_duty,
+        events: allEvents
+          .filter(e => e.user_id === elem.id)
+          .map(day => ({
+            start: day.startHour.toString(),
+            end: day.endHour.toString(),
+            type: this.getEventLabel(day),
+            event: day,
+          })),
+      };
+    });
   }
 
   public async userAppointments(unitId: string, uid: string, day: Date) {

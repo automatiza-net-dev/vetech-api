@@ -439,6 +439,7 @@ export default class ReportService {
           complement: v.tutor?.complement ?? null,
           district: v.tutor?.district ?? null,
           city: v.tutor?.city ?? null,
+          state: v.tutor?.state ?? null,
           createdAt: v.createdAt,
         })),
         patient: this.sharedService.captureGroup(elem.patient, v => ({
@@ -998,6 +999,7 @@ ON bills.patient_id = Dep."id"`,
         complement: v.tutor?.complement ?? null,
         district: v.tutor?.district ?? null,
         city: v.tutor?.city ?? null,
+        state: v.tutor?.state ?? null,
         createdAt: v.createdAt,
       })),
       patient: this.sharedService.captureGroup(elem.patient, v => ({

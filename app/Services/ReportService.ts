@@ -891,9 +891,19 @@ ON bills.patient_id = Dep."id"`,
       .preload('client', query => {
         query.preload('tutor', query => {
           query.preload('clientOrigin');
+          query.preload('profession');
         });
       })
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
+      })
       .preload('user')
       .preload('seller')
       .preload('conclusionUser')
@@ -977,13 +987,32 @@ ON bills.patient_id = Dep."id"`,
       client: this.sharedService.captureGroup(elem.client, v => ({
         id: v.id,
         name: v.name,
-        cellphone: v?.tutor?.cellphone ?? null,
-        telephone: v?.tutor?.telephone ?? null,
-        origin: v?.tutor?.clientOrigin?.description ?? null,
+        tag: v.tag,
+        cellphone: v.tutor?.cellphone ?? null,
+        origin: v.tutor?.clientOrigin?.description ?? null,
+        document: v.tutor?.document ?? null,
+        profession: v.tutor?.profession?.description ?? null,
+        postalCode: v.tutor?.postalCode ?? null,
+        street: v.tutor?.street ?? null,
+        number: v.tutor?.number ?? null,
+        complement: v.tutor?.complement ?? null,
+        district: v.tutor?.district ?? null,
+        city: v.tutor?.city ?? null,
+        createdAt: v.createdAt,
       })),
       patient: this.sharedService.captureGroup(elem.patient, v => ({
         id: v.id,
         name: v.name,
+        tag: v.tag,
+        birthDate: v.birthDate,
+        race: v.patientAnimal?.race ?? null,
+        gender: v.gender ?? null,
+        castrated: v?.patientAnimal?.castrated ?? null,
+        weight: v?.weight ?? null,
+        vaccineOrigin: v?.vaccineOrigin ?? null,
+        death: v?.patientAnimal?.death ?? null,
+        deathDate: v?.patientAnimal?.deathDate ?? null,
+        createdAt: v.createdAt,
       })),
       seller: this.sharedService.captureGroup(elem.seller, v => ({
         id: v.id,

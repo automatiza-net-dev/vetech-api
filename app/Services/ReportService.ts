@@ -124,7 +124,6 @@ export default class ReportService {
       originFlag: elem.originFlag,
       historic: elem.historic,
 
-
       system: this.sharedService.captureGroup(
         elem.unit?.economicGroup?.system,
         v => ({
@@ -320,9 +319,19 @@ export default class ReportService {
       .preload('client', query => {
         query.preload('tutor', query => {
           query.preload('clientOrigin');
+          query.preload('profession');
         });
       })
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
+      })
       .whereNull('deleted_at');
 
     if (
@@ -422,11 +431,29 @@ export default class ReportService {
           tag: v.tag,
           cellphone: v.tutor?.cellphone ?? null,
           origin: v.tutor?.clientOrigin?.description ?? null,
+          document: v.tutor?.document ?? null,
+          profession: v.tutor?.profession?.description ?? null,
+          postalCode: v.tutor?.postalCode ?? null,
+          street: v.tutor?.street ?? null,
+          number: v.tutor?.number ?? null,
+          complement: v.tutor?.complement ?? null,
+          district: v.tutor?.district ?? null,
+          city: v.tutor?.city ?? null,
+          createdAt: v.createdAt,
         })),
         patient: this.sharedService.captureGroup(elem.patient, v => ({
           id: v.id,
           name: v.name,
           tag: v.tag,
+          birthDate: v.birthDate,
+          race: v.patientAnimal?.race ?? null,
+          gender: v.gender ?? null,
+          castrated: v?.patientAnimal?.castrated ?? null,
+          weight: v?.weight ?? null,
+          vaccineOrigin: v?.vaccineOrigin ?? null,
+          death: v?.patientAnimal?.death ?? null,
+          deathDate: v?.patientAnimal?.deathDate ?? null,
+          createdAt: v.createdAt,
         })),
       }))
       .sort((a, b) => {

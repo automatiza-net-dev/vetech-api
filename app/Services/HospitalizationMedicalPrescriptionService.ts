@@ -72,9 +72,16 @@ export default class HospitalizationMedicalPrescriptionService {
       .preload('hospitalization', query => {
         query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');
-        query.preload('technician');
+        query.preload('technician', query => {
+          query.select('id', 'name');
+        });
       })
-      .preload('user')
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('prescriptionUnit')
+      .preload('fluidUnit')
+      .preload('drugAdministration')
       .first();
 
     if (!result) {

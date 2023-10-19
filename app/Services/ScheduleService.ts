@@ -165,7 +165,7 @@ export default class ScheduleService {
   public async store(
     authCtx: AuthContext,
     data: IScheduleData & { scheduleOriginId?: string },
-  ): Promise<Schedule> {
+  ) {
     if (data.userId) {
       const scheduleUser = await User.findOrFail(data.userId);
 
@@ -279,8 +279,24 @@ export default class ScheduleService {
         origin.scheduleReturnId = result.id;
         await origin.useTransaction(trx).save();
       }
-
-      return result;
+      return {
+        id: result.id,
+        patientName: result.patientName,
+        patientPhone: result.patientPhone,
+        holder_id: result.holder_id,
+        age: result.age,
+        startHour: result.startHour,
+        endHour: result.endHour,
+        majorComplaint: result.majorComplaint,
+        business_unit_id: authCtx.unit.id,
+        user_id: result.user_id,
+        patient_id: result.patient_id,
+        race_id: result.race_id,
+        schedule_service_type_id: result.schedule_service_type_id,
+        schedule_status_id: status.id,
+        scheduleOriginId: result.scheduleOriginId,
+        onDuty: result.onDuty,
+      };
     });
   }
 

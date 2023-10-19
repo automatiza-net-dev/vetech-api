@@ -895,7 +895,7 @@ export default class BillService {
         );
       }
 
-      const bill = payments.find(p => !!p.bill)?.bill!;
+      const bill = payments.find(p => !!p.bill)?.bill as Bill;
 
       if (payments.some(p => p.bill.status !== BillStatus.A)) {
         throw new BadRequestException(
@@ -1597,7 +1597,7 @@ export default class BillService {
         status: BillStatus.A,
 
         otherValue: 0,
-        tag: GenerateTag(parseInt(authCtx.unit.unitConfig.billCounter) + 1),
+        tag: GenerateTag(parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1),
       },
       {
         client: trx,
@@ -1607,7 +1607,7 @@ export default class BillService {
     await authCtx.unit.unitConfig
       .merge({
         billCounter: (
-          parseInt(authCtx.unit.unitConfig.billCounter) + 1
+          parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
         ).toString(),
       })
       .useTransaction(trx)
@@ -2167,8 +2167,9 @@ export default class BillService {
     });
     if (overdiscountedItems.length > 0) {
       throw new BadRequestException(
-        'Desconto lançado é superior ao permitido - ' +
-          overdiscountedItems.map(elem => elem.variationId).join(', '),
+        `Desconto lançado é superior ao permitido - ${overdiscountedItems
+          .map(elem => elem.variationId)
+          .join(', ')}`,
         400,
         'E_MAX_DISCOUNT',
       );
@@ -2354,7 +2355,7 @@ export default class BillService {
           data.map(elem => elem.billPaymentId),
         );
 
-      if (payments.length != data.length) {
+      if (payments.length !== data.length) {
         throw new BadRequestException(
           'Algum pagamento não foi encontrado',
           400,

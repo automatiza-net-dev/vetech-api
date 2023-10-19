@@ -74,6 +74,11 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public defaultNfseDescription: string | null;
 
+  @column({
+    columnName: 'group_nfse_documents',
+  })
+  public groupNfseDocuments: boolean;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

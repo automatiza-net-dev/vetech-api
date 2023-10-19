@@ -22,7 +22,7 @@ import FocusNfeService, {
   nfeResponseSchema,
   nfseResponseSchema,
 } from 'App/Services/FocusNfeService';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
   IAuthorizeNfseFiscalDocument,
@@ -469,16 +469,13 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async authorizeNfse(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: IAuthorizeNfseFiscalDocument,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     return Database.transaction(async trx => {
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
-        .where('id', unitId)
+        .where('id', authCtx.unit.id)
         .preload('unitConfig')
         .firstOrFail();
 
@@ -530,11 +527,11 @@ export default class BusinessUnitFiscalDocumentService {
         items.map(async item => {
           const serviceDocument = await ServiceIssuedFiscalDocument.create(
             {
-              economic_group_id: group.id,
-              business_unit_id: unitId,
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
               bill_id: data.billId,
               fiscal_document_id: document.id,
-              user_who_authorized_id: user.id,
+              user_who_authorized_id: authCtx.user.id,
               authorizationDate: DateTime.now(),
               bill_item_id: item.id,
               model: document.model,
@@ -584,7 +581,9 @@ export default class BusinessUnitFiscalDocumentService {
                 discount_value: item.discountValue,
                 service_code: item.productVariation.product.serviceCode ?? '',
                 cnae: unit.cnae ?? '',
-                description: item.productVariation.product.description,
+                description:
+                  authCtx.unit.unitConfig.defaultNfseDescription ??
+                  item.productVariation.product.description,
                 city_code: unit.cityCode ?? '',
               },
             },

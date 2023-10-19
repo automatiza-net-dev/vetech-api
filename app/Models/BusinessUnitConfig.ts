@@ -69,6 +69,11 @@ export default class BusinessUnitConfig extends BaseModel {
   })
   public dailyCashierType: 'usuario' | 'geral';
 
+  @column({
+    columnName: 'default_nfse_description',
+  })
+  public defaultNfseDescription: string | null;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

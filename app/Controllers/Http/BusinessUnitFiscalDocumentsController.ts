@@ -70,9 +70,11 @@ export default class BusinessUnitFiscalDocumentsController {
     const payload = await request.validate(
       AuthorizeBusinessUnitNfseFiscalDocumentValidator,
     );
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.authorizeNfse(unit_id, user, payload);
+    const result = await this.service.authorizeNfse(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

@@ -4,18 +4,24 @@ import BadRequestException from 'App/Exceptions/BadRequestException';
 import Meta from 'App/Models/Meta';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 
-interface ISearch {}
+interface ISearch {
+  description?: string;
+}
 
 @inject()
 export default class MetaService {
   constructor(private sharedService: SharedService) {}
 
-  async index(authCtx: AuthContext, _: ISearch) {
+  async index(authCtx: AuthContext, data: ISearch) {
     const qb = Meta.query()
       .preload('group', query => {
         query.select('id', 'company_name');
       })
       .where('economic_group_id', authCtx.group.id);
+
+    if (data.description) {
+      qb.whereILike('description', `%${data.description}%`);
+    }
 
     return qb;
   }

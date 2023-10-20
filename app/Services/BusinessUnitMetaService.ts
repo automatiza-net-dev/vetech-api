@@ -1,4 +1,6 @@
 import { inject } from '@adonisjs/fold';
+import Database from '@ioc:Adonis/Lucid/Database';
+import BadRequestException from 'App/Exceptions/BadRequestException';
 import BusinessUnitMeta from 'App/Models/BusinessUnitMeta';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 
@@ -44,11 +46,28 @@ export default class BusinessUnitMetaService {
       period: string;
     },
   ) {
-    return BusinessUnitMeta.create({
-      business_unit_id: data.businessUnitId,
-      meta_id: data.metaId,
-      value: data.value,
-      period: data.period,
+    return await Database.transaction(async trx => {
+      const existing = await BusinessUnitMeta.query()
+        .useTransaction(trx)
+        .where('business_unit_id', data.businessUnitId)
+        .where('meta_id', data.metaId)
+        .where('period', data.period);
+
+      if (existing.length > 0) {
+        throw new BadRequestException('Meta já cadastrada', 400, 'E_ERR');
+      }
+
+      return BusinessUnitMeta.create(
+        {
+          business_unit_id: data.businessUnitId,
+          meta_id: data.metaId,
+          value: data.value,
+          period: data.period,
+        },
+        {
+          client: trx,
+        },
+      );
     });
   }
 

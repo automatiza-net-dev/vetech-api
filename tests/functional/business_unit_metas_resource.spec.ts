@@ -2,6 +2,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnitMeta from 'App/Models/BusinessUnitMeta';
 import Meta from 'App/Models/Meta';
+import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -55,11 +56,41 @@ test.group('Business Units Metas resource', group => {
         metaId: meta.id,
         businessUnitId: buMeta.business_unit_id,
         value: 100,
-        period: 'Ano',
+        period: v4(),
       })
       .bearerToken(token);
 
     assert.equal(201, result.status());
+  });
+
+  test('should throw BadRequestException when matching data', async ({
+    assert,
+    client,
+  }) => {
+    const { user, meta, buMeta } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await BusinessUnitMeta.create({
+      meta_id: meta.id,
+      business_unit_id: buMeta.business_unit_id,
+      value: 100,
+      period: 'Ano',
+    });
+
+    const result = await client
+      .post('/business-unit-metas')
+      .json({
+        metaId: meta.id,
+        businessUnitId: buMeta.business_unit_id,
+        value: 100,
+        period: 'Ano',
+      })
+      .bearerToken(token);
+
+    assert.equal(400, result.status());
   });
 
   test('should update meta', async ({ assert, client }) => {

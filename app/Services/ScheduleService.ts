@@ -975,15 +975,15 @@ export default class ScheduleService {
         .merge({
           schedule_status_id: data.statusId,
           finishedAt:
-            toStatus.description === 'Atendimento finalizado'
+            toStatus.type === 'FIN'
               ? DateTime.now().minus({ hours: 3 })
               : schedule.finishedAt,
           reason_id: data.reasonId,
           observation: data.observation,
           cancellation_user_id:
-            toStatus.description === 'Atendimento cancelado'
+            toStatus.type === 'CANC'
               ? authCtx.user.id
-              : undefined,
+              : schedule.cancellation_user_id,
           startedAt:
             toStatus.type === 'ATEND'
               ? DateTime.now().minus({ hours: 3 })

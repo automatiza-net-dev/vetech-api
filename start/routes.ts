@@ -1418,3 +1418,12 @@ Route.group(() => {
 })
   .prefix('business-unit-metas')
   .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'MetasController.index');
+  Route.post('/', 'MetasController.store');
+  Route.put('/:id', 'MetasController.update');
+  Route.delete('/:id', 'MetasController.destroy');
+})
+  .prefix('metas')
+  .middleware('auth');

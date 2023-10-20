@@ -976,15 +976,18 @@ export default class ScheduleService {
           schedule_status_id: data.statusId,
           finishedAt:
             toStatus.description === 'Atendimento finalizado'
-              ? DateTime.now()
-              : undefined,
+              ? DateTime.now().minus({ hours: 3 })
+              : schedule.finishedAt,
           reason_id: data.reasonId,
           observation: data.observation,
           cancellation_user_id:
             toStatus.description === 'Atendimento cancelado'
               ? authCtx.user.id
               : undefined,
-          startedAt: toStatus.type === 'ATEND' ? DateTime.now() : null,
+          startedAt:
+            toStatus.type === 'ATEND'
+              ? DateTime.now().minus({ hours: 3 })
+              : schedule.startedAt,
         })
         .useTransaction(trx)
         .save();

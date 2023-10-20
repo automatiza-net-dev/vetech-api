@@ -5,6 +5,7 @@ import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
+import { DateTime } from 'luxon';
 
 @inject()
 export default class IndicatorService {
@@ -1410,41 +1411,72 @@ export default class IndicatorService {
       toDate?: string;
     },
   ) {
+    const dt = DateTime.fromISO(data.fromDate ?? new Date().toISOString()).plus(
+      { days: 10 },
+    );
+    const ym = dt.toFormat('yyyyMM');
+    const daysOfMonth = dt.daysInMonth ?? 30;
+
     const qb = Database.from('bills')
       .select(
         Database.raw(
           `
-          economic_groups.id                                                  as e_id,
-          economic_groups.company_name                                        as e_name,
-          business_units.id                                                   as b_id,
-          business_units.identification,
-          coalesce(business_unit_metas.value_type, 'SemMetaDefinida')         as meta_type,
-          business_unit_metas.value                                           as meta,
-          sum(bills.total_value)                                              as total,
-          sum(bills.total_value) / business_unit_metas.value * 100            as percentage,
-          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30 as projection,
-          (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30) / business_unit_metas.value * 100 as meta_projection
+            economic_groups.id as e_id,
+            economic_groups.company_name as e_name,
+            business_units.id as b_id,
+            business_units.identification,
+            case
+              when business_unit_metas.value is not null then metas.description
+              else 'SemMetaDefinida' end                           as meta_description,
+            case
+              when business_unit_metas.value is not null then metas.type
+              else 'SemMetaDefinida' end                           as meta_type,
+            coalesce(business_unit_metas.value, 0)                   as meta_value,
+            sum(bills.total_value)                                   as total,
+            sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
+            case
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
+                then sum(bills.total_value)
+              else sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) *
+                ? end                                           as projection,
+            case
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
+                then sum(bills.total_value) / business_unit_metas.value * 100
+              else (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * ?) /
+                business_unit_metas.value *
+                100 end                                         as meta_projection
+
           `,
+          [ym, ym, daysOfMonth, ym, ym, daysOfMonth],
         ),
       )
       .joinRaw(
-        `left join business_unit_metas
-                   on bills.business_unit_id = business_unit_metas.business_unit_id and
-                      to_char(bills.bill_date, 'MM/YYYY') = business_unit_metas.period
-                       and business_unit_metas.type = 'Faturamento' and business_unit_metas.active = 'true'`,
-      )
-      .joinRaw(
-        `join business_units on business_unit_metas.business_unit_id = business_units.id`,
+        `join business_units on bills.business_unit_id = business_units.id`,
       )
       .joinRaw(
         `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join metas on metas.economic_group_id = economic_groups.id and metas.description = 'Faturamento'`,
+      )
+      .joinRaw(
+        `
+        left join business_unit_metas
+                   on metas.id = business_unit_metas.meta_id and
+                      bills.business_unit_id = business_unit_metas.business_unit_id and
+                      to_char(bills.bill_date, 'MM/YYYY') = business_unit_metas.period and
+                      business_unit_metas.active = 'true'
+        `,
       )
       .groupBy(
         'economic_groups.id',
         'economic_groups.company_name',
         'business_units.id',
         'business_units.identification',
-        'business_unit_metas.value_type',
+        'metas.description',
+        'metas.type',
         'business_unit_metas.value',
       )
       .whereNull('bills.deleted_at');
@@ -1480,11 +1512,12 @@ export default class IndicatorService {
           identification: elem.identification,
         },
         meta: {
-          valueType: elem.meta_type,
-          value: elem.meta,
+          description: elem.meta_description,
+          type: elem.meta_type,
+          value: elem.meta_value,
         },
         total: elem.total,
-        percentage: elem.percentage,
+        percentage: elem.percentage ?? -1,
         projection: elem.projection,
         metaProjection: elem.meta_projection,
       };

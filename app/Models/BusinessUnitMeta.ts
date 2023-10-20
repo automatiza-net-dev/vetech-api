@@ -1,27 +1,14 @@
 import { DateTime } from 'luxon';
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import BusinessUnit from './BusinessUnit';
-
-export const MetaType = ['Faturamento'] as const;
-export type TMetaType = typeof MetaType[number];
-
-export const ValueMetaType = ['Valor R$', 'Percentual', 'Quantidade'] as const;
-export type TValueMetaType = typeof ValueMetaType[number];
+import Meta from './Meta';
 
 export default class BusinessUnitMeta extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column()
-  public type: typeof MetaType[number];
-
-  @column()
   public value: number;
-
-  @column({
-    columnName: 'value_type',
-  })
-  public valueType: typeof ValueMetaType[number];
 
   @column()
   public period: string;
@@ -44,4 +31,14 @@ export default class BusinessUnitMeta extends BaseModel {
     foreignKey: 'business_unit_id',
   })
   public unit: BelongsTo<typeof BusinessUnit>;
+
+  @column({
+    serializeAs: null,
+  })
+  public meta_id: number;
+
+  @belongsTo(() => Meta, {
+    foreignKey: 'meta_id',
+  })
+  public meta: BelongsTo<typeof Meta>;
 }

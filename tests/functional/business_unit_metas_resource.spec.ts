@@ -1,6 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
 import BusinessUnitMeta from 'App/Models/BusinessUnitMeta';
+import Meta from 'App/Models/Meta';
 
 import { generateJwtToken, userBootstrap } from '../utils';
 
@@ -11,17 +12,21 @@ test.group('Business Units Metas resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, group } = await userBootstrap();
 
-    const meta = await BusinessUnitMeta.create({
+    const meta = await Meta.create({
+      economic_group_id: group.id,
+      description: 'some description',
+    });
+
+    const buMeta = await BusinessUnitMeta.create({
+      meta_id: meta.id,
       business_unit_id: business.id,
-      type: 'Faturamento',
       value: 100,
-      valueType: 'Valor R$',
       period: 'Ano',
     });
 
-    return { user, meta };
+    return { user, buMeta, meta };
   };
 
   test('should get all metas', async ({ assert, client }) => {
@@ -38,7 +43,7 @@ test.group('Business Units Metas resource', group => {
   });
 
   test('should create meta', async ({ assert, client }) => {
-    const { user } = await createData();
+    const { user, meta, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
@@ -47,9 +52,9 @@ test.group('Business Units Metas resource', group => {
     const result = await client
       .post('/business-unit-metas')
       .json({
-        type: 'Faturamento',
+        metaId: meta.id,
+        businessUnitId: buMeta.business_unit_id,
         value: 100,
-        valueType: 'Valor R$',
         period: 'Ano',
       })
       .bearerToken(token);
@@ -58,19 +63,16 @@ test.group('Business Units Metas resource', group => {
   });
 
   test('should update meta', async ({ assert, client }) => {
-    const { user, meta } = await createData();
+    const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const result = await client
-      .put(`/business-unit-metas/${meta.id}`)
+      .put(`/business-unit-metas/${buMeta.id}`)
       .json({
-        type: 'Faturamento',
         value: 100,
-        valueType: 'Valor R$',
-        period: 'Ano',
         active: true,
       })
       .bearerToken(token);
@@ -91,28 +93,28 @@ test.group('Business Units Metas resource', group => {
   });
 
   test('should return single metas', async ({ assert, client }) => {
-    const { user, meta } = await createData();
+    const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const result = await client
-      .get(`/business-unit-metas/${meta.id}`)
+      .get(`/business-unit-metas/${buMeta.id}`)
       .bearerToken(token);
 
     assert.equal(200, result.status());
   });
 
   test('should delete meta', async ({ assert, client }) => {
-    const { user, meta } = await createData();
+    const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
       password: '102030',
     });
 
     const result = await client
-      .delete(`/business-unit-metas/${meta.id}`)
+      .delete(`/business-unit-metas/${buMeta.id}`)
       .bearerToken(token);
 
     assert.equal(204, result.status());

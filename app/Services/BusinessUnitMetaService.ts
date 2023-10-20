@@ -1,14 +1,10 @@
 import { inject } from '@adonisjs/fold';
-import BusinessUnitMeta, {
-  TMetaType,
-  TValueMetaType,
-} from 'App/Models/BusinessUnitMeta';
+import BusinessUnitMeta from 'App/Models/BusinessUnitMeta';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 
 interface ISearch {
   units?: string[];
   groups?: string[];
-  type?: string;
 }
 
 @inject()
@@ -16,9 +12,13 @@ export default class BusinessUnitMetaService {
   constructor(private sharedService: SharedService) {}
 
   async index(authCtx: AuthContext, data: ISearch) {
-    const qb = BusinessUnitMeta.query().preload('unit', query => {
-      query.select('id', 'identification');
-    });
+    const qb = BusinessUnitMeta.query()
+      .preload('meta', query => {
+        query.select('id', 'description', 'type', 'active');
+      })
+      .preload('unit', query => {
+        query.select('id', 'identification');
+      });
 
     if (data.units && Array.isArray(data.units)) {
       qb.whereIn('business_unit_id', data.units);
@@ -32,27 +32,22 @@ export default class BusinessUnitMetaService {
       });
     }
 
-    if (data.type) {
-      qb.where('type', data.type as TMetaType);
-    }
-
     return qb;
   }
 
   async store(
-    authCtx: AuthContext,
+    _: AuthContext,
     data: {
-      type: TMetaType;
+      metaId: number;
+      businessUnitId: string;
       value: number;
-      valueType: TValueMetaType;
       period: string;
     },
   ) {
     return BusinessUnitMeta.create({
-      business_unit_id: authCtx.unit.id,
-      type: data.type,
+      business_unit_id: data.businessUnitId,
+      meta_id: data.metaId,
       value: data.value,
-      valueType: data.valueType,
       period: data.period,
     });
   }
@@ -77,22 +72,14 @@ export default class BusinessUnitMetaService {
     authCtx: AuthContext,
     id: string,
     data: {
-      type: TMetaType;
       value: number;
-      valueType: TValueMetaType;
-      period: string;
-      active: boolean;
     },
   ) {
     const model = await this.show(authCtx, id);
 
     return model
       .merge({
-        type: data.type,
         value: data.value,
-        valueType: data.valueType,
-        period: data.period,
-        active: data.active,
       })
       .save();
   }

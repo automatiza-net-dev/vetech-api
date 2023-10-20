@@ -7,9 +7,12 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import BusinessUnitMeta from './BusinessUnitMeta';
 import EconomicGroup from './EconomicGroup';
 
 export default class Meta extends BaseModel {
@@ -52,4 +55,9 @@ export default class Meta extends BaseModel {
     foreignKey: 'economic_group_id',
   })
   public group: BelongsTo<typeof EconomicGroup>;
+
+  @hasMany(() => BusinessUnitMeta, {
+    foreignKey: 'meta_id',
+  })
+  public units: HasMany<typeof BusinessUnitMeta>;
 }

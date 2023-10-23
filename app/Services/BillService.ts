@@ -196,7 +196,7 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      await this.checkDiscount(
+      await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.items.map(elem => ({
@@ -219,7 +219,7 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      this.checkDiscount(
+      await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data
@@ -278,7 +278,7 @@ export default class BillService {
 
   async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
     return Database.transaction(async trx => {
-      await this.checkDiscount(trx, authCtx.unit.id, [
+      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
         {
           variationId: data.productVariationId,
           discountValue: data.discountValue,
@@ -291,7 +291,7 @@ export default class BillService {
 
   async createBillItems(authCtx: AuthContext, data: ICreateBillItemData[]) {
     return Database.transaction(async trx => {
-      await this.checkDiscount(
+      await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.map(elem => ({
@@ -2149,54 +2149,6 @@ export default class BillService {
 
     return billItem;
   }
-
-  private async checkDiscount(
-    trx: TransactionClientContract,
-    unitId: string,
-    data: {
-      variationId: string;
-      discountValue: number;
-    }[],
-  ) {
-    const productVariations = await ProductVariation.query()
-      .useTransaction(trx)
-      .whereIn(
-        'id',
-        data.map(d => d.variationId),
-      )
-      .whereHas('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
-      })
-      .preload('product')
-      .preload('businessUnitProducts', query => {
-        query.where('businness_unit_id', unitId);
-      });
-
-    const overdiscountedItems = data.filter(elem => {
-      const variation = productVariations.find(p => p.id === elem.variationId);
-      if (!variation) {
-        throw new BadRequestException(
-          'Não foi possível encontrar um preço para esse produto',
-          400,
-          'E_NO_VARIATION',
-        );
-      }
-
-      return variation.businessUnitProducts.some(
-        p => p.maximumDiscountValue < elem.discountValue,
-      );
-    });
-    if (overdiscountedItems.length > 0) {
-      throw new BadRequestException(
-        `Desconto lançado é superior ao permitido - ${overdiscountedItems
-          .map(elem => elem.variationId)
-          .join(', ')}`,
-        400,
-        'E_MAX_DISCOUNT',
-      );
-    }
-  }
-
   public async addFromKit(
     authCtx: AuthContext,
     data: {

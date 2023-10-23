@@ -7,6 +7,7 @@ import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import ProductVariation from 'App/Models/ProductVariation';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
@@ -168,5 +169,52 @@ export default class SharedService {
     }
 
     return dailyCashier;
+  }
+
+  public async checkDiscount(
+    trx: TransactionClientContract,
+    unitId: string,
+    data: {
+      variationId: string;
+      discountValue: number;
+    }[],
+  ) {
+    const productVariations = await ProductVariation.query()
+      .useTransaction(trx)
+      .whereIn(
+        'id',
+        data.map(d => d.variationId),
+      )
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
+
+    const overdiscountedItems = data.filter(elem => {
+      const variation = productVariations.find(p => p.id === elem.variationId);
+      if (!variation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      return variation.businessUnitProducts.some(
+        p => p.maximumDiscountValue < elem.discountValue,
+      );
+    });
+    if (overdiscountedItems.length > 0) {
+      throw new BadRequestException(
+        `Desconto lançado é superior ao permitido - ${overdiscountedItems
+          .map(elem => elem.variationId)
+          .join(', ')}`,
+        400,
+        'E_MAX_DISCOUNT',
+      );
+    }
   }
 }

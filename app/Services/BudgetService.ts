@@ -359,26 +359,25 @@ export default class BudgetService {
     ];
   }
 
-  public async createBudget(
-    unitId: string,
-    user: User,
-    data: ICreateBudgetData,
-  ) {
-    const unit = await BusinessUnit.query()
-      .where('id', unitId)
-      .preload('unitConfig')
-      .firstOrFail();
-    const group = await this.sharedService.getUserGroup(unitId);
-
-    if (unit.unitConfig.requiresBillPatient && !data.patientId) {
-      throw new BadRequestException(
-        'É necessário informar o paciente para realizar o orçamento',
-        400,
-        'E_ERR',
-      );
-    }
-
+  public async createBudget(authCtx: AuthContext, data: ICreateBudgetData) {
     return Database.transaction(async trx => {
+      await this.sharedService.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        data.items.map(elem => ({
+          variationId: elem.productVariationId,
+          discountValue: elem.discountValue,
+        })),
+      );
+
+      if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
+        throw new BadRequestException(
+          'É necessário informar o paciente para realizar o orçamento',
+          400,
+          'E_ERR',
+        );
+      }
+
       const items = await ProductVariation.query()
         .useTransaction(trx)
         .whereIn(
@@ -388,11 +387,11 @@ export default class BudgetService {
 
       const budget = await Budget.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
           patient_id: data.patientId,
-          user_id: user.id,
+          user_id: authCtx.user.id,
           seller_id: data.sellerId,
           daily_movement_id: data.dailyMovementId,
           evaluation_id: data.evaluationId,
@@ -406,16 +405,16 @@ export default class BudgetService {
           totalValue: 0,
           observation: data.observation,
           status: BudgetStatus.A,
-          tag: GenerateTag(parseInt(unit.unitConfig.budgetCounter) + 1),
+          tag: GenerateTag(parseInt(authCtx.unit.unitConfig.budgetCounter) + 1),
         },
         {
           client: trx,
         },
       );
-      await unit.unitConfig
+      await authCtx.unit.unitConfig
         .merge({
           budgetCounter: (
-            parseInt(unit.unitConfig.budgetCounter) + 1
+            parseInt(authCtx.unit.unitConfig.budgetCounter) + 1
           ).toString(),
         })
         .useTransaction(trx)
@@ -434,8 +433,8 @@ export default class BudgetService {
 
         await budget.related('items').create(
           {
-            economic_group_id: group.id,
-            business_unit_id: unitId,
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
             product_variation_id: variation.id,
 
             unitaryValue: item.unitaryValue,
@@ -542,20 +541,31 @@ export default class BudgetService {
     });
   }
 
-  public async createBudgetItem(unitId: string, data: ICreateBudgetItemData) {
-    const budget = await Budget.findOrFail(data.budgetId);
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async createBudgetItem(
+    authCtx: AuthContext,
+    data: ICreateBudgetItemData,
+  ) {
     return Database.transaction(async trx => {
+      const budget = await Budget.findOrFail(data.budgetId, {
+        client: trx,
+      });
+
+      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
+        {
+          variationId: data.productVariationId,
+          discountValue: data.discountValue,
+        },
+      ]);
+
       const productVariation = await ProductVariation.query()
         .useTransaction(trx)
         .where('id', data.productVariationId)
         .whereHas('businessUnitProducts', query => {
-          query.where('businness_unit_id', unitId);
+          query.where('businness_unit_id', authCtx.unit.id);
         })
         .preload('product')
         .preload('businessUnitProducts', query => {
-          query.where('businness_unit_id', unitId);
+          query.where('businness_unit_id', authCtx.unit.id);
         })
         .first();
       if (!productVariation) {
@@ -581,8 +591,8 @@ export default class BudgetService {
 
       const item = await budget.related('items').create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           product_variation_id: data.productVariationId,
 
           unitaryValue: data.unitaryValue,
@@ -608,57 +618,25 @@ export default class BudgetService {
   }
 
   public async createBudgetItems(
-    unitId: string,
+    authCtx: AuthContext,
     data: ICreateBudgetItemData[],
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     return Database.transaction(async trx => {
-      const productVariations = await ProductVariation.query()
-        .useTransaction(trx)
-        .whereIn(
-          'id',
-          data.map(d => d.productVariationId),
-        )
-        .whereHas('businessUnitProducts', query => {
-          query.where('businness_unit_id', unitId);
-        })
-        .preload('product')
-        .preload('businessUnitProducts', query => {
-          query.where('businness_unit_id', unitId);
-        });
-
-      const overdiscountedItems = data.filter(elem => {
-        const variation = productVariations.find(
-          p => p.id === elem.productVariationId,
-        );
-        if (!variation) {
-          throw new BadRequestException(
-            'Não foi possível encontrar um preço para esse produto',
-            400,
-            'E_NO_VARIATION',
-          );
-        }
-
-        return variation.businessUnitProducts.some(
-          p => p.maximumDiscountValue < elem.discountValue,
-        );
-      });
-      if (overdiscountedItems.length > 0) {
-        throw new BadRequestException(
-          'Desconto lançado é superior ao permitido - ' +
-            overdiscountedItems.map(elem => elem.productVariationId).join(', '),
-          400,
-          'E_MAX_DISCOUNT',
-        );
-      }
+      await this.sharedService.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        data.map(elem => ({
+          variationId: elem.productVariationId,
+          discountValue: elem.discountValue,
+        })),
+      );
 
       const tasks = data.map(async item => {
         const budget = await Budget.findOrFail(item.budgetId);
         const dbItem = await budget.related('items').create(
           {
-            economic_group_id: group.id,
-            business_unit_id: unitId,
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
             product_variation_id: item.productVariationId,
 
             unitaryValue: item.unitaryValue,
@@ -687,26 +665,33 @@ export default class BudgetService {
   }
 
   public async updateBudgetItem(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: IUpdateBudgetItemData,
   ) {
-    const budgetItem = await BudgetItem.query()
-      .where('id', id)
-      .where('business_unit_id', unitId)
-      .preload('budget')
-      .first();
-
-    if (!budgetItem) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    const existingItems = await BudgetItem.query().where(
-      'budget_id',
-      budgetItem.budget_id,
-    );
-
     return Database.transaction(async trx => {
+      const budgetItem = await BudgetItem.query()
+        .where('id', id)
+        .where('business_unit_id', authCtx.unit.id)
+        .preload('budget')
+        .first();
+
+      if (!budgetItem) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const existingItems = await BudgetItem.query().where(
+        'budget_id',
+        budgetItem.budget_id,
+      );
+
+      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
+        {
+          variationId: budgetItem.product_variation_id,
+          discountValue: data.discountValue,
+        },
+      ]);
+
       const updatedItem = await budgetItem
         .merge({
           unitaryValue: data.unitaryValue,

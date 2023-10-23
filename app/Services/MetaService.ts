@@ -36,7 +36,7 @@ export default class MetaService {
     await Database.transaction(async trx => {
       const existing = await Meta.query()
         .where('economic_group_id', authCtx.group.id)
-        .whereILike('description', `%${data.description}%`);
+        .whereRaw('lower(description) = lower(?)', [data.description]);
 
       if (existing.length > 0) {
         throw new BadRequestException('Meta já cadastrada', 400, 'E_ERR');
@@ -80,7 +80,7 @@ export default class MetaService {
         const existing = await Meta.query()
           .useTransaction(trx)
           .where('economic_group_id', authCtx.group.id)
-          .whereILike('description', `%${data.description}%`);
+          .whereRaw('lower(description) = lower(?)', [data.description]);
 
         if (existing.length > 0) {
           throw new BadRequestException('Meta já cadastrada', 400, 'E_ERR');

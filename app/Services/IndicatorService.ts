@@ -1523,4 +1523,79 @@ export default class IndicatorService {
       };
     });
   }
+
+  public async productTypeIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+        economic_groups.id                                                      as e_id,
+        economic_groups.company_name                                            as e_name,
+        business_units.id                                                       as b_id,
+        business_units.identification,
+        case when products.type = 'product' then 'Produtos' else 'Serviços' end as tipo,
+        sum(bill_items.total_value)
+          `,
+        ),
+      )
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
+      )
+      .joinRaw(
+        `join product_variations product_variations on bill_items.product_variation_id = product_variations.id`,
+      )
+      .joinRaw(`join products on product_variations.product_id = products.id`)
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .groupBy('economic_groups.id', 'business_units.id', 'products.type')
+      .orderBy('products.type')
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const metasResult = await qb;
+
+    return metasResult.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.e_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        type: elem.tipo,
+        total: elem.sum,
+      };
+    });
+  }
 }

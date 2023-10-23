@@ -196,6 +196,15 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
+      await this.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        data.items.map(elem => ({
+          variationId: elem.productVariationId,
+          discountValue: elem.discountValue,
+        })),
+      );
+
       return this.createBillWithTrx(trx, authCtx, data);
     });
   }
@@ -210,6 +219,18 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
+      this.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        data
+          .map(elem => elem.items)
+          .flat()
+          .map(elem => ({
+            variationId: elem.productVariationId,
+            discountValue: elem.discountValue,
+          })),
+      );
+
       const tasks = data.map(d => this.createBillWithTrx(trx, authCtx, d));
 
       return Promise.all(tasks);

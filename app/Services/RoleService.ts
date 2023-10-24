@@ -3,7 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Permission from 'App/Models/Permission';
-import Role from 'App/Models/Role';
+import Role, { TRoleType } from 'App/Models/Role';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IManageRolePermissions from 'Contracts/interfaces/IManageRolePermissions';
 import IRoleData from 'Contracts/interfaces/IRoleData';
@@ -22,8 +22,19 @@ export default class RoleService {
   ): Promise<Array<Role>> {
     const qb = Role.query()
       .where('system_id', authCtx.system.id)
-      .where('economic_group_id', authCtx.group.id)
-      .where('type', 'user');
+      .where('economic_group_id', authCtx.group.id);
+
+    if (authCtx.user.type === 'user') {
+      qb.whereIn('type', ['user', 'both'] as TRoleType[]);
+    }
+
+    if (authCtx.user.type === 'controller') {
+      qb.whereIn('type', ['controller', 'both'] as TRoleType[]);
+    }
+
+    if (authCtx.user.type === 'controller') {
+      qb.whereIn('type', ['system'] as TRoleType[]);
+    }
 
     if (data.name) {
       qb.where('name', 'ilike', `%${data.name}%`);

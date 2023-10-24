@@ -3,7 +3,7 @@ import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import BillItem from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
@@ -13,7 +13,7 @@ import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from 'App/Models/IssuedFiscalDocument';
 import { PaymentMethodTef } from 'App/Models/PaymentMethod';
-import Product, { ProductType } from 'App/Models/Product';
+import { ProductType } from 'App/Models/Product';
 import ServiceIssuedFiscalDocument from 'App/Models/ServiceIssuedFiscalDocument';
 import User from 'App/Models/User';
 import FocusNfeService, {
@@ -197,6 +197,7 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .where('bill_id', bill.id)
         .where('nfe_issued', false)
+        .where('status', BillItemStatus.A)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.PRODUCT);
@@ -504,6 +505,7 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .where('bill_id', bill.id)
         .where('nfe_issued', false)
+        .where('status', BillItemStatus.A)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.SERVICE);

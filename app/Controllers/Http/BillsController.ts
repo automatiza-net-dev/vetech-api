@@ -64,6 +64,10 @@ export default class BillsController {
       payload,
     );
 
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
+
     return response.created(result);
   }
 
@@ -74,6 +78,10 @@ export default class BillsController {
       await this.sharedService.getAuthContext(auth),
       payload.items,
     );
+
+    if (!result.valid) {
+      return response.badRequest(result.invalid);
+    }
 
     return response.created(result);
   }
@@ -101,6 +109,10 @@ export default class BillsController {
       payload,
     );
 
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
+
     return response.created(result);
   }
 
@@ -115,6 +127,9 @@ export default class BillsController {
       await this.sharedService.getAuthContext(auth),
       payload.items,
     );
+    if (!result.valid) {
+      return response.badRequest(result.invalid);
+    }
 
     return response.created(result);
   }

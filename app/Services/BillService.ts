@@ -196,7 +196,7 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(
+      const invalid = await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.items.map(elem => ({
@@ -204,6 +204,9 @@ export default class BillService {
           discountValue: elem.discountValue,
         })),
       );
+      if (invalid.length > 0) {
+        return invalid;
+      }
 
       return this.createBillWithTrx(trx, authCtx, data);
     });
@@ -219,7 +222,7 @@ export default class BillService {
     // }
 
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(
+      const invalid = await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data
@@ -230,10 +233,13 @@ export default class BillService {
             discountValue: elem.discountValue,
           })),
       );
+      if (invalid.length > 0) {
+        return { valid: false, invalid } as const;
+      }
 
       const tasks = data.map(d => this.createBillWithTrx(trx, authCtx, d));
 
-      return Promise.all(tasks);
+      return { valid: true, result: await Promise.all(tasks) } as const;
     });
   }
 
@@ -278,12 +284,19 @@ export default class BillService {
 
   async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
-        {
-          variationId: data.productVariationId,
-          discountValue: data.discountValue,
-        },
-      ]);
+      const invalid = await this.sharedService.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        [
+          {
+            variationId: data.productVariationId,
+            discountValue: data.discountValue,
+          },
+        ],
+      );
+      if (invalid.length > 0) {
+        return invalid;
+      }
 
       return this.createBillItemWithTrx(trx, authCtx, data);
     });
@@ -291,7 +304,7 @@ export default class BillService {
 
   async createBillItems(authCtx: AuthContext, data: ICreateBillItemData[]) {
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(
+      const invalid = await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.map(elem => ({
@@ -300,8 +313,13 @@ export default class BillService {
         })),
       );
 
+      if (invalid.length > 0) {
+        return { valid: false, invalid } as const;
+      }
+
       const tasks = data.map(d => this.createBillItemWithTrx(trx, authCtx, d));
-      return Promise.all(tasks);
+
+      return { valid: true, result: await Promise.all(tasks) } as const;
     });
   }
 

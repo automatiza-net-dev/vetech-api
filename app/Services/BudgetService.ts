@@ -361,7 +361,7 @@ export default class BudgetService {
 
   public async createBudget(authCtx: AuthContext, data: ICreateBudgetData) {
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(
+      const result = await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.items.map(elem => ({
@@ -369,6 +369,9 @@ export default class BudgetService {
           discountValue: elem.discountValue,
         })),
       );
+      if (result.length > 0) {
+        return result;
+      }
 
       if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
         throw new BadRequestException(
@@ -405,7 +408,9 @@ export default class BudgetService {
           totalValue: 0,
           observation: data.observation,
           status: BudgetStatus.A,
-          tag: GenerateTag(parseInt(authCtx.unit.unitConfig.budgetCounter) + 1),
+          tag: GenerateTag(
+            parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
+          ),
         },
         {
           client: trx,
@@ -414,7 +419,7 @@ export default class BudgetService {
       await authCtx.unit.unitConfig
         .merge({
           budgetCounter: (
-            parseInt(authCtx.unit.unitConfig.budgetCounter) + 1
+            parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1
           ).toString(),
         })
         .useTransaction(trx)
@@ -550,12 +555,19 @@ export default class BudgetService {
         client: trx,
       });
 
-      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
-        {
-          variationId: data.productVariationId,
-          discountValue: data.discountValue,
-        },
-      ]);
+      const result = await this.sharedService.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        [
+          {
+            variationId: data.productVariationId,
+            discountValue: data.discountValue,
+          },
+        ],
+      );
+      if (result.length > 0) {
+        return result;
+      }
 
       const productVariation = await ProductVariation.query()
         .useTransaction(trx)
@@ -582,8 +594,7 @@ export default class BudgetService {
         )
       ) {
         throw new BadRequestException(
-          'Desconto lançado é superior ao permitido - ' +
-            productVariation.product.description,
+          `Desconto lançado é superior ao permitido - ${productVariation.product.description}`,
           400,
           'E_MAX_DISCOUNT',
         );
@@ -614,6 +625,8 @@ export default class BudgetService {
         })
         .useTransaction(trx)
         .save();
+
+      return null;
     });
   }
 
@@ -622,7 +635,7 @@ export default class BudgetService {
     data: ICreateBudgetItemData[],
   ) {
     return Database.transaction(async trx => {
-      await this.sharedService.checkDiscount(
+      const result = await this.sharedService.checkDiscount(
         trx,
         authCtx.unit.id,
         data.map(elem => ({
@@ -630,6 +643,9 @@ export default class BudgetService {
           discountValue: elem.discountValue,
         })),
       );
+      if (result.length > 0) {
+        return result;
+      }
 
       const tasks = data.map(async item => {
         const budget = await Budget.findOrFail(item.budgetId);
@@ -661,6 +677,7 @@ export default class BudgetService {
       });
 
       await Promise.all(tasks);
+      return null;
     });
   }
 
@@ -685,12 +702,19 @@ export default class BudgetService {
         budgetItem.budget_id,
       );
 
-      await this.sharedService.checkDiscount(trx, authCtx.unit.id, [
-        {
-          variationId: budgetItem.product_variation_id,
-          discountValue: data.discountValue,
-        },
-      ]);
+      const result = await this.sharedService.checkDiscount(
+        trx,
+        authCtx.unit.id,
+        [
+          {
+            variationId: budgetItem.product_variation_id,
+            discountValue: data.discountValue,
+          },
+        ],
+      );
+      if (result.length > 0) {
+        return result;
+      }
 
       const updatedItem = await budgetItem
         .merge({
@@ -823,13 +847,15 @@ export default class BudgetService {
           status: BillStatus.A,
 
           otherValue: 0,
-          tag: GenerateTag(parseInt(unit.unitConfig.billCounter) + 1),
+          tag: GenerateTag(parseInt(unit.unitConfig.billCounter, 10) + 1),
         },
         { client: trx },
       );
       await unit.unitConfig
         .merge({
-          billCounter: (parseInt(unit.unitConfig.billCounter) + 1).toString(),
+          billCounter: (
+            parseInt(unit.unitConfig.billCounter, 10) + 1
+          ).toString(),
         })
         .useTransaction(trx)
         .save();

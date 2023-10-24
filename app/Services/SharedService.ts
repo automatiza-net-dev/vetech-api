@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import { TransactionClientContract } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
@@ -207,14 +208,45 @@ export default class SharedService {
         p => p.maximumDiscountValue < elem.discountValue,
       );
     });
-    if (overdiscountedItems.length > 0) {
-      throw new BadRequestException(
-        `Desconto lançado é superior ao permitido - ${overdiscountedItems
-          .map(elem => elem.variationId)
-          .join(', ')}`,
-        400,
-        'E_MAX_DISCOUNT',
-      );
+
+    return overdiscountedItems.map(elem => {
+      const item = productVariations.find(v => v.id === elem.variationId);
+
+      if (!item) {
+        throw new InternalErrorException(
+          'Erro ao validar desconto',
+          500,
+          'E_VALIDATE_DISCOUNT',
+        );
+      }
+
+      if (item.businessUnitProducts.length === 0) {
+        throw new InternalErrorException(
+          'Preço não encontrado para produto',
+          500,
+          'E_VALIDATE_DISCOUNT',
+        );
+      }
+
+      const price = item.businessUnitProducts[0];
+
+      return {
+        rule: 'DescontoMaximo',
+        message: `O desconto máximo para o produto '${
+          item?.product?.description
+        }' é de ${this.parsePriceToBrl(price.maximumDiscountValue)}`,
+      };
+    });
+  }
+
+  private parsePriceToBrl(price: number | string) {
+    if (typeof price === 'string') {
+      return this.parsePriceToBrl(parseFloat(price));
     }
+
+    return price.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
   }
 }

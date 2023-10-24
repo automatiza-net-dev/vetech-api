@@ -90,6 +90,10 @@ export default class BudgetsController {
       payload,
     );
 
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
+
     return response.created(result);
   }
 
@@ -139,6 +143,10 @@ export default class BudgetsController {
       payload,
     );
 
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
+
     return response.created(result);
   }
 
@@ -149,10 +157,13 @@ export default class BudgetsController {
   }: HttpContextContract) {
     const payload = await request.validate(CreateBudgetItemsValidator);
 
-    await this.service.createBudgetItems(
+    const result = await this.service.createBudgetItems(
       await this.sharedService.getAuthContext(auth),
       payload.items,
     );
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.created();
   }
@@ -170,6 +181,10 @@ export default class BudgetsController {
       params.id,
       payload,
     );
+
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.ok(result);
   }

@@ -261,4 +261,17 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async salesPerPeriodIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.salesPerPeriodIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

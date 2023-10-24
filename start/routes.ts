@@ -1406,6 +1406,10 @@ Route.group(() => {
   Route.get('/projection', 'IndicatorsController.projectionIndicators');
   Route.get('/billing', 'IndicatorsController.billingIndicators');
   Route.get('/product-type', 'IndicatorsController.productTypeIndicators');
+  Route.get(
+    '/sales-per-period',
+    'IndicatorsController.salesPerPeriodIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

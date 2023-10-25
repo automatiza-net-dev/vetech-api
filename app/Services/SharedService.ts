@@ -172,6 +172,19 @@ export default class SharedService {
     return dailyCashier;
   }
 
+  public async userHasPermission(user: User, permission: string) {
+    const data = await user
+      .related('roles')
+      .query()
+      .whereHas('role', query => {
+        query.whereHas('permissions', query => {
+          query.where('control_id', permission);
+        });
+      });
+
+    return data.length > 0;
+  }
+
   public async checkDiscount(
     trx: TransactionClientContract,
     unitId: string,

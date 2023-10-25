@@ -170,7 +170,13 @@ export default class ScheduleService {
       const scheduleUser = await User.findOrFail(data.userId);
 
       if (!scheduleUser.onDuty) {
-        await ScheduleService.checkDisponibility(
+        // AGE12 é a permissão para agendar em horários bloqueados
+        const hasPermission = await this.sharedService.userHasPermission(
+          scheduleUser,
+          'AGE12',
+        );
+
+        const result = await ScheduleService.checkDisponibility(
           data.userId ?? authCtx.user.id,
           authCtx.unit.id,
           {
@@ -178,6 +184,22 @@ export default class ScheduleService {
             end: data.endHour.toJSDate(),
           },
         );
+
+        if (result.invalidWorkingDay) {
+          throw new BadRequestException(
+            'Pessoa não trabalha neste horário',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
+
+        if (result.invalidUnavailableDay && !hasPermission) {
+          throw new BadRequestException(
+            'Pessoa não está disponível neste horário',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
       }
 
       if (!data.ignoreOverlapping) {
@@ -420,10 +442,30 @@ export default class ScheduleService {
     const technician = data.userId ? await User.findOrFail(data.userId) : user;
 
     if (!technician.onDuty) {
-      await ScheduleService.checkDisponibility(technician.id, unitId, {
-        start: data.startHour.toJSDate(),
-        end: data.endHour.toJSDate(),
-      });
+      const result = await ScheduleService.checkDisponibility(
+        technician.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+      );
+
+      if (result.invalidWorkingDay) {
+        throw new BadRequestException(
+          'Pessoa não trabalha neste horário',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      if (result.invalidUnavailableDay) {
+        throw new BadRequestException(
+          'Pessoa não está disponível neste horário',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
     }
 
     await schedule.related('reschedules').create({
@@ -865,13 +907,13 @@ export default class ScheduleService {
         format(data.end, 'HH:mm'),
       ]);
 
-    if (workingDays.length === 0) {
-      throw new BadRequestException(
-        'Pessoa não trabalha neste horário',
-        400,
-        'WORKING_DAY',
-      );
-    }
+    // if (workingDays.length === 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não trabalha neste horário',
+    //     400,
+    //     'WORKING_DAY',
+    //   );
+    // }
 
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
@@ -886,13 +928,18 @@ export default class ScheduleService {
         [format(data.start, 'HH:mm'), format(data.end, 'HH:mm')],
       );
 
-    if (unavailableDays.length !== 0) {
-      throw new BadRequestException(
-        'Pessoa não está disponível neste horário',
-        400,
-        'UNAVAILABLE_DAY',
-      );
-    }
+    // if (unavailableDays.length !== 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não está disponível neste horário',
+    //     400,
+    //     'UNAVAILABLE_DAY',
+    //   );
+    // }
+
+    return {
+      invalidWorkingDay: workingDays.length === 0,
+      invalidUnavailableDay: unavailableDays.length !== 0,
+    };
   }
 
   private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {

@@ -1224,7 +1224,9 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join business_units on bills.business_unit_id = business_units.id`,
       )
-      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'`,
+      )
       .joinRaw(
         `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )
@@ -1264,7 +1266,9 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join business_units on bills.business_unit_id = business_units.id`,
       )
-      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'`,
+      )
       .joinRaw(
         `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )

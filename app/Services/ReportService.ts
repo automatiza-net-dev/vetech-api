@@ -1236,9 +1236,9 @@ ON bills.patient_id = Dep."id"`,
       .select(
         Database.raw(
           `
-            economic_groups.id,
+            economic_groups.id as e_id,
             economic_groups.company_name,
-            business_units.id,
+            business_units.id as b_id,
             business_units.identification,
             business_units.city,
             business_units.state,
@@ -1336,11 +1336,11 @@ ON bills.patient_id = Dep."id"`,
 
     return result.map(elem => ({
       group: {
-        id: elem.id,
+        id: elem.e_id,
         name: elem.company_name,
       },
       unit: {
-        id: elem.id,
+        id: elem.b_id,
         identification: elem.identification,
         city: elem.city,
         state: elem.state,

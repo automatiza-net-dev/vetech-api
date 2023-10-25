@@ -12,17 +12,12 @@ export default class HospitalizationMedicalPrescriptionsController {
   constructor(
     private readonly service: HospitalizationMedicalPrescriptionService,
     private readonly sharedService: SharedService,
-  ) { }
+  ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
-    const qs = request.qs();
 
-    const result = await this.service.index(unit_id, {
-      hospitalization: qs.hospitalization,
-      fromExecutionDate: qs.from,
-      toExecutionDate: qs.to,
-    });
+    const result = await this.service.index(unit_id, request.qs());
 
     return response.ok(result);
   }
@@ -40,6 +35,14 @@ export default class HospitalizationMedicalPrescriptionsController {
       fromScheduledDate: qs.from,
       toScheduledDate: qs.to,
     });
+
+    return response.ok(result);
+  }
+
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const result = await this.service.show(unit_id, params.id);
 
     return response.ok(result);
   }

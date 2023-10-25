@@ -3,7 +3,6 @@ import Database, {
   TransactionClientContract,
 } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
-import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import Finance, {
   FinanceAccept,
   FinanceOriginFlag,
@@ -63,7 +62,7 @@ export default class ReceiptService {
 
       const dailyCashier = await this.sharedService.getContextCashier(
         authCtx,
-        trx
+        trx,
       );
 
       const receipt = await Receipt.create(

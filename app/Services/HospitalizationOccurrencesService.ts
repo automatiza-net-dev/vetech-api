@@ -15,8 +15,7 @@ import Occurrence, {
   OccurrenceTypeLabels,
 } from 'App/Models/Occurrence';
 import Patient, { PatientWeightOrigin } from 'App/Models/Patient';
-import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
-import User from 'App/Models/User';
+import TimelineType from 'App/Models/TimelineType';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IHospitalizationOccurrenceData, {
   IHospitalizationOccurrenceAttachmentData,
@@ -29,17 +28,15 @@ export default class HospitalizationOccurrencesService {
   constructor(private sharedService: SharedService) {}
 
   public async store(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: Omit<IHospitalizationOccurrenceData, 'active'>,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const hospitalization = await this.getHospitalization(
-      unitId,
-      data.hospitalizationId,
-    );
-
     return Database.transaction(async trx => {
+      const hospitalization = await this.getHospitalization(
+        authCtx.unit.id,
+        data.hospitalizationId,
+      );
+
       const hospAttachments: Array<HospitalizationOccurrenceAttachment> = [];
 
       const ent = await hospitalization.related('occurrences').create(
@@ -51,7 +48,7 @@ export default class HospitalizationOccurrencesService {
             data.hospitalizationMedicalPrescriptionId,
           previewedAt: data.executedAt,
           resume: data.resume,
-          user_id: user.id,
+          user_id: authCtx.user.id,
         },
         {
           client: trx,
@@ -84,8 +81,8 @@ export default class HospitalizationOccurrencesService {
           meta: {
             hospitalization: hospitalization.id,
             occurrence: ent.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'occurrence',
           },
           data: {
@@ -93,8 +90,8 @@ export default class HospitalizationOccurrencesService {
             realizedAt: data.executedAt,
             issuedAt: DateTime.now(),
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
             description: data.description,
             resume: data.resume,
@@ -108,8 +105,8 @@ export default class HospitalizationOccurrencesService {
           meta: {
             hospitalization: hospitalization.id,
             occurrence: ent.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'report_occurrence',
           },
           data: {
@@ -117,8 +114,8 @@ export default class HospitalizationOccurrencesService {
             realizedAt: data.executedAt,
             issuedAt: DateTime.now(),
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
             description: data.description,
             resume: data.resume,
@@ -148,16 +145,12 @@ export default class HospitalizationOccurrencesService {
             deathAt: data.executedAt,
           });
 
-        const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-          client: trx,
-        });
-
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
             occurrence: ent.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'death_occurrence',
           },
           data: {
@@ -168,8 +161,8 @@ export default class HospitalizationOccurrencesService {
             observation: data.resume,
             description: data.description,
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
             attachments: hospAttachments.map(a => a.attachment),
           },
@@ -187,12 +180,28 @@ export default class HospitalizationOccurrencesService {
           },
         );
 
+        const timeline = await TimelineType.firstOrCreate(
+          {
+            description: 'Consulta',
+            system_id: authCtx.system.id,
+          },
+          {
+            description: 'Consulta',
+            color: '#000',
+            requiresObservation: false,
+            system_id: authCtx.system.id,
+          },
+          {
+            client: trx,
+          },
+        );
+
         await AnimalTimeline.create({
-          timeline_id: ATTENDANCE_UUID,
+          timeline_id: timeline.id,
           timeline_type: {
-            description: timelineInfo.description,
-            color: timelineInfo.color,
-            requires_observation: timelineInfo.requiresObservation,
+            description: timeline.description,
+            color: timeline.color,
+            requires_observation: timeline.requiresObservation,
           },
           timeline_info: {
             tag: hospitalization.patient_id,
@@ -201,8 +210,8 @@ export default class HospitalizationOccurrencesService {
             resume: data.resume,
             description: data.description,
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
           },
         });
@@ -226,8 +235,8 @@ export default class HospitalizationOccurrencesService {
           meta: {
             hospitalization: hospitalization.id,
             occurrence: ent.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'weight_occurrence',
           },
           data: {
@@ -236,8 +245,8 @@ export default class HospitalizationOccurrencesService {
             realizedAt: data.executedAt,
             issuedAt: DateTime.now(),
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
             description: data.description,
             resume: data.resume,
@@ -246,16 +255,28 @@ export default class HospitalizationOccurrencesService {
       }
 
       if (occurrence.type === OccurrenceType.ALTA_INTERNACAO) {
-        const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-          client: trx,
-        });
+        const timeline = await TimelineType.firstOrCreate(
+          {
+            description: 'Consulta',
+            system_id: authCtx.system.id,
+          },
+          {
+            description: 'Consulta',
+            color: '#000',
+            requiresObservation: false,
+            system_id: authCtx.system.id,
+          },
+          {
+            client: trx,
+          },
+        );
 
         await AnimalTimeline.create({
-          timeline_id: ATTENDANCE_UUID,
+          timeline_id: timeline.id,
           timeline_type: {
-            description: timelineInfo.description,
-            color: timelineInfo.color,
-            requires_observation: timelineInfo.requiresObservation,
+            description: timeline.description,
+            color: timeline.color,
+            requires_observation: timeline.requiresObservation,
           },
           timeline_info: {
             tag: hospitalization.patient_id,
@@ -264,8 +285,8 @@ export default class HospitalizationOccurrencesService {
             resume: data.resume,
             description: data.description,
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
           },
         });
@@ -296,8 +317,8 @@ export default class HospitalizationOccurrencesService {
           meta: {
             hospitalization: hospitalization.id,
             occurrence: ent.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'hospitalization_release',
           },
           data: {
@@ -310,8 +331,8 @@ export default class HospitalizationOccurrencesService {
               name: hospitalization.patient.name,
             },
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
             type: HospitalizationType[hospitalization.type],
             releaseType: data.resume.includes('AO')

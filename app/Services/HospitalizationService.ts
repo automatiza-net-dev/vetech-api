@@ -14,10 +14,7 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
 import Patient from 'App/Models/Patient';
-import TimelineType, {
-  ATTENDANCE_UUID,
-  HOSPITALIZATION_UUID,
-} from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IHospitalizationData } from 'Contracts/interfaces/IHospitalizationData';
@@ -441,19 +438,28 @@ export default class HospitalizationService {
         },
       });
 
-      const attendanceTimelineInfo = await TimelineType.findOrFail(
-        ATTENDANCE_UUID,
+      const attendanceTimeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Consulta',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Consulta',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
         {
           client: trx,
         },
       );
 
       await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
+        timeline_id: attendanceTimeline.id,
         timeline_type: {
-          description: attendanceTimelineInfo.description,
-          color: attendanceTimelineInfo.color,
-          requires_observation: attendanceTimelineInfo.requiresObservation,
+          description: attendanceTimeline.description,
+          color: attendanceTimeline.color,
+          requires_observation: attendanceTimeline.requiresObservation,
         },
         timeline_info: {
           tag: ent.patient_id,
@@ -486,23 +492,25 @@ export default class HospitalizationService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
-    user: User,
     data: IHospitalizationData,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const hospitalization = await Hospitalization.query()
-      .where('id', id)
-      .preload('patient')
-      .preload('bed')
-      .first();
-
-    if (!hospitalization || hospitalization.business_unit_id !== unitId) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
     await Database.transaction(async trx => {
+      const hospitalization = await Hospitalization.query()
+        .useTransaction(trx)
+        .where('id', id)
+        .preload('patient')
+        .preload('bed')
+        .first();
+
+      if (
+        !hospitalization ||
+        hospitalization.business_unit_id !== authCtx.unit.id
+      ) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
       const updatedHospitalization = await hospitalization
         .merge({
           type: data.type,
@@ -515,7 +523,7 @@ export default class HospitalizationService {
           patient_id: data.patientId,
           tutor_id: data.tutorId,
           bed_id: data.bedId,
-          technician_id: data.userId ?? user.id,
+          technician_id: data.userId ?? authCtx.user.id,
           releasedAt:
             data.status === HospitalizationStatus.COMPLETE
               ? DateTime.now()
@@ -524,16 +532,32 @@ export default class HospitalizationService {
         .useTransaction(trx)
         .save();
 
+      const hospitalizationTimeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Hospitalização',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Hospitalização',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+
       if (data.status === HospitalizationStatus.COMPLETE) {
         const timelineInfo = await TimelineType.findOrFail(
-          HOSPITALIZATION_UUID,
+          hospitalizationTimeline.id,
           {
             client: trx,
           },
         );
 
         await AnimalTimeline.create({
-          timeline_id: HOSPITALIZATION_UUID,
+          timeline_id: hospitalizationTimeline.id,
           timeline_type: {
             description: timelineInfo.description,
             color: timelineInfo.color,
@@ -556,8 +580,8 @@ export default class HospitalizationService {
             deathAt: updatedHospitalization.deathAt,
             completedAt: DateTime.now(),
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
           },
         });
@@ -565,8 +589,8 @@ export default class HospitalizationService {
         await HospitalizationTimeline.create({
           meta: {
             hospitalization: hospitalization.id,
-            group: group.id,
-            unit: unitId,
+            group: authCtx.group.id,
+            unit: authCtx.unit.id,
             origin: 'hospitalization_completed',
           },
           data: {
@@ -582,8 +606,8 @@ export default class HospitalizationService {
             hospitalizedAt: hospitalization.createdAt,
             completedAt: DateTime.now(),
             technician: {
-              id: user.id,
-              name: user.name,
+              id: authCtx.user.id,
+              name: authCtx.user.name,
             },
           },
         });
@@ -602,7 +626,7 @@ export default class HospitalizationService {
       }
     });
 
-    return this.show(unitId, hospitalization.id);
+    return this.show(authCtx.unit.id, id);
   }
 
   public async destroy(unitId: string, id: string) {

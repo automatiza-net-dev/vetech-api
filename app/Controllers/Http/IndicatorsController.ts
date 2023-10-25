@@ -222,4 +222,56 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async projectionIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.projectionIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async billingIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.billingIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async productTypeIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.productTypeIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async salesPerPeriodIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.salesPerPeriodIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

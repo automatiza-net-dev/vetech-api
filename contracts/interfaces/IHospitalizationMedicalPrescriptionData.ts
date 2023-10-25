@@ -1,4 +1,4 @@
-import { HospitalizationSchedulingStatus } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import { THospitalizationMedicalPrescriptionSchedulingStatus } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
@@ -26,5 +26,5 @@ export interface IHospitalizationMedicalPrescriptionSchedulingData {
   executedAt?: DateTime;
   description?: string;
   resume?: string;
-  status?: HospitalizationSchedulingStatus;
+  status?: THospitalizationMedicalPrescriptionSchedulingStatus;
 }

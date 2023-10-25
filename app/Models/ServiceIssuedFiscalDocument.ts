@@ -5,11 +5,14 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import BillItem from 'App/Models/BillItem';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import ServiceIssuedFiscalDocumentItem from './ServiceIssuedFiscalDocumentItem';
 
 export default class ServiceIssuedFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
@@ -147,4 +150,9 @@ export default class ServiceIssuedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public fiscal_document_id: string;
+
+  @hasMany(() => ServiceIssuedFiscalDocumentItem, {
+    foreignKey: 'service_issued_fiscal_document_id',
+  })
+  public items: HasMany<typeof ServiceIssuedFiscalDocumentItem>;
 }

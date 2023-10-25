@@ -35,9 +35,11 @@ export default class PatientVaccinesController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientVaccineValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, user, payload);
+    const result = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(result);
   }

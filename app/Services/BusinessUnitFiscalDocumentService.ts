@@ -3,7 +3,7 @@ import Logger from '@ioc:Adonis/Core/Logger';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import BillItem from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
@@ -197,6 +197,7 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .where('bill_id', bill.id)
         .where('nfe_issued', false)
+        .where('status', BillItemStatus.A)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.PRODUCT);
@@ -473,13 +474,7 @@ export default class BusinessUnitFiscalDocumentService {
     data: IAuthorizeNfseFiscalDocument,
   ) {
     return Database.transaction(async trx => {
-      const unit = await BusinessUnit.query()
-        .useTransaction(trx)
-        .where('id', authCtx.unit.id)
-        .preload('unitConfig')
-        .firstOrFail();
-
-      const token = this.getToken(unit);
+      const token = this.getToken(authCtx.unit);
 
       const document = await BusinessUnitFiscalDocument.findOrFail(
         data.unitFiscalDocumentId,
@@ -510,6 +505,7 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .where('bill_id', bill.id)
         .where('nfe_issued', false)
+        .where('status', BillItemStatus.A)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.SERVICE);
@@ -523,104 +519,235 @@ export default class BusinessUnitFiscalDocumentService {
         throw new BadRequestException('Não existe documento para ser emitido');
       }
 
-      const results = await Promise.all(
-        items.map(async item => {
-          const serviceDocument = await ServiceIssuedFiscalDocument.create(
-            {
-              economic_group_id: authCtx.group.id,
-              business_unit_id: authCtx.unit.id,
-              bill_id: data.billId,
-              fiscal_document_id: document.id,
-              user_who_authorized_id: authCtx.user.id,
-              authorizationDate: DateTime.now(),
-              bill_item_id: item.id,
-              model: document.model,
-            },
-            {
-              client: trx,
-            },
-          );
-
-          const result = await this.focusNfe.sendNfse(
-            serviceDocument.id,
-            {
-              issuedAt: new Date().toISOString(),
-              simple: unit.simple,
-              seller: {
-                document: unit.document ?? '',
-                city_ie: unit.cityRegistration ?? '',
-                city_code: unit.cityCode ?? '',
+      if (!authCtx.unit.unitConfig.groupNfseDocuments) {
+        const results = await Promise.all(
+          items.map(async item => {
+            const serviceDocument = await ServiceIssuedFiscalDocument.create(
+              {
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                bill_id: data.billId,
+                fiscal_document_id: document.id,
+                user_who_authorized_id: authCtx.user.id,
+                authorizationDate: DateTime.now(),
+                bill_item_id: item.id,
+                model: document.model,
               },
-              buyer: {
-                cpf_document:
-                  responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
-                cnpj_document:
-                  responsible.tutor.document?.length === 14
-                    ? responsible.tutor.document.replaceAll(/\D/g, '')
-                    : null,
-                name: responsible.name,
-                email: responsible.tutor.email,
-                phone: responsible.tutor.telephone ?? '',
-                address: {
-                  street: responsible.tutor.street ?? '',
-                  number: responsible.tutor.number ?? '',
-                  district: responsible.tutor.district ?? '',
-                  city_code: responsible.tutor.cityCode ?? '',
-                  uf: responsible.tutor.state ?? '',
-                  postal_code: responsible.tutor.postalCode ?? '',
-                  complement: responsible.tutor.complement ?? null,
+              {
+                client: trx,
+              },
+            );
+
+            const result = await this.focusNfe.sendNfse(
+              serviceDocument.id,
+              {
+                issuedAt: new Date().toISOString(),
+                simple: authCtx.unit.simple,
+                seller: {
+                  document: authCtx.unit.document ?? '',
+                  city_ie: authCtx.unit.cityRegistration ?? '',
+                  city_code: authCtx.unit.cityCode ?? '',
+                },
+                buyer: {
+                  cpf_document:
+                    responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
+                  cnpj_document:
+                    responsible.tutor.document?.length === 14
+                      ? responsible.tutor.document.replaceAll(/\D/g, '')
+                      : null,
+                  name: responsible.name,
+                  email: responsible.tutor.email,
+                  phone: responsible.tutor.telephone ?? '',
+                  address: {
+                    street: responsible.tutor.street ?? '',
+                    number: responsible.tutor.number ?? '',
+                    district: responsible.tutor.district ?? '',
+                    city_code: responsible.tutor.cityCode ?? '',
+                    uf: responsible.tutor.state ?? '',
+                    postal_code: responsible.tutor.postalCode ?? '',
+                    complement: responsible.tutor.complement ?? null,
+                  },
+                },
+                service: {
+                  total_value: item.totalValue,
+                  pis_value: item.pisValue,
+                  cofins_value: item.cofinsValue,
+                  iss_value: item.issValue,
+                  base_value: item.issBase,
+                  percentage_value: item.issPercentage,
+                  discount_value: item.discountValue,
+                  service_code: item.productVariation.product.serviceCode ?? '',
+                  cnae: authCtx.unit.cnae ?? '',
+                  description:
+                    authCtx.unit.unitConfig.defaultNfseDescription ??
+                    item.productVariation.product.description,
+                  city_code: authCtx.unit.cityCode ?? '',
                 },
               },
-              service: {
-                total_value: item.totalValue,
-                pis_value: item.pisValue,
-                cofins_value: item.cofinsValue,
-                iss_value: item.issValue,
-                base_value: item.issBase,
-                percentage_value: item.issPercentage,
-                discount_value: item.discountValue,
-                service_code: item.productVariation.product.serviceCode ?? '',
-                cnae: unit.cnae ?? '',
-                description:
-                  authCtx.unit.unitConfig.defaultNfseDescription ??
-                  item.productVariation.product.description,
-                city_code: unit.cityCode ?? '',
+              token,
+            );
+
+            if (!result.success) {
+              Logger.info(JSON.stringify(result, undefined, 2));
+              // throw new BadRequestException(
+              //   result.message ?? 'Erro ao emitir NFSe',
+              //   400,
+              //   'E_EXTERNAL_ERROR',
+              // );
+            }
+
+            await serviceDocument
+              .merge({
+                rpsNumber: result.data?.numero_rps,
+                rpsSeries: result.data?.serie_rps,
+                status: result.data?.status,
+                errors: result.data?.erros,
+              })
+              .useTransaction(trx)
+              .save();
+
+            await item
+              .merge({
+                nfeIssued: result.success,
+              })
+              .useTransaction(trx)
+              .save();
+
+            return result;
+          }),
+        );
+
+        console.log(JSON.stringify(results, undefined, 2));
+        return;
+      }
+
+      const map: Map<string, BillItem[]> = new Map();
+      for (const item of items) {
+        const key = [
+          item.issPercentage,
+          item.productVariation.product.serviceCode,
+        ].join('__');
+
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+
+        map.get(key)?.push(item);
+      }
+
+      const tasks = Array.from(map.entries()).map(async ([key, mapItems]) => {
+        const [rawPercentage, serviceCode] = key.split('__');
+        const issPercentage = parseFloat(rawPercentage);
+
+        const serviceDocument = await ServiceIssuedFiscalDocument.create(
+          {
+            economic_group_id: authCtx.group.id,
+            business_unit_id: authCtx.unit.id,
+            fiscal_document_id: document.id,
+            user_who_authorized_id: authCtx.user.id,
+            authorizationDate: DateTime.now(),
+            model: document.model,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        const result = await this.focusNfe.sendNfse(
+          serviceDocument.id,
+          {
+            issuedAt: new Date().toISOString(),
+            simple: authCtx.unit.simple,
+            seller: {
+              document: authCtx.unit.document ?? '',
+              city_ie: authCtx.unit.cityRegistration ?? '',
+              city_code: authCtx.unit.cityCode ?? '',
+            },
+            buyer: {
+              cpf_document:
+                responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
+              cnpj_document:
+                responsible.tutor.document?.length === 14
+                  ? responsible.tutor.document.replaceAll(/\D/g, '')
+                  : null,
+              name: responsible.name,
+              email: responsible.tutor.email,
+              phone: responsible.tutor.telephone ?? '',
+              address: {
+                street: responsible.tutor.street ?? '',
+                number: responsible.tutor.number ?? '',
+                district: responsible.tutor.district ?? '',
+                city_code: responsible.tutor.cityCode ?? '',
+                uf: responsible.tutor.state ?? '',
+                postal_code: responsible.tutor.postalCode ?? '',
+                complement: responsible.tutor.complement ?? null,
               },
             },
-            token,
-          );
+            service: {
+              total_value: this.sharedService.sum(
+                mapItems.map(i => i.totalValue),
+              ),
+              pis_value: this.sharedService.sum(mapItems.map(i => i.pisValue)),
+              cofins_value: this.sharedService.sum(
+                mapItems.map(i => i.cofinsValue),
+              ),
+              iss_value: this.sharedService.sum(mapItems.map(i => i.issValue)),
+              base_value: this.sharedService.sum(mapItems.map(i => i.issBase)),
+              percentage_value: issPercentage,
+              discount_value: this.sharedService.sum(
+                mapItems.map(i => i.discountValue),
+              ),
+              service_code: serviceCode,
+              cnae: authCtx.unit.cnae ?? '',
+              description:
+                authCtx.unit.unitConfig.defaultNfseDescription ?? '-',
+              city_code: authCtx.unit.cityCode ?? '',
+            },
+          },
+          token,
+        );
 
-          if (!result.success) {
-            Logger.info(JSON.stringify(result, undefined, 2));
-            // throw new BadRequestException(
-            //   result.message ?? 'Erro ao emitir NFSe',
-            //   400,
-            //   'E_EXTERNAL_ERROR',
-            // );
-          }
+        if (!result.success) {
+          Logger.info(JSON.stringify(result, undefined, 2));
+          // throw new BadRequestException(
+          //   result.message ?? 'Erro ao emitir NFSe',
+          //   400,
+          //   'E_EXTERNAL_ERROR',
+          // );
+        }
 
-          await serviceDocument
-            .merge({
-              rpsNumber: result.data?.numero_rps,
-              rpsSeries: result.data?.serie_rps,
-              status: result.data?.status,
-              errors: result.data?.erros,
-            })
-            .useTransaction(trx)
-            .save();
+        await BillItem.query()
+          .useTransaction(trx)
+          .whereIn(
+            'id',
+            mapItems.map(i => i.id),
+          )
+          .update({
+            nfe_issued: result.success,
+          });
 
-          await item
-            .merge({
-              nfeIssued: result.success,
-            })
-            .useTransaction(trx)
-            .save();
+        await serviceDocument
+          .merge({
+            rpsNumber: result.data?.numero_rps,
+            rpsSeries: result.data?.serie_rps,
+            status: result.data?.status,
+            errors: result.data?.erros,
+          })
+          .useTransaction(trx)
+          .save();
 
-          return result;
-        }),
-      );
+        await serviceDocument.related('items').createMany(
+          mapItems.map(item => ({
+            bill_item_id: item.id,
+          })),
+          { client: trx },
+        );
 
-      console.log(JSON.stringify(results, undefined, 2));
+        // console.log(JSON.stringify(results, undefined, 2));
+        return;
+      });
+
+      await Promise.all(tasks);
     });
   }
 

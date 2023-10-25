@@ -5,7 +5,6 @@ import Budget from 'App/Models/Budget';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import CheckingAccount from 'App/Models/CheckingAccount';
 import Finance, { FinanceStatus, FinanceType } from 'App/Models/Finance';
-import Schedule from 'App/Models/Schedule';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
 
@@ -114,12 +113,15 @@ export default class ReportService {
       fiscalNote: elem.fiscalNote,
       value: elem.value,
       totalValue: elem.totalValue,
+      discountValue: elem.discountValue,
+      feeValue: elem.feeValue,
       paymentValue: elem.paymentValue,
       nsuDocument: elem.nsuDocument,
       status: elem.status,
       qtyInstallments: elem.qtyInstallments,
       installment: elem.installment,
       originFlag: elem.originFlag,
+      historic: elem.historic,
 
       system: this.sharedService.captureGroup(
         elem.unit?.economicGroup?.system,
@@ -316,9 +318,19 @@ export default class ReportService {
       .preload('client', query => {
         query.preload('tutor', query => {
           query.preload('clientOrigin');
+          query.preload('profession');
         });
       })
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
+      })
       .whereNull('deleted_at');
 
     if (
@@ -418,11 +430,30 @@ export default class ReportService {
           tag: v.tag,
           cellphone: v.tutor?.cellphone ?? null,
           origin: v.tutor?.clientOrigin?.description ?? null,
+          document: v.tutor?.document ?? null,
+          profession: v.tutor?.profession?.description ?? null,
+          postalCode: v.tutor?.postalCode ?? null,
+          street: v.tutor?.street ?? null,
+          number: v.tutor?.number ?? null,
+          complement: v.tutor?.complement ?? null,
+          district: v.tutor?.district ?? null,
+          city: v.tutor?.city ?? null,
+          state: v.tutor?.state ?? null,
+          createdAt: v.createdAt,
         })),
         patient: this.sharedService.captureGroup(elem.patient, v => ({
           id: v.id,
           name: v.name,
           tag: v.tag,
+          birthDate: v.birthDate,
+          race: v.patientAnimal?.race ?? null,
+          gender: v.gender ?? null,
+          castrated: v?.patientAnimal?.castrated ?? null,
+          weight: v?.weight ?? null,
+          vaccineOrigin: v?.vaccineOrigin ?? null,
+          death: v?.patientAnimal?.death ?? null,
+          deathDate: v?.patientAnimal?.deathDate ?? null,
+          createdAt: v.createdAt,
         })),
       }))
       .sort((a, b) => {
@@ -860,9 +891,19 @@ ON bills.patient_id = Dep."id"`,
       .preload('client', query => {
         query.preload('tutor', query => {
           query.preload('clientOrigin');
+          query.preload('profession');
         });
       })
-      .preload('patient')
+      .preload('patient', query => {
+        query.preload('patientAnimal', query => {
+          query.preload('race', query => {
+            query.select('id', 'description', 'specie_id');
+            query.preload('specie', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
+      })
       .preload('user')
       .preload('seller')
       .preload('conclusionUser')
@@ -946,13 +987,33 @@ ON bills.patient_id = Dep."id"`,
       client: this.sharedService.captureGroup(elem.client, v => ({
         id: v.id,
         name: v.name,
-        cellphone: v?.tutor?.cellphone ?? null,
-        telephone: v?.tutor?.telephone ?? null,
-        origin: v?.tutor?.clientOrigin?.description ?? null,
+        tag: v.tag,
+        cellphone: v.tutor?.cellphone ?? null,
+        origin: v.tutor?.clientOrigin?.description ?? null,
+        document: v.tutor?.document ?? null,
+        profession: v.tutor?.profession?.description ?? null,
+        postalCode: v.tutor?.postalCode ?? null,
+        street: v.tutor?.street ?? null,
+        number: v.tutor?.number ?? null,
+        complement: v.tutor?.complement ?? null,
+        district: v.tutor?.district ?? null,
+        city: v.tutor?.city ?? null,
+        state: v.tutor?.state ?? null,
+        createdAt: v.createdAt,
       })),
       patient: this.sharedService.captureGroup(elem.patient, v => ({
         id: v.id,
         name: v.name,
+        tag: v.tag,
+        birthDate: v.birthDate,
+        race: v.patientAnimal?.race ?? null,
+        gender: v.gender ?? null,
+        castrated: v?.patientAnimal?.castrated ?? null,
+        weight: v?.weight ?? null,
+        vaccineOrigin: v?.vaccineOrigin ?? null,
+        death: v?.patientAnimal?.death ?? null,
+        deathDate: v?.patientAnimal?.deathDate ?? null,
+        createdAt: v.createdAt,
       })),
       seller: this.sharedService.captureGroup(elem.seller, v => ({
         id: v.id,
@@ -978,6 +1039,7 @@ ON bills.patient_id = Dep."id"`,
       fromDate?: string;
       toDate?: string;
       status?: string;
+      service?: string;
       holder?: string;
       patient?: string;
       businessUnits?: string[];
@@ -986,42 +1048,103 @@ ON bills.patient_id = Dep."id"`,
       businessCities?: string[];
     },
   ) {
-    const qb = Schedule.query()
-      .preload('businessUnit', query => {
-        query.preload('economicGroup');
-      })
-      .preload('cancellationUser')
-      .preload('serviceType')
-      .preload('serviceStatus')
-      .preload('reason', query => {
-        query.select('id', 'reason');
-      })
-      .preload('holder', query => {
-        query.preload('tutor', query => {
-          query.preload('profession');
-          query.preload('clientOrigin');
-        });
-      })
-      .preload('patient', query => {
-        query.preload('patientAnimal', query => {
-          query.preload('race', query => {
-            query.preload('specie');
-          });
-        });
-      });
+    const qb = Database.from('schedules')
+      .select(
+        Database.raw(`
+        business_units.identification,
+        business_units.city,
+        business_units.state,
+        uResponsavel.name                                                        as nome_Responsavel,
+        to_char(start_hour, 'DD/MM/YYYY')                                        as start_hour_date,
+        to_char(start_hour, 'HH24:MI')                                           as start_hour_time,
+        to_char(end_hour, 'DD/MM/YYYY')                                          as end_hour_date,
+        to_char(end_hour, 'HH24:MI')                                             as end_hour_time,
+        schedule_service_types.reserved_minutes,
+        schedules.started_at,
+        schedules.finished_at,
+        extract(epoch from (schedules.finished_at - schedules.started_at)) / 60  as minutos_Duracao_Atendimento,
+        schedule_statuses.description                                            as status,
+        schedule_service_types.description,
+        case
+           when schedule_service_types.type = 'A' then 'Agendamento'
+           when schedule_service_types.type = 'P' then 'Procedimento'
+           when schedule_service_types.type = 'R' then 'Retorno'
+           end                                                                  as tipo_Agendamento,
+        ucanc.name                                                               as usuario_Cancelamento,
+        reasons.reason                                                           as motivo_Cancelamento,
+        case
+           when schedules.cancellation_user_id is not null then schedules.updated_at
+           end                                                                  as data_Cancelamento,
+        case when schedules.schedule_return_id is null then 'Nao' else 'Sim' end as tem_Retorno,
+        case when schedules.schedule_origin_id is null then 'Nao' else 'Sim' end as e_Retorno,
+        tutor.created_at                                                         as dataC_adastro_Tutor,
+        tutor.name                                                               as nome_Tutor,
+        patient_tutors.document                                                  as cpf_Cnpj_Tutor,
+        patient_tutors.cellphone,
+        patient_tutors.postal_code,
+        patient_tutors.street,
+        patient_tutors.number,
+        patient_tutors.complement,
+        patient_tutors.district,
+        patient_tutors.city,
+        patient_tutors.state,
+        professions.description                                                         as profissao_Tutor,
+        client_origins.description                                                           as origem_Tutor,
+        pac.name                                                                 as nome_Paciente,
+        pac.tag                                                                  as rg_Paciente,
+        pac.birth_date                                                           as nasc_Paciente,
+        case
+           when pac.gender = 'male' then 'macho'
+           when pac.gender = 'female' then 'femea'
+           else null end                                                        as genero_Paciente,
+        species.description                                                      as especie_Paciente,
+        races.description                                                        as raca_Paciente,
+        case when pa.castrated then 'Sim' else 'Não' end                         as castrado_Paciente,
+        pac.weight                                                               as peso_Paciente,
+        pac.vaccine_origin                                                       as vacinado,
+        case when pa.death then 'Sim' else 'Não' end                             as obito_Paciente,
+        case when pa.death then pa.death_date end                                as data_Obito_Paciente
+    `),
+      )
+      .joinRaw(
+        `join business_units on schedules.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id`,
+      )
+      .joinRaw(
+        `join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
+      )
+      .joinRaw(
+        ` join (patients tutor join
+    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
+     on patient_tutors.client_origin_id = client_origins.id)
+               on tutor.id = patient_tutors.patient_id) on schedules.holder_id = tutor.id`,
+      )
+
+      .joinRaw(
+        `join (patients pac join
+    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
+               on pac.id = pa.patient_id
+    ) on schedules.patient_id = pac.id`,
+      )
+
+      .joinRaw(`join users uResponsavel on schedules.user_id = uResponsavel.id`)
+
+      .joinRaw(
+        `left join users uCanc on schedules.cancellation_user_id = ucanc.id`,
+      )
+
+      .joinRaw(`left join reasons on schedules.reason_id = reasons.id`);
 
     if (
       data.economicGroups &&
       Array.isArray(data.economicGroups) &&
       data.economicGroups.length > 0
     ) {
-      qb.whereHas('businessUnit', query => {
-        query.whereIn('economic_group_id', data.economicGroups ?? []);
-      });
+      qb.whereIn('business_units.economic_group_id', data.economicGroups);
     } else {
-      qb.whereHas('businessUnit', query => {
-        query.where('economic_group_id', authCtx.group.id);
-      });
+      qb.where('business_units.economic_group_id', authCtx.group.id);
     }
 
     if (
@@ -1029,9 +1152,9 @@ ON bills.patient_id = Dep."id"`,
       Array.isArray(data.businessUnits) &&
       data.businessUnits.length > 0
     ) {
-      qb.whereIn('business_unit_id', data.businessUnits);
+      qb.whereIn('business_units.id', data.businessUnits);
     } else {
-      qb.where('business_unit_id', authCtx.unit.id);
+      qb.where('business_units.id', authCtx.unit.id);
     }
 
     const withBusinessStates =
@@ -1042,17 +1165,14 @@ ON bills.patient_id = Dep."id"`,
       data.businessCities &&
       Array.isArray(data.businessCities) &&
       data.businessCities.length > 0;
-    if (withBusinessStates || withBusinessCities) {
-      qb.whereHas('businessUnit', query => {
-        if (withBusinessStates) {
-          query.whereIn('state', data.businessStates ?? []);
-        }
 
-        if (withBusinessCities) {
-          query.whereIn('city', data.businessCities ?? []);
-        }
-      });
+    if (withBusinessStates) {
+      qb.whereIn('business_units.state', data.businessStates ?? []);
     }
+    if (withBusinessCities) {
+      qb.whereIn('business_units.city', data.businessCities ?? []);
+    }
+
     if (data.fromDate) {
       qb.whereRaw('start_hour::date >= ?', [
         DateTime.fromISO(data.fromDate).toFormat('yyyy-MM-dd'),
@@ -1066,105 +1186,22 @@ ON bills.patient_id = Dep."id"`,
     }
 
     if (data.status) {
-      qb.where('schedule_status_id', data.status);
+      qb.where('schedules.schedule_status_id', data.status);
+    }
+
+    if (data.service) {
+      qb.where('schedules.schedule_service_type_id', data.service);
     }
 
     if (data.holder) {
-      qb.where('holder_id', data.holder);
+      qb.where('schedules.holder_id', data.holder);
     }
 
     if (data.patient) {
-      qb.where('patient_id', data.patient);
+      qb.where('schedules.patient_id', data.patient);
     }
 
-    const result = await qb;
-
-    return result
-      .map(elem => ({
-        id: elem.id,
-        startHour: elem.startHour,
-        endHour: elem.endHour,
-        duration: elem.endHour.diff(elem.startHour, 'minutes').minutes,
-        finishedAt: elem.finishedAt,
-        deletedAt: elem.deletedAt,
-        cancelledAt: elem.cancellation_user_id ? elem.updatedAt : null,
-        hasReturn: !!elem.scheduleReturnId,
-        isReturn: !!elem.scheduleOriginId,
-        type: elem.onDuty ? 'Plantão / Avulso' : 'Normal',
-
-        group: {
-          id: elem.businessUnit.economicGroup.id,
-          name: elem.businessUnit.economicGroup.companyName,
-        },
-        unit: {
-          id: elem.businessUnit.id,
-          identification: elem.businessUnit.identification ?? '-',
-          city: elem.businessUnit.city,
-          state: elem.businessUnit.state,
-        },
-        reason: elem.reason,
-        cancellationUser: this.sharedService.captureGroup(
-          elem.cancellationUser,
-          v => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
-        serviceType: this.sharedService.captureGroup(elem.serviceType, v => ({
-          id: v.id,
-          description: v.description,
-        })),
-        serviceStatus: this.sharedService.captureGroup(
-          elem.serviceStatus,
-          v => ({
-            id: v.id,
-            description: v.description,
-          }),
-        ),
-        holder: this.sharedService.captureGroup(elem.holder, v => ({
-          id: v.id,
-          name: v.name,
-          tag: v.tag,
-          gender: v.gender,
-          profession: v.tutor?.profession?.description ?? null,
-          origin: v.tutor?.clientOrigin?.description ?? null,
-          document: v.tutor?.document ?? null,
-          cellphone: v.tutor?.cellphone ?? null,
-          createdAt: v.createdAt,
-          address: [
-            v.tutor?.postalCode,
-            v.tutor?.street,
-            v.tutor?.number,
-            v.tutor?.complement,
-            v.tutor?.district,
-            v.tutor?.city,
-            v.tutor?.state,
-          ]
-            .filter(Boolean)
-            .join(', '),
-        })),
-        patient: this.sharedService.captureGroup(elem.patient, v => ({
-          id: v.id,
-          name: v.name,
-          race: v.patientAnimal.race,
-          tag: v.tag ?? null,
-          gender: v.gender ?? null,
-          castrated: v?.patientAnimal?.castrated ?? null,
-        })),
-      }))
-      .sort((a, b) => {
-        if (a.group.name.localeCompare(b.group.name) !== 0) {
-          return a.group.name.localeCompare(b.group.name);
-        }
-
-        if (a.unit.identification.localeCompare(b.unit.identification) !== 0) {
-          return a.unit.identification.localeCompare(b.unit.identification);
-        }
-
-        return (
-          a.startHour.toJSDate().getTime() - b.startHour.toJSDate().getTime()
-        );
-      });
+    return await qb;
   }
 
   async productTypeReport(
@@ -1187,7 +1224,9 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join business_units on bills.business_unit_id = business_units.id`,
       )
-      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'`,
+      )
       .joinRaw(
         `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )
@@ -1199,9 +1238,9 @@ ON bills.patient_id = Dep."id"`,
       .select(
         Database.raw(
           `
-            economic_groups.id,
+            economic_groups.id as e_id,
             economic_groups.company_name,
-            business_units.id,
+            business_units.id as b_id,
             business_units.identification,
             business_units.city,
             business_units.state,
@@ -1227,7 +1266,9 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join business_units on bills.business_unit_id = business_units.id`,
       )
-      .joinRaw(`join bill_items on bills.id = bill_items.bill_id`)
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'`,
+      )
       .joinRaw(
         `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )
@@ -1299,11 +1340,11 @@ ON bills.patient_id = Dep."id"`,
 
     return result.map(elem => ({
       group: {
-        id: elem.id,
+        id: elem.e_id,
         name: elem.company_name,
       },
       unit: {
-        id: elem.id,
+        id: elem.b_id,
         identification: elem.identification,
         city: elem.city,
         state: elem.state,

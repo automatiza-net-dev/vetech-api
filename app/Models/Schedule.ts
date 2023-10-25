@@ -92,7 +92,9 @@ export default class Schedule extends BaseModel {
     await softDelete(this, column);
   }
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public business_unit_id: string;
 
   @belongsTo(() => BusinessUnit, {
@@ -101,7 +103,9 @@ export default class Schedule extends BaseModel {
   })
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public schedule_service_type_id: string;
 
   @belongsTo(() => ScheduleServiceType, {
@@ -110,7 +114,9 @@ export default class Schedule extends BaseModel {
   })
   public serviceType: BelongsTo<typeof ScheduleServiceType>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public schedule_status_id: string;
 
   @belongsTo(() => ScheduleStatus, {
@@ -119,7 +125,9 @@ export default class Schedule extends BaseModel {
   })
   public serviceStatus: BelongsTo<typeof ScheduleStatus>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public race_id?: string;
 
   @belongsTo(() => Race, {
@@ -128,7 +136,9 @@ export default class Schedule extends BaseModel {
   })
   public race: BelongsTo<typeof Race>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public user_id?: string;
 
   @belongsTo(() => User, {
@@ -137,7 +147,9 @@ export default class Schedule extends BaseModel {
   })
   public user: BelongsTo<typeof User>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public cancellation_user_id?: string;
 
   @belongsTo(() => User, {
@@ -146,7 +158,9 @@ export default class Schedule extends BaseModel {
   })
   public cancellationUser: BelongsTo<typeof User>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public patient_id?: string;
 
   @belongsTo(() => Patient, {
@@ -161,7 +175,9 @@ export default class Schedule extends BaseModel {
   })
   public attendances: HasMany<typeof Attendance>;
 
-  @column()
+  @column({
+    serializeAs: null,
+  })
   public holder_id?: string;
 
   @belongsTo(() => Patient, {

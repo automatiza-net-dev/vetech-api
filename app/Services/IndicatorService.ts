@@ -5,6 +5,7 @@ import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
+import { DateTime } from 'luxon';
 
 @inject()
 export default class IndicatorService {
@@ -1325,5 +1326,404 @@ export default class IndicatorService {
       attended: parseInt(elem.comparecidos, 10),
       gained: parseInt(elem.ganhos, 10),
     }));
+  }
+
+  public async projectionIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id                                                  as e_id,
+          economic_groups.company_name                                        as e_name,
+          business_units.id                                                   as b_id,
+          business_units.identification,
+          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer)      as daily_value,
+          sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * 30 as projecao
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+        [],
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        [],
+      )
+      .groupBy(
+        'economic_groups.id',
+        'economic_groups.company_name',
+        'business_units.id',
+        'business_units.identification',
+      )
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.e_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        daily: elem.daily_value,
+        projection: elem.projecao,
+      };
+    });
+  }
+
+  public async billingIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const dt = DateTime.fromISO(data.fromDate ?? new Date().toISOString()).plus(
+      { days: 10 },
+    );
+    const ym = dt.toFormat('yyyyMM');
+    const daysOfMonth = dt.daysInMonth ?? 30;
+
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+            economic_groups.id as e_id,
+            economic_groups.company_name as e_name,
+            business_units.id as b_id,
+            business_units.identification,
+            case
+              when business_unit_metas.value is not null then metas.description
+              else 'SemMetaDefinida' end                           as meta_description,
+            case
+              when business_unit_metas.value is not null then metas.type
+              else 'SemMetaDefinida' end                           as meta_type,
+            coalesce(business_unit_metas.value, 0)                   as meta_value,
+            sum(bills.total_value)                                   as total,
+            sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
+            case
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
+                then sum(bills.total_value)
+              else sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) *
+                ? end                                           as projection,
+            case
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
+              when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
+                then sum(bills.total_value) / business_unit_metas.value * 100
+              else (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * ?) /
+                business_unit_metas.value *
+                100 end                                         as meta_projection
+
+          `,
+          [ym, ym, daysOfMonth, ym, ym, daysOfMonth],
+        ),
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join metas on metas.economic_group_id = economic_groups.id and metas.description = 'Faturamento'`,
+      )
+      .joinRaw(
+        `
+        left join business_unit_metas
+                   on metas.id = business_unit_metas.meta_id and
+                      bills.business_unit_id = business_unit_metas.business_unit_id and
+                      to_char(bills.bill_date, 'MM/YYYY') = business_unit_metas.period and
+                      business_unit_metas.active = 'true'
+        `,
+      )
+      .groupBy(
+        'economic_groups.id',
+        'economic_groups.company_name',
+        'business_units.id',
+        'business_units.identification',
+        'metas.description',
+        'metas.type',
+        'business_unit_metas.value',
+      )
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const metasResult = await qb;
+
+    return metasResult.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.e_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        meta: {
+          description: elem.meta_description,
+          type: elem.meta_type,
+          value: elem.meta_value,
+        },
+        total: elem.total,
+        percentage: elem.percentage ?? -1,
+        projection: elem.projection,
+        metaProjection: elem.meta_projection,
+      };
+    });
+  }
+
+  public async productTypeIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+        economic_groups.id                                                      as e_id,
+        economic_groups.company_name                                            as e_name,
+        business_units.id                                                       as b_id,
+        business_units.identification,
+        case when products.type = 'product' then 'Produtos' else 'Serviços' end as tipo,
+        sum(bill_items.total_value)
+          `,
+        ),
+      )
+      .joinRaw(
+        `join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
+      )
+      .joinRaw(
+        `join product_variations product_variations on bill_items.product_variation_id = product_variations.id`,
+      )
+      .joinRaw(`join products on product_variations.product_id = products.id`)
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .groupBy('economic_groups.id', 'business_units.id', 'products.type')
+      .orderBy('products.type')
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const metasResult = await qb;
+
+    return metasResult.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.e_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        type: elem.tipo,
+        total: elem.sum,
+      };
+    });
+  }
+
+  public async salesPerPeriodIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id  as e_id,
+          economic_groups.company_name,
+          business_units.id   as b_id,
+          business_units.identification,
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_recorrentes"
+          `,
+        ),
+      )
+      .joinRaw(`join patients on patients.id = bills.client_id`)
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .groupBy('economic_groups.id', 'business_units.id')
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const metasResult = await qb;
+
+    return metasResult.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.companyname,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        dawn: {
+          total: elem.madrugada_total,
+          new: elem.madrugada_novos,
+          recurrent: elem.madrugada_recorrentes,
+        },
+        morning: {
+          total: elem.manha_total,
+          new: elem.manha_novos,
+          recurrent: elem.manha_recorrentes,
+        },
+        afternoon: {
+          total: elem.tarde_total,
+          new: elem.tarde_novos,
+          recurrent: elem.tarde_recorrentes,
+        },
+        night: {
+          total: elem.noite_total,
+          new: elem.noite_novos,
+          recurrent: elem.noite_recorrentes,
+        },
+      };
+    });
   }
 }

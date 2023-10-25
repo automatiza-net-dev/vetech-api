@@ -16,7 +16,7 @@ import Hospitalization, {
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
-import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
@@ -1247,8 +1247,7 @@ export default class PatientService {
   }
 
   public async setMainTutor(
-    _: string,
-    user: User,
+    authCtx: AuthContext,
     patient: string,
     tutor: string,
   ) {
@@ -1301,23 +1300,35 @@ export default class PatientService {
       });
       await Promise.all(promises);
 
-      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-        client: trx,
-      });
+      const attendanceTimeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Consulta',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Consulta',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
+        timeline_id: attendanceTimeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: attendanceTimeline.description,
+          color: attendanceTimeline.color,
+          requires_observation: attendanceTimeline.requiresObservation,
         },
         timeline_info: {
           tag: db_patient.id,
           event: 'TROCA_TUTOR_PRINCIPAL',
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           old_tutor: {
             id: oldMainTutor?.id ?? null,

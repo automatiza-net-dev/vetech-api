@@ -5,12 +5,14 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { connection } from '@ioc:Mongoose';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Hospitalization, {
   HospitalizationStatus,
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
+import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
@@ -24,6 +26,7 @@ import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import { AuthContext } from 'App/Services/SharedService';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -33,10 +36,6 @@ import { ICreateTimelineDischarge } from 'Contracts/interfaces/ICreateTimelineHo
 import { DateTime } from 'luxon';
 import { ObjectId } from 'mongoose';
 import { v4 } from 'uuid';
-
-import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
-import { AuthContext } from 'App/Services/SharedService';
-import Attendance from 'App/Models/Attendance';
 
 @inject()
 export default class TimelineService {

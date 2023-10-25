@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -14,10 +14,17 @@ test.group('Pathology resource', group => {
   const createData = async () => {
     const { user, group, system } = await userBootstrap();
 
+    const pathologyNoSQL = await TimelineType.create({
+      id: v4(),
+      description: 'Patologia',
+      color: '#000',
+      requiresObservation: false,
+    });
+
     const pathology = await group.related('pathologies').create({
       description: 'any description',
       definition: 'any definition',
-      timeline_type_id: PATHOLOGY_UUID,
+      timeline_type_id: pathologyNoSQL.id,
       system_id: system.id,
     });
 

@@ -12,10 +12,6 @@ export default class CreateMultipleFinancesValidator {
   public schema = schema.create({
     items: schema.array().members(
       schema.object().members({
-        clientId: schema.string([
-          rules.uuid(),
-          rules.exists({ table: 'patients', column: 'id' }),
-        ]),
         type: schema.enum(Object.values(FinanceType)),
         accountPlanId: schema.string([
           rules.exists({ table: 'account_plans', column: 'id' }),
@@ -34,6 +30,10 @@ export default class CreateMultipleFinancesValidator {
         originFlag: schema.enum(Object.values(FinanceOriginFlag)),
         qtyInstallments: schema.number.optional(),
 
+        clientId: schema.string.optional([
+          rules.uuid(),
+          rules.exists({ table: 'patients', column: 'id' }),
+        ]),
         checkingAccountId: schema.string.optional([
           rules.uuid({
             version: '4',

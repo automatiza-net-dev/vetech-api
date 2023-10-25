@@ -2,11 +2,13 @@ import { inject } from '@adonisjs/fold';
 import { AuthContract } from '@ioc:Adonis/Addons/Auth';
 import { TransactionClientContract } from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import DailyCashier, { DailyCashierStatus } from 'App/Models/DailyCashier';
 import EconomicGroup from 'App/Models/EconomicGroup';
+import ProductVariation from 'App/Models/ProductVariation';
 import System from 'App/Models/System';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
@@ -143,7 +145,7 @@ export default class SharedService {
   public async getContextCashier(
     authCtx: AuthContext,
     trx: TransactionClientContract,
-    shouldThrow = true
+    shouldThrow = true,
   ) {
     const dailyCashier =
       authCtx.unit.unitConfig.dailyCashierType === 'usuario'
@@ -168,5 +170,96 @@ export default class SharedService {
     }
 
     return dailyCashier;
+  }
+
+  public async userHasPermission(user: User, permission: string) {
+    const data = await user
+      .related('roles')
+      .query()
+      .whereHas('role', query => {
+        query.whereHas('permissions', query => {
+          query.where('control_id', permission);
+        });
+      });
+
+    return data.length > 0;
+  }
+
+  public async checkDiscount(
+    trx: TransactionClientContract,
+    unitId: string,
+    data: {
+      variationId: string;
+      discountValue: number;
+    }[],
+  ) {
+    const productVariations = await ProductVariation.query()
+      .useTransaction(trx)
+      .whereIn(
+        'id',
+        data.map(d => d.variationId),
+      )
+      .whereHas('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      })
+      .preload('product')
+      .preload('businessUnitProducts', query => {
+        query.where('businness_unit_id', unitId);
+      });
+
+    const overdiscountedItems = data.filter(elem => {
+      const variation = productVariations.find(p => p.id === elem.variationId);
+      if (!variation) {
+        throw new BadRequestException(
+          'Não foi possível encontrar um preço para esse produto',
+          400,
+          'E_NO_VARIATION',
+        );
+      }
+
+      return variation.businessUnitProducts.some(
+        p => p.maximumDiscountValue < elem.discountValue,
+      );
+    });
+
+    return overdiscountedItems.map(elem => {
+      const item = productVariations.find(v => v.id === elem.variationId);
+
+      if (!item) {
+        throw new InternalErrorException(
+          'Erro ao validar desconto',
+          500,
+          'E_VALIDATE_DISCOUNT',
+        );
+      }
+
+      if (item.businessUnitProducts.length === 0) {
+        throw new InternalErrorException(
+          'Preço não encontrado para produto',
+          500,
+          'E_VALIDATE_DISCOUNT',
+        );
+      }
+
+      const price = item.businessUnitProducts[0];
+
+      return {
+        rule: 'DescontoMaximo',
+        message: `O desconto máximo para o produto '${
+          item?.product?.description
+        }' é de ${this.parsePriceToBrl(price.maximumDiscountValue)}`,
+      };
+    });
+  }
+
+  private parsePriceToBrl(price: number | string) {
+    if (typeof price === 'string') {
+      return this.parsePriceToBrl(parseFloat(price));
+    }
+
+    return price.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
   }
 }

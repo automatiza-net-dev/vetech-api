@@ -7,7 +7,7 @@ import Hospitalization, {
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling, {
-  HospitalizationSchedulingStatus,
+  THospitalizationMedicalPrescriptionSchedulingStatus,
 } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFluidSet,
@@ -50,6 +50,7 @@ interface ISearch {
   hospitalization?: string;
   fromExecutionDate?: string;
   toExecutionDate?: string;
+  status?: string;
 }
 
 interface ISearchScheduling {
@@ -61,6 +62,34 @@ interface ISearchScheduling {
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
   constructor(private sharedService: SharedService) {}
+
+  public async show(unitId: string, id: string) {
+    const result = await HospitalizationMedicalPrescription.query()
+      .where('id', id)
+      .whereHas('hospitalization', query => {
+        query.where('business_unit_id', unitId);
+      })
+      .preload('hospitalization', query => {
+        query.select('id', 'patient_id', 'technician_id');
+        query.preload('patient');
+        query.preload('technician', query => {
+          query.select('id', 'name');
+        });
+      })
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('prescriptionUnit')
+      .preload('fluidUnit')
+      .preload('drugAdministration')
+      .first();
+
+    if (!result) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return result;
+  }
 
   public async index(unitId: string, data: ISearch) {
     const query = HospitalizationMedicalPrescription.query()
@@ -92,12 +121,19 @@ export default class HospitalizationMedicalPrescriptionService {
       query.where('execution_start', '<=', new Date(data.toExecutionDate));
     }
 
+    if (data.status) {
+      query.where('status', data.status);
+    }
+
     return query;
   }
 
   public async schedulingIndex(unitId: string, data: ISearchScheduling) {
     const query = HospitalizationMedicalPrescriptionScheduling.query()
-      .where('status', HospitalizationSchedulingStatus.ACTIVE)
+      .where(
+        'status',
+        'Aberto' as THospitalizationMedicalPrescriptionSchedulingStatus,
+      )
       .preload('hospitalization', query => {
         query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');
@@ -154,7 +190,7 @@ export default class HospitalizationMedicalPrescriptionService {
         executionStart: data.executionStart,
         user_id: data.userId,
         volume: data.volume,
-        status: 'A',
+        status: 'Aberto',
       };
 
       if (key === 'PR') {
@@ -580,7 +616,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
     entity.merge({
       update_user_id: user.id,
-      status: 'E',
+      status: 'Executado',
       type: data.type,
       prescribedAt: data.prescribedAt,
       frequency: data.frequency,
@@ -666,7 +702,7 @@ export default class HospitalizationMedicalPrescriptionService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      if (entity.status !== 'A') {
+      if (entity.status !== 'Aberto') {
         throw new BadRequestException(
           'Prescrição não está ativa',
           400,
@@ -676,7 +712,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
       await entity
         .merge({
-          status: 'I',
+          status: 'Interrompido',
           active: false,
           excludedAt: DateTime.now(),
           update_user_id: authCtx.user.id,
@@ -709,7 +745,7 @@ export default class HospitalizationMedicalPrescriptionService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      if (entity.status !== 'A') {
+      if (entity.status !== 'Aberto') {
         throw new BadRequestException(
           'Prescrição não está ativa',
           400,
@@ -717,7 +753,7 @@ export default class HospitalizationMedicalPrescriptionService {
         );
       }
 
-      if (entity.scheduling.some(s => s.status !== 'A')) {
+      if (entity.scheduling.some(s => s.status !== 'Aberto')) {
         throw new BadRequestException(
           'Esta Prescrição Médica não pode ser excluída pois já possui execuções de Agendamentos. Utilize a opção "Interromper Prescrição Médica"',
           400,
@@ -727,7 +763,7 @@ export default class HospitalizationMedicalPrescriptionService {
 
       await entity
         .merge({
-          status: 'C',
+          status: 'Cancelado',
           active: false,
           excludedAt: DateTime.now(),
           update_user_id: authCtx.user.id,
@@ -762,7 +798,8 @@ export default class HospitalizationMedicalPrescriptionService {
       }
 
       if (
-        scheduling.status !== HospitalizationSchedulingStatus.ACTIVE ||
+        scheduling.status !==
+          ('Aberto' as THospitalizationMedicalPrescriptionSchedulingStatus) ||
         scheduling.executedAt
       ) {
         throw new BadRequestException('Agendamento já executado', 400, 'E_ERR');
@@ -781,6 +818,23 @@ export default class HospitalizationMedicalPrescriptionService {
           user_id: user.id,
           update_user_id: user.id,
           execution_user_id: data.executionUserId,
+        })
+        .useTransaction(trx)
+        .save();
+
+      const prescriptionSchedulings =
+        await HospitalizationMedicalPrescriptionScheduling.query()
+          .useTransaction(trx)
+          .where(
+            'prescription_id',
+            scheduling.hospitalization_medical_prescription_id,
+          );
+
+      await scheduling.prescription
+        .merge({
+          status: prescriptionSchedulings.every(p => p.status === 'Executado')
+            ? 'Executado'
+            : 'Aberto',
         })
         .useTransaction(trx)
         .save();
@@ -878,7 +932,7 @@ export default class HospitalizationMedicalPrescriptionService {
         resume,
         scheduledAt: prescription.executionStart,
         hospitalization_id: prescription.hospitalization_id,
-        status: HospitalizationSchedulingStatus.ACTIVE,
+        status: 'Aberto',
         user_id: user.id,
       });
 
@@ -916,7 +970,7 @@ export default class HospitalizationMedicalPrescriptionService {
           frequency: prescription.frequency,
           resume,
           scheduledAt,
-          status: HospitalizationSchedulingStatus.ACTIVE,
+          status: 'Aberto',
           hospitalization_id: prescription.hospitalization_id,
           user_id: user.id,
         };

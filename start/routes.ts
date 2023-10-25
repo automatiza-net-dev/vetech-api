@@ -669,6 +669,7 @@ Route.group(() => {
     'HospitalizationMedicalPrescriptionsController.schedulingIndex',
   );
   Route.get('/', 'HospitalizationMedicalPrescriptionsController.index');
+  Route.get('/show/:id', 'HospitalizationMedicalPrescriptionsController.show');
   Route.post('/', 'HospitalizationMedicalPrescriptionsController.store');
   Route.put(
     '/interrupt/:id',
@@ -1401,6 +1402,33 @@ Route.group(() => {
     '/unconfirmed-budgets',
     'IndicatorsController.unconfirmedBudgetsIndicators',
   );
+
+  Route.get('/projection', 'IndicatorsController.projectionIndicators');
+  Route.get('/billing', 'IndicatorsController.billingIndicators');
+  Route.get('/product-type', 'IndicatorsController.productTypeIndicators');
+  Route.get(
+    '/sales-per-period',
+    'IndicatorsController.salesPerPeriodIndicators',
+  );
 })
   .prefix('indicators')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'BusinessUnitMetasController.index');
+  Route.get('/:id', 'BusinessUnitMetasController.show');
+  Route.post('/', 'BusinessUnitMetasController.store');
+  Route.put('/:id', 'BusinessUnitMetasController.update');
+  Route.delete('/:id', 'BusinessUnitMetasController.destroy');
+})
+  .prefix('business-unit-metas')
+  .middleware('auth');
+
+Route.group(() => {
+  Route.get('/', 'MetasController.index');
+  Route.post('/', 'MetasController.store');
+  Route.put('/:id', 'MetasController.update');
+  Route.delete('/:id', 'MetasController.destroy');
+})
+  .prefix('metas')
   .middleware('auth');

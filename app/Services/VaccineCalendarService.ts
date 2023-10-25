@@ -3,9 +3,9 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
-import TimelineType, { VACCINE_UUID } from 'App/Models/TimelineType';
-import User from 'App/Models/User';
+import TimelineType from 'App/Models/TimelineType';
 import VaccineCalendar from 'App/Models/VaccineCalendar';
+import { AuthContext } from 'App/Services/SharedService';
 import { IVaccineCalendarData } from 'Contracts/interfaces/IVaccineCalendarData';
 import { DateTime } from 'luxon';
 
@@ -49,8 +49,8 @@ export default class VaccineCalendarService {
       const date = DateTime.fromISO(data.scheduleDate);
 
       qb.whereBetween('scheduling_date', [
-        date.startOf('day').toISODate(),
-        date.endOf('day').toISODate(),
+        date.startOf('day').toISODate()!,
+        date.endOf('day').toISODate()!,
       ]);
     }
 
@@ -58,15 +58,15 @@ export default class VaccineCalendarService {
       const date = DateTime.fromISO(data.applicationDate);
 
       qb.whereBetween('application_date', [
-        date.startOf('day').toISODate(),
-        date.endOf('day').toISODate(),
+        date.startOf('day').toISODate()!,
+        date.endOf('day').toISODate()!,
       ]);
     }
 
     return qb;
   }
 
-  async update(id: string, user: User, data: IVaccineCalendarData) {
+  async update(authCtx: AuthContext, id: string, data: IVaccineCalendarData) {
     return Database.transaction(async trx => {
       const calendar = await VaccineCalendar.query()
         .useTransaction(trx)
@@ -96,16 +96,28 @@ export default class VaccineCalendarService {
         .useTransaction(trx)
         .save();
 
-      const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID, {
-        client: trx,
-      });
+      const timeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Vacinas',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Vacinas',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: VACCINE_UUID,
+        timeline_id: timeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: timeline.description,
+          color: timeline.color,
+          requires_observation: timeline.requiresObservation,
         },
         timeline_info: {
           tag: calendar.patientVaccine.patient_id,
@@ -114,8 +126,8 @@ export default class VaccineCalendarService {
             id: calendar.patientVaccine.id,
           },
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           vaccine: {
             id: calendar.patientVaccine.vaccine.id,

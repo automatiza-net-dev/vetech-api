@@ -2,10 +2,11 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
-import TimelineType, { VACCINE_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import VaccineCalendar from 'App/Models/VaccineCalendar';
 import VaccineProtocol from 'App/Models/VaccineProtocol';
+import { AuthContext } from 'App/Services/SharedService';
 import IPatientVaccineData from 'Contracts/interfaces/IPatientVaccineData';
 import { DateTime } from 'luxon';
 
@@ -52,7 +53,7 @@ export default class PatientVaccineService {
     return qb;
   }
 
-  public async store(unitId: string, user: User, data: IPatientVaccineData) {
+  public async store(authCtx: AuthContext, data: IPatientVaccineData) {
     return Database.transaction(async trx => {
       const protocol = await VaccineProtocol.query()
         .where('id', data.vaccineProtocolId)
@@ -61,8 +62,8 @@ export default class PatientVaccineService {
 
       const entity = await PatientVaccine.create(
         {
-          business_unit_id: unitId,
-          user_id: data.userId ?? user.id,
+          business_unit_id: authCtx.unit.id,
+          user_id: data.userId ?? authCtx.user.id,
           patient_id: data.patientId,
           vaccine_id: data.vaccineId,
           vaccine_protocol_id: data.vaccineProtocolId,
@@ -88,7 +89,7 @@ export default class PatientVaccineService {
               }),
             dose: index + 1,
             schedule_id: data.scheduleId,
-            user_id: data.userId ?? user.id,
+            user_id: data.userId ?? authCtx.user.id,
           };
         },
       );
@@ -97,16 +98,28 @@ export default class PatientVaccineService {
         .related('calendars')
         .createMany(calendars, trx);
 
-      const timelineInfo = await TimelineType.findOrFail(VACCINE_UUID, {
-        client: trx,
-      });
+      const vaccineTimeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Vacinas',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Vacinas',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: VACCINE_UUID,
+        timeline_id: vaccineTimeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: vaccineTimeline.description,
+          color: vaccineTimeline.color,
+          requires_observation: vaccineTimeline.requiresObservation,
         },
         timeline_info: {
           tag: entity.patient_id,
@@ -115,8 +128,8 @@ export default class PatientVaccineService {
             id: entity.id,
           },
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           vaccine: {
             id: protocol.vaccine.id,

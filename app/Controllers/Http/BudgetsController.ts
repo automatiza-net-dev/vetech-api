@@ -84,9 +84,15 @@ export default class BudgetsController {
 
   public async createBudget({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateBudgetValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBudget(unit_id, user, payload);
+    const result = await this.service.createBudget(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.created(result);
   }
@@ -131,9 +137,15 @@ export default class BudgetsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBudgetItemValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.createBudgetItem(unit_id, payload);
+    const result = await this.service.createBudgetItem(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.created(result);
   }
@@ -144,9 +156,14 @@ export default class BudgetsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreateBudgetItemsValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    await this.service.createBudgetItems(unit_id, payload.items);
+    const result = await this.service.createBudgetItems(
+      await this.sharedService.getAuthContext(auth),
+      payload.items,
+    );
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.created();
   }
@@ -158,13 +175,16 @@ export default class BudgetsController {
     auth,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateBudgetItemValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
     const result = await this.service.updateBudgetItem(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       payload,
     );
+
+    if (Array.isArray(result)) {
+      return response.badRequest(result);
+    }
 
     return response.ok(result);
   }

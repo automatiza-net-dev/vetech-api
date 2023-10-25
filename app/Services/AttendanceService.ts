@@ -7,8 +7,7 @@ import Patient from 'App/Models/Patient';
 import Schedule from 'App/Models/Schedule';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import ScheduleStatus from 'App/Models/ScheduleStatus';
-import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
-import User from 'App/Models/User';
+import TimelineType from 'App/Models/TimelineType';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { ICreateTreatment } from 'Contracts/interfaces/ITreatmentData';
 import { DateTime } from 'luxon';
@@ -177,16 +176,28 @@ export default class AttendanceService {
         client: trx,
       });
 
-      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-        client: trx,
-      });
+      const timeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Consulta',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Consulta',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
+        timeline_id: timeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: timeline.description,
+          color: timeline.color,
+          requires_observation: timeline.requiresObservation,
         },
         timeline_info: {
           tag: model.patient_id,
@@ -213,11 +224,11 @@ export default class AttendanceService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: { resume?: string; protocol: string; internalObservation?: string },
   ) {
-    const model = await this.show(unitId, id);
+    const model = await this.show(authCtx.unit.id, id);
 
     await Database.transaction(async trx => {
       await model
@@ -225,9 +236,25 @@ export default class AttendanceService {
         .merge({ resume: data.resume, protocol: data.protocol })
         .save();
 
+      const timeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Consulta',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Consulta',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
+
       await AnimalTimeline.updateOne(
         {
-          timeline_id: ATTENDANCE_UUID,
+          timeline_id: timeline.id,
           'timeline_info.tag': model.patient_id,
           'timeline_info.attendance.id': model.id,
         },
@@ -244,8 +271,8 @@ export default class AttendanceService {
     });
   }
 
-  public async close(unitId: string, user: User, id: string) {
-    const model = await this.show(unitId, id);
+  public async close(authCtx: AuthContext, id: string) {
+    const model = await this.show(authCtx.unit.id, id);
 
     if (model.endDate) {
       throw new BadRequestException('Atendimento já finalizado', 400, 'E_ERR');
@@ -253,18 +280,20 @@ export default class AttendanceService {
 
     await Database.transaction(async trx => {
       await model
-        .merge({ endDate: DateTime.now(), close_user_id: user.id })
+        .merge({ endDate: DateTime.now(), close_user_id: authCtx.user.id })
         .useTransaction(trx)
         .save();
 
       const timelineInfo = await TimelineType.firstOrCreate(
         {
           description: 'Consulta',
+          system_id: authCtx.system.id,
         },
         {
           color: '#000000',
           description: 'Consulta',
           requiresObservation: false,
+          system_id: authCtx.system.id,
         },
         {
           client: trx,

@@ -5,6 +5,7 @@ export default Factory.define(Role, ({ faker }) => {
   return {
     name: faker.string.uuid(),
     externalAccess: true,
-    type: 'user',
+    type: 'user' as const,
+    active: true,
   };
 }).build();

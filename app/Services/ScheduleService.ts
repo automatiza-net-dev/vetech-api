@@ -24,7 +24,7 @@ import IViewDailyServicesRequest from 'Contracts/interfaces/IViewDailyServicesRe
 import IViewDisponibilityRequest from 'Contracts/interfaces/IViewDisponibilityRequest';
 import {
   addDays,
-  addHours,
+  differenceInDays,
   endOfDay,
   format,
   intervalToDuration,
@@ -129,40 +129,17 @@ export default class ScheduleService {
     return qb;
   }
 
-  public async usersWithSchedule(
-    unitId: string,
-    props: {
-      onDuty?: number;
-    },
-  ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    // const unit = await BusinessUnit.findOrFail(unitId);
-
-    const now = new Date();
-
-    const qb = group
-      .related('users')
-      .query()
-      .orWhereHas('roles', query => {
-        query.where('unit_id', unitId);
-      })
-      .orWhereHas('workingDays', query => {
-        query.where('weekday_index', now.getDay());
-      })
-      .orWhereHas('schedules', query => {
-        query.whereBetween('start_hour', [startOfDay(now), endOfDay(now)]);
-      });
-
-    if (props.onDuty) {
-      qb.orWhere('on_duty', true);
-    }
-
-    const users = await qb;
-
-    const uniqueIds = new Set(users.map(user => user.id));
-    return Array.from(uniqueIds)
-      .map(id => users.find(user => user.id === id))
-      .filter(Boolean);
+  public async usersWithSchedule(authCtx: AuthContext) {
+    return Database.from('users')
+      .select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+      .joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+      .joinRaw(
+        `left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+      )
+      .where('user_unit_roles.unit_id', authCtx.unit.id)
+      .where('users.type', 'user')
+      .whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
   }
 
   public async returnableSchedules(unitId: string, patientId: string) {
@@ -188,12 +165,18 @@ export default class ScheduleService {
   public async store(
     authCtx: AuthContext,
     data: IScheduleData & { scheduleOriginId?: string },
-  ): Promise<Schedule> {
+  ) {
     if (data.userId) {
       const scheduleUser = await User.findOrFail(data.userId);
 
       if (!scheduleUser.onDuty) {
-        await ScheduleService.checkDisponibility(
+        // AGE12 é a permissão para agendar em horários bloqueados
+        const hasPermission = await this.sharedService.userHasPermission(
+          scheduleUser,
+          'AGE12',
+        );
+
+        const result = await ScheduleService.checkDisponibility(
           data.userId ?? authCtx.user.id,
           authCtx.unit.id,
           {
@@ -201,6 +184,22 @@ export default class ScheduleService {
             end: data.endHour.toJSDate(),
           },
         );
+
+        if (result.invalidWorkingDay) {
+          throw new BadRequestException(
+            'Pessoa não trabalha neste horário',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
+
+        if (result.invalidUnavailableDay && !hasPermission) {
+          throw new BadRequestException(
+            'Pessoa não está disponível neste horário',
+            400,
+            'E_BAD_REQUEST',
+          );
+        }
       }
 
       if (!data.ignoreOverlapping) {
@@ -302,8 +301,24 @@ export default class ScheduleService {
         origin.scheduleReturnId = result.id;
         await origin.useTransaction(trx).save();
       }
-
-      return result;
+      return {
+        id: result.id,
+        patientName: result.patientName,
+        patientPhone: result.patientPhone,
+        holder_id: result.holder_id,
+        age: result.age,
+        startHour: result.startHour,
+        endHour: result.endHour,
+        majorComplaint: result.majorComplaint,
+        business_unit_id: authCtx.unit.id,
+        user_id: result.user_id,
+        patient_id: result.patient_id,
+        race_id: result.race_id,
+        schedule_service_type_id: result.schedule_service_type_id,
+        schedule_status_id: status.id,
+        scheduleOriginId: result.scheduleOriginId,
+        onDuty: result.onDuty,
+      };
     });
   }
 
@@ -427,10 +442,30 @@ export default class ScheduleService {
     const technician = data.userId ? await User.findOrFail(data.userId) : user;
 
     if (!technician.onDuty) {
-      await ScheduleService.checkDisponibility(technician.id, unitId, {
-        start: data.startHour.toJSDate(),
-        end: data.endHour.toJSDate(),
-      });
+      const result = await ScheduleService.checkDisponibility(
+        technician.id,
+        unitId,
+        {
+          start: data.startHour.toJSDate(),
+          end: data.endHour.toJSDate(),
+        },
+      );
+
+      if (result.invalidWorkingDay) {
+        throw new BadRequestException(
+          'Pessoa não trabalha neste horário',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      if (result.invalidUnavailableDay) {
+        throw new BadRequestException(
+          'Pessoa não está disponível neste horário',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
     }
 
     await schedule.related('reschedules').create({
@@ -604,62 +639,92 @@ export default class ScheduleService {
     });
   }
 
-  public async userDailySchedule(unitId: string, user: string, day: Date) {
-    const correctDate = addHours(day, 3);
-    const start = startOfDay(correctDate);
-    const end = endOfDay(correctDate);
+  public async userDailySchedule(
+    authCtx: AuthContext,
+    data: {
+      user?: string;
+      to?: string;
+      from?: string;
+    },
+  ) {
+    if (!data.from || !data.to) {
+      throw new BadRequestException('Data não informada', 400, 'E_BAD_REQUEST');
+    }
 
-    const workingDays = await WorkingDay.query()
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhere('day_of_week', ScheduleService.GetWD(start))
-      .andWhereBetween('start_hour', [
-        format(start, 'HH:mm'),
-        format(end, 'HH:mm'),
-      ]);
+    const usersQb = Database.from('users')
+      .select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+      .joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+      .joinRaw(
+        `left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+      )
+      .where('user_unit_roles.unit_id', authCtx.unit.id)
+      .where('users.type', 'user')
+      .whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
 
-    const unavailableDays = await UnavailableDay.query()
+    if (data.user) {
+      usersQb.where('users.id', data.user);
+    }
+
+    const users = await usersQb;
+    const userIds = Array.from(new Set(users.map(u => u.id)));
+
+    const days = differenceInDays(new Date(data.to), new Date(data.from));
+    const diffDays = Array.from({ length: days + 1 }, (_, k) => {
+      const tmpDate = addDays(new Date(data.from!), k);
+      return ScheduleService.GetWD(tmpDate);
+    });
+
+    const workingDaysQb = WorkingDay.query()
+      .select('id', 'day_of_week', 'user_id', 'start_hour', 'end_hour')
+      .where('business_unit_id', authCtx.unit.id)
+      .whereIn('day_of_week', Array.from(new Set(diffDays))) // add all days
+      .whereIn('user_id', userIds);
+
+    const unavailableDaysQb = UnavailableDay.query()
+      .select(
+        'id',
+        'user_id',
+        'start_hour',
+        'end_hour',
+        'frequency',
+        'start_date',
+        'end_date',
+        'active',
+        'title',
+      )
       .where('active', true)
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhereILike('frequency', `%${ScheduleService.GetWD(start)}%`)
-      .andWhereRaw('(start_date <= ? or start_date is null)', [start])
-      .andWhereRaw('(end_date >= ? or end_date is null)', [end]);
+      .where('business_unit_id', authCtx.unit.id)
+      .whereILike(
+        'frequency',
+        `%${ScheduleService.GetWD(new Date(data.from))}%`,
+      )
+      .whereRaw('(start_date <= ? or start_date is null)', [data.from])
+      .whereRaw('(end_date >= ? or end_date is null)', [data.to])
+      .whereIn('user_id', userIds);
 
-    const schedules = await Schedule.query()
-      .where('business_unit_id', unitId)
-      .andWhere('user_id', user)
-      .andWhereBetween('start_hour', [start, end])
-      .preload('user', query => {
-        query.select(['id', 'name', 'email', 'phone', 'profilePicture']);
-      })
+    const schedulesQb = Schedule.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereBetween('start_hour', [data.from, data.to])
+      .whereIn('user_id', userIds)
       .preload('serviceType', query => {
         query.select(['id', 'description']);
       })
       .preload('serviceStatus', query => {
         query.select(['id', 'description', 'color']);
       })
-      // .preload('patient', query => {
-      //   query.select(['id', 'name', 'photo', 'tag']);
-
-      //   query.preload('tutor');
-
-      //   query.preload('patientAnimal', subquery => {
-      //     subquery.select(['id', 'race_id']);
-      //     subquery.preload('race', subsubquery => {
-      //       subsubquery.select(['id', 'description', 'specie_id']);
-      //       subsubquery.preload('specie', subsubsubquery => {
-      //         subsubsubquery.select(['id', 'description']);
-      //       });
-      //     });
-      //   });
-      // })
       .preload('holder', query => {
         query.select(['id', 'name']);
         query.preload('tutor', query => {
           query.select(['cellphone', 'telephone']);
         });
       });
+
+    const [workingDays, unavailableDays, schedules] = await Promise.all([
+      workingDaysQb,
+      unavailableDaysQb,
+      schedulesQb,
+    ]);
 
     const patients = await Patient.query()
       .whereIn(
@@ -672,8 +737,15 @@ export default class ScheduleService {
       const jsonKinda = schedule.toJSON();
       const patient = patients.find(p => p.id === schedule.patient_id);
 
+      jsonKinda.user_id = schedule.user_id;
       jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
       jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+      delete jsonKinda.start_hour;
+      delete jsonKinda.end_hour;
+      delete jsonKinda.start;
+      delete jsonKinda.end;
+      delete jsonKinda.created_at;
+      delete jsonKinda.updated_at;
 
       jsonKinda.patient = {
         id: patient?.id,
@@ -688,12 +760,21 @@ export default class ScheduleService {
 
     const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
-    return allEvents.map(day => ({
-      start: day.startHour.toString(),
-      end: day.endHour.toString(),
-      type: this.getEventLabel(day),
-      event: day,
-    }));
+    return users.map(elem => {
+      return {
+        id: elem.id,
+        name: elem.name,
+        onDuty: elem.on_duty,
+        events: allEvents
+          .filter(e => e.user_id === elem.id)
+          .map(day => ({
+            start: day.startHour.toString(),
+            end: day.endHour.toString(),
+            type: this.getEventLabel(day),
+            event: day,
+          })),
+      };
+    });
   }
 
   public async userAppointments(unitId: string, uid: string, day: Date) {
@@ -826,13 +907,13 @@ export default class ScheduleService {
         format(data.end, 'HH:mm'),
       ]);
 
-    if (workingDays.length === 0) {
-      throw new BadRequestException(
-        'Pessoa não trabalha neste horário',
-        400,
-        'WORKING_DAY',
-      );
-    }
+    // if (workingDays.length === 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não trabalha neste horário',
+    //     400,
+    //     'WORKING_DAY',
+    //   );
+    // }
 
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
@@ -847,13 +928,18 @@ export default class ScheduleService {
         [format(data.start, 'HH:mm'), format(data.end, 'HH:mm')],
       );
 
-    if (unavailableDays.length !== 0) {
-      throw new BadRequestException(
-        'Pessoa não está disponível neste horário',
-        400,
-        'UNAVAILABLE_DAY',
-      );
-    }
+    // if (unavailableDays.length !== 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não está disponível neste horário',
+    //     400,
+    //     'UNAVAILABLE_DAY',
+    //   );
+    // }
+
+    return {
+      invalidWorkingDay: workingDays.length === 0,
+      invalidUnavailableDay: unavailableDays.length !== 0,
+    };
   }
 
   private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {
@@ -936,16 +1022,19 @@ export default class ScheduleService {
         .merge({
           schedule_status_id: data.statusId,
           finishedAt:
-            toStatus.description === 'Atendimento finalizado'
-              ? DateTime.now()
-              : undefined,
+            toStatus.type === 'FIN'
+              ? DateTime.now().minus({ hours: 3 })
+              : schedule.finishedAt,
           reason_id: data.reasonId,
           observation: data.observation,
           cancellation_user_id:
-            toStatus.description === 'Atendimento cancelado'
+            toStatus.type === 'CANC'
               ? authCtx.user.id
-              : undefined,
-          startedAt: toStatus.type === 'ATEND' ? DateTime.now() : null,
+              : schedule.cancellation_user_id,
+          startedAt:
+            toStatus.type === 'ATEND'
+              ? DateTime.now().minus({ hours: 3 })
+              : schedule.startedAt,
         })
         .useTransaction(trx)
         .save();

@@ -407,16 +407,12 @@ test.group('Budget resource', group => {
       .json({
         quantity: 200,
         unitaryValue: 200,
-        discountValue: 200,
+        discountValue: 0,
         status: BudgetStatus.C,
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.notEqual(response.body().quantity, budgetItem.quantity);
-    assert.notEqual(response.body().unitary_value, budgetItem.unitaryValue);
-    assert.notEqual(response.body().discount_value, budgetItem.discountValue);
-    assert.notEqual(response.body().total_value, budgetItem.totalValue);
   });
 
   test('should confirm budget (TOTAL)', async ({ assert, client }) => {

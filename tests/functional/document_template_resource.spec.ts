@@ -1,6 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
-import { DOCUMENT_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -14,11 +14,18 @@ test.group('Document template resource', group => {
   const createData = async () => {
     const { user, group, system } = await userBootstrap();
 
+    const nosqlTimeline = await TimelineType.create({
+      id: v4(),
+      description: 'Generic',
+      color: '#000',
+      requiresObservation: false,
+    });
+
     const template = await group.related('documentTemplates').create({
       description: 'any description',
       title: 'any title',
       template: 'any template',
-      timeline_type_id: DOCUMENT_UUID,
+      timeline_type_id: nosqlTimeline.id,
       system_id: system.id,
     });
 

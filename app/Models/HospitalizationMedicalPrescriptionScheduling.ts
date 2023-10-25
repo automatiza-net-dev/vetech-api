@@ -17,12 +17,14 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 
-export enum HospitalizationSchedulingStatus {
-  'ACTIVE' = 'A',
-  'COMPLETE' = 'C',
-  'CANCELED' = 'CA',
-  'EXCLUDED' = 'E',
-}
+export const HospitalizationMedicalPrescriptionSchedulingStatus = [
+  'Aberto',
+  'Cancelado',
+  'Interrompido',
+  'Executado',
+] as const;
+export type THospitalizationMedicalPrescriptionSchedulingStatus =
+  typeof HospitalizationMedicalPrescriptionSchedulingStatus[number];
 
 export default class HospitalizationMedicalPrescriptionScheduling extends BaseModel {
   @column({ isPrimary: true })
@@ -61,7 +63,7 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   public resume: string;
 
   @column()
-  public status: HospitalizationSchedulingStatus;
+  public status: THospitalizationMedicalPrescriptionSchedulingStatus;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;

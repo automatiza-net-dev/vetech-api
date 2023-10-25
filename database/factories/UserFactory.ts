@@ -9,6 +9,6 @@ export default Factory.define(User, ({ faker }) => {
     document: '22463560000115',
     phone: '|PHONE|',
     licensingJob: 'Veterinário',
-    type: 'user',
+    type: 'user' as const,
   };
 }).build();

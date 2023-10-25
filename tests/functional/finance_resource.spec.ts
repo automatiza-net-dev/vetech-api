@@ -150,6 +150,47 @@ test.group('Finance resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should throw BadRequestException if creating finance without client when unit requires', async ({
+    assert,
+    client,
+  }) => {
+    const { user, accountPlan, paymentMethod, config } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+    await config.merge({ requiresFinanceClient: true }).save();
+
+    const response = await client
+      .post(`/finances/create`)
+      .json({
+        type: FinanceType.C,
+        accountPlanId: accountPlan.id,
+        paymentMethodId: paymentMethod.id,
+        document: 'some document',
+        historic: 'some historic',
+        issueDate: new Date(),
+        expirationDate: new Date(),
+        originalValue: 192,
+        accept: FinanceAccept.S,
+        installment: 1,
+        originFlag: FinanceOriginFlag.C,
+        paymentValue: 20,
+        competenceDate: '12/2022',
+        fiscalNote: 'some note reversal',
+        userDocument: '123',
+        nsuDocument: '123',
+        barCode: '123',
+        bank: '123',
+        agency: '123',
+        account: '123',
+        qtyInstallments: 1,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should throw BadRequestException if no cashier was found (type = usuario)', async ({
     assert,
     client,

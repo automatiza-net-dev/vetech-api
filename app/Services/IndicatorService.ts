@@ -1541,8 +1541,8 @@ export default class IndicatorService {
         economic_groups.company_name                                            as e_name,
         business_units.id                                                       as b_id,
         business_units.identification,
-        case when products.type = 'product' then 'Produtos' else 'Serviços' end as tipo,
-        sum(bill_items.total_value)
+        sum(case when products.type = 'product' then bill_items.total_value else 0 end) as product_total,
+        sum(case when products.type = 'service' then bill_items.total_value else 0 end) as service_total
           `,
         ),
       )
@@ -1550,7 +1550,7 @@ export default class IndicatorService {
         `join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
       )
       .joinRaw(
-        `join product_variations product_variations on bill_items.product_variation_id = product_variations.id`,
+        `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )
       .joinRaw(`join products on product_variations.product_id = products.id`)
       .joinRaw(
@@ -1559,8 +1559,7 @@ export default class IndicatorService {
       .joinRaw(
         `join economic_groups on business_units.economic_group_id = economic_groups.id`,
       )
-      .groupBy('economic_groups.id', 'business_units.id', 'products.type')
-      .orderBy('products.type')
+      .groupBy('economic_groups.id', 'business_units.id')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1593,8 +1592,8 @@ export default class IndicatorService {
           id: elem.b_id,
           identification: elem.identification,
         },
-        type: elem.tipo,
-        total: elem.sum,
+        productsTotal: elem.product_total,
+        servicesTotal: elem.service_total,
       };
     });
   }

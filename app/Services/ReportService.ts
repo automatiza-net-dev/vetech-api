@@ -40,6 +40,11 @@ export default class ReportService {
         query.preload('economicGroup', query => {
           query.preload('system');
         });
+      })
+      .whereHas('unit', query => {
+        query.preload('economicGroup', query => {
+          query.where('system_id', authCtx.system.id);
+        });
       });
 
     if (data.type) {
@@ -169,7 +174,12 @@ export default class ReportService {
     const financeQbs = Finance.query()
       .preload('unit')
       .where('economic_group_id', authCtx.group.id)
-      .whereNot('status', FinanceStatus.E);
+      .whereNot('status', FinanceStatus.E)
+      .whereHas('unit', query => {
+        query.preload('economicGroup', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+      });
 
     if (data.businessUnit) {
       financeQbs.where('business_unit_id', data.businessUnit);
@@ -331,7 +341,12 @@ export default class ReportService {
           });
         });
       })
-      .whereNull('deleted_at');
+      .whereNull('deleted_at')
+      .whereHas('businessUnit', query => {
+        query.preload('economicGroup', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+      });
 
     if (
       data.economicGroups &&
@@ -472,7 +487,7 @@ export default class ReportService {
   }
 
   async detailedSalesReport(
-    _authCtx: AuthContext,
+    authCtx: AuthContext,
     data: {
       fromDate?: string;
       toDate?: string;
@@ -547,7 +562,8 @@ export default class ReportService {
         `JOIN business_units ON bills.business_unit_id = business_units."id"`,
       )
       .joinRaw(
-        `JOIN economic_groups ON business_units.economic_group_id = economic_groups."id"`,
+        `JOIN economic_groups ON business_units.economic_group_id = economic_groups."id" and economic_groups.system_id = ?`,
+        [authCtx.system.id],
       )
       .joinRaw(`JOIN systems ON economic_groups.system_id = systems."id"`)
       .joinRaw(`JOIN patients Cli ON bills.client_id = Cli."id"`)
@@ -642,6 +658,11 @@ ON bills.patient_id = Dep."id"`,
       })
       .where('economic_group_id', authCtx.group.id)
       .whereNull('deleted_at')
+      .whereHas('businessUnit', query => {
+        query.preload('economicGroup', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+      })
       .orderBy('bill_date', 'desc');
 
     if (
@@ -909,6 +930,11 @@ ON bills.patient_id = Dep."id"`,
       .preload('conclusionUser')
       .preload('cancelationReason')
       .where('economic_group_id', authCtx.group.id)
+      .whereHas('unit', query => {
+        query.whereHas('economicGroup', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+      })
       .whereNull('deleted_at');
 
     if (data.businessUnit) {
@@ -1110,6 +1136,10 @@ ON bills.patient_id = Dep."id"`,
         `join business_units on schedules.business_unit_id = business_units.id`,
       )
       .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+        [authCtx.system.id],
+      )
+      .joinRaw(
         `join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id`,
       )
       .joinRaw(
@@ -1225,6 +1255,10 @@ ON bills.patient_id = Dep."id"`,
         `join business_units on bills.business_unit_id = business_units.id`,
       )
       .joinRaw(
+        `join economic_groups on bills.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+        [authCtx.system.id],
+      )
+      .joinRaw(
         `join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'`,
       )
       .joinRaw(
@@ -1261,7 +1295,8 @@ ON bills.patient_id = Dep."id"`,
         'products.description',
       )
       .joinRaw(
-        `join economic_groups on bills.economic_group_id = economic_groups.id`,
+        `join economic_groups on bills.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+        [authCtx.system.id],
       )
       .joinRaw(
         `join business_units on bills.business_unit_id = business_units.id`,

@@ -274,4 +274,17 @@ export default class IndicatorsController {
 
     return response.ok(result);
   }
+
+  public async budgetIndicators({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.budgetsIndicators(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

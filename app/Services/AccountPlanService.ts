@@ -136,8 +136,10 @@ export default class AccountPlanService {
       throw this.sharedService.ResourceNotFound();
     }
 
-    if (!model.economic_group_id) {
-      throw this.sharedService.SystemResource();
+    if (authCtx.user.type !== 'controller') {
+      if (!model.economic_group_id) {
+        throw this.sharedService.SystemResource();
+      }
     }
 
     return model;

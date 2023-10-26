@@ -826,7 +826,7 @@ export default class HospitalizationMedicalPrescriptionService {
         await HospitalizationMedicalPrescriptionScheduling.query()
           .useTransaction(trx)
           .where(
-            'prescription_id',
+            'hospitalization_medical_prescription_id',
             scheduling.hospitalization_medical_prescription_id,
           );
 

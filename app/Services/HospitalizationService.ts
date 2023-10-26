@@ -8,7 +8,10 @@ import Hospitalization, {
   HospitalizationType,
   HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
-import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+import HospitalizationMedicalPrescription, {
+  HospitalizationMedicalPrescriptionStatus,
+  THospitalizationMedicalSchedulingStatus,
+} from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
@@ -174,7 +177,10 @@ export default class HospitalizationService {
       })
       .preload('technician')
       .preload('medicalPrescriptions', query => {
-        query.where('status', 'A');
+        query.where(
+          'status',
+          'Aberto' as THospitalizationMedicalSchedulingStatus,
+        );
 
         query.preload('prescriptionUnit');
         query.preload('fluidUnit');

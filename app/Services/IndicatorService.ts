@@ -1541,8 +1541,8 @@ export default class IndicatorService {
         economic_groups.company_name                                            as e_name,
         business_units.id                                                       as b_id,
         business_units.identification,
-        case when products.type = 'product' then 'Produtos' else 'Serviços' end as tipo,
-        sum(bill_items.total_value)
+        sum(case when products.type = 'product' then bill_items.total_value else 0 end) as product_total,
+        sum(case when products.type = 'service' then bill_items.total_value else 0 end) as service_total
           `,
         ),
       )
@@ -1550,7 +1550,7 @@ export default class IndicatorService {
         `join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
       )
       .joinRaw(
-        `join product_variations product_variations on bill_items.product_variation_id = product_variations.id`,
+        `join product_variations on bill_items.product_variation_id = product_variations.id`,
       )
       .joinRaw(`join products on product_variations.product_id = products.id`)
       .joinRaw(
@@ -1559,8 +1559,7 @@ export default class IndicatorService {
       .joinRaw(
         `join economic_groups on business_units.economic_group_id = economic_groups.id`,
       )
-      .groupBy('economic_groups.id', 'business_units.id', 'products.type')
-      .orderBy('products.type')
+      .groupBy('economic_groups.id', 'business_units.id')
       .whereNull('bills.deleted_at');
 
     if (data.units && Array.isArray(data.units)) {
@@ -1593,8 +1592,8 @@ export default class IndicatorService {
           id: elem.b_id,
           identification: elem.identification,
         },
-        type: elem.tipo,
-        total: elem.sum,
+        productsTotal: elem.product_total,
+        servicesTotal: elem.service_total,
       };
     });
   }
@@ -1723,6 +1722,146 @@ export default class IndicatorService {
           new: elem.noite_novos,
           recurrent: elem.noite_recorrentes,
         },
+      };
+    });
+  }
+
+  public async budgetsIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+      type?: string;
+    },
+  ) {
+    if (!data.type) {
+      throw new BadRequestException(
+        'Informe o tipo de orçamento',
+        400,
+        'E_ERR',
+      );
+    }
+
+    if (!['AVALIADOR', 'VENDEDOR'].includes(data.type)) {
+      throw new BadRequestException(
+        'Tipo de orçamento inválido. Valores permitidos: AVALIADOR, VENDEDOR',
+        400,
+        'E_ERR',
+      );
+    }
+
+    const qb = Database.from('budgets')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id       as e_id,
+          economic_groups.company_name,
+          business_units.id        as b_id,
+          business_units.identification,
+          users.id                 as u_id,
+          coalesce(users.name, 'Não identificado') as name,
+          count(budgets.id)        as total_budgets,
+          sum(budgets.total_value) as total_value,
+          avg(budgets.total_value) as avg_value,
+          sum(case
+               when budgets.status in ('CONFIRMADO', 'CONFIRMADO_PARCIAL') then 1
+               else 0
+              end)                 as confirmed,
+          sum(case
+               when budgets.status in ('CONFIRMADO', 'CONFIRMADO_PARCIAL') then budgets.total_value
+               else 0
+              end)                 as total_confirmed_value,
+          sum(case
+               when budgets.status in ('NAO_CONFIRMADO__CANCELADO') then 1
+               else 0
+              end)                 as cancelled,
+          sum(case
+               when budgets.status in ('NAO_CONFIRMADO__CANCELADO') then budgets.total_value
+               else 0
+              end)                 as total_cancelled_value,
+          sum(case
+               when budgets.status in ('ABERTO') then 1
+               else 0
+              end)                 as open,
+          sum(case
+               when budgets.status in ('ABERTO') then budgets.total_value
+               else 0
+              end)                 as total_open_value
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on budgets.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .groupBy('economic_groups.id', 'business_units.id', 'users.id')
+      .whereNull('budgets.deleted_at');
+
+    if (data.type === 'VENDEDOR') {
+      qb.joinRaw(`left join users on budgets.seller_id = users.id`);
+    } else {
+      qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
+    }
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('budget_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('budget_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          identification: elem.identification,
+        },
+        user: {
+          id: elem.u_id,
+          name: elem.name,
+        },
+        totalBudgets: parseInt(elem.total_budgets, 10),
+        totalValue: elem.total_value,
+        avgValue: elem.avg_value,
+        confirmed: parseInt(elem.confirmed, 10),
+        totalConfirmedValue: elem.total_confirmed_value,
+        avgConfirmedValue:
+          elem.confirmed === '0'
+            ? 0
+            : elem.total_confirmed_value / parseInt(elem.confirmed, 10),
+        cancelled: parseInt(elem.cancelled, 10),
+        totalCancelledValue: elem.total_cancelled_value,
+        avgCancelledValue:
+          elem.cancelled === '0'
+            ? 0
+            : elem.total_cancelled_value / parseInt(elem.cancelled, 10),
+        open: parseInt(elem.open, 10),
+        totalOpenValue: elem.total_open_value,
+        avgOpenValue:
+          elem.open === '0'
+            ? 0
+            : elem.total_open_value / parseInt(elem.open, 10),
       };
     });
   }

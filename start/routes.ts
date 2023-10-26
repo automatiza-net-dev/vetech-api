@@ -1410,6 +1410,7 @@ Route.group(() => {
     '/sales-per-period',
     'IndicatorsController.salesPerPeriodIndicators',
   );
+  Route.get('/budgets', 'IndicatorsController.budgetIndicators');
 })
   .prefix('indicators')
   .middleware('auth');

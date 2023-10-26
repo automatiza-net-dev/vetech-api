@@ -89,7 +89,7 @@ export default class SharedService {
 
   public SystemResource() {
     return new UnauthorizedException(
-      'Registro padrão do sistema. Não pode ser excluído nem alterado.',
+      'Registro padrão do sistema. Não pode ser acessado ou alterado diretamente.',
       400,
       'E_SYSTEM',
     );

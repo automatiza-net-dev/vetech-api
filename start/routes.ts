@@ -1411,6 +1411,11 @@ Route.group(() => {
     'IndicatorsController.salesPerPeriodIndicators',
   );
   Route.get('/budgets', 'IndicatorsController.budgetIndicators');
+  Route.get('/marketing', 'IndicatorsController.marketingIndicators');
+  Route.get(
+    '/cost-of-acquisition',
+    'IndicatorsController.costOfAcquisitionIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

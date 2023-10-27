@@ -1865,4 +1865,337 @@ export default class IndicatorService {
       };
     });
   }
+
+  public async marketingIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const billsQb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+            economic_groups.id            as e_id,
+            economic_groups.company_name,
+            business_units.id             as b_id,
+            business_units.identification,
+            to_char(bill_date, 'MM/yyyy') as competence_date,
+            sum(total_value)              as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy')`,
+      )
+      .whereNull('bills.deleted_at')
+      .groupByRaw(
+        `business_units.id, economic_groups.id, to_char(bill_date, 'MM/yyyy')`,
+      );
+
+    const financesQb = Database.from('finances')
+      .select(
+        Database.raw(`
+        economic_groups.id as e_id,
+        economic_groups.company_name,
+        business_units.id  as b_id,
+        business_units.identification,
+        competence_date,
+        sum(total_value)   as total
+        `),
+      )
+      .joinRaw(
+        `left join business_units on finances.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
+      )
+      .whereNull('finances.deleted_at')
+      .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+      .orderBy('competence_date');
+
+    if (data.units && Array.isArray(data.units)) {
+      billsQb.whereIn('business_units.id', data.units);
+      financesQb.whereIn('business_units.id', data.units);
+    } else {
+      billsQb.where('business_units.id', authCtx.unit.id);
+      financesQb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      billsQb.whereIn('business_units.economic_group_id', data.groups);
+      financesQb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      billsQb.where('business_units.economic_group_id', authCtx.group.id);
+      financesQb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const competences: string[] = [];
+
+    if (data.fromDate && data.toDate) {
+      const start = DateTime.fromISO(data.fromDate);
+      const end = DateTime.fromISO(data.toDate);
+
+      const diff = end.diff(start, 'months').toObject().months ?? 0;
+
+      for (let i = 0; i <= diff; i++) {
+        const dt = start.plus({ months: i });
+        competences.push(dt.toFormat('MM/yyyy'));
+      }
+    }
+    financesQb.whereIn('competence_date', competences);
+
+    const [billsResult, financesResult] = await Promise.all([
+      billsQb,
+      financesQb,
+    ]);
+
+    const keys = new Set<string>();
+    for (const bill of billsResult) {
+      const key = [bill.e_id, bill.b_id, bill.competence_date].join('__');
+      keys.add(key);
+    }
+    for (const finance of financesResult) {
+      const key = [finance.e_id, finance.b_id, finance.competence_date].join(
+        '__',
+      );
+      keys.add(key);
+    }
+
+    return Array.from(keys.keys())
+      .map(key => {
+        const [e_id, b_id, competence_date] = key.split('__');
+
+        const bill = billsResult.find(
+          bill =>
+            bill.e_id === e_id &&
+            bill.b_id === b_id &&
+            bill.competence_date === competence_date,
+        );
+        const finance = financesResult.find(
+          finance =>
+            finance.e_id === e_id &&
+            finance.b_id === b_id &&
+            finance.competence_date === competence_date,
+        );
+
+        return {
+          group: {
+            id: e_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.company_name ??
+              'Não encontrado?',
+          },
+          unit: {
+            id: b_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.identification ??
+              'Não encontrado?',
+          },
+          competenceDate: competence_date,
+          totalFinance: finance?.total ?? 0,
+          totalBills: bill?.total ?? 0,
+        };
+      })
+      .sort((a, b) => {
+        const [aMonth, aYear] = a.competenceDate.split('/');
+        const [bMonth, bYear] = b.competenceDate.split('/');
+
+        if (aYear.localeCompare(bYear) === 0) {
+          return aMonth.localeCompare(bMonth);
+        }
+
+        return aYear.localeCompare(bYear);
+      });
+  }
+
+  public async costOfAcquisitionIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const billsQb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id              as e_id,
+          economic_groups.company_name,
+          business_units.id               as b_id,
+          business_units.identification,
+          to_char(bill_date, 'MM/yyyy')   as competence_date,
+          sum(total_value)                as total,
+          count(distinct bills.client_id) as unique_clients
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join patients on patients.id = bills.client_id and
+                               to_char(patients.created_at, 'MM/yyyy') = to_char(bills.bill_date, 'MM/yyyy')`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy')`,
+      )
+      .whereNull('bills.deleted_at')
+      .groupByRaw(
+        `business_units.id, economic_groups.id, to_char(bill_date, 'MM/yyyy')`,
+      );
+
+    const financesQb = Database.from('finances')
+      .select(
+        Database.raw(`
+      economic_groups.id as e_id,
+      economic_groups.company_name,
+      business_units.id  as b_id,
+      business_units.identification,
+      competence_date,
+      sum(total_value)   as total,
+      -1 as placeholder
+      `),
+      )
+      .joinRaw(
+        `left join business_units on finances.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
+      )
+      .whereNull('finances.deleted_at')
+      .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+      .orderBy('competence_date');
+
+    if (data.units && Array.isArray(data.units)) {
+      billsQb.whereIn('business_units.id', data.units);
+      financesQb.whereIn('business_units.id', data.units);
+    } else {
+      billsQb.where('business_units.id', authCtx.unit.id);
+      financesQb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      billsQb.whereIn('business_units.economic_group_id', data.groups);
+      financesQb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      billsQb.where('business_units.economic_group_id', authCtx.group.id);
+      financesQb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    if (data.fromDate && data.toDate) {
+      const competences: string[] = [];
+      const start = DateTime.fromISO(data.fromDate);
+      const end = DateTime.fromISO(data.toDate);
+
+      const diff = end.diff(start, 'months').toObject().months ?? 0;
+
+      for (let i = 0; i <= diff; i++) {
+        const dt = start.plus({ months: i });
+        competences.push(dt.toFormat('MM/yyyy'));
+      }
+      financesQb.whereIn('competence_date', competences);
+    }
+
+    const [billsResult, financesResult] = await Promise.all([
+      billsQb,
+      financesQb,
+    ]);
+
+    const keys = new Set<string>();
+    for (const bill of billsResult) {
+      const key = [bill.e_id, bill.b_id, bill.competence_date].join('__');
+      keys.add(key);
+    }
+    for (const finance of financesResult) {
+      const key = [finance.e_id, finance.b_id, finance.competence_date].join(
+        '__',
+      );
+      keys.add(key);
+    }
+
+    return Array.from(keys.keys())
+      .map(key => {
+        const [e_id, b_id, competence_date] = key.split('__');
+
+        const bill = billsResult.find(
+          bill =>
+            bill.e_id === e_id &&
+            bill.b_id === b_id &&
+            bill.competence_date === competence_date,
+        );
+
+        const finance = financesResult.find(
+          finance =>
+            finance.e_id === e_id &&
+            finance.b_id === b_id &&
+            finance.competence_date === competence_date,
+        );
+
+        return {
+          group: {
+            id: e_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.company_name ??
+              'Não encontrado?',
+          },
+          unit: {
+            id: b_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.identification ??
+              'Não encontrado?',
+          },
+          competenceDate: competence_date,
+          uniqueClients: parseInt(bill?.unique_clients ?? 0, 10),
+          totalBills: bill?.total ?? 0,
+          totalFinances: finance?.total ?? 0,
+        };
+      })
+      .sort((a, b) => {
+        const [aMonth, aYear] = a.competenceDate.split('/');
+        const [bMonth, bYear] = b.competenceDate.split('/');
+
+        if (aYear.localeCompare(bYear) === 0) {
+          return aMonth.localeCompare(bMonth);
+        }
+
+        return aYear.localeCompare(bYear);
+      });
+  }
 }

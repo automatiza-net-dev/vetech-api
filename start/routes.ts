@@ -1416,6 +1416,14 @@ Route.group(() => {
     '/cost-of-acquisition',
     'IndicatorsController.costOfAcquisitionIndicators',
   );
+  Route.get(
+    '/bill-payment-format',
+    'IndicatorsController.billPaymentFormatIndicators',
+  );
+  Route.get(
+    '/installment-avg',
+    'IndicatorsController.installmentAvgIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

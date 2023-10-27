@@ -2198,4 +2198,180 @@ export default class IndicatorService {
         return aYear.localeCompare(bYear);
       });
   }
+
+  public async billPaymentFormatIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id              as e_id,
+          economic_groups.company_name,
+          business_units.id               as b_id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY/MM') as campo_order,
+          to_char(bills.bill_date, 'MM/YYYY') as periodo,
+          sum(case
+               when ((payment_methods.tef = 'NAO' or
+                      (payment_methods.tef <> 'NAO' and payment_methods.type = 'DEBITO')) and
+                     (to_char(bills.bill_date, 'YYYY/MM') = to_char(bill_payments.expiration_date, 'YYYY/MM')))
+                   then bill_payments.total_value
+               else 0 end)                 as a_vista,
+          sum(case
+               when ((to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM')) or
+                     (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')) then bill_payments.total_value
+               else 0 end)                 as a_prazo
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
+      )
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.periodo,
+        cash: elem.a_vista,
+        installment: elem.a_prazo,
+      };
+    });
+  }
+
+  public async installmentAvgIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id                                                    as e_id,
+          economic_groups.company_name,
+          business_units.id                                                     as b_id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY/MM')                                   as campo_order,
+          to_char(bills.bill_date, 'MM/YYYY')                                   as periodo,
+
+          count(bill_payments.installments)                                     as qtd_parcelas,
+          count(distinct bills.id)                                              as qtd_vendas,
+
+          count(bill_payments.installments)::decimal / count(distinct bills.id) as prazo_medio
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
+      )
+      .whereNull('bills.deleted_at').whereRaw(`
+                                              (
+                                                (to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM'))
+                                                or (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')
+                                              )`);
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.periodo,
+        avgInstallment: parseFloat(elem.prazo_medio),
+        totalSales: parseInt(elem.qtd_vendas, 10),
+        totalInstallments: parseInt(elem.qtd_parcelas, 10),
+      };
+    });
+  }
 }

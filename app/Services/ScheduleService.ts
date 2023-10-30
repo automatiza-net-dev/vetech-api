@@ -1055,8 +1055,8 @@ export default class ScheduleService {
       .whereRaw('(start_date <= ? or start_date is null)', [data.start])
       .whereRaw('(end_date >= ? or end_date is null)', [data.end])
       .whereRaw(
-        '((? between start_hour and end_hour or ? between start_hour and end_hour) or (? < start_hour and ? > end_hour))',
-        [strStart, strEnd, strStart, strEnd],
+        `((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))`,
+        [strStart, strEnd, strEnd, strStart],
       );
 
     // if (unavailableDays.length !== 0) {

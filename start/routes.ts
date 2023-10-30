@@ -314,6 +314,10 @@ Route.group(() => {
     'SchedulesController.getScheduleStatusChanges',
   );
   Route.get('/user', 'SchedulesController.userDailySchedule');
+  Route.get(
+    '/users-weekly-schedules',
+    'SchedulesController.usersWeeklySchedule',
+  );
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
   Route.get('/returnables/:patient', 'SchedulesController.returnableSchedules');

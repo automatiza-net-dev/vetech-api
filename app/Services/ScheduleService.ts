@@ -1043,6 +1043,9 @@ export default class ScheduleService {
     //   );
     // }
 
+    const strStart = format(data.start, 'HH:mm');
+    const strEnd = format(data.end, 'HH:mm');
+
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
@@ -1052,8 +1055,8 @@ export default class ScheduleService {
       .whereRaw('(start_date <= ? or start_date is null)', [data.start])
       .whereRaw('(end_date >= ? or end_date is null)', [data.end])
       .whereRaw(
-        '(? between start_hour and end_hour or ? between start_hour and end_hour)',
-        [format(data.start, 'HH:mm'), format(data.end, 'HH:mm')],
+        '((? between start_hour and end_hour or ? between start_hour and end_hour) or (? < start_hour and ? > end_hour))',
+        [strStart, strEnd, strStart, strEnd],
       );
 
     // if (unavailableDays.length !== 0) {

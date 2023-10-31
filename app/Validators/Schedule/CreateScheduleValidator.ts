@@ -14,7 +14,6 @@ export default class CreateScheduleValidator {
     ]),
     startHour: schema.date({}),
     endHour: schema.date({}),
-    ignoreBlocking: schema.boolean([]),
 
     patientId: schema.string.optional({}, [
       rules.uuid(),
@@ -44,6 +43,7 @@ export default class CreateScheduleValidator {
         column: 'id',
       }),
     ]),
+    ignoreBlocking: schema.boolean.optional([]),
     patientName: schema.string.optional({}, []),
     patientPhone: schema.string.optional({}, []),
     age: schema.number.optional([rules.unsigned()]),

@@ -167,7 +167,7 @@ export default class ScheduleService {
     authCtx: AuthContext,
     data: IScheduleData & {
       scheduleOriginId?: string;
-      ignoreBlocking: boolean;
+      ignoreBlocking?: boolean;
     },
   ) {
     if (data.userId) {

@@ -49,9 +49,13 @@ export default class TimelinesController {
   public async storePatientEvaluation({
     request,
     response,
+    auth,
   }: HttpContextContract) {
     const payload = await request.validate(CreatePatientEvaluationValidator);
-    await this.timelineService.storeEvaluation(payload);
+    await this.timelineService.storeEvaluation(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
     return response.created();
   }
 

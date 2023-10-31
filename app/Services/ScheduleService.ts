@@ -165,17 +165,20 @@ export default class ScheduleService {
 
   public async store(
     authCtx: AuthContext,
-    data: IScheduleData & { scheduleOriginId?: string },
+    data: IScheduleData & {
+      scheduleOriginId?: string;
+      ignoreBlocking: boolean;
+    },
   ) {
     if (data.userId) {
       const scheduleUser = await User.findOrFail(data.userId);
 
       if (!scheduleUser.onDuty) {
         // AGE12 é a permissão para agendar em horários bloqueados
-        const hasPermission = await this.sharedService.userHasPermission(
-          scheduleUser,
-          'AGE12',
-        );
+        // const hasPermission = await this.sharedService.userHasPermission(
+        //   scheduleUser,
+        //   'AGE12',
+        // );
 
         const result = await ScheduleService.checkDisponibility(
           data.userId ?? authCtx.user.id,
@@ -194,7 +197,8 @@ export default class ScheduleService {
           );
         }
 
-        if (result.invalidUnavailableDay && !hasPermission) {
+        // if (result.invalidUnavailableDay && !hasPermission) {
+        if (result.invalidUnavailableDay && !data.ignoreBlocking) {
           throw new BadRequestException(
             'Pessoa não está disponível neste horário',
             400,

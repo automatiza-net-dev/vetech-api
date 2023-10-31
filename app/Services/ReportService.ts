@@ -1102,8 +1102,8 @@ ON bills.patient_id = Dep."id"`,
       .select(
         Database.raw(`
         business_units.identification,
-        business_units.city,
-        business_units.state,
+        business_units.city as unit_city,
+        business_units.state as unit_state,
         uResponsavel.name                                                        as nome_Responsavel,
         to_char(start_hour, 'DD/MM/YYYY')                                        as start_hour_date,
         to_char(start_hour, 'HH24:MI')                                           as start_hour_time,
@@ -1169,20 +1169,6 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
       )
-      .joinRaw(
-        ` join (patients tutor join
-    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
-     on patient_tutors.client_origin_id = client_origins.id)
-               on tutor.id = patient_tutors.patient_id) on schedules.holder_id = tutor.id`,
-      )
-
-      .joinRaw(
-        `join (patients pac join
-    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
-               on pac.id = pa.patient_id
-    ) on schedules.patient_id = pac.id`,
-      )
-
       .joinRaw(`join users uResponsavel on schedules.user_id = uResponsavel.id`)
 
       .joinRaw(
@@ -1190,6 +1176,28 @@ ON bills.patient_id = Dep."id"`,
       )
 
       .joinRaw(`left join reasons on schedules.reason_id = reasons.id`);
+
+    if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+      qb.joinRaw(`join (patients tutor join
+    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
+     on patient_tutors.client_origin_id = client_origins.id)
+               on tutor.id = patient_tutors.patient_id) on schedules.holder_id = tutor.id
+               `);
+      qb.joinRaw(`
+         join (patients pac join
+    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
+               on pac.id = pa.patient_id
+    ) on schedules.patient_id = pac.id`);
+    } else {
+      qb.joinRaw(`join (patients tutor join
+    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
+     on patient_tutors.client_origin_id = client_origins.id)
+               on tutor.id = patient_tutors.patient_id) on schedules.patient_id = tutor.id`);
+      qb.joinRaw(`left join (patients pac join
+    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
+               on pac.id = pa.patient_id
+    ) on schedules.patient_id = pac.id`);
+    }
 
     if (authCtx.user.type === 'user') {
       qb.where('business_units.economic_group_id', authCtx.group.id);

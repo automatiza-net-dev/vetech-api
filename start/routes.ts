@@ -1428,6 +1428,10 @@ Route.group(() => {
     '/installment-avg',
     'IndicatorsController.installmentAvgIndicators',
   );
+  Route.get(
+    '/avg-receipt-deadline',
+    'IndicatorsController.avgReceiptDeadlineIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');

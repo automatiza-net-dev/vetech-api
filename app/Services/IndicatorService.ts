@@ -2374,4 +2374,95 @@ export default class IndicatorService {
       };
     });
   }
+
+  public async avgReceiptDeadlineIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+        economic_groups.id                                                         as e_id,
+        economic_groups.company_name,
+        business_units.id                                                          as b_id,
+        business_units.identification,
+        to_char(bills.bill_date, 'YYYY/MM')                                        as period,
+        sum(finances.original_value) /
+        (sum(bill_payments.total_value) /
+          avg(extract('DAY' from bill_payments.expiration_date - bills.bill_date))) as avg_delay
+        `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+        [authCtx.system.id],
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `left join finances
+                   on bill_payments.id = finances.origin_id and finances.deleted_at is null and
+                      finances.status = 'ABERTO' and
+                      finances.payment_date is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM')`,
+      )
+      .whereNull('bills.deleted_at')
+      .whereRaw(
+        `((to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM'))
+    or (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO'))`,
+      )
+      .orderBy('period');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.period,
+        avgDelay: parseFloat(elem.avg_delay),
+      };
+    });
+  }
 }

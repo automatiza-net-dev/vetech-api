@@ -100,7 +100,7 @@ export default class Budget extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public evaluation_id: string;
+  public attendance_id: number;
 
   @column({
     serializeAs: null,

@@ -397,7 +397,7 @@ export default class BudgetService {
           user_id: authCtx.user.id,
           seller_id: data.sellerId,
           daily_movement_id: data.dailyMovementId,
-          evaluation_id: data.evaluationId,
+          attendance_id: data.attendanceId,
           reviewer_id: data.reviewerId,
 
           budgetDate: data.budgetDate,

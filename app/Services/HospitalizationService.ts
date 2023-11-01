@@ -9,7 +9,6 @@ import Hospitalization, {
   HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription, {
-  HospitalizationMedicalPrescriptionStatus,
   THospitalizationMedicalSchedulingStatus,
 } from 'App/Models/HospitalizationMedicalPrescription';
 import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';

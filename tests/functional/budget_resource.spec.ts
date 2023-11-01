@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Attendance from 'App/Models/Attendance';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import DailyCashier from 'App/Models/DailyCashier';
@@ -11,7 +12,6 @@ import Reason from 'App/Models/Reason';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
-import mongoose from 'mongoose';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -115,6 +115,13 @@ test.group('Budget resource', group => {
       business_unit_id: business.id,
     });
 
+    const attendance = await Attendance.create({
+      business_unit_id: business.id,
+      patient_id: patient.id,
+      tutor_id: client.id,
+      startDate: DateTime.now().minus({ hour: 1 }),
+    });
+
     return {
       user,
       client,
@@ -127,6 +134,7 @@ test.group('Budget resource', group => {
       variation,
       kit,
       kitItem,
+      attendance,
     };
   };
 
@@ -206,6 +214,7 @@ test.group('Budget resource', group => {
       dailyCashier,
       dailyMovement,
       patient,
+      attendance,
     } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -221,7 +230,7 @@ test.group('Budget resource', group => {
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
-        evaluationId: new mongoose.Types.ObjectId(),
+        attendanceId: attendance.id,
 
         budgetDate: new Date(),
         expirationDate: new Date(),

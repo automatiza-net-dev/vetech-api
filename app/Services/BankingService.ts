@@ -34,8 +34,8 @@ export default class BankingService {
 
   async index(unitId: string, data: ISearch) {
     const qb = Banking.query()
-      .orderBy('issue_date', 'desc')
-      .orderBy('created_at', 'desc')
+      .orderBy('issue_date', 'asc')
+      .orderBy('created_at', 'asc')
       .where('business_unit_id', unitId);
 
     if (data.type) {

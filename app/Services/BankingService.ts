@@ -33,7 +33,10 @@ export default class BankingService {
   constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
-    const qb = Banking.query().where('business_unit_id', unitId);
+    const qb = Banking.query()
+    .orderBy('issue_date', 'asc')
+    .orderBy('created_at', 'asc')
+    .where('business_unit_id', unitId);
 
     if (data.type) {
       qb.where('type', data.type);

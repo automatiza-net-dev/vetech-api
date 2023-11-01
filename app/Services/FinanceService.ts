@@ -480,13 +480,13 @@ export default class FinanceService {
               finance.type === FinanceType.C ? BankingType.C : BankingType.D,
             document: finance.document,
             historic: finance.historic,
-            issueDate: finance.issueDate,
+            issueDate: elem.paymentDate,
             documentValue: finance.value,
             feeValue: finance.feeValue,
             feePercentage: finance.feePercentage,
             discountValue: finance.discountValue,
             discountPercentage: finance.discountPercentage,
-            totalValue: finance.totalValue,
+            totalValue: elem.paymentValue,
             reconciled: true,
             installment: finance.installment,
             originFlag: BankingOriginFlag.F,
@@ -495,8 +495,8 @@ export default class FinanceService {
             prevBalance: checkingAccount?.balance,
             balance:
               finance.type === FinanceType.C
-                ? (checkingAccount?.balance ?? 0) + finance.value
-                : (checkingAccount?.balance ?? 0) - finance.value,
+                ? (checkingAccount?.balance ?? 0) + (finance.paymentValue ?? 0)
+                : (checkingAccount?.balance ?? 0) - (finance.paymentValue ?? 0),
 
             competenceDate: finance.competenceDate,
             fiscalNote: finance.fiscalNote,
@@ -513,8 +513,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance + finance.value
-                : checkingAccount.balance - finance.value,
+                ? checkingAccount.balance + (finance.paymentValue ?? 0)
+                : checkingAccount.balance - (finance.paymentValue ?? 0),
           })
           .useTransaction(trx)
           .save();
@@ -615,13 +615,13 @@ export default class FinanceService {
           type: finance.type === FinanceType.C ? BankingType.D : BankingType.C,
           document: finance.document,
           historic: finance.historic,
-          issueDate: finance.issueDate,
+          issueDate: DateTime.now(),
           documentValue: finance.value,
           feeValue: finance.feeValue,
           feePercentage: finance.feePercentage,
           discountValue: finance.discountValue,
           discountPercentage: finance.discountPercentage,
-          totalValue: finance.totalValue,
+          totalValue: finance.paymentValue ?? -1,
           reconciled: true,
           installment: finance.installment,
           originFlag: BankingOriginFlag.F,
@@ -630,8 +630,8 @@ export default class FinanceService {
           prevBalance: balance,
           balance:
             finance.type === FinanceType.C
-              ? balance - finance.value
-              : balance + finance.value,
+              ? balance - (finance.paymentValue ?? 0)
+              : balance + (finance.paymentValue ?? 0),
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
@@ -694,8 +694,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance - finance.totalValue
-                : checkingAccount.balance + finance.totalValue,
+                ? checkingAccount.balance - (finance.paymentValue ?? 0)
+                : checkingAccount.balance + (finance.paymentValue ?? 0),
           })
           .useTransaction(trx)
           .save();

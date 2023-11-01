@@ -704,13 +704,15 @@ export default class ScheduleService {
         'frequency',
         `%${ScheduleService.GetWD(new Date(data.from))}%`,
       )
-      .whereRaw('(start_date <= ? or start_date is null)', [data.from])
-      .whereRaw('(end_date >= ? or end_date is null)', [data.to])
+      .whereRaw('(start_date::date <= ? or start_date::date is null)', [
+        data.from,
+      ])
+      .whereRaw('(end_date::date >= ? or end_date::date is null)', [data.to])
       .whereIn('user_id', userIds);
 
     const schedulesQb = Schedule.query()
       .where('business_unit_id', authCtx.unit.id)
-      .whereBetween('start_hour', [data.from, data.to])
+      .whereRaw('start_hour::date between ? and ?', [data.from, data.to])
       .whereIn('user_id', userIds)
       .preload('serviceType', query => {
         query.select(['id', 'description']);
@@ -826,7 +828,7 @@ export default class ScheduleService {
 
     const schedules = await Schedule.query()
       .where('business_unit_id', authCtx.unit.id)
-      .whereBetween('start_hour', [data.from, data.to])
+      .whereRaw('start_hour::date between ? and ?', [data.from, data.to])
       .whereIn('user_id', userIds)
       .preload('serviceType', query => {
         query.select(['id', 'description']);

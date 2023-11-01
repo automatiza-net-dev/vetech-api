@@ -210,6 +210,7 @@ Route.group(() => {
   Route.post('/', 'PatientsController.store');
 
   Route.put('/main/:patient/:tutor', 'PatientsController.setMainTutor');
+  Route.put('/declare-death/:id', 'PatientsController.declareDeath');
   Route.put('/:id', 'PatientsController.update');
   Route.delete('/:id', 'PatientsController.destroy');
 })

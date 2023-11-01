@@ -630,8 +630,8 @@ export default class FinanceService {
           prevBalance: balance,
           balance:
             finance.type === FinanceType.C
-              ? balance - finance.value
-              : balance + finance.value,
+              ? balance - (finance.paymentValue ?? 0)
+              : balance + (finance.paymentValue ?? 0),
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
@@ -694,8 +694,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance - finance.totalValue
-                : checkingAccount.balance + finance.totalValue,
+                ? checkingAccount.balance - (finance.paymentValue ?? 0)
+                : checkingAccount.balance + (finance.paymentValue ?? 0),
           })
           .useTransaction(trx)
           .save();

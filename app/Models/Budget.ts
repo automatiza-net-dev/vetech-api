@@ -17,6 +17,7 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 import BusinessUnit from 'App/Models/BusinessUnit';
+import Attendance from './Attendance';
 
 export enum BudgetStatus {
   A = 'ABERTO',
@@ -101,6 +102,11 @@ export default class Budget extends BaseModel {
     serializeAs: null,
   })
   public attendance_id: number;
+
+  @belongsTo(() => Attendance, {
+    foreignKey: 'attendance_id',
+  })
+  public attendance: BelongsTo<typeof Attendance>;
 
   @column({
     serializeAs: null,

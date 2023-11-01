@@ -884,6 +884,8 @@ Route.group(() => {
   Route.get('/products', 'BudgetsController.searchProducts');
   Route.get('/partial', 'BudgetsController.partialIndex');
   Route.get('/complete', 'BudgetsController.completeIndex');
+  Route.get('/open/:id', 'BudgetsController.openNegotiations');
+  Route.get('/from-attendance/:id', 'BudgetsController.fromAttendance');
   Route.get('/:id', 'BudgetsController.show');
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/add-kit', 'BudgetsController.addKitToBudget');

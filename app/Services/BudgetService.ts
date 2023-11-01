@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
+import Attendance from 'App/Models/Attendance';
 import Bill, { BillStatus } from 'App/Models/Bill';
 import { BillItemStatus } from 'App/Models/BillItem';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
@@ -62,6 +63,102 @@ export default class BudgetService {
     private sharedService: SharedService,
     private billService: BillService,
   ) {}
+
+  public async budgetsFromAttendance(
+    authCtx: AuthContext,
+    attendanceId: string,
+  ) {
+    return Budget.query()
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id)
+      .where('attendance_id', attendanceId)
+      .orderBy('created_at', 'desc')
+      .select('id', 'budget_date', 'total_value', 'tag', 'status');
+  }
+
+  public async listOpenNegotiations(authCtx: AuthContext, patientId: string) {
+    return Attendance.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .where('patient_id', patientId)
+      .whereHas('budgets', query => {
+        query.where('status', BudgetStatus.A);
+        query.whereNull('deleted_at');
+
+        query.whereHas('items', query => {
+          query.whereNull('deleted_at');
+        });
+      })
+      .preload('unit', query => {
+        query.select('id', 'identification');
+      })
+      .preload('scheduleService', query => {
+        query.select('id', 'description');
+      })
+      .preload('openUser', query => {
+        query.select('id', 'name');
+      })
+      .preload('closeUser', query => {
+        query.select('id', 'name');
+      })
+      .preload('patient', query => {
+        query.select('id', 'name');
+      })
+      .preload('budgets', query => {
+        query.select(
+          'id',
+          'budget_date',
+          'total_value',
+          'tag',
+          'client_id',
+          'patient_id',
+          'user_id',
+          'seller_id',
+          'reviewer_id',
+        );
+        query.where('status', BudgetStatus.A);
+        query.whereNull('deleted_at');
+
+        query.preload('client', query => {
+          query.select('id', 'name');
+        });
+
+        query.preload('patient', query => {
+          query.select('id', 'name');
+        });
+
+        query.preload('user', query => {
+          query.select('id', 'name');
+        });
+
+        query.preload('seller', query => {
+          query.select('id', 'name');
+        });
+
+        query.preload('reviewer', query => {
+          query.select('id', 'name');
+        });
+
+        query.preload('items', query => {
+          query.select(
+            'id',
+            'quantity',
+            'unitary_value',
+            'discount_value',
+            'total_value',
+            'status',
+            'product_variation_id',
+          );
+          query.whereNull('deleted_at');
+
+          query.preload('productVariation', query => {
+            query.select('id', 'product_id');
+            query.preload('product', query => {
+              query.select('id', 'description');
+            });
+          });
+        });
+      });
+  }
 
   public async partialIndex(unitId: string, data: ISearchPartial) {
     const qb = Budget.query()

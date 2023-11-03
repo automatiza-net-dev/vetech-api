@@ -165,6 +165,7 @@ export default class PatientService {
         profession: elem.tutor.profession,
         civilStatus: elem.tutor.civilStatus,
         nationality: elem.tutor.nationality,
+        clientOriginItemDescription: elem.clientOriginItemDescription,
         address: {
           street: elem.tutor.street,
           number: elem.tutor.number,
@@ -754,6 +755,7 @@ export default class PatientService {
           diabetes: data.diabetes,
           hypertension: data.hypertension,
           tag: (tutors.length + 1).toString(),
+          clientOriginItemDescription: data.clientOriginItemDescription,
         },
         { client: trx },
       );
@@ -1190,6 +1192,7 @@ export default class PatientService {
           active: data.active,
           diabetes: data.diabetes,
           hypertension: data.hypertension,
+          clientOriginItemDescription: data.clientOriginItemDescription,
         })
         .useTransaction(trx)
         .save();

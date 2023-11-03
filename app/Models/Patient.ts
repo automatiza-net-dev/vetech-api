@@ -71,6 +71,11 @@ export default class Patient extends BaseModel {
   public tags?: string;
 
   @column({
+    columnName: 'client_origin_item_description',
+  })
+  public clientOriginItemDescription?: string;
+
+  @column({
     columnName: 'birth_date',
   })
   public birthDate?: Date;

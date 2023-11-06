@@ -23,7 +23,7 @@ export default class BusinessUnitMetasController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateMetaValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
-    const data = await this.service.store(authCtx, payload);
+    const data = await this.service.store(authCtx, payload.items);
 
     return response.created(data);
   }
@@ -35,15 +35,10 @@ export default class BusinessUnitMetasController {
     return response.ok(data);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateMetaValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
-    await this.service.update(authCtx, params.id, payload);
+    await this.service.update(authCtx, payload.items);
 
     return response.noContent();
   }

@@ -1,4 +1,4 @@
-import { schema, CustomMessages } from '@ioc:Adonis/Core/Validator';
+import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 
 export default class UpdateMetaValidator {
@@ -24,8 +24,15 @@ export default class UpdateMetaValidator {
    *    ```
    */
   public schema = schema.create({
-    value: schema.number(),
-    active: schema.boolean(),
+    items: schema.array().members(
+      schema.object().members({
+        id: schema.number([
+          rules.exists({ table: 'business_unit_metas', column: 'id' }),
+        ]),
+        value: schema.number(),
+        active: schema.boolean(),
+      }),
+    ),
   });
 
   /**

@@ -24,13 +24,17 @@ export default class CreateMetaValidator {
    *    ```
    */
   public schema = schema.create({
-    metaId: schema.number([rules.exists({ table: 'metas', column: 'id' })]),
-    businessUnitId: schema.string([
-      rules.uuid(),
-      rules.exists({ table: 'business_units', column: 'id' }),
-    ]),
-    value: schema.number(),
-    period: schema.string(),
+    items: schema.array().members(
+      schema.object().members({
+        metaId: schema.number([rules.exists({ table: 'metas', column: 'id' })]),
+        businessUnitId: schema.string([
+          rules.uuid(),
+          rules.exists({ table: 'business_units', column: 'id' }),
+        ]),
+        value: schema.number(),
+        period: schema.string(),
+      }),
+    ),
   });
 
   /**

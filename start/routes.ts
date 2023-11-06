@@ -1444,7 +1444,7 @@ Route.group(() => {
   Route.get('/', 'BusinessUnitMetasController.index');
   Route.get('/:id', 'BusinessUnitMetasController.show');
   Route.post('/', 'BusinessUnitMetasController.store');
-  Route.put('/:id', 'BusinessUnitMetasController.update');
+  Route.put('/', 'BusinessUnitMetasController.update');
   Route.delete('/:id', 'BusinessUnitMetasController.destroy');
 })
   .prefix('business-unit-metas')

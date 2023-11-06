@@ -108,30 +108,34 @@ export default class BusinessUnitMetaService {
       businessUnitId: string;
       value: number;
       period: string;
-    },
+    }[],
   ) {
     return await Database.transaction(async trx => {
-      const existing = await BusinessUnitMeta.query()
-        .useTransaction(trx)
-        .where('business_unit_id', data.businessUnitId)
-        .where('meta_id', data.metaId)
-        .where('period', data.period);
+      const tasks = data.map(async d => {
+        const existing = await BusinessUnitMeta.query()
+          .useTransaction(trx)
+          .where('business_unit_id', d.businessUnitId)
+          .where('meta_id', d.metaId)
+          .where('period', d.period);
 
-      if (existing.length > 0) {
-        throw new BadRequestException('Meta já cadastrada', 400, 'E_ERR');
-      }
+        if (existing.length > 0) {
+          throw new BadRequestException('Meta já cadastrada', 400, 'E_ERR');
+        }
 
-      return BusinessUnitMeta.create(
-        {
-          business_unit_id: data.businessUnitId,
-          meta_id: data.metaId,
-          value: data.value,
-          period: data.period,
-        },
-        {
-          client: trx,
-        },
-      );
+        return BusinessUnitMeta.create(
+          {
+            business_unit_id: d.businessUnitId,
+            meta_id: d.metaId,
+            value: d.value,
+            period: d.period,
+          },
+          {
+            client: trx,
+          },
+        );
+      });
+
+      await Promise.all(tasks);
     });
   }
 
@@ -153,18 +157,42 @@ export default class BusinessUnitMetaService {
 
   async update(
     authCtx: AuthContext,
-    id: string,
     data: {
+      id: number;
       value: number;
-    },
+      active: boolean;
+    }[],
   ) {
-    const model = await this.show(authCtx, id);
+    await Database.transaction(async trx => {
+      const rows = await BusinessUnitMeta.query()
+        .useTransaction(trx)
+        .where('business_unit_id', authCtx.unit.id)
+        .whereIn(
+          'id',
+          data.map(d => d.id),
+        );
 
-    return model
-      .merge({
-        value: data.value,
-      })
-      .save();
+      if (rows.length !== data.length) {
+        throw this.sharedService.ResourceNotFound();
+      }
+
+      const tasks = rows.map(async row => {
+        const d = data.find(d => d.id === row.id);
+        if (!d) {
+          throw this.sharedService.ResourceNotFound();
+        }
+
+        return row
+          .merge({
+            value: d.value,
+            active: d.active,
+          })
+          .useTransaction(trx)
+          .save();
+      });
+
+      await Promise.all(tasks);
+    });
   }
 
   async destroy(authCtx: AuthContext, id: string) {

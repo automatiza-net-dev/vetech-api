@@ -1230,20 +1230,17 @@ export default class IndicatorService {
           `
             business_units.id,
             business_units.identification,
-            sum(budget_items.total_value) as total,
+            sum(budgets.total_value) as total,
             count(distinct budgets.id) as qtd_Orcamentos
           `,
         ),
       )
-      .leftJoin('budget_items', query => {
-        query.on('budget_items.budget_id', '=', 'budgets.id');
-      })
       .leftJoin('business_units', query => {
         query.on('business_units.id', '=', 'budgets.business_unit_id');
       })
       .groupBy('business_units.id')
       .where('budgets.business_unit_id', data.unit ?? authCtx.unit.id)
-      .whereNotIn('budget_items.status', [BudgetStatus.C, BudgetStatus.P])
+      .whereNotIn('budgets.status', [BudgetStatus.C, BudgetStatus.P])
       .whereNull('budgets.deleted_at');
 
     if (data.fromDate) {

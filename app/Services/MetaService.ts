@@ -17,6 +17,7 @@ export default class MetaService {
       .preload('group', query => {
         query.select('id', 'company_name');
       })
+      .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id);
 
     if (data.description) {
@@ -36,6 +37,7 @@ export default class MetaService {
     await Database.transaction(async trx => {
       const existing = await Meta.query()
         .where('economic_group_id', authCtx.group.id)
+        .where('system_id', authCtx.system.id)
         .whereRaw('lower(description) = lower(?)', [data.description]);
 
       if (existing.length > 0) {
@@ -45,6 +47,7 @@ export default class MetaService {
       await Meta.create(
         {
           economic_group_id: authCtx.group.id,
+          system_id: authCtx.system.id,
 
           description: data.description,
           type: data.type,
@@ -68,6 +71,7 @@ export default class MetaService {
     await Database.transaction(async trx => {
       const model = await Meta.query()
         .useTransaction(trx)
+        .where('system_id', authCtx.system.id)
         .where('economic_group_id', authCtx.group.id)
         .where('id', id)
         .first();
@@ -79,6 +83,7 @@ export default class MetaService {
       if (model.description !== data.description) {
         const existing = await Meta.query()
           .useTransaction(trx)
+          .where('system_id', authCtx.system.id)
           .where('economic_group_id', authCtx.group.id)
           .whereRaw('lower(description) = lower(?)', [data.description]);
 
@@ -100,6 +105,7 @@ export default class MetaService {
 
   async destroy(authCtx: AuthContext, id: string) {
     const model = await Meta.query()
+      .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
       .where('id', id)
       .first();

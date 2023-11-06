@@ -32,7 +32,8 @@ export default class BusinessUnitMetaService {
           `),
       )
       .joinRaw(
-        `join metas on business_units.economic_group_id = metas.economic_group_id and metas.deleted_at is null`,
+        `join metas on business_units.economic_group_id = metas.economic_group_id and metas.deleted_at is null and metas.system_id = ?`,
+        [authCtx.system.id],
       )
       .joinRaw(
         `left join business_unit_metas on metas.id = business_unit_metas.meta_id and

@@ -35,6 +35,14 @@ export default class PatientsController {
     return response.ok(result);
   }
 
+  public async uniqueOrigins({ auth, response }: HttpContextContract) {
+    const result = await this.service.uniqueOrigins(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(result);
+  }
+
   public async show({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const patients = await this.service.show(unit_id, params.id);

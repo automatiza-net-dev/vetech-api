@@ -333,6 +333,24 @@ export default class PatientService {
       });
   }
 
+  public async uniqueOrigins(authCtx: AuthContext) {
+    const rows = await Database.from('patients')
+      .select(
+        Database.raw(
+          `distinct(patients.client_origin_item_description) as desc`,
+        ),
+      )
+      .joinRaw(
+        `left join patient_economic_groups on patient_economic_groups.patient_id = patients.id`,
+      )
+      .where('patient_economic_groups.economic_group_id', authCtx.group.id)
+      .whereNotNull('patients.client_origin_item_description')
+      .whereNull('patients.deleted_at')
+      .orderBy('patients.client_origin_item_description');
+
+    return rows.map(r => r.desc);
+  }
+
   public async search(unitId: string, data: ISearchPatient) {
     const group = await this.getEconomicGroup(unitId);
 

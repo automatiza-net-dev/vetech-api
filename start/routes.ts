@@ -199,6 +199,7 @@ Route.group(() => {
   Route.get('/check-document/:document', 'PatientsController.checkDocument');
   Route.post('/check-phone/', 'PatientsController.checkPhone');
   Route.get('/search', 'PatientsController.search');
+  Route.get('/unique-origins', 'PatientsController.uniqueOrigins');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');
   Route.get('/metadata/:id', 'PatientsController.metadata');

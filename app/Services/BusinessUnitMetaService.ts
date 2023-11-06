@@ -32,7 +32,7 @@ export default class BusinessUnitMetaService {
           `),
       )
       .joinRaw(
-        `join metas on business_units.economic_group_id = metas.economic_group_id and metas.deleted_at is null and metas.system_id = ?`,
+        `join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null) and metas.deleted_at is null and metas.system_id = ?`,
         [authCtx.system.id],
       )
       .joinRaw(

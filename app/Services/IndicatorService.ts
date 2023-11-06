@@ -1235,7 +1235,7 @@ export default class IndicatorService {
           `,
         ),
       )
-      .leftJoin('business_units', query => {
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'budgets.business_unit_id');
       })
       .groupBy('business_units.id')

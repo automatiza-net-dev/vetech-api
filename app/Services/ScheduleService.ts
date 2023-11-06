@@ -745,12 +745,14 @@ export default class ScheduleService {
       const patient = patients.find(p => p.id === schedule.patient_id);
 
       jsonKinda.user_id = schedule.user_id;
-      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
-        'America/Fortaleza',
-      );
-      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
-        'America/Fortaleza',
-      );
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
       delete jsonKinda.start_hour;
       delete jsonKinda.end_hour;
       delete jsonKinda.start;
@@ -859,12 +861,14 @@ export default class ScheduleService {
       const patient = patients.find(p => p.id === schedule.patient_id);
 
       jsonKinda.user_id = schedule.user_id;
-      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
-        'America/Fortaleza',
-      );
-      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
-        'America/Fortaleza',
-      );
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
       delete jsonKinda.start_hour;
       delete jsonKinda.end_hour;
       delete jsonKinda.start;

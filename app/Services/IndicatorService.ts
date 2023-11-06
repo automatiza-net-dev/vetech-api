@@ -1230,7 +1230,8 @@ export default class IndicatorService {
           `
             business_units.id,
             business_units.identification,
-            sum(budget_items.total_value) as total
+            sum(budget_items.total_value) as total,
+            count(distinct budgets.id) as qtd_Orcamentos
           `,
         ),
       )
@@ -1259,6 +1260,7 @@ export default class IndicatorService {
       id: elem.id,
       identification: elem.identification,
       total: elem.total,
+      unique: parseInt(elem.qtd_orcamentos, 10),
     }));
   }
 

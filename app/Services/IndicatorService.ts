@@ -3,6 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
+import { FinanceType } from 'App/Models/Finance';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -2059,15 +2060,16 @@ export default class IndicatorService {
         `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
       )
       .joinRaw(
-        `left join patients on patients.id = bills.client_id and
+        `join patients on patients.id = bills.client_id and
                                to_char(patients.created_at, 'MM/yyyy') = to_char(bills.bill_date, 'MM/yyyy')`,
       )
-      .groupByRaw(
-        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy')`,
+      .joinRaw(`join patient_tutors pt on patients.id = pt.patient_id`)
+      .joinRaw(
+        `join client_origins co on pt.client_origin_id = co.id and co.group = 'Marketing'`,
       )
       .whereNull('bills.deleted_at')
       .groupByRaw(
-        `business_units.id, economic_groups.id, to_char(bill_date, 'MM/yyyy')`,
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy'), business_units.id, economic_groups.id`,
       );
 
     const financesQb = Database.from('finances')
@@ -2078,8 +2080,7 @@ export default class IndicatorService {
       business_units.id  as b_id,
       business_units.identification,
       competence_date,
-      sum(total_value)   as total,
-      -1 as placeholder
+      sum(total_value)   as total
       `),
       )
       .joinRaw(
@@ -2092,6 +2093,7 @@ export default class IndicatorService {
         `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
       )
       .whereNull('finances.deleted_at')
+      .where('finances.type', FinanceType.D)
       .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
       .orderBy('competence_date');
 

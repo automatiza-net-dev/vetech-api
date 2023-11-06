@@ -92,8 +92,13 @@ export default class BusinessUnitMetaService {
           identification: unitRows[0].identification,
         },
         metas: unitRows.map(r => ({
-          id: r.m_id,
-          description: r.description,
+          meta: {
+            id: r.m_id,
+            description: r.description,
+          },
+          businessUnitMeta: {
+            id: r.bum_id,
+          },
           value: r.valor_meta,
           period: r.period,
         })),

@@ -1242,7 +1242,7 @@ export default class IndicatorService {
       })
       .groupBy('business_units.id')
       .where('budgets.business_unit_id', data.unit ?? authCtx.unit.id)
-      .where('budget_items.status', '<>', BudgetStatus.C);
+      .whereNotIn('budget_items.status', [BudgetStatus.C, BudgetStatus.P])
 
     if (data.fromDate) {
       qb.andWhereRaw('budgets.budget_date::date >= ?', [data.fromDate]);

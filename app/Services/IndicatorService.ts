@@ -1890,18 +1890,22 @@ export default class IndicatorService {
         ),
       )
       .joinRaw(
-        `left join business_units on bills.business_unit_id = business_units.id`,
+        `join business_units on bills.business_unit_id = business_units.id`,
       )
       .joinRaw(
-        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join patients on bills.client_id = patients.id and to_char(bill_date, 'MM/yyyy') = to_char(patients.created_at, 'MM/yyyy')`,
+      )
+      .joinRaw(`join patient_tutors on patients.id = patient_tutors.patient_id`)
+      .joinRaw(
+        `join client_origins on patient_tutors.client_origin_id = client_origins.id and client_origins.group = 'Marketing'`,
       )
       .groupByRaw(
-        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy')`,
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy'), business_units.id, economic_groups.id`,
       )
-      .whereNull('bills.deleted_at')
-      .groupByRaw(
-        `business_units.id, economic_groups.id, to_char(bill_date, 'MM/yyyy')`,
-      );
+      .whereNull('bills.deleted_at');
 
     const financesQb = Database.from('finances')
       .select(
@@ -1915,17 +1919,19 @@ export default class IndicatorService {
         `),
       )
       .joinRaw(
-        `left join business_units on finances.business_unit_id = business_units.id`,
+        `join business_units on finances.business_unit_id = business_units.id`,
       )
       .joinRaw(
-        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
       )
       .joinRaw(
-        `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
+        `join business_unit_configs on business_unit_configs.business_unit_id = business_units.id
+         		and business_unit_configs.marketing_account_plan_id = finances.account_plan_id`,
       )
       .whereNull('finances.deleted_at')
+      .where('finances.type', FinanceType.D)
       .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
-      .orderBy('competence_date');
+      .orderBy('competence_date', 'asc');
 
     if (data.units && Array.isArray(data.units)) {
       billsQb.whereIn('business_units.id', data.units);
@@ -2000,6 +2006,9 @@ export default class IndicatorService {
             finance.competence_date === competence_date,
         );
 
+        const financeTotal = finance?.total ?? 0;
+        const billTotal = bill?.total ?? 0;
+
         return {
           group: {
             id: e_id,
@@ -2014,8 +2023,10 @@ export default class IndicatorService {
               'Não encontrado?',
           },
           competenceDate: competence_date,
-          totalFinance: finance?.total ?? 0,
-          totalBills: bill?.total ?? 0,
+          totalFinance: financeTotal,
+          totalBills: billTotal,
+          roi:
+            financeTotal === 0 ? 0 : (billTotal - financeTotal) / financeTotal,
         };
       })
       .sort((a, b) => {

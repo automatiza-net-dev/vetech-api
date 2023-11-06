@@ -15,6 +15,10 @@ export default class BusinessUnitMetaService {
   constructor(private sharedService: SharedService) {}
 
   async index(authCtx: AuthContext, data: ISearch) {
+    if (!data.period) {
+      throw new BadRequestException('Período não informado', 400, 'E_ERR');
+    }
+
     const qb = Database.from('business_units')
       .select(
         Database.raw(`
@@ -32,7 +36,8 @@ export default class BusinessUnitMetaService {
       )
       .joinRaw(
         `left join business_unit_metas on metas.id = business_unit_metas.meta_id and
-                                          business_units.id = business_unit_metas.business_unit_id  and business_unit_metas.active = true`,
+                                          business_units.id = business_unit_metas.business_unit_id and business_unit_metas.period = ? and business_unit_metas.active = true`,
+        [data.period],
       )
       .orderByRaw(`business_units.id, metas.id, business_unit_metas.id`);
 
@@ -46,10 +51,6 @@ export default class BusinessUnitMetaService {
       qb.whereIn('business_units.economic_group_id', data.groups);
     } else {
       qb.where('business_units.economic_group_id', authCtx.group.id);
-    }
-
-    if (data.period) {
-      qb.where('business_unit_metas.period', data.period);
     }
 
     const rows = await qb;

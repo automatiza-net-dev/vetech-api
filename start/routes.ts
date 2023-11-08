@@ -52,6 +52,11 @@ Route.group(() => {
   Route.post('/confirm-token', 'UsersController.confirmConfirmationToken');
 
   Route.post(
+    '/create-user-controller',
+    'UsersController.createUserController',
+  ).middleware('auth');
+
+  Route.post(
     '/start-change-password',
     'UsersController.handleChangePasswordEmail',
   ).middleware('auth');

@@ -5,6 +5,7 @@ import UserService from 'App/Services/UserService';
 import ChangePasswordValidator from 'App/Validators/User/ChangePasswordValidator';
 import ConfirmConfirmationTokenValidator from 'App/Validators/User/ConfirmConfirmationTokenValidator';
 import CreateConfirmationTokenValidator from 'App/Validators/User/CreateConfirmationTokenValidator';
+import CreateUserControllerValidator from 'App/Validators/User/CreateUserControllerValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
@@ -112,6 +113,20 @@ export default class UsersController {
   }: HttpContextContract) {
     const payload = await request.validate(ChangePasswordValidator);
     await this.service.handleChangePasswordEmail(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
+  }
+
+  public async createUserController({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateUserControllerValidator);
+    await this.service.createUserController(
       await this.sharedService.getAuthContext(auth),
       payload,
     );

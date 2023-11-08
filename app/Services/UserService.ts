@@ -225,6 +225,59 @@ export default class UserService {
     });
   }
 
+  public async createUserController(
+    authCtx: AuthContext,
+    data: {
+      name: string;
+      email: string;
+      document: string;
+      password: string;
+      units: { businessUnitId: string; roleId: number }[];
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.create(
+        {
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          password: data.password,
+          system_id: authCtx.system.id,
+          type: 'controller',
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await user.related('roles').createMany(
+        data.units.map(u => ({
+          role_id: u.roleId,
+          unit_id: u.businessUnitId,
+        })),
+        {
+          client: trx,
+        },
+      );
+
+      const units = await BusinessUnit.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.units.map(u => u.businessUnitId),
+        );
+
+      const uniqueEconomicGroups = units.reduce((acc, curr) => {
+        if (!acc.find(a => a === curr.economicGroupId)) {
+          acc.push(curr.economicGroupId);
+        }
+        return acc;
+      }, [] as string[]);
+
+      await user.related('economicGroups').attach(uniqueEconomicGroups, trx);
+    });
+  }
+
   public async show(id: string): Promise<User> {
     const user = await User.find(id);
 

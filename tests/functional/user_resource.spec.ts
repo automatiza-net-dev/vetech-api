@@ -483,4 +483,26 @@ test.group('User resource', group => {
 
     assert.equal(204, response.status());
   });
+
+  test('should create controller user', async ({ client, assert }) => {
+    const { user, system, business, role } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    const response = await client
+      .post(`/users/create-user-controller`)
+      .json({
+        name: 'User Controller',
+        email: `${v4()}@mail.com`,
+        document: '102030',
+        password: '102030',
+        units: [{ businessUnitId: business.id, roleId: role.id }],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
 });

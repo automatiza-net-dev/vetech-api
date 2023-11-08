@@ -1,6 +1,7 @@
 import Mail from '@ioc:Adonis/Addons/Mail';
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import User from 'App/Models/User';
 import ConfirmationToken from 'App/Models/ConfirmationToken';
 import UserPasswordChange from 'App/Models/UserPasswordChange';
 import UserFactory from 'Database/factories/UserFactory';
@@ -9,13 +10,6 @@ import { v4 } from 'uuid';
 
 import { userBootstrap, generateJwtToken } from '../utils';
 
-/*
-  REFACTOR LIST
-
-  - check group creation after user creation
-  - seed interaction (create user on demand?)
-
- */
 test.group('User resource', group => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
@@ -495,6 +489,37 @@ test.group('User resource', group => {
     const response = await client
       .post(`/users/create-user-controller`)
       .json({
+        name: 'User Controller',
+        email: `${v4()}@mail.com`,
+        document: '102030',
+        password: '102030',
+        units: [{ businessUnitId: business.id, roleId: role.id }],
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should update controller user', async ({ client, assert }) => {
+    const { user, system, business, role } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    const otherUser = await User.create({
+      system_id: system.id,
+      name: 'User Controller',
+      email: `${v4()}@mail.com`,
+      document: '102030',
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/users/update-user-controller`)
+      .json({
+        id: otherUser.id,
         name: 'User Controller',
         email: `${v4()}@mail.com`,
         document: '102030',

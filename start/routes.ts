@@ -55,6 +55,10 @@ Route.group(() => {
     '/create-user-controller',
     'UsersController.createUserController',
   ).middleware('auth');
+  Route.post(
+    '/update-user-controller',
+    'UsersController.updateUserController',
+  ).middleware('auth');
 
   Route.post(
     '/start-change-password',

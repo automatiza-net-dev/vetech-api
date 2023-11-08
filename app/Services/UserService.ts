@@ -277,6 +277,81 @@ export default class UserService {
       await user.related('economicGroups').attach(uniqueEconomicGroups, trx);
     });
   }
+  public async updateUserController(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+      name: string;
+      email: string;
+      document: string;
+      password: string;
+      units: { businessUnitId: string; roleId: number }[];
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user
+        .merge({
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          password: data.password,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await user.related('roles').query().useTransaction(trx).delete();
+
+      await user.related('roles').createMany(
+        data.units.map(u => ({
+          role_id: u.roleId,
+          unit_id: u.businessUnitId,
+        })),
+        {
+          client: trx,
+        },
+      );
+
+      const units = await BusinessUnit.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.units.map(u => u.businessUnitId),
+        );
+
+      const uniqueEconomicGroups = units.reduce((acc, curr) => {
+        if (!acc.find(a => a === curr.economicGroupId)) {
+          acc.push(curr.economicGroupId);
+        }
+        return acc;
+      }, [] as string[]);
+
+      await user
+        .related('economicGroups')
+        .sync(uniqueEconomicGroups, true, trx);
+    });
+  }
 
   public async show(id: string): Promise<User> {
     const user = await User.find(id);

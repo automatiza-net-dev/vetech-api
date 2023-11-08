@@ -37,7 +37,13 @@ export default class UpdateUserControllerValidator {
         whereNot: { id: this.getUserId() },
       }),
     ]),
-    document: schema.string(),
+    document: schema.string({}, [
+      rules.unique({
+        table: 'users',
+        column: 'document',
+        whereNot: { id: this.getUserId() },
+      }),
+    ]),
     password: schema.string(),
     units: schema.array().members(
       schema.object().members({
@@ -47,6 +53,14 @@ export default class UpdateUserControllerValidator {
         roleId: schema.number([rules.exists({ table: 'roles', column: 'id' })]),
       }),
     ),
+    phone: schema.string.optional({}, [rules.maxLength(20)]),
+    postalCode: schema.string.optional({}),
+    address: schema.string.optional({}),
+    number: schema.string.optional({}),
+    complement: schema.string.optional({}),
+    district: schema.string.optional({}),
+    city: schema.string.optional({}),
+    state: schema.string.optional({}),
   });
 
   /**

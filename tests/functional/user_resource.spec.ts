@@ -494,6 +494,15 @@ test.group('User resource', group => {
         document: '102030',
         password: '102030',
         units: [{ businessUnitId: business.id, roleId: role.id }],
+
+        phone: v4().slice(0, 10),
+        postalCode: v4(),
+        address: v4(),
+        number: v4(),
+        complement: v4(),
+        district: v4(),
+        city: v4(),
+        state: v4(),
       })
       .bearerToken(token);
 
@@ -525,6 +534,15 @@ test.group('User resource', group => {
         document: '102030',
         password: '102030',
         units: [{ businessUnitId: business.id, roleId: role.id }],
+
+        phone: v4().slice(0, 10),
+        postalCode: v4(),
+        address: v4(),
+        number: v4(),
+        complement: v4(),
+        district: v4(),
+        city: v4(),
+        state: v4(),
       })
       .bearerToken(token);
 

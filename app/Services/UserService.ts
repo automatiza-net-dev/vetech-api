@@ -233,6 +233,15 @@ export default class UserService {
       document: string;
       password: string;
       units: { businessUnitId: string; roleId: number }[];
+
+      phone?: string;
+      postalCode?: string;
+      address?: string;
+      number?: string;
+      complement?: string;
+      district?: string;
+      city?: string;
+      state?: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -244,6 +253,15 @@ export default class UserService {
           password: data.password,
           system_id: authCtx.system.id,
           type: 'controller',
+
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
         },
         {
           client: trx,
@@ -286,6 +304,15 @@ export default class UserService {
       document: string;
       password: string;
       units: { businessUnitId: string; roleId: number }[];
+
+      phone?: string;
+      postalCode?: string;
+      address?: string;
+      number?: string;
+      complement?: string;
+      district?: string;
+      city?: string;
+      state?: string;
     },
   ) {
     await Database.transaction(async trx => {
@@ -317,6 +344,15 @@ export default class UserService {
           email: data.email,
           document: data.document,
           password: data.password,
+
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
         })
         .useTransaction(trx)
         .save();

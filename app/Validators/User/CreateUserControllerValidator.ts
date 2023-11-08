@@ -28,7 +28,9 @@ export default class CreateUserControllerValidator {
     email: schema.string({}, [
       rules.unique({ table: 'users', column: 'email' }),
     ]),
-    document: schema.string(),
+    document: schema.string({}, [
+      rules.unique({ table: 'users', column: 'document' }),
+    ]),
     password: schema.string(),
     units: schema.array().members(
       schema.object().members({
@@ -38,6 +40,14 @@ export default class CreateUserControllerValidator {
         roleId: schema.number([rules.exists({ table: 'roles', column: 'id' })]),
       }),
     ),
+    phone: schema.string.optional({}, [rules.maxLength(20)]),
+    postalCode: schema.string.optional({}),
+    address: schema.string.optional({}),
+    number: schema.string.optional({}),
+    complement: schema.string.optional({}),
+    district: schema.string.optional({}),
+    city: schema.string.optional({}),
+    state: schema.string.optional({}),
   });
 
   /**

@@ -530,4 +530,32 @@ test.group('User resource', group => {
 
     assert.equal(204, response.status());
   });
+
+  test('should fetch user controllers', async ({ client, assert }) => {
+    const { user, system, business, role } = await createUser();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+      systemName: system.name,
+    });
+
+    const otherUser = await User.create({
+      system_id: system.id,
+      name: 'User Controller',
+      email: `${v4()}@mail.com`,
+      document: '102030',
+      password: '102030',
+    });
+
+    await otherUser.related('roles').create({
+      role_id: role.id,
+      unit_id: business.id,
+    });
+
+    const response = await client
+      .get(`/users/fetch-user-controllers`)
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
+  });
 });

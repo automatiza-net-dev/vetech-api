@@ -352,6 +352,14 @@ export default class UserService {
         .sync(uniqueEconomicGroups, true, trx);
     });
   }
+  public async fetchUserControllers(authCtx: AuthContext) {
+    return User.query()
+      .where('system_id', authCtx.system.id)
+      .select('id', 'name', 'email', 'document', 'password')
+      .preload('roles', query => {
+        query.select('role_id', 'unit_id');
+      });
+  }
 
   public async show(id: string): Promise<User> {
     const user = await User.find(id);

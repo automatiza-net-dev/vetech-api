@@ -40,6 +40,19 @@ Route.group(() => {
 }).prefix('auth');
 
 Route.group(() => {
+  Route.get(
+    '/fetch-user-controllers',
+    'UsersController.fetchUserControllers',
+  ).middleware('auth');
+  Route.post(
+    '/create-user-controller',
+    'UsersController.createUserController',
+  ).middleware('auth');
+  Route.post(
+    '/update-user-controller',
+    'UsersController.updateUserController',
+  ).middleware('auth');
+
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');
   Route.get('/check-email/:email', 'UsersController.checkEmail');
@@ -50,15 +63,6 @@ Route.group(() => {
   );
   Route.post('/send-confirmation', 'UsersController.createConfirmationToken');
   Route.post('/confirm-token', 'UsersController.confirmConfirmationToken');
-
-  Route.post(
-    '/create-user-controller',
-    'UsersController.createUserController',
-  ).middleware('auth');
-  Route.post(
-    '/update-user-controller',
-    'UsersController.updateUserController',
-  ).middleware('auth');
 
   Route.post(
     '/start-change-password',

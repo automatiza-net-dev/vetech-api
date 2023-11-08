@@ -148,4 +148,12 @@ export default class UsersController {
 
     return response.noContent();
   }
+
+  public async fetchUserControllers({ auth, response }: HttpContextContract) {
+    const data = await this.service.fetchUserControllers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(data);
+  }
 }

@@ -28,6 +28,23 @@ export default class RolesController {
     );
   }
 
+  public async controllerIndex({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const qs = request.qs();
+
+    response.ok(
+      await this.roleService.controllerIndex(
+        await this.sharedService.getAuthContext(auth),
+        {
+          name: qs.name,
+        },
+      ),
+    );
+  }
+
   public async show({ params, response, auth }: HttpContextContract) {
     response.ok(
       await this.roleService.show(
@@ -53,6 +70,20 @@ export default class RolesController {
   public async store({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateRoleValidator);
     const newRole = await this.roleService.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.created(newRole);
+  }
+
+  public async storeController({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateRoleValidator);
+    const newRole = await this.roleService.storeController(
       await this.sharedService.getAuthContext(auth),
       payload,
     );
@@ -105,9 +136,40 @@ export default class RolesController {
     return response.created(updatedRole);
   }
 
+  public async updateController({
+    params,
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdateRoleValidator);
+    const updatedRole = await this.roleService.updateController(
+      await this.sharedService.getAuthContext(auth),
+      id,
+      payload,
+    );
+
+    return response.ok(updatedRole);
+  }
+
   public async destroy({ params, response, auth }: HttpContextContract) {
     const { id } = params;
     await this.roleService.delete(
+      await this.sharedService.getAuthContext(auth),
+      id,
+    );
+
+    return response.noContent();
+  }
+
+  public async destroyController({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const { id } = params;
+    await this.roleService.deleteController(
       await this.sharedService.getAuthContext(auth),
       id,
     );

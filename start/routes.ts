@@ -171,6 +171,11 @@ Route.group(() => {
   Route.post('/permissions', 'RolesController.managePermissions');
   Route.post('/copy', 'RolesController.copyRole');
 
+  Route.get('/controller', 'RolesController.controllerIndex');
+  Route.post('/controller', 'RolesController.storeController');
+  Route.put('/controller/:id', 'RolesController.updateController');
+  Route.delete('/controller/:id', 'RolesController.destroyController');
+
   Route.get('/', 'RolesController.index');
   Route.post('/', 'RolesController.store');
   Route.get('/:id', 'RolesController.show');

@@ -56,6 +56,23 @@ test.group('Role resource', group => {
     assert.isArray(roles);
   });
 
+  test('should return a list of all controller roles', async ({
+    client,
+    assert,
+  }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client.get('/roles/controller').bearerToken(token);
+
+    const roles = response.body();
+
+    assert.isArray(roles);
+  });
+
   test('should return a role', async ({ client, assert }) => {
     const { user, role } = await createData();
     const token = await generateJwtToken(client, {
@@ -107,6 +124,25 @@ test.group('Role resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should create a new controller role', async ({ client, assert }) => {
+    const { user } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post('/roles/controller')
+      .json({
+        name: v4(),
+        type: 'system',
+        externalAccess: false,
+      })
+      .bearerToken(token);
+
+    assert.equal(201, response.status());
+  });
+
   test('should update a role', async ({ client, assert }) => {
     const { user, role } = await createData();
     const token = await generateJwtToken(client, {
@@ -128,6 +164,27 @@ test.group('Role resource', group => {
 
     assert.equal(role.id, body.id);
     assert.notEqual(role.name, body.name);
+  });
+
+  test('should update a controller role', async ({ client, assert }) => {
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await role.merge({ type: 'controller' }).save();
+
+    const response = await client
+      .put(`/roles/controller/${role.id}`)
+      .json({
+        name: v4(),
+        externalAccess: false,
+        active: true,
+      })
+      .bearerToken(token);
+
+    assert.equal(200, response.status());
   });
 
   test('should throw BadRequestException if deleting role with users', async ({
@@ -162,6 +219,23 @@ test.group('Role resource', group => {
 
     const response = await client
       .delete(`/roles/${role.id}`)
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
+  });
+
+  test('should delete a controller role', async ({ client, assert }) => {
+    const { user, role } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    await role.merge({ type: 'controller' }).save();
+    await role.related('users').query().delete();
+
+    const response = await client
+      .delete(`/roles/controller/${role.id}`)
       .bearerToken(token);
 
     assert.equal(204, response.status());

@@ -43,6 +43,22 @@ export default class RoleService {
     return qb;
   }
 
+  public async controllerIndex(
+    authCtx: AuthContext,
+    data: ISearch,
+  ): Promise<Array<Role>> {
+    const qb = Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'controller' as TRoleType);
+
+    if (data.name) {
+      qb.where('name', 'ilike', `%${data.name}%`);
+    }
+
+    return qb;
+  }
+
   public async store(
     authCtx: AuthContext,
     data: Omit<IRoleData, 'active'>,
@@ -50,6 +66,7 @@ export default class RoleService {
     return Database.transaction(async trx => {
       const permissions = await Permission.query()
         .useTransaction(trx)
+        .whereIn('type', ['user', 'both'] as TRoleType[])
         .whereHas('systems', query => {
           query.where('system_id', authCtx.system.id);
         });
@@ -58,6 +75,40 @@ export default class RoleService {
         {
           name: data.name,
           type: 'user',
+          system_id: authCtx.system.id,
+          economic_group_id: authCtx.group.id,
+          externalAccess: data.externalAccess,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await newRole.related('permissions').attach(
+        permissions.map(p => p.id),
+        trx,
+      );
+
+      return newRole;
+    });
+  }
+
+  public async storeController(
+    authCtx: AuthContext,
+    data: Omit<IRoleData, 'active'>,
+  ): Promise<Role> {
+    return Database.transaction(async trx => {
+      const permissions = await Permission.query()
+        .useTransaction(trx)
+        .whereIn('type', ['controller', 'both'] as TRoleType[])
+        .whereHas('systems', query => {
+          query.where('system_id', authCtx.system.id);
+        });
+
+      const newRole = await Role.create(
+        {
+          name: data.name,
+          type: 'controller',
           system_id: authCtx.system.id,
           economic_group_id: authCtx.group.id,
           externalAccess: data.externalAccess,
@@ -127,10 +178,70 @@ export default class RoleService {
       .save();
   }
 
+  public async updateController(
+    authCtx: AuthContext,
+    id: number,
+    data: IRoleData,
+  ): Promise<Role> {
+    const role = await Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'controller' as TRoleType)
+      .where('id', id)
+      .first();
+
+    if (!role) {
+      throw new ResourceNotFoundException(
+        'Cargo não foi encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    return role
+      .merge({
+        name: data.name,
+        externalAccess: data.externalAccess,
+        active: data.active,
+      })
+      .save();
+  }
+
   public async delete(authCtx: AuthContext, id: number): Promise<void> {
     const role = await Role.query()
       .where('system_id', authCtx.system.id)
       .where('economic_group_id', authCtx.group.id)
+      .where('id', id)
+      .preload('users')
+      .first();
+
+    if (!role) {
+      throw new ResourceNotFoundException(
+        'Cargo não foi encontrado',
+        404,
+        'E_NOT_FOUND',
+      );
+    }
+
+    if (role.users.length > 0) {
+      throw new BadRequestException(
+        'Não é possível excluir um cargo que possui permissões',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    await role.softDelete();
+  }
+
+  public async deleteController(
+    authCtx: AuthContext,
+    id: number,
+  ): Promise<void> {
+    const role = await Role.query()
+      .where('system_id', authCtx.system.id)
+      .where('economic_group_id', authCtx.group.id)
+      .where('type', 'controller' as TRoleType)
       .where('id', id)
       .preload('users')
       .first();

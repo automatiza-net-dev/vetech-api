@@ -181,6 +181,19 @@ export default class SchedulesController {
     return response.ok(result);
   }
 
+  public async usersWeeklySchedule({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.usersWeeklySchedule(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
   public async userAppointments({
     auth,
     params,

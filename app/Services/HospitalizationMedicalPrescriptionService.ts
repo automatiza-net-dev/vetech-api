@@ -134,6 +134,9 @@ export default class HospitalizationMedicalPrescriptionService {
         'status',
         'Aberto' as THospitalizationMedicalPrescriptionSchedulingStatus,
       )
+      .whereHas('hospitalization', query => {
+        query.whereRaw(`(released_at is null and death_at is null)`);
+      })
       .preload('hospitalization', query => {
         query.select('id', 'patient_id', 'technician_id');
         query.preload('patient');

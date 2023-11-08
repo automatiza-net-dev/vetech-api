@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/fold';
 import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import Permission from 'App/Models/Permission';
+import Permission, { TPermissionType } from 'App/Models/Permission';
 import Role, { TRoleType } from 'App/Models/Role';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IManageRolePermissions from 'Contracts/interfaces/IManageRolePermissions';
@@ -170,11 +170,25 @@ export default class RoleService {
     //     query.preload('screen').pivotColumns(['active']);
     //   })
 
-    const permissions = await role
+    const qb = role
       .related('permissions')
       .query()
       .preload('screen')
       .pivotColumns(['active', 'status']);
+
+    if (authCtx.user.type === 'user') {
+      qb.whereIn('type', ['user', 'both'] as TPermissionType[]);
+    }
+
+    if (authCtx.user.type === 'controller') {
+      qb.whereIn('type', ['controller', 'both'] as TPermissionType[]);
+    }
+
+    if (authCtx.user.type === 'controller') {
+      qb.whereIn('type', ['system'] as TPermissionType[]);
+    }
+
+    const permissions = await qb;
 
     const screens = permissions.map(p => p.screen).filter(Boolean);
     const uniqueScreens = screens.filter(

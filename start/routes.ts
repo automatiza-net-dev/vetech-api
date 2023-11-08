@@ -199,6 +199,7 @@ Route.group(() => {
   Route.get('/check-document/:document', 'PatientsController.checkDocument');
   Route.post('/check-phone/', 'PatientsController.checkPhone');
   Route.get('/search', 'PatientsController.search');
+  Route.get('/unique-origins', 'PatientsController.uniqueOrigins');
   Route.get('/animals', 'PatientsController.showAnimals');
   Route.get('/', 'PatientsController.index');
   Route.get('/metadata/:id', 'PatientsController.metadata');
@@ -210,6 +211,7 @@ Route.group(() => {
   Route.post('/', 'PatientsController.store');
 
   Route.put('/main/:patient/:tutor', 'PatientsController.setMainTutor');
+  Route.put('/declare-death/:id', 'PatientsController.declareDeath');
   Route.put('/:id', 'PatientsController.update');
   Route.delete('/:id', 'PatientsController.destroy');
 })
@@ -314,6 +316,10 @@ Route.group(() => {
     'SchedulesController.getScheduleStatusChanges',
   );
   Route.get('/user', 'SchedulesController.userDailySchedule');
+  Route.get(
+    '/users-weekly-schedules',
+    'SchedulesController.usersWeeklySchedule',
+  );
   Route.get('/with-schedule', 'SchedulesController.withSchedule');
   Route.get('/appointsments/:id', 'SchedulesController.userAppointments');
   Route.get('/returnables/:patient', 'SchedulesController.returnableSchedules');
@@ -879,6 +885,8 @@ Route.group(() => {
   Route.get('/products', 'BudgetsController.searchProducts');
   Route.get('/partial', 'BudgetsController.partialIndex');
   Route.get('/complete', 'BudgetsController.completeIndex');
+  Route.get('/open/:id', 'BudgetsController.openNegotiations');
+  Route.get('/from-attendance/:id', 'BudgetsController.fromAttendance');
   Route.get('/:id', 'BudgetsController.show');
   Route.post('/create', 'BudgetsController.createBudget');
   Route.post('/add-kit', 'BudgetsController.addKitToBudget');
@@ -1411,6 +1419,23 @@ Route.group(() => {
     'IndicatorsController.salesPerPeriodIndicators',
   );
   Route.get('/budgets', 'IndicatorsController.budgetIndicators');
+  Route.get('/marketing', 'IndicatorsController.marketingIndicators');
+  Route.get(
+    '/cost-of-acquisition',
+    'IndicatorsController.costOfAcquisitionIndicators',
+  );
+  Route.get(
+    '/bill-payment-format',
+    'IndicatorsController.billPaymentFormatIndicators',
+  );
+  Route.get(
+    '/installment-avg',
+    'IndicatorsController.installmentAvgIndicators',
+  );
+  Route.get(
+    '/avg-receipt-deadline',
+    'IndicatorsController.avgReceiptDeadlineIndicators',
+  );
 })
   .prefix('indicators')
   .middleware('auth');
@@ -1419,7 +1444,7 @@ Route.group(() => {
   Route.get('/', 'BusinessUnitMetasController.index');
   Route.get('/:id', 'BusinessUnitMetasController.show');
   Route.post('/', 'BusinessUnitMetasController.store');
-  Route.put('/:id', 'BusinessUnitMetasController.update');
+  Route.put('/', 'BusinessUnitMetasController.update');
   Route.delete('/:id', 'BusinessUnitMetasController.destroy');
 })
   .prefix('business-unit-metas')

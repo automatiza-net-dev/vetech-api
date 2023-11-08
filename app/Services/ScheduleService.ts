@@ -32,6 +32,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { DateTime } from 'luxon';
+import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
 
 interface ISearch {
   pid?: string;
@@ -164,17 +165,20 @@ export default class ScheduleService {
 
   public async store(
     authCtx: AuthContext,
-    data: IScheduleData & { scheduleOriginId?: string },
+    data: IScheduleData & {
+      scheduleOriginId?: string;
+      ignoreBlocking?: boolean;
+    },
   ) {
     if (data.userId) {
       const scheduleUser = await User.findOrFail(data.userId);
 
       if (!scheduleUser.onDuty) {
         // AGE12 é a permissão para agendar em horários bloqueados
-        const hasPermission = await this.sharedService.userHasPermission(
-          scheduleUser,
-          'AGE12',
-        );
+        // const hasPermission = await this.sharedService.userHasPermission(
+        //   scheduleUser,
+        //   'AGE12',
+        // );
 
         const result = await ScheduleService.checkDisponibility(
           data.userId ?? authCtx.user.id,
@@ -193,7 +197,8 @@ export default class ScheduleService {
           );
         }
 
-        if (result.invalidUnavailableDay && !hasPermission) {
+        // if (result.invalidUnavailableDay && !hasPermission) {
+        if (result.invalidUnavailableDay && !data.ignoreBlocking) {
           throw new BadRequestException(
             'Pessoa não está disponível neste horário',
             400,
@@ -699,13 +704,15 @@ export default class ScheduleService {
         'frequency',
         `%${ScheduleService.GetWD(new Date(data.from))}%`,
       )
-      .whereRaw('(start_date <= ? or start_date is null)', [data.from])
-      .whereRaw('(end_date >= ? or end_date is null)', [data.to])
+      .whereRaw('(start_date::date <= ? or start_date::date is null)', [
+        data.from,
+      ])
+      .whereRaw('(end_date::date >= ? or end_date::date is null)', [data.to])
       .whereIn('user_id', userIds);
 
     const schedulesQb = Schedule.query()
       .where('business_unit_id', authCtx.unit.id)
-      .whereBetween('start_hour', [data.from, data.to])
+      .whereRaw('start_hour::date between ? and ?', [data.from, data.to])
       .whereIn('user_id', userIds)
       .preload('serviceType', query => {
         query.select(['id', 'description']);
@@ -738,6 +745,12 @@ export default class ScheduleService {
       const patient = patients.find(p => p.id === schedule.patient_id);
 
       jsonKinda.user_id = schedule.user_id;
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
       jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
       jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
       delete jsonKinda.start_hour;
@@ -773,6 +786,139 @@ export default class ScheduleService {
             type: this.getEventLabel(day),
             event: day,
           })),
+      };
+    });
+  }
+
+  public async usersWeeklySchedule(
+    authCtx: AuthContext,
+    data: {
+      users?: string[];
+      to?: string;
+      from?: string;
+    },
+  ) {
+    if (!data.from || !data.to) {
+      throw new BadRequestException('Data não informada', 400, 'E_BAD_REQUEST');
+    }
+
+    if (!data.users || !Array.isArray(data.users) || data.users.length === 0) {
+      throw new BadRequestException(
+        'Usuários não informados',
+        400,
+        'E_BAD_REQUEST',
+      );
+    }
+
+    const users = await Database.from('users')
+      .select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+      .joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+      .joinRaw(
+        `left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+      )
+      .where('user_unit_roles.unit_id', authCtx.unit.id)
+      .where('users.type', 'user')
+      .whereRaw(`((users.on_duty = true) or (working_days.id is not null))`)
+      .whereIn('users.id', data.users);
+    const userIds = Array.from(new Set(users.map(u => u.id)));
+
+    const days: string[] = [];
+    const diff = differenceInDays(new Date(data.to), new Date(data.from));
+    const start = DateTime.fromISO(data.from);
+
+    for (let i = 0; i <= diff; i++) {
+      const dt = start.plus({ days: i });
+      days.push(dt.toFormat('dd/MM/yyyy'));
+    }
+
+    const schedules = await Schedule.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .whereRaw('start_hour::date between ? and ?', [data.from, data.to])
+      .whereIn('user_id', userIds)
+      .preload('serviceType', query => {
+        query.select(['id', 'description']);
+      })
+      .preload('serviceStatus', query => {
+        query.select(['id', 'description', 'color']);
+      })
+      .preload('holder', query => {
+        query.select(['id', 'name']);
+        query.preload('tutor', query => {
+          query.select(['cellphone', 'telephone']);
+        });
+      });
+
+    const patients = await Patient.query()
+      .whereIn(
+        'id',
+        schedules.map(s => s.patient_id).filter(Boolean) as string[],
+      )
+      .preload('tutor');
+
+    const mappedSchedules = schedules.map(schedule => {
+      const jsonKinda = schedule.toJSON();
+      const patient = patients.find(p => p.id === schedule.patient_id);
+
+      jsonKinda.user_id = schedule.user_id;
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+      delete jsonKinda.start_hour;
+      delete jsonKinda.end_hour;
+      delete jsonKinda.start;
+      delete jsonKinda.end;
+      delete jsonKinda.created_at;
+      delete jsonKinda.updated_at;
+
+      jsonKinda.patient = {
+        id: patient?.id,
+        name: patient?.name,
+        photo: patient?.photo,
+        tag: patient?.tag,
+        cellphone: patient?.tutor?.cellphone ?? null,
+      };
+
+      return jsonKinda;
+    });
+
+    return days.map(elem => {
+      const daySchedules = mappedSchedules.filter(e =>
+        isSameDay(
+          e.startHour.toJSDate(),
+          DateTime.fromFormat(elem, 'dd/MM/yyyy').toJSDate(),
+        ),
+      );
+
+      const map: Map<User, ModelObject[]> = new Map();
+      for (const user of users) {
+        map.set(
+          user,
+          daySchedules.filter(e => e.user_id === user.id),
+        );
+      }
+
+      return {
+        day: elem,
+        events: users.map(inner => {
+          return {
+            user: {
+              id: inner.id,
+              name: inner.name,
+              onDuty: inner.on_duty,
+            },
+            events: map.get(inner)?.map(e => ({
+              start: e.startHour.toString(),
+              end: e.endHour.toString(),
+              event: e,
+            })),
+          };
+        }),
       };
     });
   }
@@ -915,6 +1061,9 @@ export default class ScheduleService {
     //   );
     // }
 
+    const strStart = format(data.start, 'HH:mm');
+    const strEnd = format(data.end, 'HH:mm');
+
     const unavailableDays = await scheduleUser
       .related('unavailableDays')
       .query()
@@ -924,8 +1073,8 @@ export default class ScheduleService {
       .whereRaw('(start_date <= ? or start_date is null)', [data.start])
       .whereRaw('(end_date >= ? or end_date is null)', [data.end])
       .whereRaw(
-        '(? between start_hour and end_hour or ? between start_hour and end_hour)',
-        [format(data.start, 'HH:mm'), format(data.end, 'HH:mm')],
+        `((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))`,
+        [strStart, strEnd, strEnd, strStart],
       );
 
     // if (unavailableDays.length !== 0) {

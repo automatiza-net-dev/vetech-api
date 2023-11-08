@@ -30,7 +30,7 @@ export const HospitalizationMedicalPrescriptionStatus = [
   'Interrompido',
   'Executado',
 ] as const;
-export type THospitalizationMedicalSchedulingStatus =
+export type THospitalizationMedicalPrescriptionStatus =
   typeof HospitalizationMedicalPrescriptionStatus[number];
 
 export default class HospitalizationMedicalPrescription extends BaseModel {
@@ -38,7 +38,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public id: string = v4();
 
   @column()
-  public status: THospitalizationMedicalSchedulingStatus;
+  public status: THospitalizationMedicalPrescriptionStatus;
 
   @column()
   public type: MedicalPrescriptionType;

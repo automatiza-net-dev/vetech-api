@@ -15,6 +15,7 @@ test.group('Meta resource', group => {
 
     const meta = await Meta.create({
       economic_group_id: group.id,
+      system_id: group.system_id,
       description: v4(),
       type: 'some type',
     });
@@ -104,6 +105,7 @@ test.group('Meta resource', group => {
 
     const otherMeta = await Meta.create({
       economic_group_id: meta.economic_group_id,
+      system_id: meta.system_id,
       description: v4(),
       type: 'some type',
     });

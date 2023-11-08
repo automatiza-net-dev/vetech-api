@@ -495,8 +495,8 @@ export default class FinanceService {
             prevBalance: checkingAccount?.balance,
             balance:
               finance.type === FinanceType.C
-                ? (checkingAccount?.balance ?? 0) + (finance.paymentValue ?? 0)
-                : (checkingAccount?.balance ?? 0) - (finance.paymentValue ?? 0),
+                ? (checkingAccount?.balance ?? 0) + (finance.paymentValue ?? 0)
+                : (checkingAccount?.balance ?? 0) - (finance.paymentValue ?? 0),
 
             competenceDate: finance.competenceDate,
             fiscalNote: finance.fiscalNote,
@@ -513,8 +513,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance + (finance.paymentValue ?? 0)
-                : checkingAccount.balance - (finance.paymentValue ?? 0),
+                ? checkingAccount.balance + (finance.paymentValue ?? 0)
+                : checkingAccount.balance - (finance.paymentValue ?? 0),
           })
           .useTransaction(trx)
           .save();
@@ -630,8 +630,8 @@ export default class FinanceService {
           prevBalance: balance,
           balance:
             finance.type === FinanceType.C
-              ? balance - (finance.paymentValue ?? 0)
-              : balance + (finance.paymentValue ?? 0),
+              ? balance - (finance.paymentValue ?? 0)
+              : balance + (finance.paymentValue ?? 0),
 
           competenceDate: finance.competenceDate,
           fiscalNote: finance.fiscalNote,
@@ -694,8 +694,8 @@ export default class FinanceService {
           .merge({
             balance:
               finance.type === FinanceType.C
-                ? checkingAccount.balance - (finance.paymentValue ?? 0)
-                : checkingAccount.balance + (finance.paymentValue ?? 0),
+                ? checkingAccount.balance - (finance.paymentValue ?? 0)
+                : checkingAccount.balance + (finance.paymentValue ?? 0),
           })
           .useTransaction(trx)
           .save();

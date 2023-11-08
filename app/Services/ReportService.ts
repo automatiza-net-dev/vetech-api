@@ -42,7 +42,7 @@ export default class ReportService {
         });
       })
       .whereHas('unit', query => {
-        query.preload('economicGroup', query => {
+        query.whereHas('economicGroup', query => {
           query.where('system_id', authCtx.system.id);
         });
       });
@@ -67,10 +67,14 @@ export default class ReportService {
       qb.whereIn('business_unit_id', data.businessUnits);
     }
 
-    if (data.economicGroups && Array.isArray(data.economicGroups)) {
-      qb.whereIn('economic_group_id', data.economicGroups);
-    } else {
+    if (authCtx.user.type === 'user') {
       qb.where('economic_group_id', authCtx.group.id);
+    } else {
+      if (data.economicGroups && Array.isArray(data.economicGroups)) {
+        qb.whereIn('economic_group_id', data.economicGroups);
+      } else {
+        qb.where('economic_group_id', authCtx.group.id);
+      }
     }
 
     if (data.fromIssueDate) {
@@ -176,10 +180,14 @@ export default class ReportService {
       .where('economic_group_id', authCtx.group.id)
       .whereNot('status', FinanceStatus.E)
       .whereHas('unit', query => {
-        query.preload('economicGroup', query => {
+        query.whereHas('economicGroup', query => {
           query.where('system_id', authCtx.system.id);
         });
       });
+
+    if (authCtx.user.type === 'user') {
+      financeQbs.where('economic_group_id', authCtx.group.id);
+    }
 
     if (data.businessUnit) {
       financeQbs.where('business_unit_id', data.businessUnit);
@@ -343,19 +351,23 @@ export default class ReportService {
       })
       .whereNull('deleted_at')
       .whereHas('businessUnit', query => {
-        query.preload('economicGroup', query => {
+        query.whereHas('economicGroup', query => {
           query.where('system_id', authCtx.system.id);
         });
       });
 
-    if (
-      data.economicGroups &&
-      Array.isArray(data.economicGroups) &&
-      data.economicGroups.length > 0
-    ) {
-      qb.whereIn('economic_group_id', data.economicGroups);
-    } else {
+    if (authCtx.user.type === 'user') {
       qb.where('economic_group_id', authCtx.group.id);
+    } else {
+      if (
+        data.economicGroups &&
+        Array.isArray(data.economicGroups) &&
+        data.economicGroups.length > 0
+      ) {
+        qb.whereIn('economic_group_id', data.economicGroups);
+      } else {
+        qb.where('economic_group_id', authCtx.group.id);
+      }
     }
 
     if (
@@ -611,6 +623,10 @@ ON bills.patient_id = Dep."id"`,
       qb.where('bills.business_unit_id', data.businessUnit);
     }
 
+    if (authCtx.user.type === 'user') {
+      qb.where('bills.economic_group_id', authCtx.group.id);
+    }
+
     return qb;
   }
 
@@ -659,20 +675,24 @@ ON bills.patient_id = Dep."id"`,
       .where('economic_group_id', authCtx.group.id)
       .whereNull('deleted_at')
       .whereHas('businessUnit', query => {
-        query.preload('economicGroup', query => {
+        query.whereHas('economicGroup', query => {
           query.where('system_id', authCtx.system.id);
         });
       })
       .orderBy('bill_date', 'desc');
 
-    if (
-      data.economicGroups &&
-      Array.isArray(data.economicGroups) &&
-      data.economicGroups.length > 0
-    ) {
-      qb.whereIn('economic_group_id', data.economicGroups);
-    } else {
+    if (authCtx.user.type === 'user') {
       qb.where('economic_group_id', authCtx.group.id);
+    } else {
+      if (
+        data.economicGroups &&
+        Array.isArray(data.economicGroups) &&
+        data.economicGroups.length > 0
+      ) {
+        qb.whereIn('economic_group_id', data.economicGroups);
+      } else {
+        qb.where('economic_group_id', authCtx.group.id);
+      }
     }
 
     if (
@@ -937,6 +957,10 @@ ON bills.patient_id = Dep."id"`,
       })
       .whereNull('deleted_at');
 
+    if (authCtx.user.type === 'user') {
+      qb.where('economic_group_id', authCtx.group.id);
+    }
+
     if (data.businessUnit) {
       qb.where('business_unit_id', data.businessUnit);
     }
@@ -1078,8 +1102,8 @@ ON bills.patient_id = Dep."id"`,
       .select(
         Database.raw(`
         business_units.identification,
-        business_units.city,
-        business_units.state,
+        business_units.city as unit_city,
+        business_units.state as unit_state,
         uResponsavel.name                                                        as nome_Responsavel,
         to_char(start_hour, 'DD/MM/YYYY')                                        as start_hour_date,
         to_char(start_hour, 'HH24:MI')                                           as start_hour_time,
@@ -1145,20 +1169,6 @@ ON bills.patient_id = Dep."id"`,
       .joinRaw(
         `join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
       )
-      .joinRaw(
-        ` join (patients tutor join
-    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
-     on patient_tutors.client_origin_id = client_origins.id)
-               on tutor.id = patient_tutors.patient_id) on schedules.holder_id = tutor.id`,
-      )
-
-      .joinRaw(
-        `join (patients pac join
-    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
-               on pac.id = pa.patient_id
-    ) on schedules.patient_id = pac.id`,
-      )
-
       .joinRaw(`join users uResponsavel on schedules.user_id = uResponsavel.id`)
 
       .joinRaw(
@@ -1167,14 +1177,40 @@ ON bills.patient_id = Dep."id"`,
 
       .joinRaw(`left join reasons on schedules.reason_id = reasons.id`);
 
-    if (
-      data.economicGroups &&
-      Array.isArray(data.economicGroups) &&
-      data.economicGroups.length > 0
-    ) {
-      qb.whereIn('business_units.economic_group_id', data.economicGroups);
+    if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+      qb.joinRaw(`join (patients tutor join
+    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
+     on patient_tutors.client_origin_id = client_origins.id)
+               on tutor.id = patient_tutors.patient_id) on schedules.holder_id = tutor.id
+               `);
+      qb.joinRaw(`
+         join (patients pac join
+    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
+               on pac.id = pa.patient_id
+    ) on schedules.patient_id = pac.id`);
     } else {
+      qb.joinRaw(`join (patients tutor join
+    ((patient_tutors left join professions on patient_tutors.profession_id = professions.id) left join client_origins
+     on patient_tutors.client_origin_id = client_origins.id)
+               on tutor.id = patient_tutors.patient_id) on schedules.patient_id = tutor.id`);
+      qb.joinRaw(`left join (patients pac join
+    (patient_animals pa join (races join species on races.specie_id = species.id) on pa.race_id = races.id)
+               on pac.id = pa.patient_id
+    ) on schedules.patient_id = pac.id`);
+    }
+
+    if (authCtx.user.type === 'user') {
       qb.where('business_units.economic_group_id', authCtx.group.id);
+    } else {
+      if (
+        data.economicGroups &&
+        Array.isArray(data.economicGroups) &&
+        data.economicGroups.length > 0
+      ) {
+        qb.whereIn('business_units.economic_group_id', data.economicGroups);
+      } else {
+        qb.where('business_units.economic_group_id', authCtx.group.id);
+      }
     }
 
     if (
@@ -1350,12 +1386,17 @@ ON bills.patient_id = Dep."id"`,
       qb2.andWhereIn('bills.business_unit_id', [authCtx.unit.id]);
     }
 
-    if (data.economicGroups && Array.isArray(data.economicGroups)) {
-      qb1.andWhereIn('bills.economic_group_id', data.economicGroups);
-      qb2.andWhereIn('bills.economic_group_id', data.economicGroups);
-    } else {
+    if (authCtx.user.type === 'user') {
       qb1.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
       qb2.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
+    } else {
+      if (data.economicGroups && Array.isArray(data.economicGroups)) {
+        qb1.andWhereIn('bills.economic_group_id', data.economicGroups);
+        qb2.andWhereIn('bills.economic_group_id', data.economicGroups);
+      } else {
+        qb1.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
+        qb2.andWhereIn('bills.economic_group_id', [authCtx.group.id]);
+      }
     }
 
     if (data.businessStates && Array.isArray(data.businessStates)) {

@@ -5,10 +5,14 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
+import Budget from './Budget';
+import BusinessUnit from './BusinessUnit';
 import Patient from './Patient';
 import User from './User';
 
@@ -52,6 +56,11 @@ export default class Attendance extends BaseModel {
   })
   public business_unit_id: string;
 
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'business_unit_id',
+  })
+  public unit: BelongsTo<typeof BusinessUnit>;
+
   @column({
     serializeAs: null,
   })
@@ -87,6 +96,11 @@ export default class Attendance extends BaseModel {
   })
   public close_user_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'close_user_id',
+  })
+  public closeUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
@@ -111,4 +125,9 @@ export default class Attendance extends BaseModel {
     foreignKey: 'patient_id',
   })
   public patient: BelongsTo<typeof Patient>;
+
+  @hasMany(() => Budget, {
+    foreignKey: 'attendance_id',
+  })
+  public budgets: HasMany<typeof Budget>;
 }

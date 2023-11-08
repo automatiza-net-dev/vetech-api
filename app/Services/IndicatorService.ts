@@ -3,6 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
+import { FinanceType } from 'App/Models/Finance';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -1229,19 +1230,18 @@ export default class IndicatorService {
           `
             business_units.id,
             business_units.identification,
-            sum(budget_items.total_value) as total
+            sum(budgets.total_value) as total,
+            count(distinct budgets.id) as qtd_Orcamentos
           `,
         ),
       )
-      .leftJoin('budget_items', query => {
-        query.on('budget_items.budget_id', '=', 'budgets.id');
-      })
-      .leftJoin('business_units', query => {
+      .join('business_units', query => {
         query.on('business_units.id', '=', 'budgets.business_unit_id');
       })
       .groupBy('business_units.id')
       .where('budgets.business_unit_id', data.unit ?? authCtx.unit.id)
-      .where('budget_items.status', '<>', BudgetStatus.C);
+      .whereNotIn('budgets.status', [BudgetStatus.C, BudgetStatus.P])
+      .whereNull('budgets.deleted_at');
 
     if (data.fromDate) {
       qb.andWhereRaw('budgets.budget_date::date >= ?', [data.fromDate]);
@@ -1257,6 +1257,7 @@ export default class IndicatorService {
       id: elem.id,
       identification: elem.identification,
       total: elem.total,
+      unique: parseInt(elem.qtd_orcamentos, 10),
     }));
   }
 
@@ -1862,6 +1863,618 @@ export default class IndicatorService {
           elem.open === '0'
             ? 0
             : elem.total_open_value / parseInt(elem.open, 10),
+      };
+    });
+  }
+
+  public async marketingIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const billsQb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+            economic_groups.id            as e_id,
+            economic_groups.company_name,
+            business_units.id             as b_id,
+            business_units.identification,
+            to_char(bill_date, 'MM/yyyy') as competence_date,
+            sum(total_value)              as total
+          `,
+        ),
+      )
+      .joinRaw(
+        `join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join patients on bills.client_id = patients.id and to_char(bill_date, 'MM/yyyy') = to_char(patients.created_at, 'MM/yyyy')`,
+      )
+      .joinRaw(`join patient_tutors on patients.id = patient_tutors.patient_id`)
+      .joinRaw(
+        `join client_origins on patient_tutors.client_origin_id = client_origins.id and client_origins.group = 'Marketing'`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy'), business_units.id, economic_groups.id`,
+      )
+      .whereNull('bills.deleted_at');
+
+    const financesQb = Database.from('finances')
+      .select(
+        Database.raw(`
+        economic_groups.id as e_id,
+        economic_groups.company_name,
+        business_units.id  as b_id,
+        business_units.identification,
+        competence_date,
+        sum(total_value)   as total
+        `),
+      )
+      .joinRaw(
+        `join business_units on finances.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join business_unit_configs on business_unit_configs.business_unit_id = business_units.id
+         		and business_unit_configs.marketing_account_plan_id = finances.account_plan_id`,
+      )
+      .whereNull('finances.deleted_at')
+      .where('finances.type', FinanceType.D)
+      .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+      .orderBy('competence_date', 'asc');
+
+    if (data.units && Array.isArray(data.units)) {
+      billsQb.whereIn('business_units.id', data.units);
+      financesQb.whereIn('business_units.id', data.units);
+    } else {
+      billsQb.where('business_units.id', authCtx.unit.id);
+      financesQb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      billsQb.whereIn('business_units.economic_group_id', data.groups);
+      financesQb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      billsQb.where('business_units.economic_group_id', authCtx.group.id);
+      financesQb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const competences: string[] = [];
+
+    if (data.fromDate && data.toDate) {
+      const start = DateTime.fromISO(data.fromDate);
+      const end = DateTime.fromISO(data.toDate);
+
+      const diff = end.diff(start, 'months').toObject().months ?? 0;
+
+      for (let i = 0; i <= diff; i++) {
+        const dt = start.plus({ months: i });
+        competences.push(dt.toFormat('MM/yyyy'));
+      }
+    }
+    financesQb.whereIn('competence_date', competences);
+
+    const [billsResult, financesResult] = await Promise.all([
+      billsQb,
+      financesQb,
+    ]);
+
+    const keys = new Set<string>();
+    for (const bill of billsResult) {
+      const key = [bill.e_id, bill.b_id, bill.competence_date].join('__');
+      keys.add(key);
+    }
+    for (const finance of financesResult) {
+      const key = [finance.e_id, finance.b_id, finance.competence_date].join(
+        '__',
+      );
+      keys.add(key);
+    }
+
+    return Array.from(keys.keys())
+      .map(key => {
+        const [e_id, b_id, competence_date] = key.split('__');
+
+        const bill = billsResult.find(
+          bill =>
+            bill.e_id === e_id &&
+            bill.b_id === b_id &&
+            bill.competence_date === competence_date,
+        );
+        const finance = financesResult.find(
+          finance =>
+            finance.e_id === e_id &&
+            finance.b_id === b_id &&
+            finance.competence_date === competence_date,
+        );
+
+        const financeTotal = finance?.total ?? 0;
+        const billTotal = bill?.total ?? 0;
+
+        return {
+          group: {
+            id: e_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.company_name ??
+              'Não encontrado?',
+          },
+          unit: {
+            id: b_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.identification ??
+              'Não encontrado?',
+          },
+          competenceDate: competence_date,
+          totalFinance: financeTotal,
+          totalBills: billTotal,
+          roi:
+            financeTotal === 0 ? 0 : (billTotal - financeTotal) / financeTotal,
+        };
+      })
+      .sort((a, b) => {
+        const [aMonth, aYear] = a.competenceDate.split('/');
+        const [bMonth, bYear] = b.competenceDate.split('/');
+
+        if (aYear.localeCompare(bYear) === 0) {
+          return aMonth.localeCompare(bMonth);
+        }
+
+        return aYear.localeCompare(bYear);
+      });
+  }
+
+  public async costOfAcquisitionIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const billsQb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id              as e_id,
+          economic_groups.company_name,
+          business_units.id               as b_id,
+          business_units.identification,
+          to_char(bill_date, 'MM/yyyy')   as competence_date,
+          sum(total_value)                as total,
+          count(distinct bills.client_id) as unique_clients
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join patients on patients.id = bills.client_id and
+                               to_char(patients.created_at, 'MM/yyyy') = to_char(bills.bill_date, 'MM/yyyy')`,
+      )
+      .joinRaw(`join patient_tutors pt on patients.id = pt.patient_id`)
+      .joinRaw(
+        `join client_origins co on pt.client_origin_id = co.id and co.group = 'Marketing'`,
+      )
+      .whereNull('bills.deleted_at')
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bill_date, 'MM/yyyy'), business_units.id, economic_groups.id`,
+      );
+
+    const financesQb = Database.from('finances')
+      .select(
+        Database.raw(`
+      economic_groups.id as e_id,
+      economic_groups.company_name,
+      business_units.id  as b_id,
+      business_units.identification,
+      competence_date,
+      sum(total_value)   as total
+      `),
+      )
+      .joinRaw(
+        `left join business_units on finances.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
+      )
+      .whereNull('finances.deleted_at')
+      .where('finances.type', FinanceType.D)
+      .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+      .orderBy('competence_date');
+
+    if (data.units && Array.isArray(data.units)) {
+      billsQb.whereIn('business_units.id', data.units);
+      financesQb.whereIn('business_units.id', data.units);
+    } else {
+      billsQb.where('business_units.id', authCtx.unit.id);
+      financesQb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      billsQb.whereIn('business_units.economic_group_id', data.groups);
+      financesQb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      billsQb.where('business_units.economic_group_id', authCtx.group.id);
+      financesQb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    if (data.fromDate && data.toDate) {
+      const competences: string[] = [];
+      const start = DateTime.fromISO(data.fromDate);
+      const end = DateTime.fromISO(data.toDate);
+
+      const diff = end.diff(start, 'months').toObject().months ?? 0;
+
+      for (let i = 0; i <= diff; i++) {
+        const dt = start.plus({ months: i });
+        competences.push(dt.toFormat('MM/yyyy'));
+      }
+      financesQb.whereIn('competence_date', competences);
+    }
+
+    const [billsResult, financesResult] = await Promise.all([
+      billsQb,
+      financesQb,
+    ]);
+
+    const keys = new Set<string>();
+    for (const bill of billsResult) {
+      const key = [bill.e_id, bill.b_id, bill.competence_date].join('__');
+      keys.add(key);
+    }
+    for (const finance of financesResult) {
+      const key = [finance.e_id, finance.b_id, finance.competence_date].join(
+        '__',
+      );
+      keys.add(key);
+    }
+
+    return Array.from(keys.keys())
+      .map(key => {
+        const [e_id, b_id, competence_date] = key.split('__');
+
+        const bill = billsResult.find(
+          bill =>
+            bill.e_id === e_id &&
+            bill.b_id === b_id &&
+            bill.competence_date === competence_date,
+        );
+
+        const finance = financesResult.find(
+          finance =>
+            finance.e_id === e_id &&
+            finance.b_id === b_id &&
+            finance.competence_date === competence_date,
+        );
+
+        return {
+          group: {
+            id: e_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.company_name ??
+              'Não encontrado?',
+          },
+          unit: {
+            id: b_id,
+            name:
+              [bill, finance].filter(Boolean).at(0)?.identification ??
+              'Não encontrado?',
+          },
+          competenceDate: competence_date,
+          uniqueClients: parseInt(bill?.unique_clients ?? 0, 10),
+          totalBills: bill?.total ?? 0,
+          totalFinances: finance?.total ?? 0,
+        };
+      })
+      .sort((a, b) => {
+        const [aMonth, aYear] = a.competenceDate.split('/');
+        const [bMonth, bYear] = b.competenceDate.split('/');
+
+        if (aYear.localeCompare(bYear) === 0) {
+          return aMonth.localeCompare(bMonth);
+        }
+
+        return aYear.localeCompare(bYear);
+      });
+  }
+
+  public async billPaymentFormatIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id              as e_id,
+          economic_groups.company_name,
+          business_units.id               as b_id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY/MM') as campo_order,
+          to_char(bills.bill_date, 'MM/YYYY') as periodo,
+          sum(case
+               when ((payment_methods.tef = 'NAO' or
+                      (payment_methods.tef <> 'NAO' and payment_methods.type = 'DEBITO')) and
+                     (to_char(bills.bill_date, 'YYYY/MM') = to_char(bill_payments.expiration_date, 'YYYY/MM')))
+                   then bill_payments.total_value
+               else 0 end)                 as a_vista,
+          sum(case
+               when ((to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM')) or
+                     (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')) then bill_payments.total_value
+               else 0 end)                 as a_prazo
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
+      )
+      .whereNull('bills.deleted_at');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.periodo,
+        cash: elem.a_vista,
+        installment: elem.a_prazo,
+      };
+    });
+  }
+
+  public async installmentAvgIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+          economic_groups.id                                                    as e_id,
+          economic_groups.company_name,
+          business_units.id                                                     as b_id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY/MM')                                   as campo_order,
+          to_char(bills.bill_date, 'MM/YYYY')                                   as periodo,
+
+          count(bill_payments.installments)                                     as qtd_parcelas,
+          count(distinct bills.id)                                              as qtd_vendas,
+
+          count(bill_payments.installments)::decimal / count(distinct bills.id) as prazo_medio
+          `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
+      )
+      .whereNull('bills.deleted_at').whereRaw(`
+                                              (
+                                                (to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM'))
+                                                or (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')
+                                              )`);
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.periodo,
+        avgInstallment: parseFloat(elem.prazo_medio),
+        totalSales: parseInt(elem.qtd_vendas, 10),
+        totalInstallments: parseInt(elem.qtd_parcelas, 10),
+      };
+    });
+  }
+
+  public async avgReceiptDeadlineIndicators(
+    authCtx: AuthContext,
+    data: {
+      units?: string[];
+      groups?: string[];
+      fromDate?: string;
+      toDate?: string;
+    },
+  ) {
+    const qb = Database.from('bills')
+      .select(
+        Database.raw(
+          `
+        economic_groups.id                                                         as e_id,
+        economic_groups.company_name,
+        business_units.id                                                          as b_id,
+        business_units.identification,
+        to_char(bills.bill_date, 'YYYY/MM')                                        as period,
+        sum(finances.original_value) /
+        (sum(bill_payments.total_value) /
+          avg(extract('DAY' from bill_payments.expiration_date - bills.bill_date))) as avg_delay
+        `,
+        ),
+      )
+      .joinRaw(
+        `left join business_units on bills.business_unit_id = business_units.id`,
+      )
+      .joinRaw(
+        `left join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+        [authCtx.system.id],
+      )
+      .joinRaw(
+        `join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+      )
+      .joinRaw(
+        `left join finances
+                   on bill_payments.id = finances.origin_id and finances.deleted_at is null and
+                      finances.status = 'ABERTO' and
+                      finances.payment_date is null`,
+      )
+      .joinRaw(
+        `join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+      )
+      .groupByRaw(
+        `economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM')`,
+      )
+      .whereNull('bills.deleted_at')
+      .whereRaw(
+        `((to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM'))
+    or (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO'))`,
+      )
+      .orderBy('period');
+
+    if (data.units && Array.isArray(data.units)) {
+      qb.whereIn('business_units.id', data.units);
+    } else {
+      qb.where('business_units.id', authCtx.unit.id);
+    }
+
+    if (data.groups && Array.isArray(data.groups)) {
+      qb.whereIn('business_units.economic_group_id', data.groups);
+    } else {
+      qb.where('business_units.economic_group_id', authCtx.group.id);
+    }
+
+    if (data.fromDate) {
+      qb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+    }
+
+    if (data.toDate) {
+      qb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => {
+      return {
+        group: {
+          id: elem.e_id,
+          name: elem.company_name,
+        },
+        unit: {
+          id: elem.b_id,
+          name: elem.identification,
+        },
+        period: elem.period,
+        avgDelay: parseFloat(elem.avg_delay),
       };
     });
   }

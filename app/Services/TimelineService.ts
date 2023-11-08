@@ -52,7 +52,7 @@ export default class TimelineService {
             'Patologia',
             'Formato Receita Médica',
             authCtx.system.name === 'LiftOne' && 'Avaliação',
-            authCtx.system.name !== 'LiftOne' && 'Atendimento',
+            authCtx.system.name !== 'Sanclá' && 'Atendimento',
           ].filter(Boolean),
         },
         'extras.deletedAt': null,
@@ -356,7 +356,7 @@ export default class TimelineService {
     }).sort({ createdAt: -1 });
   }
 
-  public async storeEvaluation(data: IPatientEvaluation) {
+  public async storeEvaluation(authCtx: AuthContext, data: IPatientEvaluation) {
     return Database.transaction(async trx => {
       const timelineInfo = await TimelineType.firstOrCreate(
         {
@@ -379,6 +379,24 @@ export default class TimelineService {
       const technician = await User.findOrFail(data.technicianId, {
         client: trx,
       });
+
+      if (authCtx.system.name === 'LiftOne') {
+        await Attendance.create(
+          {
+            business_unit_id: authCtx.unit.id,
+            open_user_id: authCtx.user.id,
+            schedule_service_id: scheduleServiceType.id,
+            patient_id: data.tag,
+
+            resume: data.resume,
+            protocol: data.protocol,
+            startDate: DateTime.now(),
+          },
+          {
+            client: trx,
+          },
+        );
+      }
 
       return AnimalTimeline.create({
         timeline_id: timelineInfo.id,

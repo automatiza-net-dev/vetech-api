@@ -34,9 +34,9 @@ export default class BankingService {
 
   async index(unitId: string, data: ISearch) {
     const qb = Banking.query()
-    .orderBy('issue_date', 'asc')
-    .orderBy('created_at', 'asc')
-    .where('business_unit_id', unitId);
+      .orderBy('issue_date', 'asc')
+      .orderBy('created_at', 'asc')
+      .where('business_unit_id', unitId);
 
     if (data.type) {
       qb.where('type', data.type);
@@ -134,7 +134,7 @@ export default class BankingService {
           totalValue: total,
           accept: FinanceAccept.S,
           installment:
-            typeof data.installment != 'undefined' ? data.installment : 1,
+            typeof data.installment !== 'undefined' ? data.installment : 1,
           originFlag: FinanceOriginFlag.B,
           originDownFlag: FinanceOriginDownFlag.B,
           paymentDate: DateTime.now(),
@@ -334,7 +334,7 @@ export default class BankingService {
         discountPercentage: data.discountPercentage,
         reconciled: data.reconciled,
         installment:
-          typeof data.installment != 'undefined' ? data.installment : 1,
+          typeof data.installment !== 'undefined' ? data.installment : 1,
         originFlag: data.originFlag,
 
         observation: data.observation,

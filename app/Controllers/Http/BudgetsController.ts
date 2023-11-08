@@ -19,6 +19,26 @@ export default class BudgetsController {
     private service: BudgetService,
   ) {}
 
+  public async fromAttendance({ params, response, auth }: HttpContextContract) {
+    const result = await this.service.budgetsFromAttendance(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+    return response.ok(result);
+  }
+
+  public async openNegotiations({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const result = await this.service.listOpenNegotiations(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+    return response.ok(result);
+  }
+
   public async partialIndex({ request, response, auth }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 

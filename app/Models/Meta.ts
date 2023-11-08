@@ -1,9 +1,7 @@
 import {
   BaseModel,
-  beforeCreate,
   beforeFetch,
   beforeFind,
-  beforeSave,
   BelongsTo,
   belongsTo,
   column,
@@ -33,6 +31,7 @@ export default class Meta extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime;
+
   @column.dateTime({ serializeAs: null })
   public deletedAt: DateTime;
 
@@ -45,6 +44,11 @@ export default class Meta extends BaseModel {
   public async softDelete(column?: string) {
     await softDelete(this, column);
   }
+
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
 
   @column({
     serializeAs: null,

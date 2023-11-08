@@ -15,7 +15,7 @@ export interface ICreateBudgetData {
   reviewerId?: string;
   patientId?: string;
   dailyMovementId?: string;
-  evaluationId?: string;
+  attendanceId?: number;
   budgetDate: DateTime;
   expirationDate: DateTime;
   observation?: string;

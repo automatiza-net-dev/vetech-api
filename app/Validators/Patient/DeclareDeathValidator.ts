@@ -1,7 +1,7 @@
 import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 
-export default class CreateMetaValidator {
+export default class DeclareDeathValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   /*
@@ -24,17 +24,12 @@ export default class CreateMetaValidator {
    *    ```
    */
   public schema = schema.create({
-    items: schema.array().members(
-      schema.object().members({
-        metaId: schema.number([rules.exists({ table: 'metas', column: 'id' })]),
-        businessUnitId: schema.string([
-          rules.uuid(),
-          rules.exists({ table: 'business_units', column: 'id' }),
-        ]),
-        value: schema.number(),
-        period: schema.string(),
-      }),
-    ),
+    technicianId: schema.string([
+      rules.uuid(),
+      rules.exists({ table: 'users', column: 'id' }),
+    ]),
+    deathObservation: schema.string(),
+    deathDate: schema.date(),
   });
 
   /**

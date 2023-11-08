@@ -119,4 +119,9 @@ export default class BusinessUnitConfig extends BaseModel {
     foreignKey: 'service_variation_group_id',
   })
   serviceVariationGroup: BelongsTo<typeof VariationGroup>;
+
+  @column({
+    serializeAs: null,
+  })
+  public marketing_account_plan_id: string;
 }

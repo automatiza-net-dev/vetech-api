@@ -9,10 +9,11 @@ import Hospitalization, {
   HospitalizationTypeDescription,
 } from 'App/Models/Hospitalization';
 import HospitalizationMedicalPrescription, {
-  HospitalizationMedicalPrescriptionStatus,
-  THospitalizationMedicalSchedulingStatus,
+  THospitalizationMedicalPrescriptionStatus,
 } from 'App/Models/HospitalizationMedicalPrescription';
-import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import HospitalizationMedicalPrescriptionScheduling, {
+  THospitalizationMedicalPrescriptionSchedulingStatus,
+} from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Occurrence, { OccurrenceType } from 'App/Models/Occurrence';
@@ -179,7 +180,7 @@ export default class HospitalizationService {
       .preload('medicalPrescriptions', query => {
         query.where(
           'status',
-          'Aberto' as THospitalizationMedicalSchedulingStatus,
+          'Aberto' as THospitalizationMedicalPrescriptionStatus,
         );
 
         query.preload('prescriptionUnit');
@@ -681,9 +682,9 @@ export default class HospitalizationService {
       await HospitalizationMedicalPrescription.query()
         .useTransaction(trx)
         .where('hospitalization_id', hospitalization.id)
-        .where('status', 'A')
+        .where('status', 'Aberto' as THospitalizationMedicalPrescriptionStatus)
         .update({
-          status: 'I',
+          status: 'Interrompido' as THospitalizationMedicalPrescriptionStatus,
         });
 
       await HospitalizationTimeline.updateMany(
@@ -701,9 +702,13 @@ export default class HospitalizationService {
       await HospitalizationMedicalPrescriptionScheduling.query()
         .useTransaction(trx)
         .where('hospitalization_id', hospitalization.id)
-        .where('status', 'A')
+        .where(
+          'status',
+          'Aberto' as THospitalizationMedicalPrescriptionSchedulingStatus,
+        )
         .update({
-          status: 'CA',
+          status:
+            'Interrompido' as THospitalizationMedicalPrescriptionSchedulingStatus,
         });
 
       await HospitalizationTimeline.create({

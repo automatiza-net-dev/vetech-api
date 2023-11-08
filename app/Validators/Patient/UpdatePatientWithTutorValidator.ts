@@ -8,6 +8,8 @@ export default class UpdatePatientWithTutorValidator {
 
   public schema = schema.create({
     name: schema.string({}),
+
+    clientOriginItemDescription: schema.string.optional({}, []),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
       extnames: ['jpg', 'gif', 'png', 'jpeg'],

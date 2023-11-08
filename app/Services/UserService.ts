@@ -396,6 +396,7 @@ export default class UserService {
       .select('id', 'name', 'email', 'document', 'password')
       .preload('roles', query => {
         query.select('role_id', 'unit_id');
+        query.where('active', true);
       });
   }
 
@@ -429,6 +430,45 @@ export default class UserService {
       }
 
       await user.softDelete();
+    });
+  }
+
+  public async disableUserControllerRole(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+      roleId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user
+        .related('roles')
+        .query()
+        .useTransaction(trx)
+        .where('role_id', data.roleId)
+        .update({ active: false });
     });
   }
 

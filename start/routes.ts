@@ -52,11 +52,14 @@ Route.group(() => {
     '/update-user-controller',
     'UsersController.updateUserController',
   ).middleware('auth');
+  Route.post(
+    '/disable-user-controller-role',
+    'UsersController.disableUserControllerRole',
+  ).middleware('auth');
   Route.delete(
     '/delete-user-controller/:id',
     'UsersController.deleteUserController',
   ).middleware('auth');
-
 
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');

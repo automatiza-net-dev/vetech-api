@@ -6,6 +6,7 @@ import ChangePasswordValidator from 'App/Validators/User/ChangePasswordValidator
 import ConfirmConfirmationTokenValidator from 'App/Validators/User/ConfirmConfirmationTokenValidator';
 import CreateConfirmationTokenValidator from 'App/Validators/User/CreateConfirmationTokenValidator';
 import CreateUserControllerValidator from 'App/Validators/User/CreateUserControllerValidator';
+import DisableUserControllerRoleValidator from 'App/Validators/User/DisableUserControllerRoleValidator';
 import UpdateUserControllerValidator from 'App/Validators/User/UpdateUserControllerValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
@@ -167,6 +168,20 @@ export default class UsersController {
       {
         id: request.param('id'),
       },
+    );
+
+    return response.noContent();
+  }
+
+  public async disableUserControllerRole({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(DisableUserControllerRoleValidator);
+    await this.service.disableUserControllerRole(
+      await this.sharedService.getAuthContext(auth),
+      payload,
     );
 
     return response.noContent();

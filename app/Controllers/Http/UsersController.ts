@@ -156,4 +156,19 @@ export default class UsersController {
 
     return response.ok(data);
   }
+
+  public async deleteUserController({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    await this.service.softDeleteUserController(
+      await this.sharedService.getAuthContext(auth),
+      {
+        id: request.param('id'),
+      },
+    );
+
+    return response.noContent();
+  }
 }

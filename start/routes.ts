@@ -52,6 +52,11 @@ Route.group(() => {
     '/update-user-controller',
     'UsersController.updateUserController',
   ).middleware('auth');
+  Route.delete(
+    '/delete-user-controller/:id',
+    'UsersController.deleteUserController',
+  ).middleware('auth');
+
 
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');

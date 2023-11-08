@@ -295,6 +295,7 @@ export default class UserService {
       await user.related('economicGroups').attach(uniqueEconomicGroups, trx);
     });
   }
+
   public async updateUserController(
     authCtx: AuthContext,
     data: {
@@ -388,6 +389,7 @@ export default class UserService {
         .sync(uniqueEconomicGroups, true, trx);
     });
   }
+
   public async fetchUserControllers(authCtx: AuthContext) {
     return User.query()
       .where('system_id', authCtx.system.id)
@@ -395,6 +397,39 @@ export default class UserService {
       .preload('roles', query => {
         query.select('role_id', 'unit_id');
       });
+  }
+
+  public async softDeleteUserController(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user.softDelete();
+    });
   }
 
   public async show(id: string): Promise<User> {

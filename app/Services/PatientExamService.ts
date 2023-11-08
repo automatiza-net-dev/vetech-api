@@ -245,21 +245,21 @@ export default class PatientExamService {
     }
 
     return Database.transaction(async trx => {
-      const timeline = await TimelineType.firstOrCreate(
-        {
-          description: 'Exames',
-          system_id: authCtx.system.id,
-        },
-        {
-          description: 'Exames',
-          color: '#000',
-          requiresObservation: false,
-          system_id: authCtx.system.id,
-        },
-        {
-          client: trx,
-        },
-      );
+      // const timeline = await TimelineType.firstOrCreate(
+      //   {
+      //     description: 'Exames',
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     description: 'Exames',
+      //     color: '#000',
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
 
       const updatedExam = await ent
         .merge({
@@ -281,7 +281,7 @@ export default class PatientExamService {
 
       await AnimalTimeline.updateOne(
         {
-          timeline_id: timeline.id,
+          // timeline_id: timeline.id,
           'timeline_info.patient_exam.id': updatedExam.id,
         },
         {
@@ -341,25 +341,25 @@ export default class PatientExamService {
         },
       );
 
-      const timeline = await TimelineType.firstOrCreate(
-        {
-          description: 'Exames',
-          system_id: authCtx.system.id,
-        },
-        {
-          description: 'Exames',
-          color: '#000',
-          requiresObservation: false,
-          system_id: authCtx.system.id,
-        },
-        {
-          client: trx,
-        },
-      );
+      // const timeline = await TimelineType.firstOrCreate(
+      //   {
+      //     description: 'Exames',
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     description: 'Exames',
+      //     color: '#000',
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
 
       await AnimalTimeline.updateOne(
         {
-          timeline_id: timeline.id,
+          // timeline_id: timeline.id,
           'timeline_info.patient_exam.id': ent.id,
         },
         {

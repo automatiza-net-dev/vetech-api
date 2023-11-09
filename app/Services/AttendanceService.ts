@@ -236,25 +236,25 @@ export default class AttendanceService {
         .merge({ resume: data.resume, protocol: data.protocol })
         .save();
 
-      const timeline = await TimelineType.firstOrCreate(
-        {
-          description: 'Consulta',
-          system_id: authCtx.system.id,
-        },
-        {
-          description: 'Consulta',
-          color: '#000',
-          requiresObservation: false,
-          system_id: authCtx.system.id,
-        },
-        {
-          client: trx,
-        },
-      );
+      // const timeline = await TimelineType.firstOrCreate(
+      //   {
+      //     description: 'Consulta',
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     description: 'Consulta',
+      //     color: '#000',
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
 
       await AnimalTimeline.updateOne(
         {
-          timeline_id: timeline.id,
+          // timeline_id: timeline.id,
           'timeline_info.tag': model.patient_id,
           'timeline_info.attendance.id': model.id,
         },

@@ -3,7 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import { BillStatus } from 'App/Models/Bill';
 import { BudgetStatus } from 'App/Models/Budget';
-import { FinanceType } from 'App/Models/Finance';
+import { FinanceStatus, FinanceType } from 'App/Models/Finance';
 import { ProductType } from 'App/Models/Product';
 import { AuthContext } from 'App/Services/SharedService';
 import { DateTime } from 'luxon';
@@ -1930,6 +1930,7 @@ export default class IndicatorService {
       )
       .whereNull('finances.deleted_at')
       .where('finances.type', FinanceType.D)
+      .whereNot('finances.status', FinanceStatus.E)
       .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
       .orderBy('competence_date', 'asc');
 
@@ -1951,26 +1952,29 @@ export default class IndicatorService {
 
     if (data.fromDate) {
       billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      financesQb.andWhereRaw(`competence_date = ?`, [
+        DateTime.fromFormat(data.fromDate, 'yyyy-MM-dd').toFormat('MM/yyyy'),
+      ]);
     }
 
     if (data.toDate) {
       billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    const competences: string[] = [];
-
-    if (data.fromDate && data.toDate) {
-      const start = DateTime.fromISO(data.fromDate);
-      const end = DateTime.fromISO(data.toDate);
-
-      const diff = end.diff(start, 'months').toObject().months ?? 0;
-
-      for (let i = 0; i <= diff; i++) {
-        const dt = start.plus({ months: i });
-        competences.push(dt.toFormat('MM/yyyy'));
-      }
-    }
-    financesQb.whereIn('competence_date', competences);
+    // const competences: string[] = [];
+    //
+    // if (data.fromDate && data.toDate) {
+    //   const start = DateTime.fromISO(data.fromDate);
+    //   const end = DateTime.fromISO(data.toDate);
+    //
+    //   const diff = end.diff(start, 'months').toObject().months ?? 0;
+    //
+    //   for (let i = 0; i <= diff; i++) {
+    //     const dt = start.plus({ months: i });
+    //     competences.push(dt.toFormat('MM/yyyy'));
+    //   }
+    // }
+    // financesQb.whereIn('competence_date', competences);
 
     const [billsResult, financesResult] = await Promise.all([
       billsQb,
@@ -2095,16 +2099,17 @@ export default class IndicatorService {
       `),
       )
       .joinRaw(
-        `left join business_units on finances.business_unit_id = business_units.id`,
+        `join business_units on finances.business_unit_id = business_units.id`,
       )
       .joinRaw(
-        `left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+        `join economic_groups on business_units.economic_group_id = economic_groups.id`,
       )
       .joinRaw(
-        `left join business_unit_configs on business_unit_configs.business_unit_id = business_units.id`,
+        `join business_unit_configs on business_unit_configs.business_unit_id = business_units.id and business_unit_configs.marketing_account_plan_id = finances.account_plan_id`,
       )
       .whereNull('finances.deleted_at')
       .where('finances.type', FinanceType.D)
+      .whereNot('finances.status', FinanceStatus.E)
       .groupByRaw(`business_units.id, economic_groups.id, competence_date`)
       .orderBy('competence_date');
 
@@ -2126,25 +2131,28 @@ export default class IndicatorService {
 
     if (data.fromDate) {
       billsQb.andWhereRaw('bill_date::date >= ?', [data.fromDate]);
+      financesQb.andWhereRaw(`competence_date = ?`, [
+        DateTime.fromFormat(data.fromDate, 'yyyy-MM-dd').toFormat('MM/yyyy'),
+      ]);
     }
 
     if (data.toDate) {
       billsQb.andWhereRaw('bill_date::date <= ?', [data.toDate]);
     }
 
-    if (data.fromDate && data.toDate) {
-      const competences: string[] = [];
-      const start = DateTime.fromISO(data.fromDate);
-      const end = DateTime.fromISO(data.toDate);
-
-      const diff = end.diff(start, 'months').toObject().months ?? 0;
-
-      for (let i = 0; i <= diff; i++) {
-        const dt = start.plus({ months: i });
-        competences.push(dt.toFormat('MM/yyyy'));
-      }
-      financesQb.whereIn('competence_date', competences);
-    }
+    // if (data.fromDate && data.toDate) {
+    //   const competences: string[] = [];
+    //   const start = DateTime.fromISO(data.fromDate);
+    //   const end = DateTime.fromISO(data.toDate);
+    //
+    //   const diff = end.diff(start, 'months').toObject().months ?? 0;
+    //
+    //   for (let i = 0; i <= diff; i++) {
+    //     const dt = start.plus({ months: i });
+    //     competences.push(dt.toFormat('MM/yyyy'));
+    //   }
+    //   financesQb.whereIn('competence_date', competences);
+    // }
 
     const [billsResult, financesResult] = await Promise.all([
       billsQb,

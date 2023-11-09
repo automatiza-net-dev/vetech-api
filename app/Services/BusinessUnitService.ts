@@ -33,6 +33,19 @@ interface ISearchClinic {
 export default class BusinessUnitService {
   constructor(private readonly sharedService: SharedService) {}
 
+  public async systemUnits(authCtx: AuthContext): Promise<Array<BusinessUnit>> {
+    return BusinessUnit.query()
+      .where('active', true)
+      .whereNull('deleted_at')
+      .select('id', 'identification', 'economic_group_id')
+      .preload('economicGroup', query => {
+        query.select('id', 'companyName');
+      })
+      .whereHas('economicGroup', query => {
+        query.where('system_id', authCtx.system.id);
+      });
+  }
+
   public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
     const qb = BusinessUnit.query().preload('economicGroup');
 

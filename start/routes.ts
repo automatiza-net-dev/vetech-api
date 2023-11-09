@@ -40,6 +40,27 @@ Route.group(() => {
 }).prefix('auth');
 
 Route.group(() => {
+  Route.get(
+    '/fetch-user-controllers',
+    'UsersController.fetchUserControllers',
+  ).middleware('auth');
+  Route.post(
+    '/create-user-controller',
+    'UsersController.createUserController',
+  ).middleware('auth');
+  Route.post(
+    '/update-user-controller',
+    'UsersController.updateUserController',
+  ).middleware('auth');
+  Route.post(
+    '/disable-user-controller-role',
+    'UsersController.disableUserControllerRole',
+  ).middleware('auth');
+  Route.delete(
+    '/delete-user-controller/:id',
+    'UsersController.deleteUserController',
+  ).middleware('auth');
+
   Route.get('', 'UsersController.index');
   Route.get('/:id', 'UsersController.show');
   Route.get('/check-email/:email', 'UsersController.checkEmail');
@@ -110,6 +131,9 @@ Route.group(() => {
   );
 
   Route.get('/states', 'BusinessUnitsController.states').middleware('auth');
+  Route.get('/system', 'BusinessUnitsController.systemUnits').middleware(
+    'auth',
+  );
   Route.get('', 'BusinessUnitsController.index');
   Route.get(':id', 'BusinessUnitsController.show');
 
@@ -146,6 +170,11 @@ Route.group(() => {
   Route.post('/add-permissions', 'RolesController.addPermissions');
   Route.post('/permissions', 'RolesController.managePermissions');
   Route.post('/copy', 'RolesController.copyRole');
+
+  Route.get('/controller', 'RolesController.controllerIndex');
+  Route.post('/controller', 'RolesController.storeController');
+  Route.put('/controller/:id', 'RolesController.updateController');
+  Route.delete('/controller/:id', 'RolesController.destroyController');
 
   Route.get('/', 'RolesController.index');
   Route.post('/', 'RolesController.store');

@@ -225,6 +225,253 @@ export default class UserService {
     });
   }
 
+  public async createUserController(
+    authCtx: AuthContext,
+    data: {
+      name: string;
+      email: string;
+      document: string;
+      password: string;
+      units: { businessUnitId: string; roleId: number }[];
+
+      phone?: string;
+      postalCode?: string;
+      address?: string;
+      number?: string;
+      complement?: string;
+      district?: string;
+      city?: string;
+      state?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.create(
+        {
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          password: data.password,
+          system_id: authCtx.system.id,
+          type: 'controller',
+
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await user.related('roles').createMany(
+        data.units.map(u => ({
+          role_id: u.roleId,
+          unit_id: u.businessUnitId,
+        })),
+        {
+          client: trx,
+        },
+      );
+
+      const units = await BusinessUnit.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.units.map(u => u.businessUnitId),
+        );
+
+      const uniqueEconomicGroups = units.reduce((acc, curr) => {
+        if (!acc.find(a => a === curr.economicGroupId)) {
+          acc.push(curr.economicGroupId);
+        }
+        return acc;
+      }, [] as string[]);
+
+      await user.related('economicGroups').attach(uniqueEconomicGroups, trx);
+    });
+  }
+
+  public async updateUserController(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+      name: string;
+      email: string;
+      document: string;
+      password: string;
+      units: { businessUnitId: string; roleId: number }[];
+
+      phone?: string;
+      postalCode?: string;
+      address?: string;
+      number?: string;
+      complement?: string;
+      district?: string;
+      city?: string;
+      state?: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user
+        .merge({
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          password: data.password,
+
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await user.related('roles').query().useTransaction(trx).delete();
+
+      await user.related('roles').createMany(
+        data.units.map(u => ({
+          role_id: u.roleId,
+          unit_id: u.businessUnitId,
+        })),
+        {
+          client: trx,
+        },
+      );
+
+      const units = await BusinessUnit.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          data.units.map(u => u.businessUnitId),
+        );
+
+      const uniqueEconomicGroups = units.reduce((acc, curr) => {
+        if (!acc.find(a => a === curr.economicGroupId)) {
+          acc.push(curr.economicGroupId);
+        }
+        return acc;
+      }, [] as string[]);
+
+      await user
+        .related('economicGroups')
+        .sync(uniqueEconomicGroups, true, trx);
+    });
+  }
+
+  public async fetchUserControllers(authCtx: AuthContext) {
+    return User.query()
+      .where('system_id', authCtx.system.id)
+      .select('id', 'name', 'email', 'document', 'password')
+      .preload('roles', query => {
+        query.select('role_id', 'unit_id');
+        query.where('active', true);
+      });
+  }
+
+  public async softDeleteUserController(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user.softDelete();
+    });
+  }
+
+  public async disableUserControllerRole(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+      roleId: number;
+    },
+  ) {
+    await Database.transaction(async trx => {
+      const user = await User.query()
+        .useTransaction(trx)
+        .where('id', data.id)
+        .where('system_id', authCtx.system.id)
+        .first();
+
+      if (!user) {
+        throw new BadRequestException(
+          'Usuário não encontrado',
+          400,
+          'E_USER_NOT_FOUND',
+        );
+      }
+
+      if (user.type !== 'controller') {
+        throw new BadRequestException(
+          'Usuário não é um controlador',
+          400,
+          'E_INVALID_USER_TYPE',
+        );
+      }
+
+      await user
+        .related('roles')
+        .query()
+        .useTransaction(trx)
+        .where('role_id', data.roleId)
+        .update({ active: false });
+    });
+  }
+
   public async show(id: string): Promise<User> {
     const user = await User.find(id);
 

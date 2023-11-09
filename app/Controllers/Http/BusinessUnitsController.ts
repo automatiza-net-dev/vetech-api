@@ -34,6 +34,14 @@ export default class BusinessUnitsController {
     );
   }
 
+  public async systemUnits({ auth, response }: HttpContextContract) {
+    return response.ok(
+      await this.service.systemUnits(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+
   public async show({ params, response }: HttpContextContract) {
     return response.ok(await this.service.show(params.id));
   }

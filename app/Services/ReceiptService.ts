@@ -683,6 +683,7 @@ export default class ReceiptService {
       .where('block', payment.block)
       .update({
         status: FinanceStatus.E,
+        deletedAt: DateTime.now(),
       });
   }
 

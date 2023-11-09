@@ -447,11 +447,11 @@ export default class HospitalizationService {
 
       const attendanceTimeline = await TimelineType.firstOrCreate(
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           system_id: authCtx.system.id,
         },
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           color: '#000',
           requiresObservation: false,
           system_id: authCtx.system.id,

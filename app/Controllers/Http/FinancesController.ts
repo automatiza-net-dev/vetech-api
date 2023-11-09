@@ -30,7 +30,39 @@ export default class FinancesController {
       fromPaymentDate: qs.fromPayment,
       toPaymentDate: qs.toPayment,
 
-      id: qs.id,
+      ids: qs.ids,
+      client: qs.client,
+      document: qs.document,
+      fiscalNote: qs.fiscalNote,
+      paymentMethod: qs.paymentMethod,
+      nsu: qs.nsu,
+      status: qs.status,
+      accept: qs.accept,
+      reconciled: qs.reconciled,
+      type: qs.type,
+      unit: qs.unit,
+      plan: qs.plan,
+      competence: qs.competence,
+    });
+
+    return response.ok(result);
+  }
+
+  async reducedIndex({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+
+    const qs = request.qs();
+    const result = await this.service.reducedIndex(unit_id, {
+      fromIssueDate: qs.fromIssue,
+      toIssueDate: qs.toIssue,
+
+      fromExpirationDate: qs.fromExpiration,
+      toExpirationDate: qs.toExpiration,
+
+      fromPaymentDate: qs.fromPayment,
+      toPaymentDate: qs.toPayment,
+
+      ids: qs.ids,
       client: qs.client,
       document: qs.document,
       fiscalNote: qs.fiscalNote,

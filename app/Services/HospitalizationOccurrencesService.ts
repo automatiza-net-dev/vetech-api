@@ -182,11 +182,11 @@ export default class HospitalizationOccurrencesService {
 
         const timeline = await TimelineType.firstOrCreate(
           {
-            description: 'Consulta',
+            description: SharedService.GetAttendanceLabel(authCtx),
             system_id: authCtx.system.id,
           },
           {
-            description: 'Consulta',
+            description: SharedService.GetAttendanceLabel(authCtx),
             color: '#000',
             requiresObservation: false,
             system_id: authCtx.system.id,
@@ -257,11 +257,11 @@ export default class HospitalizationOccurrencesService {
       if (occurrence.type === OccurrenceType.ALTA_INTERNACAO) {
         const timeline = await TimelineType.firstOrCreate(
           {
-            description: 'Consulta',
+            description: SharedService.GetAttendanceLabel(authCtx),
             system_id: authCtx.system.id,
           },
           {
-            description: 'Consulta',
+            description: SharedService.GetAttendanceLabel(authCtx),
             color: '#000',
             requiresObservation: false,
             system_id: authCtx.system.id,

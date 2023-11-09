@@ -268,13 +268,29 @@ export default class TimelinesController {
     return response.created();
   }
 
-  public async appointmentsIndex({ params, response }: HttpContextContract) {
-    return response.ok(await this.timelineService.appointmentIndex(params.id));
+  public async appointmentsIndex({
+    auth,
+    params,
+    response,
+  }: HttpContextContract) {
+    return response.ok(
+      await this.timelineService.appointmentIndex(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+      ),
+    );
   }
 
-  public async appointmentsStore({ request, response }: HttpContextContract) {
+  public async appointmentsStore({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
     const payload = await request.validate(CreateAnimalAppointmentValidator);
-    await this.timelineService.storeAppointment(payload);
+    await this.timelineService.storeAppointment(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
     return response.created();
   }
 
@@ -330,10 +346,11 @@ export default class TimelinesController {
   }
 
   public async storeDeath({ request, response, auth }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const payload = await request.validate(CreateAnimalDeathValidator);
-    await this.timelineService.storeDeath(unit_id, payload);
+    await this.timelineService.storeDeath(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
     return response.created();
   }
 }

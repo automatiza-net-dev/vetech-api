@@ -871,6 +871,7 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.get('/reduced', 'FinancesController.reducedIndex');
   Route.get('/', 'FinancesController.index');
   Route.post('/create', 'FinancesController.storeFinance');
   Route.post('/create-multiple', 'FinancesController.storeMultipleFinances');

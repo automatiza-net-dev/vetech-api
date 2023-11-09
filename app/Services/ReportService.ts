@@ -35,7 +35,9 @@ export default class ReportService {
       .preload('client')
       .preload('checkingAccount')
       .preload('paymentMethod')
-      .preload('accountPlan')
+      .preload('accountPlan', query => {
+        query.preload('group');
+      })
       .preload('unit', query => {
         query.preload('economicGroup', query => {
           query.preload('system');
@@ -168,6 +170,10 @@ export default class ReportService {
       accountPlan: this.sharedService.captureGroup(elem.accountPlan, v => ({
         id: v.id,
         description: v.description,
+        group: this.sharedService.captureGroup(v.group, v => ({
+          id: v.id,
+          description: v.description,
+        })),
       })),
     }));
   }

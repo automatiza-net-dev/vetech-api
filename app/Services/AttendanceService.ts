@@ -284,27 +284,28 @@ export default class AttendanceService {
         .useTransaction(trx)
         .save();
 
-      const timelineInfo = await TimelineType.firstOrCreate(
-        {
-          description: SharedService.GetAttendanceLabel(authCtx),
-          system_id: authCtx.system.id,
-        },
-        {
-          color: '#000000',
-          description: SharedService.GetAttendanceLabel(authCtx),
-          requiresObservation: false,
-          system_id: authCtx.system.id,
-        },
-        {
-          client: trx,
-        },
-      );
+      // const timelineInfo = await TimelineType.firstOrCreate(
+      //   {
+      //     description: SharedService.GetAttendanceLabel(authCtx),
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     color: '#000000',
+      //     description: SharedService.GetAttendanceLabel(authCtx),
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
 
       await AnimalTimeline.updateMany(
         {
-          timeline_id: timelineInfo.id,
+          // timeline_id: timelineInfo.id,
           'timeline_info.tag': model.patient_id,
           'timeline_info.finishedAt': null,
+          'timeline_info.attendance.id': model.id,
         },
         {
           $set: {

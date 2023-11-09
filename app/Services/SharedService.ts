@@ -252,6 +252,14 @@ export default class SharedService {
     });
   }
 
+  public static GetAttendanceLabel(authCtx: AuthContext) {
+    if (authCtx.system.name === 'LiftOne') {
+      return 'Avaliação';
+    }
+
+    return 'Atendimento';
+  }
+
   private parsePriceToBrl(price: number | string) {
     if (typeof price === 'string') {
       return this.parsePriceToBrl(parseFloat(price));

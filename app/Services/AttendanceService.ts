@@ -178,11 +178,11 @@ export default class AttendanceService {
 
       const timeline = await TimelineType.firstOrCreate(
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           system_id: authCtx.system.id,
         },
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           color: '#000',
           requiresObservation: false,
           system_id: authCtx.system.id,
@@ -286,12 +286,12 @@ export default class AttendanceService {
 
       const timelineInfo = await TimelineType.firstOrCreate(
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           system_id: authCtx.system.id,
         },
         {
           color: '#000000',
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           requiresObservation: false,
           system_id: authCtx.system.id,
         },

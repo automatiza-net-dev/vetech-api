@@ -26,7 +26,7 @@ import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
-import { AuthContext } from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -51,8 +51,9 @@ export default class TimelineService {
             'Observação',
             'Patologia',
             'Formato Receita Médica',
+            'Consulta', // Campo para manter compatibilidade
             authCtx.system.name === 'LiftOne' && 'Avaliação',
-            authCtx.system.name !== 'Sanclá' && 'Atendimento',
+            authCtx.system.name === 'Sanclá' && 'Atendimento',
           ].filter(Boolean),
         },
         'extras.deletedAt': null,
@@ -1137,14 +1138,14 @@ export default class TimelineService {
     });
   }
 
-  public async appointmentIndex(tag: string) {
+  public async appointmentIndex(authCtx: AuthContext, tag: string) {
     const timelineInfo = await TimelineType.firstOrCreate(
       {
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
       },
       {
         color: '#000000',
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
         requiresObservation: false,
       },
     );
@@ -1156,14 +1157,17 @@ export default class TimelineService {
     }).sort({ createdAt: -1 });
   }
 
-  public async storeAppointment(data: ICreateAppointment) {
+  public async storeAppointment(
+    authCtx: AuthContext,
+    data: ICreateAppointment,
+  ) {
     const timelineInfo = await TimelineType.firstOrCreate(
       {
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
       },
       {
         color: '#000000',
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
         requiresObservation: false,
       },
     );
@@ -1414,17 +1418,17 @@ export default class TimelineService {
   }
 
   public async storeDeath(
-    unitId: string,
+    authCtx: AuthContext,
     data: { tag: string; technicianId: string },
   ) {
     return Database.transaction(async trx => {
       const timelineInfo = await TimelineType.firstOrCreate(
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
         },
         {
           color: '#000000',
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           requiresObservation: false,
         },
         {
@@ -1434,7 +1438,7 @@ export default class TimelineService {
 
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
-        .where('id', unitId)
+        .where('id', authCtx.unit.id)
         .preload('economicGroup')
         .firstOrFail();
 

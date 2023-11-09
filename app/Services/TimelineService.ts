@@ -381,7 +381,7 @@ export default class TimelineService {
         client: trx,
       });
 
-      const data = {
+      const newData = {
         timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
@@ -427,12 +427,12 @@ export default class TimelineService {
           },
         );
 
-        data.timeline_info.attendance = {
+        newData.timeline_info.attendance = {
           id: att.id,
         };
       }
 
-      return AnimalTimeline.create(data);
+      return AnimalTimeline.create(newData);
     });
   }
 

@@ -131,6 +131,7 @@ export default class ReportService {
       installment: elem.installment,
       originFlag: elem.originFlag,
       historic: elem.historic,
+      createdAt: elem.createdAt,
 
       system: this.sharedService.captureGroup(
         elem.unit?.economicGroup?.system,
@@ -139,6 +140,10 @@ export default class ReportService {
           name: v.name,
         }),
       ),
+      group: this.sharedService.captureGroup(elem.unit?.economicGroup, v => ({
+        id: v.id,
+        companyName: v.companyName,
+      })),
       unit: this.sharedService.captureGroup(elem.unit, v => ({
         id: v.id,
         identification: v.identification,

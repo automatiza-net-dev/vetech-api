@@ -381,25 +381,7 @@ export default class TimelineService {
         client: trx,
       });
 
-      if (authCtx.system.name === 'LiftOne') {
-        await Attendance.create(
-          {
-            business_unit_id: authCtx.unit.id,
-            open_user_id: authCtx.user.id,
-            schedule_service_id: scheduleServiceType.id,
-            patient_id: data.tag,
-
-            resume: data.resume,
-            protocol: data.protocol,
-            startDate: DateTime.now(),
-          },
-          {
-            client: trx,
-          },
-        );
-      }
-
-      return AnimalTimeline.create({
+      const data = {
         timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
@@ -426,7 +408,31 @@ export default class TimelineService {
             ? await Promise.all(data.photos.map(this.uploadPhoto))
             : [],
         },
-      });
+      };
+
+      if (authCtx.system.name === 'LiftOne') {
+        const att = await Attendance.create(
+          {
+            business_unit_id: authCtx.unit.id,
+            open_user_id: authCtx.user.id,
+            schedule_service_id: scheduleServiceType.id,
+            patient_id: data.tag,
+
+            resume: data.resume,
+            protocol: data.protocol,
+            startDate: DateTime.now(),
+          },
+          {
+            client: trx,
+          },
+        );
+
+        data.timeline_info.attendance = {
+          id: att.id,
+        };
+      }
+
+      return AnimalTimeline.create(data);
     });
   }
 

@@ -886,6 +886,7 @@ export default class FinanceService {
     return finance
       .merge({
         status: FinanceStatus.E,
+        deletedAt: DateTime.now(),
       })
       .save();
   }

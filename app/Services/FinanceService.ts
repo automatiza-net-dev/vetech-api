@@ -40,7 +40,7 @@ interface ISearch {
   fromPaymentDate?: string;
   toPaymentDate?: string;
 
-  id?: string;
+  ids?: string[];
   client?: string;
   document?: string;
   fiscalNote?: string;
@@ -83,8 +83,8 @@ export default class FinanceService {
         query.select(['id', 'description']);
       });
 
-    if (data.id) {
-      qb.where('id', data.id);
+    if (data.ids && Array.isArray(data.ids)) {
+      qb.whereIn('id', data.ids);
     }
 
     if (data.fromIssueDate) {
@@ -158,6 +158,144 @@ export default class FinanceService {
     }
 
     return qb;
+  }
+
+  async reducedIndex(unitId: string, data: ISearch) {
+    const units = [unitId];
+    if (data.unit) {
+      units.push(data.unit);
+    }
+
+    const qb = Finance.query()
+      .whereIn('business_unit_id', units)
+      .preload('client', query => {
+        query.preload('tutor', query => {
+          query.preload('accountPlan');
+        });
+      })
+      .preload('paymentMethod', query => {
+        query.preload('checkingAccount', query => {
+          query.select(['id', 'description']);
+        });
+      })
+      .preload('accountPlan')
+      .preload('checkingAccount')
+      .preload('flag', query => {
+        query.select(['id', 'description']);
+      });
+
+    if (data.ids && Array.isArray(data.ids)) {
+      qb.whereIn('id', data.ids);
+    }
+
+    if (data.fromIssueDate) {
+      qb.whereRaw('issue_date::date >= ?', [data.fromIssueDate]);
+    }
+
+    if (data.toIssueDate) {
+      qb.whereRaw('issue_date::date <= ?', [data.toIssueDate]);
+    }
+
+    if (data.fromExpirationDate) {
+      qb.whereRaw('expiration_date::date >= ?', [data.fromExpirationDate]);
+    }
+
+    if (data.toExpirationDate) {
+      qb.whereRaw('expiration_date::date <= ?', [data.toExpirationDate]);
+    }
+
+    if (data.fromPaymentDate) {
+      qb.whereRaw('payment_date::date >= ?', [data.fromPaymentDate]);
+    }
+
+    if (data.toPaymentDate) {
+      qb.whereRaw('payment_date::date <= ?', [data.toPaymentDate]);
+    }
+
+    if (data.client) {
+      qb.where('client_id', data.client);
+    }
+
+    if (data.document) {
+      qb.whereILike('document', `%${data.document}%`);
+    }
+
+    if (data.fiscalNote) {
+      qb.whereILike('fiscalNote', `%${data.fiscalNote}%`);
+    }
+
+    if (data.paymentMethod) {
+      qb.where('payment_method_id', data.paymentMethod);
+    }
+
+    if (data.nsu) {
+      qb.where('nsuDocument', data.nsu);
+    }
+
+    if (data.status) {
+      qb.where('status', data.status);
+    } else {
+      qb.whereNot('status', FinanceStatus.E);
+    }
+
+    if (data.accept) {
+      qb.where('accept', data.accept);
+    }
+
+    if (data.reconciled) {
+      qb.where('reconciled', data.reconciled === 'true');
+    }
+
+    if (data.type) {
+      qb.where('type', data.type);
+    }
+
+    if (data.plan) {
+      qb.where('account_plan_id', data.plan);
+    }
+
+    if (data.competence) {
+      qb.where('competence_date', data.competence);
+    }
+
+    const result = await qb;
+
+    return result.map(elem => ({
+      id: elem.id,
+      type: elem.type,
+      document: elem.document,
+      installment: elem.installment,
+      issueDate: elem.issueDate,
+      expirationDate: elem.expirationDate,
+      paymentDate: elem.paymentDate,
+      value: elem.value,
+      totalValue: elem.totalValue,
+      paymentValue: elem.paymentValue,
+      originFlag: elem.originFlag,
+      originDownFlag: elem.originDownFlag,
+      accept: elem.accept,
+      status: elem.status,
+      competenceDate: elem.competenceDate,
+      fiscalNote: elem.fiscalNote,
+      nsuDocument: elem.nsuDocument,
+      qtyInstallments: elem.qtyInstallments,
+      accountPlan: this.sharedService.captureGroup(elem.accountPlan, v => ({
+        id: v.id,
+        description: v.description,
+      })),
+      flag: this.sharedService.captureGroup(elem.flag, v => ({
+        id: v.id,
+        description: v.description,
+      })),
+      paymentMethod: this.sharedService.captureGroup(elem.paymentMethod, v => ({
+        id: v.id,
+        description: v.description,
+      })),
+      client: this.sharedService.captureGroup(elem.client, v => ({
+        id: v.id,
+        name: v.name,
+      })),
+    }));
   }
 
   // 2.1

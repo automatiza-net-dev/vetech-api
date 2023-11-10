@@ -29,7 +29,7 @@ export default class PatientContactService {
     data: {
       patientId: string;
       main: boolean;
-      contact: string;
+      contact?: string | null;
       observation?: string;
       type: typeof PatientContactType[number];
     },
@@ -38,6 +38,7 @@ export default class PatientContactService {
       .related('patients')
       .query()
       .where('patient_id', data.patientId)
+      .preload('tutor')
       .first();
 
     if (!patient) {
@@ -50,7 +51,7 @@ export default class PatientContactService {
       });
     }
 
-    if (data.type === 'email') {
+    if (data.type === 'email' && data.contact) {
       await PatientTutor.query().where('patient_id', data.patientId).update({
         email: data.contact,
       });
@@ -64,7 +65,7 @@ export default class PatientContactService {
 
     await patient.related('contacts').create({
       main: data.main,
-      contact: data.contact,
+      contact: data.contact ?? patient?.tutor.email,
       observation: data.observation,
       type: data.type,
     });

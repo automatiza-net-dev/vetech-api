@@ -8,7 +8,7 @@ import Finance, {
   FinanceOriginFlag,
   FinanceStatus,
 } from 'App/Models/Finance';
-import Patient from 'App/Models/Patient';
+import Patient, { PatientType } from 'App/Models/Patient';
 import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodUsage,
@@ -27,10 +27,328 @@ import UfIcms from 'App/Models/UfIcms';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { GenerateTag } from 'App/Utils/GenerateTag';
 import { DateTime } from 'luxon';
+import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
+import Drive from '@ioc:Adonis/Core/Drive';
+import xmlParser from 'xml2json';
+import { z } from 'zod';
+import PatientTutor from 'App/Models/PatientTutor';
+import Logger from '@ioc:Adonis/Core/Logger';
+
+const schema = z.object({
+  nfeProc: z.object({
+    xmlns: z.string(),
+    versao: z.string(),
+    NFe: z.object({
+      xmlns: z.string(),
+      infNFe: z.object({
+        versao: z.string(),
+        Id: z.string(),
+        ide: z.object({
+          cUF: z.string(),
+          cNF: z.string(),
+          natOp: z.string(),
+          mod: z.string(),
+          serie: z.string(),
+          nNF: z.string(),
+          dhEmi: z.string(),
+          tpNF: z.string(),
+          idDest: z.string(),
+          cMunFG: z.string(),
+          tpImp: z.string(),
+          tpEmis: z.string(),
+          cDV: z.string(),
+          tpAmb: z.string(),
+          finNFe: z.string(),
+          indFinal: z.string(),
+          indPres: z.string(),
+          procEmi: z.string(),
+          verProc: z.string(),
+        }),
+        emit: z.object({
+          CNPJ: z.string(),
+          xNome: z.string(),
+          xFant: z.string(),
+          enderEmit: z.object({
+            xLgr: z.string(),
+            nro: z.string(),
+            xCpl: z.string(),
+            xBairro: z.string(),
+            cMun: z.string(),
+            xMun: z.string(),
+            UF: z.string(),
+            CEP: z.string(),
+            cPais: z.string(),
+            xPais: z.string(),
+            fone: z.string(),
+          }),
+          IE: z.string(),
+          CRT: z.string(),
+        }),
+        det: z.array(
+          z.union([
+            z.object({
+              nItem: z.string(),
+              prod: z.object({
+                cProd: z.string(),
+                cEAN: z.string(),
+                xProd: z.string(),
+                NCM: z.string(),
+                CFOP: z.string(),
+                uCom: z.string(),
+                qCom: z.string(),
+                vUnCom: z.string(),
+                vProd: z.string(),
+                cEANTrib: z.string(),
+                uTrib: z.string(),
+                qTrib: z.string(),
+                vUnTrib: z.string(),
+                indTot: z.string(),
+              }),
+              imposto: z.object({
+                ICMS: z.object({
+                  ICMSSN102: z.object({ orig: z.string(), CSOSN: z.string() }),
+                }),
+                PIS: z.object({
+                  PISOutr: z.object({
+                    CST: z.string(),
+                    vBC: z.string(),
+                    pPIS: z.string(),
+                    vPIS: z.string(),
+                  }),
+                }),
+                COFINS: z.object({
+                  COFINSOutr: z.object({
+                    CST: z.string(),
+                    vBC: z.string(),
+                    pCOFINS: z.string(),
+                    vCOFINS: z.string(),
+                  }),
+                }),
+              }),
+            }),
+            z.object({
+              nItem: z.string(),
+              prod: z.object({
+                cProd: z.string(),
+                cEAN: z.string(),
+                xProd: z.string(),
+                NCM: z.string(),
+                CEST: z.string(),
+                CFOP: z.string(),
+                uCom: z.string(),
+                qCom: z.string(),
+                vUnCom: z.string(),
+                vProd: z.string(),
+                cEANTrib: z.string(),
+                uTrib: z.string(),
+                qTrib: z.string(),
+                vUnTrib: z.string(),
+                indTot: z.string(),
+              }),
+              imposto: z.object({
+                ICMS: z.object({
+                  ICMSSN102: z.object({ orig: z.string(), CSOSN: z.string() }),
+                }),
+                PIS: z.object({
+                  PISOutr: z.object({
+                    CST: z.string(),
+                    vBC: z.string(),
+                    pPIS: z.string(),
+                    vPIS: z.string(),
+                  }),
+                }),
+                COFINS: z.object({
+                  COFINSOutr: z.object({
+                    CST: z.string(),
+                    vBC: z.string(),
+                    pCOFINS: z.string(),
+                    vCOFINS: z.string(),
+                  }),
+                }),
+              }),
+            }),
+          ]),
+        ),
+        total: z.object({
+          ICMSTot: z.object({
+            vBC: z.string(),
+            vICMS: z.string(),
+            vICMSDeson: z.string(),
+            vFCP: z.string(),
+            vBCST: z.string(),
+            vST: z.string(),
+            vFCPST: z.string(),
+            vFCPSTRet: z.string(),
+            vProd: z.string(),
+            vFrete: z.string(),
+            vSeg: z.string(),
+            vDesc: z.string(),
+            vII: z.string(),
+            vIPI: z.string(),
+            vIPIDevol: z.string(),
+            vPIS: z.string(),
+            vCOFINS: z.string(),
+            vOutro: z.string(),
+            vNF: z.string(),
+          }),
+        }),
+        transp: z.object({ modFrete: z.string() }),
+        pag: z.object({
+          detPag: z.object({
+            tPag: z.string(),
+            xPag: z.string(),
+            vPag: z.string(),
+          }),
+        }),
+        infAdic: z.object({ infCpl: z.string() }),
+        infRespTec: z.object({
+          CNPJ: z.string(),
+          xContato: z.string(),
+          email: z.string(),
+          fone: z.string(),
+        }),
+      }),
+      infNFeSupl: z.object({ qrCode: z.string(), urlChave: z.string() }),
+      Signature: z.object({
+        xmlns: z.string(),
+        SignedInfo: z.object({
+          CanonicalizationMethod: z.object({ Algorithm: z.string() }),
+          SignatureMethod: z.object({ Algorithm: z.string() }),
+          Reference: z.object({
+            URI: z.string(),
+            Transforms: z.object({
+              Transform: z.array(z.object({ Algorithm: z.string() })),
+            }),
+            DigestMethod: z.object({ Algorithm: z.string() }),
+            DigestValue: z.string(),
+          }),
+        }),
+        SignatureValue: z.string(),
+        KeyInfo: z.object({
+          X509Data: z.object({ X509Certificate: z.string() }),
+        }),
+      }),
+    }),
+    protNFe: z.object({
+      versao: z.string(),
+      infProt: z.object({
+        tpAmb: z.string(),
+        verAplic: z.string(),
+        chNFe: z.string(),
+        dhRecbto: z.string(),
+        nProt: z.string(),
+        digVal: z.string(),
+        cStat: z.string(),
+        xMotivo: z.string(),
+      }),
+    }),
+  }),
+});
 
 @inject()
 export default class ReceiptService {
   constructor(private sharedService: SharedService) {}
+
+  async importFromXml(
+    authCtx: AuthContext,
+    data: {
+      file: MultipartFileContract;
+    },
+  ) {
+    const key = `${authCtx.unit.id}/${data.file.clientName}`;
+
+    await data.file.moveToDisk(
+      'receipts',
+      {
+        name: key,
+      },
+      'local',
+    );
+
+    const fileContents = await Drive.get(`receipts/${key}`);
+    let result = {};
+    try {
+      result = xmlParser.toJson(fileContents.toString(), { object: true });
+    } catch (e) {
+      Logger.error(e);
+      throw new BadRequestException(
+        'Não foi possível ler o arquivo',
+        400,
+        'E_INTERNAL',
+      );
+    }
+
+    const parsed = schema.safeParse(result);
+    if (!parsed.success) {
+      throw new BadRequestException('Arquivo inválido', 400, 'E_INVALID_FILE');
+    }
+
+    await Database.transaction(async trx => {
+      let supplierId = '';
+
+      const existingTutor = await PatientTutor.query()
+        .useTransaction(trx)
+        .where('document', parsed.data.nfeProc.NFe.infNFe.emit.CNPJ)
+        .first();
+
+      // vendedor não existe
+      if (!existingTutor) {
+        const suppliers = await authCtx.group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .where('type', PatientType.SUPPLIER)
+          .select('id');
+
+        const newSupplier = await Patient.create(
+          {
+            name: parsed.data.nfeProc.NFe.infNFe.emit.xFant,
+            type: PatientType.SUPPLIER,
+            tag: (suppliers.length + 1).toString(),
+          },
+          { client: trx },
+        );
+
+        await newSupplier.related('tutor').create({
+          document: parsed.data.nfeProc.NFe.infNFe.emit.CNPJ,
+          inscription: parsed.data.nfeProc.NFe.infNFe.emit.IE,
+          corporateName: parsed.data.nfeProc.NFe.infNFe.emit.xNome,
+          cellphone: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
+          telephone: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
+          postalCode: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.CEP,
+          street: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xLgr,
+          number: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.nro,
+          complement: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xCpl,
+          district: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xBairro,
+          city: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xMun,
+          state: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.UF,
+          cityCode: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.cMun,
+          residence: 'COMERCIAL',
+        });
+
+        await authCtx.group.related('patients').attach([newSupplier.id], trx);
+
+        supplierId = newSupplier.id;
+      } else {
+        // checar se vendedor tem relação com grupo
+        const tmpPatient = await authCtx.group
+          .related('patients')
+          .query()
+          .useTransaction(trx)
+          .where('patient_id', existingTutor.patient_id)
+          .first();
+
+        // se não tiver, criar relação
+        if (!tmpPatient) {
+          await authCtx.group
+            .related('patients')
+            .attach([existingTutor.patient_id], trx);
+        }
+
+        supplierId = existingTutor.patient_id;
+      }
+    });
+  }
 
   async createReceipt(
     authCtx: AuthContext,

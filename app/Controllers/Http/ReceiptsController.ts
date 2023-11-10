@@ -7,6 +7,7 @@ import CreateReceiptPaymentValidator from 'App/Validators/Receipt/CreateReceiptP
 import CreateReceiptValidator from 'App/Validators/Receipt/CreateReceiptValidator';
 import DeleteReceiptItemValidator from 'App/Validators/Receipt/DeleteReceiptItemValidator';
 import DeleteReceiptPaymentValidator from 'App/Validators/Receipt/DeleteReceiptPaymentValidator';
+import ImportFromXmlValidator from 'App/Validators/Receipt/ImportFromXmlValidator';
 
 @inject()
 export default class ReceiptsController {
@@ -14,6 +15,17 @@ export default class ReceiptsController {
     private sharedService: SharedService,
     private service: ReceiptService,
   ) {}
+
+  public async importFromXml({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(ImportFromXmlValidator);
+
+    await this.service.importFromXml(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.created(null);
+  }
 
   public async createReceipt({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(CreateReceiptValidator);

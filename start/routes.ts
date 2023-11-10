@@ -1325,6 +1325,8 @@ Route.group(() => {
   .middleware('auth');
 
 Route.group(() => {
+  Route.post('/import-xml', 'ReceiptsController.importFromXml');
+
   Route.post('/create', 'ReceiptsController.createReceipt');
   Route.post('/create-item', 'ReceiptsController.createReceiptItem');
   Route.post('/create-payment', 'ReceiptsController.createReceiptPayment');

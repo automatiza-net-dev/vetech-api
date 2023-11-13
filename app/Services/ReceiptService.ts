@@ -33,16 +33,15 @@ import xmlParser from 'xml2json';
 import { z } from 'zod';
 import PatientTutor from 'App/Models/PatientTutor';
 import Logger from '@ioc:Adonis/Core/Logger';
+import IssuedFiscalDocument, {
+  IssuedFiscalDocumentContingency,
+} from '../Models/IssuedFiscalDocument';
+import { BusinessUnitFiscalDocumentMovementType } from '../Models/BusinessUnitFiscalDocument';
 
 const schema = z.object({
   nfeProc: z.object({
-    xmlns: z.string(),
-    versao: z.string(),
     NFe: z.object({
-      xmlns: z.string(),
       infNFe: z.object({
-        versao: z.string(),
-        Id: z.string(),
         ide: z.object({
           cUF: z.string(),
           cNF: z.string(),
@@ -51,6 +50,7 @@ const schema = z.object({
           serie: z.string(),
           nNF: z.string(),
           dhEmi: z.string(),
+          dhSaiEnt: z.string(),
           tpNF: z.string(),
           idDest: z.string(),
           cMunFG: z.string(),
@@ -71,7 +71,6 @@ const schema = z.object({
           enderEmit: z.object({
             xLgr: z.string(),
             nro: z.string(),
-            xCpl: z.string(),
             xBairro: z.string(),
             cMun: z.string(),
             xMun: z.string(),
@@ -84,96 +83,90 @@ const schema = z.object({
           IE: z.string(),
           CRT: z.string(),
         }),
-        det: z.array(
-          z.union([
-            z.object({
-              nItem: z.string(),
-              prod: z.object({
-                cProd: z.string(),
-                cEAN: z.string(),
-                xProd: z.string(),
-                NCM: z.string(),
-                CFOP: z.string(),
-                uCom: z.string(),
-                qCom: z.string(),
-                vUnCom: z.string(),
-                vProd: z.string(),
-                cEANTrib: z.string(),
-                uTrib: z.string(),
-                qTrib: z.string(),
-                vUnTrib: z.string(),
-                indTot: z.string(),
-              }),
-              imposto: z.object({
-                ICMS: z.object({
-                  ICMSSN102: z.object({ orig: z.string(), CSOSN: z.string() }),
-                }),
-                PIS: z.object({
-                  PISOutr: z.object({
-                    CST: z.string(),
-                    vBC: z.string(),
-                    pPIS: z.string(),
-                    vPIS: z.string(),
-                  }),
-                }),
-                COFINS: z.object({
-                  COFINSOutr: z.object({
-                    CST: z.string(),
-                    vBC: z.string(),
-                    pCOFINS: z.string(),
-                    vCOFINS: z.string(),
-                  }),
-                }),
-              }),
-            }),
-            z.object({
-              nItem: z.string(),
-              prod: z.object({
-                cProd: z.string(),
-                cEAN: z.string(),
-                xProd: z.string(),
-                NCM: z.string(),
-                CEST: z.string(),
-                CFOP: z.string(),
-                uCom: z.string(),
-                qCom: z.string(),
-                vUnCom: z.string(),
-                vProd: z.string(),
-                cEANTrib: z.string(),
-                uTrib: z.string(),
-                qTrib: z.string(),
-                vUnTrib: z.string(),
-                indTot: z.string(),
-              }),
-              imposto: z.object({
-                ICMS: z.object({
-                  ICMSSN102: z.object({ orig: z.string(), CSOSN: z.string() }),
-                }),
-                PIS: z.object({
-                  PISOutr: z.object({
-                    CST: z.string(),
-                    vBC: z.string(),
-                    pPIS: z.string(),
-                    vPIS: z.string(),
-                  }),
-                }),
-                COFINS: z.object({
-                  COFINSOutr: z.object({
-                    CST: z.string(),
-                    vBC: z.string(),
-                    pCOFINS: z.string(),
-                    vCOFINS: z.string(),
-                  }),
-                }),
+        dest: z.object({
+          CPF: z.string(),
+          xNome: z.string(),
+          enderDest: z.object({
+            xLgr: z.string(),
+            nro: z.string(),
+            xCpl: z.string(),
+            xBairro: z.string(),
+            cMun: z.string(),
+            xMun: z.string(),
+            UF: z.string(),
+            CEP: z.string(),
+            cPais: z.string(),
+            xPais: z.string(),
+            fone: z.string(),
+          }),
+          indIEDest: z.string(),
+          email: z.string(),
+        }),
+        autXML: z.object({ CNPJ: z.string() }),
+        det: z.object({
+          prod: z.object({
+            cProd: z.string(),
+            cEAN: z.string(),
+            xProd: z.string(),
+            NCM: z.string(),
+            CFOP: z.string(),
+            uCom: z.string(),
+            qCom: z.string(),
+            vUnCom: z.string(),
+            vProd: z.string(),
+            cEANTrib: z.string(),
+            uTrib: z.string(),
+            qTrib: z.string(),
+            vUnTrib: z.string(),
+            indTot: z.string(),
+          }),
+          imposto: z.object({
+            ICMS: z.object({
+              ICMS00: z.object({
+                orig: z.string(),
+                CST: z.string(),
+                modBC: z.string(),
+                vBC: z.string(),
+                pICMS: z.string(),
+                vICMS: z.string(),
               }),
             }),
-          ]),
-        ),
+            PIS: z.object({
+              PISAliq: z.object({
+                CST: z.string(),
+                vBC: z.string(),
+                pPIS: z.string(),
+                vPIS: z.string(),
+              }),
+            }),
+            COFINS: z.object({
+              COFINSAliq: z.object({
+                CST: z.string(),
+                vBC: z.string(),
+                pCOFINS: z.string(),
+                vCOFINS: z.string(),
+              }),
+            }),
+            ICMSUFDest: z.object({
+              vBCUFDest: z.string(),
+              vBCFCPUFDest: z.string(),
+              pFCPUFDest: z.string(),
+              pICMSUFDest: z.string(),
+              pICMSInter: z.string(),
+              pICMSInterPart: z.string(),
+              vFCPUFDest: z.string(),
+              vICMSUFDest: z.string(),
+              vICMSUFRemet: z.string(),
+            }),
+          }),
+          _nItem: z.optional(z.string()),
+        }),
         total: z.object({
           ICMSTot: z.object({
             vBC: z.string(),
             vICMS: z.string(),
             vICMSDeson: z.string(),
+            vICMSUFDest: z.string(),
             vFCP: z.string(),
             vBCST: z.string(),
             vST: z.string(),
@@ -192,7 +185,30 @@ const schema = z.object({
             vNF: z.string(),
           }),
         }),
-        transp: z.object({ modFrete: z.string() }),
+        transp: z.object({
+          modFrete: z.string(),
+          transporta: z.object({
+            CNPJ: z.string(),
+            xNome: z.string(),
+            IE: z.string(),
+            xEnder: z.string(),
+            xMun: z.string(),
+            UF: z.string(),
+          }),
+          vol: z.object({
+            qVol: z.string(),
+            pesoL: z.string(),
+            pesoB: z.string(),
+          }),
+        }),
+        cobr: z.object({
+          fat: z.object({
+            nFat: z.string(),
+            vOrig: z.string(),
+            vDesc: z.string(),
+            vLiq: z.string(),
+          }),
+        }),
         pag: z.object({
           detPag: z.object({
             tPag: z.string(),
@@ -207,30 +223,35 @@ const schema = z.object({
           email: z.string(),
           fone: z.string(),
         }),
+        _versao: z.optional(z.string()),
+        _Id: z.optional(z.string()),
       }),
-      infNFeSupl: z.object({ qrCode: z.string(), urlChave: z.string() }),
       Signature: z.object({
-        xmlns: z.string(),
         SignedInfo: z.object({
-          CanonicalizationMethod: z.object({ Algorithm: z.string() }),
-          SignatureMethod: z.object({ Algorithm: z.string() }),
+          CanonicalizationMethod: z.object({
+            _Algorithm: z.optional(z.string()),
+          }),
+          SignatureMethod: z.object({ _Algorithm: z.optional(z.string()) }),
           Reference: z.object({
-            URI: z.string(),
             Transforms: z.object({
-              Transform: z.array(z.object({ Algorithm: z.string() })),
+              Transform: z.array(
+                z.object({ _Algorithm: z.optional(z.string()) }),
+              ),
             }),
-            DigestMethod: z.object({ Algorithm: z.string() }),
-            DigestValue: z.string(),
+            DigestMethod: z.object({ _Algorithm: z.optional(z.string()) }),
+            DigestValue: z.optional(z.string()),
+            _URI: z.optional(z.string()),
           }),
         }),
         SignatureValue: z.string(),
         KeyInfo: z.object({
           X509Data: z.object({ X509Certificate: z.string() }),
         }),
+        _xmlns: z.optional(z.string()),
       }),
+      _xmlns: z.optional(z.string()),
     }),
     protNFe: z.object({
-      versao: z.string(),
       infProt: z.object({
         tpAmb: z.string(),
         verAplic: z.string(),
@@ -241,7 +262,10 @@ const schema = z.object({
         cStat: z.string(),
         xMotivo: z.string(),
       }),
+      _versao: z.optional(z.string()),
     }),
+    _xmlns: z.optional(z.string()),
+    _versao: z.optional(z.string()),
   }),
 });
 
@@ -280,6 +304,7 @@ export default class ReceiptService {
 
     const parsed = schema.safeParse(result);
     if (!parsed.success) {
+      console.log(parsed.error.message);
       throw new BadRequestException('Arquivo inválido', 400, 'E_INVALID_FILE');
     }
 
@@ -347,6 +372,34 @@ export default class ReceiptService {
 
         supplierId = existingTutor.patient_id;
       }
+
+      await IssuedFiscalDocument.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          user_who_authorized_id: authCtx.user.id,
+          bill_id: undefined, // TODO - complete
+          fiscal_document_id: undefined,
+
+          movementType: BusinessUnitFiscalDocumentMovementType.E,
+          model: parsed.data.nfeProc.NFe.infNFe.ide.mod,
+          series: parsed.data.nfeProc.NFe.infNFe.ide.serie,
+          sequence: parseInt(parsed.data.nfeProc.NFe.infNFe.ide.nNF),
+          purpose: 'Importação XML',
+          accessKey: parsed.data.nfeProc.protNFe.infProt.chNFe,
+          authorizationDate: parsed.data.nfeProc.NFe.infNFe.ide.dhEmi,
+          authorizationReceiptDate:
+            parsed.data.nfeProc.protNFe.infProt.dhRecbto,
+          authorizationReceipt: parsed.data.nfeProc.protNFe.infProt.nProt,
+          contingency: IssuedFiscalDocumentContingency.N,
+          active: true,
+
+          sefazStatusCode: parsed.data.nfeProc.protNFe.infProt.cStat,
+          sefazStatus: 'Autorizado',
+          sefazMessage: parsed.data.nfeProc.protNFe.infProt.xMotivo,
+        },
+        { client: trx },
+      );
     });
   }
 

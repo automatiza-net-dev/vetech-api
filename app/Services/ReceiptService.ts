@@ -336,10 +336,14 @@ export default class ReceiptService {
     }));
   }
 
-  async show(authCtx: AuthContext, id: string) {
-    const row = await Receipt.query()
+  async show(authCtx: AuthContext, data: { ids?: string[] }) {
+    if (!data.ids || !Array.isArray(data.ids) || data.ids.length === 0) {
+      throw new BadRequestException('Nenhum ID informado', 400, 'E_NO_IDS');
+    }
+
+    const rows = await Receipt.query()
       .where('business_unit_id', authCtx.unit.id)
-      .where('id', id)
+      .whereIn('id', data.ids)
       .preload('user', query => {
         query.select('id', 'name');
       })
@@ -368,14 +372,9 @@ export default class ReceiptService {
           query.preload('variationOptions');
           query.preload('product');
         });
-      })
-      .first();
+      });
 
-    if (!row) {
-      throw this.sharedService.ResourceNotFound();
-    }
-
-    return row;
+    return rows;
   }
 
   async importFromXml(

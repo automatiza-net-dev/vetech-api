@@ -28,7 +28,7 @@ export default class ReceiptsController {
   public async show({ request, response, auth }: HttpContextContract) {
     const result = await this.service.show(
       await this.sharedService.getAuthContext(auth),
-      request.param('id'),
+      request.qs(),
     );
 
     return response.ok(result);

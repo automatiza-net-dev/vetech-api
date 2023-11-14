@@ -12,11 +12,12 @@ import ReceiptItem from 'App/Models/ReceiptItem';
 import ReceiptPayment from 'App/Models/ReceiptPayment';
 import User from 'App/Models/User';
 import { DateTime } from 'luxon';
+import { v4 } from 'uuid';
 
 export const ReceiptStatus = ['Ativa', 'Estornada'] as const;
 export default class Receipt extends BaseModel {
   @column({ isPrimary: true })
-  public id: number;
+  public id = v4();
 
   @column()
   public tag: string;

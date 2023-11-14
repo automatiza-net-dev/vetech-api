@@ -16,6 +16,15 @@ export default class ReceiptsController {
     private service: ReceiptService,
   ) {}
 
+  public async index({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
   public async importFromXml({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(ImportFromXmlValidator);
 

@@ -278,6 +278,63 @@ const schema = z.object({
 export default class ReceiptService {
   constructor(private sharedService: SharedService) {}
 
+  async index(
+    authCtx: AuthContext,
+    data: {
+      from?: string;
+      to?: string;
+      tag?: string;
+      supplier?: string;
+      seller?: string;
+      status?: string;
+    },
+  ) {
+    const qb = Receipt.query()
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('supplier', query => {
+        query.select('id', 'name');
+      })
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id);
+
+    if (data.from) {
+      qb.whereRaw('receiptDate::date >= ?', [data.from]);
+    }
+
+    if (data.to) {
+      qb.whereRaw('receiptDate::date <= ?', [data.to]);
+    }
+
+    if (data.tag) {
+      qb.where('tag', data.tag);
+    }
+
+    if (data.supplier) {
+      qb.where('supplier_id', data.supplier);
+    }
+
+    if (data.seller) {
+      qb.where('seller_id', data.seller);
+    }
+
+    return (await qb).map(elem => ({
+      id: elem.id,
+      tag: elem.tag,
+      issueDate: elem.issueDate,
+      receiptDate: elem.receiptDate,
+      totalValue: elem.totalValue,
+      status: elem.status,
+      user: elem.user,
+      seller: elem.seller,
+      supplier: elem.supplier,
+    }));
+  }
+
   async importFromXml(
     authCtx: AuthContext,
     data: {

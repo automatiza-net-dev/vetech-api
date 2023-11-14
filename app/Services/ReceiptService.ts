@@ -41,6 +41,7 @@ import { BusinessUnitFiscalDocumentMovementType } from '../Models/BusinessUnitFi
 import { ReceiptStatus } from '../Models/Receipt';
 import BusinessUnit from '../Models/BusinessUnit';
 import { format } from 'date-fns';
+import { ReceiptItemStatus, TReceiptItemStatus } from '../Models/ReceiptItem';
 
 const schema = z.object({
   nfeProc: z.object({
@@ -333,6 +334,48 @@ export default class ReceiptService {
       seller: elem.seller,
       supplier: elem.supplier,
     }));
+  }
+
+  async show(authCtx: AuthContext, id: string) {
+    const row = await Receipt.query()
+      .where('business_unit_id', authCtx.unit.id)
+      .where('id', id)
+      .preload('user', query => {
+        query.select('id', 'name');
+      })
+      .preload('seller', query => {
+        query.select('id', 'name');
+      })
+      .preload('supplier', query => {
+        query.select('id', 'name');
+      })
+      .preload('businessUnit', query => {
+        query.select('id', 'identification');
+      })
+      .preload('payments', query => {
+        query.preload('acquirer', query => {
+          query.select('id', 'description');
+        });
+        query.preload('flag', query => {
+          query.select('id', 'description', 'code', 'type');
+        });
+        query.preload('paymentMethod');
+      })
+      .preload('items', query => {
+        query.where('status', 'Ativo' as TReceiptItemStatus);
+
+        query.preload('productVariation', query => {
+          query.preload('variationOptions');
+          query.preload('product');
+        });
+      })
+      .first();
+
+    if (!row) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    return row;
   }
 
   async importFromXml(

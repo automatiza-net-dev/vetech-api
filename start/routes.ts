@@ -1335,6 +1335,7 @@ Route.group(() => {
   Route.post('/delete-payment', 'ReceiptsController.deleteReceiptPayment');
 
   Route.get('/', 'ReceiptsController.index');
+  Route.get('/show/:id', 'ReceiptsController.show');
   Route.get('/products', 'ReceiptsController.searchProducts');
   Route.get('/taxes', 'ReceiptsController.searchTaxes');
   Route.get('/payment-methods', 'ReceiptsController.searchPaymentMethods');

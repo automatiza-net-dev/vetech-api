@@ -1,8 +1,10 @@
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
 import Receipt from 'App/Models/Receipt';
 import { DateTime } from 'luxon';
+import ProductVariation from './ProductVariation';
 
 export const ReceiptItemStatus = ['Ativo', 'Excluido'] as const;
+export type TReceiptItemStatus = typeof ReceiptItemStatus[number];
 
 export default class ReceiptItem extends BaseModel {
   @column({ isPrimary: true })
@@ -306,6 +308,11 @@ export default class ReceiptItem extends BaseModel {
     serializeAs: null,
   })
   public product_variation_id: string;
+
+  @belongsTo(() => ProductVariation, {
+    foreignKey: 'product_variation_id',
+  })
+  public productVariation: BelongsTo<typeof ProductVariation>;
 
   @column({
     serializeAs: null,

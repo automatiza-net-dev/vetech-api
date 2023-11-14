@@ -25,6 +25,15 @@ export default class ReceiptsController {
     return response.ok(result);
   }
 
+  public async show({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      request.param('id'),
+    );
+
+    return response.ok(result);
+  }
+
   public async importFromXml({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(ImportFromXmlValidator);
 

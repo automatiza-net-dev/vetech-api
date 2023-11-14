@@ -14,6 +14,7 @@ import PaymentMethod, {
   PaymentMethodUsage,
 } from 'App/Models/PaymentMethod';
 import Product, { ProductPurpose } from 'App/Models/Product';
+import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import ProductVariation from 'App/Models/ProductVariation';
 import Receipt from 'App/Models/Receipt';
 import ReceiptItem from 'App/Models/ReceiptItem';
@@ -37,6 +38,9 @@ import IssuedFiscalDocument, {
   IssuedFiscalDocumentContingency,
 } from '../Models/IssuedFiscalDocument';
 import { BusinessUnitFiscalDocumentMovementType } from '../Models/BusinessUnitFiscalDocument';
+import { ReceiptStatus } from '../Models/Receipt';
+import BusinessUnit from '../Models/BusinessUnit';
+import { format } from 'date-fns';
 
 const schema = z.object({
   nfeProc: z.object({
@@ -84,7 +88,8 @@ const schema = z.object({
           CRT: z.string(),
         }),
         dest: z.object({
-          CPF: z.string(),
+          CPF: z.optional(z.string()),
+          CNPJ: z.optional(z.string()),
           xNome: z.string(),
           enderDest: z.object({
             xLgr: z.string(),
@@ -308,70 +313,113 @@ export default class ReceiptService {
       throw new BadRequestException('Arquivo inválido', 400, 'E_INVALID_FILE');
     }
 
+    if (parsed.data.nfeProc.protNFe.infProt.tpAmb !== '1') {
+      throw new BadRequestException(
+        'Esta nota fiscal não foi emitida em ambiente de Produção, importação cancelada',
+        400,
+        'E_NOT_PROD',
+      );
+    }
+
     await Database.transaction(async trx => {
-      let supplierId = '';
-
-      const existingTutor = await PatientTutor.query()
+      const issuedAlready = await IssuedFiscalDocument.query()
         .useTransaction(trx)
-        .where('document', parsed.data.nfeProc.NFe.infNFe.emit.CNPJ)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id)
+        .where('access_key', parsed.data.nfeProc.protNFe.infProt.chNFe)
+        .where('active', true)
+        .preload('bill', query => {
+          query.preload('businessUnit');
+        })
         .first();
-
-      // vendedor não existe
-      if (!existingTutor) {
-        const suppliers = await authCtx.group
-          .related('patients')
-          .query()
-          .useTransaction(trx)
-          .where('type', PatientType.SUPPLIER)
-          .select('id');
-
-        const newSupplier = await Patient.create(
-          {
-            name: parsed.data.nfeProc.NFe.infNFe.emit.xFant,
-            type: PatientType.SUPPLIER,
-            tag: (suppliers.length + 1).toString(),
-          },
-          { client: trx },
+      if (issuedAlready) {
+        throw new BadRequestException(
+          `Esta nota já foi importada na unidade '${
+            issuedAlready.bill?.businessUnit?.identification ??
+            'Não identificado'
+          }' no dia ${format(
+            issuedAlready.authorizationDate.toJSDate(),
+            'dd/MM/yyyy',
+          )} com a tag '${issuedAlready.bill?.tag ?? '-'}'`,
+          400,
+          'E_IMPORTED',
         );
+      }
 
-        await newSupplier.related('tutor').create({
-          document: parsed.data.nfeProc.NFe.infNFe.emit.CNPJ,
-          inscription: parsed.data.nfeProc.NFe.infNFe.emit.IE,
-          corporateName: parsed.data.nfeProc.NFe.infNFe.emit.xNome,
-          cellphone: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
-          telephone: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
-          postalCode: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.CEP,
-          street: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xLgr,
-          number: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.nro,
-          complement: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xCpl,
-          district: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xBairro,
-          city: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.xMun,
-          state: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.UF,
-          cityCode: parsed.data.nfeProc.NFe.infNFe.emit.enderEmit.cMun,
-          residence: 'COMERCIAL',
-        });
-
-        await authCtx.group.related('patients').attach([newSupplier.id], trx);
-
-        supplierId = newSupplier.id;
-      } else {
-        // checar se vendedor tem relação com grupo
-        const tmpPatient = await authCtx.group
-          .related('patients')
-          .query()
+      if (parsed.data.nfeProc.NFe.infNFe.dest.CNPJ) {
+        const unit = await BusinessUnit.query()
           .useTransaction(trx)
-          .where('patient_id', existingTutor.patient_id)
+          .where('document', parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
           .first();
 
-        // se não tiver, criar relação
-        if (!tmpPatient) {
-          await authCtx.group
-            .related('patients')
-            .attach([existingTutor.patient_id], trx);
+        if (!unit) {
+          throw new BadRequestException(
+            'CNPJ não percente a nenhuma unidade',
+            400,
+            'E_INVALID_DOC',
+          );
         }
 
-        supplierId = existingTutor.patient_id;
+        if (unit.economicGroupId !== authCtx.group.id) {
+          throw new BadRequestException(
+            `O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+            400,
+            'E_INVALID_DOC',
+          );
+        }
       }
+
+      const dailyMovementId = await this.getDailyMovementForImport(
+        trx,
+        authCtx,
+      );
+
+      const supplierId = await this.getSupplierForImport(
+        trx,
+        parsed.data,
+        authCtx,
+      );
+
+      const counter = await Receipt.query()
+        .useTransaction(trx)
+        .where('economic_group_id', authCtx.group.id)
+        .where('business_unit_id', authCtx.unit.id);
+
+      await Receipt.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          supplier_id: supplierId,
+          user_id: authCtx.user.id,
+          seller_id: authCtx.user.id,
+          daily_movement_id: dailyMovementId,
+
+          issueDate: DateTime.now(),
+          receiptDate: DateTime.now(),
+          tag: GenerateTag(counter.length + 1),
+          productValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
+          discountValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vDesc,
+          deliveryValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFrete,
+          totalValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vNF,
+          icmsBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vBC,
+          icmsValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMS,
+          icmsStBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vBCST,
+          icmsStValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vST,
+          pisBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
+          pisValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vPIS,
+          cofinsBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
+          cofinsValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vCOFINS,
+          ipiBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
+          ipiValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vIPI,
+          icmsFcpValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFCP,
+          icmsUfDestinationValue:
+            parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
+          otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
+          additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
+          status: 'Ativa',
+        },
+        { client: trx },
+      );
 
       await IssuedFiscalDocument.create(
         {
@@ -401,6 +449,102 @@ export default class ReceiptService {
         { client: trx },
       );
     });
+  }
+
+  private async getDailyMovementForImport(
+    trx: TransactionClientContract,
+    authCtx: AuthContext,
+  ): Promise<string> {
+    const dailyMovement = authCtx.unit.unitConfig.lockedDailyMovementDate
+      ? await DailyMovement.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .whereRaw('opening_date::date = ?', [new Date()])
+          .where('status', DailyMovementStatus.A)
+          .first()
+      : await DailyMovement.query()
+          .useTransaction(trx)
+          .where('business_unit_id', authCtx.unit.id)
+          .where('status', DailyMovementStatus.A)
+          .first();
+
+    if (!dailyMovement) {
+      throw new BadRequestException(
+        'É necessário ter um movimento diário quando importanto uma nota',
+        400,
+        'E_NO_DL',
+      );
+    }
+
+    return dailyMovement.id;
+  }
+
+  private async getSupplierForImport(
+    trx: TransactionClientContract,
+    data: z.infer<typeof schema>,
+    authCtx: AuthContext,
+  ): Promise<string> {
+    const existingTutor = await PatientTutor.query()
+      .useTransaction(trx)
+      .where('document', data.nfeProc.NFe.infNFe.emit.CNPJ)
+      .first();
+
+    // vendedor não existe
+    if (!existingTutor) {
+      const suppliers = await authCtx.group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('type', PatientType.SUPPLIER)
+        .select('id');
+
+      const newSupplier = await Patient.create(
+        {
+          name: data.nfeProc.NFe.infNFe.emit.xFant,
+          type: PatientType.SUPPLIER,
+          tag: (suppliers.length + 1).toString(),
+        },
+        { client: trx },
+      );
+
+      await newSupplier.related('tutor').create({
+        document: data.nfeProc.NFe.infNFe.emit.CNPJ,
+        inscription: data.nfeProc.NFe.infNFe.emit.IE,
+        corporateName: data.nfeProc.NFe.infNFe.emit.xNome,
+        cellphone: data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
+        telephone: data.nfeProc.NFe.infNFe.emit.enderEmit.fone,
+        postalCode: data.nfeProc.NFe.infNFe.emit.enderEmit.CEP,
+        street: data.nfeProc.NFe.infNFe.emit.enderEmit.xLgr,
+        number: data.nfeProc.NFe.infNFe.emit.enderEmit.nro,
+        // complement: data.nfeProc.NFe.infNFe.emit.enderEmit.xCpl,
+        district: data.nfeProc.NFe.infNFe.emit.enderEmit.xBairro,
+        city: data.nfeProc.NFe.infNFe.emit.enderEmit.xMun,
+        state: data.nfeProc.NFe.infNFe.emit.enderEmit.UF,
+        cityCode: data.nfeProc.NFe.infNFe.emit.enderEmit.cMun,
+        residence: 'COMERCIAL',
+      });
+
+      await authCtx.group.related('patients').attach([newSupplier.id], trx);
+
+      return newSupplier.id;
+    }
+
+    // checar se vendedor tem relação com grupo
+    const tmpPatient = await authCtx.group
+      .related('patients')
+      .query()
+      .useTransaction(trx)
+      .where('patient_id', existingTutor.patient_id)
+      .first();
+
+    // se não tiver, criar relação
+    if (!tmpPatient) {
+      await authCtx.group
+        .related('patients')
+        .attach([existingTutor.patient_id], trx);
+    }
+
+    return existingTutor.patient_id;
   }
 
   async createReceipt(

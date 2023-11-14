@@ -14,6 +14,7 @@ import CorrectedFiscalDocument from 'App/Models/CorrectedFiscalDocument';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import Bill from './Bill';
 
 export enum IssuedFiscalDocumentContingency {
   N = 'NÃO',
@@ -224,6 +225,11 @@ export default class IssuedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public bill_id: string;
+
+  @belongsTo(() => Bill, {
+    foreignKey: 'bill_id',
+  })
+  public bill: BelongsTo<typeof Bill>;
 
   @column({
     serializeAs: null,

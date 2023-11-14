@@ -484,7 +484,7 @@ export default class ReceiptService {
         .where('economic_group_id', authCtx.group.id)
         .where('business_unit_id', authCtx.unit.id);
 
-      await Receipt.create(
+      const newReceipt = await Receipt.create(
         {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
@@ -525,7 +525,7 @@ export default class ReceiptService {
           economic_group_id: authCtx.group.id,
           business_unit_id: authCtx.unit.id,
           user_who_authorized_id: authCtx.user.id,
-          bill_id: undefined, // TODO - complete
+          bill_id: newReceipt.id,
           fiscal_document_id: undefined,
 
           movementType: BusinessUnitFiscalDocumentMovementType.E,

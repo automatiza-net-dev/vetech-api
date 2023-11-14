@@ -1,6 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import BusinessUnitFiscalDocument from 'App/Models/BusinessUnitFiscalDocument';
 import { FiscalDocumentType } from 'App/Models/FiscalDocument';
+import BadRequestException from '../Exceptions/BadRequestException';
+import IssuedFiscalDocument from '../Models/IssuedFiscalDocument';
+import { AuthContext } from './SharedService';
 
 interface ISearch {
   unit: string;
@@ -38,6 +41,32 @@ export default class IssuedFiscalDocumentService {
 
     if (data.sequence) {
       qb.where('sequence', data.sequence);
+    }
+
+    return qb;
+  }
+
+  public async search(authCtx: AuthContext, data: { bill?: string }) {
+    const qb = IssuedFiscalDocument.query()
+      .preload('authorizationUser', query => {
+        query.select(['id', 'name']);
+      })
+      .preload('cancellationUser', query => {
+        query.select(['id', 'name']);
+      })
+      .preload('disablingUser', query => {
+        query.select(['id', 'name']);
+      })
+      .preload('corrections', query => {
+        query.preload('user', query => {
+          query.select(['id', 'name']);
+        });
+      })
+      .where('economic_group_id', authCtx.group.id)
+      .where('business_unit_id', authCtx.unit.id);
+
+    if (data.bill) {
+      qb.where('bill_id', data.bill);
     }
 
     return qb;

@@ -2,11 +2,14 @@ import {
   BaseModel,
   beforeFetch,
   beforeFind,
+  BelongsTo,
+  belongsTo,
   column,
 } from '@ioc:Adonis/Lucid/Orm';
 import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
+import User from './User';
 
 export default class CorrectedFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
@@ -81,6 +84,11 @@ export default class CorrectedFiscalDocument extends BaseModel {
     serializeAs: null,
   })
   public user_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_id',
+  })
+  public user: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,

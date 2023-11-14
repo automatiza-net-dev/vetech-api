@@ -1049,6 +1049,7 @@ Route.group(() => {
     'BusinessUnitFiscalDocumentsController.forceUpdateNfse',
   );
 
+  Route.get('/search', 'IssuedFiscalDocumentsController.search');
   Route.get('/issued-documents', 'IssuedFiscalDocumentsController.index');
 })
   .prefix('fiscal-documents')

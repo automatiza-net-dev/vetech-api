@@ -15,6 +15,8 @@ import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
 import { DateTime } from 'luxon';
 import { v4 } from 'uuid';
 import Bill from './Bill';
+import Receipt from './Receipt';
+import User from './User';
 
 export enum IssuedFiscalDocumentContingency {
   N = 'NÃO',
@@ -206,15 +208,30 @@ export default class IssuedFiscalDocument extends BaseModel {
   })
   public user_who_authorized_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'user_who_authorized_id',
+  })
+  public authorizationUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public user_who_cancelled_id: string;
 
+  @belongsTo(() => User, {
+    foreignKey: 'user_who_cancelled_id',
+  })
+  public cancellationUser: BelongsTo<typeof User>;
+
   @column({
     serializeAs: null,
   })
   public user_who_disabled_id: string;
+
+  @belongsTo(() => User, {
+    foreignKey: 'user_who_disabled_id',
+  })
+  public disablingUser: BelongsTo<typeof User>;
 
   @column({
     serializeAs: null,
@@ -230,6 +247,11 @@ export default class IssuedFiscalDocument extends BaseModel {
     foreignKey: 'bill_id',
   })
   public bill: BelongsTo<typeof Bill>;
+
+  @belongsTo(() => Receipt, {
+    foreignKey: 'bill_id',
+  })
+  public receipt: BelongsTo<typeof Receipt>;
 
   @column({
     serializeAs: null,

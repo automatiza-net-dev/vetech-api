@@ -42,6 +42,7 @@ import { ReceiptStatus } from "../Models/Receipt";
 import BusinessUnit from "../Models/BusinessUnit";
 import { format } from "date-fns";
 import { ReceiptItemStatus, TReceiptItemStatus } from "../Models/ReceiptItem";
+import SupplierProduct from "../Models/SupplierProduct";
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -480,6 +481,13 @@ export default class ReceiptService {
 				authCtx,
 			);
 
+			const productVariationId = await this.getProductVariationForImport(
+				trx,
+				parsed.data,
+				supplierId,
+				authCtx,
+			);
+
 			const counter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -525,7 +533,7 @@ export default class ReceiptService {
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
-					product_variation_id: undefined,
+					product_variation_id: productVariationId,
 					receipt_id: newReceipt.id,
 
 					quantity: parsed.data.nfeProc.NFe.infNFe.det.prod.qCom,
@@ -657,6 +665,41 @@ export default class ReceiptService {
 		}
 
 		return dailyMovement.id;
+	}
+
+	private async getProductVariationForImport(
+		trx: TransactionClientContract,
+		data: z.infer<typeof schema>,
+		supplierId: string,
+		authCtx: AuthContext,
+	): Promise<string | null> {
+		const supplierProduct = await SupplierProduct.query()
+			.useTransaction(trx)
+			.where("economic_group_id", authCtx.group.id)
+			.where("supplier_id", supplierId)
+			.where("product_supplier_id", data.nfeProc.NFe.infNFe.det.prod.cProd)
+			.first();
+
+		if (supplierProduct) {
+			return supplierProduct.produt_variation_id;
+		}
+
+		const prodVariation = await ProductVariation.query()
+			.useTransaction(trx)
+			.whereIn(
+				"barcode",
+				[
+					data.nfeProc.NFe.infNFe.det.prod.cEAN,
+					data.nfeProc.NFe.infNFe.det.prod.cEANTrib,
+				].filter(Boolean),
+			)
+			.first();
+		if (prodVariation) {
+			return prodVariation.id;
+		}
+
+		// TODO - insert into
+		return null;
 	}
 
 	private async getSupplierForImport(

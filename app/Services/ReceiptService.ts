@@ -43,6 +43,7 @@ import BusinessUnit from "../Models/BusinessUnit";
 import { format } from "date-fns";
 import { ReceiptItemStatus, TReceiptItemStatus } from "../Models/ReceiptItem";
 import SupplierProduct from "../Models/SupplierProduct";
+import { ProductType } from "../Models/Product";
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -118,7 +119,7 @@ const schema = z.object({
 						NCM: z.string(),
 						CFOP: z.string(),
 						uCom: z.string(),
-						qCom: z.string(),
+						qCom: z.coerce.number(),
 						vUnCom: z.string(),
 						vProd: z.coerce.number(),
 						vDesc: z.optional(z.coerce.number()),
@@ -698,8 +699,55 @@ export default class ReceiptService {
 			return prodVariation.id;
 		}
 
-		// TODO - insert into
-		return null;
+		const product = await Product.create(
+			{
+				economic_group_id: authCtx.group.id,
+
+				description: data.nfeProc.NFe.infNFe.det.prod.xProd,
+				type: ProductType.PRODUCT,
+				ncm: data.nfeProc.NFe.infNFe.det.prod.NCM,
+				active: true,
+			},
+			{ client: trx },
+		);
+		const variation = await product.related("variations").create(
+			{
+				barcode: data.nfeProc.NFe.infNFe.det.prod.cEAN,
+			},
+			{ client: trx },
+		);
+
+		const units = await BusinessUnit.query()
+			.useTransaction(trx)
+			.where("economic_group_id", authCtx.group.id)
+			.select("id");
+		const tasks = units.map((elem) => {
+			return variation.related("businessUnitProducts").create(
+				{
+					businness_unit_id: elem.id,
+					stock: 0,
+					maximumStock: 0,
+					minimumStock: 0,
+					maximumDiscountPercentage: 100,
+					maximumDiscountValue: 0,
+					price: 0,
+					costPrice:
+						data.nfeProc.NFe.infNFe.det.prod.vProd /
+						data.nfeProc.NFe.infNFe.det.prod.qCom,
+					profitMargin: 0,
+					commission: 0,
+					meta: 0,
+					metaType: undefined,
+					commissionMeta: 0,
+				},
+				{
+					client: trx,
+				},
+			);
+		});
+		await Promise.all(tasks);
+
+		return variation.id;
 	}
 
 	private async getSupplierForImport(

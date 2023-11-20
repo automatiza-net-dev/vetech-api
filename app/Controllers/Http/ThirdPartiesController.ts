@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnit from "App/Models/BusinessUnit";
 import SharedService from "App/Services/SharedService";
 import ThirdPartyService from "App/Services/ThirdPartyService";
 import AuthenticateThirdPartyValidator from "App/Validators/ThirdParty/AuthenticateThirdPartyValidator";
@@ -114,6 +116,30 @@ export default class ThirdPartiesController {
 	}
 
 	public async profile({ auth, response }: HttpContextContract) {
+		const { user } = auth.use("api");
+		if (!user) {
+			throw new BadRequestException("Usuário não encontrado", 400, "E_NO_USER");
+		}
+
+		const { unit_id } = auth.use("api").token!.meta;
+
+		const unit = unit_id
+			? await BusinessUnit.query()
+					.select("id", "identification")
+					.where("id", unit_id)
+					.firstOrFail()
+			: null;
+
+		return response.ok({
+			user: {
+				id: user.id,
+				name: user.name,
+			},
+			unit,
+		});
+	}
+
+	public async tpProfile({ auth, response }: HttpContextContract) {
 		const user = auth.use("tpApi").user!;
 
 		return response.ok({

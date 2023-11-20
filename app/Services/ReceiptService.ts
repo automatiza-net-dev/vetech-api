@@ -1,24 +1,35 @@
 import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Logger from "@ioc:Adonis/Core/Logger";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
+import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
 	FinanceOriginFlag,
 	FinanceStatus,
 } from "App/Models/Finance";
+import IssuedFiscalDocument, {
+	IssuedFiscalDocumentContingency,
+} from "App/Models/IssuedFiscalDocument";
 import Patient, { PatientType } from "App/Models/Patient";
+import PatientTutor from "App/Models/PatientTutor";
 import PaymentMethod, {
 	PaymentMethodTef,
 	PaymentMethodUsage,
 } from "App/Models/PaymentMethod";
-import Product, { ProductPurpose } from "App/Models/Product";
-import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
+import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt from "App/Models/Receipt";
-import ReceiptItem from "App/Models/ReceiptItem";
+import ReceiptItem, { TReceiptItemStatus } from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
+import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
 	MovementCategory,
@@ -27,23 +38,10 @@ import TaxationGroupRule, {
 import UfIcms from "App/Models/UfIcms";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
+import { format } from "date-fns";
 import { DateTime } from "luxon";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
 import xmlParser from "xml2json";
 import { z } from "zod";
-import PatientTutor from "App/Models/PatientTutor";
-import Logger from "@ioc:Adonis/Core/Logger";
-import IssuedFiscalDocument, {
-	IssuedFiscalDocumentContingency,
-} from "../Models/IssuedFiscalDocument";
-import { BusinessUnitFiscalDocumentMovementType } from "../Models/BusinessUnitFiscalDocument";
-import { ReceiptStatus } from "../Models/Receipt";
-import BusinessUnit from "../Models/BusinessUnit";
-import { format } from "date-fns";
-import { ReceiptItemStatus, TReceiptItemStatus } from "../Models/ReceiptItem";
-import SupplierProduct from "../Models/SupplierProduct";
-import { ProductType } from "../Models/Product";
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -57,7 +55,7 @@ const schema = z.object({
 					serie: z.string(),
 					nNF: z.string(),
 					dhEmi: z.string(),
-					dhSaiEnt: z.string(),
+					dhSaiEnt: z.optional(z.string()),
 					tpNF: z.string(),
 					idDest: z.string(),
 					cMunFG: z.string(),
@@ -78,6 +76,7 @@ const schema = z.object({
 					enderEmit: z.object({
 						xLgr: z.string(),
 						nro: z.string(),
+						xCpl: z.string(),
 						xBairro: z.string(),
 						cMun: z.string(),
 						xMun: z.string(),
@@ -90,134 +89,117 @@ const schema = z.object({
 					IE: z.string(),
 					CRT: z.string(),
 				}),
-				dest: z.object({
-					CPF: z.optional(z.string()),
-					CNPJ: z.optional(z.string()),
-					xNome: z.string(),
-					enderDest: z.object({
-						xLgr: z.string(),
-						nro: z.string(),
-						xCpl: z.string(),
-						xBairro: z.string(),
-						cMun: z.string(),
-						xMun: z.string(),
-						UF: z.string(),
-						CEP: z.string(),
-						cPais: z.string(),
-						xPais: z.string(),
-						fone: z.string(),
+				dest: z.optional(
+					z.object({
+						CNPJ: z.string(),
+						xNome: z.string(),
+						enderDest: z.object({
+							xLgr: z.string(),
+							nro: z.string(),
+							xCpl: z.string(),
+							xBairro: z.string(),
+							cMun: z.string(),
+							xMun: z.string(),
+							UF: z.string(),
+							CEP: z.string(),
+							cPais: z.string(),
+							xPais: z.string(),
+							fone: z.string(),
+						}),
+						indIEDest: z.string(),
+						IE: z.string(),
+						email: z.string(),
 					}),
-					indIEDest: z.string(),
-					email: z.string(),
-				}),
-				autXML: z.object({ CNPJ: z.string() }),
-				det: z.object({
-					prod: z.object({
-						cProd: z.string(),
-						cEAN: z.string(),
-						xProd: z.string(),
-						NCM: z.string(),
-						CFOP: z.string(),
-						uCom: z.string(),
-						qCom: z.coerce.number(),
-						vUnCom: z.string(),
-						vProd: z.coerce.number(),
-						vDesc: z.optional(z.coerce.number()),
-						cEANTrib: z.string(),
-						uTrib: z.string(),
-						qTrib: z.string(),
-						vUnTrib: z.string(),
-						indTot: z.string(),
-					}),
-					imposto: z.object({
-						ICMS: z.object({
-							ICMS00: z.object({
-								orig: z.string(),
-								CST: z.string(),
-								modBC: z.string(),
-								vBC: z.string(),
-								pICMS: z.string(),
-								vICMS: z.string(),
+				),
+				det: z.array(
+					z.object({
+						prod: z.object({
+							cProd: z.string(),
+							cEAN: z.string(),
+							xProd: z.string(),
+							NCM: z.string(),
+							CFOP: z.string(),
+							uCom: z.string(),
+							qCom: z.coerce.number(),
+							vUnCom: z.coerce.number(),
+							vProd: z.coerce.number(),
+							cEANTrib: z.string(),
+							uTrib: z.string(),
+							qTrib: z.string(),
+							vUnTrib: z.string(),
+							indTot: z.string(),
+							vDesc: z.optional(z.coerce.number()),
+						}),
+						imposto: z.object({
+							ICMS: z.object({
+								ICMS00: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										modBC: z.string(),
+										vBC: z.string(),
+										pICMS: z.string(),
+										vICMS: z.string(),
+									}),
+								),
+							}),
+							PIS: z.object({
+								PISOutr: z.object({
+									CST: z.string(),
+									vBC: z.string(),
+									pPIS: z.string(),
+									vPIS: z.string(),
+								}),
+							}),
+							COFINS: z.object({
+								COFINSOutr: z.object({
+									CST: z.string(),
+									vBC: z.string(),
+									pCOFINS: z.string(),
+									vCOFINS: z.string(),
+								}),
 							}),
 						}),
-						PIS: z.object({
-							PISAliq: z.object({
-								CST: z.string(),
-								vBC: z.string(),
-								pPIS: z.string(),
-								vPIS: z.string(),
-							}),
-						}),
-						COFINS: z.object({
-							COFINSAliq: z.object({
-								CST: z.string(),
-								vBC: z.string(),
-								pCOFINS: z.string(),
-								vCOFINS: z.string(),
-							}),
-						}),
-						ICMSUFDest: z.object({
-							vBCUFDest: z.string(),
-							vBCFCPUFDest: z.string(),
-							pFCPUFDest: z.string(),
-							pICMSUFDest: z.string(),
-							pICMSInter: z.string(),
-							pICMSInterPart: z.string(),
-							vFCPUFDest: z.string(),
-							vICMSUFDest: z.string(),
-							vICMSUFRemet: z.string(),
-						}),
+						_nItem: z.optional(z.string()),
 					}),
-					_nItem: z.optional(z.string()),
-				}),
+				),
 				total: z.object({
 					ICMSTot: z.object({
-						vBC: z.string(),
-						vICMS: z.string(),
-						vICMSDeson: z.string(),
-						vICMSUFDest: z.string(),
-						vFCP: z.string(),
-						vBCST: z.string(),
-						vST: z.string(),
-						vFCPST: z.string(),
-						vFCPSTRet: z.string(),
-						vProd: z.string(),
-						vFrete: z.string(),
-						vSeg: z.string(),
-						vDesc: z.string(),
-						vII: z.string(),
-						vIPI: z.string(),
-						vIPIDevol: z.string(),
-						vPIS: z.string(),
-						vCOFINS: z.string(),
-						vOutro: z.string(),
-						vNF: z.string(),
+						vBC: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						vICMSDeson: z.coerce.number(),
+						vFCP: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						vST: z.coerce.number(),
+						vFCPST: z.coerce.number(),
+						vFCPSTRet: z.coerce.number(),
+						vProd: z.coerce.number(),
+						vFrete: z.coerce.number(),
+						vSeg: z.coerce.number(),
+						vDesc: z.coerce.number(),
+						vII: z.coerce.number(),
+						vIPI: z.coerce.number(),
+						vIPIDevol: z.coerce.number(),
+						vPIS: z.coerce.number(),
+						vCOFINS: z.coerce.number(),
+						vOutro: z.coerce.number(),
+						vNF: z.coerce.number(),
 					}),
 				}),
 				transp: z.object({
 					modFrete: z.string(),
-					transporta: z.object({
-						CNPJ: z.string(),
-						xNome: z.string(),
-						IE: z.string(),
-						xEnder: z.string(),
-						xMun: z.string(),
-						UF: z.string(),
-					}),
-					vol: z.object({
-						qVol: z.string(),
-						pesoL: z.string(),
-						pesoB: z.string(),
-					}),
+					vol: z.optional(z.object({ qVol: z.string() })),
 				}),
-				cobr: z.object({
-					fat: z.object({
-						nFat: z.string(),
-						vOrig: z.string(),
-						vDesc: z.string(),
-						vLiq: z.string(),
+				cobr: z.optional(
+					z.object({
+						fat: z.object({
+							nFat: z.string(),
+							vOrig: z.string(),
+							vDesc: z.string(),
+							vLiq: z.string(),
+						}),
 					}),
-				}),
+				),
 				pag: z.object({
 					detPag: z.object({
 						tPag: z.string(),
@@ -448,28 +430,28 @@ export default class ReceiptService {
 				);
 			}
 
-			if (parsed.data.nfeProc.NFe.infNFe.dest.CNPJ) {
-				const unit = await BusinessUnit.query()
-					.useTransaction(trx)
-					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-					.first();
-
-				if (!unit) {
-					throw new BadRequestException(
-						"CNPJ não percente a nenhuma unidade",
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-
-				if (unit.economicGroupId !== authCtx.group.id) {
-					throw new BadRequestException(
-						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-			}
+			// if (parsed.data.nfeProc.NFe.infNFe.v
+			// 	const unit = await BusinessUnit.query()
+			// 		.useTransaction(trx)
+			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+			// 		.first();
+			//
+			// 	if (!unit) {
+			// 		throw new BadRequestException(
+			// 			"CNPJ não percente a nenhuma unidade",
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			//
+			// 	if (unit.economicGroupId !== authCtx.group.id) {
+			// 		throw new BadRequestException(
+			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			// }
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,
@@ -482,7 +464,7 @@ export default class ReceiptService {
 				authCtx,
 			);
 
-			const productVariationId = await this.getProductVariationForImport(
+			const productVariationIds = await this.getProductVariationForImport(
 				trx,
 				parsed.data,
 				supplierId,
@@ -521,8 +503,8 @@ export default class ReceiptService {
 					ipiBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
 					ipiValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vIPI,
 					icmsFcpValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFCP,
-					icmsUfDestinationValue:
-						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
+					// icmsUfDestinationValue:
+					// 	parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
 					additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
 					status: "Ativa",
@@ -530,85 +512,95 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			await ReceiptItem.create(
-				{
-					economic_group_id: authCtx.group.id,
-					business_unit_id: authCtx.unit.id,
-					product_variation_id: productVariationId,
-					receipt_id: newReceipt.id,
-
-					quantity: parsed.data.nfeProc.NFe.infNFe.det.prod.qCom,
-					costValue: parsed.data.nfeProc.NFe.infNFe.det.prod.vUnCom,
-					unitaryValue: parsed.data.nfeProc.NFe.infNFe.det.prod.vUnCom,
-					discountValue: parsed.data.nfeProc.NFe.infNFe.det.prod.vDesc,
-					totalValue:
-						parsed.data.nfeProc.NFe.infNFe.det.prod.vProd -
-						(parsed.data.nfeProc.NFe.infNFe.det.prod.vDesc ?? 0),
-					status: "Ativo",
-					issueDate: DateTime.now(),
-
-					// tax_operation_id: rule?.tax_operation_id,
-					fiscalOperationCode: parsed.data.nfeProc.NFe.infNFe.det.prod.CFOP,
-
-					icmsOriginProduct:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.orig,
-					icmsCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.CST,
-					icmsBase: parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vBC,
-					icmsPercentage:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.pICMS,
-					icmsValue:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vICMS,
-					// icmsDeferredValue: 0,
-					// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-					// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-					// icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
-					// 	? icmsStBase_2
-					// 	: undefined,
-					// icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-					// icmsStIva: rule?.icmsPercRedAliquota,
-					// icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-					// icmsStValue:
-					// 	this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-					// 		? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
-					// 		: undefined,
-					// icmsPartitionValue: 0,
-					// icmsFcpPercentage: 0,
-					// icmsFcpValue: 0,
-					// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-					// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
-					// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
-
-					// issCst: rule?.icmsCst,
-					// issBase: icmsBase,
-					// issPercentage: rule?.icmsPerc,
-					// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
-
-					pisCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.CST,
-					pisBase: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vBC,
-					pisPercentage:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.pPIS,
-					pisValue: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vPIS,
-					// pisRetentionValue: 0,
-
-					cofinsCst:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.CST,
-					cofinsBase:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.vBC,
-					cofinsPercentage:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
-							.pCOFINS,
-					cofinsValue:
-						parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
-							.vCOFINS,
-					// cofinsRetentionValue: 0,
-
-					// ipiCst: rule?.ipiCst,
-					// ipiBase: 0,
-					// ipiPercentage: rule?.ipiPerc,
-					// ipiValue: 0,
-				},
-				{ client: trx },
+			const items = SharedService.ArrayUnion(
+				parsed.data.nfeProc.NFe.infNFe.det.map((d) => d.prod),
+				(val) => val,
 			);
+			const itemData: Array<Partial<ReceiptItem>> = [];
+			// eslint-disable-next-line no-restricted-syntax
+			for (const item of items) {
+				// eslint-disable-next-line no-restricted-syntax
+				for (const variation of productVariationIds) {
+					itemData.push({
+						economic_group_id: authCtx.group.id,
+						business_unit_id: authCtx.unit.id,
+						product_variation_id: variation,
+						receipt_id: newReceipt.id,
+
+						quantity: item.qCom,
+						costValue: item.vUnCom,
+						unitaryValue: item.vUnCom,
+						discountValue: item.vDesc,
+						totalValue: item.vProd - (item.vDesc ?? 0),
+						status: "Ativo",
+						issueDate: DateTime.now(),
+
+						// tax_operation_id: rule?.tax_operation_id,
+						fiscalOperationCode: item.CFOP,
+
+						// icmsOriginProduct:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.orig,
+						// icmsCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.CST,
+						// icmsBase:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vBC,
+						// icmsPercentage:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.pICMS,
+						// icmsValue:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vICMS,
+						// icmsDeferredValue: 0,
+						// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+						// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+						// icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
+						// 	? icmsStBase_2
+						// 	: undefined,
+						// icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+						// icmsStIva: rule?.icmsPercRedAliquota,
+						// icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
+						// icmsStValue:
+						// 	this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
+						// 		? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+						// 		: undefined,
+						// icmsPartitionValue: 0,
+						// icmsFcpPercentage: 0,
+						// icmsFcpValue: 0,
+						// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+						// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
+						// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
+
+						// issCst: rule?.icmsCst,
+						// issBase: icmsBase,
+						// issPercentage: rule?.icmsPerc,
+						// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
+
+						// pisCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.CST,
+						// pisBase: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vBC,
+						// pisPercentage:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.pPIS,
+						// pisValue:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vPIS,
+						// // pisRetentionValue: 0,
+
+						// cofinsCst:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.CST,
+						// cofinsBase:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.vBC,
+						// cofinsPercentage:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
+						//     .pCOFINS,
+						// cofinsValue:
+						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
+						//     .vCOFINS,
+						// cofinsRetentionValue: 0,
+
+						// ipiCst: rule?.ipiCst,
+						// ipiBase: 0,
+						// ipiPercentage: rule?.ipiPerc,
+						// ipiValue: 0,
+					});
+				}
+			}
+
+			await ReceiptItem.createMany(itemData, { client: trx });
 
 			await IssuedFiscalDocument.create(
 				{
@@ -621,12 +613,15 @@ export default class ReceiptService {
 					movementType: BusinessUnitFiscalDocumentMovementType.E,
 					model: parsed.data.nfeProc.NFe.infNFe.ide.mod,
 					series: parsed.data.nfeProc.NFe.infNFe.ide.serie,
-					sequence: parseInt(parsed.data.nfeProc.NFe.infNFe.ide.nNF),
+					sequence: parseInt(parsed.data.nfeProc.NFe.infNFe.ide.nNF, 10),
 					purpose: "Importação XML",
 					accessKey: parsed.data.nfeProc.protNFe.infProt.chNFe,
-					authorizationDate: parsed.data.nfeProc.NFe.infNFe.ide.dhEmi,
-					authorizationReceiptDate:
+					authorizationDate: DateTime.fromISO(
+						parsed.data.nfeProc.NFe.infNFe.ide.dhEmi,
+					),
+					authorizationReceiptDate: DateTime.fromISO(
 						parsed.data.nfeProc.protNFe.infProt.dhRecbto,
+					),
 					authorizationReceipt: parsed.data.nfeProc.protNFe.infProt.nProt,
 					contingency: IssuedFiscalDocumentContingency.N,
 					active: true,
@@ -673,81 +668,103 @@ export default class ReceiptService {
 		data: z.infer<typeof schema>,
 		supplierId: string,
 		authCtx: AuthContext,
-	): Promise<string | null> {
-		const supplierProduct = await SupplierProduct.query()
+	): Promise<string[]> {
+		const items = SharedService.ArrayUnion(
+			data.nfeProc.NFe.infNFe.det.map((d) => d.prod),
+			(val) => val,
+		);
+
+		const uniqueItems = items.reduce((acc, current) => {
+			if (!acc.includes(current.cEAN)) {
+				acc.push(current.cEAN);
+			}
+
+			// if (!acc.includes(current.cEANTrib)) {
+			// 	acc.push(current.cEANTrib);
+			// }
+
+			return acc;
+		}, [] as string[]);
+
+		const supplierProducts = await SupplierProduct.query()
 			.useTransaction(trx)
 			.where("economic_group_id", authCtx.group.id)
 			.where("supplier_id", supplierId)
-			.where("product_supplier_id", data.nfeProc.NFe.infNFe.det.prod.cProd)
-			.first();
+			.whereIn("product_supplier_id", uniqueItems);
 
-		if (supplierProduct) {
-			return supplierProduct.produt_variation_id;
+		// every item has a supplier product
+		if (supplierProducts.length === uniqueItems.length) {
+			return supplierProducts.map((elem) => elem.produt_variation_id);
 		}
 
-		const prodVariation = await ProductVariation.query()
+		const prodVariations = await ProductVariation.query()
 			.useTransaction(trx)
-			.whereIn(
-				"barcode",
-				[
-					data.nfeProc.NFe.infNFe.det.prod.cEAN,
-					data.nfeProc.NFe.infNFe.det.prod.cEANTrib,
-				].filter(Boolean),
-			)
-			.first();
-		if (prodVariation) {
-			return prodVariation.id;
+			.whereIn("barcode", uniqueItems);
+		if (prodVariations.length === uniqueItems.length) {
+			return prodVariations.map((elem) => elem.id);
 		}
 
-		const product = await Product.create(
-			{
+		const products = await Product.fetchOrCreateMany(
+			["economic_group_id", "ncm"],
+			items.map((elem) => ({
 				economic_group_id: authCtx.group.id,
 
-				description: data.nfeProc.NFe.infNFe.det.prod.xProd,
+				description: elem.xProd,
 				type: ProductType.PRODUCT,
-				ncm: data.nfeProc.NFe.infNFe.det.prod.NCM,
+				ncm: elem.NCM,
 				active: true,
-			},
+			})),
 			{ client: trx },
 		);
-		const variation = await product.related("variations").create(
-			{
-				barcode: data.nfeProc.NFe.infNFe.det.prod.cEAN,
-			},
-			{ client: trx },
-		);
+
+		const variationTasks = products.map((elem) => {
+			return elem.related("variations").fetchOrCreateMany(
+				items.map((inner) => ({ barcode: inner.cEAN })),
+				["barcode"],
+				{ client: trx },
+			);
+		});
+		const variations = await Promise.all(variationTasks);
 
 		const units = await BusinessUnit.query()
 			.useTransaction(trx)
 			.where("economic_group_id", authCtx.group.id)
 			.select("id");
-		const tasks = units.map((elem) => {
-			return variation.related("businessUnitProducts").create(
-				{
-					businness_unit_id: elem.id,
-					stock: 0,
-					maximumStock: 0,
-					minimumStock: 0,
-					maximumDiscountPercentage: 100,
-					maximumDiscountValue: 0,
-					price: 0,
-					costPrice:
-						data.nfeProc.NFe.infNFe.det.prod.vProd /
-						data.nfeProc.NFe.infNFe.det.prod.qCom,
-					profitMargin: 0,
-					commission: 0,
-					meta: 0,
-					metaType: undefined,
-					commissionMeta: 0,
-				},
-				{
-					client: trx,
-				},
-			);
-		});
-		await Promise.all(tasks);
 
-		return variation.id;
+		// iterate over each
+		const pData: Array<Partial<BusinessUnitProduct>> = [];
+		// eslint-disable-next-line no-restricted-syntax
+		for (const variation of variations.flat()) {
+			// eslint-disable-next-line no-restricted-syntax
+			for (const unit of units) {
+				// eslint-disable-next-line no-restricted-syntax
+				for (const item of items) {
+					pData.push({
+						businness_unit_id: unit.id,
+						product_variation_id: variation.id,
+						stock: 0,
+						maximumStock: 0,
+						minimumStock: 0,
+						maximumDiscountPercentage: 100,
+						maximumDiscountValue: 0,
+						price: 0,
+						costPrice: item.vProd / item.qCom,
+						profitMargin: 0,
+						commission: 0,
+						meta: 0,
+						metaType: undefined,
+						commissionMeta: 0,
+					});
+				}
+			}
+		}
+		await BusinessUnitProduct.fetchOrCreateMany(
+			["businness_unit_id", "product_variation_id"],
+			pData,
+			{ client: trx },
+		);
+
+		return variations.flat().map((elem) => elem.id);
 	}
 
 	private async getSupplierForImport(
@@ -894,7 +911,7 @@ export default class ReceiptService {
 	async createItem(
 		authCtx: AuthContext,
 		data: {
-			receiptId: number;
+			receiptId: string;
 			productVariationId: string;
 			quantity: number;
 			costValue: number;
@@ -922,7 +939,7 @@ export default class ReceiptService {
 		trx: TransactionClientContract,
 		authCtx: AuthContext,
 		data: {
-			receiptId: number;
+			receiptId: string;
 			productVariationId: string;
 			quantity: number;
 			costValue: number;
@@ -1055,7 +1072,7 @@ export default class ReceiptService {
 	async createPayment(
 		authCtx: AuthContext,
 		data: {
-			receiptId: number;
+			receiptId: string;
 			items: {
 				paymentMethodId: string;
 				tefAcquirerId?: string;

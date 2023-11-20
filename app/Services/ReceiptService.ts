@@ -405,7 +405,7 @@ export default class ReceiptService {
 			);
 		}
 
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const issuedAlready = await IssuedFiscalDocument.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -632,6 +632,8 @@ export default class ReceiptService {
 				},
 				{ client: trx },
 			);
+
+			return newReceipt;
 		});
 	}
 
@@ -654,7 +656,7 @@ export default class ReceiptService {
 
 		if (!dailyMovement) {
 			throw new BadRequestException(
-				"É necessário ter um movimento diário quando importanto uma nota",
+				"E_NO_DL: É necessário ter um movimento diário para importar uma nota",
 				400,
 				"E_NO_DL",
 			);

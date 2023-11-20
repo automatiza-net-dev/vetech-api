@@ -144,20 +144,72 @@ const schema = z.object({
 								),
 							}),
 							PIS: z.object({
-								PISOutr: z.object({
-									CST: z.string(),
-									vBC: z.string(),
-									pPIS: z.string(),
-									vPIS: z.string(),
-								}),
+								PISAliq: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pPIS: z.coerce.number(),
+										vPIS: z.coerce.number(),
+									}),
+								),
+								PISQtde: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pPIS: z.coerce.number(),
+										vPIS: z.coerce.number(),
+									}),
+								),
+								PISNT: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pPIS: z.coerce.number(),
+										vPIS: z.coerce.number(),
+									}),
+								),
+								PISOutr: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pPIS: z.coerce.number(),
+										vPIS: z.coerce.number(),
+									}),
+								),
 							}),
 							COFINS: z.object({
-								COFINSOutr: z.object({
-									CST: z.string(),
-									vBC: z.string(),
-									pCOFINS: z.string(),
-									vCOFINS: z.string(),
-								}),
+								COFINSAliq: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pCOFINS: z.coerce.number(),
+										vCOFINS: z.coerce.number(),
+									}),
+								),
+								COFINSQtde: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pCOFINS: z.coerce.number(),
+										vCOFINS: z.coerce.number(),
+									}),
+								),
+								COFINSNT: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pCOFINS: z.coerce.number(),
+										vCOFINS: z.coerce.number(),
+									}),
+								),
+								COFINSOutr: z.optional(
+									z.object({
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pCOFINS: z.coerce.number(),
+										vCOFINS: z.coerce.number(),
+									}),
+								),
 							}),
 						}),
 						_nItem: z.optional(z.string()),
@@ -519,9 +571,14 @@ export default class ReceiptService {
 			);
 			const itemData: Array<Partial<ReceiptItem>> = [];
 			// eslint-disable-next-line no-restricted-syntax
-			for (const item of items) {
+			for (const itemIdx in items) {
 				// eslint-disable-next-line no-restricted-syntax
 				for (const variation of productVariationIds) {
+					const item = items[itemIdx];
+
+					const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
+					const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
+
 					itemData.push({
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -574,17 +631,17 @@ export default class ReceiptService {
 						// issPercentage: rule?.icmsPerc,
 						// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
-						// pisCst: item.imposto.PIS.PISAliq.CST,
-						// pisBase: item.imposto.PIS.PISAliq.vBC,
-						// pisPercentage: item.imposto.PIS.PISAliq.pPIS,
-						// pisValue: item.imposto.PIS.PISAliq.vPIS,
-						// pisRetentionValue: 0,
+						pisCst: pis.CST,
+						pisBase: pis.vBC,
+						pisPercentage: pis.pPIS,
+						pisValue: pis.vPIS,
+						pisRetentionValue: 0,
 
-						// cofinsCst: item.imposto.COFINS.COFINSAliq.CST,
-						// cofinsBase: item.imposto.COFINS.COFINSAliq.vBC,
-						// cofinsPercentage: item.imposto.COFINS.COFINSAliq.pCOFINS,
-						// cofinsValue: item.imposto.COFINS.COFINSAliq.vCOFINS,
-						// cofinsRetentionValue: 0,
+						cofinsCst: cofins.CST,
+						cofinsBase: cofins.vBC,
+						cofinsPercentage: cofins.pCOFINS,
+						cofinsValue: cofins.vCOFINS,
+						cofinsRetentionValue: 0,
 
 						// ipiCst: rule?.ipiCst,
 						// ipiBase: 0,
@@ -629,6 +686,50 @@ export default class ReceiptService {
 
 			return newReceipt;
 		});
+	}
+
+	private getCofins(data: z.infer<typeof schema>, idx: number) {
+		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.COFINS;
+
+		if (row.COFINSAliq) {
+			return row.COFINSAliq;
+		}
+
+		if (row.COFINSQtde) {
+			return row.COFINSQtde;
+		}
+
+		if (row.COFINSNT) {
+			return row.COFINSNT;
+		}
+
+		if (row.COFINSOutr) {
+			return row.COFINSOutr;
+		}
+
+		throw new BadRequestException("Cofins não encontrado", 400, "E_NO_COFINS");
+	}
+
+	private getPis(data: z.infer<typeof schema>, idx: number) {
+		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.PIS;
+
+		if (row.PISAliq) {
+			return row.PISAliq;
+		}
+
+		if (row.PISQtde) {
+			return row.PISQtde;
+		}
+
+		if (row.PISNT) {
+			return row.PISNT;
+		}
+
+		if (row.PISOutr) {
+			return row.PISOutr;
+		}
+
+		throw new BadRequestException("Pis não encontrado", 400, "E_NO_PIS");
 	}
 
 	private async getDailyMovementForImport(

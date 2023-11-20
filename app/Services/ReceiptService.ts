@@ -137,9 +137,9 @@ const schema = z.object({
 										orig: z.string(),
 										CST: z.string(),
 										modBC: z.string(),
-										vBC: z.string(),
-										pICMS: z.string(),
-										vICMS: z.string(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
 									}),
 								),
 							}),
@@ -184,6 +184,7 @@ const schema = z.object({
 						vCOFINS: z.coerce.number(),
 						vOutro: z.coerce.number(),
 						vNF: z.coerce.number(),
+						vICMSUFDest: z.optional(z.coerce.number()),
 					}),
 				}),
 				transp: z.object({
@@ -503,8 +504,8 @@ export default class ReceiptService {
 					ipiBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
 					ipiValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vIPI,
 					icmsFcpValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFCP,
-					// icmsUfDestinationValue:
-					// 	parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
+					icmsUfDestinationValue:
+						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
 					additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
 					status: "Ativa",
@@ -513,7 +514,7 @@ export default class ReceiptService {
 			);
 
 			const items = SharedService.ArrayUnion(
-				parsed.data.nfeProc.NFe.infNFe.det.map((d) => d.prod),
+				parsed.data.nfeProc.NFe.infNFe.det,
 				(val) => val,
 			);
 			const itemData: Array<Partial<ReceiptItem>> = [];
@@ -527,31 +528,27 @@ export default class ReceiptService {
 						product_variation_id: variation,
 						receipt_id: newReceipt.id,
 
-						quantity: item.qCom,
-						costValue: item.vUnCom,
-						unitaryValue: item.vUnCom,
-						discountValue: item.vDesc,
-						totalValue: item.vProd - (item.vDesc ?? 0),
+						quantity: item.prod.qCom,
+						costValue: item.prod.vUnCom,
+						unitaryValue: item.prod.vUnCom,
+						discountValue: item.prod.vDesc,
+						totalValue: item.prod.vProd - (item.prod.vDesc ?? 0),
 						status: "PendenteXml",
 						issueDate: DateTime.now(),
 
 						// tax_operation_id: rule?.tax_operation_id,
-						fiscalOperationCode: item.CFOP,
+						fiscalOperationCode: item.prod.CFOP,
 
-						productSupplierXml: item.cProd,
-						barcodeXml: item.cEAN,
-						descriptionXml: item.xProd,
-						ncmXml: item.NCM,
+						productSupplierXml: item.prod.cProd,
+						barcodeXml: item.prod.cEAN,
+						descriptionXml: item.prod.xProd,
+						ncmXml: item.prod.NCM,
 
-						// icmsOriginProduct:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.orig,
-						// icmsCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.CST,
-						// icmsBase:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vBC,
-						// icmsPercentage:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.pICMS,
-						// icmsValue:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.vICMS,
+						icmsOriginProduct: item.imposto.ICMS?.ICMS00?.orig,
+						icmsCst: item.imposto.ICMS?.ICMS00?.CST,
+						icmsBase: item.imposto.ICMS?.ICMS00?.vBC,
+						icmsPercentage: item.imposto?.ICMS.ICMS00?.pICMS,
+						icmsValue: item.imposto.ICMS?.ICMS00?.vICMS,
 						// icmsDeferredValue: 0,
 						// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
 						// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
@@ -577,24 +574,16 @@ export default class ReceiptService {
 						// issPercentage: rule?.icmsPerc,
 						// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
-						// pisCst: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.CST,
-						// pisBase: parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vBC,
-						// pisPercentage:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.pPIS,
-						// pisValue:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.PIS.PISAliq.vPIS,
-						// // pisRetentionValue: 0,
+						// pisCst: item.imposto.PIS.PISAliq.CST,
+						// pisBase: item.imposto.PIS.PISAliq.vBC,
+						// pisPercentage: item.imposto.PIS.PISAliq.pPIS,
+						// pisValue: item.imposto.PIS.PISAliq.vPIS,
+						// pisRetentionValue: 0,
 
-						// cofinsCst:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.CST,
-						// cofinsBase:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq.vBC,
-						// cofinsPercentage:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
-						//     .pCOFINS,
-						// cofinsValue:
-						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.COFINS.COFINSAliq
-						//     .vCOFINS,
+						// cofinsCst: item.imposto.COFINS.COFINSAliq.CST,
+						// cofinsBase: item.imposto.COFINS.COFINSAliq.vBC,
+						// cofinsPercentage: item.imposto.COFINS.COFINSAliq.pCOFINS,
+						// cofinsValue: item.imposto.COFINS.COFINSAliq.vCOFINS,
 						// cofinsRetentionValue: 0,
 
 						// ipiCst: rule?.ipiCst,

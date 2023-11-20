@@ -430,28 +430,28 @@ export default class ReceiptService {
 				);
 			}
 
-			// if (parsed.data.nfeProc.NFe.infNFe.v
-			// 	const unit = await BusinessUnit.query()
-			// 		.useTransaction(trx)
-			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-			// 		.first();
-			//
-			// 	if (!unit) {
-			// 		throw new BadRequestException(
-			// 			"CNPJ não percente a nenhuma unidade",
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			//
-			// 	if (unit.economicGroupId !== authCtx.group.id) {
-			// 		throw new BadRequestException(
-			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			// }
+			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+				const unit = await BusinessUnit.query()
+					.useTransaction(trx)
+					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+					.first();
+
+				if (!unit) {
+					throw new BadRequestException(
+						"CNPJ não percente a nenhuma unidade",
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+
+				if (unit.economicGroupId !== authCtx.group.id) {
+					throw new BadRequestException(
+						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+			}
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,
@@ -532,11 +532,16 @@ export default class ReceiptService {
 						unitaryValue: item.vUnCom,
 						discountValue: item.vDesc,
 						totalValue: item.vProd - (item.vDesc ?? 0),
-						status: "Ativo",
+						status: "PendenteXml",
 						issueDate: DateTime.now(),
 
 						// tax_operation_id: rule?.tax_operation_id,
 						fiscalOperationCode: item.CFOP,
+
+						productSupplierXml: item.cProd,
+						barcodeXml: item.cEAN,
+						descriptionXml: item.xProd,
+						ncmXml: item.NCM,
 
 						// icmsOriginProduct:
 						//   parsed.data.nfeProc.NFe.infNFe.det.imposto.ICMS.ICMS00.orig,
@@ -750,7 +755,7 @@ export default class ReceiptService {
 						maximumDiscountPercentage: 100,
 						maximumDiscountValue: 0,
 						price: 0,
-						costPrice: item.vProd / item.qCom,
+						costPrice: item.vUnCom,
 						profitMargin: 0,
 						commission: 0,
 						meta: 0,

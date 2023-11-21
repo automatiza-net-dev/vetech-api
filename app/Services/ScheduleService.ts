@@ -843,7 +843,8 @@ export default class ScheduleService {
 				query.preload("tutor", (query) => {
 					query.select(["cellphone", "telephone"]);
 				});
-			});
+			})
+			.orderBy("start_hour", "asc");
 
 		const patients = await Patient.query()
 			.whereIn(

@@ -344,6 +344,7 @@ Route.group(() => {
 		"/status-changes/:id",
 		"SchedulesController.getScheduleStatusChanges",
 	);
+	Route.get("/simple-user", "SchedulesController.simpleUserDailySchedule");
 	Route.get("/user", "SchedulesController.userDailySchedule");
 	Route.get(
 		"/users-weekly-schedules",

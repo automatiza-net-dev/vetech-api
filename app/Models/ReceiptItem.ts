@@ -189,6 +189,16 @@ export default class ReceiptItem extends BaseModel {
 	public icmsExoneratedValue: number;
 
 	@column({
+		columnName: "icms_credit_percentage",
+	})
+	public icmsCreditPercentage: number;
+
+	@column({
+		columnName: "icms_credit_value",
+	})
+	public icmsCreditValue: number;
+
+	@column({
 		columnName: "iss_cst",
 	})
 	public issCst: string;

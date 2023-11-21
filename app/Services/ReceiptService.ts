@@ -239,6 +239,68 @@ const schema = z.object({
 										vICMSDeson: z.coerce.number(),
 									}),
 								),
+								ICMSSN101: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+										pCredSN: z.coerce.number(),
+										vCredICMSSN: z.coerce.number(),
+									}),
+								),
+								ICMSSN102: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+									}),
+								),
+								ICMSSN201: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+										pCredSN: z.coerce.number(),
+										vCredICMSSN: z.coerce.number(),
+									}),
+								),
+								ICMSSN202: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+									}),
+								),
+								ICMSSN500: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+										vBCSTRet: z.coerce.number(),
+										pICMSSTRet: z.coerce.number(),
+									}),
+								),
+								ICMSSN900: z.optional(
+									z.object({
+										orig: z.string(),
+										CSOSN: z.string(),
+										pRedBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+										pCredSN: z.coerce.number(),
+										vCredICMSSN: z.coerce.number(),
+									}),
+								),
 							}),
 							PIS: z.object({
 								PISAliq: z.optional(
@@ -566,42 +628,42 @@ export default class ReceiptService {
 					query.preload("businessUnit");
 				})
 				.first();
-			// if (issuedAlready) {
-			// 	throw new BadRequestException(
-			// 		`Esta nota já foi importada na unidade '${
-			// 			issuedAlready.bill?.businessUnit?.identification ??
-			// 			"Não identificado"
-			// 		}' no dia ${format(
-			// 			issuedAlready.authorizationDate.toJSDate(),
-			// 			"dd/MM/yyyy",
-			// 		)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
-			// 		400,
-			// 		"E_IMPORTED",
-			// 	);
-			// }
+			if (issuedAlready) {
+				throw new BadRequestException(
+					`Esta nota já foi importada na unidade '${
+						issuedAlready.bill?.businessUnit?.identification ??
+						"Não identificado"
+					}' no dia ${format(
+						issuedAlready.authorizationDate.toJSDate(),
+						"dd/MM/yyyy",
+					)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
+					400,
+					"E_IMPORTED",
+				);
+			}
 
-			// if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
-			// 	const unit = await BusinessUnit.query()
-			// 		.useTransaction(trx)
-			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-			// 		.first();
-			//
-			// 	if (!unit) {
-			// 		throw new BadRequestException(
-			// 			"CNPJ não percente a nenhuma unidade",
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			//
-			// 	if (unit.economicGroupId !== authCtx.group.id) {
-			// 		throw new BadRequestException(
-			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			// }
+			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+				const unit = await BusinessUnit.query()
+					.useTransaction(trx)
+					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+					.first();
+
+				if (!unit) {
+					throw new BadRequestException(
+						"CNPJ não percente a nenhuma unidade",
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+
+				if (unit.economicGroupId !== authCtx.group.id) {
+					throw new BadRequestException(
+						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+			}
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,
@@ -680,6 +742,10 @@ export default class ReceiptService {
 				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
 				const icms = this.getIcms(parsed.data, parseInt(itemIdx, 10));
 
+				if ("pICMSSTRet" in icms) {
+					// aposidkas
+				}
+
 				itemData.push({
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
@@ -706,7 +772,8 @@ export default class ReceiptService {
 					ncmXml: item.prod.NCM,
 
 					icmsOriginProduct: icms?.orig,
-					icmsCst: "CST" in icms ? icms.CST : undefined,
+					icmsCst:
+						"CSOSN" in icms ? icms.CSOSN : "CST" in icms ? icms.CST : undefined,
 					icmsBase: "vBC" in icms ? icms.vBC : undefined,
 					icmsPercentage: "pICMS" in icms ? icms.pICMS : undefined,
 					icmsValue: "vICMS" in icms ? icms.vICMS : undefined,
@@ -723,7 +790,12 @@ export default class ReceiptService {
 						"pRedBCST" in icms ? icms.pRedBCST : undefined,
 					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
 					icmsStPercentageUfDestination:
-						"pICMSST" in icms ? icms.pICMSST : undefined,
+						"pICMSSTRet" in icms
+							? // @ts-ignore check if things will work
+							  icms.pICMSSTRet
+							: "pICMSST" in icms
+							? icms.pICMSST
+							: undefined,
 					icmsStValue:
 						"vICMSSTRet" in icms
 							? icms.vICMSSTRet
@@ -740,6 +812,8 @@ export default class ReceiptService {
 						"vICMSDeson" in icms ? icms.vICMSDeson : undefined,
 					icmsOperationValue: "vICMSOP" in icms ? icms.vICMSOP : undefined,
 					icmsPercentageDeferred: "pDif" in icms ? icms.pDif : undefined,
+					// icmsCreditValue: "vCredICMSSN" in icms ? icms.vCredICMSSN : undefined,
+					// icmsCreditPercentage: "pCredSN" in icms ? icms.pCredSN : undefined,
 
 					// issCst: rule?.icmsCst,
 					// issBase: icmsBase,
@@ -822,6 +896,18 @@ export default class ReceiptService {
 		if (row.ICMS70) return row.ICMS70;
 
 		if (row.ICMS90) return row.ICMS90;
+
+		if (row.ICMSSN101) return row.ICMSSN101;
+
+		if (row.ICMSSN102) return row.ICMSSN102;
+
+		if (row.ICMSSN201) return row.ICMSSN201;
+
+		if (row.ICMSSN202) return row.ICMSSN202;
+
+		if (row.ICMSSN500) return row.ICMSSN500;
+
+		if (row.ICMSSN900) return row.ICMSSN900;
 
 		throw new BadRequestException("ICMS não encontrado", 400, "E_NO_ICMS");
 	}

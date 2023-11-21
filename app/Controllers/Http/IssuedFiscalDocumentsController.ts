@@ -25,4 +25,13 @@ export default class IssuedFiscalDocumentsController {
 
     return response.ok(result);
   }
+
+  public async search({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.search(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
+
+    return response.ok(result);
+  }
 }

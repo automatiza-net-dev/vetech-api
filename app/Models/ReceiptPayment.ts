@@ -67,7 +67,7 @@ export default class ReceiptPayment extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public receipt_id: number;
+  public receipt_id: string;
 
   @belongsTo(() => Receipt, {
     foreignKey: 'receipt_id',

@@ -1,156 +1,181 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import ThirdPartyService from 'App/Services/ThirdPartyService';
-import AuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/AuthenticateThirdPartyValidator';
-import ExtendedAuthenticateThirdPartyValidator from 'App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator';
-import SyncProfileAccessValidator from 'App/Validators/ThirdParty/SyncProfileAccessValidator';
-import UnitLoginValidator from 'App/Validators/ThirdParty/UnitLoginValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import SharedService from "App/Services/SharedService";
+import ThirdPartyService from "App/Services/ThirdPartyService";
+import AuthenticateThirdPartyValidator from "App/Validators/ThirdParty/AuthenticateThirdPartyValidator";
+import ExtendedAuthenticateThirdPartyValidator from "App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator";
+import SyncProfileAccessValidator from "App/Validators/ThirdParty/SyncProfileAccessValidator";
+import UnitLoginValidator from "App/Validators/ThirdParty/UnitLoginValidator";
 
 @inject()
 export default class ThirdPartiesController {
-  constructor(
-    private readonly service: ThirdPartyService,
-    private sharedService: SharedService,
-  ) {}
+	constructor(
+		private readonly service: ThirdPartyService,
+		private sharedService: SharedService,
+	) {}
 
-  public async authenticateSancla({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(AuthenticateThirdPartyValidator);
+	public async authenticateSancla({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(AuthenticateThirdPartyValidator);
 
-    const result = await this.service.authenticate(auth, 'Sanclá', payload);
+		const result = await this.service.authenticate(auth, "Sanclá", payload);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async authenticateVetech({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(AuthenticateThirdPartyValidator);
+	public async authenticateVetech({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(AuthenticateThirdPartyValidator);
 
-    const result = await this.service.authenticate(auth, 'Vetech', payload);
+		const result = await this.service.authenticate(auth, "Vetech", payload);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async authenticateLiftOne({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(AuthenticateThirdPartyValidator);
+	public async authenticateLiftOne({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(AuthenticateThirdPartyValidator);
 
-    const result = await this.service.authenticate(auth, 'LiftOne', payload);
+		const result = await this.service.authenticate(auth, "LiftOne", payload);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async extendedAuthenticateSancla({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      ExtendedAuthenticateThirdPartyValidator,
-    );
+	public async extendedAuthenticateSancla({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(
+			ExtendedAuthenticateThirdPartyValidator,
+		);
 
-    const result = await this.service.extendedAuthenticate(
-      auth,
-      'Sanclá',
-      payload,
-    );
+		const result = await this.service.extendedAuthenticate(
+			auth,
+			"Sanclá",
+			payload,
+		);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async extendedAuthenticateLiftOne({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      ExtendedAuthenticateThirdPartyValidator,
-    );
+	public async extendedAuthenticateLiftOne({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(
+			ExtendedAuthenticateThirdPartyValidator,
+		);
 
-    const result = await this.service.extendedAuthenticate(
-      auth,
-      'LiftOne',
-      payload,
-    );
+		const result = await this.service.extendedAuthenticate(
+			auth,
+			"LiftOne",
+			payload,
+		);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async extendedAuthenticateVetech({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      ExtendedAuthenticateThirdPartyValidator,
-    );
+	public async extendedAuthenticateVetech({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(
+			ExtendedAuthenticateThirdPartyValidator,
+		);
 
-    const result = await this.service.extendedAuthenticate(
-      auth,
-      'Vetech',
-      payload,
-    );
+		const result = await this.service.extendedAuthenticate(
+			auth,
+			"Vetech",
+			payload,
+		);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async updateToken({ request, auth, response }: HttpContextContract) {
-    const payload = await request.validate(UnitLoginValidator);
+	public async updateToken({ request, auth, response }: HttpContextContract) {
+		const payload = await request.validate(UnitLoginValidator);
 
-    const { user } = auth.use('tpApi');
+		const { user } = auth.use("tpApi");
+		const result = await this.service.updateToken(user!, payload);
 
-    await this.service.updateToken(user!, payload);
+		return response.ok(result);
+	}
 
-    return response.noContent();
-  }
+	public async profile({ auth, response }: HttpContextContract) {
+		const { user } = auth.use("api");
+		if (!user) {
+			throw new BadRequestException("Usuário não encontrado", 400, "E_NO_USER");
+		}
 
-  public async profile({ auth, response }: HttpContextContract) {
-    const user = auth.use('tpApi').user!;
+		const { unit_id } = auth.use("api").token!.meta;
 
-    return response.ok({
-      id: user.id,
-      key: user.key,
-    });
-  }
+		const unit = unit_id
+			? await BusinessUnit.query()
+					.select("id", "identification")
+					.where("id", unit_id)
+					.firstOrFail()
+			: null;
 
-  public async businessUnitInfo({ params, response }: HttpContextContract) {
-    return response.ok(await this.service.businessUnitInfo(params.id));
-  }
+		return response.ok({
+			user: {
+				id: user.id,
+				name: user.name,
+			},
+			unit,
+		});
+	}
 
-  public async userInfo({ params, response }: HttpContextContract) {
-    return response.ok(await this.service.userInfo(params.id));
-  }
+	public async tpProfile({ auth, response }: HttpContextContract) {
+		const user = auth.use("tpApi").user!;
 
-  public async searchProfileAccesses({ auth, response }: HttpContextContract) {
-    return response.ok(
-      await this.service.searchProfileAccesses(
-        await this.sharedService.getAuthContext(auth),
-      ),
-    );
-  }
+		return response.ok({
+			id: user.id,
+			key: user.key,
+		});
+	}
 
-  public async syncProfileAccesses({
-    auth,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(SyncProfileAccessValidator);
+	public async businessUnitInfo({ params, response }: HttpContextContract) {
+		return response.ok(await this.service.businessUnitInfo(params.id));
+	}
 
-    await this.service.syncProfileAccesses(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+	public async userInfo({ params, response }: HttpContextContract) {
+		return response.ok(await this.service.userInfo(params.id));
+	}
 
-    return response.noContent();
-  }
+	public async searchProfileAccesses({ auth, response }: HttpContextContract) {
+		return response.ok(
+			await this.service.searchProfileAccesses(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
+	public async syncProfileAccesses({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(SyncProfileAccessValidator);
+
+		await this.service.syncProfileAccesses(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
 }

@@ -1,328 +1,336 @@
-import { inject } from '@adonisjs/fold';
-import { AuthContract } from '@ioc:Adonis/Addons/Auth';
-import Hash from '@ioc:Adonis/Core/Hash';
-import Database from '@ioc:Adonis/Lucid/Database';
-import BadRequestException from 'App/Exceptions/BadRequestException';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import ProfileAccess from 'App/Models/ProfileAccess';
-import RoleProfileAccess from 'App/Models/RoleProfileAccess';
-import System from 'App/Models/System';
-import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
-import User from 'App/Models/User';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import axios from 'axios';
+import { inject } from "@adonisjs/fold";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import ProfileAccess from "App/Models/ProfileAccess";
+import RoleProfileAccess from "App/Models/RoleProfileAccess";
+import System from "App/Models/System";
+import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
+import User from "App/Models/User";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import axios from "axios";
+import { AuthContract } from "@ioc:Adonis/Addons/Auth";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 @inject()
 export default class ThirdPartyService {
-  private unauthotizedException = new BadRequestException(
-    'Credenciais inválidas',
-    400,
-    'E_INVALID',
-  );
+	private unauthotizedException = new BadRequestException(
+		"Credenciais inválidas",
+		400,
+		"E_INVALID",
+	);
 
-  private getBaseUrl() {
-    if (process.env.NODE_ENV === 'development') {
-      return 'http://localhost:3333';
-    }
+	private getBaseUrl() {
+		if (process.env.NODE_ENV === "development") {
+			return "http://127.0.0.1:3333";
+		}
 
-    return 'https://vetech-api.automatiza.net';
-  }
+		return "https://vetech-api.automatiza.net";
+	}
 
-  constructor(private sharedService: SharedService) {}
+	constructor(private sharedService: SharedService) {}
 
-  public async updateToken(
-    tpUser: ThirdPartyUserPermission,
-    data: {
-      userToken: string;
-      unitId: string;
-    },
-  ) {
-    await tpUser.load('system');
+	public async updateToken(
+		tpUser: ThirdPartyUserPermission,
+		data: {
+			userToken: string;
+			unitId: string;
+		},
+	) {
+		await tpUser.load("system");
 
-    if (!tpUser.system) {
-      throw new BadRequestException(
-        'Sistema não encontrado',
-        400,
-        'E_NOT_FOUND',
-      );
-    }
+		if (!tpUser.system) {
+			throw new BadRequestException(
+				"Sistema não encontrado",
+				400,
+				"E_NOT_FOUND",
+			);
+		}
 
-    const unit = await BusinessUnit.query()
-      .where('id', data.unitId)
-      .preload('economicGroup')
-      .firstOrFail();
-    if (unit.economicGroup.system_id !== tpUser.system.id) {
-      throw new BadRequestException(
-        'Unidade não encontrada',
-        400,
-        'E_NOT_FOUND',
-      );
-    }
+		const unit = await BusinessUnit.query()
+			.where("id", data.unitId)
+			.preload("economicGroup")
+			.firstOrFail();
+		if (unit.economicGroup.system_id !== tpUser.system.id) {
+			throw new BadRequestException(
+				"Unidade não encontrada",
+				400,
+				"E_NOT_FOUND",
+			);
+		}
 
-    // make request to change user token
-    try {
-      await axios.post(
-        `${this.getBaseUrl()}/auth/swap-tp-unit`,
-        {
-          unitId: data.unitId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${data.userToken}`,
-          },
-        },
-      );
-    } catch (error) {
-      // console.log('err?', (error as AxiosError).response?.data);
+		// make request to change user token
+		try {
+			await axios.post(
+				`${this.getBaseUrl()}/auth/swap-unit`,
+				{
+					unitId: data.unitId,
+				},
+				{
+					headers: {
+						Authorization: `Bearer ${data.userToken}`,
+					},
+				},
+			);
 
-      throw new BadRequestException(
-        error.response?.data?.message ?? 'Token de usuário inválido',
-        400,
-      );
-    }
-  }
+			return {
+				user: tpUser,
+				unit,
+			};
+		} catch (error) {
+			console.log("err?", error?.response?.data);
 
-  public async authenticate(
-    authContract: AuthContract,
-    system: 'Vetech' | 'LiftOne' | 'Sanclá',
-    data: {
-      key: string;
-      password: string;
-    },
-  ) {
-    const tpUser = await ThirdPartyUserPermission.query()
-      .where('key', data.key)
-      .whereHas('system', query => {
-        query.where('name', system);
-      })
-      .first();
+			throw new BadRequestException(
+				error.response?.data?.message ?? "Token de usuário inválido",
+				400,
+			);
+		}
+	}
 
-    if (!tpUser) {
-      throw this.unauthotizedException;
-    }
+	public async authenticate(
+		authContract: AuthContract,
+		system: "Vetech" | "LiftOne" | "Sanclá",
+		data: {
+			key: string;
+			password: string;
+		},
+	) {
+		const tpUser = await ThirdPartyUserPermission.query()
+			.where("key", data.key)
+			.whereHas("system", (query) => {
+				query.where("name", system);
+			})
+			.first();
 
-    if (!(await Hash.verify(tpUser.password, data.password))) {
-      throw this.unauthotizedException;
-    }
+		if (!tpUser) {
+			throw this.unauthotizedException;
+		}
 
-    const token = await authContract.use('tpApi').generate(tpUser, {
-      expiresIn: '1y',
-    });
+		if (!(await Hash.verify(tpUser.password, data.password))) {
+			throw this.unauthotizedException;
+		}
 
-    return {
-      token: token.token,
-      expirates_at: token.expiresAt,
-    };
-  }
+		const token = await authContract.use("tpApi").generate(tpUser, {
+			expiresIn: "1y",
+		});
 
-  public async extendedAuthenticate(
-    authContract: AuthContract,
-    system: 'Vetech' | 'LiftOne' | 'Sanclá',
-    data: {
-      appKey: string;
-      appPassword: string;
+		return {
+			token: token.token,
+			expirates_at: token.expiresAt,
+		};
+	}
 
-      userEmail: string;
-      userPassword: string;
-    },
-  ) {
-    const tpUser = await ThirdPartyUserPermission.query()
-      .where('key', data.appKey)
-      .whereHas('system', query => {
-        query.where('name', system);
-      })
-      .first();
+	public async extendedAuthenticate(
+		authContract: AuthContract,
+		system: "Vetech" | "LiftOne" | "Sanclá",
+		data: {
+			appKey: string;
+			appPassword: string;
 
-    if (!tpUser) {
-      throw this.unauthotizedException;
-    }
+			userEmail: string;
+			userPassword: string;
+		},
+	) {
+		const tpUser = await ThirdPartyUserPermission.query()
+			.where("key", data.appKey)
+			.whereHas("system", (query) => {
+				query.where("name", system);
+			})
+			.first();
 
-    if (!(await Hash.verify(tpUser.password, data.appPassword))) {
-      throw this.unauthotizedException;
-    }
+		if (!tpUser) {
+			throw this.unauthotizedException;
+		}
 
-    const user = await User.query()
-      .where('email', data.userEmail)
-      .where('system_id', tpUser.system_id)
-      .first();
+		if (!(await Hash.verify(tpUser.password, data.appPassword))) {
+			throw this.unauthotizedException;
+		}
 
-    if (!user) {
-      throw this.unauthotizedException;
-    }
+		const user = await User.query()
+			.where("email", data.userEmail)
+			.where("system_id", tpUser.system_id)
+			.first();
 
-    if (!(await Hash.verify(user.password, data.userPassword))) {
-      throw this.unauthotizedException;
-    }
+		if (!user) {
+			throw this.unauthotizedException;
+		}
 
-    const userSystem = await System.query()
-      .where('id', tpUser.system_id)
-      .preload('systemUrls')
-      .firstOrFail();
+		if (!(await Hash.verify(user.password, data.userPassword))) {
+			throw this.unauthotizedException;
+		}
 
-    const userRoles = await user
-      .related('roles')
-      .query()
-      .preload('role', query => {
-        query.preload('permissions', query => {
-          query.where('status', true);
-        });
+		const userSystem = await System.query()
+			.where("id", tpUser.system_id)
+			.preload("systemUrls")
+			.firstOrFail();
 
-        query.preload('accesses', query => {
-          query.preload('profile');
-        });
-      })
-      .preload('unit', query => {
-        query.preload('economicGroup');
+		const userRoles = await user
+			.related("roles")
+			.query()
+			.preload("role", (query) => {
+				query.preload("permissions", (query) => {
+					query.where("status", true);
+				});
 
-        query.whereHas('economicGroup', query => {
-          query.where('system_id', tpUser.system_id);
-        });
+				query.preload("accesses", (query) => {
+					query.preload("profile");
+				});
+			})
+			.preload("unit", (query) => {
+				query.preload("economicGroup");
 
-        query.where('active', true);
-      })
-      .whereHas('unit', query => {
-        query.whereHas('economicGroup', query => {
-          query.where('system_id', tpUser.system_id);
-        });
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", tpUser.system_id);
+				});
 
-        query.where('active', true);
-      })
-      .where('active', true);
+				query.where("active", true);
+			})
+			.whereHas("unit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", tpUser.system_id);
+				});
 
-    const userToken = await authContract.use('api').generate(user, {
-      expiresIn: '1w',
-      system_id: tpUser.system_id,
-    });
+				query.where("active", true);
+			})
+			.where("active", true);
 
-    const appToken = await authContract.use('tpApi').generate(tpUser, {
-      expiresIn: '1y',
-    });
+		const userToken = await authContract.use("api").generate(user, {
+			expiresIn: "1w",
+			system_id: tpUser.system_id,
+		});
 
-    const profiles = userRoles
-      .map(r => r.role.accesses)
-      .map(ac => ac.map(a => a.profile))
-      .map(pa => pa.map(p => p.description))
-      .flat()
-      .filter((v, i, a) => a.indexOf(v) === i);
+		const appToken = await authContract.use("tpApi").generate(tpUser, {
+			expiresIn: "1y",
+		});
 
-    return {
-      app: {
-        token: appToken.token,
-        expirates_at: appToken.expiresAt,
-      },
-      user: {
-        token: userToken.token,
-        expirates_at: userToken.expiresAt,
-      },
-      units: userRoles.map(elem => ({
-        id: elem.unit.id,
-        identification: elem.unit.identification,
+		const profiles = userRoles
+			.map((r) => r.role.accesses)
+			.map((ac) => ac.map((a) => a.profile))
+			.map((pa) => pa.map((p) => p.description))
+			.flat()
+			.filter((v, i, a) => a.indexOf(v) === i);
 
-        group: {
-          id: elem.unit.economicGroup.id,
-          fantasyName: elem.unit.economicGroup.fantasyName,
-        },
-      })),
-      url: this.sharedService.captureGroup(userSystem.systemUrls.at(0), v => ({
-        systemId: v.system_id,
-        url: v.url,
-      })),
-      profiles,
-    };
-  }
+		return {
+			app: {
+				token: appToken.token,
+				expirates_at: appToken.expiresAt,
+			},
+			user: {
+				token: userToken.token,
+				expirates_at: userToken.expiresAt,
+			},
+			units: userRoles.map((elem) => ({
+				id: elem.unit.id,
+				identification: elem.unit.identification,
 
-  public async businessUnitInfo(id: string) {
-    const businessUnit = await BusinessUnit.query().where('id', id).first();
+				group: {
+					id: elem.unit.economicGroup.id,
+					fantasyName: elem.unit.economicGroup.fantasyName,
+				},
+			})),
+			url: this.sharedService.captureGroup(
+				userSystem.systemUrls.at(0),
+				(v) => ({
+					systemId: v.system_id,
+					url: v.url,
+				}),
+			),
+			profiles,
+		};
+	}
 
-    if (!businessUnit) {
-      throw new BadRequestException(
-        'Unidade não encontrada',
-        400,
-        'E_NOT_FOUND',
-      );
-    }
+	public async businessUnitInfo(id: string) {
+		const businessUnit = await BusinessUnit.query().where("id", id).first();
 
-    return {
-      id: businessUnit.id ?? null,
-      identificacao: businessUnit.identification ?? null,
-      razaoSocial: businessUnit.companyName ?? null,
-      nomeFantasia: businessUnit.fantasyName ?? null,
-      cnpj: businessUnit.document ?? null,
-      inscricaoEstadual: businessUnit.stateRegistration ?? null,
-      inscricaoMunicipal: businessUnit.cityRegistration ?? null,
-      email: businessUnit.email ?? null,
-      telefone: businessUnit.phone ?? null,
-      cep: businessUnit.postalCode ?? null,
-      logradouro: businessUnit.address ?? null,
-      numero: businessUnit.number ?? null,
-      complemento: businessUnit.complement ?? null,
-      bairro: businessUnit.district ?? null,
-      cidade: businessUnit.city ?? null,
-      uf: businessUnit.state ?? null,
-      dataUltimaAtualizacao: businessUnit.updatedAt ?? null,
-    };
-  }
+		if (!businessUnit) {
+			throw new BadRequestException(
+				"Unidade não encontrada",
+				400,
+				"E_NOT_FOUND",
+			);
+		}
 
-  public async userInfo(id: string) {
-    const model = await User.query().where('id', id).first();
+		return {
+			id: businessUnit.id ?? null,
+			identificacao: businessUnit.identification ?? null,
+			razaoSocial: businessUnit.companyName ?? null,
+			nomeFantasia: businessUnit.fantasyName ?? null,
+			cnpj: businessUnit.document ?? null,
+			inscricaoEstadual: businessUnit.stateRegistration ?? null,
+			inscricaoMunicipal: businessUnit.cityRegistration ?? null,
+			email: businessUnit.email ?? null,
+			telefone: businessUnit.phone ?? null,
+			cep: businessUnit.postalCode ?? null,
+			logradouro: businessUnit.address ?? null,
+			numero: businessUnit.number ?? null,
+			complemento: businessUnit.complement ?? null,
+			bairro: businessUnit.district ?? null,
+			cidade: businessUnit.city ?? null,
+			uf: businessUnit.state ?? null,
+			dataUltimaAtualizacao: businessUnit.updatedAt ?? null,
+		};
+	}
 
-    if (!model) {
-      throw new BadRequestException(
-        'Usuário não encontrado',
-        400,
-        'E_NOT_FOUND',
-      );
-    }
+	public async userInfo(id: string) {
+		const model = await User.query().where("id", id).first();
 
-    return {
-      id: model.id ?? null,
-      nome: model.name ?? null,
-      cpf: model.document ?? null,
-      rg: model.inscription ?? null,
-      email: model.email ?? null,
-      telefone: model.phone ?? null,
-      cep: model.postalCode ?? null,
-      logradouro: model.address ?? null,
-      numero: model.number ?? null,
-      complemento: model.complement ?? null,
-      bairro: model.district ?? null,
-      cidade: model.city ?? null,
-      uf: model.state ?? null,
-      dataUltimaAtualizacao: model.updatedAt ?? null,
-    };
-  }
+		if (!model) {
+			throw new BadRequestException(
+				"Usuário não encontrado",
+				400,
+				"E_NOT_FOUND",
+			);
+		}
 
-  public async searchProfileAccesses(authCtx: AuthContext) {
-    const result = await ProfileAccess.query()
-      .where('system_id', authCtx.system.id)
-      .where('active', true);
+		return {
+			id: model.id ?? null,
+			nome: model.name ?? null,
+			cpf: model.document ?? null,
+			rg: model.inscription ?? null,
+			email: model.email ?? null,
+			telefone: model.phone ?? null,
+			cep: model.postalCode ?? null,
+			logradouro: model.address ?? null,
+			numero: model.number ?? null,
+			complemento: model.complement ?? null,
+			bairro: model.district ?? null,
+			cidade: model.city ?? null,
+			uf: model.state ?? null,
+			dataUltimaAtualizacao: model.updatedAt ?? null,
+		};
+	}
 
-    return result.map(elem => ({
-      idPerfil: elem.id,
-      descricao: elem.description,
-    }));
-  }
+	public async searchProfileAccesses(authCtx: AuthContext) {
+		const result = await ProfileAccess.query()
+			.where("system_id", authCtx.system.id)
+			.where("active", true);
 
-  public async syncProfileAccesses(
-    _: AuthContext,
-    data: { roleId: number; profileAccessIdList: number[] },
-  ) {
-    await Database.transaction(async trx => {
-      await RoleProfileAccess.query()
-        .useTransaction(trx)
-        .where('role_id', data.roleId)
-        .delete();
+		return result.map((elem) => ({
+			idPerfil: elem.id,
+			descricao: elem.description,
+		}));
+	}
 
-      await RoleProfileAccess.createMany(
-        data.profileAccessIdList.map(
-          elem => ({
-            role_id: data.roleId,
-            profile_access_id: elem,
-            active: true,
-          }),
-          { client: trx },
-        ),
-      );
-    });
-  }
+	public async syncProfileAccesses(
+		_: AuthContext,
+		data: { roleId: number; profileAccessIdList: number[] },
+	) {
+		await Database.transaction(async (trx) => {
+			await RoleProfileAccess.query()
+				.useTransaction(trx)
+				.where("role_id", data.roleId)
+				.delete();
+
+			await RoleProfileAccess.createMany(
+				data.profileAccessIdList.map(
+					(elem) => ({
+						role_id: data.roleId,
+						profile_access_id: elem,
+						active: true,
+					}),
+					{ client: trx },
+				),
+			);
+		});
+	}
 }

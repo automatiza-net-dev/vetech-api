@@ -174,6 +174,21 @@ export default class ReceiptItem extends BaseModel {
 	public icmsStValue: number;
 
 	@column({
+		columnName: "icms_percentage_deferred",
+	})
+	public icmsPercentageDeferred: number;
+
+	@column({
+		columnName: "icms_operation_value",
+	})
+	public icmsOperationValue: number;
+
+	@column({
+		columnName: "icms_exonerated_value",
+	})
+	public icmsExoneratedValue: number;
+
+	@column({
 		columnName: "iss_cst",
 	})
 	public issCst: string;

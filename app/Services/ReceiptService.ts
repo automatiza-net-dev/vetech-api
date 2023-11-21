@@ -1,10 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
-import Logger from "@ioc:Adonis/Core/Logger";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
@@ -42,6 +36,12 @@ import { format } from "date-fns";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -140,6 +140,103 @@ const schema = z.object({
 										vBC: z.coerce.number(),
 										pICMS: z.coerce.number(),
 										vICMS: z.coerce.number(),
+									}),
+								),
+								ICMS10: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+									}),
+								),
+								ICMS20: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										pRedBC: z.coerce.number(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
+										vICMSDeson: z.coerce.number(),
+									}),
+								),
+								ICMS30: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+										vICMSDeson: z.coerce.number(),
+									}),
+								),
+								ICMS40: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										vICMSDeson: z.coerce.number(),
+									}),
+								),
+								ICMS51: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										pRedBC: z.coerce.number(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMSOP: z.coerce.number(),
+										pDif: z.coerce.number(),
+										vICMSDif: z.coerce.number(),
+										vICMS: z.coerce.number(),
+									}),
+								),
+								ICMS60: z.optional(
+									z.object({
+										orig: z.string(),
+										// CST: z.string(),
+										vBCSTRet: z.coerce.number(),
+										vICMSSTRet: z.coerce.number(),
+									}),
+								),
+								ICMS70: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										pRedBC: z.coerce.number(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+										vICMSDeson: z.coerce.number(),
+									}),
+								),
+								ICMS90: z.optional(
+									z.object({
+										orig: z.string(),
+										CST: z.string(),
+										pRedBC: z.coerce.number(),
+										vBC: z.coerce.number(),
+										pICMS: z.coerce.number(),
+										vICMS: z.coerce.number(),
+										pMVAST: z.coerce.number(),
+										pRedBCST: z.coerce.number(),
+										vBCST: z.coerce.number(),
+										pICMSST: z.coerce.number(),
+										vICMSST: z.coerce.number(),
+										vICMSDeson: z.coerce.number(),
 									}),
 								),
 							}),
@@ -469,42 +566,42 @@ export default class ReceiptService {
 					query.preload("businessUnit");
 				})
 				.first();
-			if (issuedAlready) {
-				throw new BadRequestException(
-					`Esta nota já foi importada na unidade '${
-						issuedAlready.bill?.businessUnit?.identification ??
-						"Não identificado"
-					}' no dia ${format(
-						issuedAlready.authorizationDate.toJSDate(),
-						"dd/MM/yyyy",
-					)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
-					400,
-					"E_IMPORTED",
-				);
-			}
+			// if (issuedAlready) {
+			// 	throw new BadRequestException(
+			// 		`Esta nota já foi importada na unidade '${
+			// 			issuedAlready.bill?.businessUnit?.identification ??
+			// 			"Não identificado"
+			// 		}' no dia ${format(
+			// 			issuedAlready.authorizationDate.toJSDate(),
+			// 			"dd/MM/yyyy",
+			// 		)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
+			// 		400,
+			// 		"E_IMPORTED",
+			// 	);
+			// }
 
-			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
-				const unit = await BusinessUnit.query()
-					.useTransaction(trx)
-					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-					.first();
-
-				if (!unit) {
-					throw new BadRequestException(
-						"CNPJ não percente a nenhuma unidade",
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-
-				if (unit.economicGroupId !== authCtx.group.id) {
-					throw new BadRequestException(
-						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-			}
+			// if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+			// 	const unit = await BusinessUnit.query()
+			// 		.useTransaction(trx)
+			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+			// 		.first();
+			//
+			// 	if (!unit) {
+			// 		throw new BadRequestException(
+			// 			"CNPJ não percente a nenhuma unidade",
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			//
+			// 	if (unit.economicGroupId !== authCtx.group.id) {
+			// 		throw new BadRequestException(
+			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			// }
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,
@@ -523,6 +620,10 @@ export default class ReceiptService {
 				supplierId,
 				authCtx,
 			);
+			const productVariations = await ProductVariation.query()
+				.useTransaction(trx)
+				.whereIn("id", productVariationIds)
+				.preload("product");
 
 			const counter = await Receipt.query()
 				.useTransaction(trx)
@@ -570,85 +671,98 @@ export default class ReceiptService {
 				(val) => val,
 			);
 			const itemData: Array<Partial<ReceiptItem>> = [];
+
 			// eslint-disable-next-line no-restricted-syntax
 			for (const itemIdx in items) {
-				// eslint-disable-next-line no-restricted-syntax
-				for (const variation of productVariationIds) {
-					const item = items[itemIdx];
+				const item = items[itemIdx];
 
-					const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
-					const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
+				const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
+				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
+				const icms = this.getIcms(parsed.data, parseInt(itemIdx, 10));
 
-					itemData.push({
-						economic_group_id: authCtx.group.id,
-						business_unit_id: authCtx.unit.id,
-						product_variation_id: variation,
-						receipt_id: newReceipt.id,
+				itemData.push({
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					product_variation_id: productVariations.find(
+						(v) =>
+							v.barcode === item.prod.cEAN || v.barcode === item.prod.cEANTrib,
+					)?.id,
+					receipt_id: newReceipt.id,
 
-						quantity: item.prod.qCom,
-						costValue: item.prod.vUnCom,
-						unitaryValue: item.prod.vUnCom,
-						discountValue: item.prod.vDesc,
-						totalValue: item.prod.vProd - (item.prod.vDesc ?? 0),
-						status: "PendenteXml",
-						issueDate: DateTime.now(),
+					quantity: item.prod.qCom,
+					costValue: item.prod.vUnCom,
+					unitaryValue: item.prod.vUnCom,
+					discountValue: item.prod.vDesc,
+					totalValue: item.prod.vProd - (item.prod.vDesc ?? 0),
+					status: "PendenteXml",
+					issueDate: DateTime.now(),
 
-						// tax_operation_id: rule?.tax_operation_id,
-						fiscalOperationCode: item.prod.CFOP,
+					// tax_operation_id: rule?.tax_operation_id,
+					fiscalOperationCode: item.prod.CFOP,
 
-						productSupplierXml: item.prod.cProd,
-						barcodeXml: item.prod.cEAN,
-						descriptionXml: item.prod.xProd,
-						ncmXml: item.prod.NCM,
+					productSupplierXml: item.prod.cProd,
+					barcodeXml: item.prod.cEAN,
+					descriptionXml: item.prod.xProd,
+					ncmXml: item.prod.NCM,
 
-						icmsOriginProduct: item.imposto.ICMS?.ICMS00?.orig,
-						icmsCst: item.imposto.ICMS?.ICMS00?.CST,
-						icmsBase: item.imposto.ICMS?.ICMS00?.vBC,
-						icmsPercentage: item.imposto?.ICMS.ICMS00?.pICMS,
-						icmsValue: item.imposto.ICMS?.ICMS00?.vICMS,
-						// icmsDeferredValue: 0,
-						// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-						// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-						// icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
-						// 	? icmsStBase_2
-						// 	: undefined,
-						// icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-						// icmsStIva: rule?.icmsPercRedAliquota,
-						// icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-						// icmsStValue:
-						// 	this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-						// 		? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
-						// 		: undefined,
-						// icmsPartitionValue: 0,
-						// icmsFcpPercentage: 0,
-						// icmsFcpValue: 0,
-						// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-						// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
-						// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
+					icmsOriginProduct: icms?.orig,
+					icmsCst: "CST" in icms ? icms.CST : undefined,
+					icmsBase: "vBC" in icms ? icms.vBC : undefined,
+					icmsPercentage: "pICMS" in icms ? icms.pICMS : undefined,
+					icmsValue: "vICMS" in icms ? icms.vICMS : undefined,
+					icmsDeferredValue: "vICMSDif" in icms ? icms.vICMSDif : undefined,
+					// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+					icmsPercentageRedBase: "pRedBC" in icms ? icms.pRedBC : undefined,
+					icmsStBase:
+						"vBCSTRet" in icms
+							? icms.vBCSTRet
+							: "vBCST" in icms
+							? icms.vBCST
+							: undefined,
+					icmsStPercentageRedBase:
+						"pRedBCST" in icms ? icms.pRedBCST : undefined,
+					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
+					icmsStPercentageUfDestination:
+						"pICMSST" in icms ? icms.pICMSST : undefined,
+					icmsStValue:
+						"vICMSSTRet" in icms
+							? icms.vICMSSTRet
+							: "vICMSST" in icms
+							? icms.vICMSST
+							: undefined, // vICMSSTRet ?
+					// icmsPartitionValue: 0,
+					// icmsFcpPercentage: 0,
+					// icmsFcpValue: 0,
+					// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+					// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
+					// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
+					icmsExoneratedValue:
+						"vICMSDeson" in icms ? icms.vICMSDeson : undefined,
+					icmsOperationValue: "vICMSOP" in icms ? icms.vICMSOP : undefined,
+					icmsPercentageDeferred: "pDif" in icms ? icms.pDif : undefined,
 
-						// issCst: rule?.icmsCst,
-						// issBase: icmsBase,
-						// issPercentage: rule?.icmsPerc,
-						// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
+					// issCst: rule?.icmsCst,
+					// issBase: icmsBase,
+					// issPercentage: rule?.icmsPerc,
+					// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
-						pisCst: pis.CST,
-						pisBase: pis.vBC,
-						pisPercentage: pis.pPIS,
-						pisValue: pis.vPIS,
-						pisRetentionValue: 0,
+					pisCst: pis.CST,
+					pisBase: pis.vBC,
+					pisPercentage: pis.pPIS,
+					pisValue: pis.vPIS,
+					pisRetentionValue: 0,
 
-						cofinsCst: cofins.CST,
-						cofinsBase: cofins.vBC,
-						cofinsPercentage: cofins.pCOFINS,
-						cofinsValue: cofins.vCOFINS,
-						cofinsRetentionValue: 0,
+					cofinsCst: cofins.CST,
+					cofinsBase: cofins.vBC,
+					cofinsPercentage: cofins.pCOFINS,
+					cofinsValue: cofins.vCOFINS,
+					cofinsRetentionValue: 0,
 
-						// ipiCst: rule?.ipiCst,
-						// ipiBase: 0,
-						// ipiPercentage: rule?.ipiPerc,
-						// ipiValue: 0,
-					});
-				}
+					// ipiCst: rule?.ipiCst,
+					// ipiBase: 0,
+					// ipiPercentage: rule?.ipiPerc,
+					// ipiValue: 0,
+				});
 			}
 
 			await ReceiptItem.createMany(itemData, { client: trx });
@@ -686,6 +800,30 @@ export default class ReceiptService {
 
 			return newReceipt;
 		});
+	}
+
+	private getIcms(data: z.infer<typeof schema>, idx: number) {
+		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.ICMS;
+
+		if (row.ICMS00) return row.ICMS00;
+
+		if (row.ICMS10) return row.ICMS10;
+
+		if (row.ICMS20) return row.ICMS20;
+
+		if (row.ICMS30) return row.ICMS30;
+
+		if (row.ICMS40) return row.ICMS40;
+
+		if (row.ICMS51) return row.ICMS51;
+
+		if (row.ICMS60) return row.ICMS60;
+
+		if (row.ICMS70) return row.ICMS70;
+
+		if (row.ICMS90) return row.ICMS90;
+
+		throw new BadRequestException("ICMS não encontrado", 400, "E_NO_ICMS");
 	}
 
 	private getCofins(data: z.infer<typeof schema>, idx: number) {
@@ -972,7 +1110,7 @@ export default class ReceiptService {
 					supplier_id: data.supplierId,
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
-					daily_cashier_id: dailyCashier!.id,
+					daily_cashier_id: dailyCashier?.id,
 					daily_movement_id: data.dailyMovementId,
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
@@ -1360,7 +1498,7 @@ export default class ReceiptService {
 
 		const products = await qb;
 
-		const variations = products.map((p) => p.variations).flat();
+		const variations = products.flatMap((p) => p.variations);
 
 		return variations.map((elem) => ({
 			id: elem.id,
@@ -1429,8 +1567,7 @@ export default class ReceiptService {
 		const result = await qb;
 
 		return result
-			.map((tax) => tax.rules)
-			.flat()
+			.flatMap((tax) => tax.rules)
 			.map((elem) => ({
 				idOperacaoFiscal: elem.tax_operation_id,
 				codOperacaoFiscal: elem.taxOperation?.code ?? null,
@@ -1605,7 +1742,7 @@ export default class ReceiptService {
 					items.map((elem) => elem.discountValue),
 				),
 				totalValue: this.sharedService.sum(
-					items.map((elem) => [elem.totalValue, -elem.discountValue]).flat(),
+					items.flatMap((elem) => [elem.totalValue, -elem.discountValue]),
 				),
 				deliveryValue: 0,
 

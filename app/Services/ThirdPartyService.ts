@@ -1,7 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import { AuthContract } from "@ioc:Adonis/Addons/Auth";
-import Hash from "@ioc:Adonis/Core/Hash";
-import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import ProfileAccess from "App/Models/ProfileAccess";
@@ -11,6 +8,9 @@ import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import axios from "axios";
+import { AuthContract } from "@ioc:Adonis/Addons/Auth";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 @inject()
 export default class ThirdPartyService {

@@ -822,12 +822,6 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = differenceInDays(new Date(data.to), new Date(data.from));
-		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
-			const tmpDate = addDays(new Date(data.from!), k);
-			return ScheduleService.GetWD(tmpDate);
-		});
-
 		const schedules = await Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])

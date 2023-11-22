@@ -205,9 +205,7 @@ export default class ThirdPartyService {
 
 		const profiles = userRoles
 			.map((r) => r.role.accesses)
-			.map((ac) => ac.map((a) => a.profile))
-			.map((pa) => pa.map((p) => p.description))
-			.flat()
+			.flatMap((ac) => ac.map((a) => a.profile))
 			.filter((v, i, a) => a.indexOf(v) === i);
 
 		return {
@@ -218,10 +216,30 @@ export default class ThirdPartyService {
 			user: {
 				token: userToken.token,
 				expirates_at: userToken.expiresAt,
+				id: user.id,
+				name: user.name,
+				cpf: user.document,
+				email: user.email,
+				cep: user.postalCode,
+				logradouro: user.address,
+				numero: user.number,
+				complemento: user.complement,
+				bairro: user.district,
+				cidade: user.city,
+				uf: user.state,
 			},
 			units: userRoles.map((elem) => ({
 				id: elem.unit.id,
 				identification: elem.unit.identification,
+				cnpj: elem.unit.document,
+				razaoSocial: elem.unit.companyName,
+				cep: elem.unit.postalCode,
+				logradouro: elem.unit.address,
+				numero: elem.unit.number,
+				complemento: elem.unit.complement,
+				bairro: elem.unit.district,
+				cidade: elem.unit.city,
+				uf: elem.unit.state,
 
 				group: {
 					id: elem.unit.economicGroup.id,
@@ -235,7 +253,10 @@ export default class ThirdPartyService {
 					url: v.url,
 				}),
 			),
-			profiles,
+			profiles: profiles.map((elem) => ({
+				id: elem.id,
+				description: elem.description,
+			})),
 		};
 	}
 

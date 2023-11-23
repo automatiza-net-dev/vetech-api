@@ -405,12 +405,21 @@ const schema = z.object({
 				}),
 				cobr: z.optional(
 					z.object({
-						fat: z.object({
-							nFat: z.string(),
-							vOrig: z.string(),
-							vDesc: z.string(),
-							vLiq: z.string(),
-						}),
+						fat: z.optional(
+							z.object({
+								nFat: z.string(),
+								vOrig: z.string(),
+								vDesc: z.string(),
+								vLiq: z.coerce.number(),
+							}),
+						),
+						dup: z.optional(
+							z.object({
+								vDup: z.coerce.number(),
+								dVenc: z.string(),
+								nDup: z.string(),
+							}),
+						),
 					}),
 				),
 				pag: z.object({
@@ -629,42 +638,42 @@ export default class ReceiptService {
 					query.preload("businessUnit");
 				})
 				.first();
-			if (issuedAlready) {
-				throw new BadRequestException(
-					`Esta nota já foi importada na unidade '${
-						issuedAlready.bill?.businessUnit?.identification ??
-						"Não identificado"
-					}' no dia ${format(
-						issuedAlready.authorizationDate.toJSDate(),
-						"dd/MM/yyyy",
-					)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
-					400,
-					"E_IMPORTED",
-				);
-			}
-
-			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
-				const unit = await BusinessUnit.query()
-					.useTransaction(trx)
-					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-					.first();
-
-				if (!unit) {
-					throw new BadRequestException(
-						"CNPJ não percente a nenhuma unidade",
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-
-				if (unit.economicGroupId !== authCtx.group.id) {
-					throw new BadRequestException(
-						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-						400,
-						"E_INVALID_DOC",
-					);
-				}
-			}
+			// if (issuedAlready) {
+			// 	throw new BadRequestException(
+			// 		`Esta nota já foi importada na unidade '${
+			// 			issuedAlready.bill?.businessUnit?.identification ??
+			// 			"Não identificado"
+			// 		}' no dia ${format(
+			// 			issuedAlready.authorizationDate.toJSDate(),
+			// 			"dd/MM/yyyy",
+			// 		)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
+			// 		400,
+			// 		"E_IMPORTED",
+			// 	);
+			// }
+			//
+			// if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+			// 	const unit = await BusinessUnit.query()
+			// 		.useTransaction(trx)
+			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+			// 		.first();
+			//
+			// 	if (!unit) {
+			// 		throw new BadRequestException(
+			// 			"CNPJ não percente a nenhuma unidade",
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			//
+			// 	if (unit.economicGroupId !== authCtx.group.id) {
+			// 		throw new BadRequestException(
+			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+			// 			400,
+			// 			"E_INVALID_DOC",
+			// 		);
+			// 	}
+			// }
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,
@@ -688,7 +697,7 @@ export default class ReceiptService {
 				.whereIn("id", productVariationIds)
 				.preload("product");
 
-			const counter = await Receipt.query()
+			const receiptsCounter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id);
@@ -704,7 +713,7 @@ export default class ReceiptService {
 
 					issueDate: DateTime.now(),
 					receiptDate: DateTime.now(),
-					tag: GenerateTag(counter.length + 1),
+					tag: GenerateTag(receiptsCounter.length + 1),
 					productValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
 					discountValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vDesc,
 					deliveryValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFrete,
@@ -728,6 +737,44 @@ export default class ReceiptService {
 				},
 				{ client: trx },
 			);
+
+			if (parsed.data.nfeProc.NFe.infNFe.cobr) {
+				const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
+				if (d1) {
+					await newReceipt.related("payments").create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							block: 1,
+							blockInstallments: 1,
+							installmentValue: d1.vLiq,
+							issueDate: DateTime.now(),
+							expirationDate: DateTime.now(),
+							nsuDocument: d1.nFat,
+							status: "Ativo",
+						},
+						{ client: trx },
+					);
+				}
+
+				const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
+				if (d2) {
+					await newReceipt.related("payments").create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							block: d1 ? 2 : 1,
+							blockInstallments: 1,
+							installmentValue: d2.vDup,
+							issueDate: DateTime.now(),
+							expirationDate: DateTime.fromISO(d2.dVenc),
+							nsuDocument: d2.nDup,
+							status: "Ativo",
+						},
+						{ client: trx },
+					);
+				}
+			}
 
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,

@@ -673,42 +673,42 @@ export default class ReceiptService {
 					query.preload("businessUnit");
 				})
 				.first();
-			// if (issuedAlready) {
-			// 	throw new BadRequestException(
-			// 		`Esta nota já foi importada na unidade '${
-			// 			issuedAlready.bill?.businessUnit?.identification ??
-			// 			"Não identificado"
-			// 		}' no dia ${format(
-			// 			issuedAlready.authorizationDate.toJSDate(),
-			// 			"dd/MM/yyyy",
-			// 		)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
-			// 		400,
-			// 		"E_IMPORTED",
-			// 	);
-			// }
-			//
-			// if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
-			// 	const unit = await BusinessUnit.query()
-			// 		.useTransaction(trx)
-			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-			// 		.first();
-			//
-			// 	if (!unit) {
-			// 		throw new BadRequestException(
-			// 			"CNPJ não percente a nenhuma unidade",
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			//
-			// 	if (unit.economicGroupId !== authCtx.group.id) {
-			// 		throw new BadRequestException(
-			// 			`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			// }
+			if (issuedAlready) {
+				throw new BadRequestException(
+					`Esta nota já foi importada na unidade '${
+						issuedAlready.bill?.businessUnit?.identification ??
+						"Não identificado"
+					}' no dia ${format(
+						issuedAlready.authorizationDate.toJSDate(),
+						"dd/MM/yyyy",
+					)} com a tag '${issuedAlready.bill?.tag ?? "-"}'`,
+					400,
+					"E_IMPORTED",
+				);
+			}
+
+			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+				const unit = await BusinessUnit.query()
+					.useTransaction(trx)
+					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+					.first();
+
+				if (!unit) {
+					throw new BadRequestException(
+						"CNPJ não percente a nenhuma unidade",
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+
+				if (unit.economicGroupId !== authCtx.group.id) {
+					throw new BadRequestException(
+						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+			}
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,

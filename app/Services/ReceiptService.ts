@@ -721,17 +721,6 @@ export default class ReceiptService {
 				authCtx,
 			);
 
-			const productVariationIds = await this.getProductVariationForImport(
-				trx,
-				parsed.data,
-				supplierId,
-				authCtx,
-			);
-			const productVariations = await ProductVariation.query()
-				.useTransaction(trx)
-				.whereIn("id", productVariationIds)
-				.preload("product");
-
 			const receiptsCounter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -832,10 +821,6 @@ export default class ReceiptService {
 				itemData.push({
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
-					product_variation_id: productVariations.find(
-						(v) =>
-							v.barcode === item.prod.cEAN || v.barcode === item.prod.cEANTrib,
-					)?.id,
 					receipt_id: newReceipt.id,
 
 					quantity: item.prod.qCom,
@@ -1101,6 +1086,8 @@ export default class ReceiptService {
 		supplierId: string,
 		authCtx: AuthContext,
 	): Promise<string[]> {
+		throw new BadRequestException("Não deve ser chamado", 400, "E_NO_PV");
+
 		const sanitized = Array.isArray(data.nfeProc.NFe.infNFe.det)
 			? data.nfeProc.NFe.infNFe.det
 			: [data.nfeProc.NFe.infNFe.det];

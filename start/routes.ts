@@ -32,6 +32,7 @@ Route.group(() => {
 	Route.post("swap-unit", "AuthController.swapUnit").middleware("auth");
 	Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware("auth");
 
+	Route.post("admin-login", "AuthController.adminLogin");
 	Route.post("controller-login", "AuthController.controllerLogin");
 	Route.post("login", "AuthController.login");
 	Route.post("register", "AuthController.register");

@@ -107,8 +107,17 @@ export default class AuthController {
 	}
 
 	public async whoAmI({ auth, response }: HttpContextContract) {
-		const { user, unit, system } =
-			await this.sharedService.getAuthContext(auth);
+		const { user, unit_id } = this.sharedService.extractUser(auth);
+		if (!unit_id) {
+			return response.ok({
+				user,
+				unit: null,
+				url: null,
+				cl: null,
+			});
+		}
+
+		const { unit, system } = await this.sharedService.getAuthContext(auth);
 
 		const economicGroup = await EconomicGroup.query()
 			.where("id", unit.economicGroupId)

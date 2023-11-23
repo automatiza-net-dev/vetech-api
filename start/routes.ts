@@ -1333,6 +1333,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/import-xml", "ReceiptsController.importFromXml");
+	Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
 
 	Route.post("/create", "ReceiptsController.createReceipt");
 	Route.post("/create-item", "ReceiptsController.createReceiptItem");

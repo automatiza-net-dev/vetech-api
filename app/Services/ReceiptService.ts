@@ -584,6 +584,41 @@ export default class ReceiptService {
 		return rows;
 	}
 
+	async updateXmlItems(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			items: {
+				receiptItemId: number;
+				productVariationId: string;
+			}[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!receipt) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const tasks = data.items.map((item) => {
+				return ReceiptItem.query()
+					.useTransaction(trx)
+					.where("receipt_id", receipt.id)
+					.where("id", item.receiptItemId)
+					.update({
+						product_variation_id: item.productVariationId,
+						status: "Ativo" as TReceiptItemStatus,
+					});
+			});
+			await Promise.all(tasks);
+		});
+	}
+
 	async importFromXml(
 		authCtx: AuthContext,
 		data: {
@@ -920,8 +955,30 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
+			await this.$syncItems(trx, newReceipt);
+
 			return newReceipt;
 		});
+	}
+
+	private async $syncItems(trx: TransactionClientContract, receipt: Receipt) {
+		await Database.rawQuery(
+			`update receipt_items set product_variation_id = sp.product_variation_id
+      from receipt_items ri join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id
+      where ri.receipt_id = ?
+      and receipt_items.id = ri.id
+      and receipt_items.product_variation_id is null;`,
+			[receipt.id],
+		).useTransaction(trx);
+
+		await Database.rawQuery(
+			`update receipt_items set product_variation_id = pv.id
+      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode
+      where ri.receipt_id = ?
+      and receipt_items.id = ri.id
+      and receipt_items.product_variation_id is null;`,
+			[receipt.id],
+		).useTransaction(trx);
 	}
 
 	private getIcms(data: z.infer<typeof schema>, idx: number) {

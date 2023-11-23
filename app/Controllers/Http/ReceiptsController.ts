@@ -8,6 +8,7 @@ import CreateReceiptValidator from "App/Validators/Receipt/CreateReceiptValidato
 import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItemValidator";
 import DeleteReceiptPaymentValidator from "App/Validators/Receipt/DeleteReceiptPaymentValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
+import UpdateXmlItemValidator from "App/Validators/Receipt/UpdateXmlItemValidator";
 
 @inject()
 export default class ReceiptsController {
@@ -32,6 +33,21 @@ export default class ReceiptsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async updateXmlItems({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateXmlItemValidator);
+
+		await this.service.updateXmlItems(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 
 	public async importFromXml({ request, response, auth }: HttpContextContract) {

@@ -1500,3 +1500,27 @@ Route.group(() => {
 })
 	.prefix("metas")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/show-deposit/:id", "DepositsController.showDeposit");
+	Route.get("/search-deposits", "DepositsController.searchDeposits");
+	Route.post("/create-deposit", "DepositsController.createDeposit");
+	Route.post("/update-deposit/:id", "DepositsController.updateDeposit");
+
+	Route.post("/create-deposit-item", "DepositsController.createDepositItem");
+	Route.post(
+		"/update-deposit-item/:id",
+		"DepositsController.updateDepositItem",
+	);
+
+	Route.get(
+		"/search-deposit-movements",
+		"DepositsController.searchDepositMovements",
+	);
+	Route.post(
+		"/create-deposit-movement",
+		"DepositsController.createDepositMovement",
+	);
+})
+	.prefix("deposits")
+	.middleware("auth");

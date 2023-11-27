@@ -21,6 +21,119 @@ import { AuthContext } from "./SharedService";
 export default class AuthService {
 	constructor(private readonly ipService: IpAccessControlService) {}
 
+	public async getControllerWithoutUnit(user: User, systemID: number) {
+		const userRoles = await user
+			.related("roles")
+			.query()
+			.preload("role", (query) => {
+				query.whereIn("type", ["controller", "both"] as TRoleType[]);
+
+				query.preload("permissions", (query) => {
+					query.where("status", true);
+
+					query.whereIn("type", ["controller", "both"] as TPermissionType[]);
+				});
+			})
+			.whereHas("role", (query) => {
+				query.whereIn("type", ["controller", "both"] as TRoleType[]);
+
+				query.whereHas("permissions", (query) => {
+					query.where("status", true);
+
+					query.whereIn("type", ["controller", "both"] as TPermissionType[]);
+				});
+			})
+			.whereHas("unit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", systemID);
+				});
+
+				query.where("active", true);
+			})
+			.where("active", true);
+
+		const controlIds = userRoles.flatMap((r) =>
+			r.role.permissions.map((p) => p.control_id),
+		);
+		const uniqueControls = Array.from(new Set(controlIds));
+
+		return {
+			user,
+			unit: null,
+			url: null,
+			cl: uniqueControls,
+		};
+	}
+
+	public async getControllerWithUnit(
+		user: User,
+		unitID: string,
+		systemID: number,
+	) {
+		const unit = await BusinessUnit.query()
+			.where("id", unitID)
+			.preload("economicGroup", (query) => {
+				query.preload("system", (query) => {
+					query.preload("systemUrls");
+				});
+			})
+			.preload("unitConfig", (query) => {
+				query.select([
+					"id",
+					"requires_schedule_tutor",
+					"requires_bill_patient",
+					"allow_change_schedule_duration",
+					"interval",
+					"locked_daily_movement_date",
+					"daily_cashier_type",
+					"requires_finance_client",
+				]);
+			})
+			.firstOrFail();
+
+		const userRoles = await user
+			.related("roles")
+			.query()
+			.preload("role", (query) => {
+				query.whereIn("type", ["user", "both"] as TRoleType[]);
+
+				query.preload("permissions", (query) => {
+					query.where("status", true);
+
+					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+				});
+			})
+			.whereHas("role", (query) => {
+				query.whereIn("type", ["user", "both"] as TRoleType[]);
+
+				query.whereHas("permissions", (query) => {
+					query.where("status", true);
+
+					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+				});
+			})
+			.whereHas("unit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", systemID);
+				});
+
+				query.where("active", true);
+			})
+			.where("active", true);
+
+		const controlIds = userRoles.flatMap((r) =>
+			r.role.permissions.map((p) => p.control_id),
+		);
+		const uniqueControls = Array.from(new Set(controlIds));
+
+		return {
+			user,
+			unit,
+			url: unit.economicGroup.system.systemUrls.at(0) ?? null,
+			cl: uniqueControls,
+		};
+	}
+
 	public async getRoles(user: User, sID: number, isLogin: boolean) {
 		if (!user.type) {
 			throw new BadRequestException("Usuário sem tipo", 400, "E_NO_TYPE");
@@ -348,7 +461,7 @@ export default class AuthService {
 				.preload("role", (query) => {
 					query.preload("permissions", (query) => {
 						query.where("status", true);
-						query.where("type", "controller");
+						query.where("type", "controller" as TRoleType);
 					});
 				})
 				.preload("unit", (query) => {
@@ -358,7 +471,7 @@ export default class AuthService {
 					query.where("active", true);
 				})
 				.whereHas("role", (query) => {
-					query.whereIn("type", ["controller", "both"]);
+					query.whereIn("type", ["controller", "both"] as TRoleType[]);
 				})
 				.where("active", true);
 

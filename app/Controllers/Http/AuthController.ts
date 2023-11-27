@@ -107,7 +107,20 @@ export default class AuthController {
 	}
 
 	public async whoAmI({ auth, response }: HttpContextContract) {
-		const { user, unit_id } = this.sharedService.extractUser(auth);
+		const { user, unit_id, system_id } = this.sharedService.extractUser(auth);
+
+		if (user.type === "controller") {
+			if (!unit_id) {
+				return response.ok(
+					await this.authService.getControllerWithoutUnit(user, system_id),
+				);
+			}
+
+			return response.ok(
+				await this.authService.getControllerWithUnit(user, unit_id, system_id),
+			);
+		}
+
 		if (!unit_id) {
 			return response.ok({
 				user,

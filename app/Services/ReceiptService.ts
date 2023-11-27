@@ -511,11 +511,11 @@ export default class ReceiptService {
 			.where("business_unit_id", authCtx.unit.id);
 
 		if (data.from) {
-			qb.whereRaw("receiptDate::date >= ?", [data.from]);
+			qb.whereRaw("receipt_date::date >= ?", [data.from]);
 		}
 
 		if (data.to) {
-			qb.whereRaw("receiptDate::date <= ?", [data.to]);
+			qb.whereRaw("receipt_date::date <= ?", [data.to]);
 		}
 
 		if (data.tag) {

@@ -1355,6 +1355,8 @@ export default class ReceiptService {
 			}
 
 			await this.innerCreateItem(trx, authCtx, data);
+
+			await this.syncReceipt(trx, receipt);
 		});
 	}
 

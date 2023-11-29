@@ -27,7 +27,10 @@ import PaymentMethod, {
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt from "App/Models/Receipt";
-import ReceiptItem, { TReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptItem, {
+	ReceiptItemStatus,
+	TReceiptItemStatus,
+} from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
@@ -543,9 +546,20 @@ export default class ReceiptService {
 		}));
 	}
 
-	async show(authCtx: AuthContext, data: { ids?: string[] }) {
+	async show(authCtx: AuthContext, data: { ids?: string[]; status?: string }) {
 		if (!data.ids || !Array.isArray(data.ids) || data.ids.length === 0) {
 			throw new BadRequestException("Nenhum ID informado", 400, "E_NO_IDS");
+		}
+
+		if (
+			data.status &&
+			!ReceiptItemStatus.includes(data.status as TReceiptItemStatus)
+		) {
+			throw new BadRequestException(
+				`Status inválido. Valores possíveis: ${ReceiptItemStatus.join(", ")}`,
+				400,
+				"E_INVALID_STATUS",
+			);
 		}
 
 		const rows = await Receipt.query()
@@ -573,7 +587,11 @@ export default class ReceiptService {
 				query.preload("paymentMethod");
 			})
 			.preload("items", (query) => {
-				query.where("status", "Ativo" as TReceiptItemStatus);
+				if (data.status) {
+					query.where("status", data.status);
+				} else {
+					query.where("status", "Ativo" as TReceiptItemStatus);
+				}
 
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");

@@ -60,6 +60,19 @@ export default class DepositsController {
 		return response.noContent();
 	}
 
+	public async updatePrincipalDeposit({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		await this.service.updatePrincipalDeposit(
+			await this.sharedService.getAuthContext(auth),
+			request.param("id"),
+		);
+
+		return response.noContent();
+	}
+
 	public async createDepositItem({
 		auth,
 		request,

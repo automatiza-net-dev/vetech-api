@@ -21,6 +21,9 @@ export default class Deposit extends BaseModel {
 	@column()
 	public status: TDepositStatus;
 
+	@column()
+	public principal: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

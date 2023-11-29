@@ -173,6 +173,39 @@ test.group("Deposit resource", (group) => {
 		assert.equal(204, result.status());
 	});
 
+	test("should update deposit to principal", async ({ assert, client }) => {
+		const { user, deposit } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const result = await client
+			.post(`/deposits/update-principal-deposit/${deposit.id}`)
+			.bearerToken(token);
+
+		assert.equal(204, result.status());
+	});
+
+	test("should throw BadRequestException when updating invalid type of deposit", async ({
+		assert,
+		client,
+	}) => {
+		const { user, deposit } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await deposit.merge({ type: "Consumo" }).save();
+
+		const result = await client
+			.post(`/deposits/update-principal-deposit/${deposit.id}`)
+			.bearerToken(token);
+
+		assert.equal(400, result.status());
+	});
+
 	test("should create deposit item", async ({ assert, client }) => {
 		const { user, unitProduct, variation, deposit } = await createData();
 		const token = await generateJwtToken(client, {
@@ -201,7 +234,7 @@ test.group("Deposit resource", (group) => {
 		});
 
 		const result = await client
-			.post(`/deposits/update-deposit-item/${depositItem.id}`)
+			.post("/deposits/update-deposit-item")
 			.json({
 				depositItemId: depositItem.id,
 				businessUnitProductId: unitProduct.id,

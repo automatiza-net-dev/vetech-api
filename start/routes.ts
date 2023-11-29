@@ -1505,13 +1505,14 @@ Route.group(() => {
 	Route.get("/show-deposit/:id", "DepositsController.showDeposit");
 	Route.get("/search-deposits", "DepositsController.searchDeposits");
 	Route.post("/create-deposit", "DepositsController.createDeposit");
+	Route.post(
+		"/update-principal-deposit/:id",
+		"DepositsController.updatePrincipalDeposit",
+	);
 	Route.post("/update-deposit/:id", "DepositsController.updateDeposit");
 
 	Route.post("/create-deposit-item", "DepositsController.createDepositItem");
-	Route.post(
-		"/update-deposit-item/:id",
-		"DepositsController.updateDepositItem",
-	);
+	Route.post("/update-deposit-item", "DepositsController.updateDepositItem");
 
 	Route.get(
 		"/search-deposit-movements",

@@ -1,10 +1,15 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
 import DepositMovement from "App/Models/DepositMovement";
 import { DateTime } from "luxon";
+
 import SharedService, { AuthContext } from "./SharedService";
+
+export const MovementType = ["origem", "destino"] as const;
+type TMovementType = typeof MovementType[number];
 
 @inject()
 export default class DepositService {
@@ -106,6 +111,45 @@ export default class DepositService {
 		});
 	}
 
+	public async updatePrincipalDeposit(authCtx: AuthContext, id: number) {
+		return Database.transaction(async (trx) => {
+			const row = await Deposit.query()
+				.useTransaction(trx)
+				.where("id", id)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Ativo") {
+				throw new BadRequestException(
+					"O depósito deve estar ativo para ser principal",
+					400,
+					"E_INVALID_STATUS",
+				);
+			}
+
+			if (row.type !== "Venda") {
+				throw new BadRequestException(
+					"O depósito deve ser do tipo venda para ser principal",
+					400,
+					"E_INVALID_TYPE",
+				);
+			}
+
+			await Deposit.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("type", "Venda")
+				.update({ principal: false });
+
+			await row.merge({ principal: true }).useTransaction(trx).save();
+		});
+	}
+
 	public async createDepositItem(
 		authCtx: AuthContext,
 		data: {
@@ -177,7 +221,7 @@ export default class DepositService {
 		});
 	}
 
-	public async searchDepositMovements(authCtx: AuthContext, data: {}) {
+	public async searchDepositMovements(authCtx: AuthContext, _data: unknown) {
 		const qb = DepositMovement.query()
 			.preload("group", (query) => {
 				query.select("id", "company_name");

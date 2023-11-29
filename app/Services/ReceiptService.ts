@@ -8,7 +8,6 @@ import Database, {
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
-import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
@@ -24,7 +23,7 @@ import PaymentMethod, {
 	PaymentMethodTef,
 	PaymentMethodUsage,
 } from "App/Models/PaymentMethod";
-import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import Product, { ProductPurpose } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt from "App/Models/Receipt";
 import ReceiptItem, {
@@ -32,7 +31,6 @@ import ReceiptItem, {
 	TReceiptItemStatus,
 } from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
-import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
 	MovementCategory,
@@ -1098,115 +1096,115 @@ export default class ReceiptService {
 		return dailyMovement.id;
 	}
 
-	private async getProductVariationForImport(
-		trx: TransactionClientContract,
-		data: z.infer<typeof schema>,
-		supplierId: string,
-		authCtx: AuthContext,
-	): Promise<string[]> {
-		throw new BadRequestException("Não deve ser chamado", 400, "E_NO_PV");
-
-		const sanitized = Array.isArray(data.nfeProc.NFe.infNFe.det)
-			? data.nfeProc.NFe.infNFe.det
-			: [data.nfeProc.NFe.infNFe.det];
-
-		const items = SharedService.ArrayUnion(
-			sanitized.map((d) => d.prod),
-			(val) => val,
-		);
-
-		const uniqueItems = items.reduce((acc, current) => {
-			if (!acc.includes(current.cEAN)) {
-				acc.push(current.cEAN);
-			}
-
-			// if (!acc.includes(current.cEANTrib)) {
-			// 	acc.push(current.cEANTrib);
-			// }
-
-			return acc;
-		}, [] as string[]);
-
-		const supplierProducts = await SupplierProduct.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.where("supplier_id", supplierId)
-			.whereIn("product_supplier_id", uniqueItems);
-
-		// every item has a supplier product
-		if (supplierProducts.length === uniqueItems.length) {
-			return supplierProducts.map((elem) => elem.produt_variation_id);
-		}
-
-		const prodVariations = await ProductVariation.query()
-			.useTransaction(trx)
-			.whereIn("barcode", uniqueItems);
-		if (prodVariations.length === uniqueItems.length) {
-			return prodVariations.map((elem) => elem.id);
-		}
-
-		const products = await Product.fetchOrCreateMany(
-			["economic_group_id", "ncm"],
-			items.map((elem) => ({
-				economic_group_id: authCtx.group.id,
-
-				description: elem.xProd,
-				type: ProductType.PRODUCT,
-				ncm: elem.NCM,
-				active: true,
-			})),
-			{ client: trx },
-		);
-
-		const variationTasks = products.map((elem) => {
-			return elem.related("variations").fetchOrCreateMany(
-				items.map((inner) => ({ barcode: inner.cEAN })),
-				["barcode"],
-				{ client: trx },
-			);
-		});
-		const variations = await Promise.all(variationTasks);
-
-		const units = await BusinessUnit.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.select("id");
-
-		// iterate over each
-		const pData: Array<Partial<BusinessUnitProduct>> = [];
-		// eslint-disable-next-line no-restricted-syntax
-		for (const variation of variations.flat()) {
-			// eslint-disable-next-line no-restricted-syntax
-			for (const unit of units) {
-				// eslint-disable-next-line no-restricted-syntax
-				for (const item of items) {
-					pData.push({
-						businness_unit_id: unit.id,
-						product_variation_id: variation.id,
-						stock: 0,
-						maximumStock: 0,
-						minimumStock: 0,
-						maximumDiscountPercentage: 100,
-						maximumDiscountValue: 0,
-						price: 0,
-						costPrice: item.vUnCom,
-						profitMargin: 0,
-						commission: 0,
-						meta: 0,
-						metaType: undefined,
-						commissionMeta: 0,
-					});
-				}
-			}
-		}
-		await BusinessUnitProduct.fetchOrCreateMany(
-			["businness_unit_id", "product_variation_id"],
-			pData,
-			{ client: trx },
-		);
-
-		return variations.flat().map((elem) => elem.id);
-	}
+	// private async getProductVariationForImport(
+	// 	trx: TransactionClientContract,
+	// 	data: z.infer<typeof schema>,
+	// 	supplierId: string,
+	// 	authCtx: AuthContext,
+	// ): Promise<string[]> {
+	// 	throw new BadRequestException("Não deve ser chamado", 400, "E_NO_PV");
+	//
+	// 	const sanitized = Array.isArray(data.nfeProc.NFe.infNFe.det)
+	// 		? data.nfeProc.NFe.infNFe.det
+	// 		: [data.nfeProc.NFe.infNFe.det];
+	//
+	// 	const items = SharedService.ArrayUnion(
+	// 		sanitized.map((d) => d.prod),
+	// 		(val) => val,
+	// 	);
+	//
+	// 	const uniqueItems = items.reduce((acc, current) => {
+	// 		if (!acc.includes(current.cEAN)) {
+	// 			acc.push(current.cEAN);
+	// 		}
+	//
+	// 		// if (!acc.includes(current.cEANTrib)) {
+	// 		// 	acc.push(current.cEANTrib);
+	// 		// }
+	//
+	// 		return acc;
+	// 	}, [] as string[]);
+	//
+	// 	const supplierProducts = await SupplierProduct.query()
+	// 		.useTransaction(trx)
+	// 		.where("economic_group_id", authCtx.group.id)
+	// 		.where("supplier_id", supplierId)
+	// 		.whereIn("product_supplier_id", uniqueItems);
+	//
+	// 	// every item has a supplier product
+	// 	if (supplierProducts.length === uniqueItems.length) {
+	// 		return supplierProducts.map((elem) => elem.produt_variation_id);
+	// 	}
+	//
+	// 	const prodVariations = await ProductVariation.query()
+	// 		.useTransaction(trx)
+	// 		.whereIn("barcode", uniqueItems);
+	// 	if (prodVariations.length === uniqueItems.length) {
+	// 		return prodVariations.map((elem) => elem.id);
+	// 	}
+	//
+	// 	const products = await Product.fetchOrCreateMany(
+	// 		["economic_group_id", "ncm"],
+	// 		items.map((elem) => ({
+	// 			economic_group_id: authCtx.group.id,
+	//
+	// 			description: elem.xProd,
+	// 			type: ProductType.PRODUCT,
+	// 			ncm: elem.NCM,
+	// 			active: true,
+	// 		})),
+	// 		{ client: trx },
+	// 	);
+	//
+	// 	const variationTasks = products.map((elem) => {
+	// 		return elem.related("variations").fetchOrCreateMany(
+	// 			items.map((inner) => ({ barcode: inner.cEAN })),
+	// 			["barcode"],
+	// 			{ client: trx },
+	// 		);
+	// 	});
+	// 	const variations = await Promise.all(variationTasks);
+	//
+	// 	const units = await BusinessUnit.query()
+	// 		.useTransaction(trx)
+	// 		.where("economic_group_id", authCtx.group.id)
+	// 		.select("id");
+	//
+	// 	// iterate over each
+	// 	const pData: Array<Partial<BusinessUnitProduct>> = [];
+	// 	// eslint-disable-next-line no-restricted-syntax
+	// 	for (const variation of variations.flat()) {
+	// 		// eslint-disable-next-line no-restricted-syntax
+	// 		for (const unit of units) {
+	// 			// eslint-disable-next-line no-restricted-syntax
+	// 			for (const item of items) {
+	// 				pData.push({
+	// 					businness_unit_id: unit.id,
+	// 					product_variation_id: variation.id,
+	// 					stock: 0,
+	// 					maximumStock: 0,
+	// 					minimumStock: 0,
+	// 					maximumDiscountPercentage: 100,
+	// 					maximumDiscountValue: 0,
+	// 					price: 0,
+	// 					costPrice: item.vUnCom,
+	// 					profitMargin: 0,
+	// 					commission: 0,
+	// 					meta: 0,
+	// 					metaType: undefined,
+	// 					commissionMeta: 0,
+	// 				});
+	// 			}
+	// 		}
+	// 	}
+	// 	await BusinessUnitProduct.fetchOrCreateMany(
+	// 		["businness_unit_id", "product_variation_id"],
+	// 		pData,
+	// 		{ client: trx },
+	// 	);
+	//
+	// 	return variations.flat().map((elem) => elem.id);
+	// }
 
 	private async getSupplierForImport(
 		trx: TransactionClientContract,

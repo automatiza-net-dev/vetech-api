@@ -31,6 +31,7 @@ export default class UpdateDepositItemValidator {
 		businessUnitProductId: schema.string([
 			rules.exists({ table: "business_unit_products", column: "id" }),
 		]),
+
 		quantity: schema.number(),
 		status: schema.enum(DepositItemStatus),
 	});

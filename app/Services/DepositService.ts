@@ -43,7 +43,7 @@ export default class DepositService {
 	}
 
 	public async showDeposit(authCtx: AuthContext, id: number) {
-		return Deposit.query()
+		const row = Deposit.query()
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.where("id", id)
@@ -59,7 +59,14 @@ export default class DepositService {
 						query.select("id", "description");
 					});
 				});
-			});
+			})
+			.first();
+
+		if (!row) {
+			throw this.sharedService.ResourceNotFound();
+		}
+
+		return row;
 	}
 
 	public async createDeposit(

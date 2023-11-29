@@ -53,7 +53,7 @@ export default class DepositService {
 				});
 
 				query.preload("variation", (query) => {
-					query.select("id", "product_id");
+					query.select("id", "barcode", "product_id");
 
 					query.preload("product", (query) => {
 						query.select("id", "description");

@@ -1352,6 +1352,10 @@ Route.group(() => {
 		"/create-supplier-products",
 		"ReceiptsController.createSupplierProducts",
 	);
+	Route.post(
+		"/create-receipt-products",
+		"ReceiptsController.createReceiptProducts",
+	);
 })
 	.prefix("receipts")
 	.middleware("auth");

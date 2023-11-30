@@ -8,6 +8,7 @@ import Database, {
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
+import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
@@ -23,7 +24,7 @@ import PaymentMethod, {
 	PaymentMethodTef,
 	PaymentMethodUsage,
 } from "App/Models/PaymentMethod";
-import Product, { ProductPurpose } from "App/Models/Product";
+import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt from "App/Models/Receipt";
 import ReceiptItem, {
@@ -1841,6 +1842,75 @@ export default class ReceiptService {
 					};
 				}),
 			};
+		});
+	}
+
+	async createReceiptProducts(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			receiptItemIds: number[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const row = await Receipt.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const rowItems = await row
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptItemIds);
+
+			const newProducts = await Product.createMany(
+				rowItems.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					description: elem.descriptionXml ?? "Não informado",
+					type: ProductType.PRODUCT,
+					ncm: elem.ncmXml,
+					active: true,
+				})),
+				{ client: trx },
+			);
+
+			const newProductVariations = await ProductVariation.createMany(
+				rowItems.map((elem) => ({
+					product_id: newProducts.find(
+						(p) => p.description === elem.descriptionXml,
+					)?.id,
+					barcode: elem.barcodeXml,
+				})),
+				{ client: trx },
+			);
+
+			await BusinessUnitProduct.createMany(
+				rowItems.map((elem) => ({
+					businness_unit_id: authCtx.unit.id,
+					product_variation_id: newProductVariations.find(
+						(p) => p.barcode === elem.barcodeXml,
+					)?.id,
+					stock: elem.quantity,
+					maximumStock: 0,
+					minimumStock: 0,
+					maximumDiscountPercentage: 100,
+					maximumDiscountValue: 0,
+					price: 0,
+					costPrice: elem.costValue,
+					profitMargin: 0,
+					commission: 0,
+					meta: 0,
+					metaType: undefined,
+					commissionMeta: 0,
+				})),
+				{ client: trx },
+			);
 		});
 	}
 

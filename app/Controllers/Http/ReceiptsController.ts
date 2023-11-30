@@ -4,6 +4,7 @@ import ReceiptService from "App/Services/ReceiptService";
 import SharedService from "App/Services/SharedService";
 import CreateReceiptItemValidator from "App/Validators/Receipt/CreateReceiptItemValidator";
 import CreateReceiptPaymentValidator from "App/Validators/Receipt/CreateReceiptPaymentValidator";
+import CreateReceiptProductValidator from "App/Validators/Receipt/CreateReceiptProductValidator";
 import CreateReceiptValidator from "App/Validators/Receipt/CreateReceiptValidator";
 import CreateSupplierProductValidator from "App/Validators/Receipt/CreateSupplierProductValidator";
 import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItemValidator";
@@ -173,6 +174,21 @@ export default class ReceiptsController {
 		await this.service.createSupplierProducts(
 			await this.sharedService.getAuthContext(auth),
 			payload.items,
+		);
+
+		return response.created();
+	}
+
+	public async createReceiptProducts({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateReceiptProductValidator);
+
+		await this.service.createReceiptProducts(
+			await this.sharedService.getAuthContext(auth),
+			payload,
 		);
 
 		return response.created();

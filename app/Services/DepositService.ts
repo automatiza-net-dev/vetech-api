@@ -228,7 +228,20 @@ export default class DepositService {
 		});
 	}
 
-	public async searchDepositMovements(authCtx: AuthContext, _data: unknown) {
+	public async searchDepositMovements(
+		authCtx: AuthContext,
+		data: {
+			from?: string;
+			to?: string;
+			user?: string;
+			responsible?: string;
+			removal?: string;
+			fromDeposit?: string;
+			toDeposit?: string;
+			type?: string;
+			status?: string;
+		},
+	) {
 		const qb = DepositMovement.query()
 			.preload("group", (query) => {
 				query.select("id", "company_name");
@@ -266,17 +279,45 @@ export default class DepositService {
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id);
 
-		// if (data.description) {
-		// 	qb.where("description", "ilike", `%${data.description}%`);
-		// }
-		//
-		// if (data.type) {
-		// 	qb.where("type", data.type);
-		// }
-		//
-		// if (data.status) {
-		// 	qb.where("status", data.status);
-		// }
+		if (data.from) {
+			qb.whereRaw("date::date >= ?", [data.from]);
+		}
+
+		if (data.to) {
+			qb.whereRaw("date::date <= ?", [data.to]);
+		}
+
+		if (data.user) {
+			qb.where("user_id", data.user);
+		}
+
+		if (data.responsible) {
+			qb.where("responsible_user_id", data.responsible);
+		}
+
+		if (data.removal) {
+			qb.where("removal_user_id", data.removal);
+		}
+
+		if (data.fromDeposit) {
+			qb.where("from_deposit_id", data.fromDeposit);
+		}
+
+		if (data.toDeposit) {
+			qb.where("to_deposit_id", data.toDeposit);
+		}
+
+		if (data.type) {
+			qb.whereHas("toDeposit", (q) => {
+				q.where("type", data.type ?? ("Venda" as TDepositType));
+			}).orWhereHas("fromDeposit", (q) => {
+				q.where("type", data.type ?? ("Venda" as TDepositType));
+			});
+		}
+
+		if (data.status) {
+			qb.where("status", data.status);
+		}
 
 		return qb;
 	}

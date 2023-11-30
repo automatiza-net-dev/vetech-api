@@ -264,18 +264,6 @@ export default class DepositService {
 			.preload("toDeposit", (query) => {
 				query.select("id", "description");
 			})
-			.preload("items", (query) => {
-				query.preload("unitProduct", (query) => {
-					query.select("id");
-				});
-				query.preload("variation", (query) => {
-					query.select("id", "product_id");
-					query.preload("product", (query) => {
-						query.select("id", "description");
-					});
-				});
-			})
-
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id);
 
@@ -320,6 +308,51 @@ export default class DepositService {
 		}
 
 		return qb;
+	}
+
+	public async showDepositMovement(
+		authCtx: AuthContext,
+		data: {
+			ids: number[];
+		},
+	) {
+		return DepositMovement.query()
+			.preload("group", (query) => {
+				query.select("id", "company_name");
+			})
+			.preload("unit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("user", (query) => {
+				query.select("id", "name");
+			})
+			.preload("responsibleUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("removalUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("fromDeposit", (query) => {
+				query.select("id", "description");
+			})
+			.preload("toDeposit", (query) => {
+				query.select("id", "description");
+			})
+			.preload("items", (query) => {
+				query.preload("unitProduct", (query) => {
+					query.select("id");
+				});
+				query.preload("variation", (query) => {
+					query.select("id", "product_id");
+					query.preload("product", (query) => {
+						query.select("id", "description");
+					});
+				});
+			})
+
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.whereIn("id", Array.isArray(data.ids) ? data.ids : []);
 	}
 
 	public async createDepositMovement(

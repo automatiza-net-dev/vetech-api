@@ -1524,6 +1524,10 @@ Route.group(() => {
 	Route.post("/update-deposit-item", "DepositsController.updateDepositItem");
 
 	Route.get(
+		"/show-deposit-movements",
+		"DepositsController.showDepositMovements",
+	);
+	Route.get(
 		"/search-deposit-movements",
 		"DepositsController.searchDepositMovements",
 	);

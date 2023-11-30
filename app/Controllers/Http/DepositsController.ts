@@ -116,6 +116,21 @@ export default class DepositsController {
 		return response.ok(result);
 	}
 
+	public async showDepositMovements({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.showDepositMovement(
+			await this.sharedService.getAuthContext(auth),
+			{
+				ids: request.qs().ids,
+			},
+		);
+
+		return response.ok(result);
+	}
+
 	public async createDepositMovement({
 		auth,
 		request,

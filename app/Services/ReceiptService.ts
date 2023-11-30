@@ -31,6 +31,7 @@ import ReceiptItem, {
 	TReceiptItemStatus,
 } from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
+import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
 	MovementCategory,
@@ -1840,6 +1841,28 @@ export default class ReceiptService {
 					};
 				}),
 			};
+		});
+	}
+
+	async createSupplierProducts(
+		authCtx: AuthContext,
+		data: {
+			supplierId: string;
+			productVariationId: string;
+			productSupplier: string;
+		}[],
+	) {
+		await Database.transaction(async (trx) => {
+			await SupplierProduct.fetchOrCreateMany(
+				["economic_group_id", "supplier_id", "product_variation_id"],
+				data.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					supplier_id: elem.supplierId,
+					product_variation_id: elem.productVariationId,
+					product_supplier_id: elem.productSupplier,
+				})),
+				{ client: trx },
+			);
 		});
 	}
 

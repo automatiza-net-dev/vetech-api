@@ -1347,6 +1347,11 @@ Route.group(() => {
 	Route.get("/products", "ReceiptsController.searchProducts");
 	Route.get("/taxes", "ReceiptsController.searchTaxes");
 	Route.get("/payment-methods", "ReceiptsController.searchPaymentMethods");
+
+	Route.post(
+		"/create-supplier-products",
+		"ReceiptsController.createSupplierProducts",
+	);
 })
 	.prefix("receipts")
 	.middleware("auth");

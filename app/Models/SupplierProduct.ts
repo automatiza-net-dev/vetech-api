@@ -1,10 +1,9 @@
 import { DateTime } from "luxon";
 import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
-import { v4 } from "uuid";
 
 export default class SupplierProduct extends BaseModel {
 	@column({ isPrimary: true })
-	public id = v4();
+	public id: number;
 
 	@column()
 	public active: boolean;
@@ -28,7 +27,7 @@ export default class SupplierProduct extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public produt_variation_id: string;
+	public product_variation_id: string;
 
 	@column({
 		serializeAs: null,

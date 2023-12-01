@@ -34,10 +34,10 @@ export default class UpdateReceiptPaymentValidator {
 		paymentMethodId: schema.string([
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
-		tefFlagId: schema.string([
+		tefFlagId: schema.string.optional([
 			rules.exists({ table: "tef_flags", column: "id" }),
 		]),
-		tefAcquirerId: schema.string([
+		tefAcquirerId: schema.string.optional([
 			rules.exists({ table: "tef_acquirers", column: "id" }),
 		]),
 		installmentValue: schema.number(),

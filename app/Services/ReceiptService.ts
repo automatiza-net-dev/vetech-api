@@ -1587,8 +1587,8 @@ export default class ReceiptService {
 		data: {
 			receiptPaymentIds: string[];
 			paymentMethodId: string;
-			tefFlagId: string;
-			tefAcquirerId: string;
+			tefFlagId?: string;
+			tefAcquirerId?: string;
 			installmentValue: number;
 			expirationDate: DateTime;
 			nsuDocument: string;

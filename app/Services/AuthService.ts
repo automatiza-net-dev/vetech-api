@@ -408,8 +408,8 @@ export default class AuthService {
 		});
 	}
 
-	public async getAvailableSwaps(authCtx: AuthContext) {
-		const roles = await this.getRoles(authCtx.user, authCtx.system.id, false);
+	public async getAvailableSwaps(user: User, systemID: number) {
+		const roles = await this.getRoles(user, systemID, false);
 
 		const validUnits = roles
 			.map((r) => r.unit)

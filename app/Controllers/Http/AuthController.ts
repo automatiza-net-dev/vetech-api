@@ -63,9 +63,9 @@ export default class AuthController {
 	}
 
 	public async availableSwaps({ auth, response }: HttpContextContract) {
-		const result = await this.authService.getAvailableSwaps(
-			await this.sharedService.getAuthContext(auth),
-		);
+		const { user, system_id } = this.sharedService.extractUser(auth);
+
+		const result = await this.authService.getAvailableSwaps(user, system_id);
 
 		return response.ok(result);
 	}

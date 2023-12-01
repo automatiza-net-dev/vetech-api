@@ -194,7 +194,7 @@ export default class AuthService {
 	}
 
 	public async swapUnit(
-		authCtx: AuthContext,
+		user: User,
 		token: ProviderTokenContract,
 		data: {
 			unitId: string;
@@ -216,7 +216,7 @@ export default class AuthService {
 
 			const userRoles = await UserUnitRole.query()
 				.useTransaction(trx)
-				.where("user_id", authCtx.user.id)
+				.where("user_id", user.id)
 				.where("unit_id", data.unitId)
 				.where("active", true);
 			if (userRoles.length === 0) {

@@ -73,12 +73,9 @@ export default class AuthController {
 	public async swapUnit({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(SwapUnitValidator);
 		const { token } = auth.use("api");
+		const { user } = this.sharedService.extractUser(auth);
 
-		await this.authService.swapUnit(
-			await this.sharedService.getAuthContext(auth),
-			token!,
-			payload,
-		);
+		await this.authService.swapUnit(user, token!, payload);
 
 		return response.noContent();
 	}

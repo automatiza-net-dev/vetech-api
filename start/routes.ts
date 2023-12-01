@@ -1338,6 +1338,8 @@ Route.group(() => {
 	Route.post("/create", "ReceiptsController.createReceipt");
 	Route.post("/create-item", "ReceiptsController.createReceiptItem");
 	Route.post("/create-payment", "ReceiptsController.createReceiptPayment");
+	Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
+	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
 
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");

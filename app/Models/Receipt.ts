@@ -14,7 +14,7 @@ import User from "App/Models/User";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
-export const ReceiptStatus = ["Ativa", "Estornada"] as const;
+export const ReceiptStatus = ["Ativa", "Estornada", "PendenteXml"] as const;
 export type TReceiptStatus = typeof ReceiptStatus[number];
 
 export default class Receipt extends BaseModel {

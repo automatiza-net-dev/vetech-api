@@ -9,7 +9,9 @@ import CreateReceiptValidator from "App/Validators/Receipt/CreateReceiptValidato
 import CreateSupplierProductValidator from "App/Validators/Receipt/CreateSupplierProductValidator";
 import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItemValidator";
 import DeleteReceiptPaymentValidator from "App/Validators/Receipt/DeleteReceiptPaymentValidator";
+import FinishReceiptImportValidator from "App/Validators/Receipt/FinishReceiptImportValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
+import UpdateReceiptPaymentValidator from "App/Validators/Receipt/UpdateReceiptPaymentValidator";
 import UpdateXmlItemValidator from "App/Validators/Receipt/UpdateXmlItemValidator";
 
 @inject()
@@ -119,6 +121,21 @@ export default class ReceiptsController {
 		return response.created(result);
 	}
 
+	public async updateReceiptPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateReceiptPaymentValidator);
+
+		await this.service.updatePayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
 	public async deleteReceiptPayment({
 		request,
 		response,
@@ -192,5 +209,20 @@ export default class ReceiptsController {
 		);
 
 		return response.created();
+	}
+
+	public async finishReceiptImport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(FinishReceiptImportValidator);
+
+		await this.service.finishReceiptImport(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 }

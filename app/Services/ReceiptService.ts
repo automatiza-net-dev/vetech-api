@@ -775,7 +775,7 @@ export default class ReceiptService {
 						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
 					additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
-					status: "Ativa",
+					status: "PendenteXml",
 				},
 				{ client: trx },
 			);
@@ -1579,6 +1579,134 @@ export default class ReceiptService {
 				});
 			});
 			await Promise.all(paymentsTasks);
+		});
+	}
+
+	async updatePayment(
+		authCtx: AuthContext,
+		data: {
+			receiptPaymentIds: string[];
+			paymentMethodId: string;
+			tefFlagId: string;
+			tefAcquirerId: string;
+			installmentValue: number;
+			expirationDate: DateTime;
+			nsuDocument: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const payments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereHas("receipt", (query) => {
+					query
+						.where("economic_group_id", authCtx.group.id)
+						.where("business_unit_id", authCtx.unit.id);
+				})
+				.whereIn("id", data.receiptPaymentIds);
+
+			if (payments.length !== data.receiptPaymentIds.length) {
+				throw new BadRequestException(
+					"Não foi possível encontrar todos os pagamentos",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptPaymentIds)
+				.update({
+					payment_method_id: data.paymentMethodId,
+					tef_acquirer_id: data.tefAcquirerId,
+					tef_flag_id: data.tefFlagId,
+					installmentValue: data.installmentValue,
+					expirationDate: data.expirationDate,
+					nsuDocument: data.nsuDocument,
+				});
+		});
+	}
+
+	async finishReceiptImport(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.preload("items")
+				.preload("payments")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!receipt) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (receipt.status !== "PendenteXml") {
+				throw new BadRequestException(
+					"Nota de Entrada não está pendente de confirmação",
+					400,
+					"E_NOTA_NAO_PENDENTE",
+				);
+			}
+
+			if (receipt.items.some((i) => !i.product_variation_id)) {
+				throw new BadRequestException(
+					"Existem itens da nota que ainda não possuem produto relacionado",
+					400,
+					"E_NO_VARIATION",
+				);
+			}
+
+			if (receipt.payments.length === 0) {
+				throw new BadRequestException(
+					"É necessário completar os dados dos pagamentos da Nota de Entrada",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			if (receipt.payments.some((p) => !p.payment_method_id)) {
+				throw new BadRequestException(
+					"É necessário completar os dados dos pagamentos da Nota de Entrada",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			await receipt
+				.merge({
+					status: "Ativa",
+				})
+				.useTransaction(trx)
+				.save();
+
+			await receipt
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.update({
+					status: "Ativo" as TReceiptItemStatus,
+				});
+
+			const tasks = receipt.payments.map((elem) => {
+				return this.createFinanceEntry(trx, authCtx, {
+					dailyCashierId: receipt.daily_cashier_id,
+					dailyMovementId: receipt.daily_movement_id,
+					supplierId: receipt.supplier_id,
+					paymentMethodId: elem.payment_method_id,
+					tefAcquirerId: elem.tef_acquirer_id,
+					tefFlagId: elem.tef_flag_id,
+
+					tag: receipt.tag,
+					item: elem,
+				});
+			});
+			await Promise.all(tasks);
 		});
 	}
 

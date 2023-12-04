@@ -1328,7 +1328,7 @@ export default class ReceiptService {
 					additionalInformation: data.additionalInformation,
 					reversalObservation: data.reversalObservation,
 					reversedAt: data.reversedAt,
-					status: "Ativa",
+					status: "Aberta",
 				},
 				{ client: trx },
 			);
@@ -1646,11 +1646,11 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (receipt.status !== "PendenteXml") {
+			if (receipt.status === "Baixada") {
 				throw new BadRequestException(
-					"Nota de Entrada não está pendente de confirmação",
+					"Esta Nota já está finalizada",
 					400,
-					"E_NOTA_NAO_PENDENTE",
+					"E_NOTA_FINALIZADA",
 				);
 			}
 
@@ -1678,9 +1678,20 @@ export default class ReceiptService {
 				);
 			}
 
+			const sum = this.sharedService.sum(
+				receipt.payments.map((p) => p.installmentValue),
+			);
+			if (sum < receipt.totalValue) {
+				throw new BadRequestException(
+					"O valor total dos pagamentos é menor que o valor total da nota",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
 			await receipt
 				.merge({
-					status: "Ativa",
+					status: "Baixada",
 				})
 				.useTransaction(trx)
 				.save();
@@ -1991,6 +2002,12 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
+			const units = await authCtx.group
+				.related("businessUnits")
+				.query()
+				.useTransaction(trx)
+				.select("id");
+
 			const rowItems = await row
 				.related("items")
 				.query()
@@ -2018,27 +2035,31 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			await BusinessUnitProduct.createMany(
-				rowItems.map((elem) => ({
-					businness_unit_id: authCtx.unit.id,
-					product_variation_id: newProductVariations.find(
-						(p) => p.barcode === elem.barcodeXml,
-					)?.id,
-					stock: elem.quantity,
-					maximumStock: 0,
-					minimumStock: 0,
-					maximumDiscountPercentage: 100,
-					maximumDiscountValue: 0,
-					price: 0,
-					costPrice: elem.costValue,
-					profitMargin: 0,
-					commission: 0,
-					meta: 0,
-					metaType: undefined,
-					commissionMeta: 0,
-				})),
-				{ client: trx },
-			);
+			const buProductData: Array<Partial<BusinessUnitProduct>> = [];
+			for (const unit of units) {
+				for (const elem of rowItems) {
+					buProductData.push({
+						businness_unit_id: unit.id,
+						product_variation_id: newProductVariations.find(
+							(p) => p.barcode === elem.barcodeXml,
+						)?.id,
+						stock: 0,
+						maximumStock: 0,
+						minimumStock: 0,
+						maximumDiscountPercentage: 100,
+						maximumDiscountValue: 0,
+						price: 0,
+						costPrice: elem.costValue,
+						profitMargin: 0,
+						commission: 0,
+						meta: 0,
+						metaType: undefined,
+						commissionMeta: 0,
+					});
+				}
+			}
+
+			await BusinessUnitProduct.createMany(buProductData, { client: trx });
 		});
 	}
 

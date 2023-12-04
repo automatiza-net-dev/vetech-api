@@ -15,8 +15,6 @@ import { AuthContract, ProviderTokenContract } from "@ioc:Adonis/Addons/Auth";
 import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
 
-import { AuthContext } from "./SharedService";
-
 @inject()
 export default class AuthService {
 	constructor(private readonly ipService: IpAccessControlService) {}

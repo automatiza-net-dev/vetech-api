@@ -94,7 +94,7 @@ test.group("Receipt resource", (group) => {
 			supplier_id: supplier.id,
 			daily_movement_id: dailyMovement.id,
 			daily_cashier_id: dailyCashier.id,
-			status: "Ativa",
+			status: "Aberta",
 			tag: "2023_00001",
 		});
 
@@ -466,7 +466,7 @@ test.group("Receipt resource", (group) => {
 	});
 
 	test("should create supplier products", async ({ assert, client }) => {
-		const { user, receipt, variation, business, supplier } = await createData();
+		const { user, variation, supplier } = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",

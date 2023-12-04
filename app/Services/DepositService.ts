@@ -191,6 +191,27 @@ export default class DepositService {
 		});
 	}
 
+	// private async updateDepositItems(
+	// 	authCtx: AuthContext,
+	// 	data: {
+	// 		depositId: string;
+	// 		businessUnitProductId: string;
+	// 		type: TMovementType;
+	// 	},
+	// ) {
+	// 	return Database.transaction(async (trx) => {
+	// 		const row = await Deposit.query()
+	// 			.useTransaction(trx)
+	// 			.where("id", data.depositId)
+	// 			.where("business_unit_id", authCtx.unit.id)
+	// 			.first();
+	//
+	// 		if (!row) {
+	// 			throw this.sharedService.ResourceNotFound();
+	// 		}
+	// 	});
+	// }
+
 	public async updateDepositItem(
 		authCtx: AuthContext,
 		data: {

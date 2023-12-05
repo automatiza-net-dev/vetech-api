@@ -87,23 +87,17 @@ export default class BusinessUnitMetaService {
 				unitRows.push(...innerRows);
 			}
 
-			const periods = Array.from(new Set(unitRows.map((r) => r.period)));
-
-			return periods.map((period) => {
-				const periodRows = unitRows.filter((r) => r.period === period);
-
-				return {
-					id: periodRows[0].b_id,
-					identification: periodRows[0].identification,
-					period: period ?? "Não informado",
-					metas: periodRows.map((r) => ({
-						id: r.m_id,
-						description: r.description,
-						unitMetaId: r.bum_id,
-						value: r.valor_meta,
-					})),
-				};
-			});
+			return {
+				id: key,
+				identification: unitRows[0].identification,
+				period: data.period ?? unitRows[0].period,
+				metas: unitRows.map((r) => ({
+					id: r.m_id,
+					description: r.description,
+					unitMetaId: r.bum_id,
+					value: r.valor_meta,
+				})),
+			};
 		});
 	}
 

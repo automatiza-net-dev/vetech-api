@@ -1848,6 +1848,7 @@ export default class ReceiptService {
 		const qb = Product.query()
 			.where("economic_group_id", authCtx.group.id)
 			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
+			.where("type", ProductType.PRODUCT)
 			.where("active", true);
 
 		if (data.variation || data.barcode) {

@@ -99,7 +99,7 @@ export default class BusinessUnitMetaService {
 					metas: periodRows.map((r) => ({
 						id: r.m_id,
 						description: r.description,
-						metaId: r.bum_id,
+						unitMetaId: r.bum_id,
 						value: r.valor_meta,
 					})),
 				};

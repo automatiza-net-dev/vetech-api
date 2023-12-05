@@ -438,7 +438,6 @@ export default class DepositService {
 		const fromRowItems = await deposit
 			.related("items")
 			.query()
-			.debug(true)
 			.useTransaction(trx)
 			.select("id", "business_unit_product_id", "quantity")
 			.exec();

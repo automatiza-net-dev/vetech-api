@@ -31,7 +31,9 @@ import ReceiptItem, {
 	ReceiptItemStatus,
 	TReceiptItemStatus,
 } from "App/Models/ReceiptItem";
-import ReceiptPayment from "App/Models/ReceiptPayment";
+import ReceiptPayment, {
+	TReceiptPaymentStatus,
+} from "App/Models/ReceiptPayment";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
@@ -1718,6 +1720,23 @@ export default class ReceiptService {
 				});
 			});
 			await Promise.all(tasks);
+
+			await Database.rawQuery(
+				`update deposit_items
+        set quantity = di.quantity + ri.quantity
+        from deposit_items di
+          join deposits d on di.deposit_id = d.id
+          join receipt_items ri
+            on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
+          join business_unit_configs buc
+            on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
+        where ri.receipt_id = ?`,
+				[receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await this.$syncItems(trx, receipt);
 		});
 	}
 
@@ -1756,19 +1775,19 @@ export default class ReceiptService {
 	async deletePayment(
 		authCtx: AuthContext,
 		data: {
-			paymentId: string;
+			receiptId: string;
+			block: number;
 		},
 	) {
 		await Database.transaction(async (trx) => {
-			const thing = await ReceiptPayment.query()
+			const row = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
-				.where("id", data.paymentId)
-				.preload("receipt")
+				.where("id", data.receiptId)
 				.first();
 
-			if (!thing) {
+			if (!row) {
 				throw this.sharedService.ResourceNotFound("Item não encontrado");
 			}
 
@@ -1777,8 +1796,17 @@ export default class ReceiptService {
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.E)
-				.where("document", `NFE-${thing.receipt.tag}`)
-				.where("block", thing.block);
+				.where("document", `NFE-${row.tag}`)
+				.where("block", data.block);
+
+			// if (existingFinances.length === 0) {
+			// 	throw new BadRequestException(
+			// 		"Não foi possível encontrar o pagamento",
+			// 		400,
+			// 		"E_PAYMENT_NOT_FOUND",
+			// 	);
+			// }
+
 			if (existingFinances.some((f) => f.status === FinanceStatus.B)) {
 				throw new BadRequestException(
 					"Não é possível excluir um pagamento que já foi baixado",
@@ -1787,7 +1815,24 @@ export default class ReceiptService {
 				);
 			}
 
-			await this.deleteFinanceEntry(trx, authCtx, thing);
+			await Finance.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					existingFinances.map((f) => f.id),
+				)
+				.update({
+					status: FinanceStatus.E,
+					deletedAt: DateTime.now(),
+				});
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", data.receiptId)
+				.where("block", data.block)
+				.update({
+					status: "Excluido" as TReceiptPaymentStatus,
+				});
 		});
 	}
 
@@ -2152,24 +2197,6 @@ export default class ReceiptService {
 				client: trx,
 			},
 		);
-	}
-
-	private async deleteFinanceEntry(
-		trx: TransactionClientContract,
-		authCtx: AuthContext,
-		payment: ReceiptPayment,
-	) {
-		await Finance.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
-			.where("origin_flag", FinanceOriginFlag.E)
-			.where("document", `NFE-${payment.receipt.tag}`)
-			.where("block", payment.block)
-			.update({
-				status: FinanceStatus.E,
-				deletedAt: DateTime.now(),
-			});
 	}
 
 	private async syncReceipt(trx: TransactionClientContract, receipt: Receipt) {

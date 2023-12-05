@@ -1,4 +1,3 @@
-import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
 import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 import { DailyCashierStatus } from "App/Models/DailyCashier";
@@ -7,20 +6,22 @@ import { PatientType } from "App/Models/Patient";
 import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import { ProductPurpose, ProductType } from "App/Models/Product";
 import Receipt from "App/Models/Receipt";
+import TaxOperation from "App/Models/TaxOperation";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
 	CompanyType,
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
-import TaxOperation from "App/Models/TaxOperation";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
 import PatientFactory from "Database/factories/PatientFactory";
 import { DateTime } from "luxon";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 import { generateJwtToken, userBootstrap } from "../utils";
+import Finance from "App/Models/Finance";
 
 test.group("Receipt resource", (group) => {
 	group.each.setup(async () => {
@@ -458,7 +459,8 @@ test.group("Receipt resource", (group) => {
 		const response = await client
 			.post(`/receipts/delete-payment`)
 			.json({
-				paymentId: payment.id,
+				receiptId: payment.receipt_id,
+				block: payment.block,
 			})
 			.bearerToken(token);
 
@@ -486,5 +488,24 @@ test.group("Receipt resource", (group) => {
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
+	});
+
+	test("should finish receipt import", async ({ assert, client }) => {
+		const { user, receipt } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await receipt.merge({ status: "PendenteXml" }).save();
+
+		const response = await client
+			.post(`/receipts/finish-import`)
+			.json({
+				receiptId: receipt.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
 	});
 });

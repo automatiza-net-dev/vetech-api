@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
@@ -7,9 +9,6 @@ import DepositMovement from "App/Models/DepositMovement";
 import { DateTime } from "luxon";
 
 import SharedService, { AuthContext } from "./SharedService";
-
-export const MovementType = ["origem", "destino"] as const;
-type TMovementType = typeof MovementType[number];
 
 @inject()
 export default class DepositService {
@@ -190,27 +189,6 @@ export default class DepositService {
 			);
 		});
 	}
-
-	// private async updateDepositItems(
-	// 	authCtx: AuthContext,
-	// 	data: {
-	// 		depositId: string;
-	// 		businessUnitProductId: string;
-	// 		type: TMovementType;
-	// 	},
-	// ) {
-	// 	return Database.transaction(async (trx) => {
-	// 		const row = await Deposit.query()
-	// 			.useTransaction(trx)
-	// 			.where("id", data.depositId)
-	// 			.where("business_unit_id", authCtx.unit.id)
-	// 			.first();
-	//
-	// 		if (!row) {
-	// 			throw this.sharedService.ResourceNotFound();
-	// 		}
-	// 	});
-	// }
 
 	public async updateDepositItem(
 		authCtx: AuthContext,
@@ -406,13 +384,18 @@ export default class DepositService {
 
 			const toRow = await Deposit.query()
 				.useTransaction(trx)
-				.where("id", data.fromDepositId)
+				.where("id", data.toDepositId)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
 				.first();
 
 			if (!toRow) {
 				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (data.items.length > 0) {
+				await this.$checkDepositItems(trx, fromRow, data.items, true);
+				await this.$checkDepositItems(trx, toRow, data.items);
 			}
 
 			const movement = await DepositMovement.create(
@@ -440,6 +423,90 @@ export default class DepositService {
 				})),
 				{ client: trx },
 			);
+
+			// await this.$updateDepositItems(trx, movement, "origem");
+			// await this.$updateDepositItems(trx, movement, "destino");
 		});
+	}
+
+	private async $checkDepositItems(
+		trx: TransactionClientContract,
+		deposit: Deposit,
+		items: { businessUnitProductId: string; quantity: number }[],
+		withQuantity = false,
+	) {
+		const fromRowItems = await deposit
+			.related("items")
+			.query()
+			.debug(true)
+			.useTransaction(trx)
+			.select("id", "business_unit_product_id", "quantity")
+			.exec();
+		if (fromRowItems.length === 0) {
+			throw new BadRequestException(
+				"O depósito de origem não possui itens para serem movimentados",
+				400,
+				"E_INVALID_ITEMS",
+			);
+		}
+		if (fromRowItems.length !== items.length) {
+			throw new BadRequestException(
+				"A quantidade de itens informada é diferente da quantidade de itens do depósito de origem",
+				400,
+				"E_INVALID_ITEMS",
+			);
+		}
+
+		if (withQuantity) {
+			if (
+				fromRowItems.some((item) =>
+					items.some(
+						(i) =>
+							i.businessUnitProductId === item.business_unit_product_id &&
+							i.quantity > item.quantity,
+					),
+				)
+			) {
+				throw new BadRequestException(
+					"A quantidade de itens informada é maior que a quantidade de itens do depósito de origem",
+					400,
+					"E_INVALID_ITEMS",
+				);
+			}
+		}
+	}
+
+	private async $updateDepositItems(
+		trx: TransactionClientContract,
+		movement: DepositMovement,
+		type: "origem" | "destino",
+	) {
+		if (type === "origem") {
+			await Database.rawQuery(
+				`update deposit_items
+        set quantity = di.quantity - dmi.quantity
+        from deposit_items di
+          join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
+          join deposit_movements dm
+            on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
+				[movement.id],
+			)
+				.useTransaction(trx)
+				.exec();
+		}
+
+		if (type === "destino") {
+			await Database.rawQuery(
+				`update deposit_items
+		      set quantity = di.quantity + dmi.quantity
+		      from deposit_items di
+		        join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
+		        join deposit_movements dm
+		          on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
+				[movement.id],
+			)
+				.useTransaction(trx)
+				.exec();
+		}
 	}
 }

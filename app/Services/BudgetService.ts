@@ -478,6 +478,14 @@ export default class BudgetService {
 				);
 			}
 
+			if (!data.clientId && !data.clientName) {
+				throw new BadRequestException(
+					"É necessário informar o cliente para realizar o orçamento",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
 				.whereIn(

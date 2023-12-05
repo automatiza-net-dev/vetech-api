@@ -18,10 +18,8 @@ import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
 import PatientFactory from "Database/factories/PatientFactory";
 import { DateTime } from "luxon";
-import Database from "@ioc:Adonis/Lucid/Database";
-
 import { generateJwtToken, userBootstrap } from "../utils";
-import Finance from "App/Models/Finance";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 test.group("Receipt resource", (group) => {
 	group.each.setup(async () => {

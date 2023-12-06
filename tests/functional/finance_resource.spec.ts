@@ -1,7 +1,7 @@
 import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
 import AccountPlan, { AccountPlanType } from "App/Models/AccountPlan";
-import { TBorderoType } from "App/Models/Bordero";
+import Bordero, { TBorderoType } from "App/Models/Bordero";
 import CheckingAccount, {
 	CheckingAccountType,
 } from "App/Models/CheckingAccount";
@@ -578,6 +578,34 @@ test.group("Finance resource", (group) => {
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",
+		});
+
+		const response = await client
+			.post(`/borderos/create-items`)
+			.json({
+				financeIds: [finance.id],
+			})
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should store bordero items for existing bordero", async ({
+		assert,
+		client,
+	}) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Aberto",
 		});
 
 		const response = await client

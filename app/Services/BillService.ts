@@ -836,8 +836,9 @@ export default class BillService {
 							(payments.at(v)?.installmentValue ?? 0) -
 							(installmentValue - (installmentValue * installment.fee) / 100),
 						feeValue: 0,
-						feeDiscountPercentage: paymentMethod.fee,
-						feePercentage: payments.at(v)?.paymentMethodDiscountPercentage,
+						// feeDiscountPercentage: paymentMethod.fee,
+						feeDiscountPercentage:
+							payments.at(v)?.paymentMethodDiscountPercentage,
 						accept: FinanceAccept.N,
 						reconciled: false,
 						competenceDate: DateTime.now().toFormat("MM/yyyy"),

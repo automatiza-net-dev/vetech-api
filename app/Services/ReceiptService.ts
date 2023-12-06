@@ -1650,18 +1650,20 @@ export default class ReceiptService {
 
 			if (receipt.status === "Baixada") {
 				throw new BadRequestException(
-					"Esta Nota já está finalizada",
+					"Esta Nota já está baixada",
 					400,
 					"E_NOTA_FINALIZADA",
 				);
 			}
 
-			if (receipt.items.some((i) => !i.product_variation_id)) {
-				throw new BadRequestException(
-					"Existem itens da nota que ainda não possuem produto relacionado",
-					400,
-					"E_NO_VARIATION",
-				);
+			if (receipt.status === "PendenteXml") {
+				if (receipt.items.some((i) => !i.product_variation_id)) {
+					throw new BadRequestException(
+						"Existem itens da nota que ainda não possuem produto relacionado",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
 			}
 
 			if (receipt.payments.length === 0) {

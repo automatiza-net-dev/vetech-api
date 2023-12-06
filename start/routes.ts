@@ -906,6 +906,12 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.post("/create", "FinancesController.storeBordero");
+})
+	.prefix("borderos")
+	.middleware("auth");
+
+Route.group(() => {
 	Route.get("/", "BankingsController.index");
 	Route.post("/create", "BankingsController.storeBanking");
 	Route.put("/update/:id", "BankingsController.updateBanking");

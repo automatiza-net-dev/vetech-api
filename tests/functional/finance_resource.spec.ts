@@ -617,4 +617,145 @@ test.group("Finance resource", (group) => {
 
 		assert.equal(201, response.status());
 	});
+
+	test("should close bordero", async ({ assert, client }) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		const response = await client
+			.post(`/borderos/close`)
+			.json({
+				id: b.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should throw BadRequestException if closing not open bordero", async ({
+		assert,
+		client,
+	}) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Fechado",
+		});
+
+		const response = await client
+			.post(`/borderos/close`)
+			.json({
+				id: b.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should throw BadRequestException if reopening not closed bordero", async ({
+		assert,
+		client,
+	}) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		const response = await client
+			.post(`/borderos/reopen`)
+			.json({
+				id: b.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should throw BadRequestException if reopening with existing bordero open", async ({
+		assert,
+		client,
+	}) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Fechado",
+		});
+
+		const response = await client
+			.post(`/borderos/reopen`)
+			.json({
+				id: b.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should reopen bordero", async ({ assert, client }) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Fechado",
+		});
+
+		const response = await client
+			.post(`/borderos/reopen`)
+			.json({
+				id: b.id,
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
 });

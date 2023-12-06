@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 				.integer("bordero_id")
 				.references("id")
 				.inTable("borderos")
-				.onDelete("CASCADE");
+				.onDelete("SET NULL");
 		});
 	}
 

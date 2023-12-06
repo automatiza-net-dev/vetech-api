@@ -1322,6 +1322,14 @@ export default class FinanceService {
 					.save();
 			}
 
+			if (bordero.status === "Fechado") {
+				throw new BadRequestException(
+					"Não é possível adicionar itens a um borderô fechado",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
 			await Finance.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -1330,6 +1338,91 @@ export default class FinanceService {
 				.update({
 					bordero_id: bordero.id,
 				});
+		});
+	}
+
+	async closeBordero(
+		authCtx: AuthContext,
+		data: {
+			id: number;
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status === "Fechado") {
+				throw new BadRequestException(
+					"Não é possível fechar um borderô que já está fechado",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			return bordero
+				.merge({
+					status: "Fechado",
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	async reopenBordero(
+		authCtx: AuthContext,
+		data: {
+			id: number;
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status !== "Fechado") {
+				throw new BadRequestException(
+					"Não é possível reabrir um borderô que não está fechado",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			const otherBordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereNot("id", data.id)
+				.where("status", "Aberto")
+				.first();
+			if (otherBordero) {
+				throw new BadRequestException(
+					"Não é possível reabrir um borderô quando existe outro aberto",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			return bordero
+				.merge({
+					status: "Aberto",
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 

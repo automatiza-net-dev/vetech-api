@@ -4,7 +4,7 @@ import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
 export const BorderoType = ["Debito", "Credito"] as const;
 export type TBorderoType = typeof BorderoType[number];
 
-export const BorderoStatus = ["Aberto"] as const;
+export const BorderoStatus = ["Aberto", "Fechado"] as const;
 export type TBorderoStatus = typeof BorderoStatus[number];
 
 export default class Bordero extends BaseModel {

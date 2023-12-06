@@ -908,6 +908,8 @@ Route.group(() => {
 Route.group(() => {
 	Route.post("/create", "FinancesController.storeBordero");
 	Route.post("/create-items", "FinancesController.storeBorderoItems");
+	Route.post("/close", "FinancesController.closeBordero");
+	Route.post("/reopen", "FinancesController.reopenBordero");
 })
 	.prefix("borderos")
 	.middleware("auth");

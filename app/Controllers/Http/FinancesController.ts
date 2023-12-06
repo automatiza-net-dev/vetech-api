@@ -6,6 +6,7 @@ import AcceptManyFinanceValidator from "App/Validators/Finance/AcceptManyFinance
 import CreateBorderoItemValidator from "App/Validators/Finance/CreateBorderoItemValidator";
 import CreateBorderoValidator from "App/Validators/Finance/CreateBorderoValidator";
 import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultipleFinancesValidator";
+import MutateBorderoValidator from "App/Validators/Finance/MutateBorderoValidator";
 import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDownValidator";
 import UpdateFinanceReversalValidator from "App/Validators/Finance/UpdateFinanceReversalValidator";
 import UpdateFinanceValidator from "App/Validators/Finance/UpdateFinanceValidator";
@@ -122,6 +123,28 @@ export default class FinancesController {
 		);
 
 		return response.created();
+	}
+
+	async closeBordero({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(MutateBorderoValidator);
+
+		await this.service.closeBordero(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	async reopenBordero({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(MutateBorderoValidator);
+
+		await this.service.reopenBordero(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 
 	async storeMultipleFinances({

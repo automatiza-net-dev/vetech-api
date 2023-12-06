@@ -571,4 +571,22 @@ test.group("Finance resource", (group) => {
 
 		assert.equal(201, response.status());
 	});
+
+	test("should store bordero items", async ({ assert, client }) => {
+		const { user, finance } = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const response = await client
+			.post(`/borderos/create-items`)
+			.json({
+				financeIds: [finance.id],
+			})
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
 });

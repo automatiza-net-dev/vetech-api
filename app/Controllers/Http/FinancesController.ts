@@ -3,6 +3,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import FinanceService from "App/Services/FinanceService";
 import SharedService from "App/Services/SharedService";
 import AcceptManyFinanceValidator from "App/Validators/Finance/AcceptManyFinanceValidator";
+import CreateBorderoItemValidator from "App/Validators/Finance/CreateBorderoItemValidator";
 import CreateBorderoValidator from "App/Validators/Finance/CreateBorderoValidator";
 import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultipleFinancesValidator";
 import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDownValidator";
@@ -105,6 +106,17 @@ export default class FinancesController {
 		const payload = await request.validate(CreateBorderoValidator);
 
 		await this.service.createBordero(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
+	}
+
+	async storeBorderoItems({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(CreateBorderoItemValidator);
+
+		await this.service.createBorderoItem(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

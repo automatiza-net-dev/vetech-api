@@ -907,6 +907,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/create", "FinancesController.storeBordero");
+	Route.post("/create-items", "FinancesController.storeBorderoItems");
 })
 	.prefix("borderos")
 	.middleware("auth");

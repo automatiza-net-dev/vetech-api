@@ -1249,7 +1249,6 @@ export default class FinanceService {
 		}));
 	}
 
-	// 2.1
 	async createBordero(
 		authCtx: AuthContext,
 		data: {
@@ -1282,6 +1281,55 @@ export default class FinanceService {
 				.save();
 
 			return bordero;
+		});
+	}
+
+	async createBorderoItem(
+		authCtx: AuthContext,
+		data: {
+			financeIds: string[];
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const bordero = await Bordero.firstOrCreate(
+				{
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					status: "Aberto",
+				},
+				{
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+
+					type: "Credito",
+					issueDate: DateTime.now(),
+					borderoDate: DateTime.now(),
+					borderoValue: 0,
+					interestValue: 0,
+					discountValue: 0,
+					totalValue: 0,
+					status: "Aberto",
+				},
+				{ client: trx },
+			);
+
+			if (!bordero.document) {
+				await bordero
+					.merge({
+						document: `BOR-${bordero.id}`,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereIn("id", data.financeIds)
+				.update({
+					bordero_id: bordero.id,
+				});
 		});
 	}
 

@@ -758,4 +758,108 @@ test.group("Finance resource", (group) => {
 
 		assert.equal(204, response.status());
 	});
+
+	test("should throw BadRequestException when downing invalid bordero", async ({
+		assert,
+		client,
+	}) => {
+		const { user, finance, paymentMethod, checkingAccount } =
+			await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		const response = await client
+			.post(`/borderos/down`)
+			.json({
+				id: b.id,
+				paymentMethodId: paymentMethod.id,
+				checkingAccountId: checkingAccount.id,
+
+				paymentDate: new Date(),
+				interestValue: 100,
+				interestPercentage: 10,
+				discountValue: 10,
+				discountPercentage: 1,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should down bordero", async ({ assert, client }) => {
+		const { user, finance, paymentMethod, checkingAccount } =
+			await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Fechado",
+		});
+
+		await finance.merge({ bordero_id: b.id }).save();
+
+		const response = await client
+			.post(`/borderos/down`)
+			.json({
+				id: b.id,
+				paymentMethodId: paymentMethod.id,
+				checkingAccountId: checkingAccount.id,
+
+				paymentDate: new Date(),
+				interestValue: 100,
+				interestPercentage: 10,
+				discountValue: 10,
+				discountPercentage: 1,
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should revert down bordero", async ({ assert, client }) => {
+		const { user, finance, paymentMethod, checkingAccount } =
+			await createData();
+
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: finance.economic_group_id,
+			business_unit_id: finance.business_unit_id,
+			status: "Baixado",
+			downDate: DateTime.now(),
+		});
+
+		await finance.merge({ bordero_id: b.id }).save();
+
+		const response = await client
+			.post(`/borderos/revert-down`)
+			.json({
+				id: b.id,
+				paymentMethodId: paymentMethod.id,
+				reason: "SUT",
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
 });

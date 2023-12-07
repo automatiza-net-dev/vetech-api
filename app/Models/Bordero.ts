@@ -1,11 +1,12 @@
 import { DateTime } from "luxon";
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
 import { v4 } from "uuid";
+import Finance from "./Finance";
 
 export const BorderoType = ["Debito", "Credito"] as const;
 export type TBorderoType = typeof BorderoType[number];
 
-export const BorderoStatus = ["Aberto", "Fechado"] as const;
+export const BorderoStatus = ["Aberto", "Fechado", "Baixado"] as const;
 export type TBorderoStatus = typeof BorderoStatus[number];
 
 export default class Bordero extends BaseModel {
@@ -24,6 +25,11 @@ export default class Bordero extends BaseModel {
 	@column()
 	public history: string;
 
+	@column({
+		columnName: "competence_date",
+	})
+	public competenceDate: string;
+
 	@column.dateTime({
 		columnName: "issue_date",
 	})
@@ -39,6 +45,11 @@ export default class Bordero extends BaseModel {
 	})
 	public paymentDate: DateTime;
 
+	@column.dateTime({
+		columnName: "down_date",
+	})
+	public downDate: DateTime;
+
 	@column({
 		columnName: "bordero_value",
 	})
@@ -50,9 +61,19 @@ export default class Bordero extends BaseModel {
 	public interestValue: number;
 
 	@column({
+		columnName: "interest_percentage",
+	})
+	public interestPercentage: number;
+
+	@column({
 		columnName: "discount_value",
 	})
 	public discountValue: number;
+
+	@column({
+		columnName: "discount_percentage",
+	})
+	public discountPercentage: number;
 
 	@column({
 		columnName: "total_value",
@@ -99,6 +120,11 @@ export default class Bordero extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public account_plan_id: string;
+
+	@column({
+		serializeAs: null,
+	})
 	public checking_account_id: string;
 
 	@column({
@@ -110,4 +136,9 @@ export default class Bordero extends BaseModel {
 		serializeAs: null,
 	})
 	public payment_method_id: string;
+
+	@hasMany(() => Finance, {
+		foreignKey: "bordero_id",
+	})
+	public finances: HasMany<typeof Finance>;
 }

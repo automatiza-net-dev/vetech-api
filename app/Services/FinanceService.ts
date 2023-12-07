@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Attendance from "App/Models/Attendance";
 import Banking, {
@@ -13,6 +15,7 @@ import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
+	FinanceOriginDownFlag,
 	FinanceOriginFlag,
 	FinanceStatus,
 	FinanceType,
@@ -29,6 +32,7 @@ import {
 	IUpdateFinance,
 	IUpsertFinance,
 } from "Contracts/interfaces/IFinanceData";
+import { format } from "date-fns";
 import { DateTime } from "luxon";
 
 interface ISearch {
@@ -1264,9 +1268,12 @@ export default class FinanceService {
 					type: data.type,
 					issueDate: DateTime.now(),
 					borderoDate: DateTime.now(),
+					competenceDate: format(new Date(), "MM/yyyy"),
 					borderoValue: 0,
 					interestValue: 0,
+					interestPercentage: 0,
 					discountValue: 0,
+					discountPercentage: 0,
 					totalValue: 0,
 					status: "Aberto",
 				},
@@ -1335,6 +1342,7 @@ export default class FinanceService {
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
 				.whereIn("id", data.financeIds)
+				.where("status", FinanceStatus.A)
 				.update({
 					bordero_id: bordero.id,
 				});
@@ -1424,6 +1432,427 @@ export default class FinanceService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	async downBordero(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+			checkingAccountId: string;
+			paymentMethodId?: string;
+
+			paymentDate: DateTime;
+			interestValue: number;
+			interestPercentage: number;
+			discountValue: number;
+			discountPercentage: number;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status !== "Fechado") {
+				throw new BadRequestException(
+					"Não é possível dar baixa um borderô que não está fechado",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await bordero
+				.merge({
+					checking_account_id: data.checkingAccountId,
+					payment_method_id: data.paymentMethodId,
+
+					downDate: DateTime.now(),
+					paymentDate: data.paymentDate,
+					interestValue: data.interestValue,
+					interestPercentage: data.interestPercentage,
+					discountValue: data.discountValue,
+					discountPercentage: data.discountPercentage,
+					totalValue:
+						bordero.borderoValue + data.interestValue - data.discountValue,
+					paymentValue:
+						bordero.borderoValue + data.interestValue - data.discountValue,
+					status: "Baixado",
+				})
+				.useTransaction(trx)
+				.save();
+			await bordero.refresh();
+
+			const borderoFinances = await bordero
+				.related("finances")
+				.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id);
+
+			await bordero
+				.related("finances")
+				.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.update({
+					checking_account_id: data.checkingAccountId,
+
+					payment_date: data.paymentDate,
+					payment_value:
+						bordero.borderoValue + data.interestValue - data.discountValue,
+					down_date: DateTime.now(),
+					origin_down_flag: FinanceOriginDownFlag.BO,
+					fee_value: 0,
+					fee_percentage: 0,
+					discount_value: 0,
+					discount_percentage: 0,
+					status: FinanceStatus.B,
+				});
+
+			await this.$registerDown(trx, bordero, borderoFinances);
+			await this.$registerBankingDown(trx, bordero);
+		});
+	}
+
+	async revertDownBordero(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+
+			reason: string;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status !== "Baixado") {
+				throw new BadRequestException(
+					"Não é possível reverter a baixa de um borderô que não está baixado",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await bordero
+				.merge({
+					checking_account_id: undefined,
+					payment_method_id: undefined,
+
+					paymentDate: undefined,
+					downDate: undefined,
+					paymentValue: undefined,
+					status: "Aberto",
+				})
+				.useTransaction(trx)
+				.save();
+			await bordero.refresh();
+
+			const borderoFinances = await bordero
+				.related("finances")
+				.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id);
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bordero_id", bordero.id)
+				.update({
+					checking_account_id: null,
+					payment_date: null,
+					down_date: null,
+					payment_value: null,
+					status: FinanceStatus.A,
+				});
+
+			await this.$revertRegisterDown(trx, bordero, borderoFinances);
+			await this.$revertRegisterBankingDown(trx, bordero);
+		});
+	}
+
+	private async $registerDown(
+		trx: TransactionClientContract,
+		bordero: Bordero,
+		finances: Finance[],
+	) {
+		await FinanceReversal.create(
+			{
+				type: FinanceReversalType.B,
+				downDate: bordero.downDate,
+				reversalOrigin: "Bordero",
+
+				economic_group_id: bordero.economic_group_id,
+				business_unit_id: bordero.business_unit_id,
+				checking_account_id: bordero.checking_account_id ?? undefined,
+				payment_method_id: bordero.payment_method_id,
+				banking_id: bordero.bank_statement_id,
+				finance_id: bordero.id,
+				// account_plan_id:
+
+				feeDiscountPercentage: bordero.discountPercentage,
+				feeDiscountValue: bordero.discountValue,
+				// expirationDate: bordero.date,
+				paymentDate: bordero.paymentDate,
+				totalValue: bordero.totalValue,
+				paymentValue: bordero.paymentValue,
+				feeValue: bordero.interestValue,
+				feePercentage: bordero.interestPercentage,
+				discountValue: bordero.discountValue,
+				discountPercentage: bordero.discountPercentage,
+				// additionPercentage: bordero.additionPercentage,
+				// additionValue: bordero.additionValue,
+				competenceDate: bordero.competenceDate,
+			},
+			{
+				client: trx,
+			},
+		);
+
+		const tasks = finances.map(async (finance) => {
+			return FinanceReversal.create(
+				{
+					type: FinanceReversalType.B,
+					downDate: DateTime.now(),
+					reversalOrigin: "Bordero",
+
+					economic_group_id: finance.economic_group_id,
+					business_unit_id: finance.business_unit_id,
+					finance_id: finance.id,
+					client_id: finance.client_id,
+					checking_account_id: finance.checking_account_id ?? undefined,
+					account_plan_id: finance.account_plan_id,
+					payment_method_id: finance.payment_method_id,
+					banking_id: finance.banking_id,
+
+					feeDiscountPercentage: finance.feeDiscountPercentage,
+					feeDiscountValue: finance.feeDiscountValue,
+					expirationDate: finance.expirationDate,
+					paymentDate: finance.paymentDate ?? undefined,
+					totalValue: finance.totalValue,
+					paymentValue: finance.paymentValue ?? undefined,
+					feeValue: finance.feeValue,
+					feePercentage: finance.feePercentage,
+					discountValue: finance.discountValue,
+					discountPercentage: finance.discountPercentage,
+					additionPercentage: finance.additionPercentage,
+					additionValue: finance.additionValue,
+
+					competenceDate: finance.competenceDate,
+					fiscalNote: finance.fiscalNote,
+					userDocument: finance.userDocument,
+					nsuDocument: finance.nsuDocument,
+					barCode: finance.barCode,
+					bank: finance.bank,
+					agency: finance.agency,
+					account: finance.account,
+					tef_flag_id: finance.tef_flag_id,
+					acquirer_id: finance.acquirer_id,
+				},
+				{
+					client: trx,
+				},
+			);
+		});
+		await Promise.all(tasks);
+	}
+
+	private async $registerBankingDown(
+		trx: TransactionClientContract,
+		bordero: Bordero,
+	) {
+		const checkingAccount = await CheckingAccount.find(
+			bordero.checking_account_id,
+			{
+				client: trx,
+			},
+		);
+
+		await Banking.create(
+			{
+				economic_group_id: bordero.economic_group_id,
+				business_unit_id: bordero.business_unit_id,
+				// client_id: bordero.client_id,
+				account_plan_id: bordero.account_plan_id,
+				payment_method_id: bordero.payment_method_id,
+				checking_account_id: bordero.checking_account_id,
+				daily_movement_id: bordero.daily_movement_id,
+				// daily_cashier_id: bordero.daily_cashier_id,
+				// finance_id: bordero.id, // TODO - consertar
+				type: bordero.type === "Debito" ? BankingType.D : BankingType.C,
+				document: bordero.document,
+				historic: bordero.history,
+				issueDate: bordero.paymentDate,
+				// dataExtratoBancario,
+				documentValue: bordero.borderoValue,
+				feeValue: bordero.interestValue,
+				feePercentage: bordero.interestPercentage,
+				discountValue: bordero.discountValue,
+				discountPercentage: bordero.discountPercentage,
+				totalValue: bordero.totalValue,
+				reconciled: true,
+				installment: 1,
+				originFlag: BankingOriginFlag.BO,
+				observation: bordero.observation,
+				status: BankingStatus.B,
+				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				prevBalance: checkingAccount?.balance,
+				competenceDate: bordero.competenceDate,
+			},
+			{
+				client: trx,
+			},
+		);
+	}
+
+	private async $revertRegisterDown(
+		trx: TransactionClientContract,
+		bordero: Bordero,
+		finances: Finance[],
+	) {
+		await FinanceReversal.create(
+			{
+				type: FinanceReversalType.E,
+				downDate: bordero.downDate,
+				reversalOrigin: "Bordero",
+
+				economic_group_id: bordero.economic_group_id,
+				business_unit_id: bordero.business_unit_id,
+				checking_account_id: bordero.checking_account_id ?? undefined,
+				payment_method_id: bordero.payment_method_id,
+				banking_id: bordero.bank_statement_id,
+				finance_id: bordero.id,
+				// account_plan_id:
+
+				feeDiscountPercentage: bordero.discountPercentage,
+				feeDiscountValue: bordero.discountValue,
+				// expirationDate: bordero.date,
+				paymentDate: bordero.paymentDate,
+				totalValue: bordero.totalValue,
+				paymentValue: bordero.paymentValue,
+				feeValue: bordero.interestValue,
+				feePercentage: bordero.interestPercentage,
+				discountValue: bordero.discountValue,
+				discountPercentage: bordero.discountPercentage,
+				// additionPercentage: bordero.additionPercentage,
+				// additionValue: bordero.additionValue,
+				competenceDate: bordero.competenceDate,
+			},
+			{
+				client: trx,
+			},
+		);
+
+		const tasks = finances.map(async (finance) => {
+			return FinanceReversal.create(
+				{
+					type: FinanceReversalType.E,
+					downDate: DateTime.now(),
+					reversalOrigin: "Bordero",
+
+					economic_group_id: finance.economic_group_id,
+					business_unit_id: finance.business_unit_id,
+					finance_id: finance.id,
+					client_id: finance.client_id,
+					checking_account_id: finance.checking_account_id ?? undefined,
+					account_plan_id: finance.account_plan_id,
+					payment_method_id: finance.payment_method_id,
+					banking_id: finance.banking_id,
+
+					feeDiscountPercentage: finance.feeDiscountPercentage,
+					feeDiscountValue: finance.feeDiscountValue,
+					expirationDate: finance.expirationDate,
+					paymentDate: finance.paymentDate ?? undefined,
+					totalValue: finance.totalValue,
+					paymentValue: finance.paymentValue ?? undefined,
+					feeValue: finance.feeValue,
+					feePercentage: finance.feePercentage,
+					discountValue: finance.discountValue,
+					discountPercentage: finance.discountPercentage,
+					additionPercentage: finance.additionPercentage,
+					additionValue: finance.additionValue,
+
+					competenceDate: finance.competenceDate,
+					fiscalNote: finance.fiscalNote,
+					userDocument: finance.userDocument,
+					nsuDocument: finance.nsuDocument,
+					barCode: finance.barCode,
+					bank: finance.bank,
+					agency: finance.agency,
+					account: finance.account,
+					tef_flag_id: finance.tef_flag_id,
+					acquirer_id: finance.acquirer_id,
+				},
+				{
+					client: trx,
+				},
+			);
+		});
+		await Promise.all(tasks);
+	}
+
+	private async $revertRegisterBankingDown(
+		trx: TransactionClientContract,
+		bordero: Bordero,
+	) {
+		const checkingAccount = await CheckingAccount.find(
+			bordero.checking_account_id,
+			{
+				client: trx,
+			},
+		);
+
+		await Banking.create(
+			{
+				economic_group_id: bordero.economic_group_id,
+				business_unit_id: bordero.business_unit_id,
+				// client_id: bordero.client_id,
+				account_plan_id: bordero.account_plan_id,
+				payment_method_id: bordero.payment_method_id,
+				checking_account_id: bordero.checking_account_id,
+				daily_movement_id: bordero.daily_movement_id,
+				// daily_cashier_id: bordero.daily_cashier_id,
+				// finance_id: bordero.id, // TODO - consertar
+				type: bordero.type === "Debito" ? BankingType.D : BankingType.C,
+				document: bordero.document,
+				historic: bordero.history,
+				issueDate: bordero.paymentDate,
+				// dataExtratoBancario,
+				documentValue: bordero.borderoValue,
+				feeValue: bordero.interestValue,
+				feePercentage: bordero.interestPercentage,
+				discountValue: bordero.discountValue,
+				discountPercentage: bordero.discountPercentage,
+				totalValue: bordero.totalValue,
+				reconciled: true,
+				installment: 1,
+				originFlag: BankingOriginFlag.BO,
+				observation: bordero.observation,
+				status: BankingStatus.B,
+				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				prevBalance: checkingAccount?.balance,
+				competenceDate: bordero.competenceDate,
+			},
+			{
+				client: trx,
+			},
+		);
 	}
 
 	private parseDecimal(value: string | number) {

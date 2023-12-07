@@ -40,6 +40,7 @@ export enum FinanceOriginDownFlag {
 	C = "CAIXA_DIARIO",
 	B = "BANCARIO",
 	F = "FINANCEIRO",
+	BO = "BORDERO",
 }
 
 export enum FinanceStatus {

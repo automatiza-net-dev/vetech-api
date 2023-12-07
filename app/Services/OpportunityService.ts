@@ -64,6 +64,7 @@ export default class OpportunityService {
 			weight: result.weight,
 			castrated: result.castrated,
 			gender: result.gender,
+			active: result.active,
 
 			status: result.status,
 			contact: result.contact,

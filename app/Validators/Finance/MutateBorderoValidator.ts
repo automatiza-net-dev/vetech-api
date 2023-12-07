@@ -24,7 +24,8 @@ export default class MutateBorderoValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		id: schema.number([
+		id: schema.string([
+			rules.uuid(),
 			rules.exists({
 				table: "borderos",
 				column: "id",

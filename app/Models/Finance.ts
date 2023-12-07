@@ -338,5 +338,5 @@ export default class Finance extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public bordero_id: number;
+	public bordero_id: string;
 }

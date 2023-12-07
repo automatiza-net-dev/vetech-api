@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { v4 } from "uuid";
 
 export const BorderoType = ["Debito", "Credito"] as const;
 export type TBorderoType = typeof BorderoType[number];
@@ -9,7 +10,7 @@ export type TBorderoStatus = typeof BorderoStatus[number];
 
 export default class Bordero extends BaseModel {
 	@column({ isPrimary: true })
-	public id: number;
+	public id = v4();
 
 	@column()
 	public type: TBorderoType;

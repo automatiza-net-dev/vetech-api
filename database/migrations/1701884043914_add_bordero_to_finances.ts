@@ -6,7 +6,7 @@ export default class extends BaseSchema {
 	public async up() {
 		this.schema.table(this.tableName, (table) => {
 			table
-				.integer("bordero_id")
+				.uuid("bordero_id")
 				.references("id")
 				.inTable("borderos")
 				.onDelete("SET NULL");

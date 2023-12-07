@@ -1344,7 +1344,7 @@ export default class FinanceService {
 	async closeBordero(
 		authCtx: AuthContext,
 		data: {
-			id: number;
+			id: string;
 		},
 	) {
 		return await Database.transaction(async (trx) => {
@@ -1379,7 +1379,7 @@ export default class FinanceService {
 	async reopenBordero(
 		authCtx: AuthContext,
 		data: {
-			id: number;
+			id: string;
 		},
 	) {
 		return await Database.transaction(async (trx) => {

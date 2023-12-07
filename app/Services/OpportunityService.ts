@@ -230,7 +230,7 @@ export default class OpportunityService {
 				name: v.name,
 				email: v.tutor?.email ?? null,
 				cellphone: v.tutor?.cellphone ?? null,
-				telephone: v.tutor?.telephone ?? null,
+				telepone: v.tutor?.telephone ?? null,
 			})),
 
 			contactType: elem.contactType,
@@ -681,6 +681,7 @@ export default class OpportunityService {
 					status_id: data.statusId,
 					contact_type_id: data.contactTypeId,
 					contact_subject_id: data.contactSubjectId,
+					client_origin_id: data.originId,
 
 					contactDate: data.contactDate,
 					description: data.description,

@@ -224,6 +224,7 @@ export default class OpportunityService {
 			profitValue: elem.profitValue,
 			resultObservation: elem.resultObservation,
 			balance: elem.balance,
+			active: elem.active,
 
 			status: elem.status,
 			contact: this.sharedService.captureGroup(elem.contact, (v) => ({

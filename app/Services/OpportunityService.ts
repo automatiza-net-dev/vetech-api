@@ -31,7 +31,9 @@ export default class OpportunityService {
 				});
 			})
 			.preload("closingUser")
-			.preload("contact")
+			.preload("contact", (query) => {
+				query.preload("tutor");
+			})
 			.preload("contactType")
 			.preload("contactSubject")
 			.preload("clientOrigin")

@@ -910,6 +910,9 @@ Route.group(() => {
 	Route.post("/create-items", "FinancesController.storeBorderoItems");
 	Route.post("/close", "FinancesController.closeBordero");
 	Route.post("/reopen", "FinancesController.reopenBordero");
+
+	Route.post("/down", "FinancesController.updateBorderoDown");
+	Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");
 })
 	.prefix("borderos")
 	.middleware("auth");
@@ -1354,6 +1357,7 @@ Route.group(() => {
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
 	Route.get("/", "ReceiptsController.index");
+	Route.get("/with-products", "ReceiptsController.productIndex");
 	Route.get("/show", "ReceiptsController.show");
 	Route.get("/products", "ReceiptsController.searchProducts");
 	Route.get("/taxes", "ReceiptsController.searchTaxes");

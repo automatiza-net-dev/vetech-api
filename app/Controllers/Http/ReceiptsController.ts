@@ -30,6 +30,14 @@ export default class ReceiptsController {
 		return response.ok(result);
 	}
 
+	public async productIndex({ response, auth }: HttpContextContract) {
+		const result = await this.service.productsIndex(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.ok(result);
+	}
+
 	public async show({ request, response, auth }: HttpContextContract) {
 		const result = await this.service.show(
 			await this.sharedService.getAuthContext(auth),

@@ -26,7 +26,7 @@ import PaymentMethod, {
 } from "App/Models/PaymentMethod";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
-import Receipt from "App/Models/Receipt";
+import Receipt, { TReceiptStatus } from "App/Models/Receipt";
 import ReceiptItem, {
 	ReceiptItemStatus,
 	TReceiptItemStatus,
@@ -545,6 +545,39 @@ export default class ReceiptService {
 			user: elem.user,
 			seller: elem.seller,
 			supplier: elem.supplier,
+		}));
+	}
+
+	async productsIndex(authCtx: AuthContext) {
+		const qb = Receipt.query()
+			.preload("supplier", (query) => {
+				query.select("id", "name");
+			})
+			.preload("items", (query) => {
+				query.select("id", "product_variation_id");
+
+				query.preload("productVariation", (query) => {
+					query.preload("product", (query) => {
+						query.whereNull("purpose");
+
+						query.select("id", "description");
+					});
+					query.preload("businessUnitProducts", (query) => {
+						query.select("id", "businness_unit_id", "price");
+					});
+				});
+			})
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
+
+		return (await qb).map((elem) => ({
+			id: elem.id,
+			tag: elem.tag,
+			issueDate: elem.issueDate,
+			totalValue: elem.totalValue,
+			supplier: elem.supplier,
+			items: elem.items,
 		}));
 	}
 

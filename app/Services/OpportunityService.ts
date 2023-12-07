@@ -494,13 +494,13 @@ export default class OpportunityService {
 				balance: op.balance,
 
 				status: op.status,
-				contact: {
-					id: op.contact.id,
-					name: op.contact.name,
-					email: op.contact.tutor?.email ?? null,
-					cellphone: op.contact.tutor?.cellphone ?? null,
-					telephone: op.contact.tutor?.telephone ?? null,
-				},
+				contact: this.sharedService.captureGroup(op.contact, (v) => ({
+					id: v.id,
+					name: v.name,
+					email: v.tutor?.email ?? null,
+					cellphone: v.tutor?.cellphone ?? null,
+					telephone: v.tutor?.telephone ?? null,
+				})),
 				contactDate: op.contactDate,
 				contactType: op.contactType,
 				contactSubject: op.contactSubject,

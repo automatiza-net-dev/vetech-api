@@ -954,6 +954,12 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.post(
+		"/check-deposit-availability",
+		"BillsController.checkDepositAvailability",
+	);
+	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
+
 	Route.post("/create-treatment", "BillsController.createTreatment");
 
 	Route.post("/create", "BillsController.createBill");

@@ -9,6 +9,7 @@ import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
+import DepositItem from "App/Models/DepositItem";
 import Finance, {
 	FinanceAccept,
 	FinanceOriginFlag,
@@ -2571,5 +2572,122 @@ export default class BillService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	async checkDepositAvailability(
+		authCtx: AuthContext,
+		data: { items: { productVariationId: string; quantity: number }[] },
+	) {
+		const depositID =
+			authCtx.user.default_sale_deposit_id ??
+			authCtx.unit.unitConfig.outgoing_deposit_id;
+
+		if (!depositID) {
+			throw new BadRequestException(
+				"Não foi possível encontrar um depósito de saída padrão",
+				400,
+				"E_NO_DEPOSIT",
+			);
+		}
+
+		const productVariations = await ProductVariation.query()
+			.whereHas("product", (query) => {
+				query.where("economic_group_id", authCtx.group.id);
+			})
+			.whereIn(
+				"id",
+				data.items.map((i) => i.productVariationId),
+			)
+			.preload("product");
+		if (productVariations.length !== data.items.length) {
+			throw new BadRequestException(
+				"Algum produto não foi encontrado",
+				400,
+				"E_NO_PRODUCT",
+			);
+		}
+
+		const depositItems = await DepositItem.query()
+			.where("deposit_id", depositID)
+			.whereIn(
+				"product_variation_id",
+				data.items.map((i) => i.productVariationId),
+			);
+
+		const invalidItems = productVariations.filter((item) => {
+			const depositItem = depositItems.find(
+				(i) => i.product_variation_id === item.id,
+			);
+			// nunca deve acontecer mas typescript
+			if (!depositItem) {
+				return false;
+			}
+
+			const row = data.items.find((i) => i.productVariationId === item.id);
+
+			return depositItem.quantity < (row?.quantity ?? 0);
+		});
+		if (invalidItems.length > 0) {
+			throw new BadRequestException(
+				`Produtos com quantidade insuficiente para venda: ${invalidItems
+					.map((i) => i.product.description)
+					.join(", ")}}`,
+				400,
+				"E_NO_PRODUCT",
+			);
+		}
+	}
+
+	async discountDepositItems(
+		authCtx: AuthContext,
+		data: { items: { productVariationId: string; quantity: number }[] },
+	) {
+		const depositID =
+			authCtx.user.default_sale_deposit_id ??
+			authCtx.unit.unitConfig.outgoing_deposit_id;
+
+		if (!depositID) {
+			throw new BadRequestException(
+				"Não foi possível encontrar um depósito de saída padrão",
+				400,
+				"E_NO_DEPOSIT",
+			);
+		}
+
+		const productVariations = await ProductVariation.query()
+			.whereHas("product", (query) => {
+				query.where("economic_group_id", authCtx.group.id);
+			})
+			.whereIn(
+				"id",
+				data.items.map((i) => i.productVariationId),
+			)
+			.preload("product");
+		if (productVariations.length !== data.items.length) {
+			throw new BadRequestException(
+				"Algum produto não foi encontrado",
+				400,
+				"E_NO_PRODUCT",
+			);
+		}
+
+		const depositItems = await DepositItem.query()
+			.where("deposit_id", depositID)
+			.whereIn(
+				"product_variation_id",
+				data.items.map((i) => i.productVariationId),
+			);
+
+		const tasks = depositItems.map((item) => {
+			const row = data.items.find(
+				(i) => i.productVariationId === item.product_variation_id,
+			);
+			return item
+				.merge({
+					quantity: item.quantity - (row?.quantity ?? 0),
+				})
+				.save();
+		});
+		await Promise.all(tasks);
 	}
 }

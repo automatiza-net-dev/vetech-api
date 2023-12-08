@@ -721,13 +721,23 @@ export default class ScheduleService {
 			})
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
-			})
-			.preload("holder", (query) => {
+			});
+
+		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+			schedulesQb.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {
 					query.select(["cellphone", "telephone"]);
 				});
 			});
+		} else {
+			schedulesQb.preload("patient", (query) => {
+				query.select(["id", "name"]);
+				query.preload("tutor", (query) => {
+					query.select(["cellphone", "telephone"]);
+				});
+			});
+		}
 
 		const [workingDays, unavailableDays, schedules] = await Promise.all([
 			workingDaysQb,

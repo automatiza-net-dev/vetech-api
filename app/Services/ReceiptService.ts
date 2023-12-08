@@ -2172,6 +2172,18 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
+			const tasks = rowItems.map((elem) => {
+				return elem
+					.merge({
+						product_variation_id: newProductVariations.find(
+							(p) => p.barcode === elem.barcodeXml,
+						)?.id,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
+
 			const buProductData: Array<Partial<BusinessUnitProduct>> = [];
 			for (const unit of units) {
 				for (const elem of rowItems) {
@@ -2197,6 +2209,19 @@ export default class ReceiptService {
 			}
 
 			await BusinessUnitProduct.createMany(buProductData, { client: trx });
+
+			await SupplierProduct.fetchOrCreateMany(
+				["economic_group_id", "supplier_id", "product_variation_id"],
+				rowItems.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					supplier_id: row.supplier_id,
+					product_variation_id: newProductVariations.find(
+						(p) => p.barcode === elem.barcodeXml,
+					)?.id,
+					product_supplier_id: elem.descriptionXml, // TODO verificar
+				})),
+				{ client: trx },
+			);
 		});
 	}
 

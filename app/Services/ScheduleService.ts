@@ -139,7 +139,7 @@ export default class ScheduleService {
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
 			.joinRaw(
-				`join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
+				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
@@ -671,7 +671,7 @@ export default class ScheduleService {
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
 			.joinRaw(
-				`join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
@@ -833,7 +833,7 @@ export default class ScheduleService {
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
 			.joinRaw(
-				`join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
@@ -948,7 +948,7 @@ export default class ScheduleService {
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
 			.joinRaw(
-				`join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)

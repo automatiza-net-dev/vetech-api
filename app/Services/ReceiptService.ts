@@ -563,7 +563,7 @@ export default class ReceiptService {
 						query.select("id", "description");
 					});
 					query.preload("businessUnitProducts", (query) => {
-						query.select("id", "businness_unit_id", "price");
+						query.select("id", "businness_unit_id", "cost_price");
 					});
 				});
 			})

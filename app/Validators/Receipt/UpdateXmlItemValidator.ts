@@ -1,5 +1,7 @@
 import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
+import { ProductPurpose } from "App/Models/Product";
 
 export default class UpdateXmlItemValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -23,20 +25,54 @@ export default class UpdateXmlItemValidator {
 	 *     ])
 	 *    ```
 	 */
+	// items: {
+	// 	productId: string;
+	// 	variationGroupId: string;
+	// 	subgroupId: string;
+	// 	unitId: string;
+	// 	taxationGroupId: string;
+	// 	brandId: string;
+	// 	productVariationId: string;
+	// 	businessUnitProductId: string;
+	//
+	// 	referenceCode: string;
+	// 	purpose: ProductPurpose;
+	// 	barcode: string;
+	// 	minimumStock: number;
+	// 	maximumStock: number;
+	// 	maximumDiscountPercentage: number;
+	// 	price: number;
+	// 	costPrice: number;
+	// 	profitMargin: number;
+	// 	commission: number;
+	// 	commissionMeta: number;
+	// 	metaType: BusinessUnitProductMetaType;
+	// 	meta: number;
+	// }[];
 	public schema = schema.create({
-		receiptId: schema.string([
-			rules.uuid(),
-			rules.exists({ table: "receipts", column: "id" }),
-		]),
 		items: schema.array().members(
 			schema.object().members({
-				receiptItemId: schema.number([
-					rules.exists({ table: "receipt_items", column: "id" }),
-				]),
-				productVariationId: schema.string([
-					rules.uuid(),
-					rules.exists({ table: "product_variations", column: "id" }),
-				]),
+				productId: schema.string(),
+				variationGroupId: schema.string(),
+				subgroupId: schema.string(),
+				unitId: schema.string(),
+				taxationGroupId: schema.string(),
+				brandId: schema.string(),
+				productVariationId: schema.string(),
+
+				referenceCode: schema.string(),
+				purpose: schema.enum(Object.values(ProductPurpose)),
+				barcode: schema.string(),
+				minimumStock: schema.number(),
+				maximumStock: schema.number(),
+				maximumDiscountPercentage: schema.number(),
+				price: schema.number(),
+				costPrice: schema.number(),
+				profitMargin: schema.number(),
+				commission: schema.number(),
+				commissionMeta: schema.number(),
+				metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
+				meta: schema.number(),
 			}),
 		),
 	});

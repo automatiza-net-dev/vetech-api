@@ -8,7 +8,9 @@ import Database, {
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
-import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
+import BusinessUnitProduct, {
+	BusinessUnitProductMetaType,
+} from "App/Models/BusinessUnitProduct";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
@@ -644,32 +646,82 @@ export default class ReceiptService {
 	async updateXmlItems(
 		authCtx: AuthContext,
 		data: {
-			receiptId: string;
 			items: {
-				receiptItemId: number;
+				productId: string;
+				variationGroupId: string;
+				subgroupId: string;
+				unitId: string;
+				taxationGroupId: string;
+				brandId: string;
 				productVariationId: string;
+
+				referenceCode: string;
+				purpose: ProductPurpose;
+				barcode: string;
+				minimumStock: number;
+				maximumStock: number;
+				maximumDiscountPercentage: number;
+				price: number;
+				costPrice: number;
+				profitMargin: number;
+				commission: number;
+				commissionMeta: number;
+				metaType: BusinessUnitProductMetaType;
+				meta: number;
 			}[];
 		},
 	) {
 		await Database.transaction(async (trx) => {
-			const receipt = await Receipt.query()
+			const units = await BusinessUnit.query()
 				.useTransaction(trx)
-				.where("business_unit_id", authCtx.unit.id)
-				.where("id", data.receiptId)
-				.first();
+				.where("economic_group_id", authCtx.group.id);
 
-			if (!receipt) {
-				throw this.sharedService.ResourceNotFound();
-			}
+			const tasks = data.items.map(async (item) => {
+				const product = await Product.findOrFail(item.productId, {
+					client: trx,
+				});
 
-			const tasks = data.items.map((item) => {
-				return ReceiptItem.query()
+				await product
+					.merge({
+						referenceCode: item.referenceCode,
+						unit_id: item.unitId,
+						subgroup_id: item.subgroupId,
+						taxation_group_id: item.taxationGroupId,
+						brand_id: item.brandId,
+					})
 					.useTransaction(trx)
-					.where("receipt_id", receipt.id)
-					.where("id", item.receiptItemId)
+					.save();
+
+				const variation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("product_id", item.productId)
+					.where("id", item.productVariationId)
+					.firstOrFail();
+				await variation
+					.merge({
+						barcode: item.barcode,
+					})
+					.useTransaction(trx)
+					.save();
+
+				await BusinessUnitProduct.query()
+					.useTransaction(trx)
+					.whereIn(
+						"businness_unit_id",
+						units.map((u) => u.id),
+					)
+					.where("product_variation_id", item.productVariationId)
 					.update({
-						product_variation_id: item.productVariationId,
-						status: "Ativo" as TReceiptItemStatus,
+						cost_price: item.costPrice,
+						price: item.price,
+						maximum_stock: item.maximumStock,
+						minimum_stock: item.minimumStock,
+						maximum_discount_percentage: item.maximumDiscountPercentage,
+						profit_margin: item.profitMargin,
+						commission: item.commission,
+						meta_type: item.metaType,
+						meta: item.meta,
+						commission_meta: item.commissionMeta,
 					});
 			});
 			await Promise.all(tasks);

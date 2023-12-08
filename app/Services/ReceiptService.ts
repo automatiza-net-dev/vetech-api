@@ -554,6 +554,8 @@ export default class ReceiptService {
 				query.select("id", "name");
 			})
 			.preload("items", (query) => {
+				query.whereNotNull("product_variation_id");
+
 				query.select("id", "product_variation_id");
 
 				query.preload("productVariation", (query) => {
@@ -563,6 +565,8 @@ export default class ReceiptService {
 						query.select("id", "description");
 					});
 					query.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+
 						query.select("id", "businness_unit_id", "cost_price");
 					});
 				});

@@ -24,6 +24,9 @@ export default class CreateSupplierProductValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
+		receiptId: schema.string([
+			rules.exists({ table: "receipts", column: "id" }),
+		]),
 		items: schema.array().members(
 			schema.object().members({
 				supplierId: schema.string([

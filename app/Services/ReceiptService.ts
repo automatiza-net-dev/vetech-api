@@ -634,6 +634,8 @@ export default class ReceiptService {
 					query.where("status", "Ativo" as TReceiptItemStatus);
 				}
 
+				query.orderBy("description_xml", "asc");
+
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
 					query.preload("product");
@@ -2210,40 +2212,116 @@ export default class ReceiptService {
 
 			await BusinessUnitProduct.createMany(buProductData, { client: trx });
 
-			await SupplierProduct.fetchOrCreateMany(
-				["economic_group_id", "supplier_id", "product_variation_id"],
-				rowItems.map((elem) => ({
-					economic_group_id: authCtx.group.id,
-					supplier_id: row.supplier_id,
-					product_variation_id: newProductVariations.find(
-						(p) => p.barcode === elem.barcodeXml,
-					)?.id,
-					product_supplier_id: elem.descriptionXml, // TODO verificar
-				})),
-				{ client: trx },
-			);
+			// fetchOrCreateMany deveria funcionar, mas não funciona 🤔
+			const supplierTasks = rowItems.map((elem) => {
+				const existingProduct = SupplierProduct.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("supplier_id", row.supplier_id)
+					.where("product_variation_id", elem.product_variation_id)
+					.first();
+
+				if (existingProduct) {
+					return existingProduct;
+				}
+
+				return SupplierProduct.create(
+					{
+						economic_group_id: authCtx.group.id,
+						supplier_id: row.supplier_id,
+						product_variation_id: elem.product_variation_id,
+						product_supplier_id: elem.barcodeXml,
+					},
+					{ client: trx },
+				);
+			});
+			await Promise.all(supplierTasks);
+
+			// await SupplierProduct.fetchOrCreateMany(
+			// 	[
+			// 		"economic_group_id",
+			// 		"supplier_id",
+			// 		"product_variation_id",
+			// 		"product_supplier_id",
+			// 	],
+			// 	rowItems.map((elem) => ({
+			// 		economic_group_id: authCtx.group.id,
+			// 		supplier_id: row.supplier_id,
+			// 		product_variation_id: newProductVariations.find(
+			// 			(p) => p.barcode === elem.barcodeXml,
+			// 		)?.id,
+			// 		product_supplier_id: elem.barcodeXml,
+			// 	})),
+			// 	{ client: trx },
+			// );
 		});
 	}
 
 	async createSupplierProducts(
 		authCtx: AuthContext,
 		data: {
-			supplierId: string;
-			productVariationId: string;
-			productSupplier: string;
-		}[],
+			receiptId: string;
+			items: {
+				supplierId: string;
+				productVariationId: string;
+				productSupplier: string;
+			}[];
+		},
 	) {
 		await Database.transaction(async (trx) => {
-			await SupplierProduct.fetchOrCreateMany(
-				["economic_group_id", "supplier_id", "product_variation_id"],
-				data.map((elem) => ({
-					economic_group_id: authCtx.group.id,
-					supplier_id: elem.supplierId,
-					product_variation_id: elem.productVariationId,
-					product_supplier_id: elem.productSupplier,
-				})),
-				{ client: trx },
-			);
+			// const supplierProducts = await SupplierProduct.fetchOrCreateMany(
+			// 	["economic_group_id", "supplier_id", "product_variation_id"],
+			// 	data.items.map((elem) => ({
+			// 		economic_group_id: authCtx.group.id,
+			// 		supplier_id: elem.supplierId,
+			// 		product_variation_id: elem.productVariationId,
+			// 		product_supplier_id: elem.productSupplier,
+			// 	})),
+			// 	{ client: trx },
+			// );
+			const supplierTasks = data.items.map(async (elem) => {
+				const existingProduct = await SupplierProduct.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("supplier_id", elem.supplierId)
+					.where("product_variation_id", elem.productVariationId)
+					.where("product_supplier_id", elem.productSupplier)
+					.first();
+
+				if (existingProduct) {
+					return existingProduct;
+				}
+
+				return SupplierProduct.create(
+					{
+						economic_group_id: authCtx.group.id,
+						supplier_id: elem.supplierId,
+						product_variation_id: elem.productVariationId,
+						product_supplier_id: elem.productSupplier,
+					},
+					{ client: trx },
+				);
+			});
+			const supplierProducts = await Promise.all(supplierTasks);
+
+			const receiptItems = await ReceiptItem.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("receipt_id", data.receiptId)
+				.whereNull("product_variation_id");
+
+			const tasks = receiptItems.map((elem) => {
+				return elem
+					.merge({
+						product_variation_id: supplierProducts.find(
+							(p) => p.product_supplier_id === elem.productSupplierXml,
+						)?.product_variation_id,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
 		});
 	}
 

@@ -198,7 +198,7 @@ export default class ReceiptsController {
 
 		await this.service.createSupplierProducts(
 			await this.sharedService.getAuthContext(auth),
-			payload.items,
+			payload,
 		);
 
 		return response.created();

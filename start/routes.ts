@@ -1042,6 +1042,10 @@ Route.group(() => {
 		"/business-unit/authorize-nfse",
 		"BusinessUnitFiscalDocumentsController.authorizeNfse",
 	);
+	Route.post(
+		"/business-unit/resend-nfse",
+		"BusinessUnitFiscalDocumentsController.resendNfse",
+	);
 
 	Route.post(
 		"/business-unit/cancel-nfe",

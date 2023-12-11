@@ -725,12 +725,10 @@ export default class FocusNfeService {
 		}
 
 		// Logger.info(JSON.stringify(payload, undefined, 2));
-		Logger.info(
-			"SENDING NFSE",
-			`${process.env.FOCUS_NFE_URL}/v2/nfse?ref=${ref}`,
-			`TOKEN => ${token}`,
-			JSON.stringify(payload, undefined, 2),
-		);
+		Logger.info("SENDING NFSE");
+		Logger.info(`${process.env.FOCUS_NFE_URL}/v2/nfse?ref=${ref}`);
+		Logger.info(`TOKEN => ${token}`);
+		Logger.info(JSON.stringify(payload, undefined, 2));
 
 		try {
 			const { data } = await this.ax.post(

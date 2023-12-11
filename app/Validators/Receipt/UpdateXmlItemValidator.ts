@@ -53,16 +53,16 @@ export default class UpdateXmlItemValidator {
 		items: schema.array().members(
 			schema.object().members({
 				productId: schema.string(),
-				variationGroupId: schema.string(),
+				variationGroupId: schema.string.optional(),
 				subgroupId: schema.string(),
 				unitId: schema.string(),
 				taxationGroupId: schema.string(),
-				brandId: schema.string(),
+				brandId: schema.string.optional(),
 				productVariationId: schema.string(),
 
 				referenceCode: schema.string(),
 				purpose: schema.enum(Object.values(ProductPurpose)),
-				barcode: schema.string(),
+				barcode: schema.string.optional(),
 				minimumStock: schema.number(),
 				maximumStock: schema.number(),
 				maximumDiscountPercentage: schema.number(),

@@ -650,16 +650,16 @@ export default class ReceiptService {
 		data: {
 			items: {
 				productId: string;
-				variationGroupId: string;
+				variationGroupId?: string;
 				subgroupId: string;
 				unitId: string;
 				taxationGroupId: string;
-				brandId: string;
+				brandId?: string;
 				productVariationId: string;
 
 				referenceCode: string;
 				purpose: ProductPurpose;
-				barcode: string;
+				barcode?: string;
 				minimumStock: number;
 				maximumStock: number;
 				maximumDiscountPercentage: number;

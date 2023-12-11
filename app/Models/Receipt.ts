@@ -174,6 +174,11 @@ export default class Receipt extends BaseModel {
 	})
 	public reversalObservation: string | null;
 
+	@column({
+		columnName: "paid_value",
+	})
+	public paidValue: number;
+
 	@column()
 	public status: TReceiptStatus;
 

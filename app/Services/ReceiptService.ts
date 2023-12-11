@@ -890,6 +890,10 @@ export default class ReceiptService {
 						},
 						{ client: trx },
 					);
+
+					newReceipt.merge({
+						paidValue: newReceipt.paidValue + d1.vLiq,
+					});
 				}
 
 				const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
@@ -908,8 +912,14 @@ export default class ReceiptService {
 						},
 						{ client: trx },
 					);
+
+					newReceipt.merge({
+						paidValue: newReceipt.paidValue + d2.vDup,
+					});
 				}
 			}
+
+			await newReceipt.useTransaction(trx).save();
 
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,
@@ -1672,6 +1682,15 @@ export default class ReceiptService {
 				});
 			});
 			await Promise.all(paymentsTasks);
+
+			await receipt
+				.merge({
+					paidValue:
+						receipt.paidValue +
+						this.sharedService.sum(payments.map((p) => p.installmentValue)),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 
@@ -1716,6 +1735,34 @@ export default class ReceiptService {
 					expirationDate: data.expirationDate,
 					nsuDocument: data.nsuDocument,
 				});
+
+			const updatedPayments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptPaymentIds)
+				.preload("receipt");
+
+			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
+				if (!acc.find((elem) => elem.id === current.receipt.id)) {
+					acc.push(current.receipt);
+				}
+				return acc;
+			}, [] as Receipt[]);
+
+			const tasks = uniqueReceipts.map(async (elem) => {
+				const receiptPayments = await ReceiptPayment.query()
+					.useTransaction(trx)
+					.where("receipt_id", elem.id);
+
+				await elem
+					.merge({
+						paidValue: this.sharedService.sum(
+							receiptPayments.map((p) => p.installmentValue),
+						),
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
 		});
 	}
 
@@ -1773,12 +1820,9 @@ export default class ReceiptService {
 				);
 			}
 
-			const sum = this.sharedService.sum(
-				receipt.payments.map((p) => p.installmentValue),
-			);
-			if (sum < receipt.totalValue) {
+			if (receipt.paidValue !== receipt.totalValue) {
 				throw new BadRequestException(
-					"O valor total dos pagamentos é menor que o valor total da nota",
+					"Os pagamentos lançados na Nota de Entrada não inferiores ao Valor Total da Entrada. Complete os pagamentos antes de finalizar a Entrada",
 					400,
 					"E_NO_PAYMENT",
 				);
@@ -1908,6 +1952,11 @@ export default class ReceiptService {
 				);
 			}
 
+			const payments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", data.receiptId)
+				.where("block", data.block);
+
 			await Finance.query()
 				.useTransaction(trx)
 				.whereIn(
@@ -1926,6 +1975,15 @@ export default class ReceiptService {
 				.update({
 					status: "Excluido" as TReceiptPaymentStatus,
 				});
+
+			await row
+				.merge({
+					paidValue:
+						row.paidValue -
+						this.sharedService.sum(payments.map((p) => p.installmentValue)),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 

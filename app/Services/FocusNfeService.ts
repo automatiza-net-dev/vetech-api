@@ -727,7 +727,7 @@ export default class FocusNfeService {
 		// Logger.info(JSON.stringify(payload, undefined, 2));
 		Logger.info(
 			"SENDING NFSE",
-			`/v2/nfse?ref=${ref}`,
+			`${process.env.FOCUS_NFE_URL}/v2/nfse?ref=${ref}`,
 			`TOKEN => ${token}`,
 			JSON.stringify(payload, undefined, 2),
 		);

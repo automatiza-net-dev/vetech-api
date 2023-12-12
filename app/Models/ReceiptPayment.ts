@@ -16,6 +16,9 @@ export default class ReceiptPayment extends BaseModel {
 	@column()
 	public block: number;
 
+	@column({})
+	public installment: number;
+
 	@column({
 		columnName: "block_installments",
 	})

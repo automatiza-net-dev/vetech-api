@@ -543,6 +543,7 @@ export default class ReceiptService {
 			issueDate: elem.issueDate,
 			receiptDate: elem.receiptDate,
 			totalValue: elem.totalValue,
+			paidValue: elem.paidValue,
 			status: elem.status,
 			user: elem.user,
 			seller: elem.seller,
@@ -881,6 +882,7 @@ export default class ReceiptService {
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							block: 1,
+							installment: 1,
 							blockInstallments: 1,
 							installmentValue: d1.vLiq,
 							issueDate: DateTime.now(),
@@ -903,6 +905,7 @@ export default class ReceiptService {
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							block: d1 ? 2 : 1,
+							installment: 1,
 							blockInstallments: 1,
 							installmentValue: d2.vDup,
 							issueDate: DateTime.now(),
@@ -1649,7 +1652,7 @@ export default class ReceiptService {
 				return ReceiptPayment.createMany(
 					Array.from<number, Partial<ReceiptPayment>>(
 						{ length: elem.installments },
-						(_, __) => ({
+						(_, idx) => ({
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							receipt_id: data.receiptId,
@@ -1657,6 +1660,7 @@ export default class ReceiptService {
 							tef_acquirer_id: elem.tefAcquirerId,
 							tef_flag_id: elem.tefFlagId,
 
+							installment: idx + 1,
 							block: index + 1 + receipt.payments.length,
 							blockInstallments: elem.installments,
 							installmentValue: elem.installmentValue / elem.installments,
@@ -2436,7 +2440,7 @@ export default class ReceiptService {
 				origin_id: data.item.id,
 
 				block: data.item.block,
-				installment: data.item.blockInstallments,
+				installment: data.item.installment,
 				originFlag: FinanceOriginFlag.E,
 				document: `NFE-${data.tag}`,
 				historic: `NFE-${data.tag}`,

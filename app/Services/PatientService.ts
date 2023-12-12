@@ -2,7 +2,9 @@ import { inject } from '@adonisjs/fold';
 import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
 import Drive from '@ioc:Adonis/Core/Drive';
 import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
+import Database, {
+  TransactionClientContract,
+} from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import InternalErrorException from 'App/Exceptions/InternalErrorException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
@@ -16,7 +18,7 @@ import Hospitalization, {
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import HospitalizationTimeline from 'App/Models/mongoose/HospitalizationTimeline';
 import Patient, { PatientGender, PatientType } from 'App/Models/Patient';
-import TimelineType, { ATTENDANCE_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IAssignPatientTutor from 'Contracts/interfaces/IAssignPatientTutor';
@@ -163,6 +165,7 @@ export default class PatientService {
         profession: elem.tutor.profession,
         civilStatus: elem.tutor.civilStatus,
         nationality: elem.tutor.nationality,
+        clientOriginItemDescription: elem.clientOriginItemDescription,
         address: {
           street: elem.tutor.street,
           number: elem.tutor.number,
@@ -328,6 +331,24 @@ export default class PatientService {
           })),
         };
       });
+  }
+
+  public async uniqueOrigins(authCtx: AuthContext) {
+    const rows = await Database.from('patients')
+      .select(
+        Database.raw(
+          `distinct(patients.client_origin_item_description) as desc`,
+        ),
+      )
+      .joinRaw(
+        `left join patient_economic_groups on patient_economic_groups.patient_id = patients.id`,
+      )
+      .where('patient_economic_groups.economic_group_id', authCtx.group.id)
+      .whereNotNull('patients.client_origin_item_description')
+      .whereNull('patients.deleted_at')
+      .orderBy('patients.client_origin_item_description');
+
+    return rows.map(r => r.desc);
   }
 
   public async search(unitId: string, data: ISearchPatient) {
@@ -531,7 +552,7 @@ export default class PatientService {
         _type: 'budget' as const,
         tag: item.tag,
         date: item.budgetDate.toJSDate(),
-        seller: item.seller.name,
+        seller: item.seller ? item.seller.name : authCtx.user.name,
         client: key === 'patient_id' ? item.client?.name : item.user?.name,
         total_value: item.totalValue,
         missing_value: null,
@@ -631,21 +652,16 @@ export default class PatientService {
     data: Omit<IPatientData, 'active'>,
   ): Promise<Patient> {
     const group = await this.getEconomicGroup(unitId);
-    const holder = await Patient.findOrFail(data.holderId);
-
-    if (holder.type !== PatientType.TUTOR) {
-      throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
-    }
-
-    const patients = await group
-      .related('patients')
-      .query()
-      .where('type', PatientType.ANIMAL)
-      .select('id');
 
     const trx = await Database.transaction();
 
     try {
+      const patients = await group
+        .related('patients')
+        .query()
+        .where('type', PatientType.ANIMAL)
+        .select('id');
+
       const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
       const patient = await Patient.create(
@@ -668,7 +684,16 @@ export default class PatientService {
         },
       );
 
-      await holder.related('dependents').attach([patient.id], trx);
+      if (data.holderId) {
+        const holder = await Patient.findOrFail(data.holderId, {
+          client: trx,
+        });
+
+        if (holder.type !== PatientType.TUTOR) {
+          throw new BadRequestException('Tutor inválido', 400, 'E_BAD_REQUEST');
+        }
+        await holder.related('dependents').attach([patient.id], trx);
+      }
 
       await group.related('patients').attach([patient.id], trx);
 
@@ -748,6 +773,7 @@ export default class PatientService {
           diabetes: data.diabetes,
           hypertension: data.hypertension,
           tag: (tutors.length + 1).toString(),
+          clientOriginItemDescription: data.clientOriginItemDescription,
         },
         { client: trx },
       );
@@ -917,84 +943,11 @@ export default class PatientService {
       }
 
       if (!patient?.patientAnimal.death && data.death) {
-        const hospitalization = await Hospitalization.query()
-          .useTransaction(trx)
-          .where('patient_id', patient.id)
-          .where('status', HospitalizationStatus.ACTIVE)
-          .limit(1)
-          .first();
-
-        if (hospitalization) {
-          const related = data.technicianId
-            ? await User.findOrFail(data.technicianId)
-            : authCtx.user;
-
-          await HospitalizationTimeline.create({
-            meta: {
-              hospitalization: hospitalization.id,
-              group: authCtx.group.id,
-              unit: authCtx.unit.id,
-              origin: 'death_occurrence',
-            },
-            data: {
-              type: HospitalizationType[hospitalization.type],
-              hospitalizedAt: hospitalization.createdAt,
-              realizedAt: data.deathDate,
-              observation: data.deathObservation,
-              issuedAt: DateTime.now(),
-              technician: {
-                id: related.id,
-                name: related.name,
-              },
-              attachments: [],
-            },
-          });
-
-          await HospitalizationTimeline.updateMany(
-            {
-              'meta.hospitalization': hospitalization.id,
-              'meta.type': 'begin_hospitalization',
-            },
-            {
-              $set: {
-                'data.deathAt': DateTime.now(),
-              },
-            },
-          );
-        } else {
-          const timelineInfo = await TimelineType.firstOrCreate(
-            {
-              description: 'Atendimento',
-              system_id: authCtx.system.id,
-            },
-            {
-              color: '#000000',
-              description: 'Atendimento',
-              system_id: authCtx.system.id,
-              requiresObservation: false,
-            },
-          );
-
-          await AnimalTimeline.create({
-            timeline_id: timelineInfo.id,
-            timeline_type: {
-              description: timelineInfo.description,
-              color: timelineInfo.color,
-              requires_observation: timelineInfo.requiresObservation,
-            },
-            timeline_info: {
-              tag: patient.id,
-              event: 'OBITO',
-              realized: DateTime.now(),
-              resume: 'Óbito',
-              description: data.deathObservation,
-              technician: {
-                id: authCtx.user.id,
-                name: authCtx.user.name,
-              },
-            },
-          });
-        }
+        await this.$declareDeath(trx, authCtx, patient, {
+          deathDate: data.deathDate ?? DateTime.now(),
+          technicianId: data.technicianId ?? authCtx.user.id,
+          deathObservation: data.deathObservation ?? 'Não informado',
+        });
       }
 
       const photo = data.photo
@@ -1034,6 +987,141 @@ export default class PatientService {
 
       return patient;
     });
+  }
+
+  public async declareDeath(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      deathDate: DateTime;
+      technicianId: string;
+      deathObservation: string;
+    },
+  ) {
+    return Database.transaction(async trx => {
+      const patient = await authCtx.group
+        .related('patients')
+        .query()
+        .useTransaction(trx)
+        .where('patient_id', id)
+        .where('type', PatientType.ANIMAL)
+        .preload('patientAnimal')
+        .first();
+
+      if (!patient) {
+        throw new ResourceNotFoundException(
+          'Paciente não encontrado',
+          404,
+          'E_NOT_FOUND',
+        );
+      }
+
+      if (patient.patientAnimal.death) {
+        throw new BadRequestException(
+          'Paciente já declarado como morto',
+          400,
+          'E_BAD_REQUEST',
+        );
+      }
+
+      await this.$declareDeath(trx, authCtx, patient, data);
+    });
+  }
+
+  private async $declareDeath(
+    trx: TransactionClientContract,
+    authCtx: AuthContext,
+    patient: Patient,
+    data: {
+      deathDate: DateTime;
+      technicianId: string;
+      deathObservation: string;
+    },
+  ) {
+    await patient.patientAnimal
+      .merge({
+        death: true,
+        deathDate: DateTime.now(),
+      })
+      .useTransaction(trx)
+      .save();
+
+    const technician = await User.findOrFail(data.technicianId);
+
+    const hospitalization = await Hospitalization.query()
+      .useTransaction(trx)
+      .where('patient_id', patient.id)
+      .where('status', HospitalizationStatus.ACTIVE)
+      .limit(1)
+      .first();
+
+    if (hospitalization) {
+      await HospitalizationTimeline.create({
+        meta: {
+          hospitalization: hospitalization.id,
+          group: authCtx.group.id,
+          unit: authCtx.unit.id,
+          origin: 'death_occurrence',
+        },
+        data: {
+          type: HospitalizationType[hospitalization.type],
+          hospitalizedAt: hospitalization.createdAt,
+          realizedAt: DateTime.now(),
+          observation: '-',
+          issuedAt: DateTime.now(),
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+          attachments: [],
+        },
+      });
+
+      await HospitalizationTimeline.updateMany(
+        {
+          'meta.hospitalization': hospitalization.id,
+          'meta.type': 'begin_hospitalization',
+        },
+        {
+          $set: {
+            'data.deathAt': DateTime.now(),
+          },
+        },
+      );
+    } else {
+      const timelineInfo = await TimelineType.firstOrCreate(
+        {
+          description: 'Atendimento',
+          system_id: authCtx.system.id,
+        },
+        {
+          color: '#000000',
+          description: 'Atendimento',
+          system_id: authCtx.system.id,
+          requiresObservation: false,
+        },
+      );
+
+      await AnimalTimeline.create({
+        timeline_id: timelineInfo.id,
+        timeline_type: {
+          description: timelineInfo.description,
+          color: timelineInfo.color,
+          requires_observation: timelineInfo.requiresObservation,
+        },
+        timeline_info: {
+          tag: patient.id,
+          event: 'OBITO',
+          realized: DateTime.now(),
+          resume: 'Óbito',
+          description: '-',
+          technician: {
+            id: technician.id,
+            name: technician.name,
+          },
+        },
+      });
+    }
   }
 
   public async updateTutor(
@@ -1122,6 +1210,7 @@ export default class PatientService {
           active: data.active,
           diabetes: data.diabetes,
           hypertension: data.hypertension,
+          clientOriginItemDescription: data.clientOriginItemDescription,
         })
         .useTransaction(trx)
         .save();
@@ -1243,8 +1332,7 @@ export default class PatientService {
   }
 
   public async setMainTutor(
-    _: string,
-    user: User,
+    authCtx: AuthContext,
     patient: string,
     tutor: string,
   ) {
@@ -1297,23 +1385,35 @@ export default class PatientService {
       });
       await Promise.all(promises);
 
-      const timelineInfo = await TimelineType.findOrFail(ATTENDANCE_UUID, {
-        client: trx,
-      });
+      const attendanceTimeline = await TimelineType.firstOrCreate(
+        {
+          description: SharedService.GetAttendanceLabel(authCtx),
+          system_id: authCtx.system.id,
+        },
+        {
+          description: SharedService.GetAttendanceLabel(authCtx),
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: ATTENDANCE_UUID,
+        timeline_id: attendanceTimeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: attendanceTimeline.description,
+          color: attendanceTimeline.color,
+          requires_observation: attendanceTimeline.requiresObservation,
         },
         timeline_info: {
           tag: db_patient.id,
           event: 'TROCA_TUTOR_PRINCIPAL',
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           old_tutor: {
             id: oldMainTutor?.id ?? null,

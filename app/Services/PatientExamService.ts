@@ -12,10 +12,9 @@ import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import Patient from 'App/Models/Patient';
 import PatientExam from 'App/Models/PatientExam';
 import Product from 'App/Models/Product';
-import TimelineType, { EXAM_UUID } from 'App/Models/TimelineType';
-import User from 'App/Models/User';
+import TimelineType from 'App/Models/TimelineType';
 import BillService from 'App/Services/BillService';
-import SharedService from 'App/Services/SharedService';
+import { AuthContext } from 'App/Services/SharedService';
 import IPatientExamData, {
   IPatientExamAttachmentData,
 } from 'Contracts/interfaces/IPatientExamData';
@@ -28,10 +27,7 @@ interface ISearch {
 }
 @inject()
 export default class PatientExamService {
-  constructor(
-    private sharedService: SharedService,
-    private billService: BillService,
-  ) {}
+  constructor(private billService: BillService) {}
 
   public async index(unitId: string, data: ISearch) {
     const qb = PatientExam.query().where('business_id', unitId);
@@ -73,9 +69,7 @@ export default class PatientExamService {
     return ent;
   }
 
-  public async store(unitId: string, user: User, data: IPatientExamData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  public async store(authCtx: AuthContext, data: IPatientExamData) {
     return Database.transaction(async trx => {
       const exam = await Exam.findOrFail(data.examId, {
         client: trx,
@@ -97,7 +91,7 @@ export default class PatientExamService {
         if (activeTutor) {
           const activeBilling = await Bill.query()
             .useTransaction(trx)
-            .where('business_unit_id', unitId)
+            .where('business_unit_id', authCtx.unit.id)
             .where('client_id', activeTutor.id)
             .where('patient_id', patient.id)
             .where('status', BillStatus.A)
@@ -108,7 +102,7 @@ export default class PatientExamService {
             .where('id', exam.product_id)
             .preload('variations', query => {
               query.preload('businessUnitProducts', query => {
-                query.where('businness_unit_id', unitId);
+                query.where('businness_unit_id', authCtx.unit.id);
               });
             })
             .firstOrFail();
@@ -131,7 +125,7 @@ export default class PatientExamService {
           }
 
           if (activeBilling) {
-            await this.billService.createBillItemWithTrx(trx, unitId, group, {
+            await this.billService.createBillItemWithTrx(trx, authCtx, {
               billId: activeBilling.id,
               discountValue: 0,
               productVariationId: variation.id,
@@ -141,8 +135,8 @@ export default class PatientExamService {
           } else {
             const userOpenCashier = await DailyCashier.query()
               .useTransaction(trx)
-              .where('business_unit_id', unitId)
-              .where('user_who_opened_id', user.id)
+              .where('business_unit_id', authCtx.unit.id)
+              .where('user_who_opened_id', authCtx.user.id)
               .where('status', DailyCashierStatus.A)
               .first();
 
@@ -154,11 +148,10 @@ export default class PatientExamService {
               );
             }
 
-            await this.billService.createBillWithTrx(trx, unitId, group, user, {
+            await this.billService.createBillWithTrx(trx, authCtx, {
               billDate: DateTime.now(),
               clientId: activeTutor.id,
               patientId: patient.id,
-              dailyCashierId: userOpenCashier.id,
               dailyMovementId: userOpenCashier.daily_movement_id,
               items: [
                 {
@@ -178,11 +171,11 @@ export default class PatientExamService {
           realizedAt: data.realizedAt,
           laboratory: data.laboratory,
           report: data.report,
-          business_id: unitId,
+          business_id: authCtx.unit.id,
           exam_id: data.examId,
           patient_id: data.patientId,
           schedule_id: data.scheduleId,
-          user_id: user.id,
+          user_id: authCtx.user.id,
           solicitor_id: data.solicitorId,
         },
         {
@@ -190,14 +183,28 @@ export default class PatientExamService {
         },
       );
 
-      const timelineInfo = await TimelineType.findOrFail(EXAM_UUID);
+      const timeline = await TimelineType.firstOrCreate(
+        {
+          description: 'Exames',
+          system_id: authCtx.system.id,
+        },
+        {
+          description: 'Exames',
+          color: '#000',
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
       await AnimalTimeline.create({
-        timeline_id: EXAM_UUID,
+        timeline_id: timeline.id,
         timeline_type: {
-          description: timelineInfo.description,
-          color: timelineInfo.color,
-          requires_observation: timelineInfo.requiresObservation,
+          description: timeline.description,
+          color: timeline.color,
+          requires_observation: timeline.requiresObservation,
         },
         timeline_info: {
           tag: patientExam.patient_id,
@@ -208,8 +215,8 @@ export default class PatientExamService {
           laboratory: data.laboratory,
           report: data.report,
           technician: {
-            id: user.id,
-            name: user.name,
+            id: authCtx.user.id,
+            name: authCtx.user.name,
           },
           exam: {
             id: exam.id,
@@ -224,12 +231,12 @@ export default class PatientExamService {
   }
 
   public async update(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
     data: Omit<IPatientExamData, 'examId'> & { releasedAt?: DateTime },
   ) {
     const ent = await PatientExam.query()
-      .where('business_id', unitId)
+      .where('business_id', authCtx.unit.id)
       .where('id', id)
       .first();
 
@@ -238,11 +245,27 @@ export default class PatientExamService {
     }
 
     return Database.transaction(async trx => {
+      // const timeline = await TimelineType.firstOrCreate(
+      //   {
+      //     description: 'Exames',
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     description: 'Exames',
+      //     color: '#000',
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
+
       const updatedExam = await ent
         .merge({
           laboratory: data.laboratory,
           report: data.report,
-          business_id: unitId,
+          business_id: authCtx.unit.id,
           patient_id: data.patientId,
           schedule_id: data.scheduleId,
           executedAt: data.executedAt,
@@ -258,7 +281,7 @@ export default class PatientExamService {
 
       await AnimalTimeline.updateOne(
         {
-          timeline_id: EXAM_UUID,
+          // timeline_id: timeline.id,
           'timeline_info.patient_exam.id': updatedExam.id,
         },
         {
@@ -289,15 +312,14 @@ export default class PatientExamService {
   }
 
   public async createAttachment(
-    unitId: string,
+    authCtx: AuthContext,
     id: string,
-    user: User,
     data: IPatientExamAttachmentData,
   ) {
     return Database.transaction(async trx => {
       const ent = await PatientExam.query()
         .useTransaction(trx)
-        .where('business_id', unitId)
+        .where('business_id', authCtx.unit.id)
         .where('id', id)
         .first();
 
@@ -312,16 +334,32 @@ export default class PatientExamService {
         attachments.map((url, index) => ({
           attachment: url,
           filename: data.attachments[index].clientName,
-          user_id: user.id,
+          user_id: authCtx.user.id,
         })),
         {
           client: trx,
         },
       );
 
+      // const timeline = await TimelineType.firstOrCreate(
+      //   {
+      //     description: 'Exames',
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     description: 'Exames',
+      //     color: '#000',
+      //     requiresObservation: false,
+      //     system_id: authCtx.system.id,
+      //   },
+      //   {
+      //     client: trx,
+      //   },
+      // );
+
       await AnimalTimeline.updateOne(
         {
-          timeline_id: EXAM_UUID,
+          // timeline_id: timeline.id,
           'timeline_info.patient_exam.id': ent.id,
         },
         {

@@ -136,15 +136,17 @@ export default class AccountPlanService {
       throw this.sharedService.ResourceNotFound();
     }
 
+    if (authCtx.user.type !== 'controller') {
+      if (!model.economic_group_id) {
+        throw this.sharedService.SystemResource();
+      }
+    }
+
     return model;
   }
 
   async update(authCtx: AuthContext, id: string, data: IAccountPlanData) {
     const model = await this.show(authCtx, id);
-
-    if (!model.economic_group_id) {
-      throw this.sharedService.SystemResource();
-    }
 
     return model
       .merge({

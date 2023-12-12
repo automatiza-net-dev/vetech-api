@@ -12,6 +12,8 @@ import Banking, {
 import CheckingAccount, {
   CheckingAccountType,
 } from 'App/Models/CheckingAccount';
+import { DailyCashierStatus } from 'App/Models/DailyCashier';
+import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import PaymentMethod, {
   PaymentMethodTef,
   PaymentMethodType,
@@ -28,7 +30,7 @@ test.group('Banking resource', group => {
   });
 
   const createData = async () => {
-    const { user, business } = await userBootstrap();
+    const { user, business, config } = await userBootstrap();
 
     const apg = await AccountPlanGroup.create({
       economic_group_id: business.economicGroupId,
@@ -148,7 +150,28 @@ test.group('Banking resource', group => {
       barCode: 'some',
     });
 
-    return { user, ap, paymentMethod, checkingAccount, patient };
+    const dailyMovement = await DailyMovement.create({
+      business_unit_id: business.id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyMovementStatus.A,
+    });
+    const dailyCashier = await dailyMovement.related('cashiers').create({
+      business_unit_id: dailyMovement.business_unit_id,
+      user_who_opened_id: user.id,
+      openingDate: DateTime.now(),
+      status: DailyCashierStatus.A,
+    });
+
+    return {
+      user,
+      ap,
+      paymentMethod,
+      checkingAccount,
+      patient,
+      config,
+      dailyCashier,
+    };
   };
 
   test('should create banking', async ({ assert, client }) => {
@@ -183,5 +206,81 @@ test.group('Banking resource', group => {
     // console.log(response.body());
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if no daily cashier (type = usuario)', async ({
+    assert,
+    client,
+  }) => {
+    const props = await createData();
+    await props.dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: props.user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bankings/create`)
+      .json({
+        clientId: props.patient.id,
+        type: BankingType.C,
+        accountPlanId: props.ap.id,
+        paymentMethodId: props.paymentMethod.id,
+        checkingAccountId: props.checkingAccount.id,
+        document: 'some',
+        historic: 'some',
+        issueDate: DateTime.now().minus({ hour: 1 }),
+        documentValue: 1,
+        feeValue: 1,
+        feePercentage: 1,
+        discountValue: 1,
+        discountPercentage: 1,
+        reconciled: true,
+        installment: 1,
+        originFlag: BankingOriginFlag.B,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should throw BadRequestException if no daily cashier (type = geral)', async ({
+    assert,
+    client,
+  }) => {
+    const props = await createData();
+
+    await props.config.merge({ dailyCashierType: 'geral' }).save();
+    await props.dailyCashier.softDelete();
+
+    const token = await generateJwtToken(client, {
+      email: props.user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/bankings/create`)
+      .json({
+        clientId: props.patient.id,
+        type: BankingType.C,
+        accountPlanId: props.ap.id,
+        paymentMethodId: props.paymentMethod.id,
+        checkingAccountId: props.checkingAccount.id,
+        document: 'some',
+        historic: 'some',
+        issueDate: DateTime.now().minus({ hour: 1 }),
+        documentValue: 1,
+        feeValue: 1,
+        feePercentage: 1,
+        discountValue: 1,
+        discountPercentage: 1,
+        reconciled: true,
+        installment: 1,
+        originFlag: BankingOriginFlag.B,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
   });
 });

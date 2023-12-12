@@ -1,6 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema, rules } from '@ioc:Adonis/Core/Validator';
-import { HospitalizationSchedulingStatus } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import { HospitalizationMedicalPrescriptionSchedulingStatus } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
@@ -19,7 +19,7 @@ export default class UpdateHospitalizationMedicalPrescriptionScheduleValidator {
     executedAt: schema.date.optional(),
     description: schema.string.optional(),
     resume: schema.string.optional(),
-    status: schema.enum(Object.values(HospitalizationSchedulingStatus)),
+    status: schema.enum(HospitalizationMedicalPrescriptionSchedulingStatus),
   });
 
   public messages: CustomMessages = {};

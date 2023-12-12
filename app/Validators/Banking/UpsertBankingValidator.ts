@@ -31,7 +31,7 @@ export default class UpsertBankingValidator {
     discountValue: schema.number(),
     discountPercentage: schema.number(),
     reconciled: schema.boolean(),
-    installment: schema.number(),
+    installment: schema.number.optional(),
     originFlag: schema.enum(Object.values(BankingOriginFlag)),
 
     observation: schema.string.optional({ trim: true }),

@@ -45,17 +45,21 @@ export default class AttendancesController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdateAttendanceValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    await this.service.update(unit_id, params.id, payload);
+    await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
     return response.noContent();
   }
 
   public async close({ auth, params, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
-
-    await this.service.close(unit_id, user, params.id);
+    await this.service.close(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.noContent();
   }

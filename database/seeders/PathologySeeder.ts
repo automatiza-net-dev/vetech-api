@@ -1,6 +1,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
 import Pathology from 'App/Models/Pathology';
-import TimelineType, { PATHOLOGY_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
+import { v4 } from 'uuid';
 
 export default class extends BaseSeeder {
   BASE = [
@@ -682,7 +683,14 @@ export default class extends BaseSeeder {
   ];
 
   public async run() {
-    const timeline = await TimelineType.findOrFail(PATHOLOGY_UUID);
+    const nosqlTimeline = await TimelineType.create({
+      id: v4(),
+      description: 'Generic',
+      color: '#000',
+      requiresObservation: false,
+    });
+
+    const timeline = await TimelineType.findOrFail(nosqlTimeline.id);
 
     await Pathology.fetchOrCreateMany(
       'description',

@@ -1,10 +1,10 @@
-import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
-import ProductVariation from './ProductVariation';
+import { DateTime } from 'luxon';
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
+import Product from './Product';
 
 export default class ProductivityItemProduct extends BaseModel {
   @column({ isPrimary: true })
-  public id: number
+  public id: number;
 
   @column()
   public quantity: number;
@@ -13,10 +13,10 @@ export default class ProductivityItemProduct extends BaseModel {
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime
+  public createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime
+  public updatedAt: DateTime;
 
   @column({
     serializeAs: null,
@@ -31,10 +31,10 @@ export default class ProductivityItemProduct extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public product_variation_id: string;
+  public product_id: string;
 
-  @belongsTo(() => ProductVariation, {
-    foreignKey: 'product_variation_id',
+  @belongsTo(() => Product, {
+    foreignKey: 'product_id',
   })
-  public productVariation: BelongsTo<typeof ProductVariation>;
+  public product: BelongsTo<typeof Product>;
 }

@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import Pathology from 'App/Models/Pathology';
-import { PATHOLOGY_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IPathologyData from 'Contracts/interfaces/IPathologyData';
 
@@ -53,11 +53,24 @@ export default class PathologyService {
     authCtx: AuthContext,
     data: Omit<IPathologyData, 'active'>,
   ) {
+    const timeline = await TimelineType.firstOrCreate(
+      {
+        description: 'Patologia',
+        system_id: authCtx.system.id,
+      },
+      {
+        description: 'Patologia',
+        color: '#000',
+        requiresObservation: false,
+        system_id: authCtx.system.id,
+      },
+    );
+
     return authCtx.group.related('pathologies').create({
       description: data.description,
       definition: data.definition,
       template: data.template,
-      timeline_type_id: PATHOLOGY_UUID,
+      timeline_type_id: timeline.id,
       system_id: authCtx.system.id,
     });
   }

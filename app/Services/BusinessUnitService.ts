@@ -33,6 +33,19 @@ interface ISearchClinic {
 export default class BusinessUnitService {
   constructor(private readonly sharedService: SharedService) {}
 
+  public async systemUnits(authCtx: AuthContext): Promise<Array<BusinessUnit>> {
+    return BusinessUnit.query()
+      .where('active', true)
+      .whereNull('deleted_at')
+      .select('id', 'identification', 'economic_group_id')
+      .preload('economicGroup', query => {
+        query.select('id', 'companyName');
+      })
+      .whereHas('economicGroup', query => {
+        query.where('system_id', authCtx.system.id);
+      });
+  }
+
   public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
     const qb = BusinessUnit.query().preload('economicGroup');
 
@@ -513,42 +526,49 @@ export default class BusinessUnitService {
     return user;
   }
 
-  public async getUserBusinessUnits(user: User, data: ISearchClinic) {
-    const qb = user
-      .related('economicGroups')
-      .query()
-      .preload('businessUnits', query => {
-        if (data.document) {
-          query.where('document', 'ilike', `%${data.document}%`);
-        }
+  public async getUserBusinessUnits(authCtx: AuthContext, data: ISearchClinic) {
+    const query = BusinessUnit.query()
+      .preload('economicGroup')
+      .where('economic_group_id', authCtx.group.id);
 
-        if (data.name) {
-          query.orWhere('fantasyName', 'ilike', `%${data.name}%`);
-          query.orWhere('companyName', 'ilike', `%${data.name}%`);
-        }
+    if (data.document) {
+      query.where('document', 'ilike', `%${data.document}%`);
+    }
 
-        if (data.identification) {
-          query.where('identification', 'ilike', `%${data.identification}%`);
-        }
-      });
+    if (data.name) {
+      query.orWhere('fantasyName', 'ilike', `%${data.name}%`);
+      query.orWhere('companyName', 'ilike', `%${data.name}%`);
+    }
 
-    const entities = await qb;
+    if (data.identification) {
+      query.where('identification', 'ilike', `%${data.identification}%`);
+    }
 
-    return entities
-      .map(ent => ent.businessUnits)
-      .flat()
-      .map(elem => ({
-        id: elem.id,
-        identification: elem.identification,
-        document: elem.document,
-        fantasyName: elem.fantasyName,
-        companyName: elem.companyName,
-        phone: elem.phone,
-      }));
+    const entities = await query;
+
+    return entities.map(elem => ({
+      id: elem.id,
+      identification: elem.identification,
+      document: elem.document,
+      fantasyName: elem.fantasyName,
+      companyName: elem.companyName,
+      phone: elem.phone,
+      group: elem.economicGroup,
+    }));
   }
 
-  async searchUser(_: string, id: string) {
-    const user = await User.find(id);
+  async searchUser(authCtx: AuthContext, id: string) {
+    const user = await User.query()
+      .where('id', id)
+      .preload('roles', query => {
+        query.preload('role');
+        query.preload('unit');
+
+        query.whereHas('unit', q => {
+          q.where('economic_group_id', authCtx.group.id);
+        });
+      })
+      .first();
 
     if (!user) {
       throw new ResourceNotFoundException(
@@ -557,11 +577,6 @@ export default class BusinessUnitService {
         'E_NOT_FOUND',
       );
     }
-
-    await user.load('roles', q => {
-      q.preload('role');
-      q.preload('unit');
-    });
 
     return {
       ...user.toJSON(),

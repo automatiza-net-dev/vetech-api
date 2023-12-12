@@ -9,6 +9,11 @@ export default class ProductivityItem extends BaseModel {
   @column()
   public description: string;
 
+  @column({
+    columnName: 'reserved_minutes',
+  })
+  public reservedMinutes: number;
+
   @column()
   public active: boolean;
 

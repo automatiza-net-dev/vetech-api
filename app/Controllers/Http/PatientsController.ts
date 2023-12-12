@@ -4,6 +4,7 @@ import PatientService from 'App/Services/PatientService';
 import SharedService from 'App/Services/SharedService';
 import CheckPhoneValidator from 'App/Validators/Patient/CheckPhoneValidator';
 import CreatePatientValidator from 'App/Validators/Patient/CreatePatientValidator';
+import DeclareDeathValidator from 'App/Validators/Patient/DeclareDeathValidator';
 import FastCreatePatientValidator from 'App/Validators/Patient/FastCreatePatientValidator';
 import UpdatePatientValidator from 'App/Validators/Patient/UpdatePatientValidator';
 import ISearchPatient from 'Contracts/interfaces/ISearchPatient';
@@ -30,6 +31,14 @@ export default class PatientsController {
   public async nonPets({ auth, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const result = await this.service.nonPets(unit_id);
+
+    return response.ok(result);
+  }
+
+  public async uniqueOrigins({ auth, response }: HttpContextContract) {
+    const result = await this.service.uniqueOrigins(
+      await this.sharedService.getAuthContext(auth),
+    );
 
     return response.ok(result);
   }
@@ -135,6 +144,23 @@ export default class PatientsController {
     return response.ok(patient);
   }
 
+  public async declareDeath({
+    auth,
+    params,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(DeclareDeathValidator);
+
+    await this.service.declareDeath(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
+
+    return response.noContent();
+  }
+
   public async destroy({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     await this.service.destroy(unit_id, params.id);
@@ -143,10 +169,8 @@ export default class PatientsController {
   }
 
   public async setMainTutor({ auth, params, response }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     await this.service.setMainTutor(
-      unit_id,
-      user,
+      await this.sharedService.getAuthContext(auth),
       params.patient,
       params.tutor,
     );

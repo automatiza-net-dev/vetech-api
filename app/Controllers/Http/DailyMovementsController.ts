@@ -14,20 +14,23 @@ export default class DailyMovementsController {
   ) {}
 
   public async index({ auth, request, response }) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
     const qs = request.qs();
-    const dailyMovements = await this.service.index(unit_id, {
-      from: qs.from,
-      to: qs.to,
-    });
+    const dailyMovements = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      {
+        from: qs.from,
+        to: qs.to,
+      },
+    );
 
     return response.ok(dailyMovements);
   }
 
   public async search({ auth, request, response }) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const dailyMovements = await this.service.search(unit_id, request.qs());
+    const dailyMovements = await this.service.search(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
     return response.ok(dailyMovements);
   }
 
@@ -36,9 +39,11 @@ export default class DailyMovementsController {
     request,
     response,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(OpenDailyMovementValidator);
-    const dailyMovement = await this.service.openDailyMovement(unit_id, data);
+    const dailyMovement = await this.service.openDailyMovement(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
     return response.created(dailyMovement);
   }
@@ -49,10 +54,9 @@ export default class DailyMovementsController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CloseDailyMovementValidator);
     const dailyMovement = await this.service.closeDailyMovement(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       data,
     );
@@ -65,11 +69,9 @@ export default class DailyMovementsController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id, user } = this.sharedService.extractUser(auth);
     const dailyMovement = await this.service.reopenDailyMovement(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
-      user.id,
     );
 
     return response.ok(dailyMovement);
@@ -81,10 +83,9 @@ export default class DailyMovementsController {
     response,
     params,
   }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
     const data = await request.validate(CheckDailyMovementValidator);
     const dailyMovement = await this.service.checkDailyMovement(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
       data,
     );

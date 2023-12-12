@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
 import DocumentTemplate from 'App/Models/DocumentTemplate';
-import { DOCUMENT_UUID } from 'App/Models/TimelineType';
+import TimelineType from 'App/Models/TimelineType';
 import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IDocumentTemplateData from 'Contracts/interfaces/IDocumentTemplateData';
 
@@ -56,8 +56,21 @@ export default class DocumentTemplateService {
     authCtx: AuthContext,
     data: Omit<IDocumentTemplateData, 'active'>,
   ) {
+    const timeline = await TimelineType.firstOrCreate(
+      {
+        description: 'Documento',
+        system_id: authCtx.system.id,
+      },
+      {
+        description: 'Documento',
+        color: '#000',
+        requiresObservation: false,
+        system_id: authCtx.system.id,
+      },
+    );
+
     return authCtx.group.related('documentTemplates').create({
-      timeline_type_id: DOCUMENT_UUID,
+      timeline_type_id: timeline.id,
       description: data.description,
       title: data.title,
       header: data.header,

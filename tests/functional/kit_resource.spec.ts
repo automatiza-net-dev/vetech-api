@@ -223,6 +223,30 @@ test.group('kit resource', group => {
     assert.equal(204, response.status());
   });
 
+  test('should throw BadRequestException if discount is bigger than max discount', async ({
+    assert,
+    client,
+  }) => {
+    const { user, kit, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/kits/add-item`)
+      .json({
+        kitId: kit.id,
+        productVariationId: variation.id,
+        discountPercentage: 0,
+        discountPrice: 1000,
+        quantity: 0,
+      } as IUpsertKitItemData)
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should update item from kit', async ({ assert, client }) => {
     const { user, variation, kitItem } = await createData();
     const token = await generateJwtToken(client, {

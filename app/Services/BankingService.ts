@@ -6,13 +6,14 @@ import DailyCashier from 'App/Models/DailyCashier';
 import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
 import Finance, {
   FinanceAccept,
+  FinanceOriginDownFlag,
   FinanceOriginFlag,
   FinanceStatus,
   FinanceType,
 } from 'App/Models/Finance';
 import PaymentMethod from 'App/Models/PaymentMethod';
 import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import { IUpsertBankingData } from 'Contracts/interfaces/IBankingData';
 import { DateTime } from 'luxon';
 
@@ -32,7 +33,10 @@ export default class BankingService {
   constructor(private sharedService: SharedService) {}
 
   async index(unitId: string, data: ISearch) {
-    const qb = Banking.query().where('business_unit_id', unitId);
+    const qb = Banking.query()
+      .orderBy('issue_date', 'asc')
+      .orderBy('created_at', 'asc')
+      .where('business_unit_id', unitId);
 
     if (data.type) {
       qb.where('type', data.type);
@@ -74,9 +78,7 @@ export default class BankingService {
     return qb;
   }
 
-  async storeBanking(unitId: string, user: User, data: IUpsertBankingData) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
+  async storeBanking(authCtx: AuthContext, data: IUpsertBankingData) {
     return Database.transaction(async trx => {
       const paymentMethod = await PaymentMethod.findOrFail(
         data.paymentMethodId,
@@ -87,16 +89,14 @@ export default class BankingService {
 
       const dailyMovement = await DailyMovement.query()
         .useTransaction(trx)
-        .where('business_unit_id', unitId)
+        .where('business_unit_id', authCtx.unit.id)
         .where('status', DailyMovementStatus.A)
         .first();
 
-      const dailyCashier = await DailyCashier.query()
-        .useTransaction(trx)
-        .where('business_unit_id', unitId)
-        .where('status', DailyMovementStatus.A)
-        .where('user_who_opened_id', user.id)
-        .first();
+      const dailyCashier = await this.sharedService.getContextCashier(
+        authCtx,
+        trx,
+      );
 
       const checkingAccount = await CheckingAccount.findOrFail(
         data.checkingAccountId,
@@ -115,10 +115,10 @@ export default class BankingService {
 
       const finance = await Finance.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
-          type: FinanceType[data.type],
+          type: data.type === BankingType.C ? FinanceType.C : FinanceType.D,
           account_plan_id: data.accountPlanId,
           payment_method_id: data.paymentMethodId,
           checking_account_id: data.checkingAccountId,
@@ -133,8 +133,10 @@ export default class BankingService {
           value: data.documentValue,
           totalValue: total,
           accept: FinanceAccept.S,
-          installment: data.installment,
-          originFlag: FinanceOriginFlag[data.originFlag],
+          installment:
+            typeof data.installment !== 'undefined' ? data.installment : 1,
+          originFlag: FinanceOriginFlag.B,
+          originDownFlag: FinanceOriginDownFlag.B,
           paymentDate: DateTime.now(),
           downDate: data.issueDate,
           paymentValue: total,
@@ -161,10 +163,11 @@ export default class BankingService {
       );
 
       const existingBankingsBefore = await Banking.query()
-        .where('economic_group_id', group.id)
+        .where('economic_group_id', authCtx.group.id)
         .whereRaw('issue_date::date <= ?', [data.issueDate.toJSDate()])
+        .where('checking_account_id', data.checkingAccountId)
         .limit(1)
-        .orderBy('created_at', 'desc');
+        .orderBy('issue_date', 'desc');
       const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
 
       await Database.rawQuery(
@@ -172,7 +175,7 @@ export default class BankingService {
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
         }, balance = balance ${
           data.type === BankingType.C ? `+ ${total}` : `- ${total}`
-        } where checking_account_id = :id and issue_date > ${`'${data.issueDate}'::date`}`,
+        } where checking_account_id = :id and issue_date::date > ${`'${data.issueDate}'::date`}`,
         {
           id: data.checkingAccountId,
         },
@@ -208,8 +211,8 @@ export default class BankingService {
 
       const banking = await Banking.create(
         {
-          economic_group_id: group.id,
-          business_unit_id: unitId,
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
           client_id: data.clientId,
           account_plan_id: data.accountPlanId,
           payment_method_id: data.paymentMethodId,
@@ -330,7 +333,8 @@ export default class BankingService {
         discountValue: data.discountValue,
         discountPercentage: data.discountPercentage,
         reconciled: data.reconciled,
-        installment: data.installment,
+        installment:
+          typeof data.installment !== 'undefined' ? data.installment : 1,
         originFlag: data.originFlag,
 
         observation: data.observation,

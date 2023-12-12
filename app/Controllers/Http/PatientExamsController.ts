@@ -34,9 +34,11 @@ export default class PatientExamsController {
 
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientExamValidator);
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const patient = await this.service.store(unit_id, user, payload);
+    const patient = await this.service.store(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.created(patient);
   }
@@ -50,12 +52,10 @@ export default class PatientExamsController {
     const payload = await request.validate(
       CreatePatientExamAttachmentValidator,
     );
-    const { unit_id, user } = this.sharedService.extractUser(auth);
 
     const patient = await this.service.createAttachment(
-      unit_id,
+      await this.sharedService.getAuthContext(auth),
       params.id,
-      user,
       payload,
     );
 
@@ -69,9 +69,12 @@ export default class PatientExamsController {
     response,
   }: HttpContextContract) {
     const payload = await request.validate(UpdatePatientExamValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
 
-    const patient = await this.service.update(unit_id, params.id, payload);
+    const patient = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
     return response.ok(patient);
   }

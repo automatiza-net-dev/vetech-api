@@ -1,9 +1,11 @@
 import { inject } from '@adonisjs/fold';
 import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
+import Database, {
+  TransactionClientContract,
+} from '@ioc:Adonis/Lucid/Database';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import Bill, { BillStatus } from 'App/Models/Bill';
-import BillItem from 'App/Models/BillItem';
+import BillItem, { BillItemStatus } from 'App/Models/BillItem';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import BusinessUnitFiscalDocument, {
   BusinessUnitFiscalDocumentMovementType,
@@ -22,7 +24,7 @@ import FocusNfeService, {
   nfeResponseSchema,
   nfseResponseSchema,
 } from 'App/Services/FocusNfeService';
-import SharedService from 'App/Services/SharedService';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import IBusinessUnitFiscalDocumentData, {
   IAuthorizeFiscalDocument,
   IAuthorizeNfseFiscalDocument,
@@ -166,19 +168,22 @@ export default class BusinessUnitFiscalDocumentService {
         .preload('client', query => {
           query.preload('tutor');
         })
+        .preload('financialResponsible', query => {
+          query.preload('tutor');
+        })
         .preload('payments', query => {
           query.preload('paymentMethod');
           query.preload('flag');
         })
-        .preload('items', query => {
-          query.where('status', BillStatus.A);
-
-          query.preload('productVariation', query => {
-            query.preload('product', query => {
-              query.preload('unit');
-            });
-          });
-        })
+        // .preload('items', query => {
+        //   query.where('status', BillStatus.A);
+        //
+        //   query.preload('productVariation', query => {
+        //     query.preload('product', query => {
+        //       query.preload('unit');
+        //     });
+        //   });
+        // })
         .useTransaction(trx)
         .firstOrFail();
 
@@ -188,6 +193,27 @@ export default class BusinessUnitFiscalDocumentService {
           400,
           'E_INVALID_STATE',
         );
+      }
+
+      const items = await BillItem.query()
+        .useTransaction(trx)
+        .where('bill_id', bill.id)
+        .where('nfe_issued', false)
+        .where('status', BillItemStatus.A)
+        .where('total_value', '>', 0)
+        .whereHas('productVariation', query => {
+          query.whereHas('product', query => {
+            query.where('type', ProductType.PRODUCT);
+          });
+        })
+        .preload('productVariation', query => {
+          query.preload('product', query => {
+            query.preload('unit');
+          });
+        });
+
+      if (items.length === 0) {
+        throw new BadRequestException('Não existe item para ser emitido');
       }
 
       const issuedDocumentAlready = await IssuedFiscalDocument.query({
@@ -206,7 +232,7 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      if (bill.items.some(i => !i.tax_rule_id)) {
+      if (items.some(i => !i.tax_rule_id)) {
         throw new BadRequestException(
           'Item da Nota não tem imposto definido',
           400,
@@ -250,6 +276,8 @@ export default class BusinessUnitFiscalDocumentService {
         },
       );
 
+      const responsible = bill.financialResponsible ?? bill.client;
+
       const nfePayload: ISendNfe = {
         nfe_series: issuedDocument.series,
         nfe_number: issuedDocument.sequence,
@@ -260,7 +288,7 @@ export default class BusinessUnitFiscalDocumentService {
         purpose: issuedDocument.purpose,
 
         seller: {
-          cnpj: unit.document,
+          cnpj: unit.document?.replace(/\D/g, '') ?? '',
           name: unit.companyName,
           fantasy_name: unit.fantasyName,
           phone: unit.phone,
@@ -282,97 +310,95 @@ export default class BusinessUnitFiscalDocumentService {
           name:
             unit.unitConfig.fiscalDocumentEnvironment === 'H'
               ? 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL'
-              : bill.client.name,
-          cpf_document: bill.client.tutor.document ?? '',
+              : responsible.name,
+          cpf_document: responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
           cnpj_document:
-            bill.client.tutor.document?.length === 14
-              ? bill.client.tutor.document
+            responsible.tutor.document?.length === 14
+              ? responsible.tutor.document.replaceAll(/\D/g, '')
               : null,
-          phone: bill.client.tutor.cellphone,
-          ie: bill.client.tutor.inscription ?? '',
-          email: bill.client.tutor.email,
+          phone: responsible.tutor.cellphone,
+          ie: responsible.tutor.inscription ?? '',
+          email: responsible.tutor.email,
           authorized: unit.unitConfig.xmlDownloadAuthorization ?? '',
 
           location: {
-            street: bill.client.tutor.street ?? '',
-            number: bill.client.tutor.number ?? '',
-            complement: bill.client.tutor.complement ?? '',
-            district: bill.client.tutor.district ?? '',
-            city: bill.client.tutor.city ?? '',
-            uf: bill.client.tutor.state ?? '',
-            code: bill.client.tutor.postalCode ?? '',
+            street: responsible.tutor.street ?? '',
+            number: responsible.tutor.number ?? '',
+            complement: responsible.tutor.complement ?? '',
+            district: responsible.tutor.district ?? '',
+            city: responsible.tutor.city ?? '',
+            uf: responsible.tutor.state ?? '',
+            code: responsible.tutor.postalCode ?? '',
           },
         },
-        items: bill.items
-          .filter(i => i.productVariation.product.type === ProductType.PRODUCT)
-          .map((item, idx) => {
-            const result: ISendNfe['items'][number] = {
-              index: (idx + 1).toString(),
-              code: item.product_variation_id,
-              barcode: item.productVariation.barcode,
-              description: item.productVariation.product.description,
-              ncm: item.productVariation.product.ncm ?? '',
-              cest: item.productVariation.product.cest ?? '',
-              tax_benefit_code: item.productVariation.product.taxBenefitCode,
-              cfop: item.fiscalOperationCode,
-              unity: item.productVariation.product.unit.tag,
-              quantity: item.quantity.toString(),
-              value: item.unitaryValue.toString(),
-              discount: item.discountValue,
+        items: items.map((item, idx) => {
+          const result: ISendNfe['items'][number] = {
+            index: (idx + 1).toString(),
+            code: item.product_variation_id,
+            barcode: item.productVariation.barcode,
+            description: item.productVariation.product.description,
+            ncm: item.productVariation.product.ncm ?? '',
+            cest: item.productVariation.product.cest ?? '',
+            tax_benefit_code: item.productVariation.product.taxBenefitCode,
+            cfop: item.fiscalOperationCode,
+            unity: item.productVariation.product.unit.tag,
+            quantity: item.quantity.toString(),
+            value: item.unitaryValue.toString(),
+            discount: item.discountValue,
 
-              icms_origin: item.productVariation.product.icmsOrigin,
-              cst_icms: item.icmsCst,
+            icms_origin: item.productVariation.product.icmsOrigin,
+            cst_icms: item.icmsCst,
 
-              fcp_percentage: item.icmsFcpPercentage,
-              fcp_base_calc: item.icmsBase,
-              fcp_value: item.icmsFcpValue,
+            fcp_percentage: item.icmsFcpPercentage,
+            fcp_base_calc: item.icmsBase,
+            fcp_value: item.icmsFcpValue,
 
-              cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
-              ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
-              ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
-              ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
+            cst_ipi: item.ipiValue > 0 ? item.ipiCst : null,
+            ipi_base: item.ipiValue > 0 ? item.ipiBase : null,
+            ipi_percentage: item.ipiValue > 0 ? item.ipiPercentage : null,
+            ipi_value: item.ipiValue > 0 ? item.ipiValue : null,
 
-              cst_pis: item.pisCst,
-              pis_base: item.pisBase,
-              pis_percentage: item.pisPercentage,
-              pis_value: item.pisValue,
+            cst_pis: item.pisCst,
+            pis_base: item.pisBase,
+            pis_percentage: item.pisPercentage,
+            pis_value: item.pisValue,
 
-              cst_cofins: item.cofinsCst,
-              cofins_base: item.cofinsBase,
-              cofins_percentage: item.cofinsPercentage,
-              cofins_value: item.cofinsValue,
-            };
+            cst_cofins: item.cofinsCst,
+            cofins_base: item.cofinsBase,
+            cofins_percentage: item.cofinsPercentage,
+            cofins_value: item.cofinsValue,
+          };
 
-            if (
-              ['10', '30', '70', '90', '201', '202', '203', '900'].includes(
-                item.icmsCst,
-              )
-            ) {
-              result.icms_st_modality = 4;
-              result.icms_st_additional = item.icmsStIva;
-              result.icms_st_red_calc = item.icmsStPercentageRedBase;
-              result.icms_st_base = item.icmsStBase;
-              result.icms_st_percentage = item.icmsStPercentageUfDestination;
-              result.icms_st_value = item.icmsStValue;
-            }
+          if (
+            ['10', '30', '70', '90', '201', '202', '203', '900'].includes(
+              item.icmsCst,
+            )
+          ) {
+            result.icms_st_modality = 4;
+            result.icms_st_additional = item.icmsStIva;
+            result.icms_st_red_calc = item.icmsStPercentageRedBase;
+            result.icms_st_base = item.icmsStBase;
+            result.icms_st_percentage = item.icmsStPercentageUfDestination;
+            result.icms_st_value = item.icmsStValue;
+          }
 
-            if (
-              ['00', '10', '20', '51', '60', '70', '90', '900'].includes(
-                item.icmsCst,
-              )
-            ) {
-              result.icms_modality = 3;
-              result.icms_base = item.icmsBase;
-              result.icms_percentage = item.icmsPercentage;
-              result.icms_value = item.icmsValue;
-            }
+          if (
+            ['00', '10', '20', '51', '60', '70', '90', '900'].includes(
+              item.icmsCst,
+            )
+          ) {
+            result.icms_modality = 3;
+            result.icms_base = item.icmsBase;
+            result.icms_percentage = item.icmsPercentage;
+            result.icms_value = item.icmsValue;
+          }
 
-            if (['20', '70', '90', '900'].includes(item.icmsCst)) {
-              result.icms_red_calc = item.icmsStPercentageRedBase;
-            }
+          if (['20', '70', '90', '900'].includes(item.icmsCst)) {
+            result.icms_red_calc = item.icmsStPercentageRedBase;
+          }
 
-            return result;
-          }),
+          return result;
+        }),
         payments: bill.payments.map(item => ({
           nfe_code: item.paymentMethod.nfe_code,
           description:
@@ -415,9 +441,26 @@ export default class BusinessUnitFiscalDocumentService {
         token,
       );
       if (!result.success) {
-        throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
+        // throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
+        Logger.info(JSON.stringify(result, undefined, 2));
       }
 
+      await BillItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          items.map(i => i.id),
+        )
+        .update({
+          nfe_issued: result.success,
+        });
+
+      // await item
+      //   .merge({
+      //     nfeIssued: result.success,
+      //   })
+      //   .useTransaction(trx)
+      //   .save();
       // await issuedDocument
       //   .merge({
       //     sefazMessage: result.message,
@@ -430,70 +473,138 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async authorizeNfse(
-    unitId: string,
-    user: User,
+    authCtx: AuthContext,
     data: IAuthorizeNfseFiscalDocument,
   ) {
-    const group = await this.sharedService.getUserGroup(unitId);
-
     return Database.transaction(async trx => {
-      const unit = await BusinessUnit.query()
+      return this.$sendNfse(trx, authCtx, data);
+    });
+  }
+
+  async resendNfse(authCtx: AuthContext, data: { documentId: string }) {
+    return Database.transaction(async trx => {
+      const serviceDocument = await ServiceIssuedFiscalDocument.query()
         .useTransaction(trx)
-        .where('id', unitId)
-        .preload('unitConfig')
-        .firstOrFail();
+        .where('id', data.documentId)
+        .where('business_unit_id', authCtx.unit.id)
+        .first();
 
-      const token = this.getToken(unit);
+      if (!serviceDocument) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-      const document = await BusinessUnitFiscalDocument.findOrFail(
-        data.unitFiscalDocumentId,
-        {
-          client: trx,
-        },
-      );
-
-      const bill = await Bill.query()
-        .useTransaction(trx)
-        .where('id', data.billId)
-        .preload('client', query => {
-          query.preload('tutor');
-        })
-        .firstOrFail();
-
-      if (bill.status !== BillStatus.B) {
+      if (serviceDocument.status !== 'erro_autorizacao') {
         throw new BadRequestException(
-          'Documento em estado inválido',
+          'Nota não pode ser retransmitida',
           400,
           'E_INVALID_STATE',
         );
       }
 
-      const items = await BillItem.query()
+      await serviceDocument
+        .merge({ deletedAt: DateTime.now() })
         .useTransaction(trx)
-        .where('bill_id', bill.id)
-        .where('nfe_issued', false)
+        .save();
+
+      const items = await serviceDocument
+        .related('items')
+        .query()
+        .useTransaction(trx);
+
+      const updateQb = BillItem.query()
+        .useTransaction(trx)
         .whereHas('productVariation', query => {
           query.whereHas('product', query => {
             query.where('type', ProductType.SERVICE);
           });
         })
-        .preload('productVariation', query => {
-          query.preload('product');
+        .update({
+          nfe_issued: false,
         });
 
-      if (items.length === 0) {
-        throw new BadRequestException('Não existe documento para ser emitido');
+      if (authCtx.unit.unitConfig.groupNfseDocuments) {
+        updateQb
+          .whereIn(
+            'id',
+            items.map(i => i.bill_item_id),
+          )
+          .where('bill_id', serviceDocument.bill_id);
+      } else {
+        updateQb
+          .where('id', serviceDocument.bill_item_id)
+          .where('bill_id', serviceDocument.bill_id);
       }
 
+      await updateQb;
+
+      return this.$sendNfse(trx, authCtx, {
+        billId: serviceDocument.bill_id,
+        unitFiscalDocumentId: serviceDocument.fiscal_document_id,
+      });
+    });
+  }
+
+  private async $sendNfse(
+    trx: TransactionClientContract,
+    authCtx: AuthContext,
+    data: IAuthorizeNfseFiscalDocument,
+  ) {
+    const token = this.getToken(authCtx.unit);
+
+    const document = await BusinessUnitFiscalDocument.findOrFail(
+      data.unitFiscalDocumentId,
+      {
+        client: trx,
+      },
+    );
+
+    const bill = await Bill.query()
+      .useTransaction(trx)
+      .where('id', data.billId)
+      .preload('client', query => {
+        query.preload('tutor');
+      })
+      .firstOrFail();
+
+    if (bill.status !== BillStatus.B) {
+      throw new BadRequestException(
+        'Documento em estado inválido',
+        400,
+        'E_INVALID_STATE',
+      );
+    }
+
+    const responsible = bill.financialResponsible ?? bill.client;
+
+    const items = await BillItem.query()
+      .useTransaction(trx)
+      .where('bill_id', bill.id)
+      .where('nfe_issued', false)
+      .where('total_value', '>', 0)
+      .where('status', BillItemStatus.A)
+      .whereHas('productVariation', query => {
+        query.whereHas('product', query => {
+          query.where('type', ProductType.SERVICE);
+        });
+      })
+      .preload('productVariation', query => {
+        query.preload('product');
+      });
+
+    if (items.length === 0) {
+      throw new BadRequestException('Não existe documento para ser emitido');
+    }
+
+    if (!authCtx.unit.unitConfig.groupNfseDocuments) {
       const results = await Promise.all(
         items.map(async item => {
           const serviceDocument = await ServiceIssuedFiscalDocument.create(
             {
-              economic_group_id: group.id,
-              business_unit_id: unitId,
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
               bill_id: data.billId,
               fiscal_document_id: document.id,
-              user_who_authorized_id: user.id,
+              user_who_authorized_id: authCtx.user.id,
               authorizationDate: DateTime.now(),
               bill_item_id: item.id,
               model: document.model,
@@ -507,29 +618,30 @@ export default class BusinessUnitFiscalDocumentService {
             serviceDocument.id,
             {
               issuedAt: new Date().toISOString(),
-              simple: unit.simple,
+              simple: authCtx.unit.simple,
               seller: {
-                document: unit.document ?? '',
-                city_ie: unit.cityRegistration ?? '',
-                city_code: unit.cityCode ?? '',
+                document: authCtx.unit.document ?? '',
+                city_ie: authCtx.unit.cityRegistration ?? '',
+                city_code: authCtx.unit.cityCode ?? '',
               },
               buyer: {
-                cpf_document: bill.client.tutor.document ?? '',
+                cpf_document:
+                  responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
                 cnpj_document:
-                  bill.client.tutor.document?.length === 14
-                    ? bill.client.tutor.document
+                  responsible.tutor.document?.length === 14
+                    ? responsible.tutor.document.replaceAll(/\D/g, '')
                     : null,
-                name: bill.client.name,
-                email: bill.client.tutor.email,
-                phone: bill.client.tutor.telephone ?? '',
+                name: responsible.name,
+                email: responsible.tutor.email,
+                phone: responsible.tutor.telephone ?? '',
                 address: {
-                  street: bill.client.tutor.street ?? '',
-                  number: bill.client.tutor.number ?? '',
-                  district: bill.client.tutor.district ?? '',
-                  city_code: bill.client.tutor.cityCode ?? '',
-                  uf: bill.client.tutor.state ?? '',
-                  postal_code: bill.client.tutor.postalCode ?? '',
-                  complement: bill.client.tutor.complement ?? null,
+                  street: responsible.tutor.street ?? '',
+                  number: responsible.tutor.number ?? '',
+                  district: responsible.tutor.district ?? '',
+                  city_code: responsible.tutor.cityCode ?? '',
+                  uf: responsible.tutor.state ?? '',
+                  postal_code: responsible.tutor.postalCode ?? '',
+                  complement: responsible.tutor.complement ?? null,
                 },
               },
               service: {
@@ -541,20 +653,23 @@ export default class BusinessUnitFiscalDocumentService {
                 percentage_value: item.issPercentage,
                 discount_value: item.discountValue,
                 service_code: item.productVariation.product.serviceCode ?? '',
-                cnae: unit.cnae ?? '',
-                description: item.productVariation.product.description,
-                city_code: unit.cityCode ?? '',
+                cnae: authCtx.unit.cnae ?? '',
+                description:
+                  authCtx.unit.unitConfig.defaultNfseDescription ??
+                  item.productVariation.product.description,
+                city_code: authCtx.unit.cityCode ?? '',
               },
             },
             token,
           );
 
           if (!result.success) {
-            throw new BadRequestException(
-              result.message ?? 'Erro ao emitir NFSe',
-              400,
-              'E_EXTERNAL_ERROR',
-            );
+            Logger.info(JSON.stringify(result, undefined, 2));
+            // throw new BadRequestException(
+            //   result.message ?? 'Erro ao emitir NFSe',
+            //   400,
+            //   'E_EXTERNAL_ERROR',
+            // );
           }
 
           await serviceDocument
@@ -579,7 +694,135 @@ export default class BusinessUnitFiscalDocumentService {
       );
 
       console.log(JSON.stringify(results, undefined, 2));
+      return;
+    }
+
+    const map: Map<string, BillItem[]> = new Map();
+    for (const item of items) {
+      const key = [
+        item.issPercentage,
+        item.productVariation.product.serviceCode,
+      ].join('__');
+
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+
+      map.get(key)?.push(item);
+    }
+
+    const tasks = Array.from(map.entries()).map(async ([key, mapItems]) => {
+      const [rawPercentage, serviceCode] = key.split('__');
+      const issPercentage = parseFloat(rawPercentage);
+
+      const serviceDocument = await ServiceIssuedFiscalDocument.create(
+        {
+          economic_group_id: authCtx.group.id,
+          business_unit_id: authCtx.unit.id,
+          fiscal_document_id: document.id,
+          user_who_authorized_id: authCtx.user.id,
+          authorizationDate: DateTime.now(),
+          model: document.model,
+          bill_id: bill.id,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      const result = await this.focusNfe.sendNfse(
+        serviceDocument.id,
+        {
+          issuedAt: new Date().toISOString(),
+          simple: authCtx.unit.simple,
+          seller: {
+            document: authCtx.unit.document ?? '',
+            city_ie: authCtx.unit.cityRegistration ?? '',
+            city_code: authCtx.unit.cityCode ?? '',
+          },
+          buyer: {
+            cpf_document:
+              responsible.tutor.document?.replaceAll(/\D/g, '') ?? '',
+            cnpj_document:
+              responsible.tutor.document?.length === 14
+                ? responsible.tutor.document.replaceAll(/\D/g, '')
+                : null,
+            name: responsible.name,
+            email: responsible.tutor.email,
+            phone: responsible.tutor.telephone ?? '',
+            address: {
+              street: responsible.tutor.street ?? '',
+              number: responsible.tutor.number ?? '',
+              district: responsible.tutor.district ?? '',
+              city_code: responsible.tutor.cityCode ?? '',
+              uf: responsible.tutor.state ?? '',
+              postal_code: responsible.tutor.postalCode ?? '',
+              complement: responsible.tutor.complement ?? null,
+            },
+          },
+          service: {
+            total_value: this.sharedService.sum(
+              mapItems.map(i => i.totalValue),
+            ),
+            pis_value: this.sharedService.sum(mapItems.map(i => i.pisValue)),
+            cofins_value: this.sharedService.sum(
+              mapItems.map(i => i.cofinsValue),
+            ),
+            iss_value: this.sharedService.sum(mapItems.map(i => i.issValue)),
+            base_value: this.sharedService.sum(mapItems.map(i => i.issBase)),
+            percentage_value: issPercentage,
+            discount_value: this.sharedService.sum(
+              mapItems.map(i => i.discountValue),
+            ),
+            service_code: serviceCode,
+            cnae: authCtx.unit.cnae ?? '',
+            description: authCtx.unit.unitConfig.defaultNfseDescription ?? '-',
+            city_code: authCtx.unit.cityCode ?? '',
+          },
+        },
+        token,
+      );
+
+      if (!result.success) {
+        Logger.info(JSON.stringify(result, undefined, 2));
+        // throw new BadRequestException(
+        //   result.message ?? 'Erro ao emitir NFSe',
+        //   400,
+        //   'E_EXTERNAL_ERROR',
+        // );
+      }
+
+      await BillItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          'id',
+          mapItems.map(i => i.id),
+        )
+        .update({
+          nfe_issued: result.success,
+        });
+
+      await serviceDocument
+        .merge({
+          rpsNumber: result.data?.numero_rps,
+          rpsSeries: result.data?.serie_rps,
+          status: result.data?.status,
+          errors: result.data?.erros,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await serviceDocument.related('items').createMany(
+        mapItems.map(item => ({
+          bill_item_id: item.id,
+        })),
+        { client: trx },
+      );
+
+      // console.log(JSON.stringify(results, undefined, 2));
     });
+
+    await Promise.all(tasks);
   }
 
   async updateFromFocus(unitId: string, id: string) {
@@ -1095,11 +1338,6 @@ export default class BusinessUnitFiscalDocumentService {
     console.log('document:', document.toJSON());
     console.log('focus nfse payload', data);
 
-    const urlPrefix =
-      process.env.NODE_ENV === 'production'
-        ? 'https://api.focusnfe.com.br'
-        : 'https://homologacao.focusnfe.com.br';
-
     return document.merge({
       status: data.status,
       sequence: data.numero,
@@ -1113,9 +1351,9 @@ export default class BusinessUnitFiscalDocumentService {
         data.status === 'autorizado' ? DateTime.now() : undefined,
       cancellationDate:
         data.status === 'cancelado' ? DateTime.now() : undefined,
-      mirrorPath: [urlPrefix, data.url].join(''),
-      authorizationPdfPath: [urlPrefix, data.url_danfse].join(''),
-      authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(''),
+      mirrorPath: data.url,
+      authorizationPdfPath: data.url_danfse,
+      authorizationXmlPath: data.caminho_xml_nota_fiscal,
     });
   }
 

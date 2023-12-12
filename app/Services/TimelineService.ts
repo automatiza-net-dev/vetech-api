@@ -5,12 +5,14 @@ import Database from '@ioc:Adonis/Lucid/Database';
 import { connection } from '@ioc:Mongoose';
 import BadRequestException from 'App/Exceptions/BadRequestException';
 import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
+import Attendance from 'App/Models/Attendance';
 import BusinessUnit from 'App/Models/BusinessUnit';
 import Hospitalization, {
   HospitalizationStatus,
   HospitalizationType,
 } from 'App/Models/Hospitalization';
 import { IAnimalDocument } from 'App/Models/mongoose/AnimalDocument';
+import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
 import { IAnimalPathology } from 'App/Models/mongoose/AnimalPathology';
 import AnimalTimeline from 'App/Models/mongoose/AnimalTimeline';
 import { IAnimalWeight } from 'App/Models/mongoose/AnimalWeight';
@@ -24,6 +26,7 @@ import PatientVaccine from 'App/Models/PatientVaccine';
 import ScheduleServiceType from 'App/Models/ScheduleServiceType';
 import TimelineType from 'App/Models/TimelineType';
 import User from 'App/Models/User';
+import SharedService, { AuthContext } from 'App/Services/SharedService';
 import ICreateAnimalExam from 'Contracts/interfaces/ICreateAnimalExam';
 import ICreateAnimalPhoto from 'Contracts/interfaces/ICreateAnimalPhoto';
 import ICreateAnimalVaccine from 'Contracts/interfaces/ICreateAnimalVaccine';
@@ -33,10 +36,6 @@ import { ICreateTimelineDischarge } from 'Contracts/interfaces/ICreateTimelineHo
 import { DateTime } from 'luxon';
 import { ObjectId } from 'mongoose';
 import { v4 } from 'uuid';
-
-import { IAnimalMedicalRecipe } from 'App/Models/mongoose/AnimalMedicalRecipe';
-import { AuthContext } from 'App/Services/SharedService';
-import Attendance from 'App/Models/Attendance';
 
 @inject()
 export default class TimelineService {
@@ -52,7 +51,9 @@ export default class TimelineService {
             'Observação',
             'Patologia',
             'Formato Receita Médica',
+            'Consulta', // Campo para manter compatibilidade
             authCtx.system.name === 'LiftOne' && 'Avaliação',
+            authCtx.system.name === 'Sanclá' && 'Atendimento',
           ].filter(Boolean),
         },
         'extras.deletedAt': null,
@@ -75,13 +76,16 @@ export default class TimelineService {
       );
     }
 
-    await Attendance.query()
-      // @ts-ignore
-      .where('id', res.timeline_info?.attendance?.id ?? v4())
-      .update({
-        exclusion_user_id: authCtx.user.id,
-        deleted_at: DateTime.now(),
-      });
+    // @ts-ignore
+    if (res.timeline_info?.attendance?.id) {
+      await Attendance.query()
+        // @ts-ignore
+        .where('id', res.timeline_info?.attendance?.id ?? -1)
+        .update({
+          exclusion_user_id: authCtx.user.id,
+          deleted_at: DateTime.now(),
+        });
+    }
   }
 
   public async all(tag: string) {
@@ -353,7 +357,7 @@ export default class TimelineService {
     }).sort({ createdAt: -1 });
   }
 
-  public async storeEvaluation(data: IPatientEvaluation) {
+  public async storeEvaluation(authCtx: AuthContext, data: IPatientEvaluation) {
     return Database.transaction(async trx => {
       const timelineInfo = await TimelineType.firstOrCreate(
         {
@@ -377,7 +381,7 @@ export default class TimelineService {
         client: trx,
       });
 
-      return AnimalTimeline.create({
+      const newData = {
         timeline_id: timelineInfo.id,
         timeline_type: {
           description: timelineInfo.description,
@@ -404,7 +408,31 @@ export default class TimelineService {
             ? await Promise.all(data.photos.map(this.uploadPhoto))
             : [],
         },
-      });
+      };
+
+      if (authCtx.system.name === 'LiftOne') {
+        const att = await Attendance.create(
+          {
+            business_unit_id: authCtx.unit.id,
+            open_user_id: authCtx.user.id,
+            schedule_service_id: scheduleServiceType.id,
+            patient_id: data.tag,
+
+            resume: data.resume,
+            protocol: data.protocol,
+            startDate: DateTime.now(),
+          },
+          {
+            client: trx,
+          },
+        );
+
+        newData.timeline_info.attendance = {
+          id: att.id,
+        };
+      }
+
+      return AnimalTimeline.create(newData);
     });
   }
 
@@ -1116,14 +1144,14 @@ export default class TimelineService {
     });
   }
 
-  public async appointmentIndex(tag: string) {
+  public async appointmentIndex(authCtx: AuthContext, tag: string) {
     const timelineInfo = await TimelineType.firstOrCreate(
       {
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
       },
       {
         color: '#000000',
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
         requiresObservation: false,
       },
     );
@@ -1135,14 +1163,17 @@ export default class TimelineService {
     }).sort({ createdAt: -1 });
   }
 
-  public async storeAppointment(data: ICreateAppointment) {
+  public async storeAppointment(
+    authCtx: AuthContext,
+    data: ICreateAppointment,
+  ) {
     const timelineInfo = await TimelineType.firstOrCreate(
       {
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
       },
       {
         color: '#000000',
-        description: 'Consulta',
+        description: SharedService.GetAttendanceLabel(authCtx),
         requiresObservation: false,
       },
     );
@@ -1393,17 +1424,17 @@ export default class TimelineService {
   }
 
   public async storeDeath(
-    unitId: string,
+    authCtx: AuthContext,
     data: { tag: string; technicianId: string },
   ) {
     return Database.transaction(async trx => {
       const timelineInfo = await TimelineType.firstOrCreate(
         {
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
         },
         {
           color: '#000000',
-          description: 'Consulta',
+          description: SharedService.GetAttendanceLabel(authCtx),
           requiresObservation: false,
         },
         {
@@ -1413,7 +1444,7 @@ export default class TimelineService {
 
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
-        .where('id', unitId)
+        .where('id', authCtx.unit.id)
         .preload('economicGroup')
         .firstOrFail();
 

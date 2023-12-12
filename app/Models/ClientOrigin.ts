@@ -24,6 +24,12 @@ export default class ClientOrigin extends BaseModel {
   public type: ClientOriginType;
 
   @column()
+  public group: string;
+
+  @column()
+  public default: boolean;
+
+  @column()
   public active: boolean;
 
   @column.dateTime({ autoCreate: true })

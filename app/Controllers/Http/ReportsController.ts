@@ -76,6 +76,19 @@ export default class ReportsController {
     );
   }
 
+  public async saleAnalyticsReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.saleAnalyticsReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
+
   public async entriesReport({ request, response, auth }: HttpContextContract) {
     response.ok(
       await this.service.entriesReport(
@@ -88,6 +101,32 @@ export default class ReportsController {
   public async budgetsReport({ request, response, auth }: HttpContextContract) {
     response.ok(
       await this.service.budgetsReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
+
+  public async schedulingReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.schedulingReport(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      ),
+    );
+  }
+
+  public async productTypesReport({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    response.ok(
+      await this.service.productTypeReport(
         await this.sharedService.getAuthContext(auth),
         request.qs(),
       ),

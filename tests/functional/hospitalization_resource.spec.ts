@@ -78,7 +78,7 @@ test.group('Hospitalization resource', group => {
       .create({
         resume: 'teste resumo',
         description: 'teste descrição',
-        status: 'A',
+        status: 'Aberto',
         type: MedicalPrescriptionType.FLUID_THERAPY,
         prescribedAt: DateTime.now(),
         frequency: MedicalPrescriptionFrequency.ONCE,

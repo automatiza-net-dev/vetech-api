@@ -7,6 +7,7 @@ import BatchExecuteExecutionValidator from 'App/Validators/Treatment/BatchExecut
 import CancelTreatmentValidator from 'App/Validators/Treatment/CancelTreatmentValidator';
 import CreateTreatmentExecutionValidator from 'App/Validators/Treatment/CreateTreatmentExecutionValidator';
 import CreateTreatmentItemValidator from 'App/Validators/Treatment/CreateTreatmentItemValidator';
+import CreateTreatmentProductivityItemValidator from 'App/Validators/Treatment/CreateTreatmentProductivityItemValidator';
 import CreateTreatmentValidator from 'App/Validators/Treatment/CreateTreatmentValidator';
 import ExcludeTreatmentExecutionValidator from 'App/Validators/Treatment/ExcludeTreatmentExecutionValidator';
 import ExecuteTreatmentExecutionValidator from 'App/Validators/Treatment/ExecuteTreatmentExecutionValidator';
@@ -35,6 +36,22 @@ export default class TreatmentsController {
     const data = await request.validate(CreateTreatmentItemValidator);
 
     await this.service.createItem(authCtx, data);
+
+    return response.created();
+  }
+
+  public async createProductivityItem({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const data = await request.validate(
+      CreateTreatmentProductivityItemValidator,
+    );
+
+    await this.service.createProductivityItem(authCtx, data);
 
     return response.created();
   }

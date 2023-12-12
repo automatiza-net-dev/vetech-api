@@ -116,7 +116,7 @@ export default class CheckingAccount extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public business_unit_id: string;
+  public business_unit_id: string | null;
 
   @belongsTo(() => BusinessUnit, {
     foreignKey: 'business_unit_id',

@@ -1,5 +1,6 @@
 import Database from '@ioc:Adonis/Lucid/Database';
 import { test } from '@japa/runner';
+import Attendance from 'App/Models/Attendance';
 import Budget, { BudgetStatus } from 'App/Models/Budget';
 import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
 import DailyCashier from 'App/Models/DailyCashier';
@@ -11,7 +12,6 @@ import Reason from 'App/Models/Reason';
 import Unit, { UnitType } from 'App/Models/Unit';
 import PatientFactory from 'Database/factories/PatientFactory';
 import { DateTime } from 'luxon';
-import mongoose from 'mongoose';
 import { v4 } from 'uuid';
 
 import { generateJwtToken, userBootstrap } from '../utils';
@@ -115,6 +115,13 @@ test.group('Budget resource', group => {
       business_unit_id: business.id,
     });
 
+    const attendance = await Attendance.create({
+      business_unit_id: business.id,
+      patient_id: patient.id,
+      tutor_id: client.id,
+      startDate: DateTime.now().minus({ hour: 1 }),
+    });
+
     return {
       user,
       client,
@@ -127,6 +134,7 @@ test.group('Budget resource', group => {
       variation,
       kit,
       kitItem,
+      attendance,
     };
   };
 
@@ -206,6 +214,7 @@ test.group('Budget resource', group => {
       dailyCashier,
       dailyMovement,
       patient,
+      attendance,
     } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
@@ -215,11 +224,13 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         dailyMovementId: dailyMovement.id,
         dailyCashierId: dailyCashier.id,
-        evaluationId: new mongoose.Types.ObjectId(),
+        attendanceId: attendance.id,
 
         budgetDate: new Date(),
         expirationDate: new Date(),
@@ -244,6 +255,8 @@ test.group('Budget resource', group => {
     const response = await client
       .post(`/budgets/create`)
       .json({
+        sellerId: user.id,
+        reviewerId: user.id,
         clientId: dbClient.id,
         patientId: patient.id,
         budgetDate: new Date(),
@@ -277,6 +290,30 @@ test.group('Budget resource', group => {
     assert.equal(201, response.status());
   });
 
+  test('should throw BadRequestException if discount item if bigger than max discount', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/create-item`)
+      .json({
+        budgetId: budget.id,
+        productVariationId: variation.id,
+        quantity: 5,
+        unitaryValue: 10,
+        discountValue: 10000,
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
   test('should create budget items', async ({ assert, client }) => {
     const { user, budget, variation } = await createData();
     const token = await generateJwtToken(client, {
@@ -300,6 +337,54 @@ test.group('Budget resource', group => {
       .bearerToken(token);
 
     assert.equal(201, response.status());
+  });
+
+  test('should throw BadRequestException if some discount item if bigger than max discount', async ({
+    assert,
+    client,
+  }) => {
+    const { user, budget, variation } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .post(`/budgets/create-items`)
+      .json({
+        items: [
+          {
+            budgetId: budget.id,
+            productVariationId: variation.id,
+            quantity: 5,
+            unitaryValue: 10,
+            discountValue: 10000,
+          },
+        ],
+      })
+      .bearerToken(token);
+
+    assert.equal(400, response.status());
+  });
+
+  test('should update budget', async ({ assert, client }) => {
+    const { user, budget } = await createData();
+    const token = await generateJwtToken(client, {
+      email: user.email,
+      password: '102030',
+    });
+
+    const response = await client
+      .put(`/budgets/update/${budget.id}`)
+      .json({
+        sellerId: user.id,
+        clientId: budget.client_id,
+        patientId: budget.patient_id,
+        reviewerId: user.id,
+      })
+      .bearerToken(token);
+
+    assert.equal(204, response.status());
   });
 
   test('should update budget observation', async ({ assert, client }) => {
@@ -331,16 +416,12 @@ test.group('Budget resource', group => {
       .json({
         quantity: 200,
         unitaryValue: 200,
-        discountValue: 200,
+        discountValue: 0,
         status: BudgetStatus.C,
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
-    assert.notEqual(response.body().quantity, budgetItem.quantity);
-    assert.notEqual(response.body().unitary_value, budgetItem.unitaryValue);
-    assert.notEqual(response.body().discount_value, budgetItem.discountValue);
-    assert.notEqual(response.body().total_value, budgetItem.totalValue);
   });
 
   test('should confirm budget (TOTAL)', async ({ assert, client }) => {

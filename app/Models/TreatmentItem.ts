@@ -83,4 +83,14 @@ export default class TreatmentItem extends BaseModel {
     foreignKey: 'treatment_item_id',
   })
   public executions: HasMany<typeof TreatmentExecution>;
+
+  @column({
+    serializeAs: null,
+  })
+  public reference_item_id: number;
+
+  @column({
+    serializeAs: null,
+  })
+  public productivity_item_id: number;
 }

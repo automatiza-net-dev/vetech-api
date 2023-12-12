@@ -12,6 +12,9 @@ export default class CreateScheduleValidator {
         column: 'id',
       }),
     ]),
+    startHour: schema.date({}),
+    endHour: schema.date({}),
+
     patientId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
@@ -40,10 +43,9 @@ export default class CreateScheduleValidator {
         column: 'id',
       }),
     ]),
+    ignoreBlocking: schema.boolean.optional([]),
     patientName: schema.string.optional({}, []),
     patientPhone: schema.string.optional({}, []),
-    startHour: schema.date({}),
-    endHour: schema.date({}),
     age: schema.number.optional([rules.unsigned()]),
     raceId: schema.string.optional({}),
     majorComplaint: schema.string.optional({}),

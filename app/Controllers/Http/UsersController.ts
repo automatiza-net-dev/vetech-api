@@ -5,6 +5,9 @@ import UserService from 'App/Services/UserService';
 import ChangePasswordValidator from 'App/Validators/User/ChangePasswordValidator';
 import ConfirmConfirmationTokenValidator from 'App/Validators/User/ConfirmConfirmationTokenValidator';
 import CreateConfirmationTokenValidator from 'App/Validators/User/CreateConfirmationTokenValidator';
+import CreateUserControllerValidator from 'App/Validators/User/CreateUserControllerValidator';
+import DisableUserControllerRoleValidator from 'App/Validators/User/DisableUserControllerRoleValidator';
+import UpdateUserControllerValidator from 'App/Validators/User/UpdateUserControllerValidator';
 import UpdateUserValidator from 'App/Validators/User/UpdateUserValidator';
 
 @inject()
@@ -112,6 +115,71 @@ export default class UsersController {
   }: HttpContextContract) {
     const payload = await request.validate(ChangePasswordValidator);
     await this.service.handleChangePasswordEmail(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
+  }
+
+  public async createUserController({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(CreateUserControllerValidator);
+    await this.service.createUserController(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
+  }
+
+  public async updateUserController({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(UpdateUserControllerValidator);
+    await this.service.createUserController(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
+  }
+
+  public async fetchUserControllers({ auth, response }: HttpContextContract) {
+    const data = await this.service.fetchUserControllers(
+      await this.sharedService.getAuthContext(auth),
+    );
+
+    return response.ok(data);
+  }
+
+  public async deleteUserController({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    await this.service.softDeleteUserController(
+      await this.sharedService.getAuthContext(auth),
+      {
+        id: request.param('id'),
+      },
+    );
+
+    return response.noContent();
+  }
+
+  public async disableUserControllerRole({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    const payload = await request.validate(DisableUserControllerRoleValidator);
+    await this.service.disableUserControllerRole(
       await this.sharedService.getAuthContext(auth),
       payload,
     );

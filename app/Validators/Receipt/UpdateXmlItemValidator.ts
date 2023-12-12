@@ -52,13 +52,34 @@ export default class UpdateXmlItemValidator {
 	public schema = schema.create({
 		items: schema.array().members(
 			schema.object().members({
-				productId: schema.string(),
-				variationGroupId: schema.string.optional(),
-				subgroupId: schema.string(),
-				unitId: schema.string(),
-				taxationGroupId: schema.string(),
-				brandId: schema.string.optional(),
-				productVariationId: schema.string(),
+				productId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "products", column: "id" }),
+				]),
+				variationGroupId: schema.string.optional([
+					rules.uuid(),
+					rules.exists({ table: "variation_groups", column: "id" }),
+				]),
+				subgroupId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "subgroups", column: "id" }),
+				]),
+				unitId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "units", column: "id" }),
+				]),
+				taxationGroupId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "taxation_groups", column: "id" }),
+				]),
+				brandId: schema.string.optional([
+					rules.uuid(),
+					rules.exists({ table: "brands", column: "id" }),
+				]),
+				productVariationId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "product_variations", column: "id" }),
+				]),
 
 				referenceCode: schema.string(),
 				purpose: schema.enum(Object.values(ProductPurpose)),

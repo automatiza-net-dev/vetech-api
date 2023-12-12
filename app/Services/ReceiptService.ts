@@ -1646,29 +1646,33 @@ export default class ReceiptService {
 			}
 
 			const tasks = data.items.map((elem, index) => {
-				return ReceiptPayment.create(
-					{
-						economic_group_id: authCtx.group.id,
-						business_unit_id: authCtx.unit.id,
-						receipt_id: data.receiptId,
-						payment_method_id: elem.paymentMethodId,
-						tef_acquirer_id: elem.tefAcquirerId,
-						tef_flag_id: elem.tefFlagId,
+				return ReceiptPayment.createMany(
+					Array.from<number, Partial<ReceiptPayment>>(
+						{ length: elem.installments },
+						(_, __) => ({
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							receipt_id: data.receiptId,
+							payment_method_id: elem.paymentMethodId,
+							tef_acquirer_id: elem.tefAcquirerId,
+							tef_flag_id: elem.tefFlagId,
 
-						block: index + 1 + receipt.payments.length,
-						blockInstallments: elem.installments,
-						installmentValue: elem.installmentValue,
-						issueDate: elem.issueDate,
-						expirationDate: elem.expirationDate,
-						nsuDocument: elem.nsuDocument,
-						status: "Ativo",
-					},
+							block: index + 1 + receipt.payments.length,
+							blockInstallments: elem.installments,
+							installmentValue: elem.installmentValue / elem.installments,
+							issueDate: elem.issueDate,
+							expirationDate: elem.expirationDate,
+							nsuDocument: elem.nsuDocument,
+							status: "Ativo",
+						}),
+					),
+
 					{ client: trx },
 				);
 			});
 
 			const payments = await Promise.all(tasks);
-			const paymentsTasks = payments.map((elem) => {
+			const paymentsTasks = payments.flat().map((elem) => {
 				return this.createFinanceEntry(trx, authCtx, {
 					dailyCashierId: receipt.daily_cashier_id,
 					dailyMovementId: receipt.daily_movement_id,
@@ -1687,7 +1691,7 @@ export default class ReceiptService {
 				.merge({
 					paidValue:
 						receipt.paidValue +
-						this.sharedService.sum(payments.map((p) => p.installmentValue)),
+						this.sharedService.sum(data.items.map((i) => i.installmentValue)),
 				})
 				.useTransaction(trx)
 				.save();

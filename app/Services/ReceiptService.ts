@@ -2050,6 +2050,9 @@ export default class ReceiptService {
 
 		return variations.map((elem) => ({
 			id: elem.id,
+			product: {
+				id: elem.product.id,
+			},
 			description: elem.product.description,
 			unit: elem.product.unit,
 			stock:

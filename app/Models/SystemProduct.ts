@@ -1,4 +1,4 @@
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
 import {
 	PServiceType,
 	ProductIcmsOrigin,
@@ -6,6 +6,7 @@ import {
 	ProductType,
 } from "App/Models/Product";
 import { DateTime } from "luxon";
+import SystemProductVariation from "./SystemProductVariation";
 
 export default class SystemProduct extends BaseModel {
 	@column({ isPrimary: true })
@@ -92,29 +93,29 @@ export default class SystemProduct extends BaseModel {
 	//   serializeAs: null,
 	// })
 	// public variation_group_id: string;
-	//
-	// @column({
-	//   serializeAs: null,
-	// })
-	// public group_id?: string;
-	//
-	// @column({
-	//   serializeAs: null,
-	// })
-	// public subgroup_id: string;
-	//
-	// @column({
-	//   serializeAs: null,
-	// })
-	// public unit_id: string;
-	//
-	// @column({
-	//   serializeAs: null,
-	// })
-	// public taxation_group_id: string;
-	//
-	// @column({
-	//   serializeAs: null,
-	// })
-	// public brand_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public group_id?: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public subgroup_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public unit_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public brand_id: string;
+
+  @hasMany(() => SystemProductVariation, {
+    foreignKey: "system_product_id",
+  })
+  public variations: HasMany<typeof SystemProductVariation>;
 }

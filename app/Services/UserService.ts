@@ -277,36 +277,21 @@ export default class UserService {
 				},
 			);
 
-			const units = await Unit.query()
-				.useTransaction(trx)
-				.whereNull("economic_group_id");
-
-			const ufIcms = await UfIcms.query()
-				.useTransaction(trx)
-				.where(
-					"origin_uf",
-					newBusinessUnit.state ? newBusinessUnit.state.toUpperCase() : "-1",
-				)
-				.andWhere(
-					"destination_uf",
-					newBusinessUnit.state ? newBusinessUnit.state.toUpperCase() : "-1",
-				)
-				.where("active", true)
-				.first();
-
 			const systemTaxationGroups = await SystemTaxationGroup.query()
 				.useTransaction(trx)
 				.where("system_id", system.id)
 				.preload("rules");
-			const groups = await newGroup.related("taxationGroups").createMany(
-				systemTaxationGroups.map((t) => ({
-					name: t.name,
-				})),
-				{
-					client: trx,
-				},
-			);
-			const tasks = groups.map(async (group, idx) => {
+			const taxationGroups = await newGroup
+				.related("taxationGroups")
+				.createMany(
+					systemTaxationGroups.map((t) => ({
+						name: t.name,
+					})),
+					{
+						client: trx,
+					},
+				);
+			const tasks = taxationGroups.map(async (group, idx) => {
 				const rules = systemTaxationGroups[idx].rules;
 
 				return await group.related("rules").createMany(
@@ -332,44 +317,80 @@ export default class UserService {
 					},
 				);
 			});
-			const rulesMatrix = await Promise.all(tasks);
+			await Promise.all(tasks);
 
 			const systemVariationGroups = await SystemVariationGroup.query()
 				.useTransaction(trx)
 				.where("system_id", system.id);
-			await newGroup.related("variationGroups").createMany(
-				systemVariationGroups.map((v) => ({
-					description: v.description,
-				})),
+			const variationGroups = await newGroup
+				.related("variationGroups")
+				.createMany(
+					systemVariationGroups.map((v) => ({
+						description: v.description,
+					})),
+					{
+						client: trx,
+					},
+				);
+
+			const systemProducts = await SystemProduct.query()
+				.useTransaction(trx)
+				.where("system_id", system.id)
+				.preload("variations");
+
+			const products = await newGroup.related("products").createMany(
+				systemProducts.map((p) => {
+					const systemTaxationGroup = systemTaxationGroups.find(
+						(t) => t.id === p.system_taxation_group_id,
+					);
+					const systemVariationGroup = systemVariationGroups.find(
+						(v) => v.id === p.system_variation_group_id,
+					);
+
+					const realTaxationGroup = taxationGroups.find(
+						(t) => t.name === systemTaxationGroup?.name,
+					);
+					const realVariationGroup = variationGroups.find(
+						(v) => v.description === systemVariationGroup?.description,
+					);
+
+					return {
+						subgroup_id: p.subgroup_id,
+						brand_id: p.brand_id,
+						unit_id: p.unit_id,
+						taxation_group_id: realTaxationGroup?.id,
+						variation_group_id: realVariationGroup?.id,
+
+						description: p.description,
+						type: p.type,
+						referenceCode: p.referenceCode,
+						ncm: p.ncm,
+						cest: p.cest,
+						icmsOrigin: p.icmsOrigin,
+						anvisaCode: p.anvisaCode,
+						active: p.active,
+						purpose: p.purpose,
+					};
+				}),
 				{
 					client: trx,
 				},
 			);
 
-			const systemProducts = await SystemProduct.query()
-				.useTransaction(trx)
-				.where("system_id", system.id);
-			await newGroup.related("products").createMany(
-				systemProducts.map((p) => ({
-					description: p.description,
-					type: p.type,
-					referenceCode: p.referenceCode,
-					ncm: p.ncm,
-					cest: p.cest,
-					// unit_id: p.unit_id,
-					icmsOrigin: p.icmsOrigin,
-					// subgroup_id: p.subgroup_id,
-					// brand_id: p.brand_id,
-					anvisaCode: p.anvisaCode,
-					// taxation_group_id: p.taxation_group_id,
-					// variation_group_id: p.variation_group_id,
-					active: p.active,
-					purpose: p.purpose,
-				})),
-				{
-					client: trx,
-				},
-			);
+			const tasks2 = products.map(async (p, idx) => {
+				const variations = systemProducts[idx].variations;
+				return await p.related("variations").createMany(
+					variations.map((v) => ({
+						barcode: v.barcode,
+					})),
+					{
+						client: trx,
+					},
+				);
+			});
+			await Promise.all(tasks2);
+
+			// MARKET
 
 			return { user, unit: newBusinessUnit, system };
 		});
@@ -435,12 +456,15 @@ export default class UserService {
 					data.units.map((u) => u.businessUnitId),
 				);
 
-			const uniqueEconomicGroups = units.reduce((acc, curr) => {
-				if (!acc.find((a) => a === curr.economicGroupId)) {
-					acc.push(curr.economicGroupId);
-				}
-				return acc;
-			}, [] as string[]);
+			const uniqueEconomicGroups = units.reduce(
+				(acc, curr) => {
+					if (!acc.find((a) => a === curr.economicGroupId)) {
+						acc.push(curr.economicGroupId);
+					}
+					return acc;
+				},
+				[] as string[],
+			);
 
 			await user.related("economicGroups").attach(uniqueEconomicGroups, trx);
 		});
@@ -527,12 +551,15 @@ export default class UserService {
 					data.units.map((u) => u.businessUnitId),
 				);
 
-			const uniqueEconomicGroups = units.reduce((acc, curr) => {
-				if (!acc.find((a) => a === curr.economicGroupId)) {
-					acc.push(curr.economicGroupId);
-				}
-				return acc;
-			}, [] as string[]);
+			const uniqueEconomicGroups = units.reduce(
+				(acc, curr) => {
+					if (!acc.find((a) => a === curr.economicGroupId)) {
+						acc.push(curr.economicGroupId);
+					}
+					return acc;
+				},
+				[] as string[],
+			);
 
 			await user
 				.related("economicGroups")

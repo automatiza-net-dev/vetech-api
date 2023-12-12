@@ -25,6 +25,10 @@ import Plan from "App/Models/Plan";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import Subgroup from "App/Models/Subgroup";
 import System from "App/Models/System";
+import SystemPaymentMethod from "App/Models/SystemPaymentMethod";
+import SystemProduct from "App/Models/SystemProduct";
+import SystemTaxationGroup from "App/Models/SystemTaxationGroup";
+import SystemVariationGroup from "App/Models/SystemVariationGroup";
 import {
 	CompanyType,
 	MovementCategory,
@@ -230,11 +234,142 @@ export default class UserService {
 				outgoing_deposit_id: deposit.id,
 			});
 
-			if (system.name === "LiftOne") {
-				await this.seedLiftOneData(newGroup, newBusinessUnit, trx);
-			} else {
-				await this.seedData(newGroup, newBusinessUnit, trx);
-			}
+			const systemPaymentMethods = await SystemPaymentMethod.query()
+				.useTransaction(trx)
+				.where("system_id", system.id);
+
+			await newGroup.related("paymentMethods").createMany(
+				systemPaymentMethods.map((p) => ({
+					description: p.description,
+					requiresDocument: p.requiresDocument,
+					tef: p.tef,
+					type: p.type,
+					fee: p.fee,
+					usage: p.usage,
+					nfe_code: p.nfe_code,
+					automaticCancellation: p.automaticCancellation,
+					daysFirstInstallment: p.daysFirstInstallment,
+					daysBetweenInstallments: p.daysBetweenInstallments,
+					daysUntilTransfer: p.daysUntilTransfer,
+					maxInstallments: p.maxInstallments,
+					installmentsWithoutPassword: p.installmentsWithoutPassword,
+					minimumInstallmentValue: p.minimumInstallmentValue,
+				})),
+				{
+					client: trx,
+				},
+			);
+
+			await newBusinessUnit.related("checkingAccounts").create(
+				{
+					economic_group_id: newGroup.id,
+					description: "Cofre - Matriz",
+					accountNumber: "Cofre",
+					bankCode: "Cofre",
+					bankName: "Cofre",
+					agency: "001",
+					type: CheckingAccountType.CX,
+					balance: 0,
+					active: true,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			const units = await Unit.query()
+				.useTransaction(trx)
+				.whereNull("economic_group_id");
+
+			const ufIcms = await UfIcms.query()
+				.useTransaction(trx)
+				.where(
+					"origin_uf",
+					newBusinessUnit.state ? newBusinessUnit.state.toUpperCase() : "-1",
+				)
+				.andWhere(
+					"destination_uf",
+					newBusinessUnit.state ? newBusinessUnit.state.toUpperCase() : "-1",
+				)
+				.where("active", true)
+				.first();
+
+			const systemTaxationGroups = await SystemTaxationGroup.query()
+				.useTransaction(trx)
+				.where("system_id", system.id)
+				.preload("rules");
+			const groups = await newGroup.related("taxationGroups").createMany(
+				systemTaxationGroups.map((t) => ({
+					name: t.name,
+				})),
+				{
+					client: trx,
+				},
+			);
+			const tasks = groups.map(async (group, idx) => {
+				const rules = systemTaxationGroups[idx].rules;
+
+				return await group.related("rules").createMany(
+					rules.map((r) => ({
+						// tax_operation_id: r.system_taxation_group_id, // diference
+						companyType: r.companyType,
+						movementType: r.movementType,
+						movementCategory: r.movementCategory,
+						fromUf: r.fromUf,
+						toUf: r.toUf,
+						icmsCst: r.icmsCst,
+						icmsPerc: r.icmsPerc,
+						fcpPerc: r.fcpPerc,
+						pisCst: r.pisCst,
+						pisPerc: r.pisPerc,
+						cofinsCst: r.cofinsCst,
+						cofinsPerc: r.cofinsPerc,
+						ipiCst: r.ipiCst,
+						ipiPerc: r.ipiPerc,
+					})),
+					{
+						client: trx,
+					},
+				);
+			});
+			const rulesMatrix = await Promise.all(tasks);
+
+			const systemVariationGroups = await SystemVariationGroup.query()
+				.useTransaction(trx)
+				.where("system_id", system.id);
+			await newGroup.related("variationGroups").createMany(
+				systemVariationGroups.map((v) => ({
+					description: v.description,
+				})),
+				{
+					client: trx,
+				},
+			);
+
+			const systemProducts = await SystemProduct.query()
+				.useTransaction(trx)
+				.where("system_id", system.id);
+			await newGroup.related("products").createMany(
+				systemProducts.map((p) => ({
+					description: p.description,
+					type: p.type,
+					referenceCode: p.referenceCode,
+					ncm: p.ncm,
+					cest: p.cest,
+					// unit_id: p.unit_id,
+					icmsOrigin: p.icmsOrigin,
+					// subgroup_id: p.subgroup_id,
+					// brand_id: p.brand_id,
+					anvisaCode: p.anvisaCode,
+					// taxation_group_id: p.taxation_group_id,
+					// variation_group_id: p.variation_group_id,
+					active: p.active,
+					purpose: p.purpose,
+				})),
+				{
+					client: trx,
+				},
+			);
 
 			return { user, unit: newBusinessUnit, system };
 		});
@@ -848,166 +983,6 @@ export default class UserService {
 		const parseNumber = (value: string) => {
 			return parseFloat(parseString(value));
 		};
-
-		await group.related("paymentMethods").createMany(
-			[
-				{
-					description: "Boleto",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "15",
-					automaticCancellation: false,
-					daysFirstInstallment: 30,
-					daysBetweenInstallments: 30,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "PIX",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "17",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Transferência",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "18",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Cheque",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.PAGAR,
-					nfe_code: "02",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Dinheiro",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "01",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Débito em Conta",
-					requiresDocument: false,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.PAGAR,
-					nfe_code: "99",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Crédito devolução",
-					requiresDocument: true,
-					tef: PaymentMethodTef.N,
-					fee: 0,
-					usage: PaymentMethodUsage.RECEBER,
-					nfe_code: "05",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Cartão de Débito (POS)",
-					requiresDocument: true,
-					tef: PaymentMethodTef.P,
-					type: PaymentMethodType.D,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "04",
-					automaticCancellation: false,
-					daysFirstInstallment: 0,
-					daysBetweenInstallments: 0,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-				{
-					description: "Cartão de Crédito (POS)",
-					requiresDocument: true,
-					tef: PaymentMethodTef.P,
-					type: PaymentMethodType.C,
-					fee: 0,
-					usage: PaymentMethodUsage.AMBOS,
-					nfe_code: "03",
-					automaticCancellation: false,
-					daysFirstInstallment: 30,
-					daysBetweenInstallments: 30,
-					daysUntilTransfer: 0,
-					maxInstallments: 1,
-					installmentsWithoutPassword: 1,
-					minimumInstallmentValue: 0,
-				},
-			],
-			{ client: trx },
-		);
-
-		await bunit.related("checkingAccounts").create(
-			{
-				economic_group_id: group.id,
-				description: `Cofre - Matriz`,
-				accountNumber: "Cofre",
-				bankCode: "Cofre",
-				bankName: "Cofre",
-				agency: "001",
-				type: CheckingAccountType.CX,
-				balance: 0,
-				active: true,
-			},
-			{
-				client: trx,
-			},
-		);
 
 		const units = await Unit.query()
 			.useTransaction(trx)

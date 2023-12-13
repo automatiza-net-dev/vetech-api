@@ -287,11 +287,11 @@ export default class OpportunityService {
 			});
 
 		if (data.fromDate) {
-			qb.where("execution_date", ">=", data.fromDate);
+			qb.whereRaw("execution_date::date >= ?", [data.fromDate]);
 		}
 
 		if (data.toDate) {
-			qb.where("execution_date", "<=", data.toDate);
+			qb.whereRaw("execution_date::date <= ?", [data.toDate]);
 		}
 
 		if (data.status) {
@@ -346,6 +346,8 @@ export default class OpportunityService {
 				? {
 						id: elem.opportunity?.client.id,
 						name: elem.opportunity?.client.name,
+						cellphone: elem.opportunity?.client?.tutor?.cellphone ?? null,
+						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
 				  }
 				: null,
 			contact: elem.opportunity?.contact

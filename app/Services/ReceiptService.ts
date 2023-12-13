@@ -558,13 +558,16 @@ export default class ReceiptService {
 			})
 			.preload("items", (query) => {
 				query.whereNotNull("product_variation_id");
+				query.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.whereNull("purpose");
+					});
+				});
 
 				query.select("id", "product_variation_id");
 
 				query.preload("productVariation", (query) => {
 					query.preload("product", (query) => {
-						query.whereNull("purpose");
-
 						query.select("id", "description");
 					});
 					query.preload("businessUnitProducts", (query) => {
@@ -976,8 +979,8 @@ export default class ReceiptService {
 						"vBCSTRet" in icms
 							? icms.vBCSTRet
 							: "vBCST" in icms
-							? icms.vBCST
-							: undefined,
+							  ? icms.vBCST
+							  : undefined,
 					icmsStPercentageRedBase:
 						"pRedBCST" in icms ? icms.pRedBCST : undefined,
 					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
@@ -986,14 +989,14 @@ export default class ReceiptService {
 							? // @ts-ignore check if things will work
 							  icms.pICMSSTRet
 							: "pICMSST" in icms
-							? icms.pICMSST
-							: undefined,
+							  ? icms.pICMSST
+							  : undefined,
 					icmsStValue:
 						"vICMSSTRet" in icms
 							? icms.vICMSSTRet
 							: "vICMSST" in icms
-							? icms.vICMSST
-							: undefined, // vICMSSTRet ?
+							  ? icms.vICMSST
+							  : undefined, // vICMSSTRet ?
 					// icmsPartitionValue: 0,
 					// icmsFcpPercentage: 0,
 					// icmsFcpValue: 0,
@@ -1749,12 +1752,15 @@ export default class ReceiptService {
 				.whereIn("id", data.receiptPaymentIds)
 				.preload("receipt");
 
-			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
-				if (!acc.find((elem) => elem.id === current.receipt.id)) {
-					acc.push(current.receipt);
-				}
-				return acc;
-			}, [] as Receipt[]);
+			const uniqueReceipts = updatedPayments.reduce(
+				(acc, current) => {
+					if (!acc.find((elem) => elem.id === current.receipt.id)) {
+						acc.push(current.receipt);
+					}
+					return acc;
+				},
+				[] as Receipt[],
+			);
 
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()

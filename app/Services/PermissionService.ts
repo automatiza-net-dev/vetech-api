@@ -129,13 +129,20 @@ export default class PermissionService {
 			// });
 			// await Promise.all(syncDeleteTasks);
 
-			const desyncTasks = permissions.map(async (permission) => {
-				return permission.related("systems").detach();
+			const deleteTasks = permissions.map(async (permission) => {
+				return Database.from("systems_permissions")
+					.where("permission_id", permission.id)
+					.delete();
 			});
-			await Promise.all(desyncTasks);
+			await Promise.all(deleteTasks);
 
 			const syncTasks = permissions.map(async (permission) => {
-				return permission.related("systems").attach(permission.$systems, trx);
+				return permission.$systems.map(async (system) => {
+					return Database.table("systems_permissions").insert({
+						system_id: system,
+						permission_id: permission.id,
+					});
+				});
 			});
 			await Promise.all(syncTasks);
 

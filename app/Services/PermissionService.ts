@@ -120,19 +120,22 @@ export default class PermissionService {
 				.preload("systems")
 				.preload("roles");
 
-			const syncDeleteTasks = permissions.map(async (permission) => {
-				return permission
-					.related("systems")
-					.query()
-					.useTransaction(trx)
-					.delete();
+			// const syncDeleteTasks = permissions.map(async (permission) => {
+			// 	return permission
+			// 		.related("systems")
+			// 		.query()
+			// 		.useTransaction(trx)
+			// 		.delete();
+			// });
+			// await Promise.all(syncDeleteTasks);
+
+			const desyncTasks = permissions.map(async (permission) => {
+				return permission.related("systems").detach();
 			});
-			await Promise.all(syncDeleteTasks);
+			await Promise.all(desyncTasks);
 
 			const syncTasks = permissions.map(async (permission) => {
-				return permission
-					.related("systems")
-					.sync(permission.$systems, true, trx);
+				return permission.related("systems").attach(permission.$systems, trx);
 			});
 			await Promise.all(syncTasks);
 
@@ -170,11 +173,11 @@ export default class PermissionService {
 			});
 			await Promise.all(rolesTasks);
 
-			await Role.query()
+			await Permission.query()
 				.useTransaction(trx)
 				.whereIn(
 					"id",
-					roles.map((r) => r.id),
+					permissions.map((r) => r.id),
 				)
 				.update({
 					updated_at: DateTime.now(),

@@ -183,12 +183,12 @@ export default class OpportunityService {
 		if (data.balance && Array.isArray(data.balance)) {
 			if (data.balance.includes("Em Aberto")) {
 				qb.whereNull("closing_date");
-			} else {
-				qb.whereIn(
-					"balance",
-					data.balance.filter((v) => ["Ganho", "Perda"].includes(v)),
-				);
 			}
+
+			qb.whereIn(
+				"balance",
+				data.balance.filter((v) => ["Ganho", "Perda"].includes(v)),
+			);
 		}
 
 		if (data.contactName || data.contactPhone) {

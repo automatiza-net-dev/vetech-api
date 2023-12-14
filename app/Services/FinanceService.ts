@@ -210,7 +210,8 @@ export default class FinanceService {
 				[],
 			)
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
-			.whereNull("finances.deleted_at");
+			.whereNull("finances.deleted_at")
+			.whereIn("finances.business_unit_id", units);
 
 		if (data.ids && Array.isArray(data.ids)) {
 			qb.whereIn("finances.id", data.ids);

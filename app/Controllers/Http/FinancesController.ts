@@ -108,6 +108,16 @@ export default class FinancesController {
 		return response.created(result);
 	}
 
+	async showBordero({ request, params, auth, response }: HttpContextContract) {
+		const result = await this.service.showBordero(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	async storeBordero({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(CreateBorderoValidator);
 

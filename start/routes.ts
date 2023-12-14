@@ -906,6 +906,8 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/show/:id", "FinancesController.showBordero");
+
 	Route.post("/create", "FinancesController.storeBordero");
 	Route.post("/create-items", "FinancesController.storeBorderoItems");
 	Route.post("/close", "FinancesController.closeBordero");

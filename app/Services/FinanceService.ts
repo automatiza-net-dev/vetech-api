@@ -1294,6 +1294,81 @@ export default class FinanceService {
 		}));
 	}
 
+	async showBordero(
+		authCtx: AuthContext,
+		id: string,
+		data: {
+			type?: "simples" | "completo";
+		},
+	) {
+		const qb = Bordero.query()
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.where("id", id)
+			.preload("economicGroup", (query) => {
+				query.select("id", "company_name");
+			})
+			.preload("unit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("client", (query) => {
+				query.select("id", "name");
+			})
+			.preload("dailyMovement", (query) => {
+				query.select("id");
+			})
+			.preload("checkingAccount", (query) => {
+				query.select("id", "description");
+			})
+			.preload("accountPlan", (query) => {
+				query.select("id", "description");
+			})
+			.preload("bankStatement", (query) => {
+				query.select("id");
+			})
+			.preload("paymentMethod", (query) => {
+				query.select("id", "description");
+			})
+			.preload("tefFlag", (query) => {
+				query.select("id", "description");
+			})
+			.preload("exclusionUser", (query) => {
+				query.select("id", "name");
+			});
+
+		if (data.type === "completo") {
+			qb.preload("finances", (query) => {
+				query
+					.preload("client", (query) => {
+						query.select("id", "name");
+					})
+					.preload("checkingAccount", (query) => {
+						query.select("id", "description");
+					})
+					.preload("accountPlan", (query) => {
+						query.select("id", "description");
+					})
+					.preload("paymentMethod", (query) => {
+						query.select("id", "description");
+					})
+					.preload("flag", (query) => {
+						query.select("id", "description");
+					})
+					.preload("acquirer", (query) => {
+						query.select("id", "description");
+					});
+			});
+		}
+
+		const row = await qb.first();
+
+		if (!row) {
+			throw this.sharedService.ResourceNotFound();
+		}
+
+		return row;
+	}
+
 	async createBordero(
 		authCtx: AuthContext,
 		data: {

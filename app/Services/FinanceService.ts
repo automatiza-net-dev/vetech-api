@@ -58,6 +58,8 @@ interface ISearch {
 	unit?: string;
 	plan?: string;
 	competence?: string;
+
+	groupBorderos?: string;
 }
 
 @inject()
@@ -171,139 +173,172 @@ export default class FinanceService {
 			units.push(data.unit);
 		}
 
-		const qb = Finance.query()
-			.whereIn("business_unit_id", units)
-			.preload("client", (query) => {
-				query.preload("tutor", (query) => {
-					query.preload("accountPlan");
-				});
-			})
-			.preload("paymentMethod", (query) => {
-				query.preload("checkingAccount", (query) => {
-					query.select(["id", "description"]);
-				});
-			})
-			.preload("accountPlan")
-			.preload("checkingAccount")
-			.preload("flag", (query) => {
-				query.select(["id", "description"]);
-			});
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`
+        finances.id,
+        finances.type,
+        finances.document,
+        finances.installment,
+        finances.issue_date,
+        finances.expiration_date,
+        finances.payment_date,
+        finances.value,
+        finances.total_value,
+        finances.payment_value,
+        finances.origin_flag,
+        finances.origin_down_flag,
+        finances.accept,
+        finances.status,
+        finances.competence_date,
+        finances.fiscal_note,
+        finances.nsu_document,
+        finances.qty_installments,
+        finances.bordero_id,
+        patients.name             as client,
+        payment_methods.description            as payment_method,
+        tef_flags.description     as tef_flag,
+        account_plans.description as account_plan`),
+			)
+			.joinRaw("join patients on finances.client_id = patients.id", [])
+			.joinRaw(
+				"left join account_plans on finances.account_plan_id = account_plans.id",
+				[],
+			)
+			.joinRaw(
+				"left join payment_methods on finances.payment_method_id = payment_methods.id",
+				[],
+			)
+			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.whereNull("finances.deleted_at");
 
 		if (data.ids && Array.isArray(data.ids)) {
-			qb.whereIn("id", data.ids);
+			qb.whereIn("finances.id", data.ids);
 		}
 
 		if (data.fromIssueDate) {
-			qb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
+			qb.whereRaw("finances.issue_date::date >= ?", [data.fromIssueDate]);
 		}
 
 		if (data.toIssueDate) {
-			qb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
+			qb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
 		}
 
 		if (data.fromExpirationDate) {
-			qb.whereRaw("expiration_date::date >= ?", [data.fromExpirationDate]);
+			qb.whereRaw("finances.expiration_date::date >= ?", [
+				data.fromExpirationDate,
+			]);
 		}
 
 		if (data.toExpirationDate) {
-			qb.whereRaw("expiration_date::date <= ?", [data.toExpirationDate]);
+			qb.whereRaw("finances.expiration_date::date <= ?", [
+				data.toExpirationDate,
+			]);
 		}
 
 		if (data.fromPaymentDate) {
-			qb.whereRaw("payment_date::date >= ?", [data.fromPaymentDate]);
+			qb.whereRaw("finances.payment_date::date >= ?", [data.fromPaymentDate]);
 		}
 
 		if (data.toPaymentDate) {
-			qb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
+			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
 		}
 
 		if (data.client) {
-			qb.where("client_id", data.client);
+			qb.where("finances.client_id", data.client);
 		}
 
 		if (data.document) {
-			qb.whereILike("document", `%${data.document}%`);
+			qb.whereILike("finances.document", `%${data.document}%`);
 		}
 
 		if (data.fiscalNote) {
-			qb.whereILike("fiscalNote", `%${data.fiscalNote}%`);
+			qb.whereILike("finances.fiscalNote", `%${data.fiscalNote}%`);
 		}
 
 		if (data.paymentMethod) {
-			qb.where("payment_method_id", data.paymentMethod);
+			qb.where("finances.payment_method_id", data.paymentMethod);
 		}
 
 		if (data.nsu) {
-			qb.where("nsuDocument", data.nsu);
+			qb.where("finances.nsuDocument", data.nsu);
 		}
 
 		if (data.status) {
-			qb.where("status", data.status);
+			qb.where("finances.status", data.status);
 		} else {
-			qb.whereNot("status", FinanceStatus.E);
+			qb.whereNot("finances.status", FinanceStatus.E);
 		}
 
 		if (data.accept) {
-			qb.where("accept", data.accept);
+			qb.where("finances.accept", data.accept);
 		}
 
 		if (data.reconciled) {
-			qb.where("reconciled", data.reconciled === "true");
+			qb.where("finances.reconciled", data.reconciled === "true");
 		}
 
 		if (data.type) {
-			qb.where("type", data.type);
+			qb.where("finances.type", data.type);
 		}
 
 		if (data.plan) {
-			qb.where("account_plan_id", data.plan);
+			qb.where("finances.account_plan_id", data.plan);
 		}
 
 		if (data.competence) {
-			qb.where("competence_date", data.competence);
+			qb.where("finances.competence_date", data.competence);
 		}
 
-		const result = await qb;
+		if (data?.groupBorderos === "sim") {
+			qb.union((builder) => {
+				builder
+					.from("borderos")
+					.select(
+						Database.raw(`
+        borderos.id,
+        borderos.type,
+        borderos.document,
+        -1                                                                      as installment,
+        borderos.issue_date,
+        null                                                                    as expiration_date,
+        borderos.payment_date,
+        borderos.bordero_value                                                  as value,
+        borderos.total_value,
+        borderos.payment_value,
+        'FINANCEIRO'                                                            as origin_flag,
+        case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
+        'SIM'                                                                   as accept,
+        borderos.status,
+        borderos.competence_date,
+        null                                                                    as fiscal_note,
+        null                                                                    as nsu_document,
+        1                                                                       as qty_installments,
+        borderos.id                                                             as bordero_id,
+        ''                                                                      as client,
+        payment_methods.description                                             as payment_method,
+        ''                                                                      as tef_flag,
+        account_plans.description                                               as account_plan
+          `),
+					)
+					.joinRaw(
+						"left join account_plans on borderos.account_plan_id = account_plans.id",
+						[],
+					)
+					.joinRaw(
+						"left join payment_methods on borderos.payment_method_id = payment_methods.id",
+						[],
+					)
+					.whereIn("borderos.business_unit_id", units);
+				// .whereNull("borderos.deleted_at")
 
-		return result.map((elem) => ({
-			id: elem.id,
-			type: elem.type,
-			document: elem.document,
-			installment: elem.installment,
-			issueDate: elem.issueDate,
-			expirationDate: elem.expirationDate,
-			paymentDate: elem.paymentDate,
-			value: elem.value,
-			totalValue: elem.totalValue,
-			paymentValue: elem.paymentValue,
-			originFlag: elem.originFlag,
-			originDownFlag: elem.originDownFlag,
-			accept: elem.accept,
-			status: elem.status,
-			competenceDate: elem.competenceDate,
-			fiscalNote: elem.fiscalNote,
-			nsuDocument: elem.nsuDocument,
-			qtyInstallments: elem.qtyInstallments,
-			accountPlan: this.sharedService.captureGroup(elem.accountPlan, (v) => ({
-				id: v.id,
-				description: v.description,
-			})),
-			flag: this.sharedService.captureGroup(elem.flag, (v) => ({
-				id: v.id,
-				description: v.description,
-			})),
-			paymentMethod: this.sharedService.captureGroup(
-				elem.paymentMethod,
-				(v) => ({
-					id: v.id,
-					description: v.description,
-				}),
-			),
-			client: this.sharedService.captureGroup(elem.client, (v) => ({
-				id: v.id,
-				name: v.name,
-			})),
-		}));
+				if (data.type) {
+					builder.whereILike("borderos.type", data.type);
+				}
+			});
+		}
+
+		return qb;
 	}
 
 	// 2.1

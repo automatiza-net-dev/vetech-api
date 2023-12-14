@@ -80,6 +80,8 @@ export default class FinancesController {
 			unit: qs.unit,
 			plan: qs.plan,
 			competence: qs.competence,
+
+			groupBorderos: qs.groupBorderos,
 		});
 
 		return response.ok(result);

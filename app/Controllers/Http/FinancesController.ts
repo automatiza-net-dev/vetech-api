@@ -9,6 +9,7 @@ import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultip
 import DownBorderoValidator from "App/Validators/Finance/DownBorderoValidator";
 import MutateBorderoValidator from "App/Validators/Finance/MutateBorderoValidator";
 import RevertDownBorderoValidator from "App/Validators/Finance/RevertDownBorderoValidator";
+import UpdateBorderoValidator from "App/Validators/Finance/UpdateBorderoValidator";
 import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDownValidator";
 import UpdateFinanceReversalValidator from "App/Validators/Finance/UpdateFinanceReversalValidator";
 import UpdateFinanceValidator from "App/Validators/Finance/UpdateFinanceValidator";
@@ -144,6 +145,28 @@ export default class FinancesController {
 		const payload = await request.validate(MutateBorderoValidator);
 
 		await this.service.reopenBordero(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	async updateBordero({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(UpdateBorderoValidator);
+
+		await this.service.updateBordero(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	async excludeBordero({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(MutateBorderoValidator);
+
+		await this.service.excludeBordero(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

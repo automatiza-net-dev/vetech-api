@@ -911,6 +911,9 @@ Route.group(() => {
 	Route.post("/close", "FinancesController.closeBordero");
 	Route.post("/reopen", "FinancesController.reopenBordero");
 
+	Route.post("/update", "FinancesController.updateBordero");
+	Route.post("/exclude", "FinancesController.excludeBordero");
+
 	Route.post("/down", "FinancesController.updateBorderoDown");
 	Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");
 })

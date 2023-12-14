@@ -315,18 +315,23 @@ export default class FinanceService {
         null                                                                    as nsu_document,
         1                                                                       as qty_installments,
         borderos.id                                                             as bordero_id,
-        ''                                                                      as client,
+        patients.name                                                           as client,
         payment_methods.description                                             as payment_method,
-        ''                                                                      as tef_flag,
+        tef_flags.description                                                   as tef_flag,
         account_plans.description                                               as account_plan
           `),
 					)
+					.joinRaw("join patients on borderos.client_id = patients.id", [])
 					.joinRaw(
 						"left join account_plans on borderos.account_plan_id = account_plans.id",
 						[],
 					)
 					.joinRaw(
 						"left join payment_methods on borderos.payment_method_id = payment_methods.id",
+						[],
+					)
+					.joinRaw(
+						"left join tef_flags on borderos.tef_flag_id = tef_flags.id",
 						[],
 					)
 					.whereIn("borderos.business_unit_id", units);
@@ -1329,6 +1334,7 @@ export default class FinanceService {
 	async createBorderoItem(
 		authCtx: AuthContext,
 		data: {
+			type: TBorderoType;
 			financeIds: string[];
 		},
 	) {
@@ -1337,19 +1343,21 @@ export default class FinanceService {
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
+					type: data.type,
 					status: "Aberto",
 				},
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 
-					type: "Credito",
+					type: data.type,
 					issueDate: DateTime.now(),
 					borderoDate: DateTime.now(),
 					borderoValue: 0,
 					interestValue: 0,
 					discountValue: 0,
 					totalValue: 0,
+					titlesQty: 0,
 					status: "Aberto",
 				},
 				{ client: trx },
@@ -1378,9 +1386,17 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.whereIn("id", data.financeIds)
 				.where("status", FinanceStatus.A)
+				.where("type", data.type === "Credito" ? FinanceType.C : FinanceType.D)
 				.update({
 					bordero_id: bordero.id,
 				});
+
+			await bordero
+				.merge({
+					titlesQty: bordero.titlesQty + data.financeIds.length,
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 
@@ -1475,6 +1491,7 @@ export default class FinanceService {
 			id: string;
 			checkingAccountId: string;
 			paymentMethodId?: string;
+			tefFlagId?: string;
 
 			paymentDate: DateTime;
 			interestValue: number;
@@ -1507,6 +1524,7 @@ export default class FinanceService {
 				.merge({
 					checking_account_id: data.checkingAccountId,
 					payment_method_id: data.paymentMethodId,
+					tef_flag_id: data.tefFlagId,
 
 					downDate: DateTime.now(),
 					paymentDate: data.paymentDate,
@@ -1619,6 +1637,99 @@ export default class FinanceService {
 
 			await this.$revertRegisterDown(trx, bordero, borderoFinances);
 			await this.$revertRegisterBankingDown(trx, bordero);
+		});
+	}
+
+	async updateBordero(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+			clientId: string;
+			checkingAccountId: string;
+			paymentMethodId: string;
+			accountPlanId: string;
+			tefFlagId: string;
+
+			competenceDate: string;
+			borderoDate: DateTime;
+			expirationDate: DateTime;
+			description: string;
+			history: string;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			await bordero
+				.merge({
+					checking_account_id: data.checkingAccountId,
+					payment_method_id: data.paymentMethodId,
+					tef_flag_id: data.tefFlagId,
+					client_id: data.clientId,
+					account_plan_id: data.accountPlanId,
+
+					competenceDate: data.competenceDate,
+					borderoDate: data.borderoDate,
+					expirationDate: data.expirationDate,
+					description: data.description,
+					history: data.history,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	async excludeBordero(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status === "Baixado") {
+				throw new BadRequestException(
+					"Para excluir um borderô, ele não pode estar 'Baixado'",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await bordero
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bordero_id", bordero.id)
+				.update({
+					bordero_id: null,
+				});
 		});
 	}
 

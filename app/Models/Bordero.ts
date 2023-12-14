@@ -1,13 +1,21 @@
 import { DateTime } from "luxon";
-import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	column,
+	HasMany,
+	hasMany,
+} from "@ioc:Adonis/Lucid/Orm";
 import { v4 } from "uuid";
 import Finance from "./Finance";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 
 export const BorderoType = ["Debito", "Credito"] as const;
-export type TBorderoType = typeof BorderoType[number];
+export type TBorderoType = (typeof BorderoType)[number];
 
 export const BorderoStatus = ["Aberto", "Fechado", "Baixado"] as const;
-export type TBorderoStatus = typeof BorderoStatus[number];
+export type TBorderoStatus = (typeof BorderoStatus)[number];
 
 export default class Bordero extends BaseModel {
 	@column({ isPrimary: true })
@@ -19,11 +27,26 @@ export default class Bordero extends BaseModel {
 	@column()
 	public document: string;
 
+	@column({
+		columnName: "nsu_document",
+	})
+	public nsuDocument: string;
+
+	@column({
+		columnName: "titles_qty",
+	})
+	public titlesQty: number;
+
 	@column()
 	public description: string;
 
 	@column()
 	public history: string;
+
+	@column({
+		columnName: "expiration_date",
+	})
+	public expirationDate: DateTime;
 
 	@column({
 		columnName: "competence_date",
@@ -102,6 +125,19 @@ export default class Bordero extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({})
+	public deletedAt: DateTime;
+
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
+
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
+
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
+
 	@column({
 		serializeAs: null,
 	})
@@ -136,6 +172,21 @@ export default class Bordero extends BaseModel {
 		serializeAs: null,
 	})
 	public payment_method_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public client_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public tef_flag_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string;
 
 	@hasMany(() => Finance, {
 		foreignKey: "bordero_id",

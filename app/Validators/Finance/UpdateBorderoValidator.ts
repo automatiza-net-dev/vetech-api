@@ -1,8 +1,7 @@
 import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import { BorderoType } from "App/Models/Bordero";
 
-export default class CreateBorderoItemValidator {
+export default class UpdateBorderoValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -25,16 +24,36 @@ export default class CreateBorderoItemValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		type: schema.enum(BorderoType),
-		financeIds: schema.array().members(
-			schema.string([
-				rules.uuid(),
-				rules.exists({
-					table: "finances",
-					column: "id",
-				}),
-			]),
-		),
+		id: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "borderos", column: "id" }),
+		]),
+		clientId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "patients", column: "id" }),
+		]),
+		checkingAccountId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "checking_accounts", column: "id" }),
+		]),
+		paymentMethodId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "payment_methods", column: "id" }),
+		]),
+		accountPlanId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "account_plans", column: "id" }),
+		]),
+		tefFlagId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "tef_flags", column: "id" }),
+		]),
+
+		competenceDate: schema.string(),
+		borderoDate: schema.date(),
+		expirationDate: schema.date(),
+		description: schema.string(),
+		history: schema.string(),
 	});
 
 	/**

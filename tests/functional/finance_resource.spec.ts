@@ -583,6 +583,7 @@ test.group("Finance resource", (group) => {
 		const response = await client
 			.post(`/borderos/create-items`)
 			.json({
+				type: "Credito" as TBorderoType,
 				financeIds: [finance.id],
 			})
 			.bearerToken(token);
@@ -611,6 +612,7 @@ test.group("Finance resource", (group) => {
 		const response = await client
 			.post(`/borderos/create-items`)
 			.json({
+				type: "Credito" as TBorderoType,
 				financeIds: [finance.id],
 			})
 			.bearerToken(token);
@@ -857,6 +859,69 @@ test.group("Finance resource", (group) => {
 				id: b.id,
 				paymentMethodId: paymentMethod.id,
 				reason: "SUT",
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should update bordero", async ({ assert, client }) => {
+		const $props = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: $props.user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: $props.finance.economic_group_id,
+			business_unit_id: $props.finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		const response = await client
+			.post(`/borderos/update`)
+			.json({
+				id: b.id,
+				clientId: $props.tutor.id,
+				checkingAccountId: $props.checkingAccount.id,
+				paymentMethodId: $props.paymentMethod.id,
+				accountPlanId: $props.accountPlan.id,
+				tefFlagId: $props.tefFlag.id,
+
+				competenceDate: "MM/YYYY",
+				borderoDate: new Date(),
+				expirationDate: new Date(),
+				description: "some description",
+				history: "some history",
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should exclude bordero", async ({ assert, client }) => {
+		const $props = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: $props.user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: $props.finance.economic_group_id,
+			business_unit_id: $props.finance.business_unit_id,
+			status: "Aberto",
+		});
+
+		$props.finance.merge({ bordero_id: b.id }).save();
+
+		const response = await client
+			.post(`/borderos/exclude`)
+			.json({
+				id: b.id,
 			})
 			.bearerToken(token);
 

@@ -178,6 +178,7 @@ export default class FinanceService {
 				Database.raw(`
         finances.id,
         finances.type,
+        'FINANCE' as source,
         finances.document,
         finances.installment,
         finances.issue_date,
@@ -299,6 +300,7 @@ export default class FinanceService {
 						Database.raw(`
         borderos.id,
         borderos.type,
+        'BORDERO' as source,
         borderos.document,
         -1                                                                      as installment,
         borderos.issue_date,

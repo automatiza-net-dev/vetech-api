@@ -452,7 +452,7 @@ export default class BusinessUnitFiscalDocumentService {
 					items.map((i) => i.id),
 				)
 				.update({
-					nfe_issued: result.success,
+					nfe_issued: true,
 				});
 
 			// await item

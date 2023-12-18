@@ -244,7 +244,8 @@ export default class ReportService {
 	) {
 		const qb = CheckingAccount.query()
 			.preload("unit")
-			.where("economic_group_id", authCtx.group.id);
+			.where("economic_group_id", authCtx.group.id)
+			.whereNotNull("business_unit_id");
 
 		if (data.businessUnit) {
 			qb.where("business_unit_id", data.businessUnit);

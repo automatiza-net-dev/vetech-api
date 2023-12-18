@@ -316,7 +316,7 @@ export default class FinanceService {
 		}
 
 		if (data.fiscalNote) {
-			qb.whereILike("finances.fiscalNote", `%${data.fiscalNote}%`);
+			qb.whereILike("finances.fiscal_note", `%${data.fiscalNote}%`);
 		}
 
 		if (data.paymentMethod) {
@@ -324,7 +324,7 @@ export default class FinanceService {
 		}
 
 		if (data.nsu) {
-			qb.where("finances.nsuDocument", data.nsu);
+			qb.where("finances.nsu_document", data.nsu);
 		}
 
 		if (data.status) {

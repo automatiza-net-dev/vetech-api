@@ -927,4 +927,33 @@ test.group("Finance resource", (group) => {
 
 		assert.equal(204, response.status());
 	});
+
+	test("should exclude bordero items", async ({ assert, client }) => {
+		const $props = await createData();
+
+		const token = await generateJwtToken(client, {
+			email: $props.user.email,
+			password: "102030",
+		});
+
+		const b = await Bordero.create({
+			type: "Credito" as TBorderoType,
+			economic_group_id: $props.finance.economic_group_id,
+			business_unit_id: $props.finance.business_unit_id,
+			status: "Aberto",
+			titlesQty: 1,
+		});
+
+		$props.finance.merge({ bordero_id: b.id }).save();
+
+		const response = await client
+			.post(`/borderos/exclude-items`)
+			.json({
+				id: b.id,
+				financeIds: [$props.finance.id],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
 });

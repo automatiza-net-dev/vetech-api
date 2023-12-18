@@ -1,7 +1,7 @@
 import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
-export default class DownBorderoValidator {
+export default class ExcludeBorderoItemValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -31,16 +31,15 @@ export default class DownBorderoValidator {
 				column: "id",
 			}),
 		]),
-		checkingAccountId: schema.string([
-			rules.uuid(),
-			rules.exists({ table: "checking_accounts", column: "id" }),
-		]),
-		paymentMethodId: schema.string.optional([
-			rules.uuid(),
-			rules.exists({ table: "payment_methods", column: "id" }),
-		]),
-
-		paymentDate: schema.date(),
+		financeIds: schema.array().members(
+			schema.string([
+				rules.uuid(),
+				rules.exists({
+					table: "finances",
+					column: "id",
+				}),
+			]),
+		),
 	});
 
 	/**

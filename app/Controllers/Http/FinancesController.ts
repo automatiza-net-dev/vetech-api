@@ -3,10 +3,12 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import FinanceService from "App/Services/FinanceService";
 import SharedService from "App/Services/SharedService";
 import AcceptManyFinanceValidator from "App/Validators/Finance/AcceptManyFinanceValidator";
+import CalculateFinanceFeeValidator from "App/Validators/Finance/CalculateFinanceFeeValidator";
 import CreateBorderoItemValidator from "App/Validators/Finance/CreateBorderoItemValidator";
 import CreateBorderoValidator from "App/Validators/Finance/CreateBorderoValidator";
 import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultipleFinancesValidator";
 import DownBorderoValidator from "App/Validators/Finance/DownBorderoValidator";
+import ExcludeBorderoItemValidator from "App/Validators/Finance/ExcludeBorderoItemValidator";
 import MutateBorderoValidator from "App/Validators/Finance/MutateBorderoValidator";
 import RevertDownBorderoValidator from "App/Validators/Finance/RevertDownBorderoValidator";
 import UpdateBorderoValidator from "App/Validators/Finance/UpdateBorderoValidator";
@@ -182,6 +184,28 @@ export default class FinancesController {
 		);
 
 		return response.noContent();
+	}
+
+	async excludeBorderoItems({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(ExcludeBorderoItemValidator);
+
+		await this.service.excludeBorderoItems(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	async calculateFinanceFees({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(CalculateFinanceFeeValidator);
+
+		const result = await this.service.calculateFees(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.ok(result);
 	}
 
 	async storeMultipleFinances({

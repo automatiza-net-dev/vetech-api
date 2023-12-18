@@ -14,6 +14,7 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 import AccountPlan from "./AccountPlan";
+import Bordero from "./Bordero";
 import BusinessUnit from "./BusinessUnit";
 import Patient from "./Patient";
 import PaymentMethod from "./PaymentMethod";
@@ -340,4 +341,9 @@ export default class Finance extends BaseModel {
 		serializeAs: null,
 	})
 	public bordero_id: string;
+
+	@belongsTo(() => Bordero, {
+		foreignKey: "bordero_id",
+	})
+	public bordero: BelongsTo<typeof Bordero>;
 }

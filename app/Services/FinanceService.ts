@@ -24,6 +24,8 @@ import FinanceReversal, {
 	FinanceReversalType,
 } from "App/Models/FinanceReversal";
 import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import {
@@ -65,6 +67,65 @@ interface ISearch {
 @inject()
 export default class FinanceService {
 	constructor(private sharedService: SharedService) {}
+
+	async calculateFees(
+		authCtx: AuthContext,
+		data: { financeId: string; paymentMethodId: string; tefFlagId: string },
+	) {
+		const finance = await Finance.query()
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.where("id", data.financeId)
+			.first();
+		if (!finance) {
+			throw this.sharedService.ResourceNotFound();
+		}
+
+		const paymentMethod = await PaymentMethod.query()
+			.where("economic_group_id", authCtx.group.id)
+			.where("id", data.paymentMethodId)
+			.first();
+		if (!paymentMethod) {
+			throw this.sharedService.ResourceNotFound();
+		}
+
+		const tefFlag = await TefFlag.query()
+			.where("id", data.tefFlagId)
+			.firstOrFail();
+
+		const paymentMethodFlag = await PaymentMethodFlag.query()
+			.where("payment_method_id", paymentMethod.id)
+			.where("tef_flag_id", tefFlag.id)
+			.preload("installments")
+			.first();
+
+		if (!paymentMethodFlag) {
+			throw new BadRequestException(
+				"Bandeira não permitida para esse método de pagamento",
+				400,
+				"BAD_REQUEST",
+			);
+		}
+
+		const installment = paymentMethodFlag.installments.find(
+			(item) => item.installment === finance.installment,
+		);
+		if (!installment) {
+			throw new BadRequestException(
+				"Parcela não permitida para essa bandeira",
+				400,
+				"BAD_REQUEST",
+			);
+		}
+
+		const discount = (finance.originalValue * installment.fee) / 100;
+
+		return {
+			feeDiscountPercentage: installment.fee,
+			feeDiscountValue: discount,
+			documentValue: finance.originalValue - discount,
+		};
+	}
 
 	async index(unitId: string, data: ISearch) {
 		const units = [unitId];
@@ -543,57 +604,72 @@ export default class FinanceService {
 		id: string,
 		data: IUpdateFinance,
 	) {
-		const paymentMethod = await PaymentMethod.findOrFail(data.paymentMethodId);
+		return Database.transaction(async (trx) => {
+			const finance = await Finance.query()
+				.useTransaction(trx)
+				.where("id", id)
+				.where("business_unit_id", unitId)
+				.preload("bordero")
+				.first();
 
-		const discount = data.originalValue * (paymentMethod.fee / 100);
+			if (!finance) {
+				throw this.sharedService.ResourceNotFound();
+			}
 
-		const finance = await Finance.query()
-			.where("id", id)
-			.where("business_unit_id", unitId)
-			.first();
+			const paymentMethod = await PaymentMethod.findOrFail(
+				data.paymentMethodId,
+				{ client: trx },
+			);
 
-		if (!finance) {
-			throw this.sharedService.ResourceNotFound();
-		}
+			const discount = data.originalValue * (paymentMethod.fee / 100);
 
-		return finance
-			.merge({
-				account_plan_id: data.accountPlanId,
-				payment_method_id: data.paymentMethodId,
-				historic: data.historic,
-				expirationDate: data.expirationDate,
-				originalValue: data.originalValue,
-				value: data.originalValue - discount,
-				totalValue:
-					data.originalValue +
-					(data.feeValue || finance.feeValue) +
-					(data.increaseValue || finance.additionValue) -
-					(data.discountValue || finance.discountValue) -
-					discount,
-				reconciled: data.reconciled,
+			const updated = await finance
+				.merge({
+					account_plan_id: data.accountPlanId,
+					payment_method_id: data.paymentMethodId,
+					checking_account_id:
+						paymentMethod.checkingAccountId ?? data.checkingAccountId,
+					acquirer_id: data.tefAcquirerId,
+					tef_flag_id: data.tefFlagId,
 
-				checking_account_id:
-					paymentMethod.checkingAccountId ?? data.checkingAccountId,
+					historic: data.historic,
+					expirationDate: data.expirationDate,
+					originalValue: data.originalValue,
+					value: data.originalValue - discount,
+					totalValue:
+						data.originalValue +
+						(data.feeValue || finance.feeValue) +
+						(data.increaseValue || finance.additionValue) -
+						(data.discountValue || finance.discountValue) -
+						discount,
+					reconciled: data.reconciled,
 
-				feeValue: data.feeValue ?? 0,
-				feePercentage: data.feePercentage ?? 0,
-				discountValue: data.discountValue ?? 0,
-				discountPercentage: data.discountPercentage ?? 0,
-				additionPercentage: data.increasePercentage,
-				additionValue: data.increaseValue,
-				observation: data.observation,
-				competenceDate: data.competenceDate,
-				fiscalNote: data.fiscalNote,
-				userDocument: data.userDocument,
-				nsuDocument: data.nsuDocument,
-				barCode: data.barCode,
-				bank: data.bank,
-				agency: data.agency,
-				account: data.account,
-				acquirer_id: data.tefAcquirerId,
-				tef_flag_id: data.tefFlagId,
-			})
-			.save();
+					feeValue: data.feeValue ?? 0,
+					feePercentage: data.feePercentage ?? 0,
+					discountValue: data.discountValue,
+					discountPercentage: data.discountPercentage,
+					additionPercentage: data.increasePercentage,
+					additionValue: data.increaseValue,
+					observation: data.observation,
+					competenceDate: data.competenceDate,
+					fiscalNote: data.fiscalNote,
+					userDocument: data.userDocument,
+					nsuDocument: data.nsuDocument,
+					barCode: data.barCode,
+					bank: data.bank,
+					agency: data.agency,
+					account: data.account,
+				})
+				.useTransaction(trx)
+				.save();
+
+			if (finance.bordero) {
+				await this.$syncBordero(trx, finance.bordero);
+			}
+			// await this.
+
+			return updated;
+		});
 	}
 
 	async updateFinanceDown(
@@ -1469,12 +1545,14 @@ export default class FinanceService {
 					bordero_id: bordero.id,
 				});
 
-			await bordero
+			const upB = await bordero
 				.merge({
 					titlesQty: bordero.titlesQty + data.financeIds.length,
 				})
 				.useTransaction(trx)
 				.save();
+
+			await this.$syncBordero(trx, upB);
 		});
 	}
 
@@ -1572,10 +1650,6 @@ export default class FinanceService {
 			tefFlagId?: string;
 
 			paymentDate: DateTime;
-			interestValue: number;
-			interestPercentage: number;
-			discountValue: number;
-			discountPercentage: number;
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -1606,14 +1680,6 @@ export default class FinanceService {
 
 					downDate: DateTime.now(),
 					paymentDate: data.paymentDate,
-					interestValue: data.interestValue,
-					interestPercentage: data.interestPercentage,
-					discountValue: data.discountValue,
-					discountPercentage: data.discountPercentage,
-					totalValue:
-						bordero.borderoValue + data.interestValue - data.discountValue,
-					paymentValue:
-						bordero.borderoValue + data.interestValue - data.discountValue,
 					status: "Baixado",
 				})
 				.useTransaction(trx)
@@ -1636,8 +1702,8 @@ export default class FinanceService {
 					checking_account_id: data.checkingAccountId,
 
 					payment_date: data.paymentDate,
-					payment_value:
-						bordero.borderoValue + data.interestValue - data.discountValue,
+					// payment_value:
+					// 	bordero.borderoValue + data.interestValue - data.discountValue,
 					down_date: DateTime.now(),
 					origin_down_flag: FinanceOriginDownFlag.BO,
 					fee_value: 0,
@@ -1809,6 +1875,72 @@ export default class FinanceService {
 					bordero_id: null,
 				});
 		});
+	}
+
+	async excludeBorderoItems(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+			financeIds: string[];
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bordero = await Bordero.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.id)
+				.first();
+
+			if (!bordero) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (bordero.status !== "Aberto") {
+				throw new BadRequestException(
+					"Para excluir itens de um borderô, ele deve estar 'Aberto'",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bordero_id", bordero.id)
+				.whereIn("id", data.financeIds)
+				.update({
+					bordero_id: null,
+				});
+
+			await this.$syncBordero(trx, bordero);
+		});
+	}
+
+	async calculateFee(
+		finance: Finance,
+		paymentMethod: PaymentMethod,
+		tefFlagID: string,
+	) {
+		const paymentMethodFlag = await PaymentMethodFlag.query()
+			.where("payment_method_id", paymentMethod.id)
+			.where("tef_flag_id", tefFlagID)
+			.preload("installments")
+			.first();
+
+		if (!paymentMethodFlag) {
+			return paymentMethod.fee;
+		}
+
+		const installment = paymentMethodFlag.installments.find((elem) => {
+			return elem.installment === finance.installment;
+		});
+		if (!installment) {
+			return paymentMethod.fee;
+		}
+
+		return installment.fee;
 	}
 
 	private async $registerDown(
@@ -2077,6 +2209,28 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+	}
+
+	private async $syncBordero(trx: TransactionClientContract, bordero: Bordero) {
+		const finances = await bordero
+			.related("finances")
+			.query()
+			.useTransaction(trx);
+
+		const totalValueSum = finances.reduce(
+			(acc, curr) => acc + curr.totalValue,
+			0,
+		);
+
+		await bordero
+			.merge({
+				borderoValue: totalValueSum,
+				totalValue:
+					totalValueSum + bordero.interestValue - bordero.discountValue,
+				titlesQty: finances.length,
+			})
+			.useTransaction(trx)
+			.save();
 	}
 
 	private parseDecimal(value: string | number) {

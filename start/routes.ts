@@ -883,6 +883,8 @@ Route.group(() => {
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
+	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
+
 	Route.get("/open-attendances", "FinancesController.openAttendances");
 	Route.get("/expiring-expenses", "FinancesController.expiringExpenses");
 	Route.get("/expiring-payments", "FinancesController.expiringPayments");
@@ -915,6 +917,7 @@ Route.group(() => {
 
 	Route.post("/update", "FinancesController.updateBordero");
 	Route.post("/exclude", "FinancesController.excludeBordero");
+	Route.post("/exclude-items", "FinancesController.excludeBorderoItems");
 
 	Route.post("/down", "FinancesController.updateBorderoDown");
 	Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");

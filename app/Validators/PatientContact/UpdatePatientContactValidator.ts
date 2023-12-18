@@ -1,47 +1,54 @@
-import { schema, CustomMessages } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { PatientContactType } from 'App/Models/PatientContact';
+import { schema, CustomMessages } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { PatientContactType } from "App/Models/PatientContact";
 
 export default class UpdatePatientContactValidator {
-  constructor(protected ctx: HttpContextContract) {}
+	constructor(protected ctx: HttpContextContract) {}
 
-  /*
-   * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
-   *
-   * For example:
-   * 1. The username must be of data type string. But then also, it should
-   *    not contain special characters or numbers.
-   *    ```
-   *     schema.string({}, [ rules.alpha() ])
-   *    ```
-   *
-   * 2. The email must be of data type string, formatted as a valid
-   *    email. But also, not used by any other user.
-   *    ```
-   *     schema.string({}, [
-   *       rules.email(),
-   *       rules.unique({ table: 'users', column: 'email' }),
-   *     ])
-   *    ```
-   */
-  public schema = schema.create({
-    main: schema.boolean(),
-    contact: schema.string(),
-    observation: schema.string.optional(),
-    type: schema.enum(Object.values(PatientContactType)),
-    active: schema.boolean(),
-  });
+	type = this.ctx.request.input("type");
+	notGiven = this.ctx.request.input("notGiven");
 
-  /**
-   * Custom messages for validation failures. You can make use of dot notation `(.)`
-   * for targeting nested fields and array expressions `(*)` for targeting all
-   * children of an array. For example:
-   *
-   * {
-   *   'profile.username.required': 'Username is required',
-   *   'scores.*.number': 'Define scores as valid numbers'
-   * }
-   *
-   */
-  public messages: CustomMessages = {};
+	/*
+	 * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
+	 *
+	 * For example:
+	 * 1. The username must be of data type string. But then also, it should
+	 *    not contain special characters or numbers.
+	 *    ```
+	 *     schema.string({}, [ rules.alpha() ])
+	 *    ```
+	 *
+	 * 2. The email must be of data type string, formatted as a valid
+	 *    email. But also, not used by any other user.
+	 *    ```
+	 *     schema.string({}, [
+	 *       rules.email(),
+	 *       rules.unique({ table: 'users', column: 'email' }),
+	 *     ])
+	 *    ```
+	 */
+	public schema = schema.create({
+		main: schema.boolean(),
+		notGiven: schema.boolean(),
+		contact:
+			this.type === "email" && this.notGiven === false
+				? schema.string()
+				: schema.string.optional(),
+		observation: schema.string.optional(),
+		type: schema.enum(Object.values(PatientContactType)),
+		active: schema.boolean(),
+	});
+
+	/**
+	 * Custom messages for validation failures. You can make use of dot notation `(.)`
+	 * for targeting nested fields and array expressions `(*)` for targeting all
+	 * children of an array. For example:
+	 *
+	 * {
+	 *   'profile.username.required': 'Username is required',
+	 *   'scores.*.number': 'Define scores as valid numbers'
+	 * }
+	 *
+	 */
+	public messages: CustomMessages = {};
 }

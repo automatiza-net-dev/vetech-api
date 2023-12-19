@@ -302,6 +302,7 @@ export default class ProductService {
 				brand_id: data.brandId,
 				taxBenefitCode: data.taxBenefitCode,
 				anvisaCode: data.anvisaCode,
+				purpose: data.purpose,
 			})
 			.save();
 	}

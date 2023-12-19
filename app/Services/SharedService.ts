@@ -195,6 +195,7 @@ export default class SharedService {
 		data: {
 			variationId: string;
 			discountValue: number;
+			quantity: number;
 		}[],
 	) {
 		const productVariations = await ProductVariation.query()
@@ -224,7 +225,7 @@ export default class SharedService {
 			}
 
 			return variation.businessUnitProducts.some(
-				(p) => p.maximumDiscountValue < elem.discountValue,
+				(p) => p.maximumDiscountValue * elem.quantity < elem.discountValue,
 			);
 		});
 

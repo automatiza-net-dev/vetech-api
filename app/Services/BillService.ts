@@ -202,7 +202,7 @@ export default class BillService {
 				authCtx.unit.id,
 				data.items.map((elem) => ({
 					variationId: elem.productVariationId,
-					discountValue: elem.discountValue,
+					discountValue: elem.discountValue * elem.quantity,
 				})),
 			);
 			if (invalid.length > 0) {
@@ -231,7 +231,7 @@ export default class BillService {
 					.flat()
 					.map((elem) => ({
 						variationId: elem.productVariationId,
-						discountValue: elem.discountValue,
+						discountValue: elem.discountValue * elem.quantity,
 					})),
 			);
 			if (invalid.length > 0) {
@@ -291,7 +291,7 @@ export default class BillService {
 				[
 					{
 						variationId: data.productVariationId,
-						discountValue: data.discountValue,
+						discountValue: data.discountValue * data.quantity,
 					},
 				],
 			);
@@ -310,7 +310,7 @@ export default class BillService {
 				authCtx.unit.id,
 				data.map((elem) => ({
 					variationId: elem.productVariationId,
-					discountValue: elem.discountValue,
+					discountValue: elem.discountValue * elem.quantity,
 				})),
 			);
 

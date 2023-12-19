@@ -463,7 +463,7 @@ export default class BudgetService {
 				authCtx.unit.id,
 				data.items.map((elem) => ({
 					variationId: elem.productVariationId,
-					discountValue: elem.discountValue,
+					discountValue: elem.discountValue * elem.quantity,
 				})),
 			);
 			if (result.length > 0) {
@@ -672,7 +672,7 @@ export default class BudgetService {
 				[
 					{
 						variationId: data.productVariationId,
-						discountValue: data.discountValue,
+						discountValue: data.discountValue * data.quantity,
 					},
 				],
 			);
@@ -751,7 +751,7 @@ export default class BudgetService {
 				authCtx.unit.id,
 				data.map((elem) => ({
 					variationId: elem.productVariationId,
-					discountValue: elem.discountValue,
+					discountValue: elem.discountValue * elem.quantity,
 				})),
 			);
 			if (result.length > 0) {
@@ -819,7 +819,7 @@ export default class BudgetService {
 				[
 					{
 						variationId: budgetItem.product_variation_id,
-						discountValue: data.discountValue,
+						discountValue: data.discountValue * data.quantity,
 					},
 				],
 			);

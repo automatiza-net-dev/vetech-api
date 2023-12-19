@@ -590,7 +590,7 @@ export default class BudgetService {
 		id: string,
 		data: {
 			sellerId?: string;
-			clientId: string;
+			clientId?: string;
 			reviewerId?: string;
 			patientId?: string;
 			clientName?: string;
@@ -633,6 +633,7 @@ export default class BudgetService {
 		id: string,
 		data: {
 			observation: string;
+			internalObservation: string;
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -649,6 +650,7 @@ export default class BudgetService {
 			return budget
 				.merge({
 					observation: data.observation,
+					internalObservation: data.internalObservation,
 				})
 				.useTransaction(trx)
 				.save();

@@ -158,13 +158,27 @@ export default class HospitalizationMedicalPrescriptionService {
 			);
 		}
 
-		if (data.fromScheduledDate) {
-			query.where("scheduled_at", ">=", new Date(data.fromScheduledDate));
+		if (data.fromScheduledDate && data.toScheduledDate) {
+			const d1 = new Date(data.fromScheduledDate);
+			const d2 = new Date(data.toScheduledDate);
+
+			query.whereRaw(
+				`(scheduled_at::date = ? and scheduled_at::time between ? and ?)`,
+				[
+					format(d1, "yyyy-MM-dd"),
+					format(d1, "HH:mm:ss"),
+					format(d2, "HH:mm:ss"),
+				],
+			);
 		}
 
-		if (data.toScheduledDate) {
-			query.where("scheduled_at", "<=", new Date(data.toScheduledDate));
-		}
+		// if (data.fromScheduledDate) {
+		// 	query.where("scheduled_at", ">=", new Date(data.fromScheduledDate));
+		// }
+		//
+		// if (data.toScheduledDate) {
+		// 	query.where("scheduled_at", "<=", new Date(data.toScheduledDate));
+		// }
 
 		return query;
 	}

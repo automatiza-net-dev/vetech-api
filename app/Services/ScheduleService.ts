@@ -138,9 +138,14 @@ export default class ScheduleService {
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
+			.joinRaw(
+				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
+			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
-			.whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
+			.whereRaw(
+				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+			);
 	}
 
 	public async returnableSchedules(unitId: string, patientId: string) {
@@ -665,9 +670,15 @@ export default class ScheduleService {
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
+			.joinRaw(
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				[data.from, data.to],
+			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
-			.whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
+			.whereRaw(
+				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+			);
 
 		if (data.user) {
 			usersQb.where("users.id", data.user);
@@ -721,13 +732,23 @@ export default class ScheduleService {
 			})
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
-			})
-			.preload("holder", (query) => {
+			});
+
+		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+			schedulesQb.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {
 					query.select(["cellphone", "telephone"]);
 				});
 			});
+		} else {
+			schedulesQb.preload("patient", (query) => {
+				query.select(["id", "name"]);
+				query.preload("tutor", (query) => {
+					query.select(["cellphone", "telephone"]);
+				});
+			});
+		}
 
 		const [workingDays, unavailableDays, schedules] = await Promise.all([
 			workingDaysQb,
@@ -811,9 +832,15 @@ export default class ScheduleService {
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
+			.joinRaw(
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				[data.from, data.to],
+			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
-			.whereRaw(`((users.on_duty = true) or (working_days.id is not null))`);
+			.whereRaw(
+				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+			);
 
 		if (data.user) {
 			usersQb.where("users.id", data.user);
@@ -821,12 +848,6 @@ export default class ScheduleService {
 
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
-
-		const days = differenceInDays(new Date(data.to), new Date(data.from));
-		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
-			const tmpDate = addDays(new Date(data.from!), k);
-			return ScheduleService.GetWD(tmpDate);
-		});
 
 		const schedules = await Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
@@ -926,9 +947,15 @@ export default class ScheduleService {
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
 			)
+			.joinRaw(
+				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				[data.from, data.to],
+			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
-			.whereRaw(`((users.on_duty = true) or (working_days.id is not null))`)
+			.whereRaw(
+				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+			)
 			.whereIn("users.id", data.users);
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 

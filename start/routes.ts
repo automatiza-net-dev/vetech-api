@@ -32,6 +32,7 @@ Route.group(() => {
 	Route.post("swap-unit", "AuthController.swapUnit").middleware("auth");
 	Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware("auth");
 
+	Route.post("admin-login", "AuthController.adminLogin");
 	Route.post("controller-login", "AuthController.controllerLogin");
 	Route.post("login", "AuthController.login");
 	Route.post("register", "AuthController.register");
@@ -882,6 +883,8 @@ Route.group(() => {
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
+	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
+
 	Route.get("/open-attendances", "FinancesController.openAttendances");
 	Route.get("/expiring-expenses", "FinancesController.expiringExpenses");
 	Route.get("/expiring-payments", "FinancesController.expiringPayments");
@@ -902,6 +905,24 @@ Route.group(() => {
 	Route.get("/overall-resume", "FinancesController.overallResume");
 })
 	.prefix("finances")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/show/:id", "FinancesController.showBordero");
+
+	Route.post("/create", "FinancesController.storeBordero");
+	Route.post("/create-items", "FinancesController.storeBorderoItems");
+	Route.post("/close", "FinancesController.closeBordero");
+	Route.post("/reopen", "FinancesController.reopenBordero");
+
+	Route.post("/update", "FinancesController.updateBordero");
+	Route.post("/exclude", "FinancesController.excludeBordero");
+	Route.post("/exclude-items", "FinancesController.excludeBorderoItems");
+
+	Route.post("/down", "FinancesController.updateBorderoDown");
+	Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");
+})
+	.prefix("borderos")
 	.middleware("auth");
 
 Route.group(() => {
@@ -941,6 +962,12 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.post(
+		"/check-deposit-availability",
+		"BillsController.checkDepositAvailability",
+	);
+	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
+
 	Route.post("/create-treatment", "BillsController.createTreatment");
 
 	Route.post("/create", "BillsController.createBill");
@@ -1022,6 +1049,10 @@ Route.group(() => {
 	Route.post(
 		"/business-unit/authorize-nfse",
 		"BusinessUnitFiscalDocumentsController.authorizeNfse",
+	);
+	Route.post(
+		"/business-unit/resend-nfse",
+		"BusinessUnitFiscalDocumentsController.resendNfse",
 	);
 
 	Route.post(
@@ -1332,19 +1363,32 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/import-xml", "ReceiptsController.importFromXml");
+	Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
 
 	Route.post("/create", "ReceiptsController.createReceipt");
 	Route.post("/create-item", "ReceiptsController.createReceiptItem");
 	Route.post("/create-payment", "ReceiptsController.createReceiptPayment");
+	Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
+	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
 
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
 	Route.get("/", "ReceiptsController.index");
+	Route.get("/with-products", "ReceiptsController.productIndex");
 	Route.get("/show", "ReceiptsController.show");
 	Route.get("/products", "ReceiptsController.searchProducts");
 	Route.get("/taxes", "ReceiptsController.searchTaxes");
 	Route.get("/payment-methods", "ReceiptsController.searchPaymentMethods");
+
+	Route.post(
+		"/create-supplier-products",
+		"ReceiptsController.createSupplierProducts",
+	);
+	Route.post(
+		"/create-receipt-products",
+		"ReceiptsController.createReceiptProducts",
+	);
 })
 	.prefix("receipts")
 	.middleware("auth");
@@ -1497,4 +1541,33 @@ Route.group(() => {
 	Route.delete("/:id", "MetasController.destroy");
 })
 	.prefix("metas")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/show-deposit/:id", "DepositsController.showDeposit");
+	Route.get("/search-deposits", "DepositsController.searchDeposits");
+	Route.post("/create-deposit", "DepositsController.createDeposit");
+	Route.post(
+		"/update-principal-deposit/:id",
+		"DepositsController.updatePrincipalDeposit",
+	);
+	Route.post("/update-deposit/:id", "DepositsController.updateDeposit");
+
+	Route.post("/create-deposit-item", "DepositsController.createDepositItem");
+	Route.post("/update-deposit-item", "DepositsController.updateDepositItem");
+
+	Route.get(
+		"/show-deposit-movements",
+		"DepositsController.showDepositMovements",
+	);
+	Route.get(
+		"/search-deposit-movements",
+		"DepositsController.searchDepositMovements",
+	);
+	Route.post(
+		"/create-deposit-movement",
+		"DepositsController.createDepositMovement",
+	);
+})
+	.prefix("deposits")
 	.middleware("auth");

@@ -1,8 +1,16 @@
 import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
-import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
+import BusinessUnitProduct, {
+	BusinessUnitProductMetaType,
+} from "App/Models/BusinessUnitProduct";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
 	FinanceAccept,
@@ -20,9 +28,14 @@ import PaymentMethod, {
 } from "App/Models/PaymentMethod";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
-import Receipt from "App/Models/Receipt";
-import ReceiptItem, { TReceiptItemStatus } from "App/Models/ReceiptItem";
-import ReceiptPayment from "App/Models/ReceiptPayment";
+import Receipt, { TReceiptStatus } from "App/Models/Receipt";
+import ReceiptItem, {
+	ReceiptItemStatus,
+	TReceiptItemStatus,
+} from "App/Models/ReceiptItem";
+import ReceiptPayment, {
+	TReceiptPaymentStatus,
+} from "App/Models/ReceiptPayment";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
@@ -36,12 +49,268 @@ import { format } from "date-fns";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
-import Logger from "@ioc:Adonis/Core/Logger";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
+
+const detSchema = z.object({
+	prod: z.object({
+		cProd: z.string(),
+		cEAN: z.string(),
+		xProd: z.string(),
+		NCM: z.string(),
+		CFOP: z.string(),
+		uCom: z.string(),
+		qCom: z.coerce.number(),
+		vUnCom: z.coerce.number(),
+		vProd: z.coerce.number(),
+		cEANTrib: z.string(),
+		uTrib: z.string(),
+		qTrib: z.string(),
+		vUnTrib: z.string(),
+		indTot: z.string(),
+		vDesc: z.optional(z.coerce.number()),
+	}),
+	imposto: z.object({
+		ICMS: z.object({
+			ICMS00: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					modBC: z.string(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+				}),
+			),
+			ICMS10: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+				}),
+			),
+			ICMS20: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					pRedBC: z.coerce.number(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+					vICMSDeson: z.coerce.number(),
+				}),
+			),
+			ICMS30: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+					vICMSDeson: z.coerce.number(),
+				}),
+			),
+			ICMS40: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					vICMSDeson: z.coerce.number(),
+				}),
+			),
+			ICMS51: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					pRedBC: z.coerce.number(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMSOP: z.coerce.number(),
+					pDif: z.coerce.number(),
+					vICMSDif: z.coerce.number(),
+					vICMS: z.coerce.number(),
+				}),
+			),
+			ICMS60: z.optional(
+				z.object({
+					orig: z.string(),
+					// CST: z.string(),
+					vBCSTRet: z.coerce.number(),
+					vICMSSTRet: z.coerce.number(),
+				}),
+			),
+			ICMS70: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					pRedBC: z.coerce.number(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+					vICMSDeson: z.coerce.number(),
+				}),
+			),
+			ICMS90: z.optional(
+				z.object({
+					orig: z.string(),
+					CST: z.string(),
+					pRedBC: z.coerce.number(),
+					vBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+					vICMSDeson: z.coerce.number(),
+				}),
+			),
+			ICMSSN101: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+					pCredSN: z.coerce.number(),
+					vCredICMSSN: z.coerce.number(),
+				}),
+			),
+			ICMSSN102: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+				}),
+			),
+			ICMSSN201: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+					pCredSN: z.coerce.number(),
+					vCredICMSSN: z.coerce.number(),
+				}),
+			),
+			ICMSSN202: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+				}),
+			),
+			ICMSSN500: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+					vBCSTRet: z.coerce.number(),
+					pICMSSTRet: z.coerce.number(),
+				}),
+			),
+			ICMSSN900: z.optional(
+				z.object({
+					orig: z.string(),
+					CSOSN: z.string(),
+					pRedBC: z.coerce.number(),
+					pICMS: z.coerce.number(),
+					vICMS: z.coerce.number(),
+					pMVAST: z.coerce.number(),
+					pRedBCST: z.coerce.number(),
+					vBCST: z.coerce.number(),
+					pICMSST: z.coerce.number(),
+					vICMSST: z.coerce.number(),
+					pCredSN: z.coerce.number(),
+					vCredICMSSN: z.coerce.number(),
+				}),
+			),
+		}),
+		PIS: z.object({
+			PISAliq: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pPIS: z.coerce.number(),
+					vPIS: z.coerce.number(),
+				}),
+			),
+			PISQtde: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pPIS: z.coerce.number(),
+					vPIS: z.coerce.number(),
+				}),
+			),
+			PISNT: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pPIS: z.coerce.number(),
+					vPIS: z.coerce.number(),
+				}),
+			),
+			PISOutr: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pPIS: z.coerce.number(),
+					vPIS: z.coerce.number(),
+				}),
+			),
+		}),
+		COFINS: z.object({
+			COFINSAliq: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pCOFINS: z.coerce.number(),
+					vCOFINS: z.coerce.number(),
+				}),
+			),
+			COFINSQtde: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pCOFINS: z.coerce.number(),
+					vCOFINS: z.coerce.number(),
+				}),
+			),
+			COFINSNT: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pCOFINS: z.coerce.number(),
+					vCOFINS: z.coerce.number(),
+				}),
+			),
+			COFINSOutr: z.optional(
+				z.object({
+					CST: z.string(),
+					vBC: z.coerce.number(),
+					pCOFINS: z.coerce.number(),
+					vCOFINS: z.coerce.number(),
+				}),
+			),
+		}),
+	}),
+	_nItem: z.optional(z.string()),
+});
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -76,7 +345,7 @@ const schema = z.object({
 					enderEmit: z.object({
 						xLgr: z.string(),
 						nro: z.string(),
-						xCpl: z.string(),
+						xCpl: z.optional(z.string()),
 						xBairro: z.string(),
 						cMun: z.string(),
 						xMun: z.string(),
@@ -91,7 +360,8 @@ const schema = z.object({
 				}),
 				dest: z.optional(
 					z.object({
-						CNPJ: z.string(),
+						CNPJ: z.optional(z.string()),
+						CPF: z.optional(z.string()),
 						xNome: z.string(),
 						enderDest: z.object({
 							xLgr: z.string(),
@@ -107,273 +377,11 @@ const schema = z.object({
 							fone: z.string(),
 						}),
 						indIEDest: z.string(),
-						IE: z.string(),
+						IE: z.optional(z.string()),
 						email: z.string(),
 					}),
 				),
-				det: z.array(
-					z.object({
-						prod: z.object({
-							cProd: z.string(),
-							cEAN: z.string(),
-							xProd: z.string(),
-							NCM: z.string(),
-							CFOP: z.string(),
-							uCom: z.string(),
-							qCom: z.coerce.number(),
-							vUnCom: z.coerce.number(),
-							vProd: z.coerce.number(),
-							cEANTrib: z.string(),
-							uTrib: z.string(),
-							qTrib: z.string(),
-							vUnTrib: z.string(),
-							indTot: z.string(),
-							vDesc: z.optional(z.coerce.number()),
-						}),
-						imposto: z.object({
-							ICMS: z.object({
-								ICMS00: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										modBC: z.string(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-									}),
-								),
-								ICMS10: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-									}),
-								),
-								ICMS20: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										pRedBC: z.coerce.number(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-										vICMSDeson: z.coerce.number(),
-									}),
-								),
-								ICMS30: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-										vICMSDeson: z.coerce.number(),
-									}),
-								),
-								ICMS40: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										vICMSDeson: z.coerce.number(),
-									}),
-								),
-								ICMS51: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										pRedBC: z.coerce.number(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMSOP: z.coerce.number(),
-										pDif: z.coerce.number(),
-										vICMSDif: z.coerce.number(),
-										vICMS: z.coerce.number(),
-									}),
-								),
-								ICMS60: z.optional(
-									z.object({
-										orig: z.string(),
-										// CST: z.string(),
-										vBCSTRet: z.coerce.number(),
-										vICMSSTRet: z.coerce.number(),
-									}),
-								),
-								ICMS70: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										pRedBC: z.coerce.number(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-										vICMSDeson: z.coerce.number(),
-									}),
-								),
-								ICMS90: z.optional(
-									z.object({
-										orig: z.string(),
-										CST: z.string(),
-										pRedBC: z.coerce.number(),
-										vBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-										vICMSDeson: z.coerce.number(),
-									}),
-								),
-								ICMSSN101: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-										pCredSN: z.coerce.number(),
-										vCredICMSSN: z.coerce.number(),
-									}),
-								),
-								ICMSSN102: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-									}),
-								),
-								ICMSSN201: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-										pCredSN: z.coerce.number(),
-										vCredICMSSN: z.coerce.number(),
-									}),
-								),
-								ICMSSN202: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-									}),
-								),
-								ICMSSN500: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-										vBCSTRet: z.coerce.number(),
-										pICMSSTRet: z.coerce.number(),
-									}),
-								),
-								ICMSSN900: z.optional(
-									z.object({
-										orig: z.string(),
-										CSOSN: z.string(),
-										pRedBC: z.coerce.number(),
-										pICMS: z.coerce.number(),
-										vICMS: z.coerce.number(),
-										pMVAST: z.coerce.number(),
-										pRedBCST: z.coerce.number(),
-										vBCST: z.coerce.number(),
-										pICMSST: z.coerce.number(),
-										vICMSST: z.coerce.number(),
-										pCredSN: z.coerce.number(),
-										vCredICMSSN: z.coerce.number(),
-									}),
-								),
-							}),
-							PIS: z.object({
-								PISAliq: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pPIS: z.coerce.number(),
-										vPIS: z.coerce.number(),
-									}),
-								),
-								PISQtde: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pPIS: z.coerce.number(),
-										vPIS: z.coerce.number(),
-									}),
-								),
-								PISNT: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pPIS: z.coerce.number(),
-										vPIS: z.coerce.number(),
-									}),
-								),
-								PISOutr: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pPIS: z.coerce.number(),
-										vPIS: z.coerce.number(),
-									}),
-								),
-							}),
-							COFINS: z.object({
-								COFINSAliq: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pCOFINS: z.coerce.number(),
-										vCOFINS: z.coerce.number(),
-									}),
-								),
-								COFINSQtde: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pCOFINS: z.coerce.number(),
-										vCOFINS: z.coerce.number(),
-									}),
-								),
-								COFINSNT: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pCOFINS: z.coerce.number(),
-										vCOFINS: z.coerce.number(),
-									}),
-								),
-								COFINSOutr: z.optional(
-									z.object({
-										CST: z.string(),
-										vBC: z.coerce.number(),
-										pCOFINS: z.coerce.number(),
-										vCOFINS: z.coerce.number(),
-									}),
-								),
-							}),
-						}),
-						_nItem: z.optional(z.string()),
-					}),
-				),
+				det: z.union([z.array(detSchema), detSchema]),
 				total: z.object({
 					ICMSTot: z.object({
 						vBC: z.coerce.number(),
@@ -404,12 +412,21 @@ const schema = z.object({
 				}),
 				cobr: z.optional(
 					z.object({
-						fat: z.object({
-							nFat: z.string(),
-							vOrig: z.string(),
-							vDesc: z.string(),
-							vLiq: z.string(),
-						}),
+						fat: z.optional(
+							z.object({
+								nFat: z.string(),
+								vOrig: z.string(),
+								vDesc: z.string(),
+								vLiq: z.coerce.number(),
+							}),
+						),
+						dup: z.optional(
+							z.object({
+								vDup: z.coerce.number(),
+								dVenc: z.string(),
+								nDup: z.string(),
+							}),
+						),
 					}),
 				),
 				pag: z.object({
@@ -501,11 +518,11 @@ export default class ReceiptService {
 			.where("business_unit_id", authCtx.unit.id);
 
 		if (data.from) {
-			qb.whereRaw("receiptDate::date >= ?", [data.from]);
+			qb.whereRaw("receipt_date::date >= ?", [data.from]);
 		}
 
 		if (data.to) {
-			qb.whereRaw("receiptDate::date <= ?", [data.to]);
+			qb.whereRaw("receipt_date::date <= ?", [data.to]);
 		}
 
 		if (data.tag) {
@@ -526,6 +543,7 @@ export default class ReceiptService {
 			issueDate: elem.issueDate,
 			receiptDate: elem.receiptDate,
 			totalValue: elem.totalValue,
+			paidValue: elem.paidValue,
 			status: elem.status,
 			user: elem.user,
 			seller: elem.seller,
@@ -533,9 +551,60 @@ export default class ReceiptService {
 		}));
 	}
 
-	async show(authCtx: AuthContext, data: { ids?: string[] }) {
+	async productsIndex(authCtx: AuthContext) {
+		const qb = Receipt.query()
+			.preload("supplier", (query) => {
+				query.select("id", "name");
+			})
+			.preload("items", (query) => {
+				query.whereNotNull("product_variation_id");
+				query.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.whereNull("purpose");
+					});
+				});
+
+				query.select("id", "product_variation_id");
+
+				query.preload("productVariation", (query) => {
+					query.preload("product", (query) => {
+						query.select("id", "description");
+					});
+					query.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+
+						query.select("id", "businness_unit_id", "cost_price");
+					});
+				});
+			})
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
+
+		return (await qb).map((elem) => ({
+			id: elem.id,
+			tag: elem.tag,
+			issueDate: elem.issueDate,
+			totalValue: elem.totalValue,
+			supplier: elem.supplier,
+			items: elem.items,
+		}));
+	}
+
+	async show(authCtx: AuthContext, data: { ids?: string[]; status?: string }) {
 		if (!data.ids || !Array.isArray(data.ids) || data.ids.length === 0) {
 			throw new BadRequestException("Nenhum ID informado", 400, "E_NO_IDS");
+		}
+
+		if (
+			data.status &&
+			!ReceiptItemStatus.includes(data.status as TReceiptItemStatus)
+		) {
+			throw new BadRequestException(
+				`Status inválido. Valores possíveis: ${ReceiptItemStatus.join(", ")}`,
+				400,
+				"E_INVALID_STATUS",
+			);
 		}
 
 		const rows = await Receipt.query()
@@ -563,7 +632,13 @@ export default class ReceiptService {
 				query.preload("paymentMethod");
 			})
 			.preload("items", (query) => {
-				query.where("status", "Ativo" as TReceiptItemStatus);
+				if (data.status) {
+					query.where("status", data.status);
+				} else {
+					query.where("status", "Ativo" as TReceiptItemStatus);
+				}
+
+				query.orderBy("description_xml", "asc");
 
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
@@ -572,6 +647,91 @@ export default class ReceiptService {
 			});
 
 		return rows;
+	}
+
+	async updateXmlItems(
+		authCtx: AuthContext,
+		data: {
+			items: {
+				productId: string;
+				variationGroupId?: string;
+				subgroupId: string;
+				unitId: string;
+				taxationGroupId: string;
+				brandId?: string;
+				productVariationId: string;
+
+				referenceCode: string;
+				purpose: ProductPurpose;
+				barcode?: string;
+				minimumStock: number;
+				maximumStock: number;
+				maximumDiscountPercentage: number;
+				price: number;
+				costPrice: number;
+				profitMargin: number;
+				commission: number;
+				commissionMeta: number;
+				metaType: BusinessUnitProductMetaType;
+				meta: number;
+			}[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const units = await BusinessUnit.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id);
+
+			const tasks = data.items.map(async (item) => {
+				const product = await Product.findOrFail(item.productId, {
+					client: trx,
+				});
+
+				await product
+					.merge({
+						referenceCode: item.referenceCode,
+						unit_id: item.unitId,
+						subgroup_id: item.subgroupId,
+						taxation_group_id: item.taxationGroupId,
+						brand_id: item.brandId,
+					})
+					.useTransaction(trx)
+					.save();
+
+				const variation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("product_id", item.productId)
+					.where("id", item.productVariationId)
+					.firstOrFail();
+				await variation
+					.merge({
+						barcode: item.barcode,
+					})
+					.useTransaction(trx)
+					.save();
+
+				await BusinessUnitProduct.query()
+					.useTransaction(trx)
+					.whereIn(
+						"businness_unit_id",
+						units.map((u) => u.id),
+					)
+					.where("product_variation_id", item.productVariationId)
+					.update({
+						cost_price: item.costPrice,
+						price: item.price,
+						maximum_stock: item.maximumStock,
+						minimum_stock: item.minimumStock,
+						maximum_discount_percentage: item.maximumDiscountPercentage,
+						profit_margin: item.profitMargin,
+						commission: item.commission,
+						meta_type: item.metaType,
+						meta: item.meta,
+						commission_meta: item.commissionMeta,
+					});
+			});
+			await Promise.all(tasks);
+		});
 	}
 
 	async importFromXml(
@@ -617,7 +777,7 @@ export default class ReceiptService {
 			);
 		}
 
-		return await Database.transaction(async (trx) => {
+		return Database.transaction(async (trx) => {
 			const issuedAlready = await IssuedFiscalDocument.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -676,18 +836,7 @@ export default class ReceiptService {
 				authCtx,
 			);
 
-			const productVariationIds = await this.getProductVariationForImport(
-				trx,
-				parsed.data,
-				supplierId,
-				authCtx,
-			);
-			const productVariations = await ProductVariation.query()
-				.useTransaction(trx)
-				.whereIn("id", productVariationIds)
-				.preload("product");
-
-			const counter = await Receipt.query()
+			const receiptsCounter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id);
@@ -703,7 +852,7 @@ export default class ReceiptService {
 
 					issueDate: DateTime.now(),
 					receiptDate: DateTime.now(),
-					tag: GenerateTag(counter.length + 1),
+					tag: GenerateTag(receiptsCounter.length + 1),
 					productValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
 					discountValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vDesc,
 					deliveryValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFrete,
@@ -723,10 +872,60 @@ export default class ReceiptService {
 						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
 					additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
-					status: "Ativa",
+					status: "PendenteXml",
 				},
 				{ client: trx },
 			);
+
+			if (parsed.data.nfeProc.NFe.infNFe.cobr) {
+				const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
+				if (d1) {
+					await newReceipt.related("payments").create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							block: 1,
+							installment: 1,
+							blockInstallments: 1,
+							installmentValue: d1.vLiq,
+							issueDate: DateTime.now(),
+							expirationDate: DateTime.now(),
+							nsuDocument: d1.nFat,
+							status: "Ativo",
+						},
+						{ client: trx },
+					);
+
+					newReceipt.merge({
+						paidValue: newReceipt.paidValue + d1.vLiq,
+					});
+				}
+
+				const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
+				if (d2) {
+					await newReceipt.related("payments").create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							block: d1 ? 2 : 1,
+							installment: 1,
+							blockInstallments: 1,
+							installmentValue: d2.vDup,
+							issueDate: DateTime.now(),
+							expirationDate: DateTime.fromISO(d2.dVenc),
+							nsuDocument: d2.nDup,
+							status: "Ativo",
+						},
+						{ client: trx },
+					);
+
+					newReceipt.merge({
+						paidValue: newReceipt.paidValue + d2.vDup,
+					});
+				}
+			}
+
+			await newReceipt.useTransaction(trx).save();
 
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,
@@ -749,10 +948,6 @@ export default class ReceiptService {
 				itemData.push({
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
-					product_variation_id: productVariations.find(
-						(v) =>
-							v.barcode === item.prod.cEAN || v.barcode === item.prod.cEANTrib,
-					)?.id,
 					receipt_id: newReceipt.id,
 
 					quantity: item.prod.qCom,
@@ -784,8 +979,8 @@ export default class ReceiptService {
 						"vBCSTRet" in icms
 							? icms.vBCSTRet
 							: "vBCST" in icms
-							? icms.vBCST
-							: undefined,
+							  ? icms.vBCST
+							  : undefined,
 					icmsStPercentageRedBase:
 						"pRedBCST" in icms ? icms.pRedBCST : undefined,
 					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
@@ -794,14 +989,14 @@ export default class ReceiptService {
 							? // @ts-ignore check if things will work
 							  icms.pICMSSTRet
 							: "pICMSST" in icms
-							? icms.pICMSST
-							: undefined,
+							  ? icms.pICMSST
+							  : undefined,
 					icmsStValue:
 						"vICMSSTRet" in icms
 							? icms.vICMSSTRet
 							: "vICMSST" in icms
-							? icms.vICMSST
-							: undefined, // vICMSSTRet ?
+							  ? icms.vICMSST
+							  : undefined, // vICMSSTRet ?
 					// icmsPartitionValue: 0,
 					// icmsFcpPercentage: 0,
 					// icmsFcpValue: 0,
@@ -872,12 +1067,36 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
+			await this.$syncItems(trx, newReceipt);
+
 			return newReceipt;
 		});
 	}
 
+	private async $syncItems(trx: TransactionClientContract, receipt: Receipt) {
+		await Database.rawQuery(
+			`update receipt_items set product_variation_id = sp.product_variation_id
+      from receipt_items ri join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id
+      where ri.receipt_id = ?
+      and receipt_items.id = ri.id
+      and receipt_items.product_variation_id is null;`,
+			[receipt.id],
+		).useTransaction(trx);
+
+		await Database.rawQuery(
+			`update receipt_items set product_variation_id = pv.id
+      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode
+      where ri.receipt_id = ?
+      and receipt_items.id = ri.id
+      and receipt_items.product_variation_id is null;`,
+			[receipt.id],
+		).useTransaction(trx);
+	}
+
 	private getIcms(data: z.infer<typeof schema>, idx: number) {
-		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.ICMS;
+		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
+			? data.nfeProc.NFe.infNFe.det[idx].imposto.ICMS
+			: data.nfeProc.NFe.infNFe.det.imposto.ICMS;
 
 		if (row.ICMS00) return row.ICMS00;
 
@@ -913,7 +1132,9 @@ export default class ReceiptService {
 	}
 
 	private getCofins(data: z.infer<typeof schema>, idx: number) {
-		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.COFINS;
+		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
+			? data.nfeProc.NFe.infNFe.det[idx].imposto.COFINS
+			: data.nfeProc.NFe.infNFe.det.imposto.COFINS;
 
 		if (row.COFINSAliq) {
 			return row.COFINSAliq;
@@ -935,7 +1156,9 @@ export default class ReceiptService {
 	}
 
 	private getPis(data: z.infer<typeof schema>, idx: number) {
-		const row = data.nfeProc.NFe.infNFe.det[idx].imposto.PIS;
+		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
+			? data.nfeProc.NFe.infNFe.det[idx].imposto.PIS
+			: data.nfeProc.NFe.infNFe.det.imposto.PIS;
 
 		if (row.PISAliq) {
 			return row.PISAliq;
@@ -984,109 +1207,115 @@ export default class ReceiptService {
 		return dailyMovement.id;
 	}
 
-	private async getProductVariationForImport(
-		trx: TransactionClientContract,
-		data: z.infer<typeof schema>,
-		supplierId: string,
-		authCtx: AuthContext,
-	): Promise<string[]> {
-		const items = SharedService.ArrayUnion(
-			data.nfeProc.NFe.infNFe.det.map((d) => d.prod),
-			(val) => val,
-		);
-
-		const uniqueItems = items.reduce((acc, current) => {
-			if (!acc.includes(current.cEAN)) {
-				acc.push(current.cEAN);
-			}
-
-			// if (!acc.includes(current.cEANTrib)) {
-			// 	acc.push(current.cEANTrib);
-			// }
-
-			return acc;
-		}, [] as string[]);
-
-		const supplierProducts = await SupplierProduct.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.where("supplier_id", supplierId)
-			.whereIn("product_supplier_id", uniqueItems);
-
-		// every item has a supplier product
-		if (supplierProducts.length === uniqueItems.length) {
-			return supplierProducts.map((elem) => elem.produt_variation_id);
-		}
-
-		const prodVariations = await ProductVariation.query()
-			.useTransaction(trx)
-			.whereIn("barcode", uniqueItems);
-		if (prodVariations.length === uniqueItems.length) {
-			return prodVariations.map((elem) => elem.id);
-		}
-
-		const products = await Product.fetchOrCreateMany(
-			["economic_group_id", "ncm"],
-			items.map((elem) => ({
-				economic_group_id: authCtx.group.id,
-
-				description: elem.xProd,
-				type: ProductType.PRODUCT,
-				ncm: elem.NCM,
-				active: true,
-			})),
-			{ client: trx },
-		);
-
-		const variationTasks = products.map((elem) => {
-			return elem.related("variations").fetchOrCreateMany(
-				items.map((inner) => ({ barcode: inner.cEAN })),
-				["barcode"],
-				{ client: trx },
-			);
-		});
-		const variations = await Promise.all(variationTasks);
-
-		const units = await BusinessUnit.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.select("id");
-
-		// iterate over each
-		const pData: Array<Partial<BusinessUnitProduct>> = [];
-		// eslint-disable-next-line no-restricted-syntax
-		for (const variation of variations.flat()) {
-			// eslint-disable-next-line no-restricted-syntax
-			for (const unit of units) {
-				// eslint-disable-next-line no-restricted-syntax
-				for (const item of items) {
-					pData.push({
-						businness_unit_id: unit.id,
-						product_variation_id: variation.id,
-						stock: 0,
-						maximumStock: 0,
-						minimumStock: 0,
-						maximumDiscountPercentage: 100,
-						maximumDiscountValue: 0,
-						price: 0,
-						costPrice: item.vUnCom,
-						profitMargin: 0,
-						commission: 0,
-						meta: 0,
-						metaType: undefined,
-						commissionMeta: 0,
-					});
-				}
-			}
-		}
-		await BusinessUnitProduct.fetchOrCreateMany(
-			["businness_unit_id", "product_variation_id"],
-			pData,
-			{ client: trx },
-		);
-
-		return variations.flat().map((elem) => elem.id);
-	}
+	// private async getProductVariationForImport(
+	// 	trx: TransactionClientContract,
+	// 	data: z.infer<typeof schema>,
+	// 	supplierId: string,
+	// 	authCtx: AuthContext,
+	// ): Promise<string[]> {
+	// 	throw new BadRequestException("Não deve ser chamado", 400, "E_NO_PV");
+	//
+	// 	const sanitized = Array.isArray(data.nfeProc.NFe.infNFe.det)
+	// 		? data.nfeProc.NFe.infNFe.det
+	// 		: [data.nfeProc.NFe.infNFe.det];
+	//
+	// 	const items = SharedService.ArrayUnion(
+	// 		sanitized.map((d) => d.prod),
+	// 		(val) => val,
+	// 	);
+	//
+	// 	const uniqueItems = items.reduce((acc, current) => {
+	// 		if (!acc.includes(current.cEAN)) {
+	// 			acc.push(current.cEAN);
+	// 		}
+	//
+	// 		// if (!acc.includes(current.cEANTrib)) {
+	// 		// 	acc.push(current.cEANTrib);
+	// 		// }
+	//
+	// 		return acc;
+	// 	}, [] as string[]);
+	//
+	// 	const supplierProducts = await SupplierProduct.query()
+	// 		.useTransaction(trx)
+	// 		.where("economic_group_id", authCtx.group.id)
+	// 		.where("supplier_id", supplierId)
+	// 		.whereIn("product_supplier_id", uniqueItems);
+	//
+	// 	// every item has a supplier product
+	// 	if (supplierProducts.length === uniqueItems.length) {
+	// 		return supplierProducts.map((elem) => elem.produt_variation_id);
+	// 	}
+	//
+	// 	const prodVariations = await ProductVariation.query()
+	// 		.useTransaction(trx)
+	// 		.whereIn("barcode", uniqueItems);
+	// 	if (prodVariations.length === uniqueItems.length) {
+	// 		return prodVariations.map((elem) => elem.id);
+	// 	}
+	//
+	// 	const products = await Product.fetchOrCreateMany(
+	// 		["economic_group_id", "ncm"],
+	// 		items.map((elem) => ({
+	// 			economic_group_id: authCtx.group.id,
+	//
+	// 			description: elem.xProd,
+	// 			type: ProductType.PRODUCT,
+	// 			ncm: elem.NCM,
+	// 			active: true,
+	// 		})),
+	// 		{ client: trx },
+	// 	);
+	//
+	// 	const variationTasks = products.map((elem) => {
+	// 		return elem.related("variations").fetchOrCreateMany(
+	// 			items.map((inner) => ({ barcode: inner.cEAN })),
+	// 			["barcode"],
+	// 			{ client: trx },
+	// 		);
+	// 	});
+	// 	const variations = await Promise.all(variationTasks);
+	//
+	// 	const units = await BusinessUnit.query()
+	// 		.useTransaction(trx)
+	// 		.where("economic_group_id", authCtx.group.id)
+	// 		.select("id");
+	//
+	// 	// iterate over each
+	// 	const pData: Array<Partial<BusinessUnitProduct>> = [];
+	// 	// eslint-disable-next-line no-restricted-syntax
+	// 	for (const variation of variations.flat()) {
+	// 		// eslint-disable-next-line no-restricted-syntax
+	// 		for (const unit of units) {
+	// 			// eslint-disable-next-line no-restricted-syntax
+	// 			for (const item of items) {
+	// 				pData.push({
+	// 					businness_unit_id: unit.id,
+	// 					product_variation_id: variation.id,
+	// 					stock: 0,
+	// 					maximumStock: 0,
+	// 					minimumStock: 0,
+	// 					maximumDiscountPercentage: 100,
+	// 					maximumDiscountValue: 0,
+	// 					price: 0,
+	// 					costPrice: item.vUnCom,
+	// 					profitMargin: 0,
+	// 					commission: 0,
+	// 					meta: 0,
+	// 					metaType: undefined,
+	// 					commissionMeta: 0,
+	// 				});
+	// 			}
+	// 		}
+	// 	}
+	// 	await BusinessUnitProduct.fetchOrCreateMany(
+	// 		["businness_unit_id", "product_variation_id"],
+	// 		pData,
+	// 		{ client: trx },
+	// 	);
+	//
+	// 	return variations.flat().map((elem) => elem.id);
+	// }
 
 	private async getSupplierForImport(
 		trx: TransactionClientContract,
@@ -1208,7 +1437,7 @@ export default class ReceiptService {
 					additionalInformation: data.additionalInformation,
 					reversalObservation: data.reversalObservation,
 					reversedAt: data.reversedAt,
-					status: "Ativa",
+					status: "Aberta",
 				},
 				{ client: trx },
 			);
@@ -1253,6 +1482,8 @@ export default class ReceiptService {
 			}
 
 			await this.innerCreateItem(trx, authCtx, data);
+
+			await this.syncReceipt(trx, receipt);
 		});
 	}
 
@@ -1421,29 +1652,34 @@ export default class ReceiptService {
 			}
 
 			const tasks = data.items.map((elem, index) => {
-				return ReceiptPayment.create(
-					{
-						economic_group_id: authCtx.group.id,
-						business_unit_id: authCtx.unit.id,
-						receipt_id: data.receiptId,
-						payment_method_id: elem.paymentMethodId,
-						tef_acquirer_id: elem.tefAcquirerId,
-						tef_flag_id: elem.tefFlagId,
+				return ReceiptPayment.createMany(
+					Array.from<number, Partial<ReceiptPayment>>(
+						{ length: elem.installments },
+						(_, idx) => ({
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							receipt_id: data.receiptId,
+							payment_method_id: elem.paymentMethodId,
+							tef_acquirer_id: elem.tefAcquirerId,
+							tef_flag_id: elem.tefFlagId,
 
-						block: index + 1 + receipt.payments.length,
-						blockInstallments: elem.installments,
-						installmentValue: elem.installmentValue,
-						issueDate: elem.issueDate,
-						expirationDate: elem.expirationDate,
-						nsuDocument: elem.nsuDocument,
-						status: "Ativo",
-					},
+							installment: idx + 1,
+							block: index + 1 + receipt.payments.length,
+							blockInstallments: elem.installments,
+							installmentValue: elem.installmentValue / elem.installments,
+							issueDate: elem.issueDate,
+							expirationDate: elem.expirationDate,
+							nsuDocument: elem.nsuDocument,
+							status: "Ativo",
+						}),
+					),
+
 					{ client: trx },
 				);
 			});
 
 			const payments = await Promise.all(tasks);
-			const paymentsTasks = payments.map((elem) => {
+			const paymentsTasks = payments.flat().map((elem) => {
 				return this.createFinanceEntry(trx, authCtx, {
 					dailyCashierId: receipt.daily_cashier_id,
 					dailyMovementId: receipt.daily_movement_id,
@@ -1457,6 +1693,201 @@ export default class ReceiptService {
 				});
 			});
 			await Promise.all(paymentsTasks);
+
+			await receipt
+				.merge({
+					paidValue:
+						receipt.paidValue +
+						this.sharedService.sum(data.items.map((i) => i.installmentValue)),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	async updatePayment(
+		authCtx: AuthContext,
+		data: {
+			receiptPaymentIds: string[];
+			paymentMethodId: string;
+			tefFlagId?: string;
+			tefAcquirerId?: string;
+			installmentValue: number;
+			expirationDate: DateTime;
+			nsuDocument: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const payments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereHas("receipt", (query) => {
+					query
+						.where("economic_group_id", authCtx.group.id)
+						.where("business_unit_id", authCtx.unit.id);
+				})
+				.whereIn("id", data.receiptPaymentIds);
+
+			if (payments.length !== data.receiptPaymentIds.length) {
+				throw new BadRequestException(
+					"Não foi possível encontrar todos os pagamentos",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptPaymentIds)
+				.update({
+					payment_method_id: data.paymentMethodId,
+					tef_acquirer_id: data.tefAcquirerId,
+					tef_flag_id: data.tefFlagId,
+					installmentValue: data.installmentValue,
+					expirationDate: data.expirationDate,
+					nsuDocument: data.nsuDocument,
+				});
+
+			const updatedPayments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptPaymentIds)
+				.preload("receipt");
+
+			const uniqueReceipts = updatedPayments.reduce(
+				(acc, current) => {
+					if (!acc.find((elem) => elem.id === current.receipt.id)) {
+						acc.push(current.receipt);
+					}
+					return acc;
+				},
+				[] as Receipt[],
+			);
+
+			const tasks = uniqueReceipts.map(async (elem) => {
+				const receiptPayments = await ReceiptPayment.query()
+					.useTransaction(trx)
+					.where("receipt_id", elem.id);
+
+				await elem
+					.merge({
+						paidValue: this.sharedService.sum(
+							receiptPayments.map((p) => p.installmentValue),
+						),
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
+		});
+	}
+
+	async finishReceiptImport(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.preload("items")
+				.preload("payments")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!receipt) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (receipt.status === "Baixada") {
+				throw new BadRequestException(
+					"Esta Nota já está baixada",
+					400,
+					"E_NOTA_FINALIZADA",
+				);
+			}
+
+			if (receipt.status === "PendenteXml") {
+				if (receipt.items.some((i) => !i.product_variation_id)) {
+					throw new BadRequestException(
+						"Existem itens da nota que ainda não possuem produto relacionado",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+			}
+
+			if (receipt.payments.length === 0) {
+				throw new BadRequestException(
+					"É necessário completar os dados dos pagamentos da Nota de Entrada",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			if (receipt.payments.some((p) => !p.payment_method_id)) {
+				throw new BadRequestException(
+					"É necessário completar os dados dos pagamentos da Nota de Entrada",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			if (receipt.paidValue !== receipt.totalValue) {
+				throw new BadRequestException(
+					"Os pagamentos lançados na Nota de Entrada não inferiores ao Valor Total da Entrada. Complete os pagamentos antes de finalizar a Entrada",
+					400,
+					"E_NO_PAYMENT",
+				);
+			}
+
+			await receipt
+				.merge({
+					status: "Baixada",
+				})
+				.useTransaction(trx)
+				.save();
+
+			await receipt
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.update({
+					status: "Ativo" as TReceiptItemStatus,
+				});
+
+			const tasks = receipt.payments.map((elem) => {
+				return this.createFinanceEntry(trx, authCtx, {
+					dailyCashierId: receipt.daily_cashier_id,
+					dailyMovementId: receipt.daily_movement_id,
+					supplierId: receipt.supplier_id,
+					paymentMethodId: elem.payment_method_id,
+					tefAcquirerId: elem.tef_acquirer_id,
+					tefFlagId: elem.tef_flag_id,
+
+					tag: receipt.tag,
+					item: elem,
+				});
+			});
+			await Promise.all(tasks);
+
+			await Database.rawQuery(
+				`update deposit_items
+        set quantity = di.quantity + ri.quantity
+        from deposit_items di
+          join deposits d on di.deposit_id = d.id
+          join receipt_items ri
+            on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
+          join business_unit_configs buc
+            on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
+        where ri.receipt_id = ?`,
+				[receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await this.$syncItems(trx, receipt);
 		});
 	}
 
@@ -1495,19 +1926,19 @@ export default class ReceiptService {
 	async deletePayment(
 		authCtx: AuthContext,
 		data: {
-			paymentId: string;
+			receiptId: string;
+			block: number;
 		},
 	) {
 		await Database.transaction(async (trx) => {
-			const thing = await ReceiptPayment.query()
+			const row = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
-				.where("id", data.paymentId)
-				.preload("receipt")
+				.where("id", data.receiptId)
 				.first();
 
-			if (!thing) {
+			if (!row) {
 				throw this.sharedService.ResourceNotFound("Item não encontrado");
 			}
 
@@ -1516,8 +1947,17 @@ export default class ReceiptService {
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.E)
-				.where("document", `NFE-${thing.receipt.tag}`)
-				.where("block", thing.block);
+				.where("document", `NFE-${row.tag}`)
+				.where("block", data.block);
+
+			// if (existingFinances.length === 0) {
+			// 	throw new BadRequestException(
+			// 		"Não foi possível encontrar o pagamento",
+			// 		400,
+			// 		"E_PAYMENT_NOT_FOUND",
+			// 	);
+			// }
+
 			if (existingFinances.some((f) => f.status === FinanceStatus.B)) {
 				throw new BadRequestException(
 					"Não é possível excluir um pagamento que já foi baixado",
@@ -1526,7 +1966,38 @@ export default class ReceiptService {
 				);
 			}
 
-			await this.deleteFinanceEntry(trx, authCtx, thing);
+			const payments = await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", data.receiptId)
+				.where("block", data.block);
+
+			await Finance.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					existingFinances.map((f) => f.id),
+				)
+				.update({
+					status: FinanceStatus.E,
+					deletedAt: DateTime.now(),
+				});
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", data.receiptId)
+				.where("block", data.block)
+				.update({
+					status: "Excluido" as TReceiptPaymentStatus,
+				});
+
+			await row
+				.merge({
+					paidValue:
+						row.paidValue -
+						this.sharedService.sum(payments.map((p) => p.installmentValue)),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 
@@ -1542,6 +2013,7 @@ export default class ReceiptService {
 		const qb = Product.query()
 			.where("economic_group_id", authCtx.group.id)
 			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
+			.where("type", ProductType.PRODUCT)
 			.where("active", true);
 
 		if (data.variation || data.barcode) {
@@ -1588,6 +2060,9 @@ export default class ReceiptService {
 
 		return variations.map((elem) => ({
 			id: elem.id,
+			product: {
+				id: elem.product.id,
+			},
 			description: elem.product.description,
 			unit: elem.product.unit,
 			stock:
@@ -1723,6 +2198,208 @@ export default class ReceiptService {
 		});
 	}
 
+	async createReceiptProducts(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			receiptItemIds: number[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const row = await Receipt.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const units = await authCtx.group
+				.related("businessUnits")
+				.query()
+				.useTransaction(trx)
+				.select("id");
+
+			const rowItems = await row
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.whereIn("id", data.receiptItemIds);
+
+			const newProducts = await Product.createMany(
+				rowItems.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					description: elem.descriptionXml ?? "Não informado",
+					type: ProductType.PRODUCT,
+					ncm: elem.ncmXml,
+					active: true,
+				})),
+				{ client: trx },
+			);
+
+			const newProductVariations = await ProductVariation.createMany(
+				rowItems.map((elem) => ({
+					product_id: newProducts.find(
+						(p) => p.description === elem.descriptionXml,
+					)?.id,
+					barcode: elem.barcodeXml,
+				})),
+				{ client: trx },
+			);
+
+			const tasks = rowItems.map((elem) => {
+				return elem
+					.merge({
+						product_variation_id: newProductVariations.find(
+							(p) => p.barcode === elem.barcodeXml,
+						)?.id,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
+
+			const buProductData: Array<Partial<BusinessUnitProduct>> = [];
+			for (const unit of units) {
+				for (const elem of rowItems) {
+					buProductData.push({
+						businness_unit_id: unit.id,
+						product_variation_id: newProductVariations.find(
+							(p) => p.barcode === elem.barcodeXml,
+						)?.id,
+						stock: 0,
+						maximumStock: 0,
+						minimumStock: 0,
+						maximumDiscountPercentage: 100,
+						maximumDiscountValue: 0,
+						price: 0,
+						costPrice: elem.costValue,
+						profitMargin: 0,
+						commission: 0,
+						meta: 0,
+						metaType: undefined,
+						commissionMeta: 0,
+					});
+				}
+			}
+
+			await BusinessUnitProduct.createMany(buProductData, { client: trx });
+
+			// fetchOrCreateMany deveria funcionar, mas não funciona 🤔
+			const supplierTasks = rowItems.map((elem) => {
+				const existingProduct = SupplierProduct.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("supplier_id", row.supplier_id)
+					.where("product_variation_id", elem.product_variation_id)
+					.first();
+
+				if (existingProduct) {
+					return existingProduct;
+				}
+
+				return SupplierProduct.create(
+					{
+						economic_group_id: authCtx.group.id,
+						supplier_id: row.supplier_id,
+						product_variation_id: elem.product_variation_id,
+						product_supplier_id: elem.barcodeXml,
+					},
+					{ client: trx },
+				);
+			});
+			await Promise.all(supplierTasks);
+
+			// await SupplierProduct.fetchOrCreateMany(
+			// 	[
+			// 		"economic_group_id",
+			// 		"supplier_id",
+			// 		"product_variation_id",
+			// 		"product_supplier_id",
+			// 	],
+			// 	rowItems.map((elem) => ({
+			// 		economic_group_id: authCtx.group.id,
+			// 		supplier_id: row.supplier_id,
+			// 		product_variation_id: newProductVariations.find(
+			// 			(p) => p.barcode === elem.barcodeXml,
+			// 		)?.id,
+			// 		product_supplier_id: elem.barcodeXml,
+			// 	})),
+			// 	{ client: trx },
+			// );
+		});
+	}
+
+	async createSupplierProducts(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			items: {
+				supplierId: string;
+				productVariationId: string;
+				productSupplier: string;
+			}[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			// const supplierProducts = await SupplierProduct.fetchOrCreateMany(
+			// 	["economic_group_id", "supplier_id", "product_variation_id"],
+			// 	data.items.map((elem) => ({
+			// 		economic_group_id: authCtx.group.id,
+			// 		supplier_id: elem.supplierId,
+			// 		product_variation_id: elem.productVariationId,
+			// 		product_supplier_id: elem.productSupplier,
+			// 	})),
+			// 	{ client: trx },
+			// );
+			const supplierTasks = data.items.map(async (elem) => {
+				const existingProduct = await SupplierProduct.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("supplier_id", elem.supplierId)
+					.where("product_variation_id", elem.productVariationId)
+					.where("product_supplier_id", elem.productSupplier)
+					.first();
+
+				if (existingProduct) {
+					return existingProduct;
+				}
+
+				return SupplierProduct.create(
+					{
+						economic_group_id: authCtx.group.id,
+						supplier_id: elem.supplierId,
+						product_variation_id: elem.productVariationId,
+						product_supplier_id: elem.productSupplier,
+					},
+					{ client: trx },
+				);
+			});
+			const supplierProducts = await Promise.all(supplierTasks);
+
+			const receiptItems = await ReceiptItem.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("receipt_id", data.receiptId)
+				.whereNull("product_variation_id");
+
+			const tasks = receiptItems.map((elem) => {
+				return elem
+					.merge({
+						product_variation_id: supplierProducts.find(
+							(p) => p.product_supplier_id === elem.productSupplierXml,
+						)?.product_variation_id,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
+		});
+	}
+
 	private async createFinanceEntry(
 		trx: TransactionClientContract,
 		authCtx: AuthContext,
@@ -1769,7 +2446,7 @@ export default class ReceiptService {
 				origin_id: data.item.id,
 
 				block: data.item.block,
-				installment: data.item.blockInstallments,
+				installment: data.item.installment,
 				originFlag: FinanceOriginFlag.E,
 				document: `NFE-${data.tag}`,
 				historic: `NFE-${data.tag}`,
@@ -1790,24 +2467,6 @@ export default class ReceiptService {
 				client: trx,
 			},
 		);
-	}
-
-	private async deleteFinanceEntry(
-		trx: TransactionClientContract,
-		authCtx: AuthContext,
-		payment: ReceiptPayment,
-	) {
-		await Finance.query()
-			.useTransaction(trx)
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
-			.where("origin_flag", FinanceOriginFlag.E)
-			.where("document", `NFE-${payment.receipt.tag}`)
-			.where("block", payment.block)
-			.update({
-				status: FinanceStatus.E,
-				deletedAt: DateTime.now(),
-			});
 	}
 
 	private async syncReceipt(trx: TransactionClientContract, receipt: Receipt) {

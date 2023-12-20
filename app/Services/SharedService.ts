@@ -44,11 +44,15 @@ export default class SharedService {
 		return Boolean(roles.find((r) => r.role?.name === "super-admin"));
 	}
 
-	public extractUser(auth: AuthContract): { user: User; unit_id: string } {
+	public extractUser(auth: AuthContract): {
+		user: User;
+		unit_id: string;
+		system_id: number;
+	} {
 		const user = auth.use("api").user!;
-		const { unit_id } = auth.use("api").token!.meta;
+		const meta = auth.use("api").token!.meta;
 
-		return { user, unit_id };
+		return { user, ...meta };
 	}
 
 	public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
@@ -191,6 +195,7 @@ export default class SharedService {
 		data: {
 			variationId: string;
 			discountValue: number;
+			quantity: number;
 		}[],
 	) {
 		const productVariations = await ProductVariation.query()
@@ -220,7 +225,7 @@ export default class SharedService {
 			}
 
 			return variation.businessUnitProducts.some(
-				(p) => p.maximumDiscountValue < elem.discountValue,
+				(p) => p.maximumDiscountValue * elem.quantity < elem.discountValue,
 			);
 		});
 

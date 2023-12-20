@@ -1,325 +1,329 @@
-import { inject } from '@adonisjs/fold';
-import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
-import InternalErrorException from 'App/Exceptions/InternalErrorException';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import Product, { ProductType } from 'App/Models/Product';
-import VariationGroup from 'App/Models/VariationGroup';
-import SharedService from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database from "@ioc:Adonis/Lucid/Database";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import Product, { ProductType } from "App/Models/Product";
+import VariationGroup from "App/Models/VariationGroup";
+import SharedService from "App/Services/SharedService";
 import IProductData, {
-  IProductDataVariation,
-} from 'Contracts/interfaces/IProductData';
-import IUpdateProduct from 'Contracts/interfaces/IUpdateProduct';
+	IProductDataVariation,
+} from "Contracts/interfaces/IProductData";
+import IUpdateProduct from "Contracts/interfaces/IUpdateProduct";
 
 interface ISearch {
-  description?: string;
-  reference?: string;
-  collection?: number;
-  purpose?: string;
-  subgroup?: string;
-  taxation?: string;
-  active?: string;
+	description?: string;
+	reference?: string;
+	collection?: number;
+	purpose?: string;
+	subgroup?: string;
+	taxation?: string;
+	active?: string;
 }
 
 @inject()
 export default class ProductService {
-  constructor(private readonly sharedService: SharedService) {}
+	constructor(private readonly sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
+	public async index(unitId: string, data: ISearch) {
+		const group = await this.sharedService.getUserGroup(unitId);
 
-    const qb = group
-      .related('products')
-      .query()
-      .preload('brand')
-      .preload('unit')
-      .preload('group', query => {
-        query.select('id', 'name', 'active');
-      })
-      .preload('subgroup', query => {
-        query.select('id', 'description');
-      })
-      .preload('variations', query => {
-        query.orderBy('created_at', 'desc');
-        query.select('id', 'barcode', 'active');
+		const qb = group
+			.related("products")
+			.query()
+			.preload("brand")
+			.preload("unit")
+			.preload("group", (query) => {
+				query.select("id", "name", "active");
+			})
+			.preload("subgroup", (query) => {
+				query.select("id", "description");
+			})
+			.preload("variations", (query) => {
+				query.orderBy("created_at", "desc");
+				query.select("id", "barcode", "active");
 
-        query.preload('kitItems', query => {
-          query.whereHas('kit', query => {
-            query.where('active', true);
-          });
+				query.preload("kitItems", (query) => {
+					query.whereHas("kit", (query) => {
+						query.where("active", true);
+					});
 
-          query.preload('kit');
-        });
+					query.preload("kit");
+				});
 
-        query.preload('businessUnitProducts', query => {
-          query.where('businness_unit_id', unitId);
+				query.preload("businessUnitProducts", (query) => {
+					query.where("businness_unit_id", unitId);
 
-          query.preload('businessUnit', query => {
-            query.select('id', 'fantasyName', 'companyName', 'identification');
-          });
-        });
+					query.preload("businessUnit", (query) => {
+						query.select("id", "fantasyName", "companyName", "identification");
+					});
+				});
 
-        query.preload('variationOptions', query => {
-          query.select('id', 'description', 'active');
-        });
-      })
-      .preload('variationGroup', query => {
-        query.select('id', 'description', 'active');
-      })
-      .preload('taxationGroup')
-      .where('type', ProductType.PRODUCT);
+				query.preload("variationOptions", (query) => {
+					query.select("id", "description", "active");
+				});
+			})
+			.preload("variationGroup", (query) => {
+				query.select("id", "description", "active");
+			})
+			.preload("taxationGroup")
+			.where("type", ProductType.PRODUCT);
 
-    if (data.description) {
-      qb.whereRaw('unaccent(description) ilike unaccent(?)', [
-        `%${data.description}%`,
-      ]);
-    }
+		if (data.description) {
+			qb.whereRaw("unaccent(description) ilike unaccent(?)", [
+				`%${data.description}%`,
+			]);
+		}
 
-    if (data.reference) {
-      qb.where('reference_code', 'ilike', `%${data.reference}%`);
-    }
+		if (data.reference) {
+			qb.where("reference_code", "ilike", `%${data.reference}%`);
+		}
 
-    if (data.collection) {
-      qb.where('collection_year', data.collection);
-    }
+		if (data.collection) {
+			qb.where("collection_year", data.collection);
+		}
 
-    if (data.purpose) {
-      qb.where('purpose', data.purpose);
-    }
+		if (data.purpose) {
+			qb.where("purpose", data.purpose);
+		}
 
-    if (data.subgroup) {
-      qb.where('subgroup_id', data.subgroup);
-    }
+		if (data.subgroup) {
+			qb.where("subgroup_id", data.subgroup);
+		}
 
-    if (data.taxation) {
-      qb.where('taxation_group_id', data.taxation);
-    }
+		if (data.taxation) {
+			qb.where("taxation_group_id", data.taxation);
+		}
 
-    if (data.active) {
-      qb.where('active', data.active === 'true');
-    }
+		if (data.active) {
+			qb.where("active", data.active === "true");
+		}
 
-    const result = await qb;
+		const result = await qb;
 
-    return result.map(product => ({
-      id: product.id,
-      description: product.description,
-      referenceCode: product.referenceCode,
-      purpose: product.purpose,
-      active: product.active,
-      created_at: product.createdAt,
-      subgroup: {
-        id: product.subgroup?.id ?? null,
-        description: product.subgroup?.description ?? null,
-      },
-      taxationGroup: {
-        id: product.taxationGroup?.id ?? null,
-        name: product.taxationGroup?.name ?? null,
-      },
-      price: {
-        id: product.variations[0]?.id ?? null,
-        value:
-          parseFloat(
-            product.variations[0]?.businessUnitProducts[0]
-              ?.price as unknown as string,
-          ) ?? null,
-      },
-      kits: product.variations.map(v => v.kitItems).flat(),
-    }));
-  }
+		return result.map((product) => ({
+			id: product.id,
+			description: product.description,
+			referenceCode: product.referenceCode,
+			purpose: product.purpose,
+			active: product.active,
+			created_at: product.createdAt,
+			subgroup: {
+				id: product.subgroup?.id ?? null,
+				description: product.subgroup?.description ?? null,
+			},
+			taxationGroup: {
+				id: product.taxationGroup?.id ?? null,
+				name: product.taxationGroup?.name ?? null,
+			},
+			price: {
+				id: product.variations[0]?.id ?? null,
+				ref: product.variations[0]?.businessUnitProducts[0]?.id ?? null,
+				value:
+					parseFloat(
+						product.variations[0]?.businessUnitProducts[0]
+							?.price as unknown as string,
+					) ?? null,
+			},
+			kits: product.variations.flatMap((v) => v.kitItems),
+		}));
+	}
 
-  public async show(unitId: string, id: string): Promise<Product> {
-    const group = await this.sharedService.getUserGroup(unitId);
+	public async show(unitId: string, id: string): Promise<Product> {
+		const group = await this.sharedService.getUserGroup(unitId);
 
-    const product = await group
-      .related('products')
-      .query()
-      .where('id', id)
-      .preload('brand')
-      .preload('unit')
-      .preload('taxationGroup')
-      .preload('group', query => {
-        query.select('id', 'name', 'active');
-      })
-      .preload('subgroup', query => {
-        query.select('id', 'description');
-      })
-      .preload('variations', query => {
-        query.orderBy('created_at', 'desc');
-        query.select('id', 'barcode', 'active');
+		const product = await group
+			.related("products")
+			.query()
+			.where("id", id)
+			.preload("brand")
+			.preload("unit")
+			.preload("taxationGroup")
+			.preload("group", (query) => {
+				query.select("id", "name", "active");
+			})
+			.preload("subgroup", (query) => {
+				query.select("id", "description");
+			})
+			.preload("variations", (query) => {
+				query.orderBy("created_at", "desc");
+				query.select("id", "barcode", "active");
 
-        query.preload('businessUnitProducts', query => {
-          query.preload('businessUnit', query => {
-            query.select('id', 'fantasyName', 'companyName', 'identification');
-          });
-        });
+				query.preload("businessUnitProducts", (query) => {
+					query.preload("businessUnit", (query) => {
+						query.select("id", "fantasyName", "companyName", "identification");
+					});
+				});
 
-        query.preload('variationOptions', subquery => {
-          subquery.select('id', 'description', 'active');
-        });
-      })
-      .preload('variationGroup', query => {
-        query.select('id', 'description', 'active');
-      })
-      .first();
+				query.preload("variationOptions", (subquery) => {
+					subquery.select("id", "description", "active");
+				});
+			})
+			.preload("variationGroup", (query) => {
+				query.select("id", "description", "active");
+			})
+			.first();
 
-    if (!product) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+		if (!product) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-    return product;
-  }
+		return product;
+	}
 
-  public async store(
-    unitId: string,
-    data: Omit<IProductData, 'active'>,
-  ): Promise<Product> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const businessUnits = await BusinessUnit.query().where(
-      'economic_group_id',
-      group.id,
-    );
+	public async store(
+		unitId: string,
+		data: Omit<IProductData, "active">,
+	): Promise<Product> {
+		const group = await this.sharedService.getUserGroup(unitId);
+		const businessUnits = await BusinessUnit.query().where(
+			"economic_group_id",
+			group.id,
+		);
 
-    const variationGroup = data.variationGroup
-      ? await VariationGroup.find(data.variationGroup)
-      : null;
+		const variationGroup = data.variationGroup
+			? await VariationGroup.find(data.variationGroup)
+			: null;
 
-    const trx = await Database.transaction();
+		const trx = await Database.transaction();
 
-    try {
-      const product = await Product.create(
-        {
-          description: data.description,
-          type: ProductType.PRODUCT,
-          referenceCode: data.referenceCode,
-          collectionYear: data.collectionYear,
-          ncm: data.ncm,
-          cest: data.cest,
-          features: data.features,
-          unit_id: data.unitId,
-          icmsOrigin: data.icmsOrigin,
-          economic_group_id: group.id,
-          variation_group_id: variationGroup?.id,
-          taxation_group_id: data.taxationGroupId,
-          group_id: data.groupId,
-          subgroup_id: data.subgroupId,
-          brand_id: data.brandId,
-          taxBenefitCode: data.taxBenefitCode,
-          anvisaCode: data.anvisaCode,
-          purpose: data.purpose,
-        },
-        {
-          client: trx,
-        },
-      );
+		try {
+			const product = await Product.create(
+				{
+					description: data.description,
+					type: ProductType.PRODUCT,
+					referenceCode: data.referenceCode,
+					collectionYear: data.collectionYear,
+					ncm: data.ncm,
+					cest: data.cest,
+					features: data.features,
+					unit_id: data.unitId,
+					icmsOrigin: data.icmsOrigin,
+					economic_group_id: group.id,
+					variation_group_id: variationGroup?.id,
+					taxation_group_id: data.taxationGroupId,
+					group_id: data.groupId,
+					subgroup_id: data.subgroupId,
+					brand_id: data.brandId,
+					taxBenefitCode: data.taxBenefitCode,
+					anvisaCode: data.anvisaCode,
+					purpose: data.purpose,
+				},
+				{
+					client: trx,
+				},
+			);
 
-      // eslint-disable-next-line no-restricted-syntax
-      for await (const variation of data.variations) {
-        // product_variations
-        const prodVariation = await product.related('variations').create(
-          {
-            barcode: variation.barcode,
-          },
-          {
-            client: trx,
-          },
-        );
+			// eslint-disable-next-line no-restricted-syntax
+			for await (const variation of data.variations) {
+				// product_variations
+				const prodVariation = await product.related("variations").create(
+					{
+						barcode: variation.barcode,
+					},
+					{
+						client: trx,
+					},
+				);
 
-        await prodVariation
-          .related('variationOptions')
-          .sync(variation.variation_options ?? []);
+				await prodVariation
+					.related("variationOptions")
+					.sync(variation.variation_options ?? []);
 
-        // eslint-disable-next-line no-restricted-syntax
-        for await (const unit of businessUnits) {
-          const unitPrice = this.checkForPrice(unit, variation);
+				// eslint-disable-next-line no-restricted-syntax
+				for await (const unit of businessUnits) {
+					const unitPrice = this.checkForPrice(unit, variation);
 
-          // business_unit_products
-          await prodVariation.related('businessUnitProducts').create(
-            {
-              businness_unit_id: unit.id,
-              stock: 0,
-              price: unitPrice.price,
-              costPrice: unitPrice.costPrice,
-              maximumStock: unitPrice.maximumStock,
-              minimumStock: unitPrice.minimumStock,
-              maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
-              maximumDiscountValue: unitPrice.maximumDiscountValue,
-              profitMargin: unitPrice.profitMargin,
-              commission: unitPrice.commission,
-              commissionMeta: unitPrice.commissionMeta,
-              meta: unitPrice.meta,
-              metaType: unitPrice.metaType,
-            },
-            {
-              client: trx,
-            },
-          );
-        }
-      }
+					// business_unit_products
+					await prodVariation.related("businessUnitProducts").create(
+						{
+							businness_unit_id: unit.id,
+							stock: 0,
+							price: unitPrice.price,
+							costPrice: unitPrice.costPrice,
+							maximumStock: unitPrice.maximumStock,
+							minimumStock: unitPrice.minimumStock,
+							maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
+							maximumDiscountValue: unitPrice.maximumDiscountValue,
+							profitMargin: unitPrice.profitMargin,
+							commission: unitPrice.commission,
+							commissionMeta: unitPrice.commissionMeta,
+							meta: unitPrice.meta,
+							metaType: unitPrice.metaType,
+						},
+						{
+							client: trx,
+						},
+					);
+				}
+			}
 
-      await trx.commit();
+			await trx.commit();
 
-      return product;
-    } catch (e) {
-      Logger.error(e);
-      await trx.rollback();
+			return product;
+		} catch (e) {
+			Logger.error(e);
+			await trx.rollback();
 
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
-  }
+			throw new InternalErrorException(
+				"Erro na execução",
+				500,
+				"E_INTERNAL_ERROR",
+			);
+		}
+	}
 
-  public async update(
-    unitId: string,
-    id: string,
-    data: IUpdateProduct,
-  ): Promise<Product> {
-    const product = await this.show(unitId, id);
+	public async update(
+		unitId: string,
+		id: string,
+		data: IUpdateProduct,
+	): Promise<Product> {
+		const product = await this.show(unitId, id);
 
-    return product
-      .merge({
-        description: data.description,
-        referenceCode: data.referenceCode,
-        collectionYear: data.collectionYear,
-        ncm: data.ncm,
-        cest: data.cest,
-        features: data.features,
-        unit_id: data.unitId,
-        active: data.active,
-        group_id: data.groupId,
-        subgroup_id: data.subgroupId,
-        icmsOrigin: data.icmsOrigin,
-        taxation_group_id: data.taxationGroupId,
-        brand_id: data.brandId,
-        taxBenefitCode: data.taxBenefitCode,
-        anvisaCode: data.anvisaCode,
-      })
-      .save();
-  }
+		return product
+			.merge({
+				description: data.description,
+				referenceCode: data.referenceCode,
+				collectionYear: data.collectionYear,
+				ncm: data.ncm,
+				cest: data.cest,
+				features: data.features,
+				unit_id: data.unitId,
+				active: data.active,
+				group_id: data.groupId,
+				subgroup_id: data.subgroupId,
+				icmsOrigin: data.icmsOrigin,
+				taxation_group_id: data.taxationGroupId,
+				brand_id: data.brandId,
+				taxBenefitCode: data.taxBenefitCode,
+				anvisaCode: data.anvisaCode,
+				purpose: data.purpose,
+			})
+			.save();
+	}
 
-  public async destroy(unitId: string, id: string): Promise<void> {
-    const product = await this.show(unitId, id);
+	public async destroy(unitId: string, id: string): Promise<void> {
+		const product = await this.show(unitId, id);
 
-    await product.softDelete();
-  }
+		await product.softDelete();
+	}
 
-  private checkForPrice(unit: BusinessUnit, data: IProductDataVariation) {
-    if (!data.specificPrice || data.specificPrice.length === 0) {
-      return data.price;
-    }
+	private checkForPrice(unit: BusinessUnit, data: IProductDataVariation) {
+		if (!data.specificPrice || data.specificPrice.length === 0) {
+			return data.price;
+		}
 
-    const specificPrice = data.specificPrice.find(f => f.business === unit.id);
+		const specificPrice = data.specificPrice.find(
+			(f) => f.business === unit.id,
+		);
 
-    if (specificPrice) return specificPrice.price;
+		if (specificPrice) return specificPrice.price;
 
-    return data.price;
-  }
+		return data.price;
+	}
 }

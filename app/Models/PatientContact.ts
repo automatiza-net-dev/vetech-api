@@ -1,47 +1,52 @@
-import { DateTime } from 'luxon';
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import Patient from './Patient';
+import { DateTime } from "luxon";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import Patient from "./Patient";
 
 export const PatientContactType = [
-  'email',
-  'celular',
-  'residencial',
-  'comercial',
-  'recado',
+	"email",
+	"celular",
+	"residencial",
+	"comercial",
+	"recado",
 ] as const;
 
 export default class PatientContact extends BaseModel {
-  @column({ isPrimary: true })
-  public id: number;
+	@column({ isPrimary: true })
+	public id: number;
 
-  @column()
-  public main: boolean;
+	@column()
+	public main: boolean;
 
-  @column()
-  public contact: string;
+	@column()
+	public contact: string;
 
-  @column()
-  public observation: string;
+	@column()
+	public observation: string;
 
-  @column()
-  public type: typeof PatientContactType[number];
+	@column()
+	public type: (typeof PatientContactType)[number];
 
-  @column()
-  public active: boolean;
+	@column({
+		columnName: "not_given",
+	})
+	public notGiven: boolean;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column()
+	public active: boolean;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @column({
-    serializeAs: null,
-  })
-  public patient_id: string;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  @belongsTo(() => Patient, {
-    foreignKey: 'patient_id',
-  })
-  public patient: BelongsTo<typeof Patient>;
+	@column({
+		serializeAs: null,
+	})
+	public patient_id: string;
+
+	@belongsTo(() => Patient, {
+		foreignKey: "patient_id",
+	})
+	public patient: BelongsTo<typeof Patient>;
 }

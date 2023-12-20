@@ -4,10 +4,15 @@ import ReceiptService from "App/Services/ReceiptService";
 import SharedService from "App/Services/SharedService";
 import CreateReceiptItemValidator from "App/Validators/Receipt/CreateReceiptItemValidator";
 import CreateReceiptPaymentValidator from "App/Validators/Receipt/CreateReceiptPaymentValidator";
+import CreateReceiptProductValidator from "App/Validators/Receipt/CreateReceiptProductValidator";
 import CreateReceiptValidator from "App/Validators/Receipt/CreateReceiptValidator";
+import CreateSupplierProductValidator from "App/Validators/Receipt/CreateSupplierProductValidator";
 import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItemValidator";
 import DeleteReceiptPaymentValidator from "App/Validators/Receipt/DeleteReceiptPaymentValidator";
+import FinishReceiptImportValidator from "App/Validators/Receipt/FinishReceiptImportValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
+import UpdateReceiptPaymentValidator from "App/Validators/Receipt/UpdateReceiptPaymentValidator";
+import UpdateXmlItemValidator from "App/Validators/Receipt/UpdateXmlItemValidator";
 
 @inject()
 export default class ReceiptsController {
@@ -25,6 +30,14 @@ export default class ReceiptsController {
 		return response.ok(result);
 	}
 
+	public async productIndex({ response, auth }: HttpContextContract) {
+		const result = await this.service.productsIndex(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.ok(result);
+	}
+
 	public async show({ request, response, auth }: HttpContextContract) {
 		const result = await this.service.show(
 			await this.sharedService.getAuthContext(auth),
@@ -32,6 +45,21 @@ export default class ReceiptsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async updateXmlItems({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateXmlItemValidator);
+
+		await this.service.updateXmlItems(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 
 	public async importFromXml({ request, response, auth }: HttpContextContract) {
@@ -101,6 +129,21 @@ export default class ReceiptsController {
 		return response.created(result);
 	}
 
+	public async updateReceiptPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateReceiptPaymentValidator);
+
+		await this.service.updatePayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
 	public async deleteReceiptPayment({
 		request,
 		response,
@@ -144,5 +187,50 @@ export default class ReceiptsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async createSupplierProducts({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateSupplierProductValidator);
+
+		await this.service.createSupplierProducts(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
+	}
+
+	public async createReceiptProducts({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateReceiptProductValidator);
+
+		await this.service.createReceiptProducts(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
+	}
+
+	public async finishReceiptImport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(FinishReceiptImportValidator);
+
+		await this.service.finishReceiptImport(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 }

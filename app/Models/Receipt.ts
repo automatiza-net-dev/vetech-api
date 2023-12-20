@@ -14,7 +14,12 @@ import User from "App/Models/User";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
-export const ReceiptStatus = ["Ativa", "Estornada"] as const;
+export const ReceiptStatus = [
+	"Aberta",
+	"Baixada",
+	"Estornada",
+	"PendenteXml",
+] as const;
 export type TReceiptStatus = typeof ReceiptStatus[number];
 
 export default class Receipt extends BaseModel {
@@ -168,6 +173,11 @@ export default class Receipt extends BaseModel {
 		columnName: "reversal_observation",
 	})
 	public reversalObservation: string | null;
+
+	@column({
+		columnName: "paid_value",
+	})
+	public paidValue: number;
 
 	@column()
 	public status: TReceiptStatus;

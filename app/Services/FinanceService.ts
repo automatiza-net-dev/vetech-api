@@ -262,7 +262,7 @@ export default class FinanceService {
         tef_flags.description     as tef_flag,
         account_plans.description as account_plan`),
 			)
-			.joinRaw("join patients on finances.client_id = patients.id", [])
+			.joinRaw("left join patients on finances.client_id = patients.id", [])
 			.joinRaw(
 				"left join account_plans on finances.account_plan_id = account_plans.id",
 				[],

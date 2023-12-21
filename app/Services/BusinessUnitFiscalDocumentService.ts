@@ -1413,7 +1413,10 @@ export default class BusinessUnitFiscalDocumentService {
 		}
 
 		const cestRows = await Cest.query()
-			.whereILike("ncm", `${product.ncm?.replace(/\D/g, "") ?? ""}%`)
+			.whereILike(
+				"ncm",
+				`${product.ncm?.replace(/\D/g, "").substring(0, 4) ?? ""}%`,
+			)
 			.orderByRaw("length(ncm) desc");
 
 		if (cestRows.length === 0) {

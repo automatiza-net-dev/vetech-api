@@ -1446,6 +1446,10 @@ Route.group(() => {
 		"IndicatorsController.invoicingByProductType",
 	);
 	Route.get(
+		"/invoicing-product-type-subgroup",
+		"IndicatorsController.invoicingByProductTypeWithSubgroup",
+	);
+	Route.get(
 		"/invoicing-payment-method",
 		"IndicatorsController.invoicingByPaymentMethod",
 	);

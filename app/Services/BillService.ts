@@ -1992,6 +1992,8 @@ export default class BillService {
 			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 			: 0;
 
+		console.log(rule?.toJSON());
+
 		const billItem = await BillItem.create(
 			{
 				economic_group_id: authCtx.group.id,

@@ -7,6 +7,7 @@ import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 @inject()
 export default class IndicatorService {
@@ -267,6 +268,106 @@ export default class IndicatorService {
 			qtyClients: parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
+		}));
+	}
+
+	public async invoicingByProductTypeWithSubgroup(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			type?: string;
+			subgroup?: string;
+		},
+	) {
+		if (!data.subgroup) {
+			throw new BadRequestException(
+				"Subgrupo não informado",
+				400,
+				"BAD_REQUEST",
+			);
+		}
+
+		const listOfUnits =
+			data.units && Array.isArray(data.units) ? data.units : [authCtx.unit.id];
+
+		const qb = Database.from("bill_items")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          products.id as pID,
+          products.description,
+          sum(bill_items.quantity) as qty_sales,
+          sum(bill_items.total_value) as total_sales,
+          count(distinct bills.client_id) as qty_clients
+          `,
+				),
+			)
+			.leftJoin("bills", (query) => {
+				query.on("bills.id", "=", "bill_items.bill_id");
+			})
+			.leftJoin("product_variations", (query) => {
+				query.on(
+					"product_variations.id",
+					"=",
+					"bill_items.product_variation_id",
+				);
+			})
+			.leftJoin("products", (query) => {
+				query.on("products.id", "=", "product_variations.product_id");
+			})
+			.leftJoin("business_unit_products", (query) => {
+				query
+					.on(
+						"business_unit_products.product_variation_id",
+						"=",
+						"bill_items.product_variation_id",
+					)
+					.andOn(
+						"business_unit_products.businness_unit_id",
+						"=",
+						"bill_items.business_unit_id",
+					);
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("products.id", "products.description", "business_units.id")
+			.whereNull("bills.deleted_at")
+			.whereIn("bills.business_unit_id", listOfUnits)
+			.where("products.subgroup_id", data.subgroup ?? v4());
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+		qb.andWhereIn(
+			"products.type",
+			data.type ? [data.type] : [ProductType.PRODUCT, ProductType.SERVICE],
+		);
+
+		const result = await qb;
+
+		const sum = result.reduce(
+			(acc, curr) => acc + parseFloat(curr.total_sales),
+			0,
+		);
+
+		return result.map((elem) => ({
+			id: elem.id,
+			identification: elem.identification,
+			productId: elem.pID,
+			description: elem.description,
+			qtySales: parseInt(elem.qty_sales, 10),
+			qtyClients: parseInt(elem.qty_clients, 10),
+			totalSales: elem.total_sales,
+			percentage: (elem.total_sales / sum) * 100,
 		}));
 	}
 

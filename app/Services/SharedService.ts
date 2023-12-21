@@ -287,4 +287,12 @@ export default class SharedService {
 			currency: "BRL",
 		});
 	}
+
+	static ParseDecimal(value: string | number) {
+		if (typeof value === "string") {
+			return parseFloat(value.replace(",", "."));
+		}
+
+		return value;
+	}
 }

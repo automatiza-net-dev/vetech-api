@@ -479,7 +479,7 @@ export default class FocusNfeService {
 			delete payload.cpf_destinatario;
 		}
 
-		// console.log(payload); // THIS
+		// console.log(JSON.stringify(payload, null, 2)); // THIS
 
 		try {
 			const { data } = await this.ax.post(
@@ -498,7 +498,7 @@ export default class FocusNfeService {
 				message: data.status as string,
 			};
 		} catch (error) {
-			Logger.error(error.response.data);
+			Logger.error(error.response);
 
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			return {
@@ -758,7 +758,7 @@ export default class FocusNfeService {
 				data: parsedResponse.data,
 			};
 		} catch (error) {
-			Logger.error(error.response.data);
+			Logger.error(error.response);
 
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			return {

@@ -376,7 +376,7 @@ export default class BusinessUnitFiscalDocumentService {
 					barcode: item.productVariation.barcode,
 					description: item.productVariation.product.description,
 					ncm: item.productVariation.product.ncm?.replace(/\D/g, "") ?? "",
-					cest: await this.calculateCest(item),
+					cest: item.productVariation.product.cest?.replace(/\D/g, "") ?? "",
 					tax_benefit_code: item.productVariation.product.taxBenefitCode,
 					cfop: item.fiscalOperationCode,
 					unity: item.productVariation.product.unit.tag,
@@ -439,15 +439,15 @@ export default class BusinessUnitFiscalDocumentService {
 			});
 			nfePayload.items = await Promise.all(cestTasks);
 
-			// const result = await this.focusNfe.sendNfe(
-			// 	issuedDocument.id,
-			// 	nfePayload,
-			// 	token,
-			// );
-			// if (!result.success) {
-			// 	// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
-			// 	Logger.info(JSON.stringify(result, undefined, 2));
-			// }
+			const result = await this.focusNfe.sendNfe(
+				issuedDocument.id,
+				nfePayload,
+				token,
+			);
+			if (!result.success) {
+				// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
+				Logger.info(JSON.stringify(result, undefined, 2));
+			}
 
 			await BillItem.query()
 				.useTransaction(trx)

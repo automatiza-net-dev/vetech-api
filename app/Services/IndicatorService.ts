@@ -300,6 +300,7 @@ export default class IndicatorService {
           business_units.identification,
           products.id as pID,
           products.description,
+          subgroups.description as subgroup,
           sum(bill_items.quantity) as qty_sales,
           sum(bill_items.total_value) as total_sales,
           count(distinct bills.client_id) as qty_clients
@@ -335,7 +336,15 @@ export default class IndicatorService {
 			.leftJoin("business_units", (query) => {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
-			.groupBy("products.id", "products.description", "business_units.id")
+			.leftJoin("subgroups", (query) => {
+				query.on("subgroups.id", "=", "products.subgroup_id");
+			})
+			.groupBy(
+				"products.id",
+				"products.description",
+				"business_units.id",
+				"subgroups.description",
+			)
 			.whereNull("bills.deleted_at")
 			.whereIn("bills.business_unit_id", listOfUnits)
 			.where("products.subgroup_id", data.subgroup ?? v4());
@@ -364,6 +373,7 @@ export default class IndicatorService {
 			identification: elem.identification,
 			productId: elem.pID,
 			description: elem.description,
+			subgroup: elem.subgroup,
 			qtySales: parseInt(elem.qty_sales, 10),
 			qtyClients: parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,

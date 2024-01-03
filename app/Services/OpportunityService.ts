@@ -185,10 +185,12 @@ export default class OpportunityService {
 				qb.whereNull("closing_date");
 			}
 
-			qb.whereIn(
-				"balance",
-				data.balance.filter((v) => ["Ganho", "Perda"].includes(v)),
-			);
+			const validBalanceOptions = ["Ganho", "Perda"];
+			if (
+				data.balance.filter((v) => validBalanceOptions.includes(v)).length > 0
+			) {
+				qb.whereIn("balance", data.balance);
+			}
 		}
 
 		if (data.contactName || data.contactPhone) {

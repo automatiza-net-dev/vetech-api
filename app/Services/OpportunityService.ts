@@ -181,15 +181,22 @@ export default class OpportunityService {
 		}
 
 		if (data.balance && Array.isArray(data.balance)) {
-			if (data.balance.includes("Em Aberto")) {
+			const hasEmAberto = data.balance.includes("Em Aberto");
+			const validBalanceOptions = ["Ganho", "Perda"];
+			const cleanOptions = data.balance.filter((v) =>
+				validBalanceOptions.includes(v),
+			);
+
+			if (hasEmAberto && cleanOptions.length > 0) {
+				qb.whereRaw("(closing_date is null or balance in (?))", [cleanOptions]);
+			}
+
+			if (hasEmAberto && cleanOptions.length === 0) {
 				qb.whereNull("closing_date");
 			}
 
-			const validBalanceOptions = ["Ganho", "Perda"];
-			if (
-				data.balance.filter((v) => validBalanceOptions.includes(v)).length > 0
-			) {
-				qb.whereIn("balance", data.balance);
+			if (!hasEmAberto && cleanOptions.length > 0) {
+				qb.whereIn("balance", cleanOptions);
 			}
 		}
 

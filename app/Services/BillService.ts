@@ -1712,7 +1712,7 @@ export default class BillService {
 					discountValue: item.discountValue,
 					totalValue,
 					status: BillItemStatus.A,
-					createdAt: bill.createdAt,
+					// createdAt: bill.createdAt,
 
 					fiscalOperationCode: rule?.taxOperation.code,
 					icmsOriginProduct: variation.product.icmsOrigin,
@@ -2012,7 +2012,7 @@ export default class BillService {
 				discountValue: data.discountValue,
 				totalValue,
 				status: BillItemStatus.A,
-				createdAt: bill.createdAt,
+				// createdAt: bill.createdAt,
 
 				fiscalOperationCode: rule?.taxOperation?.code,
 				icmsOriginProduct: productVariation.product.icmsOrigin,

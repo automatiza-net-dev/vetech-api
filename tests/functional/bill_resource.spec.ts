@@ -781,7 +781,7 @@ test.group("Bill resource", (group) => {
 			.json({
 				billId: bill.id,
 				productVariationId: variation.id,
-				quantity: 10,
+				quantity: 1,
 				unitaryValue: 20,
 				discountValue: 20,
 			})

@@ -1599,10 +1599,14 @@ export default class BillService {
 					productVariations.map((item) => item.product.taxation_group_id),
 				);
 			})
-			.where("movementType", MovementType.S)
-			.where("movementCategory", MovementCategory.NS)
+			.where("movement_type", MovementType.S)
+			.where("movement_category", MovementCategory.NS)
 			.where("fromUf", authCtx.unit.state ?? "")
 			.where("toUf", authCtx.unit.state ?? "")
+			.where(
+				"company_type",
+				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+			)
 			.preload("taxationGroup")
 			.preload("taxOperation");
 
@@ -1991,8 +1995,6 @@ export default class BillService {
 		const icmsStBase_2 = rule?.ivaIcmsSt
 			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 			: 0;
-
-		console.log(rule?.toJSON());
 
 		const billItem = await BillItem.create(
 			{

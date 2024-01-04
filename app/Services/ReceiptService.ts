@@ -2325,47 +2325,48 @@ export default class ReceiptService {
 			await BusinessUnitProduct.createMany(buProductData, { client: trx });
 
 			// fetchOrCreateMany deveria funcionar, mas não funciona 🤔
-			const supplierTasks = rowItems.map(async (elem) => {
-				const existingProduct = await SupplierProduct.query()
-					.useTransaction(trx)
-					.where("economic_group_id", authCtx.group.id)
-					.where("supplier_id", row.supplier_id)
-					.where("product_variation_id", elem.product_variation_id)
-					.first();
+			// const supplierTasks = rowItems.map(async (elem) => {
+			// 	const existingProduct = await SupplierProduct.query()
+			// 		.useTransaction(trx)
+			// 		.where("economic_group_id", authCtx.group.id)
+			// 		.where("supplier_id", row.supplier_id)
+			// 		.where("product_variation_id", elem.product_variation_id)
+			// 		.where("product_supplier_id", elem.barcodeXml)
+			// 		.first();
+			//
+			// 	if (existingProduct) {
+			// 		return existingProduct;
+			// 	}
+			//
+			// 	return SupplierProduct.create(
+			// 		{
+			// 			economic_group_id: authCtx.group.id,
+			// 			supplier_id: row.supplier_id,
+			// 			product_variation_id: elem.product_variation_id,
+			// 			product_supplier_id: elem.barcodeXml,
+			// 		},
+			// 		{ client: trx },
+			// 	);
+			// });
+			// await Promise.all(supplierTasks);
 
-				if (existingProduct) {
-					return existingProduct;
-				}
-
-				return SupplierProduct.create(
-					{
-						economic_group_id: authCtx.group.id,
-						supplier_id: row.supplier_id,
-						product_variation_id: elem.product_variation_id,
-						product_supplier_id: elem.barcodeXml,
-					},
-					{ client: trx },
-				);
-			});
-			await Promise.all(supplierTasks);
-
-			// await SupplierProduct.fetchOrCreateMany(
-			// 	[
-			// 		"economic_group_id",
-			// 		"supplier_id",
-			// 		"product_variation_id",
-			// 		"product_supplier_id",
-			// 	],
-			// 	rowItems.map((elem) => ({
-			// 		economic_group_id: authCtx.group.id,
-			// 		supplier_id: row.supplier_id,
-			// 		product_variation_id: newProductVariations.find(
-			// 			(p) => p.barcode === elem.barcodeXml,
-			// 		)?.id,
-			// 		product_supplier_id: elem.barcodeXml,
-			// 	})),
-			// 	{ client: trx },
-			// );
+			await SupplierProduct.fetchOrCreateMany(
+				[
+					"economic_group_id",
+					"supplier_id",
+					"product_variation_id",
+					"product_supplier_id",
+				],
+				rowItems.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					supplier_id: row.supplier_id,
+					product_variation_id: newProductVariations.find(
+						(p) => p.barcode === elem.barcodeXml,
+					)?.id,
+					product_supplier_id: elem.barcodeXml,
+				})),
+				{ client: trx },
+			);
 		});
 	}
 

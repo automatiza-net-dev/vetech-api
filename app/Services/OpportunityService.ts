@@ -8,7 +8,7 @@ import CrmStatus from "App/Models/CrmStatus";
 import Opportunity from "App/Models/Opportunity";
 import OpportunityActivity from "App/Models/OpportunityActivity";
 import OpportunityLog from "App/Models/OpportunityLog";
-import Patient from "App/Models/Patient";
+import Patient, { PatientGender } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
@@ -141,7 +141,6 @@ export default class OpportunityService {
 		},
 	) {
 		const qb = Opportunity.query()
-			.debug(true)
 			.where("economic_group_id", authCtx.group.id)
 			.preload("client", (query) => {
 				query.select("id", "name", "weight", "gender");
@@ -201,10 +200,7 @@ export default class OpportunityService {
 
 		if (data.balance && Array.isArray(data.balance)) {
 			const hasEmAberto = data.balance.includes("Em Aberto");
-			const validBalanceOptions = ["Ganho", "Perda"];
-			const cleanOptions = data.balance.filter((v) =>
-				validBalanceOptions.includes(v),
-			);
+			const cleanOptions = data.balance.filter((v) => v !== "Em Aberto");
 
 			if (hasEmAberto && cleanOptions.length > 0) {
 				qb.whereRaw("(closing_date is null or balance in (?))", [cleanOptions]);
@@ -242,8 +238,6 @@ export default class OpportunityService {
 		}
 
 		const result = await qb;
-
-		console.log(result.map((elem) => elem.id));
 
 		return result.map((elem) => ({
 			id: elem.id,
@@ -750,7 +744,7 @@ export default class OpportunityService {
 				await row
 					.merge({
 						weight: data.weight,
-						gender: data.gender,
+						gender: data.gender as PatientGender,
 					})
 					.useTransaction(trx)
 					.save();

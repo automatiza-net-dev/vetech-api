@@ -1708,13 +1708,15 @@ export default class ReceiptService {
 	async updatePayment(
 		authCtx: AuthContext,
 		data: {
-			receiptPaymentIds: string[];
-			paymentMethodId: string;
-			tefFlagId?: string;
-			tefAcquirerId?: string;
-			installmentValue: number;
-			expirationDate: DateTime;
-			nsuDocument: string;
+			items: {
+				receiptPaymentId: string;
+				paymentMethodId: string;
+				tefFlagId?: string;
+				tefAcquirerId?: string;
+				installmentValue: number;
+				expirationDate: DateTime;
+				nsuDocument: string;
+			}[];
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -1725,9 +1727,12 @@ export default class ReceiptService {
 						.where("economic_group_id", authCtx.group.id)
 						.where("business_unit_id", authCtx.unit.id);
 				})
-				.whereIn("id", data.receiptPaymentIds);
+				.whereIn(
+					"id",
+					data.items.map((elem) => elem.receiptPaymentId),
+				);
 
-			if (payments.length !== data.receiptPaymentIds.length) {
+			if (payments.length !== data.items.length) {
 				throw new BadRequestException(
 					"Não foi possível encontrar todos os pagamentos",
 					400,
@@ -1735,21 +1740,27 @@ export default class ReceiptService {
 				);
 			}
 
-			await ReceiptPayment.query()
-				.useTransaction(trx)
-				.whereIn("id", data.receiptPaymentIds)
-				.update({
-					payment_method_id: data.paymentMethodId,
-					tef_acquirer_id: data.tefAcquirerId,
-					tef_flag_id: data.tefFlagId,
-					installmentValue: data.installmentValue,
-					expirationDate: data.expirationDate,
-					nsuDocument: data.nsuDocument,
-				});
+			const updateTasks = data.items.map((item) => {
+				return ReceiptPayment.query()
+					.useTransaction(trx)
+					.where("id", item.receiptPaymentId)
+					.update({
+						payment_method_id: item.paymentMethodId,
+						tef_acquirer_id: item.tefAcquirerId,
+						tef_flag_id: item.tefFlagId,
+						installmentValue: item.installmentValue,
+						expirationDate: item.expirationDate,
+						nsuDocument: item.nsuDocument,
+					});
+			});
+			await Promise.all(updateTasks);
 
 			const updatedPayments = await ReceiptPayment.query()
 				.useTransaction(trx)
-				.whereIn("id", data.receiptPaymentIds)
+				.whereIn(
+					"id",
+					data.items.map((elem) => elem.receiptPaymentId),
+				)
 				.preload("receipt");
 
 			const uniqueReceipts = updatedPayments.reduce(

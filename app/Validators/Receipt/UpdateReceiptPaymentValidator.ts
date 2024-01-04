@@ -23,26 +23,36 @@ export default class UpdateReceiptPaymentValidator {
 	 *     ])
 	 *    ```
 	 */
+	// items: {
+	// 	receiptPaymentId: string;
+	// 	paymentMethodId: string;
+	// 	tefFlagId?: string;
+	// 	tefAcquirerId?: string;
+	// 	installmentValue: number;
+	// 	expirationDate: DateTime;
+	// 	nsuDocument: string;
+	// }[];
 	public schema = schema.create({
-		receiptPaymentIds: schema
-			.array()
-			.members(
-				schema.string([
+		items: schema.array().members(
+			schema.object().members({
+				receiptPaymentId: schema.string([
 					rules.exists({ table: "receipt_payments", column: "id" }),
 				]),
-			),
-		paymentMethodId: schema.string([
-			rules.exists({ table: "payment_methods", column: "id" }),
-		]),
-		tefFlagId: schema.string.optional([
-			rules.exists({ table: "tef_flags", column: "id" }),
-		]),
-		tefAcquirerId: schema.string.optional([
-			rules.exists({ table: "tef_acquirers", column: "id" }),
-		]),
-		installmentValue: schema.number(),
-		expirationDate: schema.date(),
-		nsuDocument: schema.string(),
+				paymentMethodId: schema.string([
+					rules.exists({ table: "payment_methods", column: "id" }),
+				]),
+				tefFlagId: schema.string.optional([
+					rules.exists({ table: "tef_flags", column: "id" }),
+				]),
+				tefAcquirerId: schema.string.optional([
+					rules.exists({ table: "tef_acquirers", column: "id" }),
+				]),
+
+				installmentValue: schema.number(),
+				expirationDate: schema.date(),
+				nsuDocument: schema.string(),
+			}),
+		),
 	});
 
 	/**

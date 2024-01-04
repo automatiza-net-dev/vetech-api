@@ -526,7 +526,7 @@ export default class ReceiptService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereILike("tag", `%${data.tag}%`);
 		}
 
 		if (data.supplier) {
@@ -877,56 +877,56 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			if (parsed.data.nfeProc.NFe.infNFe.cobr) {
-				const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
-				if (d1) {
-					await newReceipt.related("payments").create(
-						{
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							block: 1,
-							installment: 1,
-							blockInstallments: 1,
-							installmentValue: d1.vLiq,
-							issueDate: DateTime.now(),
-							expirationDate: DateTime.now(),
-							nsuDocument: d1.nFat,
-							status: "Ativo",
-						},
-						{ client: trx },
-					);
-
-					newReceipt.merge({
-						paidValue: newReceipt.paidValue + d1.vLiq,
-					});
-				}
-
-				const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
-				if (d2) {
-					await newReceipt.related("payments").create(
-						{
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							block: d1 ? 2 : 1,
-							installment: 1,
-							blockInstallments: 1,
-							installmentValue: d2.vDup,
-							issueDate: DateTime.now(),
-							expirationDate: DateTime.fromISO(d2.dVenc),
-							nsuDocument: d2.nDup,
-							status: "Ativo",
-						},
-						{ client: trx },
-					);
-
-					newReceipt.merge({
-						paidValue: newReceipt.paidValue + d2.vDup,
-					});
-				}
-			}
-
-			await newReceipt.useTransaction(trx).save();
-
+			// if (parsed.data.nfeProc.NFe.infNFe.cobr) {
+			// 	const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
+			// 	if (d1) {
+			// 		await newReceipt.related("payments").create(
+			// 			{
+			// 				economic_group_id: authCtx.group.id,
+			// 				business_unit_id: authCtx.unit.id,
+			// 				block: 1,
+			// 				installment: 1,
+			// 				blockInstallments: 1,
+			// 				installmentValue: d1.vLiq,
+			// 				issueDate: DateTime.now(),
+			// 				expirationDate: DateTime.now(),
+			// 				nsuDocument: d1.nFat,
+			// 				status: "Ativo",
+			// 			},
+			// 			{ client: trx },
+			// 		);
+			//
+			// 		newReceipt.merge({
+			// 			paidValue: newReceipt.paidValue + d1.vLiq,
+			// 		});
+			// 	}
+			//
+			// 	const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
+			// 	if (d2) {
+			// 		await newReceipt.related("payments").create(
+			// 			{
+			// 				economic_group_id: authCtx.group.id,
+			// 				business_unit_id: authCtx.unit.id,
+			// 				block: d1 ? 2 : 1,
+			// 				installment: 1,
+			// 				blockInstallments: 1,
+			// 				installmentValue: d2.vDup,
+			// 				issueDate: DateTime.now(),
+			// 				expirationDate: DateTime.fromISO(d2.dVenc),
+			// 				nsuDocument: d2.nDup,
+			// 				status: "Ativo",
+			// 			},
+			// 			{ client: trx },
+			// 		);
+			//
+			// 		newReceipt.merge({
+			// 			paidValue: newReceipt.paidValue + d2.vDup,
+			// 		});
+			// 	}
+			// }
+			//
+			// await newReceipt.useTransaction(trx).save();
+			//
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,
 				(val) => val,
@@ -2325,8 +2325,8 @@ export default class ReceiptService {
 			await BusinessUnitProduct.createMany(buProductData, { client: trx });
 
 			// fetchOrCreateMany deveria funcionar, mas não funciona 🤔
-			const supplierTasks = rowItems.map((elem) => {
-				const existingProduct = SupplierProduct.query()
+			const supplierTasks = rowItems.map(async (elem) => {
+				const existingProduct = await SupplierProduct.query()
 					.useTransaction(trx)
 					.where("economic_group_id", authCtx.group.id)
 					.where("supplier_id", row.supplier_id)

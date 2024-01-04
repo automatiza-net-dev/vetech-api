@@ -1891,6 +1891,43 @@ export default class ReceiptService {
 		});
 	}
 
+	async reopenReceipt(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!receipt) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (receipt.status !== "Baixada") {
+				throw new BadRequestException(
+					"Esta Nota não está baixada",
+					400,
+					"E_NOTA_FINALIZADA",
+				);
+			}
+
+			await receipt
+				.merge({
+					status: "Aberta",
+					reversal_user_id: authCtx.user.id,
+					reversedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
 	async deleteItem(
 		authCtx: AuthContext,
 		data: {

@@ -305,7 +305,11 @@ export default class OpportunityService {
 		const qb = OpportunityActivity.query()
 			.preload("activity")
 			.preload("opportunity", (query) => {
-				query.preload("client").preload("contact").preload("user");
+				query
+					.preload("client")
+					.preload("contact")
+					.preload("user")
+					.preload("reason");
 			})
 			.preload("executionUser")
 			.whereHas("opportunity", (query) => {
@@ -394,6 +398,10 @@ export default class OpportunityService {
 						name: elem.executionUser.name,
 				  }
 				: null,
+			reason: this.sharedService.captureGroup(elem.opportunity.reason, (v) => ({
+				id: v.id,
+				reason: v.reason,
+			})),
 		}));
 	}
 

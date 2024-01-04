@@ -243,6 +243,8 @@ export default class OpportunityService {
 
 		const result = await qb;
 
+		console.log(result.map((elem) => elem.id));
+
 		return result.map((elem) => ({
 			id: elem.id,
 			openingDate: elem.openingDate,

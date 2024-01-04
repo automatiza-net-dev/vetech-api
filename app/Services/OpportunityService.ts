@@ -8,6 +8,7 @@ import CrmStatus from "App/Models/CrmStatus";
 import Opportunity from "App/Models/Opportunity";
 import OpportunityActivity from "App/Models/OpportunityActivity";
 import OpportunityLog from "App/Models/OpportunityLog";
+import Patient from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
@@ -140,6 +141,7 @@ export default class OpportunityService {
 		},
 	) {
 		const qb = Opportunity.query()
+			.debug(true)
 			.where("economic_group_id", authCtx.group.id)
 			.preload("client", (query) => {
 				query.select("id", "name", "weight", "gender");
@@ -693,6 +695,7 @@ export default class OpportunityService {
 			contactTypeId?: number;
 			contactSubjectId?: number;
 			originId?: string;
+			raceId?: string;
 
 			description?: string;
 			observation?: string;
@@ -734,6 +737,32 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.clientId) {
+				const row = await Patient.query()
+					.useTransaction(trx)
+					.where("id", data.clientId)
+					.preload("patientAnimal")
+					.firstOrFail();
+
+				await row
+					.merge({
+						weight: data.weight,
+						gender: data.gender,
+					})
+					.useTransaction(trx)
+					.save();
+
+				if (row.patientAnimal) {
+					await row.patientAnimal
+						.merge({
+							race_id: data.raceId,
+							castrated: data.castrated,
+						})
+						.useTransaction(trx)
+						.save();
+				}
+			}
 
 			await this.createLog(result, trx);
 		});

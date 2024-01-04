@@ -111,7 +111,7 @@ export interface ISendNfe {
 		integration_type: "1" | "2" | null;
 		acquirer: string | null | undefined;
 		flag: string;
-		nsu: string;
+		nsu: string | undefined;
 	}>;
 
 	totalizers: {

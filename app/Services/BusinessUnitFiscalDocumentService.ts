@@ -16,7 +16,7 @@ import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
 } from "App/Models/IssuedFiscalDocument";
 import { PaymentMethodTef } from "App/Models/PaymentMethod";
-import Product, { ProductType } from "App/Models/Product";
+import { ProductType } from "App/Models/Product";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import User from "App/Models/User";
 import FocusNfeService, {
@@ -353,7 +353,10 @@ export default class BusinessUnitFiscalDocumentService {
 							: unit.acquirers.find((a) => a.id === item.tef_acquirer_id)
 									?.document,
 					flag: item?.flag?.nfe_code,
-					nsu: item.nsuDocument,
+					nsu:
+						item.paymentMethod.tef === PaymentMethodTef.N
+							? undefined
+							: item.nsuDocument,
 				})),
 				totalizers: {
 					// icms_base: bill.icmsBase,

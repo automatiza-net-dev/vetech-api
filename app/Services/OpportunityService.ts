@@ -22,6 +22,23 @@ export default class OpportunityService {
 			.where("id", id)
 			.preload("client", (query) => {
 				query.preload("tutor");
+				query.preload("patientAnimal", (query) => {
+					query.select(
+						"race_id",
+						"death",
+						"death_date",
+						"microchip",
+						"castrated",
+					);
+
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
 			})
 			.preload("race", (query) => {
 				query.select("id", "description", "specie_id");

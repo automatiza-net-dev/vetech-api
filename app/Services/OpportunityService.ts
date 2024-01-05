@@ -141,7 +141,6 @@ export default class OpportunityService {
 		},
 	) {
 		const qb = Opportunity.query()
-			.debug(true)
 			.where("economic_group_id", authCtx.group.id)
 			.preload("client", (query) => {
 				query.select("id", "name", "weight", "gender");
@@ -204,7 +203,12 @@ export default class OpportunityService {
 			const cleanOptions = data.balance.filter((v) => v !== "Em Aberto");
 
 			if (hasEmAberto && cleanOptions.length > 0) {
-				qb.whereRaw("(closing_date is null or balance in (?))", [cleanOptions]);
+				qb.whereRaw(
+					`(balance = ANY('{${cleanOptions.join(
+						",",
+					)}}') or closing_date is null)`,
+					[],
+				);
 			}
 
 			if (hasEmAberto && cleanOptions.length === 0) {
@@ -253,39 +257,39 @@ export default class OpportunityService {
 			balance: elem.balance,
 			active: elem.active,
 
-			// status: elem.status,
-			// contact: this.sharedService.captureGroup(elem.contact, (v) => ({
-			// 	id: v.id,
-			// 	name: v.name,
-			// 	email: v.tutor?.email ?? null,
-			// 	cellphone: v.tutor?.cellphone ?? null,
-			// 	telepone: v.tutor?.telephone ?? null,
-			// })),
-			//
-			// contactType: elem.contactType,
-			// contactSubject: elem.contactSubject,
-			// client: elem.client,
-			// clientOrigin: elem.clientOrigin,
-			//
-			// user: {
-			// 	id: elem.user.id,
-			// 	name: elem.user.name,
-			// },
-			// unit: {
-			// 	id: elem.unit.id,
-			// 	companyName: elem.unit.companyName,
-			// 	fantasyName: elem.unit.fantasyName,
-			// },
-			// schedule: {
-			// 	id: elem.schedule_id ?? null,
-			// },
-			// closingUser: {
-			// 	id: elem.closing_user_id ?? null,
-			// },
-			// reason: this.sharedService.captureGroup(elem.reason, (v) => ({
-			// 	id: v.id,
-			// 	reason: v.reason,
-			// })),
+			status: elem.status,
+			contact: this.sharedService.captureGroup(elem.contact, (v) => ({
+				id: v.id,
+				name: v.name,
+				email: v.tutor?.email ?? null,
+				cellphone: v.tutor?.cellphone ?? null,
+				telepone: v.tutor?.telephone ?? null,
+			})),
+
+			contactType: elem.contactType,
+			contactSubject: elem.contactSubject,
+			client: elem.client,
+			clientOrigin: elem.clientOrigin,
+
+			user: {
+				id: elem.user.id,
+				name: elem.user.name,
+			},
+			unit: {
+				id: elem.unit.id,
+				companyName: elem.unit.companyName,
+				fantasyName: elem.unit.fantasyName,
+			},
+			schedule: {
+				id: elem.schedule_id ?? null,
+			},
+			closingUser: {
+				id: elem.closing_user_id ?? null,
+			},
+			reason: this.sharedService.captureGroup(elem.reason, (v) => ({
+				id: v.id,
+				reason: v.reason,
+			})),
 		}));
 	}
 

@@ -1322,6 +1322,47 @@ export default class PatientService {
 			throw new BadRequestException("Paciente inválido", 400, "E_BAD_REQUEST");
 		}
 
+		let valid = false;
+
+		const trx = await Database.transaction();
+
+		try {
+			await Database.from("patient_tutors")
+				.delete()
+				.where("patient_id", patientId)
+				.useTransaction(trx);
+
+			await Database.from("patient_animals")
+				.delete()
+				.where("patient_id", patientId)
+				.useTransaction(trx);
+
+			await Database.from("patient_economic_groups")
+				.delete()
+				.where("patient_id", patientId)
+				.useTransaction(trx);
+
+			await Database.from("patients")
+				.delete()
+				.where("id", patientId)
+				.useTransaction(trx);
+
+			valid = true;
+		} catch (e) {
+			// console.log(e);
+			// throw new Error(
+			// 	"Failed, means that there is references to patient still",
+			// );
+			valid = false;
+		}
+		await trx.rollback();
+
+		if (!valid) {
+			throw new BadRequestException(
+				"Este registro não pode ser excluido, somente pode ser inativado",
+			);
+		}
+
 		const groups = await patient.related("economicGroup").query();
 
 		await patient.related("economicGroup").detach([group.id]);

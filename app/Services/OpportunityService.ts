@@ -142,22 +142,22 @@ export default class OpportunityService {
 	) {
 		const qb = Opportunity.query()
 			.debug(true)
-			.where("economic_group_id", authCtx.group.id);
-		// .preload("client", (query) => {
-		// 	query.select("id", "name", "weight", "gender");
-		//
-		// 	query.preload("tutor");
-		//
-		// 	query.preload("patientAnimal", (query) => {
-		// 		query.select("id", "castrated", "race_id");
-		// 		query.preload("race", (query) => {
-		// 			query.select("id", "description", "specie_id");
-		// 			query.preload("specie", (query) => {
-		// 				query.select("id", "description");
-		// 			});
-		// 		});
-		// 	});
-		// })
+			.where("economic_group_id", authCtx.group.id)
+			.preload("client", (query) => {
+				query.select("id", "name", "weight", "gender");
+
+				query.preload("tutor");
+
+				query.preload("patientAnimal", (query) => {
+					query.select("id", "castrated", "race_id");
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+			});
 		// .preload("contact", (query) => {
 		// 	query.preload("tutor", (query) => {
 		// 		query.select("id", "email", "cellphone", "telephone");

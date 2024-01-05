@@ -140,8 +140,9 @@ export default class OpportunityService {
 			balance?: string[];
 		},
 	) {
-		const qb = Opportunity.query().debug(true);
-		// .where("economic_group_id", authCtx.group.id)
+		const qb = Opportunity.query()
+			.debug(true)
+			.where("economic_group_id", authCtx.group.id);
 		// .preload("client", (query) => {
 		// 	query.select("id", "name", "weight", "gender");
 		//
@@ -170,9 +171,9 @@ export default class OpportunityService {
 		// .preload("reason")
 		// .preload("clientOrigin");
 
-		// if (data.unit && Array.isArray(data.unit)) {
-		// 	qb.whereIn("business_unit_id", data.unit);
-		// }
+		if (data.unit && Array.isArray(data.unit)) {
+			qb.whereIn("business_unit_id", data.unit);
+		}
 
 		if (data.technician) {
 			qb.where("user_id", data.technician);

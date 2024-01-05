@@ -157,19 +157,19 @@ export default class OpportunityService {
 						});
 					});
 				});
-			});
-		// .preload("contact", (query) => {
-		// 	query.preload("tutor", (query) => {
-		// 		query.select("id", "email", "cellphone", "telephone");
-		// 	});
-		// })
-		// .preload("contactType")
-		// .preload("contactSubject")
-		// .preload("status")
-		// .preload("user")
-		// .preload("unit")
-		// .preload("reason")
-		// .preload("clientOrigin");
+			})
+			.preload("contact", (query) => {
+				query.preload("tutor", (query) => {
+					query.select("id", "email", "cellphone", "telephone");
+				});
+			})
+			.preload("contactType")
+			.preload("contactSubject")
+			.preload("status")
+			.preload("user")
+			.preload("unit")
+			.preload("reason")
+			.preload("clientOrigin");
 
 		if (data.unit && Array.isArray(data.unit)) {
 			qb.whereIn("business_unit_id", data.unit);

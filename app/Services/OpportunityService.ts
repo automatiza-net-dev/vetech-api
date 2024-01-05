@@ -140,39 +140,39 @@ export default class OpportunityService {
 			balance?: string[];
 		},
 	) {
-		const qb = Opportunity.query()
-			.where("economic_group_id", authCtx.group.id)
-			.preload("client", (query) => {
-				query.select("id", "name", "weight", "gender");
+		const qb = Opportunity.query().debug(true);
+		// .where("economic_group_id", authCtx.group.id)
+		// .preload("client", (query) => {
+		// 	query.select("id", "name", "weight", "gender");
+		//
+		// 	query.preload("tutor");
+		//
+		// 	query.preload("patientAnimal", (query) => {
+		// 		query.select("id", "castrated", "race_id");
+		// 		query.preload("race", (query) => {
+		// 			query.select("id", "description", "specie_id");
+		// 			query.preload("specie", (query) => {
+		// 				query.select("id", "description");
+		// 			});
+		// 		});
+		// 	});
+		// })
+		// .preload("contact", (query) => {
+		// 	query.preload("tutor", (query) => {
+		// 		query.select("id", "email", "cellphone", "telephone");
+		// 	});
+		// })
+		// .preload("contactType")
+		// .preload("contactSubject")
+		// .preload("status")
+		// .preload("user")
+		// .preload("unit")
+		// .preload("reason")
+		// .preload("clientOrigin");
 
-				query.preload("tutor");
-
-				query.preload("patientAnimal", (query) => {
-					query.select("id", "castrated", "race_id");
-					query.preload("race", (query) => {
-						query.select("id", "description", "specie_id");
-						query.preload("specie", (query) => {
-							query.select("id", "description");
-						});
-					});
-				});
-			})
-			.preload("contact", (query) => {
-				query.preload("tutor", (query) => {
-					query.select("id", "email", "cellphone", "telephone");
-				});
-			})
-			.preload("contactType")
-			.preload("contactSubject")
-			.preload("status")
-			.preload("user")
-			.preload("unit")
-			.preload("reason")
-			.preload("clientOrigin");
-
-		if (data.unit && Array.isArray(data.unit)) {
-			qb.whereIn("business_unit_id", data.unit);
-		}
+		// if (data.unit && Array.isArray(data.unit)) {
+		// 	qb.whereIn("business_unit_id", data.unit);
+		// }
 
 		if (data.technician) {
 			qb.where("user_id", data.technician);
@@ -252,39 +252,39 @@ export default class OpportunityService {
 			balance: elem.balance,
 			active: elem.active,
 
-			status: elem.status,
-			contact: this.sharedService.captureGroup(elem.contact, (v) => ({
-				id: v.id,
-				name: v.name,
-				email: v.tutor?.email ?? null,
-				cellphone: v.tutor?.cellphone ?? null,
-				telepone: v.tutor?.telephone ?? null,
-			})),
-
-			contactType: elem.contactType,
-			contactSubject: elem.contactSubject,
-			client: elem.client,
-			clientOrigin: elem.clientOrigin,
-
-			user: {
-				id: elem.user.id,
-				name: elem.user.name,
-			},
-			unit: {
-				id: elem.unit.id,
-				companyName: elem.unit.companyName,
-				fantasyName: elem.unit.fantasyName,
-			},
-			schedule: {
-				id: elem.schedule_id ?? null,
-			},
-			closingUser: {
-				id: elem.closing_user_id ?? null,
-			},
-			reason: this.sharedService.captureGroup(elem.reason, (v) => ({
-				id: v.id,
-				reason: v.reason,
-			})),
+			// status: elem.status,
+			// contact: this.sharedService.captureGroup(elem.contact, (v) => ({
+			// 	id: v.id,
+			// 	name: v.name,
+			// 	email: v.tutor?.email ?? null,
+			// 	cellphone: v.tutor?.cellphone ?? null,
+			// 	telepone: v.tutor?.telephone ?? null,
+			// })),
+			//
+			// contactType: elem.contactType,
+			// contactSubject: elem.contactSubject,
+			// client: elem.client,
+			// clientOrigin: elem.clientOrigin,
+			//
+			// user: {
+			// 	id: elem.user.id,
+			// 	name: elem.user.name,
+			// },
+			// unit: {
+			// 	id: elem.unit.id,
+			// 	companyName: elem.unit.companyName,
+			// 	fantasyName: elem.unit.fantasyName,
+			// },
+			// schedule: {
+			// 	id: elem.schedule_id ?? null,
+			// },
+			// closingUser: {
+			// 	id: elem.closing_user_id ?? null,
+			// },
+			// reason: this.sharedService.captureGroup(elem.reason, (v) => ({
+			// 	id: v.id,
+			// 	reason: v.reason,
+			// })),
 		}));
 	}
 

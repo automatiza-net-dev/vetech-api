@@ -540,6 +540,7 @@ export default class ReceiptService {
 		return (await qb).map((elem) => ({
 			id: elem.id,
 			tag: elem.tag,
+			origin: elem.origin,
 			issueDate: elem.issueDate,
 			receiptDate: elem.receiptDate,
 			totalValue: elem.totalValue,
@@ -850,6 +851,7 @@ export default class ReceiptService {
 					seller_id: authCtx.user.id,
 					daily_movement_id: dailyMovementId,
 
+					origin: "Xml",
 					issueDate: DateTime.now(),
 					receiptDate: DateTime.now(),
 					tag: GenerateTag(receiptsCounter.length + 1),
@@ -1430,6 +1432,7 @@ export default class ReceiptService {
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
 
+					origin: "Manual",
 					tag: GenerateTag(counter.length + 1),
 					issueDate: DateTime.now(),
 					receiptDate: data.receiptDate,

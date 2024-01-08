@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
@@ -309,6 +310,48 @@ export default class ProductService {
 
 	public async destroy(unitId: string, id: string): Promise<void> {
 		const product = await this.show(unitId, id);
+
+		let valid = false;
+
+		const trx = await Database.transaction();
+		try {
+			const rows = await Database.from("product_variations")
+				.useTransaction(trx)
+				.select("id")
+				.where("product_id", id);
+
+			await Database.from("business_unit_products")
+				.delete()
+				.whereIn(
+					"product_variation_id",
+					rows.map((elem) => elem.id),
+				);
+
+			await Database.from("product_variations")
+				.delete()
+				.where("product_id", id)
+				.useTransaction(trx);
+
+			await Database.from("products")
+				.delete()
+				.where("id", id)
+				.useTransaction(trx);
+
+			valid = true;
+		} catch (e) {
+			// console.log(e);
+			// throw new Error(
+			// 	"Failed, means that there is references to patient still",
+			// );
+			valid = false;
+		}
+		await trx.rollback();
+
+		if (!valid) {
+			throw new BadRequestException(
+				"Este registro não pode ser excluido, somente pode ser inativado",
+			);
+		}
 
 		await product.softDelete();
 	}

@@ -1314,8 +1314,7 @@ export default class PatientService {
 		});
 	}
 
-	public async destroy(unitId: string, patientId: string): Promise<void> {
-		const group = await this.getEconomicGroup(unitId);
+	public async destroy(authCtx: AuthContext, patientId: string): Promise<void> {
 		const patient = await Patient.query().where("id", patientId).first();
 
 		if (!patient) {
@@ -1327,6 +1326,12 @@ export default class PatientService {
 		const trx = await Database.transaction();
 
 		try {
+			await Database.from("holder_dependents")
+				.delete()
+				.where("holder_id", patientId)
+				.orWhere("dependent_id", patientId)
+				.useTransaction(trx);
+
 			await Database.from("patient_tutors")
 				.delete()
 				.where("patient_id", patientId)
@@ -1360,18 +1365,25 @@ export default class PatientService {
 		if (!valid) {
 			throw new BadRequestException(
 				"Este registro não pode ser excluido, somente pode ser inativado",
+				400,
+				"E_DANGLING",
 			);
 		}
 
 		const groups = await patient.related("economicGroup").query();
 
-		await patient.related("economicGroup").detach([group.id]);
+		await patient.related("economicGroup").detach([authCtx.group.id]);
 
 		if (groups.length > 1) {
 			return;
 		}
 
-		await patient.softDelete();
+		await patient
+			.merge({
+				deletedAt: DateTime.now(),
+				exclusion_user_id: authCtx.user.id,
+			})
+			.save();
 	}
 
 	public async setMainTutor(

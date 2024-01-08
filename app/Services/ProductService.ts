@@ -7,11 +7,12 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import BusinessUnit from "App/Models/BusinessUnit";
 import Product, { ProductType } from "App/Models/Product";
 import VariationGroup from "App/Models/VariationGroup";
-import SharedService from "App/Services/SharedService";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 import IProductData, {
 	IProductDataVariation,
 } from "Contracts/interfaces/IProductData";
 import IUpdateProduct from "Contracts/interfaces/IUpdateProduct";
+import { DateTime } from "luxon";
 
 interface ISearch {
 	description?: string;
@@ -308,8 +309,8 @@ export default class ProductService {
 			.save();
 	}
 
-	public async destroy(unitId: string, id: string): Promise<void> {
-		const product = await this.show(unitId, id);
+	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+		const product = await this.show(authCtx.unit.id, id);
 
 		let valid = false;
 
@@ -350,10 +351,17 @@ export default class ProductService {
 		if (!valid) {
 			throw new BadRequestException(
 				"Este registro não pode ser excluido, somente pode ser inativado",
+				400,
+				"E_DANGLING",
 			);
 		}
 
-		await product.softDelete();
+		await product
+			.merge({
+				exclusion_user_id: authCtx.user.id,
+				deletedAt: DateTime.now(),
+			})
+			.save();
 	}
 
 	private checkForPrice(unit: BusinessUnit, data: IProductDataVariation) {

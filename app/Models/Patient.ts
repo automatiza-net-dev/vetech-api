@@ -1,206 +1,211 @@
 import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-  HasMany,
-  hasMany,
-  HasOne,
-  hasOne,
-  ManyToMany,
-  manyToMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import PatientAnimal from 'App/Models/PatientAnimal';
-import PatientTutor from 'App/Models/PatientTutor';
-import Schedule from 'App/Models/Schedule';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
-import Hospitalization from 'App/Models/Hospitalization';
-import PatientContact from './PatientContact';
-import Bill from './Bill';
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	column,
+	HasMany,
+	hasMany,
+	HasOne,
+	hasOne,
+	ManyToMany,
+	manyToMany,
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import PatientAnimal from "App/Models/PatientAnimal";
+import PatientTutor from "App/Models/PatientTutor";
+import Schedule from "App/Models/Schedule";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+import Hospitalization from "App/Models/Hospitalization";
+import PatientContact from "./PatientContact";
+import Bill from "./Bill";
 
 export enum PatientType {
-  TUTOR = 'tutor',
-  ANIMAL = 'animal',
-  SUPPLIER = 'supplier',
+	TUTOR = "tutor",
+	ANIMAL = "animal",
+	SUPPLIER = "supplier",
 }
 
 export enum PatientGender {
-  MALE = 'male',
-  FEMALE = 'female',
+	MALE = "male",
+	FEMALE = "female",
 }
 
 export enum PatientVaccineOrigin {
-  C = 'PROPRIA_CLINICA',
-  F = 'FORA_DA_CLINICA',
-  N = 'NAO_VACINADO',
+	C = "PROPRIA_CLINICA",
+	F = "FORA_DA_CLINICA",
+	N = "NAO_VACINADO",
 }
 
 export enum PatientWeightOrigin {
-  A = 'ATENDIMENTO',
-  I = 'INTERNACAO',
+	A = "ATENDIMENTO",
+	I = "INTERNACAO",
 }
 
 export default class Patient extends BaseModel {
-  @column({ isPrimary: true })
-  public id: string = v4();
+	@column({ isPrimary: true })
+	public id: string = v4();
 
-  @column()
-  public tag: string;
+	@column()
+	public tag: string;
 
-  @column()
-  public name: string;
+	@column()
+	public name: string;
 
-  @column()
-  public type: PatientType;
+	@column()
+	public type: PatientType;
 
-  @column()
-  public photo?: string;
+	@column()
+	public photo?: string;
 
-  @column({
-    columnName: 'vaccine_origin',
-  })
-  public vaccineOrigin: PatientVaccineOrigin;
+	@column({
+		columnName: "vaccine_origin",
+	})
+	public vaccineOrigin: PatientVaccineOrigin;
 
-  @column()
-  public gender?: PatientGender;
+	@column()
+	public gender?: PatientGender;
 
-  @column()
-  public tags?: string;
+	@column()
+	public tags?: string;
 
-  @column({
-    columnName: 'client_origin_item_description',
-  })
-  public clientOriginItemDescription?: string;
+	@column({
+		columnName: "client_origin_item_description",
+	})
+	public clientOriginItemDescription?: string;
 
-  @column({
-    columnName: 'birth_date',
-  })
-  public birthDate?: Date;
+	@column({
+		columnName: "birth_date",
+	})
+	public birthDate?: Date;
 
-  @column.dateTime({
-    columnName: 'first_sale',
-  })
-  public firstSale?: DateTime;
+	@column.dateTime({
+		columnName: "first_sale",
+	})
+	public firstSale?: DateTime;
 
-  @column()
-  public weight: number;
+	@column()
+	public weight: number;
 
-  @column.dateTime({
-    columnName: 'weight_date',
-  })
-  public weightDate?: DateTime;
+	@column.dateTime({
+		columnName: "weight_date",
+	})
+	public weightDate?: DateTime;
 
-  @column({
-    columnName: 'weight_origin',
-  })
-  public weightOrigin?: PatientWeightOrigin;
+	@column({
+		columnName: "weight_origin",
+	})
+	public weightOrigin?: PatientWeightOrigin;
 
-  @column()
-  public hypertension: boolean;
+	@column()
+	public hypertension: boolean;
 
-  @column()
-  public diabetes: boolean;
+	@column()
+	public diabetes: boolean;
 
-  @column()
-  public glycemia: number;
+	@column()
+	public glycemia: number;
 
-  @column()
-  public pressure: string;
+	@column()
+	public pressure: string;
 
-  @column()
-  public active: boolean;
+	@column()
+	public active: boolean;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
 
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
 
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
 
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
 
-  @manyToMany(() => EconomicGroup, {
-    pivotTable: 'patient_economic_groups',
-    pivotTimestamps: true,
-  })
-  public economicGroup: ManyToMany<typeof EconomicGroup>;
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string;
 
-  @hasOne(() => PatientTutor, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public tutor: HasOne<typeof PatientTutor>;
+	@manyToMany(() => EconomicGroup, {
+		pivotTable: "patient_economic_groups",
+		pivotTimestamps: true,
+	})
+	public economicGroup: ManyToMany<typeof EconomicGroup>;
 
-  @manyToMany(() => Patient, {
-    pivotTable: 'holder_dependents',
-    pivotTimestamps: true,
-    localKey: 'id',
-    pivotForeignKey: 'dependent_id',
-    relatedKey: 'id',
-    pivotRelatedForeignKey: 'holder_id',
-    pivotColumns: ['is_main'],
-  })
-  // eslint-disable-next-line no-use-before-define
-  public tutors: ManyToMany<typeof Patient>;
+	@hasOne(() => PatientTutor, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public tutor: HasOne<typeof PatientTutor>;
 
-  @manyToMany(() => Patient, {
-    pivotTable: 'holder_dependents',
-    pivotTimestamps: true,
-    localKey: 'id',
-    pivotForeignKey: 'holder_id',
-    relatedKey: 'id',
-    pivotRelatedForeignKey: 'dependent_id',
-    pivotColumns: ['is_main'],
-  })
-  // eslint-disable-next-line no-use-before-define
-  public dependents: ManyToMany<typeof Patient>;
+	@manyToMany(() => Patient, {
+		pivotTable: "holder_dependents",
+		pivotTimestamps: true,
+		localKey: "id",
+		pivotForeignKey: "dependent_id",
+		relatedKey: "id",
+		pivotRelatedForeignKey: "holder_id",
+		pivotColumns: ["is_main"],
+	})
+	// eslint-disable-next-line no-use-before-define
+	public tutors: ManyToMany<typeof Patient>;
 
-  @hasMany(() => Schedule, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public schedules: HasMany<typeof Schedule>;
+	@manyToMany(() => Patient, {
+		pivotTable: "holder_dependents",
+		pivotTimestamps: true,
+		localKey: "id",
+		pivotForeignKey: "holder_id",
+		relatedKey: "id",
+		pivotRelatedForeignKey: "dependent_id",
+		pivotColumns: ["is_main"],
+	})
+	// eslint-disable-next-line no-use-before-define
+	public dependents: ManyToMany<typeof Patient>;
 
-  @hasOne(() => PatientAnimal, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public patientAnimal: HasOne<typeof PatientAnimal>;
+	@hasMany(() => Schedule, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public schedules: HasMany<typeof Schedule>;
 
-  @hasMany(() => Schedule, {
-    localKey: 'id',
-    foreignKey: 'holder_id',
-  })
-  public holderSchedules: HasMany<typeof Schedule>;
+	@hasOne(() => PatientAnimal, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public patientAnimal: HasOne<typeof PatientAnimal>;
 
-  @hasMany(() => Hospitalization, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public hospitalizations: HasMany<typeof Hospitalization>;
+	@hasMany(() => Schedule, {
+		localKey: "id",
+		foreignKey: "holder_id",
+	})
+	public holderSchedules: HasMany<typeof Schedule>;
 
-  @hasMany(() => PatientContact, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public contacts: HasMany<typeof PatientContact>;
+	@hasMany(() => Hospitalization, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public hospitalizations: HasMany<typeof Hospitalization>;
 
-  @hasMany(() => Bill, {
-    localKey: 'id',
-    foreignKey: 'client_id',
-  })
-  public bills: HasMany<typeof Bill>;
+	@hasMany(() => PatientContact, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public contacts: HasMany<typeof PatientContact>;
+
+	@hasMany(() => Bill, {
+		localKey: "id",
+		foreignKey: "client_id",
+	})
+	public bills: HasMany<typeof Bill>;
 }

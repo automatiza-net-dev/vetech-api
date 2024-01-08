@@ -1,68 +1,70 @@
-import { inject } from '@adonisjs/fold';
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ProductService from 'App/Services/ProductService';
-import SharedService from 'App/Services/SharedService';
-import CreateProductValidator from 'App/Validators/Product/CreateProductValidator';
-import UpdateProductValidator from 'App/Validators/Product/UpdateProductValidator';
+import { inject } from "@adonisjs/fold";
+import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ProductService from "App/Services/ProductService";
+import SharedService from "App/Services/SharedService";
+import CreateProductValidator from "App/Validators/Product/CreateProductValidator";
+import UpdateProductValidator from "App/Validators/Product/UpdateProductValidator";
 
 @inject()
 export default class ProductsController {
-  constructor(
-    private readonly service: ProductService,
-    private readonly sharedService: SharedService,
-  ) {}
+	constructor(
+		private readonly service: ProductService,
+		private readonly sharedService: SharedService,
+	) {}
 
-  public async index({ auth, request, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
+	public async index({ auth, request, response }: HttpContextContract) {
+		const { unit_id } = this.sharedService.extractUser(auth);
 
-    const qs = request.qs();
-    const result = await this.service.index(unit_id, {
-      description: qs.description,
-      reference: qs.reference,
-      collection: qs.collection,
-      active: qs.active,
-      purpose: qs.purpose,
-      subgroup: qs.subgroup,
-      taxation: qs.taxation,
-    });
+		const qs = request.qs();
+		const result = await this.service.index(unit_id, {
+			description: qs.description,
+			reference: qs.reference,
+			collection: qs.collection,
+			active: qs.active,
+			purpose: qs.purpose,
+			subgroup: qs.subgroup,
+			taxation: qs.taxation,
+		});
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async show({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    const result = await this.service.show(unit_id, params.id);
+	public async show({ auth, params, response }: HttpContextContract) {
+		const { unit_id } = this.sharedService.extractUser(auth);
+		const result = await this.service.show(unit_id, params.id);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(CreateProductValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+	public async store({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(CreateProductValidator);
+		const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.store(unit_id, payload);
+		const result = await this.service.store(unit_id, payload);
 
-    return response.created(result);
-  }
+		return response.created(result);
+	}
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(UpdateProductValidator);
-    const { unit_id } = this.sharedService.extractUser(auth);
+	public async update({
+		auth,
+		params,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateProductValidator);
+		const { unit_id } = this.sharedService.extractUser(auth);
 
-    const result = await this.service.update(unit_id, params.id, payload);
+		const result = await this.service.update(unit_id, params.id, payload);
 
-    return response.ok(result);
-  }
+		return response.ok(result);
+	}
 
-  public async destroy({ auth, params, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    await this.service.destroy(unit_id, params.id);
+	public async destroy({ auth, params, response }: HttpContextContract) {
+		await this.service.destroy(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
-    return response.noContent();
-  }
+		return response.noContent();
+	}
 }

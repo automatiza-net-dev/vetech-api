@@ -569,12 +569,28 @@ export default class ReceiptService {
 
 				query.preload("productVariation", (query) => {
 					query.preload("product", (query) => {
-						query.select("id", "description");
+						query.select(
+							"id",
+							"description",
+							"reference_code",
+							"purpose",
+							"subgroup_id",
+							"unit_id",
+							"taxation_group_id",
+						);
+
+						query.preload("subgroup", (query) => {
+							query.select("id");
+						});
+						query.preload("unit", (query) => {
+							query.select("id");
+						});
+						query.preload("taxationGroup", (query) => {
+							query.select("id");
+						});
 					});
 					query.preload("businessUnitProducts", (query) => {
 						query.where("businness_unit_id", authCtx.unit.id);
-
-						query.select("id", "businness_unit_id", "cost_price");
 					});
 				});
 			})
@@ -662,7 +678,7 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
-				referenceCode: string;
+				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
 				minimumStock: number;
@@ -690,11 +706,13 @@ export default class ReceiptService {
 
 				await product
 					.merge({
-						referenceCode: item.referenceCode,
 						unit_id: item.unitId,
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
+
+						referenceCode: item.referenceCode,
+						purpose: item.purpose,
 					})
 					.useTransaction(trx)
 					.save();
@@ -1654,27 +1672,55 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
+			const sum = this.sharedService.sum(
+				data.items.map((i) => i.installmentValue),
+			);
+			if (receipt.totalValue < sum + receipt.paidValue) {
+				throw new BadRequestException(
+					"Valores adicionais acima do valor total da nota",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			const paymentMethods = await PaymentMethod.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((i) => i.paymentMethodId),
+				);
+
 			const tasks = data.items.map((elem, index) => {
 				return ReceiptPayment.createMany(
 					Array.from<number, Partial<ReceiptPayment>>(
 						{ length: elem.installments },
-						(_, idx) => ({
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							receipt_id: data.receiptId,
-							payment_method_id: elem.paymentMethodId,
-							tef_acquirer_id: elem.tefAcquirerId,
-							tef_flag_id: elem.tefFlagId,
+						(_, idx) => {
+							const paymentMethod = paymentMethods.find(
+								(p) => p.id === elem.paymentMethodId,
+							) as PaymentMethod;
 
-							installment: idx + 1,
-							block: index + 1 + receipt.payments.length,
-							blockInstallments: elem.installments,
-							installmentValue: elem.installmentValue / elem.installments,
-							issueDate: elem.issueDate,
-							expirationDate: elem.expirationDate,
-							nsuDocument: elem.nsuDocument,
-							status: "Ativo",
-						}),
+							return {
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								receipt_id: data.receiptId,
+								payment_method_id: elem.paymentMethodId,
+								tef_acquirer_id: elem.tefAcquirerId,
+								tef_flag_id: elem.tefFlagId,
+
+								installment: idx + 1,
+								block: index + 1 + receipt.payments.length,
+								blockInstallments: elem.installments,
+								installmentValue: elem.installmentValue / elem.installments,
+								issueDate: elem.issueDate,
+								expirationDate: elem.expirationDate.plus({
+									days:
+										paymentMethod.daysFirstInstallment +
+										paymentMethod.daysBetweenInstallments * idx,
+								}),
+								nsuDocument: elem.nsuDocument,
+								status: "Ativo",
+							};
+						},
 					),
 
 					{ client: trx },
@@ -1718,7 +1764,7 @@ export default class ReceiptService {
 				tefAcquirerId?: string;
 				installmentValue: number;
 				expirationDate: DateTime;
-				nsuDocument: string;
+				nsuDocument?: string;
 			}[];
 		},
 	) {
@@ -1791,6 +1837,19 @@ export default class ReceiptService {
 					.save();
 			});
 			await Promise.all(tasks);
+
+			const checkTasks = uniqueReceipts.map(async (elem) => {
+				const updated = await elem.refresh();
+
+				if (updated.paidValue > updated.totalValue) {
+					throw new BadRequestException(
+						`Valores adicionais acima do valor total da nota ${updated.tag}`,
+						400,
+						"E_INVALID",
+					);
+				}
+			});
+			await Promise.all(checkTasks);
 		});
 	}
 

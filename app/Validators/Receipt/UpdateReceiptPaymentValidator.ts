@@ -23,15 +23,6 @@ export default class UpdateReceiptPaymentValidator {
 	 *     ])
 	 *    ```
 	 */
-	// items: {
-	// 	receiptPaymentId: string;
-	// 	paymentMethodId: string;
-	// 	tefFlagId?: string;
-	// 	tefAcquirerId?: string;
-	// 	installmentValue: number;
-	// 	expirationDate: DateTime;
-	// 	nsuDocument: string;
-	// }[];
 	public schema = schema.create({
 		items: schema.array().members(
 			schema.object().members({
@@ -50,7 +41,7 @@ export default class UpdateReceiptPaymentValidator {
 
 				installmentValue: schema.number(),
 				expirationDate: schema.date(),
-				nsuDocument: schema.string(),
+				nsuDocument: schema.string.optional(),
 			}),
 		),
 	});

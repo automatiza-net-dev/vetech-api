@@ -49,6 +49,7 @@ import { format } from "date-fns";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 
 const detSchema = z.object({
 	prod: z.object({
@@ -1676,13 +1677,12 @@ export default class ReceiptService {
 			const sum = this.sharedService.sum(
 				data.items.map((i) => i.installmentValue),
 			);
-			console.log({
-				totalValue: receipt.totalValue,
-				paidValue: receipt.paidValue,
-				sum,
-			});
 
-			if (receipt.totalValue < sum + receipt.paidValue) {
+			const decimalTotal = new Decimal(receipt.totalValue.toString());
+			const decimalSum = new Decimal(sum);
+			const decimalPaid = new Decimal(receipt.paidValue.toString());
+
+			if (decimalTotal.minus(decimalPaid).lessThan(decimalSum)) {
 				throw new BadRequestException(
 					"Valores adicionais acima do valor total da nota",
 					400,

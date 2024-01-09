@@ -4,6 +4,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
@@ -566,12 +567,16 @@ export default class BillService {
 		});
 	}
 
-	async deleteBillItem(_: string, id: string) {
+	async deleteBillItem(authCtx: AuthContext, id: string) {
 		return Database.transaction(async (trx) => {
 			const billItem = await BillItem.query()
 				.useTransaction(trx)
 				.where("id", id)
-				.firstOrFail();
+				.first();
+
+			if (!billItem) {
+				throw this.sharedService.ResourceNotFound();
+			}
 
 			if (billItem.status === BillItemStatus.I) {
 				throw new BadRequestException("Item já removido", 400, "E_ERR");
@@ -579,7 +584,10 @@ export default class BillService {
 
 			await billItem
 				.merge({
+					exclusion_user_id: authCtx.user.id,
+
 					status: BillItemStatus.I,
+					deleted_at: DateTime.now(),
 				})
 				.useTransaction(trx)
 				.save();
@@ -1241,11 +1249,11 @@ export default class BillService {
 		});
 	}
 
-	async excludeBill(ctx: AuthContext, id: string) {
+	async excludeBill(authCtx: AuthContext, id: string) {
 		await Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.useTransaction(trx)
-				.where("economic_group_id", ctx.group.id)
+				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.preload("payments")
 				.first();
@@ -1258,22 +1266,47 @@ export default class BillService {
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
 			}
 
-			if (bill.payments.length > 0) {
-				throw new BadRequestException(
-					"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
-					400,
-					"E_ERR",
-				);
-			}
+			// if (bill.payments.length > 0) {
+			// 	throw new BadRequestException(
+			// 		"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
+			// 		400,
+			// 		"E_ERR",
+			// 	);
+			// }
 
 			await bill
 				.merge({
-					exclusion_user_id: ctx.user.id,
+					exclusion_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 					status: BillStatus.EX,
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.update({
+					deleted_at: DateTime.now(),
+				})
+				.whereNull("deleted_at")
+				.where("bill_id", bill.id);
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("origin_flag", FinanceOriginFlag.S)
+				.whereILike("document", `%NFS-${bill.tag}%`)
+				// .where("block", payment.block)
+				// .where("origin_id", payment.id)
+				.update({
+					deleted_at: DateTime.now(),
+					status: FinanceStatus.E,
+				});
+
+			await BillPayment.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.delete();
 		});
 	}
 

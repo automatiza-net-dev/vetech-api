@@ -1675,6 +1675,12 @@ export default class ReceiptService {
 			const sum = this.sharedService.sum(
 				data.items.map((i) => i.installmentValue),
 			);
+			console.log({
+				totalValue: receipt.totalValue,
+				paidValue: receipt.paidValue,
+				sum,
+			});
+
 			if (receipt.totalValue < sum + receipt.paidValue) {
 				throw new BadRequestException(
 					"Valores adicionais acima do valor total da nota",
@@ -1840,6 +1846,12 @@ export default class ReceiptService {
 
 			const checkTasks = uniqueReceipts.map(async (elem) => {
 				const updated = await elem.refresh();
+
+				console.log({
+					id: updated.id,
+					paidValue: updated.paidValue,
+					totalValue: updated.totalValue,
+				});
 
 				if (updated.paidValue > updated.totalValue) {
 					throw new BadRequestException(

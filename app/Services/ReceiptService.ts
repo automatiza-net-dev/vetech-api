@@ -1832,7 +1832,8 @@ export default class ReceiptService {
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()
 					.useTransaction(trx)
-					.where("receipt_id", elem.id);
+					.where("receipt_id", elem.id)
+					.where("status", "Ativo" as TReceiptPaymentStatus);
 
 				await elem
 					.merge({

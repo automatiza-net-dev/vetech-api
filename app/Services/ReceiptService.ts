@@ -558,13 +558,6 @@ export default class ReceiptService {
 				query.select("id", "name");
 			})
 			.preload("items", (query) => {
-				query.whereNotNull("product_variation_id");
-				query.whereHas("productVariation", (query) => {
-					query.whereHas("product", (query) => {
-						query.whereNull("purpose");
-					});
-				});
-
 				query.select("id", "product_variation_id");
 
 				query.preload("productVariation", (query) => {
@@ -596,7 +589,15 @@ export default class ReceiptService {
 			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
-			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
+			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[])
+			.whereHas("items", (query) => {
+				query.whereNotNull("product_variation_id");
+				query.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.whereNull("purpose");
+					});
+				});
+			});
 
 		return (await qb).map((elem) => ({
 			id: elem.id,

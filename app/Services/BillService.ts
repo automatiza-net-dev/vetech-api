@@ -1996,100 +1996,125 @@ export default class BillService {
 			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 			: 0;
 
-		const billItem = await BillItem.create(
-			{
-				economic_group_id: authCtx.group.id,
-				business_unit_id: authCtx.unit.id,
-				bill_id: bill.id,
-				product_variation_id: data.productVariationId,
-				tax_rule_id: rule?.id,
-				kit_id: data.kitId,
+		let toCreate: Partial<BillItem> = {
+			economic_group_id: authCtx.group.id,
+			business_unit_id: authCtx.unit.id,
+			bill_id: bill.id,
+			product_variation_id: data.productVariationId,
+			tax_rule_id: rule?.id,
+			kit_id: data.kitId,
 
-				quantity: data.quantity,
-				costValue: price.costPrice,
-				saleValue: price.price,
-				unitaryValue: data.unitaryValue,
-				discountValue: data.discountValue,
-				totalValue,
-				status: BillItemStatus.A,
-				// createdAt: bill.createdAt,
+			quantity: data.quantity,
+			costValue: price.costPrice,
+			saleValue: price.price,
+			unitaryValue: data.unitaryValue,
+			discountValue: data.discountValue,
+			totalValue,
+			status: BillItemStatus.A,
 
-				fiscalOperationCode: rule?.taxOperation?.code,
-				icmsOriginProduct: productVariation.product.icmsOrigin,
-				icmsCst:
-					productVariation.product.type === ProductType.PRODUCT
-						? rule?.icmsCst
-						: undefined,
-				icmsBase:
-					productVariation.product.type === ProductType.PRODUCT
-						? icmsBase
-						: undefined,
-				icmsPercentage:
-					productVariation.product.type === ProductType.PRODUCT
-						? rule?.icmsPerc
-						: undefined,
-				icmsValue:
-					productVariation.product.type === ProductType.PRODUCT
-						? icmsValue
-						: undefined,
-				icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-				icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
-					? icmsStBase_2
+			fiscalOperationCode: rule?.taxOperation?.code,
+
+			issCst:
+				productVariation.product.type === ProductType.SERVICE
+					? rule?.icmsCst
 					: undefined,
-				icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
-					? rule?.icmsPercRedBaseCalculoST
+			issBase:
+				productVariation.product.type === ProductType.SERVICE
+					? icmsBase
 					: undefined,
-				icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
-				icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
-					? ufIcms?.icmsPercentage
+			issPercentage:
+				productVariation.product.type === ProductType.SERVICE
+					? rule?.icmsPerc
 					: undefined,
-				icmsStValue:
-					this.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-						? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+			issValue:
+				productVariation.product.type === ProductType.SERVICE
+					? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
+					: undefined,
+			pisCst: rule?.pisCst,
+			pisBase: totalValue,
+			pisPercentage: rule?.pisPerc,
+			pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
+			pisRetentionValue: 0,
+			cofinsCst: rule?.cofinsCst,
+			cofinsBase: totalValue,
+			cofinsPercentage: rule?.cofinsPerc,
+			cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
+			cofinsRetentionValue: 0,
+			ipiCst: rule?.ipiCst,
+			ipiBase: totalValue,
+			ipiPercentage: rule?.ipiPerc,
+			ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
+
+			// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+
+			icmsOriginProduct: productVariation.product.icmsOrigin,
+			icmsCst:
+				productVariation.product.type === ProductType.PRODUCT
+					? rule?.icmsCst
+					: undefined,
+
+			icmsFcpPercentage: rule?.fcpPerc,
+			icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
+		};
+
+		if (
+			productVariation.product.type === ProductType.PRODUCT &&
+			rule?.icmsCst
+		) {
+			const cst = rule.icmsCst;
+
+			if (["00", "10", "20", "51", "70", "90", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsBase:
+						productVariation.product.type === ProductType.PRODUCT
+							? icmsBase
+							: undefined,
+					icmsPercentage:
+						productVariation.product.type === ProductType.PRODUCT
+							? rule?.icmsPerc
+							: undefined,
+					icmsValue:
+						productVariation.product.type === ProductType.PRODUCT
+							? icmsValue
+							: undefined,
+				});
+			}
+
+			if (["10", "30", "70", "90", "201", "202", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
+						? icmsStBase_2
 						: undefined,
-				issCst:
-					productVariation.product.type === ProductType.SERVICE
-						? rule?.icmsCst
+					icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
+						? rule?.icmsPercRedBaseCalculoST
 						: undefined,
-				issBase:
-					productVariation.product.type === ProductType.SERVICE
-						? icmsBase
+					icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+					icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
+						? ufIcms?.icmsPercentage
 						: undefined,
-				issPercentage:
-					productVariation.product.type === ProductType.SERVICE
-						? rule?.icmsPerc
-						: undefined,
-				issValue:
-					productVariation.product.type === ProductType.SERVICE
-						? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
-						: undefined,
-				pisCst: rule?.pisCst,
-				cofinsCst: rule?.cofinsCst,
-				pisBase: totalValue,
-				pisPercentage: rule?.pisPerc,
-				pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
-				pisRetentionValue: 0,
-				cofinsBase: totalValue,
-				cofinsPercentage: rule?.cofinsPerc,
-				cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
-				cofinsRetentionValue: 0,
-				ipiCst: rule?.ipiCst,
-				ipiBase: totalValue,
-				ipiPercentage: rule?.ipiPerc,
-				ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
-				icmsDeferredValue: 0,
-				icmsPartitionValue: 0,
-				icmsFcpPercentage: rule?.fcpPerc,
-				icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
-				icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-				icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
-				icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
-			},
-			{
-				client: trx,
-			},
-		);
+					icmsStValue:
+						this.isValidNumber(rule?.ivaIcmsSt) && ufIcms
+							? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+							: undefined,
+				});
+			}
+
+			if (["20", "70", "90", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				});
+			}
+		}
+
+		// icmsDeferredValue: 0,
+		// icmsPartitionValue: 0,
+		// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+		// icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+		// icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
+
+		const billItem = await BillItem.create(toCreate, {
+			client: trx,
+		});
 
 		const validItems = [billItem, ...items];
 

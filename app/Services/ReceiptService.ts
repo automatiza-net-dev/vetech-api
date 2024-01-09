@@ -1848,13 +1848,10 @@ export default class ReceiptService {
 			const checkTasks = uniqueReceipts.map(async (elem) => {
 				const updated = await elem.refresh();
 
-				console.log({
-					id: updated.id,
-					paidValue: updated.paidValue,
-					totalValue: updated.totalValue,
-				});
+				const decimalTotal = new Decimal(updated.totalValue.toString());
+				const decimalPaid = new Decimal(updated.paidValue.toString());
 
-				if (updated.paidValue > updated.totalValue) {
+				if (decimalTotal.lessThan(decimalPaid)) {
 					throw new BadRequestException(
 						`Valores adicionais acima do valor total da nota ${updated.tag}`,
 						400,

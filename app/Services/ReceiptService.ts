@@ -1851,6 +1851,11 @@ export default class ReceiptService {
 				const decimalTotal = new Decimal(updated.totalValue.toString());
 				const decimalPaid = new Decimal(updated.paidValue.toString());
 
+				console.log({
+					decimalTotal,
+					decimalPaid,
+				});
+
 				if (decimalTotal.lessThan(decimalPaid)) {
 					throw new BadRequestException(
 						`Valores adicionais acima do valor total da nota ${updated.tag}`,

@@ -8,7 +8,6 @@ import {
 } from "@ioc:Adonis/Lucid/Orm";
 import Bill from "App/Models/Bill";
 import TaxationGroupRule from "App/Models/TaxationGroupRule";
-import SharedService from "App/Services/SharedService";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
@@ -66,6 +65,16 @@ export default class BillItem extends BaseModel {
 		columnName: "icms_origin_product",
 	})
 	public icmsOriginProduct: string;
+
+	@column({
+		columnName: "icms_deferred_operation_value",
+	})
+	public icmsDeferredOperationValue: number;
+
+	@column({
+		columnName: "icms_deferred_percentage",
+	})
+	public icmsDeferredPercentage: number;
 
 	@column({
 		columnName: "icms_cst",

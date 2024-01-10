@@ -434,8 +434,15 @@ export default class BusinessUnitFiscalDocumentService {
 					result.icms_value = item.icmsValue;
 				}
 
-				if (["20", "70", "90", "900"].includes(item.icmsCst)) {
+				if (["20", "51", "70", "90", "900"].includes(item.icmsCst)) {
 					result.icms_red_calc = item.icmsStPercentageRedBase;
+				}
+
+				if (["51"].includes(item.icmsCst)) {
+					result.icms_deferred_operation_value =
+						item.icmsDeferredOperationValue;
+					result.icms_deferred_value = item.icmsDeferredValue;
+					result.icms_deferred_percentage = item.icmsDeferredPercentage;
 				}
 
 				return result;

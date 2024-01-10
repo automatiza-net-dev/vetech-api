@@ -2096,7 +2096,7 @@ export default class BillService {
 		) {
 			const cst = rule.icmsCst;
 
-			if (["00", "10", "20", "51", "70", "90", "900"].includes(cst)) {
+			if (["00", "10", "20", "70", "90", "900"].includes(cst)) {
 				toCreate = Object.assign(toCreate, {
 					icmsBase:
 						productVariation.product.type === ProductType.PRODUCT
@@ -2113,7 +2113,7 @@ export default class BillService {
 				});
 			}
 
-			if (["10", "30", "70", "90", "201", "202", "900"].includes(cst)) {
+			if (["10", "30", "70", "90", "201", "202", "203", "900"].includes(cst)) {
 				toCreate = Object.assign(toCreate, {
 					icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
 						? icmsStBase_2
@@ -2137,9 +2137,18 @@ export default class BillService {
 					icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
 				});
 			}
+
+			if (["51"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsDeferredOperationValue: icmsValue,
+					icmsDeferredPercentage: rule.icmsPercDiferimento,
+					icmsDeferredValue: icmsBase * (rule.icmsPercDiferimento / 100),
+					icmsValue:
+						((rule.icmsPerc - rule.icmsPercDiferimento) * icmsBase) / 100,
+				});
+			}
 		}
 
-		// icmsDeferredValue: 0,
 		// icmsPartitionValue: 0,
 		// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
 		// icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,

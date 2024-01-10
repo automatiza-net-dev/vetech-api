@@ -82,6 +82,9 @@ export interface ISendNfe {
 			icms_st_base: number;
 			icms_st_percentage: number;
 			icms_st_value: number;
+			icms_deferred_operation_value: number;
+			icms_deferred_percentage: number;
+			icms_deferred_value: number;
 
 			fcp_percentage: number;
 			fcp_base_calc: number;
@@ -425,6 +428,9 @@ export default class FocusNfeService {
 				icms_base_calculo_st: item.icms_st_base,
 				icms_aliquota_st: item.icms_st_percentage,
 				icms_valor_st: item.icms_st_value,
+				icms_valor_operacao: item.icms_deferred_operation_value,
+				icms_percentual_diferimento: item.icms_deferred_percentage,
+				icms_valor_diferido: item.icms_deferred_value,
 
 				fcp_percentual: item.fcp_percentage,
 				fcp_base_calculo: item.icms_base,

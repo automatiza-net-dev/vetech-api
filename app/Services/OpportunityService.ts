@@ -736,6 +736,7 @@ export default class OpportunityService {
 					contact_type_id: data.contactTypeId,
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
+					race_id: data.raceId,
 
 					contactDate: data.contactDate,
 					description: data.description,

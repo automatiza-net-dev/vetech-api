@@ -1964,6 +1964,23 @@ export default class ReceiptService {
 			await Promise.all(tasks);
 
 			await Database.rawQuery(
+				`insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at, updated_at)
+        select ?, bup.id, bup.product_variation_id, 0, 'Ativo', now(), now()
+        from receipt_items ri
+          join business_unit_products bup
+            on ri.product_variation_id = bup.product_variation_id and ri.business_unit_id = bup.businness_unit_id
+        where ri.receipt_id = ?
+          and ri.product_variation_id not in (select product_variation_id from deposit_items where deposit_id = ?)`,
+				[
+					authCtx.unit.unitConfig.incoming_deposit_id,
+					receipt.id,
+					authCtx.unit.unitConfig.incoming_deposit_id,
+				],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await Database.rawQuery(
 				`update deposit_items
         set quantity = di.quantity + ri.quantity
         from deposit_items di
@@ -1977,8 +1994,6 @@ export default class ReceiptService {
 			)
 				.useTransaction(trx)
 				.exec();
-
-			await this.$syncItems(trx, receipt);
 		});
 	}
 

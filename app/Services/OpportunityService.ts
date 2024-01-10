@@ -256,6 +256,12 @@ export default class OpportunityService {
 			resultObservation: elem.resultObservation,
 			balance: elem.balance,
 			active: elem.active,
+			race: {
+				id: elem.race_id ?? null,
+			},
+			gender: elem.gender,
+			castrated: elem.castrated,
+			weight: elem.weight,
 
 			status: elem.status,
 			contact: this.sharedService.captureGroup(elem.contact, (v) => ({
@@ -383,12 +389,16 @@ export default class OpportunityService {
 						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
 				  }
 				: null,
-			contact: elem.opportunity?.contact
-				? {
-						id: elem.opportunity?.contact.id,
-						name: elem.opportunity?.contact.name,
-				  }
-				: null,
+			contact: this.sharedService.captureGroup(
+				elem.opportunity?.contact,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellpone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+					email: v?.tutor?.email ?? null,
+				}),
+			),
 			user: elem.opportunity.user
 				? {
 						id: elem.opportunity.user.id,

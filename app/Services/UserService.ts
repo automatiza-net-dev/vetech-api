@@ -790,11 +790,14 @@ export default class UserService {
 	}
 
 	public async update(user: User, data: IUpdatePassword): Promise<User> {
-		let tmp = user.merge(data);
+		let tmp = user;
 
 		if (data.saleDepositId) {
 			tmp = user.merge({ default_sale_deposit_id: data.saleDepositId });
+			delete data.saleDepositId;
 		}
+
+		tmp = tmp.merge(data);
 
 		return tmp.save();
 	}

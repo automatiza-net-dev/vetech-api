@@ -559,6 +559,13 @@ export default class ReceiptService {
 				query.select("id", "name");
 			})
 			.preload("items", (query) => {
+				query.whereNotNull("product_variation_id");
+				query.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.whereNull("purpose");
+					});
+				});
+
 				query.select("id", "product_variation_id");
 
 				query.preload("productVariation", (query) => {
@@ -2133,7 +2140,6 @@ export default class ReceiptService {
 	) {
 		const qb = Product.query()
 			.where("economic_group_id", authCtx.group.id)
-			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
 			.where("type", ProductType.PRODUCT)
 			.where("active", true);
 
@@ -2350,12 +2356,13 @@ export default class ReceiptService {
 				.whereIn("id", data.receiptItemIds);
 
 			const newProducts = await Product.createMany(
-				rowItems.map((elem) => ({
+				rowItems.map<Partial<Product>>((elem) => ({
 					economic_group_id: authCtx.group.id,
 					description: elem.descriptionXml ?? "Não informado",
 					type: ProductType.PRODUCT,
 					ncm: elem.ncmXml,
 					active: true,
+					icmsOrigin: "0",
 				})),
 				{ client: trx },
 			);

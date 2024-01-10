@@ -835,8 +835,7 @@ test.group("Finance resource", (group) => {
 	});
 
 	test("should revert down bordero", async ({ assert, client }) => {
-		const { user, finance, paymentMethod, checkingAccount } =
-			await createData();
+		const { user, finance, paymentMethod } = await createData();
 
 		const token = await generateJwtToken(client, {
 			email: user.email,

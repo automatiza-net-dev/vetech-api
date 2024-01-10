@@ -11,12 +11,12 @@ import CheckingAccount, {
 import { LicenceType } from "App/Models/Licence";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { validDocument } from "App/Shared";
 import { IBusinessUnitAcquirerData } from "Contracts/interfaces/IBusinessUnitAcquirerData";
 import { ICreateBusinessUnit } from "Contracts/interfaces/ICreateBusinessUnit";
 import { IUpdateUnitUser } from "Contracts/interfaces/IUpdateUnitUser";
 import { IUpdateBusinessUnit } from "Contracts/interfaces/UpdateBusinessUnit";
 import { addDays } from "date-fns";
-import { validDocument } from "start/validator";
 import { v4 } from "uuid";
 
 interface ISearchBusinessUnit {

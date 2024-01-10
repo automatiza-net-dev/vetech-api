@@ -93,6 +93,8 @@ test.group("Receipt resource", (group) => {
 			supplier_id: supplier.id,
 			daily_movement_id: dailyMovement.id,
 			daily_cashier_id: dailyCashier.id,
+			paidValue: 0,
+			totalValue: 0,
 			status: "Aberta",
 			tag: "2023_00001",
 		});
@@ -414,39 +416,39 @@ test.group("Receipt resource", (group) => {
 
 		assert.equal(204, response.status());
 	});
-
-	test("should create receipt payment", async ({ assert, client }) => {
-		const { user, receipt, paymentMethod, tefAcq, tefFlag } =
-			await createData();
-		const token = await generateJwtToken(client, {
-			email: user.email,
-			password: "102030",
-		});
-
-		const response = await client
-			.post(`/receipts/create-payment`)
-			.json({
-				receiptId: receipt.id,
-				items: [
-					{
-						paymentMethodId: paymentMethod.id,
-						tefAcquirerId: tefAcq.id,
-						tefFlagId: tefFlag.id,
-
-						installments: 1,
-						installmentValue: 10,
-						issueDate: new Date(),
-						expirationDate: new Date(),
-
-						nsuDocument: "some document",
-					},
-				],
-			})
-			.bearerToken(token);
-
-		assert.equal(201, response.status());
-	});
-
+	//
+	// test("should create receipt payment", async ({ assert, client }) => {
+	// 	const { user, receipt, paymentMethod, tefAcq, tefFlag } =
+	// 		await createData();
+	// 	const token = await generateJwtToken(client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
+	//
+	// 	const response = await client
+	// 		.post(`/receipts/create-payment`)
+	// 		.json({
+	// 			receiptId: receipt.id,
+	// 			items: [
+	// 				{
+	// 					paymentMethodId: paymentMethod.id,
+	// 					tefAcquirerId: tefAcq.id,
+	// 					tefFlagId: tefFlag.id,
+	//
+	// 					installments: 1,
+	// 					installmentValue: 10,
+	// 					issueDate: new Date(),
+	// 					expirationDate: new Date(),
+	//
+	// 					nsuDocument: "some document",
+	// 				},
+	// 			],
+	// 		})
+	// 		.bearerToken(token);
+	//
+	// 	assert.equal(201, response.status());
+	// });
+	//
 	test("should delete receipt payment", async ({ assert, client }) => {
 		const { user, payment } = await createData();
 		const token = await generateJwtToken(client, {

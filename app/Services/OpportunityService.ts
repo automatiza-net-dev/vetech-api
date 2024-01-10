@@ -316,7 +316,9 @@ export default class OpportunityService {
 			.preload("opportunity", (query) => {
 				query
 					.preload("client")
-					.preload("contact")
+					.preload("contact", (query) => {
+						query.preload("tutor");
+					})
 					.preload("user")
 					.preload("reason");
 			})
@@ -394,7 +396,7 @@ export default class OpportunityService {
 				(v) => ({
 					id: v.id,
 					name: v.name,
-					cellpone: v?.tutor?.cellphone ?? null,
+					cellphone: v?.tutor?.cellphone ?? null,
 					telephone: v?.tutor?.telephone ?? null,
 					email: v?.tutor?.email ?? null,
 				}),

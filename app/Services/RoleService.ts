@@ -44,12 +44,12 @@ export default class RoleService {
 	}
 
 	public async controllerIndex(
-		authCtx: AuthContext,
+		systemID: number,
 		data: ISearch,
 	): Promise<Array<Role>> {
 		const qb = Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType);
 
 		if (data.name) {

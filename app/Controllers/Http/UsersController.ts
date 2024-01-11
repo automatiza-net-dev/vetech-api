@@ -129,7 +129,7 @@ export default class UsersController {
 	}: HttpContextContract) {
 		const payload = await request.validate(CreateUserControllerValidator);
 		await this.service.createUserController(
-			await this.sharedService.getAuthContext(auth),
+			auth.user?.system_id ?? -1,
 			payload,
 		);
 
@@ -142,8 +142,8 @@ export default class UsersController {
 		response,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateUserControllerValidator);
-		await this.service.createUserController(
-			await this.sharedService.getAuthContext(auth),
+		await this.service.updateUserController(
+			auth.user?.system_id ?? -1,
 			payload,
 		);
 
@@ -152,7 +152,7 @@ export default class UsersController {
 
 	public async fetchUserControllers({ auth, response }: HttpContextContract) {
 		const data = await this.service.fetchUserControllers(
-			await this.sharedService.getAuthContext(auth),
+			auth.user?.system_id ?? -1,
 		);
 
 		return response.ok(data);

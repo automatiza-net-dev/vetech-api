@@ -397,7 +397,7 @@ export default class UserService {
 	}
 
 	public async createUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			name: string;
 			email: string;
@@ -422,7 +422,7 @@ export default class UserService {
 					email: data.email,
 					document: data.document,
 					password: data.password,
-					system_id: authCtx.system.id,
+					system_id: systemID,
 					type: "controller",
 
 					phone: data.phone,
@@ -468,7 +468,7 @@ export default class UserService {
 	}
 
 	public async updateUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			id: string;
 			name: string;
@@ -491,7 +491,7 @@ export default class UserService {
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("id", data.id)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!user) {
@@ -561,9 +561,9 @@ export default class UserService {
 		});
 	}
 
-	public async fetchUserControllers(authCtx: AuthContext) {
+	public async fetchUserControllers(systemID: number) {
 		return User.query()
-			.where("system_id", authCtx.system.id)
+			.where("system_id", systemID)
 			.select("id", "name", "email", "document", "password")
 			.preload("roles", (query) => {
 				query.select("role_id", "unit_id");

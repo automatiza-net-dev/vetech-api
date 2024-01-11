@@ -44,11 +44,11 @@ Route.group(() => {
 	Route.get(
 		"/fetch-user-controllers",
 		"UsersController.fetchUserControllers",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/create-user-controller",
 		"UsersController.createUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/update-user-controller",
 		"UsersController.updateUserController",
@@ -184,7 +184,7 @@ Route.group(() => {
 	Route.delete("/:id", "RolesController.destroy");
 })
 	.prefix("roles")
-	.middleware("auth");
+	.middleware(["auth:tpApi,api"]);
 
 Route.group(() => {
 	Route.post("/sync", "PermissionsController.sync");

@@ -73,9 +73,16 @@ export default class AuthMiddleware {
 		 * the config file
 		 */
 		const guards = customGuards.length ? customGuards : [auth.name];
+
+		let success = false;
 		try {
 			await this.authenticate(auth, guards);
+			success = true;
 		} catch (e) {
+			// console.log("failed to authenticate", e);
+		}
+
+		if (!success) {
 			throw new AuthenticationException(
 				"Unauthorized access",
 				"E_UNAUTHORIZED_ACCESS",
@@ -83,6 +90,7 @@ export default class AuthMiddleware {
 				this.redirectTo,
 			);
 		}
+
 		await next();
 	}
 }

@@ -120,15 +120,6 @@ export default class PermissionService {
 				.preload("systems")
 				.preload("roles");
 
-			// const syncDeleteTasks = permissions.map(async (permission) => {
-			// 	return permission
-			// 		.related("systems")
-			// 		.query()
-			// 		.useTransaction(trx)
-			// 		.delete();
-			// });
-			// await Promise.all(syncDeleteTasks);
-
 			const deleteTasks = permissions.map(async (permission) => {
 				return Database.from("systems_permissions")
 					.where("permission_id", permission.id)
@@ -146,35 +137,13 @@ export default class PermissionService {
 			});
 			await Promise.all(syncTasks);
 
-			// TODO same systems_permissions as above?
-
-			// const map = new Map<string, number[]>();
-
-			// const entriesTasks = permissions.map(async permission => {
-			//   const rawData: {
-			//     id: number;
-			//     permission_id: number;
-			//     system_id: number;
-			//   }[] = await Database.from('systems_permissions')
-			//     .where('permission_id', permission.id)
-			//     .whereIn('system_id', permission.$systems);
-
-			//   map.set(
-			//     permission.id.toString(),
-			//     rawData.map(item => item.id),
-			//   );
-			// });
-			// await Promise.all(entriesTasks);
-
-			// console.log(map);
-
 			const roles = await Role.query().useTransaction(trx);
 			const rolesTasks = roles.map(async (role) => {
 				return role.related("permissions").sync(
 					permissions
 						.filter((p) => p.$systems.includes(role.system_id))
 						.map((p) => p.id),
-					true,
+					false,
 					trx,
 				);
 			});

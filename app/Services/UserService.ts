@@ -456,15 +456,12 @@ export default class UserService {
 					data.units.map((u) => u.businessUnitId),
 				);
 
-			const uniqueEconomicGroups = units.reduce(
-				(acc, curr) => {
-					if (!acc.find((a) => a === curr.economicGroupId)) {
-						acc.push(curr.economicGroupId);
-					}
-					return acc;
-				},
-				[] as string[],
-			);
+			const uniqueEconomicGroups = units.reduce((acc, curr) => {
+				if (!acc.find((a) => a === curr.economicGroupId)) {
+					acc.push(curr.economicGroupId);
+				}
+				return acc;
+			}, [] as string[]);
 
 			await user.related("economicGroups").attach(uniqueEconomicGroups, trx);
 		});
@@ -551,15 +548,12 @@ export default class UserService {
 					data.units.map((u) => u.businessUnitId),
 				);
 
-			const uniqueEconomicGroups = units.reduce(
-				(acc, curr) => {
-					if (!acc.find((a) => a === curr.economicGroupId)) {
-						acc.push(curr.economicGroupId);
-					}
-					return acc;
-				},
-				[] as string[],
-			);
+			const uniqueEconomicGroups = units.reduce((acc, curr) => {
+				if (!acc.find((a) => a === curr.economicGroupId)) {
+					acc.push(curr.economicGroupId);
+				}
+				return acc;
+			}, [] as string[]);
 
 			await user
 				.related("economicGroups")
@@ -790,16 +784,7 @@ export default class UserService {
 	}
 
 	public async update(user: User, data: IUpdatePassword): Promise<User> {
-		let tmp = user;
-
-		if (data.saleDepositId) {
-			tmp = user.merge({ default_sale_deposit_id: data.saleDepositId });
-			delete data.saleDepositId;
-		}
-
-		tmp = tmp.merge(data);
-
-		return tmp.save();
+		return user.merge(data).save();
 	}
 
 	public async delete(user: User): Promise<void> {

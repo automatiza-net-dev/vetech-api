@@ -17,5 +17,4 @@ export interface IUpdatePassword {
 	inscription?: string;
 	birthDate?: DateTime;
 	onDuty?: boolean;
-	saleDepositId?: number;
 }

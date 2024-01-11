@@ -25,7 +25,7 @@ import { v4 } from "uuid";
 import System from "./System";
 
 export const UserType = ["system", "controller", "user", "both"] as const;
-export type TUserType = typeof UserType[number];
+export type TUserType = (typeof UserType)[number];
 
 export default class User extends BaseModel {
 	@column({ isPrimary: true })
@@ -179,9 +179,4 @@ export default class User extends BaseModel {
 		foreignKey: "system_id",
 	})
 	public system: BelongsTo<typeof System>;
-
-	@column({
-		serializeAs: null,
-	})
-	public default_sale_deposit_id: number;
 }

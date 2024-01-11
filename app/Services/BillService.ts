@@ -2653,7 +2653,8 @@ export default class BillService {
 		data: { items: { productVariationId: string; quantity: number }[] },
 	) {
 		const depositID =
-			authCtx.user.default_sale_deposit_id ??
+			authCtx.$roleMetas.find((r) => r.default_sale_deposit_id)
+				?.default_sale_deposit_id ??
 			authCtx.unit.unitConfig.outgoing_deposit_id;
 
 		if (!depositID) {
@@ -2717,7 +2718,8 @@ export default class BillService {
 		data: { items: { productVariationId: string; quantity: number }[] },
 	) {
 		const depositID =
-			authCtx.user.default_sale_deposit_id ??
+			authCtx.$roleMetas.find((r) => r.default_sale_deposit_id)
+				?.default_sale_deposit_id ??
 			authCtx.unit.unitConfig.outgoing_deposit_id;
 
 		if (!depositID) {

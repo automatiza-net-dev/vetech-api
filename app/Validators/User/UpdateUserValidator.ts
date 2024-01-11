@@ -21,9 +21,6 @@ export default class UpdateUserValidator {
 		inscription: schema.string.optional({}),
 		birthDate: schema.date.optional({}),
 		onDuty: schema.boolean.optional([]),
-		saleDepositId: schema.number.optional([
-			rules.exists({ table: "deposits", column: "id" }),
-		]),
 	});
 	public messages: CustomMessages = {};
 }

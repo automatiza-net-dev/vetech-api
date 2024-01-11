@@ -11,6 +11,7 @@ import EconomicGroup from "App/Models/EconomicGroup";
 import ProductVariation from "App/Models/ProductVariation";
 import System from "App/Models/System";
 import User from "App/Models/User";
+import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
 
 export type DateSet = {
@@ -23,6 +24,7 @@ export type AuthContext = {
 	group: EconomicGroup;
 	system: System;
 	unit: BusinessUnit;
+	$roleMetas: UserUnitRole[];
 };
 
 @inject()
@@ -68,11 +70,16 @@ export default class SharedService {
 			.preload("unitConfig")
 			.firstOrFail();
 
+		const userRoles = await UserUnitRole.query()
+			.where("user_id", user.id)
+			.where("unit_id", unit.id);
+
 		return {
 			user,
 			group: unit.economicGroup,
 			system: unit.economicGroup.system,
 			unit,
+			$roleMetas: userRoles,
 		};
 	}
 

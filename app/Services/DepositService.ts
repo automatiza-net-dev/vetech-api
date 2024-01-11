@@ -22,9 +22,8 @@ export default class DepositService {
 			status?: string;
 		},
 	) {
-		const qb = Deposit.query()
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id);
+		const qb = Deposit.query().where("economic_group_id", authCtx.group.id);
+		// .where("business_unit_id", authCtx.unit.id);
 
 		if (data.description) {
 			qb.where("description", "ilike", `%${data.description}%`);

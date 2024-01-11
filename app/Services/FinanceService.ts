@@ -401,6 +401,8 @@ export default class FinanceService {
 					.whereIn("borderos.business_unit_id", units);
 				// .whereNull("borderos.deleted_at")
 
+				qb.whereNull("finances.bordero_id");
+
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);
 				}

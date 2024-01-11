@@ -562,8 +562,7 @@ export default class BusinessUnitService {
 		const user = await User.query()
 			.where("id", id)
 			.preload("roles", (query) => {
-				query.preload("role");
-				query.preload("unit");
+				query.preload("role").preload("unit").preload("deposit");
 
 				query.whereHas("unit", (q) => {
 					q.where("economic_group_id", authCtx.group.id);
@@ -589,6 +588,7 @@ export default class BusinessUnitService {
 					id: f.unit.id,
 					name: f.unit.companyName ?? "-",
 				},
+				deposit: f.deposit ?? null,
 			})),
 		};
 	}

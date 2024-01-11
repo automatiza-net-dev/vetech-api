@@ -43,7 +43,7 @@ export default class DepositService {
 	public async showDeposit(authCtx: AuthContext, id: number) {
 		const row = await Deposit.query()
 			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
+			// .where("business_unit_id", authCtx.unit.id)
 			.where("id", id)
 			.preload("items", (query) => {
 				query.preload("unitProduct", (query) => {

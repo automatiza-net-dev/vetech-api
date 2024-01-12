@@ -572,7 +572,7 @@ export default class UserService {
 	}
 
 	public async softDeleteUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			id: string;
 		},
@@ -581,7 +581,7 @@ export default class UserService {
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("id", data.id)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!user) {

@@ -52,7 +52,7 @@ Route.group(() => {
 	Route.post(
 		"/update-user-controller",
 		"UsersController.updateUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/disable-user-controller-role",
 		"UsersController.disableUserControllerRole",
@@ -60,7 +60,7 @@ Route.group(() => {
 	Route.delete(
 		"/delete-user-controller/:id",
 		"UsersController.deleteUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 
 	Route.get("", "UsersController.index");
 	Route.get("/:id", "UsersController.show");

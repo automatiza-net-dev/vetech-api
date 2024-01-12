@@ -163,12 +163,9 @@ export default class UsersController {
 		request,
 		response,
 	}: HttpContextContract) {
-		await this.service.softDeleteUserController(
-			await this.sharedService.getAuthContext(auth),
-			{
-				id: request.param("id"),
-			},
-		);
+		await this.service.softDeleteUserController(auth.user?.system_id ?? -1, {
+			id: request.param("id"),
+		});
 
 		return response.noContent();
 	}

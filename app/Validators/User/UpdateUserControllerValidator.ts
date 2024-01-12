@@ -44,7 +44,6 @@ export default class UpdateUserControllerValidator {
 				whereNot: { id: this.getUserId() },
 			}),
 		]),
-		password: schema.string(),
 		units: schema.array().members(
 			schema.object().members({
 				businessUnitId: schema.string([

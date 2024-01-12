@@ -474,7 +474,6 @@ export default class UserService {
 			name: string;
 			email: string;
 			document: string;
-			password: string;
 			units: { businessUnitId: string; roleId: number }[];
 
 			phone?: string;
@@ -515,7 +514,7 @@ export default class UserService {
 					name: data.name,
 					email: data.email,
 					document: data.document,
-					password: data.password,
+					// password: data.password,
 
 					phone: data.phone,
 					postalCode: data.postalCode,

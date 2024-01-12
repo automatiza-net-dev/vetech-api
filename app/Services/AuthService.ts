@@ -690,6 +690,7 @@ export default class AuthService {
 
 			return {
 				token,
+				userID: user.id,
 				userType: user.type,
 				units: result,
 			};

@@ -38,7 +38,7 @@ import TaxOperation from "App/Models/TaxOperation";
 import TefAcquirer from "App/Models/TefAcquirer";
 import UfIcms from "App/Models/UfIcms";
 import Unit from "App/Models/Unit";
-import User from "App/Models/User";
+import User, { TUserType } from "App/Models/User";
 import UserPasswordChange from "App/Models/UserPasswordChange";
 import VariationGroup from "App/Models/VariationGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -562,13 +562,25 @@ export default class UserService {
 	}
 
 	public async fetchUserControllers(systemID: number) {
-		return User.query()
+		const result = await User.query()
 			.where("system_id", systemID)
+			.where("type", "controller" as TUserType)
 			.select("id", "name", "email", "document", "password")
 			.preload("roles", (query) => {
 				query.select("role_id", "unit_id");
 				query.where("active", true);
 			});
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			email: elem.email,
+			document: elem.document,
+			units: elem.roles.map((r) => ({
+				businessUnitId: r.unit_id,
+				roleId: r.role_id,
+			})),
+		}));
 	}
 
 	public async softDeleteUserController(

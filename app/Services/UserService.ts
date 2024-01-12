@@ -592,13 +592,13 @@ export default class UserService {
 				);
 			}
 
-			if (user.type !== "controller") {
-				throw new BadRequestException(
-					"Usuário não é um controlador",
-					400,
-					"E_INVALID_USER_TYPE",
-				);
-			}
+			// if (user.type !== "controller") {
+			// 	throw new BadRequestException(
+			// 		"Usuário não é um controlador",
+			// 		400,
+			// 		"E_INVALID_USER_TYPE",
+			// 	);
+			// }
 
 			await user.softDelete();
 		});

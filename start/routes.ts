@@ -1279,6 +1279,7 @@ Route.group(() => {
 		"/exclude-activity/:id",
 		"OpportunitiesController.excludeActivity",
 	);
+	Route.post("/reopen-activity/:id", "OpportunitiesController.reopenActivity");
 })
 	.prefix("opportunities")
 	.middleware("auth");

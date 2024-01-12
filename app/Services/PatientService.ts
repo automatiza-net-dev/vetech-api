@@ -166,6 +166,13 @@ export default class PatientService {
 				civilStatus: elem.tutor.civilStatus,
 				nationality: elem.tutor.nationality,
 				clientOriginItemDescription: elem.clientOriginItemDescription,
+				clientOrigin: this.sharedService.captureGroup(
+					elem.tutor?.clientOrigin,
+					(v) => ({
+						id: v.id,
+						description: v.description,
+					}),
+				),
 				address: {
 					street: elem.tutor.street,
 					number: elem.tutor.number,

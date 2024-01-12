@@ -6,7 +6,10 @@ import Database, {
 import BadRequestException from "App/Exceptions/BadRequestException";
 import CrmStatus from "App/Models/CrmStatus";
 import Opportunity from "App/Models/Opportunity";
-import OpportunityActivity from "App/Models/OpportunityActivity";
+import OpportunityActivity, {
+	TOpportunityActivityStatus,
+} from "App/Models/OpportunityActivity";
+import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
 import Patient, { PatientGender } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
@@ -201,10 +204,13 @@ export default class OpportunityService {
 		if (data.balance && Array.isArray(data.balance)) {
 			const hasEmAberto = data.balance.includes("Em Aberto");
 			const cleanOptions = data.balance.filter((v) => v !== "Em Aberto");
+			const sanitizedOptions = data.balance.filter((f) =>
+				["Ganho", "Perda"].includes(f),
+			);
 
-			if (hasEmAberto && cleanOptions.length > 0) {
+			if (hasEmAberto && sanitizedOptions.length > 0) {
 				qb.whereRaw(
-					`(balance = ANY('{${cleanOptions.join(
+					`(balance = ANY('{${sanitizedOptions.join(
 						",",
 					)}}') or closing_date is null)`,
 					[],
@@ -379,6 +385,11 @@ export default class OpportunityService {
 			observation: elem.observation,
 			status: elem.status,
 
+			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
+				id: v.id,
+				name: v.description,
+				observation: v.observation,
+			})),
 			activity: {
 				id: elem.activity.id,
 				description: elem.activity.description,
@@ -928,19 +939,27 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			await this.createLog(model, trx);
+			if (model.balance !== "Ganho" && model.balance !== "Perda") {
+				throw new BadRequestException(
+					"Não é possível reabrir uma oportunidade que não foi ganha ou perdida.",
+					400,
+					"E_INVALID",
+				);
+			}
 
-			await model
+			const result = await model
 				.merge({
-					reason_id: undefined,
 					closing_user_id: undefined,
-
 					closingDate: undefined,
 					balance: undefined,
+					profitValue: undefined,
+					reason_id: undefined,
 					resultObservation: undefined,
 				})
 				.useTransaction(trx)
 				.save();
+
+			await this.createLog(result, trx);
 		});
 	}
 
@@ -1103,7 +1122,7 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (activity.status !== "Aberta") {
+			if (activity.status !== ("Aberto" as TOpportunityActivityStatus)) {
 				throw new BadRequestException(
 					"Atividade já executada ou cancelada",
 					400,
@@ -1120,6 +1139,40 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+		});
+	}
+
+	public async reopenActivity(authCtx: AuthContext, id: number) {
+		await Database.transaction(async (trx) => {
+			const activity = await OpportunityActivity.query()
+				.useTransaction(trx)
+				.where("id", id)
+				.whereHas("opportunity", (query) => {
+					query.where("economic_group_id", authCtx.group.id);
+				})
+				.first();
+
+			if (!activity) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (!activity.executedDate) {
+				throw new BadRequestException(
+					"Atividade não executada",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			await this.createActivityLog(activity, trx);
+
+			await Database.from("opportunity_activities")
+				.where("id", id)
+				.update({
+					execution_user_id: null,
+					executed_date: null,
+					status: "Aberto" as TOpportunityActivityStatus,
+				});
 		});
 	}
 
@@ -1494,6 +1547,34 @@ export default class OpportunityService {
 				contactDate: model.contactDate,
 				openingDate: model.openingDate,
 				closingDate: model.closingDate,
+			},
+			{
+				client,
+			},
+		);
+	}
+
+	private async createActivityLog(
+		model: OpportunityActivity,
+		client?: QueryClientContract,
+	) {
+		await OpportunityActivityLog.create(
+			{
+				opportunity_id: model.opportunity_id,
+				opening_user_id: model.opening_user_id,
+				user_id: model.user_id,
+				activity_id: model.activity_id,
+				execution_user_id: model.execution_user_id,
+				exclusion_user_id: model.exclusion_user_id,
+				opportunity_activity_id: model.id,
+
+				issueDate: model.issueDate,
+				executionDate: model.executionDate,
+				duration: model.duration,
+				description: model.description,
+				status: model.status,
+				executedDate: model.executedDate,
+				observation: model.observation,
 			},
 			{
 				client,

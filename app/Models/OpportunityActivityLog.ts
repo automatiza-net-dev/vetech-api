@@ -1,28 +1,21 @@
 import {
 	BaseModel,
+	BelongsTo,
 	beforeFetch,
 	beforeFind,
-	BelongsTo,
 	belongsTo,
 	column,
 } from "@ioc:Adonis/Lucid/Orm";
 import Activity from "App/Models/Activity";
+import Opportunity from "App/Models/Opportunity";
+import OpportunityActivity, {
+	OpportunityActivityStatus,
+} from "App/Models/OpportunityActivity";
 import User from "App/Models/User";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 
-import Opportunity from "./Opportunity";
-
-export const OpportunityActivityStatus = [
-	"Aberta",
-	"Executada",
-	"Cancelada",
-	"Excluida",
-] as const;
-export type TOpportunityActivityStatus =
-	(typeof OpportunityActivityStatus)[number];
-
-export default class OpportunityActivity extends BaseModel {
+export default class OpportunityActivityLog extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 
@@ -39,7 +32,7 @@ export default class OpportunityActivity extends BaseModel {
 	@column.dateTime({
 		columnName: "execution_date",
 	})
-	public executionDate: DateTime | null;
+	public executionDate: DateTime;
 
 	@column()
 	public duration: number;
@@ -51,7 +44,7 @@ export default class OpportunityActivity extends BaseModel {
 	public observation: string;
 
 	@column()
-	public status: TOpportunityActivityStatus;
+	public status: (typeof OpportunityActivityStatus)[number];
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
@@ -85,6 +78,16 @@ export default class OpportunityActivity extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public opportunity_activity_id: number;
+
+	@belongsTo(() => OpportunityActivity, {
+		foreignKey: "opportunity_activity_id",
+	})
+	public opportunityActivity: BelongsTo<typeof OpportunityActivity>;
+
+	@column({
+		serializeAs: null,
+	})
 	public exclusion_user_id: string;
 
 	@belongsTo(() => User, {
@@ -105,7 +108,7 @@ export default class OpportunityActivity extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public execution_user_id: string | null;
+	public execution_user_id: string;
 
 	@belongsTo(() => User, {
 		foreignKey: "execution_user_id",

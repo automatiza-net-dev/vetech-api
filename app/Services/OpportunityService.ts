@@ -389,6 +389,7 @@ export default class OpportunityService {
 				id: v.id,
 				name: v.description,
 				observation: v.observation,
+				balance: v.balance,
 			})),
 			activity: {
 				id: elem.activity.id,

@@ -321,9 +321,9 @@ export default class ThirdPartyService {
 		};
 	}
 
-	public async searchProfileAccesses(authCtx: AuthContext) {
+	public async searchProfileAccesses(systemID: number) {
 		const result = await ProfileAccess.query()
-			.where("system_id", authCtx.system.id)
+			.where("system_id", systemID)
 			.where("active", true);
 
 		return result.map((elem) => ({

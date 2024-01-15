@@ -1335,7 +1335,7 @@ Route.group(() => {
 	Route.get(
 		"/profiles",
 		"ThirdPartiesController.searchProfileAccesses",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 
 	Route.post("/sync", "ThirdPartiesController.syncProfileAccesses").middleware(
 		"auth",

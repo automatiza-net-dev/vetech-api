@@ -58,7 +58,7 @@ export default class RolesController {
 	}: HttpContextContract) {
 		response.ok(
 			await this.roleService.rolePermissionMetadata(
-				await this.sharedService.getAuthContext(auth),
+				auth.user?.system_id ?? -1,
 				params.id,
 			),
 		);
@@ -109,7 +109,7 @@ export default class RolesController {
 	}: HttpContextContract) {
 		const payload = await request.validate(ManageRolePermissionValidator);
 		await this.roleService.manageRolePermissions(
-			await this.sharedService.getAuthContext(auth),
+			auth.user?.system_id ?? -1,
 			payload,
 		);
 
@@ -191,7 +191,7 @@ export default class RolesController {
 	public async copyRole({ request, response, auth }: HttpContextContract) {
 		const payload = await request.validate(CopyRoleValidator);
 		const result = await this.roleService.copyRole(
-			await this.sharedService.getAuthContext(auth),
+			auth.user?.system_id ?? -1,
 			payload,
 		);
 

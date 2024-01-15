@@ -265,10 +265,10 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async rolePermissionMetadata(authCtx: AuthContext, id: number) {
+	public async rolePermissionMetadata(systemID: number, id: number) {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("id", id)
 			.first();
 
@@ -287,17 +287,17 @@ export default class RoleService {
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		if (authCtx.user.type === "user") {
-			qb.whereIn("type", ["user", "both"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "user") {
+		// 	qb.whereIn("type", ["user", "both"] as TPermissionType[]);
+		// }
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "controller") {
+		// 	qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
+		// }
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["system"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "controller") {
+		// 	qb.whereIn("type", ["system"] as TPermissionType[]);
+		// }
 
 		const permissions = await qb;
 
@@ -348,7 +348,7 @@ export default class RoleService {
 	}
 
 	public async manageRolePermissions(
-		authCtx: AuthContext,
+		systemID: number,
 		data: IManageRolePermissions,
 	): Promise<void> {
 		await Database.transaction(async (trx) => {
@@ -356,8 +356,8 @@ export default class RoleService {
 
 			const roles = await Role.query()
 				.useTransaction(trx)
-				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
+				.where("system_id", systemID)
+				// .where("economic_group_id", authCtx.group.id)
 				.whereIn(
 					"id",
 					data.data.map((d) => d.role),
@@ -434,12 +434,12 @@ export default class RoleService {
 		}));
 	}
 
-	public async copyRole(authCtx: AuthContext, data: { roleId: number }) {
+	public async copyRole(systemID: number, data: { roleId: number }) {
 		return await Database.transaction(async (trx) => {
 			const role = await Role.query()
 				.useTransaction(trx)
 				.where("id", data.roleId)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!role) {

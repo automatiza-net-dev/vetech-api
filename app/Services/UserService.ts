@@ -403,7 +403,9 @@ export default class UserService {
 			email: string;
 			document: string;
 			password: string;
-			units: { businessUnitId: string; roleId: number }[];
+
+			roleId: number;
+			units: string[];
 
 			phone?: string;
 			postalCode?: string;
@@ -439,11 +441,10 @@ export default class UserService {
 				},
 			);
 
-			await user.related("roles").createMany(
-				data.units.map((u) => ({
-					role_id: u.roleId,
-					unit_id: u.businessUnitId,
-				})),
+			await user.related("roles").create(
+				{
+					role_id: data.roleId,
+				},
 				{
 					client: trx,
 				},
@@ -451,8 +452,8 @@ export default class UserService {
 
 			await user.related("roles").createMany(
 				data.units.map((u) => ({
-					role_id: u.roleId,
-					unit_id: null,
+					role_id: data.roleId,
+					unit_id: u,
 				})),
 				{
 					client: trx,
@@ -461,10 +462,7 @@ export default class UserService {
 
 			const units = await BusinessUnit.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					data.units.map((u) => u.businessUnitId),
-				);
+				.whereIn("id", data.units);
 
 			const uniqueEconomicGroups = units.reduce((acc, curr) => {
 				if (!acc.find((a) => a === curr.economicGroupId)) {
@@ -484,7 +482,9 @@ export default class UserService {
 			name: string;
 			email: string;
 			document: string;
-			units: { businessUnitId: string; roleId: number }[];
+
+			roleId: number;
+			units: string[];
 
 			phone?: string;
 			postalCode?: string;
@@ -540,10 +540,19 @@ export default class UserService {
 
 			await user.related("roles").query().useTransaction(trx).delete();
 
+			await user.related("roles").create(
+				{
+					role_id: data.roleId,
+				},
+				{
+					client: trx,
+				},
+			);
+
 			await user.related("roles").createMany(
 				data.units.map((u) => ({
-					role_id: u.roleId,
-					unit_id: u.businessUnitId,
+					role_id: data.roleId,
+					unit_id: u,
 				})),
 				{
 					client: trx,
@@ -552,10 +561,7 @@ export default class UserService {
 
 			const units = await BusinessUnit.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					data.units.map((u) => u.businessUnitId),
-				);
+				.whereIn("id", data.units);
 
 			const uniqueEconomicGroups = units.reduce((acc, curr) => {
 				if (!acc.find((a) => a === curr.economicGroupId)) {

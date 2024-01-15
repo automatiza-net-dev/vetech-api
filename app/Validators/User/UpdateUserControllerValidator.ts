@@ -44,14 +44,14 @@ export default class UpdateUserControllerValidator {
 				whereNot: { id: this.getUserId() },
 			}),
 		]),
-		units: schema.array().members(
-			schema.object().members({
-				businessUnitId: schema.string([
+		roleId: schema.number([rules.exists({ table: "roles", column: "id" })]),
+		units: schema
+			.array()
+			.members(
+				schema.string([
 					rules.exists({ table: "business_units", column: "id" }),
 				]),
-				roleId: schema.number([rules.exists({ table: "roles", column: "id" })]),
-			}),
-		),
+			),
 		phone: schema.string.optional({}, [rules.maxLength(20)]),
 		postalCode: schema.string.optional({}),
 		address: schema.string.optional({}),

@@ -234,13 +234,10 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async deleteController(
-		authCtx: AuthContext,
-		id: number,
-	): Promise<void> {
+	public async deleteController(systemID: number, id: number): Promise<void> {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType)
 			.where("id", id)
 			.preload("users")

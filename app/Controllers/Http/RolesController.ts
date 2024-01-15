@@ -166,10 +166,7 @@ export default class RolesController {
 		auth,
 	}: HttpContextContract) {
 		const { id } = params;
-		await this.roleService.deleteController(
-			await this.sharedService.getAuthContext(auth),
-			id,
-		);
+		await this.roleService.deleteController(auth.user?.system_id ?? -1, id);
 
 		return response.noContent();
 	}

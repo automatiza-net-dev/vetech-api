@@ -13,7 +13,7 @@ export default class UserUnitRole extends BaseModel {
 	public user_id: string;
 
 	@column()
-	public unit_id: string;
+	public unit_id: string | null;
 
 	@column()
 	public role_id: number;

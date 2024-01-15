@@ -449,6 +449,16 @@ export default class UserService {
 				},
 			);
 
+			await user.related("roles").createMany(
+				data.units.map((u) => ({
+					role_id: u.roleId,
+					unit_id: null,
+				})),
+				{
+					client: trx,
+				},
+			);
+
 			const units = await BusinessUnit.query()
 				.useTransaction(trx)
 				.whereIn(

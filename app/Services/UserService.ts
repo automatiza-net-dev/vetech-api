@@ -591,10 +591,8 @@ export default class UserService {
 			name: elem.name,
 			email: elem.email,
 			document: elem.document,
-			units: elem.roles.map((r) => ({
-				businessUnitId: r.unit_id,
-				roleId: r.role_id,
-			})),
+			roleId: elem.roles.find((r) => r.role_id)?.role_id ?? null,
+			units: elem.roles.map((r) => r.unit_id).filter(Boolean),
 		}));
 	}
 

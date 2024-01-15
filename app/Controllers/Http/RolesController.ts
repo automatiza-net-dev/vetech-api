@@ -142,7 +142,7 @@ export default class RolesController {
 		const { id } = params;
 		const payload = await request.validate(UpdateRoleValidator);
 		const updatedRole = await this.roleService.updateController(
-			await this.sharedService.getAuthContext(auth),
+			auth?.user?.system_id ?? -1,
 			id,
 			payload,
 		);

@@ -179,13 +179,13 @@ export default class RoleService {
 	}
 
 	public async updateController(
-		authCtx: AuthContext,
+		systemID: number,
 		id: number,
 		data: IRoleData,
 	): Promise<Role> {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType)
 			.where("id", id)
 			.first();

@@ -332,10 +332,10 @@ export default class ThirdPartyService {
 		}));
 	}
 
-	public async syncProfileAccesses(
-		_: AuthContext,
-		data: { roleId: number; profileAccessIdList: number[] },
-	) {
+	public async syncProfileAccesses(data: {
+		roleId: number;
+		profileAccessIdList: number[];
+	}) {
 		await Database.transaction(async (trx) => {
 			await RoleProfileAccess.query()
 				.useTransaction(trx)

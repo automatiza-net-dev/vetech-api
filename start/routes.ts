@@ -173,6 +173,7 @@ Route.group(() => {
 	Route.post("/copy", "RolesController.copyRole");
 
 	Route.get("/controller", "RolesController.controllerIndex");
+	Route.get("/controller/search", "RolesController.searchControllerInfo");
 	Route.post("/controller", "RolesController.storeController");
 	Route.put("/controller/:id", "RolesController.updateController");
 	Route.delete("/controller/:id", "RolesController.destroyController");

@@ -2,7 +2,7 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
-import Permission, { TPermissionType } from "App/Models/Permission";
+import Permission from "App/Models/Permission";
 import Role, { TRoleType } from "App/Models/Role";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
@@ -427,6 +427,59 @@ export default class RoleService {
 			id: elem.id,
 			name: elem.name,
 			active: elem.active,
+			profiles: elem.accesses.map((access) => ({
+				id: access.profile.id,
+				description: access.profile.description,
+			})),
+		}));
+	}
+
+	public async searchControllerRolePermissions(
+		systemID: number,
+		data: { id?: string; active?: string },
+	) {
+		const qb = Role.query()
+			.where("system_id", systemID)
+			.where("type", "controller" as TRoleType);
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
+
+		if (data.active) {
+			qb.where("active", data.active !== "0");
+		}
+
+		qb.preload("permissions");
+		qb.preload("accesses", (query) => {
+			query.preload("profile");
+		});
+
+		const result = await qb;
+
+		if (data.id) {
+			if (result.length === 0) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const [elem] = result;
+			return {
+				id: elem.id,
+				name: elem.name,
+				active: elem.active,
+				externalAccess: elem.externalAccess,
+				profiles: elem.accesses.map((access) => ({
+					id: access.profile.id,
+					description: access.profile.description,
+				})),
+			};
+		}
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			active: elem.active,
+			externalAccess: elem.externalAccess,
 			profiles: elem.accesses.map((access) => ({
 				id: access.profile.id,
 				description: access.profile.description,

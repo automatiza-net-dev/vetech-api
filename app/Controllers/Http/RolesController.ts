@@ -188,6 +188,24 @@ export default class RolesController {
 		);
 	}
 
+	public async searchControllerInfo({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const qs = request.qs();
+
+		response.ok(
+			await this.roleService.searchControllerRolePermissions(
+				auth.user?.system_id ?? -1,
+				{
+					id: qs.id,
+					active: qs.active,
+				},
+			),
+		);
+	}
+
 	public async copyRole({ request, response, auth }: HttpContextContract) {
 		const payload = await request.validate(CopyRoleValidator);
 		const result = await this.roleService.copyRole(

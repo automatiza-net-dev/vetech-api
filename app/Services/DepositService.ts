@@ -378,7 +378,11 @@ export default class DepositService {
 				.first();
 
 			if (!fromRow) {
-				throw this.sharedService.ResourceNotFound();
+				throw new BadRequestException(
+					"Deposito de estoque não encontrado",
+					400,
+					"E_NOT_FOUND",
+				);
 			}
 
 			const toRow = await Deposit.query()
@@ -389,7 +393,11 @@ export default class DepositService {
 				.first();
 
 			if (!toRow) {
-				throw this.sharedService.ResourceNotFound();
+				throw new BadRequestException(
+					"Deposito de estoque não encontrado",
+					400,
+					"E_NOT_FOUND",
+				);
 			}
 
 			if (data.items.length > 0) {

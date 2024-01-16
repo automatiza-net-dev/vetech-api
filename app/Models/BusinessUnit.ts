@@ -46,7 +46,7 @@ export default class BusinessUnit extends BaseModel {
 	public companyName?: string;
 
 	@column()
-	public environment: TBusinessUnitEnvironment = "P";
+	public environment: TBusinessUnitEnvironment;
 
 	@column({
 		columnName: "city_code",

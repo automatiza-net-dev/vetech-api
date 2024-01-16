@@ -20,10 +20,18 @@ export default class DepositService {
 			description?: string;
 			type?: string;
 			status?: string;
+			unitId?: string;
 		},
 	) {
-		const qb = Deposit.query().where("economic_group_id", authCtx.group.id);
-		// .where("business_unit_id", authCtx.unit.id);
+		const qb = Deposit.query().preload("unit", (query) => {
+			query.select("id", "identification");
+		});
+
+		if (data.unitId) {
+			qb.where("business_unit_id", data.unitId);
+		} else {
+			qb.where("economic_group_id", authCtx.group.id);
+		}
 
 		if (data.description) {
 			qb.where("description", "ilike", `%${data.description}%`);

@@ -354,6 +354,8 @@ export default class FinanceService {
 		}
 
 		if (data?.groupBorderos === "sim") {
+			qb.whereNull("finances.bordero_id");
+
 			qb.union((builder) => {
 				builder
 					.from("borderos")
@@ -400,8 +402,6 @@ export default class FinanceService {
 					)
 					.whereIn("borderos.business_unit_id", units);
 				// .whereNull("borderos.deleted_at")
-
-				qb.whereNull("finances.bordero_id");
 
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);

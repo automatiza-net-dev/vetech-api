@@ -1445,6 +1445,12 @@ export default class ReceiptService {
 			const dailyCashier = await this.sharedService.getContextCashier(
 				authCtx,
 				trx,
+				true,
+			);
+			const dailyMovement = await this.sharedService.getContextMovement(
+				authCtx,
+				trx,
+				true,
 			);
 
 			const receipt = await Receipt.create(
@@ -1455,7 +1461,7 @@ export default class ReceiptService {
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
 					daily_cashier_id: dailyCashier?.id,
-					daily_movement_id: data.dailyMovementId,
+					daily_movement_id: dailyMovement?.id,
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
 
@@ -1477,7 +1483,7 @@ export default class ReceiptService {
 					receiptId: receipt.id,
 					productVariationId: elem.productVariationId,
 					quantity: elem.quantity,
-					costValue: elem.costValue,
+					costValue: elem.unitaryValue,
 					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 				});
@@ -1562,23 +1568,23 @@ export default class ReceiptService {
 			.preload("taxOperation")
 			.first();
 
-		const ufIcms = await UfIcms.query()
-			.useTransaction(trx)
-			.where("origin_uf", rule?.toUf ?? "-")
-			.where("destination_uf", rule?.toUf ?? "-")
-			.first();
-
-		const totalValue = data.unitaryValue * data.quantity - data.discountValue;
-		const icmsBase =
-			totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-		const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
-		const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
-		const icmsStPercentageRedBase = rule?.ivaIcmsSt
-			? rule?.icmsPercRedBaseCalculoST
-			: undefined;
-		const icmsStBase_2 = rule?.ivaIcmsSt
-			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
-			: 0;
+		// const ufIcms = await UfIcms.query()
+		// 	.useTransaction(trx)
+		// 	.where("origin_uf", rule?.toUf ?? "-")
+		// 	.where("destination_uf", rule?.toUf ?? "-")
+		// 	.first();
+		//
+		// const totalValue = data.unitaryValue * data.quantity - data.discountValue;
+		// const icmsBase =
+		// 	totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+		// const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+		// const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
+		// const icmsStPercentageRedBase = rule?.ivaIcmsSt
+		// 	? rule?.icmsPercRedBaseCalculoST
+		// 	: undefined;
+		// const icmsStBase_2 = rule?.ivaIcmsSt
+		// 	? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+		// 	: 0;
 
 		return ReceiptItem.create(
 			{
@@ -1598,52 +1604,52 @@ export default class ReceiptService {
 				tax_operation_id: rule?.tax_operation_id,
 				fiscalOperationCode: rule?.taxOperation?.code,
 
-				icmsOriginProduct: productVariation.product.icmsOrigin,
-				icmsCst: rule?.icmsCst,
-				icmsBase,
-				icmsPercentage: rule?.icmsPerc,
-				icmsValue,
-				icmsDeferredValue: 0,
-				icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-				icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
-					? icmsStBase_2
-					: undefined,
-				icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStIva: rule?.icmsPercRedAliquota,
-				icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-				icmsStValue:
-					this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-						? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
-						: undefined,
-				icmsPartitionValue: 0,
-				icmsFcpPercentage: rule?.fcpPerc,
-				icmsFcpValue: 0,
-				icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-				icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
-				icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
-
-				issCst: rule?.icmsCst,
-				issBase: icmsBase,
-				issPercentage: rule?.icmsPerc,
-				issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
-
-				pisCst: rule?.pisCst,
-				pisBase: totalValue,
-				pisPercentage: rule?.pisPerc,
-				pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
-				pisRetentionValue: 0,
-
-				cofinsCst: rule?.cofinsCst,
-				cofinsBase: totalValue,
-				cofinsPercentage: rule?.cofinsPerc,
-				cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
-				cofinsRetentionValue: 0,
-
-				ipiCst: rule?.ipiCst,
-				ipiBase: 0,
-				ipiPercentage: rule?.ipiPerc,
-				ipiValue: 0,
+				// icmsOriginProduct: productVariation.product.icmsOrigin,
+				// icmsCst: rule?.icmsCst,
+				// icmsBase,
+				// icmsPercentage: rule?.icmsPerc,
+				// icmsValue,
+				// icmsDeferredValue: 0,
+				// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+				// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				// icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
+				// 	? icmsStBase_2
+				// 	: undefined,
+				// icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				// icmsStIva: rule?.icmsPercRedAliquota,
+				// icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
+				// icmsStValue:
+				// 	this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
+				// 		? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+				// 		: undefined,
+				// icmsPartitionValue: 0,
+				// icmsFcpPercentage: rule?.fcpPerc,
+				// icmsFcpValue: 0,
+				// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+				// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
+				// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
+				//
+				// issCst: rule?.icmsCst,
+				// issBase: icmsBase,
+				// issPercentage: rule?.icmsPerc,
+				// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
+				//
+				// pisCst: rule?.pisCst,
+				// pisBase: totalValue,
+				// pisPercentage: rule?.pisPerc,
+				// pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
+				// pisRetentionValue: 0,
+				//
+				// cofinsCst: rule?.cofinsCst,
+				// cofinsBase: totalValue,
+				// cofinsPercentage: rule?.cofinsPerc,
+				// cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
+				// cofinsRetentionValue: 0,
+				//
+				// ipiCst: rule?.ipiCst,
+				// ipiBase: 0,
+				// ipiPercentage: rule?.ipiPerc,
+				// ipiValue: 0,
 			},
 			{
 				client: trx,
@@ -1826,15 +1832,12 @@ export default class ReceiptService {
 				)
 				.preload("receipt");
 
-			const uniqueReceipts = updatedPayments.reduce(
-				(acc, current) => {
-					if (!acc.find((elem) => elem.id === current.receipt.id)) {
-						acc.push(current.receipt);
-					}
-					return acc;
-				},
-				[] as Receipt[],
-			);
+			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
+				if (!acc.find((elem) => elem.id === current.receipt.id)) {
+					acc.push(current.receipt);
+				}
+				return acc;
+			}, [] as Receipt[]);
 
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()
@@ -2639,51 +2642,51 @@ and product_variation_id in (
 					items.map((elem) => elem.discountValue),
 				),
 				totalValue: this.sharedService.sum(
-					items.flatMap((elem) => [elem.totalValue, -elem.discountValue]),
+					items.map((elem) => elem.totalValue),
 				),
 				deliveryValue: 0,
 
-				icmsBase: this.sharedService.sum(items.map((elem) => elem.icmsBase)),
-				icmsValue: this.sharedService.sum(items.map((elem) => elem.icmsValue)),
-				icmsStBase: this.sharedService.sum(
-					items.map((elem) => elem.icmsStBase),
-				),
-				icmsStValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsStValue),
-				),
-				icmsDeferredValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsDeferredValue),
-				),
-				icmsFcpValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsFcpValue),
-				),
-				icmsUfOriginValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsPartitionOriginUfValue),
-				),
-				icmsUfDestinationValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsPartitionDestinationUfValue),
-				),
-
-				issValue: this.sharedService.sum(items.map((elem) => elem.issValue)),
-
-				pisBase: this.sharedService.sum(items.map((elem) => elem.pisBase)),
-				pisValue: this.sharedService.sum(items.map((elem) => elem.pisValue)),
-				pisRetentionValue: this.sharedService.sum(
-					items.map((elem) => elem.pisRetentionValue),
-				),
-
-				cofinsBase: this.sharedService.sum(
-					items.map((elem) => elem.cofinsBase),
-				),
-				cofinsValue: this.sharedService.sum(
-					items.map((elem) => elem.cofinsValue),
-				),
-				cofinsRetentionValue: this.sharedService.sum(
-					items.map((elem) => elem.cofinsRetentionValue),
-				),
-
-				ipiBase: this.sharedService.sum(items.map((elem) => elem.ipiBase)),
-				ipiValue: this.sharedService.sum(items.map((elem) => elem.ipiValue)),
+				// icmsBase: this.sharedService.sum(items.map((elem) => elem.icmsBase)),
+				// icmsValue: this.sharedService.sum(items.map((elem) => elem.icmsValue)),
+				// icmsStBase: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsStBase),
+				// ),
+				// icmsStValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsStValue),
+				// ),
+				// icmsDeferredValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsDeferredValue),
+				// ),
+				// icmsFcpValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsFcpValue),
+				// ),
+				// icmsUfOriginValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsPartitionOriginUfValue),
+				// ),
+				// icmsUfDestinationValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsPartitionDestinationUfValue),
+				// ),
+				//
+				// issValue: this.sharedService.sum(items.map((elem) => elem.issValue)),
+				//
+				// pisBase: this.sharedService.sum(items.map((elem) => elem.pisBase)),
+				// pisValue: this.sharedService.sum(items.map((elem) => elem.pisValue)),
+				// pisRetentionValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.pisRetentionValue),
+				// ),
+				//
+				// cofinsBase: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsBase),
+				// ),
+				// cofinsValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsValue),
+				// ),
+				// cofinsRetentionValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsRetentionValue),
+				// ),
+				//
+				// ipiBase: this.sharedService.sum(items.map((elem) => elem.ipiBase)),
+				// ipiValue: this.sharedService.sum(items.map((elem) => elem.ipiValue)),
 			})
 			.useTransaction(trx)
 			.save();

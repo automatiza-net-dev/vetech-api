@@ -7,6 +7,7 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import EconomicGroup from "App/Models/EconomicGroup";
 import ProductVariation from "App/Models/ProductVariation";
 import System from "App/Models/System";
@@ -181,6 +182,29 @@ export default class SharedService {
 		}
 
 		return dailyCashier;
+	}
+
+	public async getContextMovement(
+		authCtx: AuthContext,
+		trx: TransactionClientContract,
+		shouldThrow = true,
+	) {
+		const row = await DailyMovement.query()
+			.useTransaction(trx)
+			.where("business_unit_id", authCtx.unit.id)
+			// .where("user_who_opened_id", authCtx.user.id)
+			.where("status", DailyMovementStatus.A)
+			.first();
+
+		if (!row && shouldThrow) {
+			throw new BadRequestException(
+				"Não existe movimento diário aberto",
+				400,
+				"E_NOT_OPEN",
+			);
+		}
+
+		return row;
 	}
 
 	public async userHasPermission(user: User, permission: string) {

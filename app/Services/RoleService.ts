@@ -253,7 +253,7 @@ export default class RoleService {
 
 		if (role.users.length > 0) {
 			throw new BadRequestException(
-				"Não é possível excluir um cargo que possui permissões",
+				"Não é possível excluir um controle de acesso que está vinculado à usuários",
 				400,
 				"E_BAD_REQUEST",
 			);

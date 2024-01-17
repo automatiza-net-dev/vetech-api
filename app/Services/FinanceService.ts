@@ -9,7 +9,7 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, { TBorderoType } from "App/Models/Bordero";
+import Bordero, { BorderoStatus, TBorderoType } from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -235,6 +235,7 @@ export default class FinanceService {
 		}
 
 		const qb = Database.from("finances")
+			.debug(true)
 			.select(
 				Database.raw(`
         finances.id,
@@ -387,7 +388,7 @@ export default class FinanceService {
         account_plans.description                                               as account_plan
           `),
 					)
-					.joinRaw("join patients on borderos.client_id = patients.id", [])
+					.joinRaw("left join patients on borderos.client_id = patients.id", [])
 					.joinRaw(
 						"left join account_plans on borderos.account_plan_id = account_plans.id",
 						[],
@@ -405,6 +406,84 @@ export default class FinanceService {
 
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);
+				}
+
+				if (data.fromIssueDate) {
+					builder.whereRaw("borderos.issue_date::date >= ?", [
+						data.fromIssueDate,
+					]);
+				}
+
+				if (data.toIssueDate) {
+					builder.whereRaw("borderos.issue_date::date <= ?", [
+						data.toIssueDate,
+					]);
+				}
+
+				if (data.fromExpirationDate) {
+					builder.whereRaw("borderos.expiration_date::date >= ?", [
+						data.fromExpirationDate,
+					]);
+				}
+
+				if (data.toExpirationDate) {
+					builder.whereRaw("borderos.expiration_date::date <= ?", [
+						data.toExpirationDate,
+					]);
+				}
+
+				if (data.fromPaymentDate) {
+					builder.whereRaw("borderos.payment_date::date >= ?", [
+						data.fromPaymentDate,
+					]);
+				}
+
+				if (data.toPaymentDate) {
+					builder.whereRaw("borderos.payment_date::date <= ?", [
+						data.toPaymentDate,
+					]);
+				}
+
+				if (data.client) {
+					builder.where("borderos.client_id", data.client);
+				}
+
+				if (data.document) {
+					builder.whereILike("borderos.document", `%${data.document}%`);
+				}
+
+				// if (data.fiscalNote) {
+				// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
+				// }
+
+				if (data.paymentMethod) {
+					builder.where("borderos.payment_method_id", data.paymentMethod);
+				}
+
+				if (data.nsu) {
+					builder.where("borderos.nsu_document", data.nsu);
+				}
+
+				// if (data.status) {
+				// 	builder.where("borderos.status", data.status);
+				// } else {
+				// 	builder.whereNot("borderos.status", '' as TBorderoType)
+				// }
+
+				// if (data.accept) {
+				// 	builder.where("borderos.accept", data.accept);
+				// }
+
+				// if (data.reconciled) {
+				// 	builder.where("borderos.reconciled", data.reconciled === "true");
+				// }
+
+				if (data.plan) {
+					builder.where("borderos.account_plan_id", data.plan);
+				}
+
+				if (data.competence) {
+					builder.where("borderos.competence_date", data.competence);
 				}
 			});
 		}

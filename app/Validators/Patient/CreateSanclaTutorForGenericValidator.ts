@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateSanclaTutorForGenericValidator {
 	constructor(protected ctx: HttpContextContract) {
-		console.log("sancla for generic");
+		console.log("create sancla for generic");
 	}
 
 	/*

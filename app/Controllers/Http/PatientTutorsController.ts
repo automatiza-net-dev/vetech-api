@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import Patient from "App/Models/Patient";
 import PatientService from "App/Services/PatientService";
 import SharedService from "App/Services/SharedService";
 import AssignPatientTutorValidator from "App/Validators/Patient/AssignPatientTutorValidator";
@@ -13,6 +14,7 @@ import UpdateLiftOneTutorForRegisterValidator from "App/Validators/Patient/Updat
 import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatientWithTutorValidator";
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
+import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 
 @inject()
 export default class PatientTutorsController {
@@ -55,18 +57,35 @@ export default class PatientTutorsController {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
 		const origin = request.input("origin");
-		const payload = ["", "Cadastro"].includes(origin)
-			? authCtx.system.name === "Sanclá"
-				? await request.validate(CreateSanclaTutorForRegisterValidator)
-				: await request.validate(CreateLiftOneTutorForRegisterValidator)
-			: authCtx.system.name === "Sanclá"
-			  ? await request.validate(CreateSanclaTutorForGenericValidator)
-			  : await request.validate(CreateLiftOneTutorForGenericValidator);
-		await request.validate(CreatePatientWithTutorValidator);
+		let data: Omit<IPatientTutorData, "active"> | null = null;
+
+		if (origin === "" || origin === "Cadastro") {
+			if (authCtx.system.name === "Sanclá") {
+				data = await request.validate(CreateSanclaTutorForRegisterValidator);
+			}
+
+			if (authCtx.system.name === "LiftOne") {
+				data = await request.validate(CreateLiftOneTutorForRegisterValidator);
+			}
+		}
+
+		if (origin === "Crm" || origin === "Agenda") {
+			if (authCtx.system.name === "Sanclá") {
+				data = await request.validate(CreateSanclaTutorForGenericValidator);
+			}
+
+			if (authCtx.system.name === "LiftOne") {
+				data = await request.validate(CreateLiftOneTutorForGenericValidator);
+			}
+		}
+
+		if (!data) {
+			data = await request.validate(CreatePatientWithTutorValidator);
+		}
 
 		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const patient = await this.service.storeTutor(unit_id, payload);
+		const patient = await this.service.storeTutor(unit_id, data);
 
 		return response.created(patient);
 	}
@@ -90,16 +109,34 @@ export default class PatientTutorsController {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
 		const origin = request.input("origin");
-		const payload = ["", "Cadastro"].includes(origin)
-			? authCtx.system.name === "Sanclá"
-				? await request.validate(UpdateSanclaTutorForRegisterValidator)
-				: await request.validate(UpdateLiftOneTutorForRegisterValidator)
-			: authCtx.system.name === "Sanclá"
-			  ? await request.validate(UpdateSanclaTutorForGenericValidator)
-			  : await request.validate(UpdateLiftOneTutorForGenericValidator);
-		await request.validate(UpdatePatientWithTutorValidator);
 
-		const patient = await this.service.updateTutor(unit_id, params.id, payload);
+		let data: IPatientTutorData | null = null;
+
+		if (origin === "" || origin === "Cadastro") {
+			if (authCtx.system.name === "Sanclá") {
+				data = await request.validate(UpdateSanclaTutorForRegisterValidator);
+			}
+
+			if (authCtx.system.name === "LiftOne") {
+				data = await request.validate(UpdateLiftOneTutorForRegisterValidator);
+			}
+		}
+
+		if (origin === "Crm" || origin === "Agenda") {
+			if (authCtx.system.name === "Sanclá") {
+				data = await request.validate(UpdateSanclaTutorForGenericValidator);
+			}
+
+			if (authCtx.system.name === "LiftOne") {
+				data = await request.validate(UpdateLiftOneTutorForGenericValidator);
+			}
+		}
+
+		if (!data) {
+			data = await request.validate(UpdatePatientWithTutorValidator);
+		}
+
+		const patient = await this.service.updateTutor(unit_id, params.id, data);
 
 		return response.ok(patient);
 	}

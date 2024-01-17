@@ -1397,23 +1397,33 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.get("/items", "ProductivityItemsController.searchItems");
-	Route.get("/products", "ProductivityItemsController.searchItemProducts");
+	Route.get("/items", "ProductivityItemsController.searchItems").middleware(
+		"auth:tpApi,api",
+	);
+	Route.get(
+		"/products",
+		"ProductivityItemsController.searchItemProducts",
+	).middleware("auth");
 
-	Route.post("/create-item", "ProductivityItemsController.storeItem");
-	Route.post("/update-item", "ProductivityItemsController.updateItem");
+	Route.post(
+		"/create-item",
+		"ProductivityItemsController.storeItem",
+	).middleware("auth:tpApi,api");
+	Route.post(
+		"/update-item",
+		"ProductivityItemsController.updateItem",
+	).middleware("auth");
 
 	Route.post(
 		"/create-item-product",
 		"ProductivityItemsController.storeItemProduct",
-	);
+	).middleware("auth");
+
 	Route.post(
 		"/update-item-product",
 		"ProductivityItemsController.updateItemProduct",
-	);
-})
-	.prefix("productivity-items")
-	.middleware("auth");
+	).middleware("auth");
+}).prefix("productivity-items");
 
 Route.group(() => {
 	Route.get("/finances", "ReportsController.finances");

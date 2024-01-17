@@ -28,6 +28,7 @@ import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { GenerateTag } from "App/Utils/GenerateTag";
 import {
 	IFinanceDownData,
 	IFinanceReversalData,
@@ -1555,9 +1556,14 @@ export default class FinanceService {
 				{ client: trx },
 			);
 
+			const [{ count }] = await Database.from("borderos")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.count("id");
+
 			await bordero
 				.merge({
-					document: `BOR-${bordero.id}`,
+					document: `BOR-${GenerateTag(parseInt(count, 10))}`,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1599,9 +1605,14 @@ export default class FinanceService {
 			);
 
 			if (!bordero.document) {
+				const [{ count }] = await Database.from("borderos")
+					.where("economic_group_id", authCtx.group.id)
+					.where("business_unit_id", authCtx.unit.id)
+					.count("id");
+
 				await bordero
 					.merge({
-						document: `BOR-${bordero.id}`,
+						document: `BOR-${GenerateTag(parseInt(count, 10))}`,
 					})
 					.useTransaction(trx)
 					.save();

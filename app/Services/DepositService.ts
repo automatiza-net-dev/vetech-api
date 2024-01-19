@@ -409,8 +409,20 @@ export default class DepositService {
 			}
 
 			if (data.items.length > 0) {
-				await this.$checkDepositItems(trx, fromRow, data.items, true);
-				await this.$checkDepositItems(trx, toRow, data.items);
+				const result1 = await this.$checkDepositItems(
+					trx,
+					fromRow,
+					data.items,
+					true,
+				);
+				if (result1.length !== 0) {
+					return result1;
+				}
+
+				const result2 = await this.$checkDepositItems(trx, toRow, data.items);
+				if (result2.length !== 0) {
+					return result2;
+				}
 			}
 
 			const movement = await DepositMovement.create(
@@ -454,7 +466,19 @@ export default class DepositService {
 			.related("items")
 			.query()
 			.useTransaction(trx)
-			.select("id", "business_unit_product_id", "quantity")
+			.select(
+				"id",
+				"business_unit_product_id",
+				"product_variation_id",
+				"quantity",
+			)
+			.preload("variation", (query) => {
+				query.select("product_id");
+
+				query.preload("product", (query) => {
+					query.select("id", "description");
+				});
+			})
 			.exec();
 		if (fromRowItems.length === 0) {
 			throw new BadRequestException(
@@ -472,22 +496,31 @@ export default class DepositService {
 		}
 
 		if (withQuantity) {
-			if (
-				fromRowItems.some((item) =>
-					items.some(
-						(i) =>
-							i.businessUnitProductId === item.business_unit_product_id &&
-							i.quantity > item.quantity,
-					),
-				)
-			) {
-				throw new BadRequestException(
-					"A quantidade de itens informada é maior que a quantidade de itens do depósito de origem",
-					400,
-					"E_INVALID_ITEMS",
-				);
+			const existing = fromRowItems.filter((item) =>
+				items.some((i) => {
+					console.log({
+						iBusinessUnitProductId: i.businessUnitProductId,
+						iQuantity: i.quantity,
+						itemBusinessUnitProductId: item.business_unit_product_id,
+						itemQuantity: item.quantity,
+					});
+
+					return (
+						i.businessUnitProductId === item.business_unit_product_id &&
+						i.quantity > item.quantity
+					);
+				}),
+			);
+
+			if (existing.length > 0) {
+				return existing.map((elem) => ({
+					rule: "EstoqueInsuficiente",
+					message: `Item ${elem.variation.product.description} possui estoque máximo de ${elem.quantity}`,
+				}));
 			}
 		}
+
+		return [];
 	}
 
 	private async $updateDepositItems(

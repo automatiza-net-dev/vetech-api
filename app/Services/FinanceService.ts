@@ -134,7 +134,7 @@ export default class FinanceService {
 			units.push(data.unit);
 		}
 
-		const qb = Finance.query()
+		const financesQb = Finance.query()
 			.whereIn("business_unit_id", units)
 			.preload("client", (query) => {
 				query.preload("tutor", (query) => {
@@ -152,81 +152,104 @@ export default class FinanceService {
 				query.select(["id", "description"]);
 			});
 
+		const borderosQb = Bordero.query()
+			.whereIn("business_unit_id", units)
+			.select(
+				"id",
+				"type",
+				"document",
+				"description",
+				"issue_date",
+				"expiration_date",
+				"payment_date",
+				"status",
+				"client_id",
+			)
+			.preload("client", (query) => {
+				query.select(["id", "name"]);
+			});
+
 		if (data.ids && Array.isArray(data.ids)) {
-			qb.whereIn("id", data.ids);
+			financesQb.whereIn("id", data.ids);
+			borderosQb.whereIn("id", data.ids);
 		}
 
 		if (data.fromIssueDate) {
-			qb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
+			financesQb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
 		}
 
 		if (data.toIssueDate) {
-			qb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
+			financesQb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
 		}
 
 		if (data.fromExpirationDate) {
-			qb.whereRaw("expiration_date::date >= ?", [data.fromExpirationDate]);
+			financesQb.whereRaw("expiration_date::date >= ?", [
+				data.fromExpirationDate,
+			]);
 		}
 
 		if (data.toExpirationDate) {
-			qb.whereRaw("expiration_date::date <= ?", [data.toExpirationDate]);
+			financesQb.whereRaw("expiration_date::date <= ?", [
+				data.toExpirationDate,
+			]);
 		}
 
 		if (data.fromPaymentDate) {
-			qb.whereRaw("payment_date::date >= ?", [data.fromPaymentDate]);
+			financesQb.whereRaw("payment_date::date >= ?", [data.fromPaymentDate]);
 		}
 
 		if (data.toPaymentDate) {
-			qb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
+			financesQb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
 		}
 
 		if (data.client) {
-			qb.where("client_id", data.client);
+			financesQb.where("client_id", data.client);
 		}
 
 		if (data.document) {
-			qb.whereILike("document", `%${data.document}%`);
+			financesQb.whereILike("document", `%${data.document}%`);
 		}
 
 		if (data.fiscalNote) {
-			qb.whereILike("fiscalNote", `%${data.fiscalNote}%`);
+			financesQb.whereILike("fiscalNote", `%${data.fiscalNote}%`);
 		}
 
 		if (data.paymentMethod) {
-			qb.where("payment_method_id", data.paymentMethod);
+			financesQb.where("payment_method_id", data.paymentMethod);
 		}
 
 		if (data.nsu) {
-			qb.where("nsuDocument", data.nsu);
+			financesQb.where("nsuDocument", data.nsu);
 		}
 
 		if (data.status) {
-			qb.where("status", data.status);
+			financesQb.where("status", data.status);
 		} else {
-			qb.whereNot("status", FinanceStatus.E);
+			financesQb.whereNot("status", FinanceStatus.E);
 		}
 
 		if (data.accept) {
-			qb.where("accept", data.accept);
+			financesQb.where("accept", data.accept);
 		}
 
 		if (data.reconciled) {
-			qb.where("reconciled", data.reconciled === "true");
+			financesQb.where("reconciled", data.reconciled === "true");
 		}
 
 		if (data.type) {
-			qb.where("type", data.type);
+			financesQb.where("type", data.type);
 		}
 
 		if (data.plan) {
-			qb.where("account_plan_id", data.plan);
+			financesQb.where("account_plan_id", data.plan);
 		}
 
 		if (data.competence) {
-			qb.where("competence_date", data.competence);
+			financesQb.where("competence_date", data.competence);
 		}
 
-		return qb;
+		const [finances, borderos] = await Promise.all([financesQb, borderosQb]);
+		return [...finances, ...borderos];
 	}
 
 	async reducedIndex(unitId: string, data: ISearch) {

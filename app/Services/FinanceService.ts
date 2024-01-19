@@ -720,9 +720,9 @@ export default class FinanceService {
 					value: data.originalValue - discount,
 					totalValue:
 						data.originalValue +
-						(data.feeValue || finance.feeValue) +
-						(data.increaseValue || finance.additionValue) -
-						(data.discountValue || finance.discountValue) -
+						(data.feeValue ?? 0) +
+						(data.increaseValue ?? 0) -
+						(data.discountValue ?? 0) -
 						discount,
 					reconciled: data.reconciled,
 

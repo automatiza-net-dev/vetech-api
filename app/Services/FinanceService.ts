@@ -1988,9 +1988,9 @@ export default class FinanceService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (bordero.status !== "Aberto") {
+			if (bordero.status !== "Baixado") {
 				throw new BadRequestException(
-					"Para excluir itens de um borderô, ele deve estar 'Aberto'",
+					"Para excluir itens de um borderô, ele não pode estar 'Baixado'",
 					400,
 					"BAD_REQUEST",
 				);

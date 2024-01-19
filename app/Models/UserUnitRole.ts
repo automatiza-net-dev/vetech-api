@@ -19,7 +19,7 @@ export default class UserUnitRole extends BaseModel {
 	public role_id: number;
 
 	@column()
-	public default_sale_deposit_id: number;
+	public default_sale_deposit_id: number | null | undefined;
 
 	@column()
 	public active: boolean;

@@ -14,7 +14,7 @@ export default class UpdateUsersRoleValidator {
 				role_id: schema.number([
 					rules.exists({ table: "roles", column: "id" }),
 				]),
-				default_sale_deposit_id: schema.number([
+				default_sale_deposit_id: schema.number.nullableAndOptional([
 					rules.exists({ table: "deposits", column: "id" }),
 				]),
 				unit_id: schema.string({}, [

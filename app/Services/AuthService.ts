@@ -93,21 +93,61 @@ export default class AuthService {
 			.related("roles")
 			.query()
 			.preload("role", (query) => {
-				query.whereIn("type", ["user", "both"] as TRoleType[]);
+				if (user.type === "user") {
+					query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "controller") {
+					query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "system") {
+					query.whereIn("type", ["system", "all"] as TRoleType[]);
+				}
 
 				query.preload("permissions", (query) => {
 					query.where("status", true);
 
-					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+					if (user.type === "user") {
+						query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+					}
+					if (user.type === "controller") {
+						query.whereIn("type", [
+							"controller",
+							"both",
+							"all",
+						] as TPermissionType[]);
+					}
+					if (user.type === "system") {
+						query.whereIn("type", ["system", "all"] as TPermissionType[]);
+					}
 				});
 			})
 			.whereHas("role", (query) => {
-				query.whereIn("type", ["user", "both"] as TRoleType[]);
+				if (user.type === "user") {
+					query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "controller") {
+					query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "system") {
+					query.whereIn("type", ["system", "all"] as TRoleType[]);
+				}
 
 				query.whereHas("permissions", (query) => {
 					query.where("status", true);
 
-					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+					if (user.type === "user") {
+						query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+					}
+					if (user.type === "controller") {
+						query.whereIn("type", [
+							"controller",
+							"both",
+							"all",
+						] as TPermissionType[]);
+					}
+					if (user.type === "system") {
+						query.whereIn("type", ["system", "all"] as TPermissionType[]);
+					}
 				});
 			})
 			.whereHas("unit", (query) => {

@@ -454,10 +454,10 @@ export default class BusinessUnitFiscalDocumentService {
 				nfePayload,
 				token,
 			);
-			if (!result.success) {
-				// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
-				Logger.info(JSON.stringify(result, undefined, 2));
-			}
+			// if (!result.success) {
+			// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
+			// Logger.info(JSON.stringify(result, undefined, 2));
+			// }
 
 			await BillItem.query()
 				.useTransaction(trx)
@@ -490,6 +490,13 @@ export default class BusinessUnitFiscalDocumentService {
 			//   })
 			//   .useTransaction(trx)
 			//   .save();
+
+			if (!result.success) {
+				return {
+					success: false,
+					message: result.message,
+				};
+			}
 
 			return issuedDocument;
 		});
@@ -686,14 +693,14 @@ export default class BusinessUnitFiscalDocumentService {
 						token,
 					);
 
-					if (!result.success) {
-						Logger.info(JSON.stringify(result, undefined, 2));
-						// throw new BadRequestException(
-						//   result.message ?? 'Erro ao emitir NFSe',
-						//   400,
-						//   'E_EXTERNAL_ERROR',
-						// );
-					}
+					// if (!result.success) {
+					// 	Logger.info(JSON.stringify(result, undefined, 2));
+					// throw new BadRequestException(
+					//   result.message ?? 'Erro ao emitir NFSe',
+					//   400,
+					//   'E_EXTERNAL_ERROR',
+					// );
+					// }
 
 					await serviceDocument
 						.merge({
@@ -716,8 +723,7 @@ export default class BusinessUnitFiscalDocumentService {
 				}),
 			);
 
-			console.log(JSON.stringify(results, undefined, 2));
-			return;
+			return results.filter((r) => !r.success);
 		}
 
 		const map: Map<string, BillItem[]> = new Map();
@@ -806,14 +812,14 @@ export default class BusinessUnitFiscalDocumentService {
 				token,
 			);
 
-			if (!result.success) {
-				Logger.info(JSON.stringify(result, undefined, 2));
-				// throw new BadRequestException(
-				//   result.message ?? 'Erro ao emitir NFSe',
-				//   400,
-				//   'E_EXTERNAL_ERROR',
-				// );
-			}
+			// if (!result.success) {
+			// Logger.info(JSON.stringify(result, undefined, 2));
+			// throw new BadRequestException(
+			//   result.message ?? 'Erro ao emitir NFSe',
+			//   400,
+			//   'E_EXTERNAL_ERROR',
+			// );
+			// }
 
 			await BillItem.query()
 				.useTransaction(trx)
@@ -843,9 +849,11 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 
 			// console.log(JSON.stringify(results, undefined, 2));
+			return result;
 		});
 
-		await Promise.all(tasks);
+		const results = await Promise.all(tasks);
+		return results.filter((r) => !r.success);
 	}
 
 	async updateFromFocus(unitId: string, id: string) {

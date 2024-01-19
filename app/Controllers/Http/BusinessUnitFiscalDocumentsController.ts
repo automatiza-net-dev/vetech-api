@@ -63,6 +63,9 @@ export default class BusinessUnitFiscalDocumentsController {
 		const { unit_id, user } = this.sharedService.extractUser(auth);
 
 		const result = await this.service.authorize(unit_id, user, payload);
+		if ("success" in result) {
+			return response.badRequest(result);
+		}
 
 		return response.created(result);
 	}
@@ -76,6 +79,9 @@ export default class BusinessUnitFiscalDocumentsController {
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);
+		if (result.length !== 0) {
+			return response.badRequest(result);
+		}
 
 		return response.created(result);
 	}

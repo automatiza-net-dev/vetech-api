@@ -1099,7 +1099,8 @@ export default class BusinessUnitFiscalDocumentService {
 					user_who_cancelled_id: user.id,
 					cancellationDate: DateTime.now(),
 					cancellationReason: data.reason,
-
+					sefazStatus: "Cancelado",
+					sefazMessage: "Cancelado",
 					// sefazStatus: cancelResult.status_sefaz,
 					// sefazMessage: cancelResult.mensagem_sefaz,
 					// cancellationXmlPath: cancelResult.caminho_xml_cancelamento,

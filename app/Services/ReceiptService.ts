@@ -1076,7 +1076,7 @@ export default class ReceiptService {
 					movementType: BusinessUnitFiscalDocumentMovementType.E,
 					model: parsed.data.nfeProc.NFe.infNFe.ide.mod,
 					series: parsed.data.nfeProc.NFe.infNFe.ide.serie,
-					sequence: parseInt(parsed.data.nfeProc.NFe.infNFe.ide.nNF, 10),
+					sequence: parsed.data.nfeProc.NFe.infNFe.ide.nNF,
 					purpose: "Importação XML",
 					accessKey: parsed.data.nfeProc.protNFe.infProt.chNFe,
 					authorizationDate: DateTime.fromISO(

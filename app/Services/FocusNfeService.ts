@@ -8,7 +8,7 @@ type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
 
 export interface ISendNfe {
 	nfe_series: string;
-	nfe_number: number;
+	nfe_number: string;
 	issuedAt: string;
 	authorizedAt: string;
 	purpose: string;
@@ -502,6 +502,8 @@ export default class FocusNfeService {
 			return {
 				success: true as const,
 				message: data.status as string,
+				chave: "chave_nfe" in data ? (data.chave_nfe as string) : null,
+				numero: "numero" in data ? (data.numero as string) : null,
 			};
 		} catch (error) {
 			Logger.error(error.response);
@@ -510,6 +512,8 @@ export default class FocusNfeService {
 			return {
 				success: false as const,
 				message: (error as T).response?.data?.mensagem ?? "",
+				chave: null,
+				numero: null,
 			};
 		}
 	}
@@ -600,7 +604,7 @@ export default class FocusNfeService {
 	// https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
 	public async cancelNfe(ref: string, reason: string, token: string) {
 		try {
-			await this.ax.delete(`/v2/nfe/${ref}`, {
+			const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
 				data: {
 					justificativa: reason,
 				},
@@ -610,21 +614,12 @@ export default class FocusNfeService {
 				},
 			});
 
-			// console.log({ data });
-
-			return true;
-			// const zodResponse = cancelNfeResponseSchema.safeParse(data);
-			// if (!zodResponse.success) {
-			//   console.log('invalid schema', zodResponse.error.issues);
-			//   return null;
-			// }
-
-			// return zodResponse.data;
+			return data;
 		} catch (error) {
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			Logger.error((error as T).response?.data.mensagem ?? "");
 
-			return false;
+			return null;
 		}
 	}
 

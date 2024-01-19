@@ -20,8 +20,8 @@ import { ProductType } from "App/Models/Product";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import User from "App/Models/User";
 import FocusNfeService, {
-	disableWebhookResponseSchema,
 	ISendNfe,
+	disableWebhookResponseSchema,
 	nfeResponseSchema,
 	nfseResponseSchema,
 } from "App/Services/FocusNfeService";
@@ -265,7 +265,7 @@ export default class BusinessUnitFiscalDocumentService {
 					fiscal_document_id: document.id,
 					model: document.model,
 					series: document.series,
-					sequence: document.sequence + 1,
+					// sequence: document.sequence + 1,
 					user_who_authorized_id: user.id,
 					authorizationDate: DateTime.now(),
 					contingency: IssuedFiscalDocumentContingency.N,
@@ -468,6 +468,15 @@ export default class BusinessUnitFiscalDocumentService {
 				.update({
 					nfe_issued: true,
 				});
+
+			if (result.chave || result.numero) {
+				await issuedDocument
+					.merge({
+						sequence: result.numero ?? result.chave?.substring(28, 28 + 9),
+					})
+					.useTransaction(trx)
+					.save();
+			}
 
 			// await item
 			//   .merge({
@@ -1099,10 +1108,9 @@ export default class BusinessUnitFiscalDocumentService {
 					user_who_cancelled_id: user.id,
 					cancellationDate: DateTime.now(),
 					cancellationReason: data.reason,
-					sefazStatus: "Cancelado",
-					sefazMessage: "Cancelado",
-					// sefazStatus: cancelResult.status_sefaz,
-					// sefazMessage: cancelResult.mensagem_sefaz,
+					sefazStatus: cancelResult?.status ?? "Cancelado",
+					sefazStatusCode: cancelResult?.status_sefaz ?? "-",
+					sefazMessage: cancelResult?.mensagem_sefaz ?? "Cancelado",
 					// cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
 					// cancellationReceiptDate: getResult.protocolo_cancelamento
 					//   ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
@@ -1229,7 +1237,7 @@ export default class BusinessUnitFiscalDocumentService {
 				{
 					cnpj: unit.document ?? "",
 					series: document.series,
-					sequence: document.sequence.toString(),
+					sequence: document.sequence,
 					reason: data.reason,
 				},
 				token,
@@ -1417,7 +1425,7 @@ export default class BusinessUnitFiscalDocumentService {
 			return "";
 		}
 
-		const product = item.productVariation.product;
+		const { product } = item.productVariation;
 
 		if (product.cest && product.cest.length > 0) {
 			return product.cest.replace(/\D/g, "");

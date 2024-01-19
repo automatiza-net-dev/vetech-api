@@ -487,29 +487,21 @@ export default class DepositService {
 				"E_INVALID_ITEMS",
 			);
 		}
-		if (fromRowItems.length !== items.length) {
-			throw new BadRequestException(
-				"A quantidade de itens informada é diferente da quantidade de itens do depósito de origem",
-				400,
-				"E_INVALID_ITEMS",
-			);
-		}
+		// if (fromRowItems.length !== items.length) {
+		// 	throw new BadRequestException(
+		// 		"A quantidade de itens informada é diferente da quantidade de itens do depósito de origem",
+		// 		400,
+		// 		"E_INVALID_ITEMS",
+		// 	);
+		// }
 
 		if (withQuantity) {
 			const existing = fromRowItems.filter((item) =>
-				items.some((i) => {
-					console.log({
-						iBusinessUnitProductId: i.businessUnitProductId,
-						iQuantity: i.quantity,
-						itemBusinessUnitProductId: item.business_unit_product_id,
-						itemQuantity: item.quantity,
-					});
-
-					return (
+				items.some(
+					(i) =>
 						i.businessUnitProductId === item.business_unit_product_id &&
-						i.quantity > item.quantity
-					);
-				}),
+						i.quantity > item.quantity,
+				),
 			);
 
 			if (existing.length > 0) {

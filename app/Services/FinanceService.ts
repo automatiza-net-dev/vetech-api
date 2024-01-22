@@ -1869,7 +1869,7 @@ export default class FinanceService {
 					paymentDate: undefined,
 					downDate: undefined,
 					paymentValue: undefined,
-					status: "Aberto",
+					status: "Fechado",
 				})
 				.useTransaction(trx)
 				.save();

@@ -413,13 +413,20 @@ export default class DepositService {
 					trx,
 					fromRow,
 					data.items,
+					"Origem",
 					true,
 				);
 				if (result1.length !== 0) {
 					return result1;
 				}
 
-				const result2 = await this.$checkDepositItems(trx, toRow, data.items);
+				const result2 = await this.$checkDepositItems(
+					trx,
+					toRow,
+					data.items,
+					"Destino",
+					true,
+				);
 				if (result2.length !== 0) {
 					return result2;
 				}
@@ -460,6 +467,7 @@ export default class DepositService {
 		trx: TransactionClientContract,
 		deposit: Deposit,
 		items: { businessUnitProductId: string; quantity: number }[],
+		place: string,
 		withQuantity = false,
 	) {
 		const fromRowItems = await deposit
@@ -482,7 +490,7 @@ export default class DepositService {
 			.exec();
 		if (fromRowItems.length === 0) {
 			throw new BadRequestException(
-				"O depósito de origem não possui itens para serem movimentados",
+				`O depósito de ${place} não possui itens para serem movimentados`,
 				400,
 				"E_INVALID_ITEMS",
 			);

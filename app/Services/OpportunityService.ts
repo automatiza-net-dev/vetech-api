@@ -930,7 +930,7 @@ export default class OpportunityService {
 	}
 
 	public async reopenOpportunity(authCtx: AuthContext, id: number) {
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
@@ -948,19 +948,25 @@ export default class OpportunityService {
 				);
 			}
 
-			const result = await model
-				.merge({
-					closing_user_id: undefined,
-					closingDate: undefined,
-					balance: undefined,
-					profitValue: undefined,
-					reason_id: undefined,
-					resultObservation: undefined,
+			await Database.from("opportunities")
+				.update({
+					closing_user_id: null,
+					closing_date: null,
+					balance: null,
+					profit_value: null,
+					reason_id: null,
+					result_observation: null,
 				})
-				.useTransaction(trx)
-				.save();
+				.where("id", model.id)
+				.useTransaction(trx);
+
+			const result = await model.refresh();
 
 			await this.createLog(result, trx);
+
+			return {
+				message: "Oportunidade reaberta",
+			};
 		});
 	}
 

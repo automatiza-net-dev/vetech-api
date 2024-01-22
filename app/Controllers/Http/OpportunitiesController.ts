@@ -128,9 +128,9 @@ export default class OpportunitiesController {
 	public async reopen({ response, auth, params }: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.reopenOpportunity(authCtx, params.id);
+		const result = await this.service.reopenOpportunity(authCtx, params.id);
 
-		return response.noContent();
+		return response.ok(result);
 	}
 
 	public async updateStatus({

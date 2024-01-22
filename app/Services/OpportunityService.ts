@@ -546,11 +546,15 @@ export default class OpportunityService {
 		const statusMap = new Map();
 		// eslint-disable-next-line
 		for (const op of result) {
-			if (!statusMap.has(op.status.description)) {
-				statusMap.set(op.status.description, []);
+			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
+				? "Faltou-Desmarcou"
+				: op.status.description;
+
+			if (!statusMap.has(key)) {
+				statusMap.set(key, []);
 			}
 
-			statusMap.get(op.status.description).push({
+			statusMap.get(key).push({
 				id: op.id,
 				openingDate: op.openingDate,
 				value: op.value,

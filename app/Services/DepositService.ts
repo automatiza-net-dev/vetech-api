@@ -494,13 +494,13 @@ export default class DepositService {
 				"E_INVALID_ITEMS",
 			);
 		}
-		// if (fromRowItems.length !== items.length) {
-		// 	throw new BadRequestException(
-		// 		"A quantidade de itens informada é diferente da quantidade de itens do depósito de origem",
-		// 		400,
-		// 		"E_INVALID_ITEMS",
-		// 	);
-		// }
+		if (fromRowItems.length !== items.length) {
+			throw new BadRequestException(
+				`A lista de itens informada não existe totalmente no depósito de ${place}`,
+				400,
+				"E_INVALID_ITEMS",
+			);
+		}
 
 		if (withQuantity) {
 			const existing = fromRowItems.filter((item) =>

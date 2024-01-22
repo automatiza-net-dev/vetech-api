@@ -663,7 +663,10 @@ export default class BusinessUnitFiscalDocumentService {
 										: null,
 								name: responsible.name,
 								email: responsible.tutor.email,
-								phone: responsible.tutor.telephone ?? "",
+								phone:
+									responsible.tutor.telephone ??
+									responsible.tutor.cellphone ??
+									"",
 								address: {
 									street: responsible.tutor.street ?? "",
 									number: responsible.tutor.number ?? "",

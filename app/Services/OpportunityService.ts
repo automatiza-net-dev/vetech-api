@@ -1123,7 +1123,7 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (activity.status !== ("Aberto" as TOpportunityActivityStatus)) {
+			if (activity.status !== "Aberta") {
 				throw new BadRequestException(
 					"Atividade já executada ou cancelada",
 					400,

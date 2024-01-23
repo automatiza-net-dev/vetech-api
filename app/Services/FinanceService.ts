@@ -1563,6 +1563,9 @@ export default class FinanceService {
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
+					daily_movement_id: await this.sharedService
+						.getContextMovement(authCtx, trx, true)
+						.then((r) => r?.id),
 
 					type: data.type,
 					issueDate: DateTime.now(),
@@ -1764,6 +1767,8 @@ export default class FinanceService {
 			paymentMethodId?: string;
 			tefFlagId?: string;
 
+			interestValue: number;
+			discountValue: number;
 			paymentDate: DateTime;
 		},
 	) {
@@ -1793,6 +1798,12 @@ export default class FinanceService {
 					payment_method_id: data.paymentMethodId,
 					tef_flag_id: data.tefFlagId,
 
+					paymentValue:
+						bordero.totalValue + data.interestValue - data.discountValue,
+					interestValue: data.interestValue,
+					interestPercentage: bordero.interestPercentage,
+					discountValue: data.discountValue,
+					discountPercentage: bordero.discountPercentage,
 					downDate: DateTime.now(),
 					paymentDate: data.paymentDate,
 					status: "Baixado",
@@ -1807,28 +1818,27 @@ export default class FinanceService {
 				.useTransaction(trx)
 				.where("business_unit_id", authCtx.unit.id);
 
-			await bordero
-				.related("finances")
-				.query()
-				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
-				.where("business_unit_id", authCtx.unit.id)
-				.update({
-					checking_account_id: data.checkingAccountId,
+			const tasks = borderoFinances.map((elem) => {
+				return elem
+					.merge({
+						checking_account_id: data.checkingAccountId,
 
-					payment_date: data.paymentDate,
-					// payment_value:
-					// 	bordero.borderoValue + data.interestValue - data.discountValue,
-					down_date: DateTime.now(),
-					origin_down_flag: FinanceOriginDownFlag.BO,
-					fee_value: 0,
-					fee_percentage: 0,
-					discount_value: 0,
-					discount_percentage: 0,
-					status: FinanceStatus.B,
-				});
+						paymentDate: data.paymentDate,
+						paymentValue: elem.totalValue,
+						downDate: DateTime.now(),
+						originDownFlag: FinanceOriginDownFlag.BO,
+						feeValue: 0,
+						feePercentage: 0,
+						discountValue: 0,
+						discountPercentage: 0,
+						status: FinanceStatus.B,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			const updatedFinances = await Promise.all(tasks);
 
-			await this.$registerDown(trx, bordero, borderoFinances);
+			await this.$registerDown(trx, bordero, updatedFinances);
 			await this.$registerBankingDown(trx, bordero);
 		});
 	}
@@ -1861,18 +1871,20 @@ export default class FinanceService {
 				);
 			}
 
-			await bordero
-				.merge({
-					checking_account_id: undefined,
-					payment_method_id: undefined,
-
-					paymentDate: undefined,
-					downDate: undefined,
-					paymentValue: undefined,
+			await Database.from("borderos")
+				.update({
+					// checking_account_id: undefined,
+					// payment_method_id: undefined,
+					payment_date: null,
+					down_date: null,
+					payment_value: null,
 					status: "Fechado",
+					reason_for_reversal: data.reason,
 				})
+				.where("id", bordero.id)
 				.useTransaction(trx)
-				.save();
+				.exec();
+
 			await bordero.refresh();
 
 			const borderoFinances = await bordero
@@ -1887,9 +1899,9 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.where("bordero_id", bordero.id)
 				.update({
-					checking_account_id: null,
-					payment_date: null,
-					down_date: null,
+					// checking_account_id: null,
+					// payment_date: null,
+					// down_date: null,
 					payment_value: null,
 					status: FinanceStatus.A,
 				});
@@ -2182,7 +2194,11 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				balance:
+					(checkingAccount?.balance ?? 0) +
+					(bordero.type === "Credito"
+						? -bordero.totalValue
+						: bordero.totalValue),
 				prevBalance: checkingAccount?.balance,
 				competenceDate: bordero.competenceDate,
 			},
@@ -2190,6 +2206,26 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		if (checkingAccount) {
+			if (bordero.type === "Credito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance - bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (bordero.type === "Debito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance + bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
 	}
 
 	private async $revertRegisterDown(
@@ -2316,7 +2352,11 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				balance:
+					(checkingAccount?.balance ?? 0) +
+					(bordero.type === "Debito"
+						? bordero.totalValue
+						: -bordero.totalValue),
 				prevBalance: checkingAccount?.balance,
 				competenceDate: bordero.competenceDate,
 			},
@@ -2324,6 +2364,26 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		if (checkingAccount) {
+			if (bordero.type === "Credito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance - bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (bordero.type === "Debito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance + bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
 	}
 
 	private async $syncBordero(trx: TransactionClientContract, bordero: Bordero) {

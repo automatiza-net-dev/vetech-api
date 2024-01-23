@@ -939,7 +939,7 @@ test.group("Finance resource", (group) => {
 			type: "Credito" as TBorderoType,
 			economic_group_id: $props.finance.economic_group_id,
 			business_unit_id: $props.finance.business_unit_id,
-			status: "Aberto",
+			status: "Baixado",
 			titlesQty: 1,
 		});
 

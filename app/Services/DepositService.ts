@@ -3,6 +3,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
 import DepositMovement from "App/Models/DepositMovement";
@@ -484,14 +485,30 @@ export default class DepositService {
 			// 	"business_unit_product_id",
 			// 	items.map((i) => i.businessUnitProductId),
 			// )
-			.preload("variation", (query) => {
-				query.select("product_id");
+			// .preload("variation", (query) => {
+			// 	query.select("product_id");
+			//
+			// 	query.preload("product", (query) => {
+			// 		query.select("id", "description");
+			// 	});
+			// })
+			.exec();
+
+		const buProducts = await BusinessUnitProduct.query()
+			.useTransaction(trx)
+			.whereIn(
+				"id",
+				items.map((i) => i.businessUnitProductId),
+			)
+			.preload("productVariation", (query) => {
+				query.select("id", "product_id");
 
 				query.preload("product", (query) => {
 					query.select("id", "description");
 				});
 			})
 			.exec();
+
 		if (fromRowItems.length === 0) {
 			errorMessages.push({
 				rule: "ItemsNãoExistentes",
@@ -505,19 +522,26 @@ export default class DepositService {
 			});
 		}
 
-		for (const rowItem of fromRowItems) {
-			const item = items.find(
-				(i) => i.businessUnitProductId === rowItem.business_unit_product_id,
+		for (const reqItem of items) {
+			const rowItem = fromRowItems.find(
+				(i) => i.business_unit_product_id === reqItem.businessUnitProductId,
 			);
-			if (!item) {
+
+			if (!rowItem) {
+				const buProduct = buProducts.find(
+					(i) => i.id === reqItem.businessUnitProductId,
+				);
+
 				errorMessages.push({
 					rule: "ItemNãoExiste",
-					message: `Item ${rowItem.variation.product.description} não existe no depósito de ${place}`,
+					message: `Item ${
+						buProduct?.productVariation.product.description ?? "-"
+					} não existe no depósito de ${place}`,
 				});
 				continue;
 			}
 
-			if (item.quantity > rowItem.quantity) {
+			if (reqItem.quantity > rowItem.quantity) {
 				errorMessages.push({
 					rule: "EstoqueInsuficiente",
 					message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${rowItem.quantity}`,

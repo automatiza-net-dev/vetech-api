@@ -467,7 +467,6 @@ export default class DepositService {
 		deposit: Deposit,
 		items: { businessUnitProductId: string; quantity: number }[],
 		place: string,
-		withQuantity = false,
 	) {
 		const errorMessages: unknown[] = [];
 
@@ -481,10 +480,10 @@ export default class DepositService {
 				"product_variation_id",
 				"quantity",
 			)
-			.whereIn(
-				"business_unit_product_id",
-				items.map((i) => i.businessUnitProductId),
-			)
+			// .whereIn(
+			// 	"business_unit_product_id",
+			// 	items.map((i) => i.businessUnitProductId),
+			// )
 			.preload("variation", (query) => {
 				query.select("product_id");
 
@@ -506,21 +505,23 @@ export default class DepositService {
 			});
 		}
 
-		if (withQuantity) {
-			for (const rowItem of fromRowItems) {
-				const item = items.find(
-					(i) => i.businessUnitProductId === rowItem.business_unit_product_id,
-				);
-				if ((item?.quantity ?? Infinity) > rowItem.quantity) {
-					errorMessages.push({
-						rule: "EstoqueInsuficiente",
-						message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${rowItem.quantity}`,
-					});
-					// errorMessages.push({
-					// 	rule: "ItemNãoExiste",
-					// 	message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${elem.quantity}`,
-					// });
-				}
+		for (const rowItem of fromRowItems) {
+			const item = items.find(
+				(i) => i.businessUnitProductId === rowItem.business_unit_product_id,
+			);
+			if (!item) {
+				errorMessages.push({
+					rule: "ItemNãoExiste",
+					message: `Item ${rowItem.variation.product.description} não existe no depósito de ${place}`,
+				});
+				continue;
+			}
+
+			if (item.quantity > rowItem.quantity) {
+				errorMessages.push({
+					rule: "EstoqueInsuficiente",
+					message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${rowItem.quantity}`,
+				});
 			}
 		}
 

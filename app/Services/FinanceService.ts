@@ -393,7 +393,7 @@ export default class FinanceService {
         borderos.type,
         'BORDERO' as source,
         borderos.document,
-        -1                                                                      as installment,
+        1                                                                      as installment,
         borderos.issue_date,
         null                                                                    as expiration_date,
         borderos.payment_date,
@@ -1571,7 +1571,7 @@ export default class FinanceService {
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					daily_movement_id: await this.sharedService
-						.getContextMovement(authCtx, trx, true)
+						.getContextMovement(authCtx, trx, false)
 						.then((r) => r?.id),
 
 					type: data.type,

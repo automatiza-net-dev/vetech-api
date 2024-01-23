@@ -485,13 +485,13 @@ export default class DepositService {
 			// 	"business_unit_product_id",
 			// 	items.map((i) => i.businessUnitProductId),
 			// )
-			// .preload("variation", (query) => {
-			// 	query.select("product_id");
-			//
-			// 	query.preload("product", (query) => {
-			// 		query.select("id", "description");
-			// 	});
-			// })
+			.preload("variation", (query) => {
+				query.select("product_id");
+
+				query.preload("product", (query) => {
+					query.select("id", "description");
+				});
+			})
 			.exec();
 
 		const buProducts = await BusinessUnitProduct.query()
@@ -534,9 +534,9 @@ export default class DepositService {
 
 				errorMessages.push({
 					rule: "ItemNãoExiste",
-					message: `Item ${
+					message: `Item '${
 						buProduct?.productVariation.product.description ?? "-"
-					} não existe no depósito de ${place}`,
+					}' não existe no depósito de ${place}`,
 				});
 				continue;
 			}
@@ -544,7 +544,7 @@ export default class DepositService {
 			if (reqItem.quantity > rowItem.quantity) {
 				errorMessages.push({
 					rule: "EstoqueInsuficiente",
-					message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${rowItem.quantity}`,
+					message: `Item '${rowItem.variation.product.description}' possui estoque máximo de ${rowItem.quantity}`,
 				});
 			}
 		}

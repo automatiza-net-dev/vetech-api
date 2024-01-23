@@ -420,15 +420,15 @@ export default class DepositService {
 					return result1;
 				}
 
-				const result2 = await this.$checkDepositItems(
-					trx,
-					toRow,
-					data.items,
-					"Destino",
-				);
-				if (result2.length !== 0) {
-					return result2;
-				}
+				// const result2 = await this.$checkDepositItems(
+				// 	trx,
+				// 	toRow,
+				// 	data.items,
+				// 	"Destino",
+				// );
+				// if (result2.length !== 0) {
+				// 	return result2;
+				// }
 			}
 
 			const movement = await DepositMovement.create(
@@ -478,6 +478,10 @@ export default class DepositService {
 				"business_unit_product_id",
 				"product_variation_id",
 				"quantity",
+			)
+			.whereIn(
+				"business_unit_product_id",
+				items.map((i) => i.businessUnitProductId),
 			)
 			.preload("variation", (query) => {
 				query.select("product_id");

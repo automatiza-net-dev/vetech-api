@@ -819,15 +819,17 @@ export default class PatientService {
 
 			await group.related("patients").attach([patient.id], trx);
 
-			await patient.related("contacts").create(
-				{
-					main: true,
-					contact: data.cellphone,
-					observation: "Contato principal",
-					type: "celular",
-				},
-				{ client: trx },
-			);
+			if (data.cellphone) {
+				await patient.related("contacts").create(
+					{
+						main: true,
+						contact: data.cellphone,
+						observation: "Contato principal",
+						type: "celular",
+					},
+					{ client: trx },
+				);
+			}
 
 			return patient;
 		});

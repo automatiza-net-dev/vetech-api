@@ -469,6 +469,8 @@ export default class DepositService {
 		place: string,
 		withQuantity = false,
 	) {
+		const errorMessages: unknown[] = [];
+
 		const fromRowItems = await deposit
 			.related("items")
 			.query()
@@ -492,38 +494,37 @@ export default class DepositService {
 			})
 			.exec();
 		if (fromRowItems.length === 0) {
-			throw new BadRequestException(
-				`O depósito de ${place} não possui itens para serem movimentados`,
-				400,
-				"E_INVALID_ITEMS",
-			);
+			errorMessages.push({
+				rule: "ItemsNãoExistentes",
+				message: `O depósito de ${place} não possui itens para serem movimentados`,
+			});
 		}
 		if (fromRowItems.length !== items.length) {
-			throw new BadRequestException(
-				`A lista de itens informada não existe totalmente no depósito de ${place}`,
-				400,
-				"E_INVALID_ITEMS",
-			);
+			errorMessages.push({
+				rule: "ItemsNãoExistentes",
+				message: `A lista de itens informada não existe totalmente no depósito de ${place}`,
+			});
 		}
 
 		if (withQuantity) {
-			const existing = fromRowItems.filter((item) =>
-				items.some(
-					(i) =>
-						i.businessUnitProductId === item.business_unit_product_id &&
-						i.quantity > item.quantity,
-				),
-			);
-
-			if (existing.length > 0) {
-				return existing.map((elem) => ({
-					rule: "EstoqueInsuficiente",
-					message: `Item ${elem.variation.product.description} possui estoque máximo de ${elem.quantity}`,
-				}));
+			for (const rowItem of fromRowItems) {
+				const item = items.find(
+					(i) => i.businessUnitProductId === rowItem.business_unit_product_id,
+				);
+				if ((item?.quantity ?? Infinity) > rowItem.quantity) {
+					errorMessages.push({
+						rule: "EstoqueInsuficiente",
+						message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${rowItem.quantity}`,
+					});
+					// errorMessages.push({
+					// 	rule: "ItemNãoExiste",
+					// 	message: `Item ${rowItem.variation.product.description} possui estoque máximo de ${elem.quantity}`,
+					// });
+				}
 			}
 		}
 
-		return [];
+		return errorMessages;
 	}
 
 	private async $updateDepositItems(

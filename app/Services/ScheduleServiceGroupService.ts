@@ -44,7 +44,13 @@ export default class ScheduleServiceGroupService {
 		const model = await ScheduleServiceGroup.query()
 			.where("id", id)
 			.where("system_id", authCtx.system.id)
-			.preload("types")
+			.preload("types", (query) => {
+				query
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					])
+					.where("system_id", authCtx.system.id);
+			})
 			.first();
 
 		const exception = new ResourceNotFoundException(

@@ -259,7 +259,6 @@ export default class FinanceService {
 		}
 
 		const qb = Database.from("finances")
-			.debug(true)
 			.select(
 				Database.raw(`
         finances.id,

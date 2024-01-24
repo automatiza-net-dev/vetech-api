@@ -1623,6 +1623,9 @@ export default class FinanceService {
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
+					daily_movement_id: await this.sharedService
+						.getContextMovement(authCtx, trx, false)
+						.then((r) => r?.id),
 
 					type: data.type,
 					issueDate: DateTime.now(),
@@ -1799,7 +1802,7 @@ export default class FinanceService {
 				);
 			}
 
-			await bordero
+			const updatedBordero = await bordero
 				.merge({
 					checking_account_id: data.checkingAccountId,
 					payment_method_id: data.paymentMethodId,
@@ -1817,9 +1820,8 @@ export default class FinanceService {
 				})
 				.useTransaction(trx)
 				.save();
-			await bordero.refresh();
 
-			const borderoFinances = await bordero
+			const borderoFinances = await updatedBordero
 				.related("finances")
 				.query()
 				.useTransaction(trx)
@@ -1845,8 +1847,8 @@ export default class FinanceService {
 			});
 			const updatedFinances = await Promise.all(tasks);
 
-			await this.$registerDown(trx, bordero, updatedFinances);
-			await this.$registerBankingDown(trx, bordero);
+			await this.$registerDown(trx, updatedBordero, updatedFinances);
+			await this.$registerBankingDown(trx, updatedBordero);
 		});
 	}
 
@@ -1892,9 +1894,9 @@ export default class FinanceService {
 				.useTransaction(trx)
 				.exec();
 
-			await bordero.refresh();
+			const updatedBordero = await bordero.refresh();
 
-			const borderoFinances = await bordero
+			const borderoFinances = await updatedBordero
 				.related("finances")
 				.query()
 				.useTransaction(trx)
@@ -1904,7 +1906,7 @@ export default class FinanceService {
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
-				.where("bordero_id", bordero.id)
+				.where("bordero_id", updatedBordero.id)
 				.update({
 					// checking_account_id: null,
 					// payment_date: null,
@@ -1913,8 +1915,8 @@ export default class FinanceService {
 					status: FinanceStatus.A,
 				});
 
-			await this.$revertRegisterDown(trx, bordero, borderoFinances);
-			await this.$revertRegisterBankingDown(trx, bordero);
+			await this.$revertRegisterDown(trx, updatedBordero, borderoFinances);
+			await this.$revertRegisterBankingDown(trx, updatedBordero);
 		});
 	}
 
@@ -2174,6 +2176,9 @@ export default class FinanceService {
 			},
 		);
 
+		const relativeValue =
+			bordero.type === "Debito" ? -bordero.paymentValue : bordero.paymentValue;
+
 		await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
@@ -2201,12 +2206,8 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance:
-					(checkingAccount?.balance ?? 0) +
-					(bordero.type === "Credito"
-						? -bordero.totalValue
-						: bordero.totalValue),
-				prevBalance: checkingAccount?.balance,
+				balance: (checkingAccount?.balance ?? 0) + relativeValue,
+				prevBalance: checkingAccount?.balance ?? 0,
 				competenceDate: bordero.competenceDate,
 			},
 			{
@@ -2215,23 +2216,12 @@ export default class FinanceService {
 		);
 
 		if (checkingAccount) {
-			if (bordero.type === "Credito") {
-				await checkingAccount
-					.merge({
-						balance: checkingAccount.balance - bordero.totalValue,
-					})
-					.useTransaction(trx)
-					.save();
-			}
-
-			if (bordero.type === "Debito") {
-				await checkingAccount
-					.merge({
-						balance: checkingAccount.balance + bordero.totalValue,
-					})
-					.useTransaction(trx)
-					.save();
-			}
+			await checkingAccount
+				.merge({
+					balance: checkingAccount.balance + relativeValue,
+				})
+				.useTransaction(trx)
+				.save();
 		}
 	}
 
@@ -2332,6 +2322,9 @@ export default class FinanceService {
 			},
 		);
 
+		const relativeValue =
+			bordero.type === "Debito" ? bordero.paymentValue : -bordero.paymentValue;
+
 		await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
@@ -2343,7 +2336,7 @@ export default class FinanceService {
 				daily_movement_id: bordero.daily_movement_id,
 				// daily_cashier_id: bordero.daily_cashier_id,
 				// finance_id: bordero.id, // TODO - consertar
-				type: bordero.type === "Debito" ? BankingType.D : BankingType.C,
+				type: bordero.type === "Debito" ? BankingType.C : BankingType.D,
 				document: bordero.document,
 				historic: bordero.history,
 				issueDate: bordero.paymentDate,
@@ -2359,12 +2352,8 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance:
-					(checkingAccount?.balance ?? 0) +
-					(bordero.type === "Debito"
-						? bordero.totalValue
-						: -bordero.totalValue),
-				prevBalance: checkingAccount?.balance,
+				balance: (checkingAccount?.balance ?? 0) + relativeValue,
+				prevBalance: checkingAccount?.balance ?? 0,
 				competenceDate: bordero.competenceDate,
 			},
 			{
@@ -2373,23 +2362,12 @@ export default class FinanceService {
 		);
 
 		if (checkingAccount) {
-			if (bordero.type === "Credito") {
-				await checkingAccount
-					.merge({
-						balance: checkingAccount.balance - bordero.totalValue,
-					})
-					.useTransaction(trx)
-					.save();
-			}
-
-			if (bordero.type === "Debito") {
-				await checkingAccount
-					.merge({
-						balance: checkingAccount.balance + bordero.totalValue,
-					})
-					.useTransaction(trx)
-					.save();
-			}
+			await checkingAccount
+				.merge({
+					balance: checkingAccount.balance + relativeValue,
+				})
+				.useTransaction(trx)
+				.save();
 		}
 	}
 

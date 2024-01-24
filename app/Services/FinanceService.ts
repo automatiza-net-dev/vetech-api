@@ -1778,7 +1778,9 @@ export default class FinanceService {
 			tefFlagId?: string;
 
 			interestValue: number;
+			interestPercentage: number;
 			discountValue: number;
+			discountPercentage: number;
 			paymentDate: DateTime;
 		},
 	) {
@@ -1811,9 +1813,9 @@ export default class FinanceService {
 					paymentValue:
 						bordero.totalValue + data.interestValue - data.discountValue,
 					interestValue: data.interestValue,
-					interestPercentage: bordero.interestPercentage,
+					interestPercentage: data.interestPercentage,
 					discountValue: data.discountValue,
-					discountPercentage: bordero.discountPercentage,
+					discountPercentage: data.discountPercentage,
 					downDate: DateTime.now(),
 					paymentDate: data.paymentDate,
 					status: "Baixado",
@@ -1909,8 +1911,9 @@ export default class FinanceService {
 				.where("bordero_id", updatedBordero.id)
 				.update({
 					// checking_account_id: null,
-					// payment_date: null,
 					// down_date: null,
+					payment_date: null,
+					origin_down_flag: null,
 					payment_value: null,
 					status: FinanceStatus.A,
 				});

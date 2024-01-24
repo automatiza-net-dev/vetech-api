@@ -1,6 +1,5 @@
 import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import Patient from "App/Models/Patient";
 import PatientService from "App/Services/PatientService";
 import SharedService from "App/Services/SharedService";
 import AssignPatientTutorValidator from "App/Validators/Patient/AssignPatientTutorValidator";

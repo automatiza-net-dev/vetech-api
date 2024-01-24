@@ -45,22 +45,31 @@ export default class ProductivityItemService {
 			active?: string;
 		},
 	) {
-		const qb = ProductivityItemProduct.query()
-			.preload("product")
-			.where("economic_group_id", authCtx.group.id)
-			.where("active", data.active ? data.active === "1" : true);
+		const qb = Database.from("productivity_items")
+			.select(
+				Database.raw(`
+          productivity_item_products.productivity_item_id as p_id,
+          productivity_items.description,
+          productivity_item_products.quantity,
+          productivity_items.reserved_minutes
+      `),
+			)
+			.joinRaw(
+				"join productivity_item_products on productivity_items.id = productivity_item_products.productivity_item_id",
+				[],
+			)
+			.orderBy("productivity_items.id")
+			.where("productivity_item_products.economic_group_id", authCtx.group.id)
+			.where(
+				"productivity_item_products.active",
+				data.active ? data.active === "1" : true,
+			);
 
 		if (data.product) {
 			qb.where("product_id", data.product);
 		}
 
-		const result = await qb;
-
-		return result.map((elem) => ({
-			id: elem.id,
-			quantity: elem.quantity,
-			description: elem.product.description,
-		}));
+		return qb;
 	}
 
 	public async storeItem(

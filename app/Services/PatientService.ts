@@ -290,7 +290,7 @@ export default class PatientService {
 			.filter((r) => {
 				if (data.document) {
 					const matches = r.tutors.some((t) =>
-						t.tutor.document?.includes(data.document ?? ""),
+						t.tutor.document?.includes(data.document?.replace(/\D/g, "")),
 					);
 
 					if (!matches) {
@@ -738,20 +738,20 @@ export default class PatientService {
 		const group = await this.getEconomicGroup(unitId);
 		return Database.transaction(async (trx) => {
 			if (data.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
 					.whereHas("tutor", (query) => {
-						query.where("document", data.document ?? "");
+						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
 					.first();
 				if (document) {
@@ -790,7 +790,7 @@ export default class PatientService {
 			await patient.related("tutor").create(
 				{
 					residence: data.residence,
-					document: data.document,
+					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,
 					email: data.email,
@@ -862,20 +862,20 @@ export default class PatientService {
 
 		return Database.transaction(async (trx) => {
 			if (data.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
 					.whereHas("tutor", (query) => {
-						query.where("document", data.document ?? "");
+						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
 					.first();
 				if (document) {
@@ -912,7 +912,7 @@ export default class PatientService {
 				account_plan_id: data.accountPlanId,
 
 				residence: data.residence,
-				document: data.document,
+				document: data.document?.replace(/\D/g, ""),
 				inscription: data.inscription,
 				corporateName: data.corporateName,
 				email: data.email,
@@ -1165,20 +1165,20 @@ export default class PatientService {
 			}
 
 			if (data.document && data.document !== tutor.tutor.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
 					.whereHas("tutor", (query) => {
-						query.where("document", data.document ?? "");
+						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
 					.first();
 				if (document) {
@@ -1197,7 +1197,7 @@ export default class PatientService {
 			await tutor.tutor
 				.merge({
 					residence: data.residence,
-					document: data.document,
+					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,
 					email: data.email,
@@ -1264,20 +1264,20 @@ export default class PatientService {
 			}
 
 			if (data.document && data.document !== supplier.tutor.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
 					.whereHas("tutor", (query) => {
-						query.where("document", data.document ?? "");
+						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
 					.first();
 				if (document) {
@@ -1298,7 +1298,7 @@ export default class PatientService {
 					account_plan_id: data.accountPlanId,
 
 					residence: data.residence,
-					document: data.document,
+					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporateName,
 					email: data.email,

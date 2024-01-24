@@ -738,13 +738,13 @@ export default class PatientService {
 		const group = await this.getEconomicGroup(unitId);
 		return Database.transaction(async (trx) => {
 			if (data.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
@@ -862,13 +862,13 @@ export default class PatientService {
 
 		return Database.transaction(async (trx) => {
 			if (data.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
@@ -1165,13 +1165,13 @@ export default class PatientService {
 			}
 
 			if (data.document && data.document !== tutor.tutor.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")
@@ -1264,13 +1264,13 @@ export default class PatientService {
 			}
 
 			if (data.document && data.document !== supplier.tutor.document) {
-				if (!this.sharedService.validDocument(data.document)) {
-					throw new BadRequestException(
-						"Documento inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
+				// if (!this.sharedService.validDocument(data.document)) {
+				// 	throw new BadRequestException(
+				// 		"Documento inválido",
+				// 		400,
+				// 		"E_INVALID_DOCUMENT",
+				// 	);
+				// }
 
 				const document = await group
 					.related("patients")

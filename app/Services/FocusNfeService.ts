@@ -700,7 +700,7 @@ export default class FocusNfeService {
 			},
 
 			servico: {
-				valor_servicos: data.service.total_value,
+				valor_servicos: data.service.total_value + data.service.discount_value,
 				valor_pis: data.service.pis_value,
 				valor_cofins: data.service.cofins_value,
 				iss_retido: "false",

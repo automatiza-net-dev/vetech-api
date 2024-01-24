@@ -415,7 +415,6 @@ export default class DepositService {
 					fromRow,
 					data.items,
 					"Origem",
-					true,
 				);
 				if (result1.length !== 0) {
 					return result1;
@@ -457,6 +456,59 @@ export default class DepositService {
 				})),
 				{ client: trx },
 			);
+
+			await Database.rawQuery(
+				`insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at,
+                           updated_at)
+select ?, bup.id, bup.product_variation_id, 0, 'Ativo', now(), now()
+from deposit_movement_items dmi
+         join deposit_movements dm on dmi.deposit_movement_id = dm.id
+         join business_unit_products bup
+              on dmi.product_variation_id = bup.product_variation_id and dm.business_unit_id = bup.businness_unit_id
+where dmi.deposit_movement_id = ?
+  and dmi.product_variation_id not in
+      (select product_variation_id from deposit_items where deposit_id = ?)
+      `,
+				[toRow.id, movement.id, toRow.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await Database.rawQuery(
+				`update deposit_items
+set quantity =
+        (select diDest.quantity + dmi.quantity
+         from deposit_items diDest
+                  join deposit_movement_items dmi
+                       on diDest.product_variation_id = dmi.product_variation_id and
+                          diDest.business_unit_product_id = dmi.business_unit_product_id
+         where diDest.deposit_id = ?
+           and dmi.deposit_movement_id = ?)
+where deposit_id = ?
+  and product_variation_id in
+      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
+				[toRow.id, movement.id, toRow.id, movement.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await Database.rawQuery(
+				`update deposit_items
+set quantity =
+        (select diOri.quantity - dmi.quantity
+         from deposit_items diOri
+                  join deposit_movement_items dmi
+                       on diOri.product_variation_id = dmi.product_variation_id and
+                          diOri.business_unit_product_id = dmi.business_unit_product_id
+         where diOri.deposit_id = ?
+           and dmi.deposit_movement_id = ?)
+where deposit_id = ?
+  and product_variation_id in
+      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
+				[fromRow.id, movement.id, fromRow.id, movement.id],
+			)
+				.useTransaction(trx)
+				.exec();
 
 			// await this.$updateDepositItems(trx, movement, "origem");
 			// await this.$updateDepositItems(trx, movement, "destino");

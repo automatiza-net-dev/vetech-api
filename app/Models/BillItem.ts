@@ -1,7 +1,14 @@
-import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	BelongsTo,
+	belongsTo,
+	column,
+} from "@ioc:Adonis/Lucid/Orm";
 import Bill from "App/Models/Bill";
 import TaxationGroupRule from "App/Models/TaxationGroupRule";
-import SharedService from "App/Services/SharedService";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -58,6 +65,16 @@ export default class BillItem extends BaseModel {
 		columnName: "icms_origin_product",
 	})
 	public icmsOriginProduct: string;
+
+	@column({
+		columnName: "icms_deferred_operation_value",
+	})
+	public icmsDeferredOperationValue: number;
+
+	@column({
+		columnName: "icms_deferred_percentage",
+	})
+	public icmsDeferredPercentage: number;
 
 	@column({
 		columnName: "icms_cst",
@@ -291,6 +308,24 @@ export default class BillItem extends BaseModel {
 
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
+
+	@column.dateTime({ serializeAs: null })
+	public deleted_at: DateTime;
+
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
+
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
+
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string;
 
 	@column({
 		serializeAs: null,

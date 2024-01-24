@@ -7,10 +7,12 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import EconomicGroup from "App/Models/EconomicGroup";
 import ProductVariation from "App/Models/ProductVariation";
 import System from "App/Models/System";
 import User from "App/Models/User";
+import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
 
 export type DateSet = {
@@ -23,6 +25,7 @@ export type AuthContext = {
 	group: EconomicGroup;
 	system: System;
 	unit: BusinessUnit;
+	$roleMetas: UserUnitRole[];
 };
 
 @inject()
@@ -68,11 +71,16 @@ export default class SharedService {
 			.preload("unitConfig")
 			.firstOrFail();
 
+		const userRoles = await UserUnitRole.query()
+			.where("user_id", user.id)
+			.where("unit_id", unit.id);
+
 		return {
 			user,
 			group: unit.economicGroup,
 			system: unit.economicGroup.system,
 			unit,
+			$roleMetas: userRoles,
 		};
 	}
 
@@ -110,11 +118,61 @@ export default class SharedService {
 	}
 
 	public validDocument(document: string): boolean {
-		const re =
-			/([0-9]{2}[.]?[0-9]{3}[.]?[0-9]{3}[\\/]?[0-9]{4}[-]?[0-9]{2})|([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}[-]?[0-9]{2})/;
+		const filteredCPF = document.replace(/\.|-/g, "");
 
-		return re.test(document);
+		if (filteredCPF.length !== 11) {
+			return false;
+		}
+
+		const arrCPF: number[] = Array.from(filteredCPF, Number);
+
+		const repeatedNumbers: boolean = arrCPF.every(
+			(num, _, arr) => num === arr[0],
+		);
+		if (repeatedNumbers) {
+			return false;
+		}
+
+		const firstDigit = this.validateDigit(arrCPF, 1);
+		const secondDigit = this.validateDigit(arrCPF, 2);
+		if (!firstDigit || !secondDigit) {
+			return false;
+		}
+
+		return true;
 	}
+
+	private validateDigit = (arr: number[], position: number): boolean => {
+		let factor: number;
+		let arrayDigit: number;
+		let sum = 0;
+
+		if (position === 1) {
+			factor = 10;
+			arrayDigit = 9;
+		} else {
+			factor = 11;
+			arrayDigit = 10;
+		}
+
+		for (let i = 0; i < arrayDigit; i += 1) {
+			sum += arr[i] * factor;
+			factor -= 1;
+		}
+
+		const division = Math.floor(sum % 11);
+		let verifyingDigit = 0;
+
+		if (division > 1) {
+			verifyingDigit = 11 - division;
+		}
+
+		if (arr[arrayDigit] !== verifyingDigit) {
+			return false;
+		}
+
+		return true;
+	};
 
 	public isValidNumber(data: number | undefined) {
 		if (!data) {
@@ -174,6 +232,29 @@ export default class SharedService {
 		}
 
 		return dailyCashier;
+	}
+
+	public async getContextMovement(
+		authCtx: AuthContext,
+		trx: TransactionClientContract,
+		shouldThrow = true,
+	) {
+		const row = await DailyMovement.query()
+			.useTransaction(trx)
+			.where("business_unit_id", authCtx.unit.id)
+			// .where("user_who_opened_id", authCtx.user.id)
+			.where("status", DailyMovementStatus.A)
+			.first();
+
+		if (!row && shouldThrow) {
+			throw new BadRequestException(
+				"Não existe movimento diário aberto",
+				400,
+				"E_NOT_OPEN",
+			);
+		}
+
+		return row;
 	}
 
 	public async userHasPermission(user: User, permission: string) {

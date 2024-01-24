@@ -93,21 +93,61 @@ export default class AuthService {
 			.related("roles")
 			.query()
 			.preload("role", (query) => {
-				query.whereIn("type", ["user", "both"] as TRoleType[]);
+				if (user.type === "user") {
+					query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "controller") {
+					query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "system") {
+					query.whereIn("type", ["system", "all"] as TRoleType[]);
+				}
 
 				query.preload("permissions", (query) => {
 					query.where("status", true);
 
-					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+					if (user.type === "user") {
+						query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+					}
+					if (user.type === "controller") {
+						query.whereIn("type", [
+							"controller",
+							"both",
+							"all",
+						] as TPermissionType[]);
+					}
+					if (user.type === "system") {
+						query.whereIn("type", ["system", "all"] as TPermissionType[]);
+					}
 				});
 			})
 			.whereHas("role", (query) => {
-				query.whereIn("type", ["user", "both"] as TRoleType[]);
+				if (user.type === "user") {
+					query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "controller") {
+					query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+				}
+				if (user.type === "system") {
+					query.whereIn("type", ["system", "all"] as TRoleType[]);
+				}
 
 				query.whereHas("permissions", (query) => {
 					query.where("status", true);
 
-					query.whereIn("type", ["user", "both"] as TPermissionType[]);
+					if (user.type === "user") {
+						query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+					}
+					if (user.type === "controller") {
+						query.whereIn("type", [
+							"controller",
+							"both",
+							"all",
+						] as TPermissionType[]);
+					}
+					if (user.type === "system") {
+						query.whereIn("type", ["system", "all"] as TPermissionType[]);
+					}
 				});
 			})
 			.whereHas("unit", (query) => {
@@ -421,9 +461,9 @@ export default class AuthService {
 	}
 
 	public async controllerLogin(
-		data: ILoginData,
+		data: Omit<ILoginData, "business_unit_id">,
 		auth: AuthContract,
-		reqIp?: string,
+		_?: string,
 	) {
 		return Database.transaction(async (trx) => {
 			const system = await System.query()
@@ -453,141 +493,21 @@ export default class AuthService {
 				);
 			}
 
-			const roles = await user
+			const $roles = await user
 				.related("roles")
 				.query()
-				.preload("role", (query) => {
-					query.preload("permissions", (query) => {
-						query.where("status", true);
-						query.where("type", "controller" as TRoleType);
-					});
-				})
-				.preload("unit", (query) => {
-					query.where("active", true);
-				})
-				.whereHas("unit", (query) => {
-					query.where("active", true);
-				})
 				.whereHas("role", (query) => {
 					query.whereIn("type", ["controller", "both"] as TRoleType[]);
 				})
+				.whereNull("unit_id")
 				.where("active", true);
-
-			const validUnits = roles
-				.map((r) => r.unit)
-				.filter((u) => u !== null) as BusinessUnit[];
-
-			const contextRole = roles.find((r) => Boolean(r.role))?.role;
-			if (!contextRole) {
-				throw new BadRequestException(
-					"Cargo não encontrado",
-					400,
-					"E_BAD_CREDENTIALS",
-				);
-			}
-
-			if (validUnits.length === 1) {
-				const [unit] = validUnits;
-				if (reqIp) {
-					const canAccess = await this.ipService.checkAccess(
-						{
-							role: contextRole,
-							unit: unit.id,
-							user: user.id,
-						},
-						reqIp,
-					);
-					if (!canAccess) {
-						throw new BadRequestException(
-							"Acesso não permitido para o IP informado",
-							400,
-							"E_IP_NOT_ALLOWED",
-						);
-					}
-				}
-
-				return auth.use("api").generate(user, {
-					expiresIn: "7d",
-					system_id: system.id,
-				});
-			}
-
-			const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
-				"id",
-				validUnits.map((u) => u.economicGroupId),
-			);
-
-			const dataMap = new Map<string, BusinessUnit[]>();
-			for (const eg of uniqueEconomicGroups) {
-				dataMap.set(eg.id, []);
-			}
-			for (const u of validUnits) {
-				dataMap.get(u.economicGroupId)?.push(u);
-			}
-
-			if (!data.business_unit_id) {
-				const result = await Promise.all(
-					Array.from(dataMap.keys()).map(async (key) => {
-						const group = uniqueEconomicGroups.find((eg) => eg.id === key);
-
-						return {
-							id: group?.id,
-							userType: user.type,
-							fantasyName: group?.fantasyName,
-							companyName: group?.companyName,
-							businessUnits: await Promise.all(
-								dataMap.get(key)!.map(async (bu) => ({
-									id: bu.id,
-									identification: bu.identification,
-									status: "VALID",
-								})),
-							),
-						};
-					}),
-				);
-
-				if (result.length === 0) {
-					throw new BadRequestException(
-						"Credenciais inválidas",
-						400,
-						"E_BAD_CREDENTIALS",
-					);
-				}
-
-				return result;
-			}
-
-			const unit = validUnits.find((u) => u.id === data.business_unit_id);
-
-			if (!unit) {
-				throw new BadRequestException(
-					"Credenciais inválidas",
-					400,
-					"E_BAD_CREDENTIALS",
-				);
-			}
-
-			if (reqIp) {
-				const canAccess = await this.ipService.checkAccess(
-					{
-						role: contextRole,
-						unit: unit.id,
-						user: user.id,
-					},
-					reqIp,
-				);
-				if (!canAccess) {
-					throw new BadRequestException(
-						"Acesso não permitido para o IP informado",
-						400,
-						"E_IP_NOT_ALLOWED",
-					);
-				}
+			if ($roles.length === 0) {
+				throw new BadRequestException("Usuário sem cargo", 400, "E_INVALID");
 			}
 
 			return auth.use("api").generate(user, {
 				expiresIn: "7d",
-				system_id: system,
+				system_id: system.id,
 			});
 		});
 	}
@@ -690,6 +610,7 @@ export default class AuthService {
 
 			return {
 				token,
+				userID: user.id,
 				userType: user.type,
 				units: result,
 			};

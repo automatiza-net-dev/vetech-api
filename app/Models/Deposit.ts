@@ -1,12 +1,20 @@
 import { DateTime } from "luxon";
-import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	BelongsTo,
+	belongsTo,
+	column,
+	HasMany,
+	hasMany,
+} from "@ioc:Adonis/Lucid/Orm";
 import DepositItem from "./DepositItem";
+import BusinessUnit from "./BusinessUnit";
 
 export const DepositStatus = ["Ativo", "Inativo"] as const;
-export type TDepositStatus = typeof DepositStatus[number];
+export type TDepositStatus = (typeof DepositStatus)[number];
 
 export const DepositType = ["Venda", "Consumo"] as const;
-export type TDepositType = typeof DepositType[number];
+export type TDepositType = (typeof DepositType)[number];
 
 export default class Deposit extends BaseModel {
 	@column({ isPrimary: true })
@@ -39,6 +47,11 @@ export default class Deposit extends BaseModel {
 		serializeAs: null,
 	})
 	public business_unit_id: string;
+
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "business_unit_id",
+	})
+	public unit: BelongsTo<typeof BusinessUnit>;
 
 	@hasMany(() => DepositItem, {
 		foreignKey: "deposit_id",

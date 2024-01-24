@@ -138,10 +138,14 @@ export default class DepositsController {
 	}: HttpContextContract) {
 		const payload = await request.validate(CreateDepositMovementValidator);
 
-		await this.service.createDepositMovement(
+		const result = await this.service.createDepositMovement(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);
+
+		if (Array.isArray(result)) {
+			return response.badRequest(result);
+		}
 
 		return response.created();
 	}

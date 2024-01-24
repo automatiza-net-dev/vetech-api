@@ -20,7 +20,10 @@ export const ReceiptStatus = [
 	"Estornada",
 	"PendenteXml",
 ] as const;
-export type TReceiptStatus = typeof ReceiptStatus[number];
+export type TReceiptStatus = (typeof ReceiptStatus)[number];
+
+export const ReceiptOrigin = ["Manual", "Xml"] as const;
+export type TReceiptOrigin = (typeof ReceiptOrigin)[number];
 
 export default class Receipt extends BaseModel {
 	@column({ isPrimary: true })
@@ -28,6 +31,9 @@ export default class Receipt extends BaseModel {
 
 	@column()
 	public tag: string;
+
+	@column()
+	public origin: TReceiptOrigin;
 
 	@column.dateTime({
 		columnName: "issue_date",

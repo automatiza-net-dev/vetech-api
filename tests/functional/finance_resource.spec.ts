@@ -835,8 +835,7 @@ test.group("Finance resource", (group) => {
 	});
 
 	test("should revert down bordero", async ({ assert, client }) => {
-		const { user, finance, paymentMethod, checkingAccount } =
-			await createData();
+		const { user, finance, paymentMethod } = await createData();
 
 		const token = await generateJwtToken(client, {
 			email: user.email,
@@ -940,7 +939,7 @@ test.group("Finance resource", (group) => {
 			type: "Credito" as TBorderoType,
 			economic_group_id: $props.finance.economic_group_id,
 			business_unit_id: $props.finance.business_unit_id,
-			status: "Aberto",
+			status: "Baixado",
 			titlesQty: 1,
 		});
 

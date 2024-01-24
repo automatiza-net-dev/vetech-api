@@ -25,6 +25,7 @@ import TaxOperation from "App/Models/TaxOperation";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
+import UserUnitRole from "App/Models/UserUnitRole";
 import {
 	ICreateBillPaymentData,
 	IUpdateBillItemData,
@@ -1622,7 +1623,9 @@ test.group("Bill resource", (group) => {
 			type: "Venda",
 			status: "Ativo",
 		});
-		await user.merge({ default_sale_deposit_id: deposit.id }).save();
+		await UserUnitRole.query().where("user_id", user.id).update({
+			default_sale_deposit_id: deposit.id,
+		});
 
 		await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,
@@ -1663,7 +1666,9 @@ test.group("Bill resource", (group) => {
 			type: "Venda",
 			status: "Ativo",
 		});
-		await user.merge({ default_sale_deposit_id: deposit.id }).save();
+		await UserUnitRole.query().where("user_id", user.id).update({
+			default_sale_deposit_id: deposit.id,
+		});
 
 		await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,
@@ -1701,7 +1706,9 @@ test.group("Bill resource", (group) => {
 			type: "Venda",
 			status: "Ativo",
 		});
-		await user.merge({ default_sale_deposit_id: deposit.id }).save();
+		await UserUnitRole.query().where("user_id", user.id).update({
+			default_sale_deposit_id: deposit.id,
+		});
 
 		const item = await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,

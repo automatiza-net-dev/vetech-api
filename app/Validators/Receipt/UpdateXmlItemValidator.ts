@@ -25,30 +25,6 @@ export default class UpdateXmlItemValidator {
 	 *     ])
 	 *    ```
 	 */
-	// items: {
-	// 	productId: string;
-	// 	variationGroupId: string;
-	// 	subgroupId: string;
-	// 	unitId: string;
-	// 	taxationGroupId: string;
-	// 	brandId: string;
-	// 	productVariationId: string;
-	// 	businessUnitProductId: string;
-	//
-	// 	referenceCode: string;
-	// 	purpose: ProductPurpose;
-	// 	barcode: string;
-	// 	minimumStock: number;
-	// 	maximumStock: number;
-	// 	maximumDiscountPercentage: number;
-	// 	price: number;
-	// 	costPrice: number;
-	// 	profitMargin: number;
-	// 	commission: number;
-	// 	commissionMeta: number;
-	// 	metaType: BusinessUnitProductMetaType;
-	// 	meta: number;
-	// }[];
 	public schema = schema.create({
 		items: schema.array().members(
 			schema.object().members({
@@ -81,7 +57,7 @@ export default class UpdateXmlItemValidator {
 					rules.exists({ table: "product_variations", column: "id" }),
 				]),
 
-				referenceCode: schema.string(),
+				referenceCode: schema.string.optional(),
 				purpose: schema.enum(Object.values(ProductPurpose)),
 				barcode: schema.string.optional(),
 				minimumStock: schema.number(),

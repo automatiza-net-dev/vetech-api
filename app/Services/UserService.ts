@@ -38,7 +38,7 @@ import TaxOperation from "App/Models/TaxOperation";
 import TefAcquirer from "App/Models/TefAcquirer";
 import UfIcms from "App/Models/UfIcms";
 import Unit from "App/Models/Unit";
-import User from "App/Models/User";
+import User, { TUserType } from "App/Models/User";
 import UserPasswordChange from "App/Models/UserPasswordChange";
 import VariationGroup from "App/Models/VariationGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -397,13 +397,15 @@ export default class UserService {
 	}
 
 	public async createUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			name: string;
 			email: string;
 			document: string;
 			password: string;
-			units: { businessUnitId: string; roleId: number }[];
+
+			roleId: number;
+			units: string[];
 
 			phone?: string;
 			postalCode?: string;
@@ -422,7 +424,7 @@ export default class UserService {
 					email: data.email,
 					document: data.document,
 					password: data.password,
-					system_id: authCtx.system.id,
+					system_id: systemID,
 					type: "controller",
 
 					phone: data.phone,
@@ -439,10 +441,19 @@ export default class UserService {
 				},
 			);
 
+			await user.related("roles").create(
+				{
+					role_id: data.roleId,
+				},
+				{
+					client: trx,
+				},
+			);
+
 			await user.related("roles").createMany(
 				data.units.map((u) => ({
-					role_id: u.roleId,
-					unit_id: u.businessUnitId,
+					role_id: data.roleId,
+					unit_id: u,
 				})),
 				{
 					client: trx,
@@ -451,34 +462,29 @@ export default class UserService {
 
 			const units = await BusinessUnit.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					data.units.map((u) => u.businessUnitId),
-				);
+				.whereIn("id", data.units);
 
-			const uniqueEconomicGroups = units.reduce(
-				(acc, curr) => {
-					if (!acc.find((a) => a === curr.economicGroupId)) {
-						acc.push(curr.economicGroupId);
-					}
-					return acc;
-				},
-				[] as string[],
-			);
+			const uniqueEconomicGroups = units.reduce((acc, curr) => {
+				if (!acc.find((a) => a === curr.economicGroupId)) {
+					acc.push(curr.economicGroupId);
+				}
+				return acc;
+			}, [] as string[]);
 
 			await user.related("economicGroups").attach(uniqueEconomicGroups, trx);
 		});
 	}
 
 	public async updateUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			id: string;
 			name: string;
 			email: string;
 			document: string;
-			password: string;
-			units: { businessUnitId: string; roleId: number }[];
+
+			roleId: number;
+			units: string[];
 
 			phone?: string;
 			postalCode?: string;
@@ -494,7 +500,7 @@ export default class UserService {
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("id", data.id)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!user) {
@@ -518,7 +524,7 @@ export default class UserService {
 					name: data.name,
 					email: data.email,
 					document: data.document,
-					password: data.password,
+					// password: data.password,
 
 					phone: data.phone,
 					postalCode: data.postalCode,
@@ -534,10 +540,19 @@ export default class UserService {
 
 			await user.related("roles").query().useTransaction(trx).delete();
 
+			await user.related("roles").create(
+				{
+					role_id: data.roleId,
+				},
+				{
+					client: trx,
+				},
+			);
+
 			await user.related("roles").createMany(
 				data.units.map((u) => ({
-					role_id: u.roleId,
-					unit_id: u.businessUnitId,
+					role_id: data.roleId,
+					unit_id: u,
 				})),
 				{
 					client: trx,
@@ -546,20 +561,14 @@ export default class UserService {
 
 			const units = await BusinessUnit.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					data.units.map((u) => u.businessUnitId),
-				);
+				.whereIn("id", data.units);
 
-			const uniqueEconomicGroups = units.reduce(
-				(acc, curr) => {
-					if (!acc.find((a) => a === curr.economicGroupId)) {
-						acc.push(curr.economicGroupId);
-					}
-					return acc;
-				},
-				[] as string[],
-			);
+			const uniqueEconomicGroups = units.reduce((acc, curr) => {
+				if (!acc.find((a) => a === curr.economicGroupId)) {
+					acc.push(curr.economicGroupId);
+				}
+				return acc;
+			}, [] as string[]);
 
 			await user
 				.related("economicGroups")
@@ -567,18 +576,28 @@ export default class UserService {
 		});
 	}
 
-	public async fetchUserControllers(authCtx: AuthContext) {
-		return User.query()
-			.where("system_id", authCtx.system.id)
+	public async fetchUserControllers(systemID: number) {
+		const result = await User.query()
+			.where("system_id", systemID)
+			.where("type", "controller" as TUserType)
 			.select("id", "name", "email", "document", "password")
 			.preload("roles", (query) => {
 				query.select("role_id", "unit_id");
 				query.where("active", true);
 			});
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			email: elem.email,
+			document: elem.document,
+			roleId: elem.roles.find((r) => r.role_id)?.role_id ?? null,
+			units: elem.roles.map((r) => r.unit_id).filter(Boolean),
+		}));
 	}
 
 	public async softDeleteUserController(
-		authCtx: AuthContext,
+		systemID: number,
 		data: {
 			id: string;
 		},
@@ -587,7 +606,7 @@ export default class UserService {
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("id", data.id)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!user) {
@@ -598,13 +617,13 @@ export default class UserService {
 				);
 			}
 
-			if (user.type !== "controller") {
-				throw new BadRequestException(
-					"Usuário não é um controlador",
-					400,
-					"E_INVALID_USER_TYPE",
-				);
-			}
+			// if (user.type !== "controller") {
+			// 	throw new BadRequestException(
+			// 		"Usuário não é um controlador",
+			// 		400,
+			// 		"E_INVALID_USER_TYPE",
+			// 	);
+			// }
 
 			await user.softDelete();
 		});

@@ -11,6 +11,7 @@ import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItem
 import DeleteReceiptPaymentValidator from "App/Validators/Receipt/DeleteReceiptPaymentValidator";
 import FinishReceiptImportValidator from "App/Validators/Receipt/FinishReceiptImportValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
+import ReopenReceiptValidator from "App/Validators/Receipt/ReopenReceiptValidator";
 import UpdateReceiptPaymentValidator from "App/Validators/Receipt/UpdateReceiptPaymentValidator";
 import UpdateXmlItemValidator from "App/Validators/Receipt/UpdateXmlItemValidator";
 
@@ -227,6 +228,17 @@ export default class ReceiptsController {
 		const payload = await request.validate(FinishReceiptImportValidator);
 
 		await this.service.finishReceiptImport(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async reopenReceipt({ request, response, auth }: HttpContextContract) {
+		const payload = await request.validate(ReopenReceiptValidator);
+
+		await this.service.reopenReceipt(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

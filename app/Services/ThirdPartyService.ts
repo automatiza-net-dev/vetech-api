@@ -321,9 +321,9 @@ export default class ThirdPartyService {
 		};
 	}
 
-	public async searchProfileAccesses(authCtx: AuthContext) {
+	public async searchProfileAccesses(systemID: number) {
 		const result = await ProfileAccess.query()
-			.where("system_id", authCtx.system.id)
+			.where("system_id", systemID)
 			.where("active", true);
 
 		return result.map((elem) => ({
@@ -332,10 +332,10 @@ export default class ThirdPartyService {
 		}));
 	}
 
-	public async syncProfileAccesses(
-		_: AuthContext,
-		data: { roleId: number; profileAccessIdList: number[] },
-	) {
+	public async syncProfileAccesses(data: {
+		roleId: number;
+		profileAccessIdList: number[];
+	}) {
 		await Database.transaction(async (trx) => {
 			await RoleProfileAccess.query()
 				.useTransaction(trx)

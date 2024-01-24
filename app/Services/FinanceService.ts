@@ -9,7 +9,7 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, { TBorderoType } from "App/Models/Bordero";
+import Bordero, { BorderoStatus, TBorderoType } from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -28,6 +28,7 @@ import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { GenerateTag } from "App/Utils/GenerateTag";
 import {
 	IFinanceDownData,
 	IFinanceReversalData,
@@ -133,7 +134,7 @@ export default class FinanceService {
 			units.push(data.unit);
 		}
 
-		const qb = Finance.query()
+		const financesQb = Finance.query()
 			.whereIn("business_unit_id", units)
 			.preload("client", (query) => {
 				query.preload("tutor", (query) => {
@@ -151,81 +152,104 @@ export default class FinanceService {
 				query.select(["id", "description"]);
 			});
 
+		const borderosQb = Bordero.query()
+			.whereIn("business_unit_id", units)
+			.select(
+				"id",
+				"type",
+				"document",
+				"description",
+				"issue_date",
+				"expiration_date",
+				"payment_date",
+				"status",
+				"client_id",
+			)
+			.preload("client", (query) => {
+				query.select(["id", "name"]);
+			});
+
 		if (data.ids && Array.isArray(data.ids)) {
-			qb.whereIn("id", data.ids);
+			financesQb.whereIn("id", data.ids);
+			borderosQb.whereIn("id", data.ids);
 		}
 
 		if (data.fromIssueDate) {
-			qb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
+			financesQb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
 		}
 
 		if (data.toIssueDate) {
-			qb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
+			financesQb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
 		}
 
 		if (data.fromExpirationDate) {
-			qb.whereRaw("expiration_date::date >= ?", [data.fromExpirationDate]);
+			financesQb.whereRaw("expiration_date::date >= ?", [
+				data.fromExpirationDate,
+			]);
 		}
 
 		if (data.toExpirationDate) {
-			qb.whereRaw("expiration_date::date <= ?", [data.toExpirationDate]);
+			financesQb.whereRaw("expiration_date::date <= ?", [
+				data.toExpirationDate,
+			]);
 		}
 
 		if (data.fromPaymentDate) {
-			qb.whereRaw("payment_date::date >= ?", [data.fromPaymentDate]);
+			financesQb.whereRaw("payment_date::date >= ?", [data.fromPaymentDate]);
 		}
 
 		if (data.toPaymentDate) {
-			qb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
+			financesQb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
 		}
 
 		if (data.client) {
-			qb.where("client_id", data.client);
+			financesQb.where("client_id", data.client);
 		}
 
 		if (data.document) {
-			qb.whereILike("document", `%${data.document}%`);
+			financesQb.whereILike("document", `%${data.document}%`);
 		}
 
 		if (data.fiscalNote) {
-			qb.whereILike("fiscalNote", `%${data.fiscalNote}%`);
+			financesQb.whereILike("fiscalNote", `%${data.fiscalNote}%`);
 		}
 
 		if (data.paymentMethod) {
-			qb.where("payment_method_id", data.paymentMethod);
+			financesQb.where("payment_method_id", data.paymentMethod);
 		}
 
 		if (data.nsu) {
-			qb.where("nsuDocument", data.nsu);
+			financesQb.where("nsuDocument", data.nsu);
 		}
 
 		if (data.status) {
-			qb.where("status", data.status);
+			financesQb.where("status", data.status);
 		} else {
-			qb.whereNot("status", FinanceStatus.E);
+			financesQb.whereNot("status", FinanceStatus.E);
 		}
 
 		if (data.accept) {
-			qb.where("accept", data.accept);
+			financesQb.where("accept", data.accept);
 		}
 
 		if (data.reconciled) {
-			qb.where("reconciled", data.reconciled === "true");
+			financesQb.where("reconciled", data.reconciled === "true");
 		}
 
 		if (data.type) {
-			qb.where("type", data.type);
+			financesQb.where("type", data.type);
 		}
 
 		if (data.plan) {
-			qb.where("account_plan_id", data.plan);
+			financesQb.where("account_plan_id", data.plan);
 		}
 
 		if (data.competence) {
-			qb.where("competence_date", data.competence);
+			financesQb.where("competence_date", data.competence);
 		}
 
-		return qb;
+		const [finances, borderos] = await Promise.all([financesQb, borderosQb]);
+		return [...finances, ...borderos];
 	}
 
 	async reducedIndex(unitId: string, data: ISearch) {
@@ -257,6 +281,10 @@ export default class FinanceService {
         finances.nsu_document,
         finances.qty_installments,
         finances.bordero_id,
+        finances.fee_value,
+        finances.fee_percentage,
+        finances.discount_value,
+        finances.discount_percentage,
         patients.name             as client,
         payment_methods.description            as payment_method,
         tef_flags.description     as tef_flag,
@@ -354,6 +382,8 @@ export default class FinanceService {
 		}
 
 		if (data?.groupBorderos === "sim") {
+			qb.whereNull("finances.bordero_id");
+
 			qb.union((builder) => {
 				builder
 					.from("borderos")
@@ -363,7 +393,7 @@ export default class FinanceService {
         borderos.type,
         'BORDERO' as source,
         borderos.document,
-        -1                                                                      as installment,
+        1                                                                      as installment,
         borderos.issue_date,
         null                                                                    as expiration_date,
         borderos.payment_date,
@@ -379,13 +409,17 @@ export default class FinanceService {
         null                                                                    as nsu_document,
         1                                                                       as qty_installments,
         borderos.id                                                             as bordero_id,
+        borderos.interest_value,
+        borderos.interest_percentage,
+        borderos.discount_value,
+        borderos.discount_percentage,
         patients.name                                                           as client,
         payment_methods.description                                             as payment_method,
         tef_flags.description                                                   as tef_flag,
         account_plans.description                                               as account_plan
           `),
 					)
-					.joinRaw("join patients on borderos.client_id = patients.id", [])
+					.joinRaw("left join patients on borderos.client_id = patients.id", [])
 					.joinRaw(
 						"left join account_plans on borderos.account_plan_id = account_plans.id",
 						[],
@@ -403,6 +437,84 @@ export default class FinanceService {
 
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);
+				}
+
+				if (data.fromIssueDate) {
+					builder.whereRaw("borderos.issue_date::date >= ?", [
+						data.fromIssueDate,
+					]);
+				}
+
+				if (data.toIssueDate) {
+					builder.whereRaw("borderos.issue_date::date <= ?", [
+						data.toIssueDate,
+					]);
+				}
+
+				if (data.fromExpirationDate) {
+					builder.whereRaw("borderos.expiration_date::date >= ?", [
+						data.fromExpirationDate,
+					]);
+				}
+
+				if (data.toExpirationDate) {
+					builder.whereRaw("borderos.expiration_date::date <= ?", [
+						data.toExpirationDate,
+					]);
+				}
+
+				if (data.fromPaymentDate) {
+					builder.whereRaw("borderos.payment_date::date >= ?", [
+						data.fromPaymentDate,
+					]);
+				}
+
+				if (data.toPaymentDate) {
+					builder.whereRaw("borderos.payment_date::date <= ?", [
+						data.toPaymentDate,
+					]);
+				}
+
+				if (data.client) {
+					builder.where("borderos.client_id", data.client);
+				}
+
+				if (data.document) {
+					builder.whereILike("borderos.document", `%${data.document}%`);
+				}
+
+				// if (data.fiscalNote) {
+				// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
+				// }
+
+				if (data.paymentMethod) {
+					builder.where("borderos.payment_method_id", data.paymentMethod);
+				}
+
+				if (data.nsu) {
+					builder.where("borderos.nsu_document", data.nsu);
+				}
+
+				// if (data.status) {
+				// 	builder.where("borderos.status", data.status);
+				// } else {
+				// 	builder.whereNot("borderos.status", '' as TBorderoType)
+				// }
+
+				// if (data.accept) {
+				// 	builder.where("borderos.accept", data.accept);
+				// }
+
+				// if (data.reconciled) {
+				// 	builder.where("borderos.reconciled", data.reconciled === "true");
+				// }
+
+				if (data.plan) {
+					builder.where("borderos.account_plan_id", data.plan);
+				}
+
+				if (data.competence) {
+					builder.where("borderos.competence_date", data.competence);
 				}
 			});
 		}
@@ -638,9 +750,9 @@ export default class FinanceService {
 					value: data.originalValue - discount,
 					totalValue:
 						data.originalValue +
-						(data.feeValue || finance.feeValue) +
-						(data.increaseValue || finance.additionValue) -
-						(data.discountValue || finance.discountValue) -
+						(data.feeValue ?? 0) +
+						(data.increaseValue ?? 0) -
+						(data.discountValue ?? 0) -
 						discount,
 					reconciled: data.reconciled,
 
@@ -1458,6 +1570,9 @@ export default class FinanceService {
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
+					daily_movement_id: await this.sharedService
+						.getContextMovement(authCtx, trx, false)
+						.then((r) => r?.id),
 
 					type: data.type,
 					issueDate: DateTime.now(),
@@ -1474,9 +1589,14 @@ export default class FinanceService {
 				{ client: trx },
 			);
 
+			const [{ count }] = await Database.from("borderos")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.count("id");
+
 			await bordero
 				.merge({
-					document: `BOR-${bordero.id}`,
+					document: `BOR-${GenerateTag(parseInt(count, 10))}`,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1518,9 +1638,14 @@ export default class FinanceService {
 			);
 
 			if (!bordero.document) {
+				const [{ count }] = await Database.from("borderos")
+					.where("economic_group_id", authCtx.group.id)
+					.where("business_unit_id", authCtx.unit.id)
+					.count("id");
+
 				await bordero
 					.merge({
-						document: `BOR-${bordero.id}`,
+						document: `BOR-${GenerateTag(parseInt(count, 10))}`,
 					})
 					.useTransaction(trx)
 					.save();
@@ -1649,6 +1774,8 @@ export default class FinanceService {
 			paymentMethodId?: string;
 			tefFlagId?: string;
 
+			interestValue: number;
+			discountValue: number;
 			paymentDate: DateTime;
 		},
 	) {
@@ -1678,6 +1805,12 @@ export default class FinanceService {
 					payment_method_id: data.paymentMethodId,
 					tef_flag_id: data.tefFlagId,
 
+					paymentValue:
+						bordero.totalValue + data.interestValue - data.discountValue,
+					interestValue: data.interestValue,
+					interestPercentage: bordero.interestPercentage,
+					discountValue: data.discountValue,
+					discountPercentage: bordero.discountPercentage,
 					downDate: DateTime.now(),
 					paymentDate: data.paymentDate,
 					status: "Baixado",
@@ -1692,28 +1825,27 @@ export default class FinanceService {
 				.useTransaction(trx)
 				.where("business_unit_id", authCtx.unit.id);
 
-			await bordero
-				.related("finances")
-				.query()
-				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
-				.where("business_unit_id", authCtx.unit.id)
-				.update({
-					checking_account_id: data.checkingAccountId,
+			const tasks = borderoFinances.map((elem) => {
+				return elem
+					.merge({
+						checking_account_id: data.checkingAccountId,
 
-					payment_date: data.paymentDate,
-					// payment_value:
-					// 	bordero.borderoValue + data.interestValue - data.discountValue,
-					down_date: DateTime.now(),
-					origin_down_flag: FinanceOriginDownFlag.BO,
-					fee_value: 0,
-					fee_percentage: 0,
-					discount_value: 0,
-					discount_percentage: 0,
-					status: FinanceStatus.B,
-				});
+						paymentDate: data.paymentDate,
+						paymentValue: elem.totalValue,
+						downDate: DateTime.now(),
+						originDownFlag: FinanceOriginDownFlag.BO,
+						feeValue: 0,
+						feePercentage: 0,
+						discountValue: 0,
+						discountPercentage: 0,
+						status: FinanceStatus.B,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			const updatedFinances = await Promise.all(tasks);
 
-			await this.$registerDown(trx, bordero, borderoFinances);
+			await this.$registerDown(trx, bordero, updatedFinances);
 			await this.$registerBankingDown(trx, bordero);
 		});
 	}
@@ -1746,18 +1878,20 @@ export default class FinanceService {
 				);
 			}
 
-			await bordero
-				.merge({
-					checking_account_id: undefined,
-					payment_method_id: undefined,
-
-					paymentDate: undefined,
-					downDate: undefined,
-					paymentValue: undefined,
-					status: "Aberto",
+			await Database.from("borderos")
+				.update({
+					// checking_account_id: undefined,
+					// payment_method_id: undefined,
+					payment_date: null,
+					down_date: null,
+					payment_value: null,
+					status: "Fechado",
+					reason_for_reversal: data.reason,
 				})
+				.where("id", bordero.id)
 				.useTransaction(trx)
-				.save();
+				.exec();
+
 			await bordero.refresh();
 
 			const borderoFinances = await bordero
@@ -1772,9 +1906,9 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.where("bordero_id", bordero.id)
 				.update({
-					checking_account_id: null,
-					payment_date: null,
-					down_date: null,
+					// checking_account_id: null,
+					// payment_date: null,
+					// down_date: null,
 					payment_value: null,
 					status: FinanceStatus.A,
 				});
@@ -1896,9 +2030,9 @@ export default class FinanceService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (bordero.status !== "Aberto") {
+			if (bordero.status !== "Baixado") {
 				throw new BadRequestException(
-					"Para excluir itens de um borderô, ele deve estar 'Aberto'",
+					"Para excluir itens de um borderô, ele não pode estar 'Baixado'",
 					400,
 					"BAD_REQUEST",
 				);
@@ -2067,7 +2201,11 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				balance:
+					(checkingAccount?.balance ?? 0) +
+					(bordero.type === "Credito"
+						? -bordero.totalValue
+						: bordero.totalValue),
 				prevBalance: checkingAccount?.balance,
 				competenceDate: bordero.competenceDate,
 			},
@@ -2075,6 +2213,26 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		if (checkingAccount) {
+			if (bordero.type === "Credito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance - bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (bordero.type === "Debito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance + bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
 	}
 
 	private async $revertRegisterDown(
@@ -2201,7 +2359,11 @@ export default class FinanceService {
 				originFlag: BankingOriginFlag.BO,
 				observation: bordero.observation,
 				status: BankingStatus.B,
-				balance: (checkingAccount?.balance ?? 0) + bordero.totalValue,
+				balance:
+					(checkingAccount?.balance ?? 0) +
+					(bordero.type === "Debito"
+						? bordero.totalValue
+						: -bordero.totalValue),
 				prevBalance: checkingAccount?.balance,
 				competenceDate: bordero.competenceDate,
 			},
@@ -2209,6 +2371,26 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		if (checkingAccount) {
+			if (bordero.type === "Credito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance - bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (bordero.type === "Debito") {
+				await checkingAccount
+					.merge({
+						balance: checkingAccount.balance + bordero.totalValue,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
 	}
 
 	private async $syncBordero(trx: TransactionClientContract, bordero: Bordero) {

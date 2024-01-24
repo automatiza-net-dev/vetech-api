@@ -158,23 +158,14 @@ export default class ThirdPartiesController {
 
 	public async searchProfileAccesses({ auth, response }: HttpContextContract) {
 		return response.ok(
-			await this.service.searchProfileAccesses(
-				await this.sharedService.getAuthContext(auth),
-			),
+			await this.service.searchProfileAccesses(auth.user?.system_id ?? -1),
 		);
 	}
 
-	public async syncProfileAccesses({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
+	public async syncProfileAccesses({ request, response }: HttpContextContract) {
 		const payload = await request.validate(SyncProfileAccessValidator);
 
-		await this.service.syncProfileAccesses(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+		await this.service.syncProfileAccesses(payload);
 
 		return response.noContent();
 	}

@@ -6,8 +6,12 @@ import Database, {
 import BadRequestException from "App/Exceptions/BadRequestException";
 import CrmStatus from "App/Models/CrmStatus";
 import Opportunity from "App/Models/Opportunity";
-import OpportunityActivity from "App/Models/OpportunityActivity";
+import OpportunityActivity, {
+	TOpportunityActivityStatus,
+} from "App/Models/OpportunityActivity";
+import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
+import Patient, { PatientGender } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
@@ -22,6 +26,23 @@ export default class OpportunityService {
 			.where("id", id)
 			.preload("client", (query) => {
 				query.preload("tutor");
+				query.preload("patientAnimal", (query) => {
+					query.select(
+						"race_id",
+						"death",
+						"death_date",
+						"microchip",
+						"castrated",
+					);
+
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
 			})
 			.preload("race", (query) => {
 				query.select("id", "description", "specie_id");
@@ -181,14 +202,28 @@ export default class OpportunityService {
 		}
 
 		if (data.balance && Array.isArray(data.balance)) {
-			if (data.balance.includes("Em Aberto")) {
+			const hasEmAberto = data.balance.includes("Em Aberto");
+			const cleanOptions = data.balance.filter((v) => v !== "Em Aberto");
+			const sanitizedOptions = data.balance.filter((f) =>
+				["Ganho", "Perda"].includes(f),
+			);
+
+			if (hasEmAberto && sanitizedOptions.length > 0) {
+				qb.whereRaw(
+					`(balance = ANY('{${sanitizedOptions.join(
+						",",
+					)}}') or closing_date is null)`,
+					[],
+				);
+			}
+
+			if (hasEmAberto && cleanOptions.length === 0) {
 				qb.whereNull("closing_date");
 			}
 
-			qb.whereIn(
-				"balance",
-				data.balance.filter((v) => ["Ganho", "Perda"].includes(v)),
-			);
+			if (!hasEmAberto && cleanOptions.length > 0) {
+				qb.whereIn("balance", cleanOptions);
+			}
 		}
 
 		if (data.contactName || data.contactPhone) {
@@ -227,6 +262,12 @@ export default class OpportunityService {
 			resultObservation: elem.resultObservation,
 			balance: elem.balance,
 			active: elem.active,
+			race: {
+				id: elem.race_id ?? null,
+			},
+			gender: elem.gender,
+			castrated: elem.castrated,
+			weight: elem.weight,
 
 			status: elem.status,
 			contact: this.sharedService.captureGroup(elem.contact, (v) => ({
@@ -279,7 +320,13 @@ export default class OpportunityService {
 		const qb = OpportunityActivity.query()
 			.preload("activity")
 			.preload("opportunity", (query) => {
-				query.preload("client").preload("contact").preload("user");
+				query
+					.preload("client")
+					.preload("contact", (query) => {
+						query.preload("tutor");
+					})
+					.preload("user")
+					.preload("reason");
 			})
 			.preload("executionUser")
 			.whereHas("opportunity", (query) => {
@@ -338,6 +385,12 @@ export default class OpportunityService {
 			observation: elem.observation,
 			status: elem.status,
 
+			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
+				id: v.id,
+				name: v.description,
+				observation: v.observation,
+				balance: v.balance,
+			})),
 			activity: {
 				id: elem.activity.id,
 				description: elem.activity.description,
@@ -350,12 +403,16 @@ export default class OpportunityService {
 						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
 				  }
 				: null,
-			contact: elem.opportunity?.contact
-				? {
-						id: elem.opportunity?.contact.id,
-						name: elem.opportunity?.contact.name,
-				  }
-				: null,
+			contact: this.sharedService.captureGroup(
+				elem.opportunity?.contact,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+					email: v?.tutor?.email ?? null,
+				}),
+			),
 			user: elem.opportunity.user
 				? {
 						id: elem.opportunity.user.id,
@@ -368,6 +425,10 @@ export default class OpportunityService {
 						name: elem.executionUser.name,
 				  }
 				: null,
+			reason: this.sharedService.captureGroup(elem.opportunity.reason, (v) => ({
+				id: v.id,
+				reason: v.reason,
+			})),
 		}));
 	}
 
@@ -485,11 +546,15 @@ export default class OpportunityService {
 		const statusMap = new Map();
 		// eslint-disable-next-line
 		for (const op of result) {
-			if (!statusMap.has(op.status.description)) {
-				statusMap.set(op.status.description, []);
+			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
+				? "Faltou-Desmarcou"
+				: op.status.description;
+
+			if (!statusMap.has(key)) {
+				statusMap.set(key, []);
 			}
 
-			statusMap.get(op.status.description).push({
+			statusMap.get(key).push({
 				id: op.id,
 				openingDate: op.openingDate,
 				value: op.value,
@@ -659,6 +724,7 @@ export default class OpportunityService {
 			contactTypeId?: number;
 			contactSubjectId?: number;
 			originId?: string;
+			raceId?: string;
 
 			description?: string;
 			observation?: string;
@@ -688,6 +754,7 @@ export default class OpportunityService {
 					contact_type_id: data.contactTypeId,
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
+					race_id: data.raceId,
 
 					contactDate: data.contactDate,
 					description: data.description,
@@ -700,6 +767,32 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.clientId) {
+				const row = await Patient.query()
+					.useTransaction(trx)
+					.where("id", data.clientId)
+					.preload("patientAnimal")
+					.firstOrFail();
+
+				await row
+					.merge({
+						weight: data.weight,
+						gender: data.gender as PatientGender,
+					})
+					.useTransaction(trx)
+					.save();
+
+				if (row.patientAnimal) {
+					await row.patientAnimal
+						.merge({
+							race_id: data.raceId,
+							castrated: data.castrated,
+						})
+						.useTransaction(trx)
+						.save();
+				}
+			}
 
 			await this.createLog(result, trx);
 		});
@@ -841,7 +934,7 @@ export default class OpportunityService {
 	}
 
 	public async reopenOpportunity(authCtx: AuthContext, id: number) {
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
@@ -851,19 +944,33 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			await this.createLog(model, trx);
+			if (model.balance !== "Ganho" && model.balance !== "Perda") {
+				throw new BadRequestException(
+					"Não é possível reabrir uma oportunidade que não foi ganha ou perdida.",
+					400,
+					"E_INVALID",
+				);
+			}
 
-			await model
-				.merge({
-					reason_id: undefined,
-					closing_user_id: undefined,
-
-					closingDate: undefined,
-					balance: undefined,
-					resultObservation: undefined,
+			await Database.from("opportunities")
+				.update({
+					closing_user_id: null,
+					closing_date: null,
+					balance: null,
+					profit_value: null,
+					reason_id: null,
+					result_observation: null,
 				})
-				.useTransaction(trx)
-				.save();
+				.where("id", model.id)
+				.useTransaction(trx);
+
+			const result = await model.refresh();
+
+			await this.createLog(result, trx);
+
+			return {
+				message: "Oportunidade reaberta",
+			};
 		});
 	}
 
@@ -1043,6 +1150,40 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+		});
+	}
+
+	public async reopenActivity(authCtx: AuthContext, id: number) {
+		await Database.transaction(async (trx) => {
+			const activity = await OpportunityActivity.query()
+				.useTransaction(trx)
+				.where("id", id)
+				.whereHas("opportunity", (query) => {
+					query.where("economic_group_id", authCtx.group.id);
+				})
+				.first();
+
+			if (!activity) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (!activity.executedDate) {
+				throw new BadRequestException(
+					"Atividade não executada",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			await this.createActivityLog(activity, trx);
+
+			await Database.from("opportunity_activities")
+				.where("id", id)
+				.update({
+					execution_user_id: null,
+					executed_date: null,
+					status: "Aberto" as TOpportunityActivityStatus,
+				});
 		});
 	}
 
@@ -1417,6 +1558,34 @@ export default class OpportunityService {
 				contactDate: model.contactDate,
 				openingDate: model.openingDate,
 				closingDate: model.closingDate,
+			},
+			{
+				client,
+			},
+		);
+	}
+
+	private async createActivityLog(
+		model: OpportunityActivity,
+		client?: QueryClientContract,
+	) {
+		await OpportunityActivityLog.create(
+			{
+				opportunity_id: model.opportunity_id,
+				opening_user_id: model.opening_user_id,
+				user_id: model.user_id,
+				activity_id: model.activity_id,
+				execution_user_id: model.execution_user_id,
+				exclusion_user_id: model.exclusion_user_id,
+				opportunity_activity_id: model.id,
+
+				issueDate: model.issueDate,
+				executionDate: model.executionDate,
+				duration: model.duration,
+				description: model.description,
+				status: model.status,
+				executedDate: model.executedDate,
+				observation: model.observation,
 			},
 			{
 				client,

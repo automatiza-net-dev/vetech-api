@@ -16,12 +16,12 @@ import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
 } from "App/Models/IssuedFiscalDocument";
 import { PaymentMethodTef } from "App/Models/PaymentMethod";
-import Product, { ProductType } from "App/Models/Product";
+import { ProductType } from "App/Models/Product";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import User from "App/Models/User";
 import FocusNfeService, {
-	disableWebhookResponseSchema,
 	ISendNfe,
+	disableWebhookResponseSchema,
 	nfeResponseSchema,
 	nfseResponseSchema,
 } from "App/Services/FocusNfeService";
@@ -265,7 +265,7 @@ export default class BusinessUnitFiscalDocumentService {
 					fiscal_document_id: document.id,
 					model: document.model,
 					series: document.series,
-					sequence: document.sequence + 1,
+					// sequence: document.sequence + 1,
 					user_who_authorized_id: user.id,
 					authorizationDate: DateTime.now(),
 					contingency: IssuedFiscalDocumentContingency.N,
@@ -353,7 +353,10 @@ export default class BusinessUnitFiscalDocumentService {
 							: unit.acquirers.find((a) => a.id === item.tef_acquirer_id)
 									?.document,
 					flag: item?.flag?.nfe_code,
-					nsu: item.nsuDocument,
+					nsu:
+						item.paymentMethod.tef === PaymentMethodTef.N
+							? undefined
+							: item.nsuDocument,
 				})),
 				totalizers: {
 					// icms_base: bill.icmsBase,
@@ -431,8 +434,15 @@ export default class BusinessUnitFiscalDocumentService {
 					result.icms_value = item.icmsValue;
 				}
 
-				if (["20", "70", "90", "900"].includes(item.icmsCst)) {
+				if (["20", "51", "70", "90", "900"].includes(item.icmsCst)) {
 					result.icms_red_calc = item.icmsStPercentageRedBase;
+				}
+
+				if (["51"].includes(item.icmsCst)) {
+					result.icms_deferred_operation_value =
+						item.icmsDeferredOperationValue;
+					result.icms_deferred_value = item.icmsDeferredValue;
+					result.icms_deferred_percentage = item.icmsDeferredPercentage;
 				}
 
 				return result;
@@ -444,10 +454,10 @@ export default class BusinessUnitFiscalDocumentService {
 				nfePayload,
 				token,
 			);
-			if (!result.success) {
-				// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
-				Logger.info(JSON.stringify(result, undefined, 2));
-			}
+			// if (!result.success) {
+			// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
+			// Logger.info(JSON.stringify(result, undefined, 2));
+			// }
 
 			await BillItem.query()
 				.useTransaction(trx)
@@ -458,6 +468,15 @@ export default class BusinessUnitFiscalDocumentService {
 				.update({
 					nfe_issued: true,
 				});
+
+			if (result.chave || result.numero) {
+				await issuedDocument
+					.merge({
+						sequence: result.numero ?? result.chave?.substring(28, 28 + 9),
+					})
+					.useTransaction(trx)
+					.save();
+			}
 
 			// await item
 			//   .merge({
@@ -471,6 +490,13 @@ export default class BusinessUnitFiscalDocumentService {
 			//   })
 			//   .useTransaction(trx)
 			//   .save();
+
+			if (!result.success) {
+				return {
+					success: false,
+					message: result.message,
+				};
+			}
 
 			return issuedDocument;
 		});
@@ -637,7 +663,10 @@ export default class BusinessUnitFiscalDocumentService {
 										: null,
 								name: responsible.name,
 								email: responsible.tutor.email,
-								phone: responsible.tutor.telephone ?? "",
+								phone:
+									responsible.tutor.telephone ??
+									responsible.tutor.cellphone ??
+									"",
 								address: {
 									street: responsible.tutor.street ?? "",
 									number: responsible.tutor.number ?? "",
@@ -667,14 +696,14 @@ export default class BusinessUnitFiscalDocumentService {
 						token,
 					);
 
-					if (!result.success) {
-						Logger.info(JSON.stringify(result, undefined, 2));
-						// throw new BadRequestException(
-						//   result.message ?? 'Erro ao emitir NFSe',
-						//   400,
-						//   'E_EXTERNAL_ERROR',
-						// );
-					}
+					// if (!result.success) {
+					// 	Logger.info(JSON.stringify(result, undefined, 2));
+					// throw new BadRequestException(
+					//   result.message ?? 'Erro ao emitir NFSe',
+					//   400,
+					//   'E_EXTERNAL_ERROR',
+					// );
+					// }
 
 					await serviceDocument
 						.merge({
@@ -697,8 +726,7 @@ export default class BusinessUnitFiscalDocumentService {
 				}),
 			);
 
-			console.log(JSON.stringify(results, undefined, 2));
-			return;
+			return results.filter((r) => !r.success);
 		}
 
 		const map: Map<string, BillItem[]> = new Map();
@@ -787,14 +815,14 @@ export default class BusinessUnitFiscalDocumentService {
 				token,
 			);
 
-			if (!result.success) {
-				Logger.info(JSON.stringify(result, undefined, 2));
-				// throw new BadRequestException(
-				//   result.message ?? 'Erro ao emitir NFSe',
-				//   400,
-				//   'E_EXTERNAL_ERROR',
-				// );
-			}
+			// if (!result.success) {
+			// Logger.info(JSON.stringify(result, undefined, 2));
+			// throw new BadRequestException(
+			//   result.message ?? 'Erro ao emitir NFSe',
+			//   400,
+			//   'E_EXTERNAL_ERROR',
+			// );
+			// }
 
 			await BillItem.query()
 				.useTransaction(trx)
@@ -824,9 +852,11 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 
 			// console.log(JSON.stringify(results, undefined, 2));
+			return result;
 		});
 
-		await Promise.all(tasks);
+		const results = await Promise.all(tasks);
+		return results.filter((r) => !r.success);
 	}
 
 	async updateFromFocus(unitId: string, id: string) {
@@ -1089,9 +1119,9 @@ export default class BusinessUnitFiscalDocumentService {
 					user_who_cancelled_id: user.id,
 					cancellationDate: DateTime.now(),
 					cancellationReason: data.reason,
-
-					// sefazStatus: cancelResult.status_sefaz,
-					// sefazMessage: cancelResult.mensagem_sefaz,
+					sefazStatus: cancelResult?.status ?? "Cancelado",
+					sefazStatusCode: cancelResult?.status_sefaz ?? "-",
+					sefazMessage: cancelResult?.mensagem_sefaz ?? "Cancelado",
 					// cancellationXmlPath: cancelResult.caminho_xml_cancelamento,
 					// cancellationReceiptDate: getResult.protocolo_cancelamento
 					//   ? DateTime.fromISO(getResult.protocolo_cancelamento.data_evento)
@@ -1218,7 +1248,7 @@ export default class BusinessUnitFiscalDocumentService {
 				{
 					cnpj: unit.document ?? "",
 					series: document.series,
-					sequence: document.sequence.toString(),
+					sequence: document.sequence,
 					reason: data.reason,
 				},
 				token,
@@ -1406,7 +1436,7 @@ export default class BusinessUnitFiscalDocumentService {
 			return "";
 		}
 
-		const product = item.productVariation.product;
+		const { product } = item.productVariation;
 
 		if (product.cest && product.cest.length > 0) {
 			return product.cest.replace(/\D/g, "");

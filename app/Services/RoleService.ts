@@ -2,7 +2,7 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
-import Permission, { TPermissionType } from "App/Models/Permission";
+import Permission from "App/Models/Permission";
 import Role, { TRoleType } from "App/Models/Role";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
@@ -44,12 +44,12 @@ export default class RoleService {
 	}
 
 	public async controllerIndex(
-		authCtx: AuthContext,
+		systemID: number,
 		data: ISearch,
 	): Promise<Array<Role>> {
 		const qb = Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType);
 
 		if (data.name) {
@@ -179,13 +179,13 @@ export default class RoleService {
 	}
 
 	public async updateController(
-		authCtx: AuthContext,
+		systemID: number,
 		id: number,
 		data: IRoleData,
 	): Promise<Role> {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType)
 			.where("id", id)
 			.first();
@@ -234,13 +234,10 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async deleteController(
-		authCtx: AuthContext,
-		id: number,
-	): Promise<void> {
+	public async deleteController(systemID: number, id: number): Promise<void> {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("type", "controller" as TRoleType)
 			.where("id", id)
 			.preload("users")
@@ -256,7 +253,7 @@ export default class RoleService {
 
 		if (role.users.length > 0) {
 			throw new BadRequestException(
-				"Não é possível excluir um cargo que possui permissões",
+				"Não é possível excluir um controle de acesso que está vinculado à usuários",
 				400,
 				"E_BAD_REQUEST",
 			);
@@ -265,10 +262,10 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async rolePermissionMetadata(authCtx: AuthContext, id: number) {
+	public async rolePermissionMetadata(systemID: number, id: number) {
 		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
+			// .where("economic_group_id", authCtx.group.id)
 			.where("id", id)
 			.first();
 
@@ -287,17 +284,17 @@ export default class RoleService {
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		if (authCtx.user.type === "user") {
-			qb.whereIn("type", ["user", "both"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "user") {
+		// 	qb.whereIn("type", ["user", "both"] as TPermissionType[]);
+		// }
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "controller") {
+		// 	qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
+		// }
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["system"] as TPermissionType[]);
-		}
+		// if (authCtx.user.type === "controller") {
+		// 	qb.whereIn("type", ["system"] as TPermissionType[]);
+		// }
 
 		const permissions = await qb;
 
@@ -348,7 +345,7 @@ export default class RoleService {
 	}
 
 	public async manageRolePermissions(
-		authCtx: AuthContext,
+		systemID: number,
 		data: IManageRolePermissions,
 	): Promise<void> {
 		await Database.transaction(async (trx) => {
@@ -356,8 +353,8 @@ export default class RoleService {
 
 			const roles = await Role.query()
 				.useTransaction(trx)
-				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
+				.where("system_id", systemID)
+				// .where("economic_group_id", authCtx.group.id)
 				.whereIn(
 					"id",
 					data.data.map((d) => d.role),
@@ -434,12 +431,65 @@ export default class RoleService {
 		}));
 	}
 
-	public async copyRole(authCtx: AuthContext, data: { roleId: number }) {
+	public async searchControllerRolePermissions(
+		systemID: number,
+		data: { id?: string; active?: string },
+	) {
+		const qb = Role.query()
+			.where("system_id", systemID)
+			.where("type", "controller" as TRoleType);
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
+
+		if (data.active) {
+			qb.where("active", data.active !== "0");
+		}
+
+		qb.preload("permissions");
+		qb.preload("accesses", (query) => {
+			query.preload("profile");
+		});
+
+		const result = await qb;
+
+		if (data.id) {
+			if (result.length === 0) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const [elem] = result;
+			return {
+				id: elem.id,
+				name: elem.name,
+				active: elem.active,
+				externalAccess: elem.externalAccess,
+				profiles: elem.accesses.map((access) => ({
+					id: access.profile.id,
+					description: access.profile.description,
+				})),
+			};
+		}
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			active: elem.active,
+			externalAccess: elem.externalAccess,
+			profiles: elem.accesses.map((access) => ({
+				id: access.profile.id,
+				description: access.profile.description,
+			})),
+		}));
+	}
+
+	public async copyRole(systemID: number, data: { roleId: number }) {
 		return await Database.transaction(async (trx) => {
 			const role = await Role.query()
 				.useTransaction(trx)
 				.where("id", data.roleId)
-				.where("system_id", authCtx.system.id)
+				.where("system_id", systemID)
 				.first();
 
 			if (!role) {

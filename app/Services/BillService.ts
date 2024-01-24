@@ -4,6 +4,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
@@ -566,12 +567,16 @@ export default class BillService {
 		});
 	}
 
-	async deleteBillItem(_: string, id: string) {
+	async deleteBillItem(authCtx: AuthContext, id: string) {
 		return Database.transaction(async (trx) => {
 			const billItem = await BillItem.query()
 				.useTransaction(trx)
 				.where("id", id)
-				.firstOrFail();
+				.first();
+
+			if (!billItem) {
+				throw this.sharedService.ResourceNotFound();
+			}
 
 			if (billItem.status === BillItemStatus.I) {
 				throw new BadRequestException("Item já removido", 400, "E_ERR");
@@ -579,7 +584,10 @@ export default class BillService {
 
 			await billItem
 				.merge({
+					exclusion_user_id: authCtx.user.id,
+
 					status: BillItemStatus.I,
+					deleted_at: DateTime.now(),
 				})
 				.useTransaction(trx)
 				.save();
@@ -1241,11 +1249,11 @@ export default class BillService {
 		});
 	}
 
-	async excludeBill(ctx: AuthContext, id: string) {
+	async excludeBill(authCtx: AuthContext, id: string) {
 		await Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.useTransaction(trx)
-				.where("economic_group_id", ctx.group.id)
+				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.preload("payments")
 				.first();
@@ -1258,22 +1266,47 @@ export default class BillService {
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
 			}
 
-			if (bill.payments.length > 0) {
-				throw new BadRequestException(
-					"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
-					400,
-					"E_ERR",
-				);
-			}
+			// if (bill.payments.length > 0) {
+			// 	throw new BadRequestException(
+			// 		"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
+			// 		400,
+			// 		"E_ERR",
+			// 	);
+			// }
 
 			await bill
 				.merge({
-					exclusion_user_id: ctx.user.id,
+					exclusion_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 					status: BillStatus.EX,
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.update({
+					deleted_at: DateTime.now(),
+				})
+				.whereNull("deleted_at")
+				.where("bill_id", bill.id);
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("origin_flag", FinanceOriginFlag.S)
+				.whereILike("document", `%NFS-${bill.tag}%`)
+				// .where("block", payment.block)
+				// .where("origin_id", payment.id)
+				.update({
+					deleted_at: DateTime.now(),
+					status: FinanceStatus.E,
+				});
+
+			await BillPayment.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.delete();
 		});
 	}
 
@@ -1599,10 +1632,14 @@ export default class BillService {
 					productVariations.map((item) => item.product.taxation_group_id),
 				);
 			})
-			.where("movementType", MovementType.S)
-			.where("movementCategory", MovementCategory.NS)
+			.where("movement_type", MovementType.S)
+			.where("movement_category", MovementCategory.NS)
 			.where("fromUf", authCtx.unit.state ?? "")
 			.where("toUf", authCtx.unit.state ?? "")
+			.where(
+				"company_type",
+				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+			)
 			.preload("taxationGroup")
 			.preload("taxOperation");
 
@@ -1708,7 +1745,7 @@ export default class BillService {
 					discountValue: item.discountValue,
 					totalValue,
 					status: BillItemStatus.A,
-					createdAt: bill.createdAt,
+					// createdAt: bill.createdAt,
 
 					fiscalOperationCode: rule?.taxOperation.code,
 					icmsOriginProduct: variation.product.icmsOrigin,
@@ -1992,102 +2029,134 @@ export default class BillService {
 			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 			: 0;
 
-		console.log(rule?.toJSON());
+		let toCreate: Partial<BillItem> = {
+			economic_group_id: authCtx.group.id,
+			business_unit_id: authCtx.unit.id,
+			bill_id: bill.id,
+			product_variation_id: data.productVariationId,
+			tax_rule_id: rule?.id,
+			kit_id: data.kitId,
 
-		const billItem = await BillItem.create(
-			{
-				economic_group_id: authCtx.group.id,
-				business_unit_id: authCtx.unit.id,
-				bill_id: bill.id,
-				product_variation_id: data.productVariationId,
-				tax_rule_id: rule?.id,
-				kit_id: data.kitId,
+			quantity: data.quantity,
+			costValue: price.costPrice,
+			saleValue: price.price,
+			unitaryValue: data.unitaryValue,
+			discountValue: data.discountValue,
+			totalValue,
+			status: BillItemStatus.A,
 
-				quantity: data.quantity,
-				costValue: price.costPrice,
-				saleValue: price.price,
-				unitaryValue: data.unitaryValue,
-				discountValue: data.discountValue,
-				totalValue,
-				status: BillItemStatus.A,
-				createdAt: bill.createdAt,
+			fiscalOperationCode: rule?.taxOperation?.code,
 
-				fiscalOperationCode: rule?.taxOperation?.code,
-				icmsOriginProduct: productVariation.product.icmsOrigin,
-				icmsCst:
-					productVariation.product.type === ProductType.PRODUCT
-						? rule?.icmsCst
-						: undefined,
-				icmsBase:
-					productVariation.product.type === ProductType.PRODUCT
-						? icmsBase
-						: undefined,
-				icmsPercentage:
-					productVariation.product.type === ProductType.PRODUCT
-						? rule?.icmsPerc
-						: undefined,
-				icmsValue:
-					productVariation.product.type === ProductType.PRODUCT
-						? icmsValue
-						: undefined,
-				icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-				icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
-					? icmsStBase_2
+			issCst:
+				productVariation.product.type === ProductType.SERVICE
+					? rule?.icmsCst
 					: undefined,
-				icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
-					? rule?.icmsPercRedBaseCalculoST
+			issBase:
+				productVariation.product.type === ProductType.SERVICE
+					? icmsBase
 					: undefined,
-				icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
-				icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
-					? ufIcms?.icmsPercentage
+			issPercentage:
+				productVariation.product.type === ProductType.SERVICE
+					? rule?.icmsPerc
 					: undefined,
-				icmsStValue:
-					this.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-						? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+			issValue:
+				productVariation.product.type === ProductType.SERVICE
+					? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
+					: undefined,
+			pisCst: rule?.pisCst,
+			pisBase: totalValue,
+			pisPercentage: rule?.pisPerc,
+			pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
+			pisRetentionValue: 0,
+			cofinsCst: rule?.cofinsCst,
+			cofinsBase: totalValue,
+			cofinsPercentage: rule?.cofinsPerc,
+			cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
+			cofinsRetentionValue: 0,
+			ipiCst: rule?.ipiCst,
+			ipiBase: totalValue,
+			ipiPercentage: rule?.ipiPerc,
+			ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
+
+			// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+
+			icmsOriginProduct: productVariation.product.icmsOrigin,
+			icmsCst:
+				productVariation.product.type === ProductType.PRODUCT
+					? rule?.icmsCst
+					: undefined,
+
+			icmsFcpPercentage: rule?.fcpPerc,
+			icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
+		};
+
+		if (
+			productVariation.product.type === ProductType.PRODUCT &&
+			rule?.icmsCst
+		) {
+			const cst = rule.icmsCst;
+
+			if (["00", "10", "20", "70", "90", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsBase:
+						productVariation.product.type === ProductType.PRODUCT
+							? icmsBase
+							: undefined,
+					icmsPercentage:
+						productVariation.product.type === ProductType.PRODUCT
+							? rule?.icmsPerc
+							: undefined,
+					icmsValue:
+						productVariation.product.type === ProductType.PRODUCT
+							? icmsValue
+							: undefined,
+				});
+			}
+
+			if (["10", "30", "70", "90", "201", "202", "203", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
+						? icmsStBase_2
 						: undefined,
-				issCst:
-					productVariation.product.type === ProductType.SERVICE
-						? rule?.icmsCst
+					icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
+						? rule?.icmsPercRedBaseCalculoST
 						: undefined,
-				issBase:
-					productVariation.product.type === ProductType.SERVICE
-						? icmsBase
+					icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+					icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
+						? ufIcms?.icmsPercentage
 						: undefined,
-				issPercentage:
-					productVariation.product.type === ProductType.SERVICE
-						? rule?.icmsPerc
-						: undefined,
-				issValue:
-					productVariation.product.type === ProductType.SERVICE
-						? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
-						: undefined,
-				pisCst: rule?.pisCst,
-				cofinsCst: rule?.cofinsCst,
-				pisBase: totalValue,
-				pisPercentage: rule?.pisPerc,
-				pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
-				pisRetentionValue: 0,
-				cofinsBase: totalValue,
-				cofinsPercentage: rule?.cofinsPerc,
-				cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
-				cofinsRetentionValue: 0,
-				ipiCst: rule?.ipiCst,
-				ipiBase: totalValue,
-				ipiPercentage: rule?.ipiPerc,
-				ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
-				icmsDeferredValue: 0,
-				icmsPartitionValue: 0,
-				icmsFcpPercentage: rule?.fcpPerc,
-				icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
-				icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-				icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
-				icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
-			},
-			{
-				client: trx,
-			},
-		);
+					icmsStValue:
+						this.isValidNumber(rule?.ivaIcmsSt) && ufIcms
+							? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+							: undefined,
+				});
+			}
+
+			if (["20", "70", "90", "900"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				});
+			}
+
+			if (["51"].includes(cst)) {
+				toCreate = Object.assign(toCreate, {
+					icmsDeferredOperationValue: icmsValue,
+					icmsDeferredPercentage: rule.icmsPercDiferimento,
+					icmsDeferredValue: icmsBase * (rule.icmsPercDiferimento / 100),
+					icmsValue:
+						((rule.icmsPerc - rule.icmsPercDiferimento) * icmsBase) / 100,
+				});
+			}
+		}
+
+		// icmsPartitionValue: 0,
+		// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+		// icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+		// icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
+
+		const billItem = await BillItem.create(toCreate, {
+			client: trx,
+		});
 
 		const validItems = [billItem, ...items];
 
@@ -2584,7 +2653,8 @@ export default class BillService {
 		data: { items: { productVariationId: string; quantity: number }[] },
 	) {
 		const depositID =
-			authCtx.user.default_sale_deposit_id ??
+			authCtx.$roleMetas.find((r) => r.default_sale_deposit_id)
+				?.default_sale_deposit_id ??
 			authCtx.unit.unitConfig.outgoing_deposit_id;
 
 		if (!depositID) {
@@ -2648,7 +2718,8 @@ export default class BillService {
 		data: { items: { productVariationId: string; quantity: number }[] },
 	) {
 		const depositID =
-			authCtx.user.default_sale_deposit_id ??
+			authCtx.$roleMetas.find((r) => r.default_sale_deposit_id)
+				?.default_sale_deposit_id ??
 			authCtx.unit.unitConfig.outgoing_deposit_id;
 
 		if (!depositID) {

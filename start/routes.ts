@@ -44,15 +44,15 @@ Route.group(() => {
 	Route.get(
 		"/fetch-user-controllers",
 		"UsersController.fetchUserControllers",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/create-user-controller",
 		"UsersController.createUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/update-user-controller",
 		"UsersController.updateUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 	Route.post(
 		"/disable-user-controller-role",
 		"UsersController.disableUserControllerRole",
@@ -60,7 +60,7 @@ Route.group(() => {
 	Route.delete(
 		"/delete-user-controller/:id",
 		"UsersController.deleteUserController",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 
 	Route.get("", "UsersController.index");
 	Route.get("/:id", "UsersController.show");
@@ -173,6 +173,7 @@ Route.group(() => {
 	Route.post("/copy", "RolesController.copyRole");
 
 	Route.get("/controller", "RolesController.controllerIndex");
+	Route.get("/controller/search", "RolesController.searchControllerInfo");
 	Route.post("/controller", "RolesController.storeController");
 	Route.put("/controller/:id", "RolesController.updateController");
 	Route.delete("/controller/:id", "RolesController.destroyController");
@@ -184,7 +185,7 @@ Route.group(() => {
 	Route.delete("/:id", "RolesController.destroy");
 })
 	.prefix("roles")
-	.middleware("auth");
+	.middleware(["auth:tpApi,api"]);
 
 Route.group(() => {
 	Route.post("/sync", "PermissionsController.sync");
@@ -1279,6 +1280,7 @@ Route.group(() => {
 		"/exclude-activity/:id",
 		"OpportunitiesController.excludeActivity",
 	);
+	Route.post("/reopen-activity/:id", "OpportunitiesController.reopenActivity");
 })
 	.prefix("opportunities")
 	.middleware("auth");
@@ -1334,11 +1336,11 @@ Route.group(() => {
 	Route.get(
 		"/profiles",
 		"ThirdPartiesController.searchProfileAccesses",
-	).middleware("auth");
+	).middleware(["auth:tpApi,api"]);
 
-	Route.post("/sync", "ThirdPartiesController.syncProfileAccesses").middleware(
-		"auth",
-	);
+	Route.post("/sync", "ThirdPartiesController.syncProfileAccesses").middleware([
+		"auth:tpApi,api",
+	]);
 }).prefix("external");
 
 Route.group(() => {
@@ -1370,6 +1372,7 @@ Route.group(() => {
 	Route.post("/create-payment", "ReceiptsController.createReceiptPayment");
 	Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
 	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
+	Route.post("/reopen", "ReceiptsController.reopenReceipt");
 
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
@@ -1394,23 +1397,33 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.get("/items", "ProductivityItemsController.searchItems");
-	Route.get("/products", "ProductivityItemsController.searchItemProducts");
+	Route.get("/items", "ProductivityItemsController.searchItems").middleware(
+		"auth:tpApi,api",
+	);
+	Route.get(
+		"/products",
+		"ProductivityItemsController.searchItemProducts",
+	).middleware("auth");
 
-	Route.post("/create-item", "ProductivityItemsController.storeItem");
-	Route.post("/update-item", "ProductivityItemsController.updateItem");
+	Route.post(
+		"/create-item",
+		"ProductivityItemsController.storeItem",
+	).middleware("auth:tpApi,api");
+	Route.post(
+		"/update-item",
+		"ProductivityItemsController.updateItem",
+	).middleware("auth");
 
 	Route.post(
 		"/create-item-product",
 		"ProductivityItemsController.storeItemProduct",
-	);
+	).middleware("auth");
+
 	Route.post(
 		"/update-item-product",
 		"ProductivityItemsController.updateItemProduct",
-	);
-})
-	.prefix("productivity-items")
-	.middleware("auth");
+	).middleware("auth");
+}).prefix("productivity-items");
 
 Route.group(() => {
 	Route.get("/finances", "ReportsController.finances");

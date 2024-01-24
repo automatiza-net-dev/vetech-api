@@ -3,6 +3,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
 import DepositMovement from "App/Models/DepositMovement";
@@ -20,11 +21,18 @@ export default class DepositService {
 			description?: string;
 			type?: string;
 			status?: string;
+			unitId?: string;
 		},
 	) {
-		const qb = Deposit.query()
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id);
+		const qb = Deposit.query().preload("unit", (query) => {
+			query.select("id", "identification");
+		});
+
+		if (data.unitId) {
+			qb.where("business_unit_id", data.unitId);
+		} else {
+			qb.where("economic_group_id", authCtx.group.id);
+		}
 
 		if (data.description) {
 			qb.where("description", "ilike", `%${data.description}%`);
@@ -44,7 +52,7 @@ export default class DepositService {
 	public async showDeposit(authCtx: AuthContext, id: number) {
 		const row = await Deposit.query()
 			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
+			// .where("business_unit_id", authCtx.unit.id)
 			.where("id", id)
 			.preload("items", (query) => {
 				query.preload("unitProduct", (query) => {
@@ -379,7 +387,11 @@ export default class DepositService {
 				.first();
 
 			if (!fromRow) {
-				throw this.sharedService.ResourceNotFound();
+				throw new BadRequestException(
+					"Deposito de estoque não encontrado",
+					400,
+					"E_NOT_FOUND",
+				);
 			}
 
 			const toRow = await Deposit.query()
@@ -390,12 +402,34 @@ export default class DepositService {
 				.first();
 
 			if (!toRow) {
-				throw this.sharedService.ResourceNotFound();
+				throw new BadRequestException(
+					"Deposito de estoque não encontrado",
+					400,
+					"E_NOT_FOUND",
+				);
 			}
 
 			if (data.items.length > 0) {
-				await this.$checkDepositItems(trx, fromRow, data.items, true);
-				await this.$checkDepositItems(trx, toRow, data.items);
+				const result1 = await this.$checkDepositItems(
+					trx,
+					fromRow,
+					data.items,
+					"Origem",
+					true,
+				);
+				if (result1.length !== 0) {
+					return result1;
+				}
+
+				// const result2 = await this.$checkDepositItems(
+				// 	trx,
+				// 	toRow,
+				// 	data.items,
+				// 	"Destino",
+				// );
+				// if (result2.length !== 0) {
+				// 	return result2;
+				// }
 			}
 
 			const movement = await DepositMovement.create(
@@ -433,46 +467,89 @@ export default class DepositService {
 		trx: TransactionClientContract,
 		deposit: Deposit,
 		items: { businessUnitProductId: string; quantity: number }[],
-		withQuantity = false,
+		place: string,
 	) {
+		const errorMessages: unknown[] = [];
+
 		const fromRowItems = await deposit
 			.related("items")
 			.query()
 			.useTransaction(trx)
-			.select("id", "business_unit_product_id", "quantity")
+			.select(
+				"id",
+				"business_unit_product_id",
+				"product_variation_id",
+				"quantity",
+			)
+			// .whereIn(
+			// 	"business_unit_product_id",
+			// 	items.map((i) => i.businessUnitProductId),
+			// )
+			.preload("variation", (query) => {
+				query.select("product_id");
+
+				query.preload("product", (query) => {
+					query.select("id", "description");
+				});
+			})
 			.exec();
+
+		const buProducts = await BusinessUnitProduct.query()
+			.useTransaction(trx)
+			.whereIn(
+				"id",
+				items.map((i) => i.businessUnitProductId),
+			)
+			.preload("productVariation", (query) => {
+				query.select("id", "product_id");
+
+				query.preload("product", (query) => {
+					query.select("id", "description");
+				});
+			})
+			.exec();
+
 		if (fromRowItems.length === 0) {
-			throw new BadRequestException(
-				"O depósito de origem não possui itens para serem movimentados",
-				400,
-				"E_INVALID_ITEMS",
-			);
+			errorMessages.push({
+				rule: "ItemsNãoExistentes",
+				message: `O depósito de ${place} não possui itens para serem movimentados`,
+			});
 		}
 		if (fromRowItems.length !== items.length) {
-			throw new BadRequestException(
-				"A quantidade de itens informada é diferente da quantidade de itens do depósito de origem",
-				400,
-				"E_INVALID_ITEMS",
-			);
+			errorMessages.push({
+				rule: "ItemsNãoExistentes",
+				message: `A lista de itens informada não existe totalmente no depósito de ${place}`,
+			});
 		}
 
-		if (withQuantity) {
-			if (
-				fromRowItems.some((item) =>
-					items.some(
-						(i) =>
-							i.businessUnitProductId === item.business_unit_product_id &&
-							i.quantity > item.quantity,
-					),
-				)
-			) {
-				throw new BadRequestException(
-					"A quantidade de itens informada é maior que a quantidade de itens do depósito de origem",
-					400,
-					"E_INVALID_ITEMS",
+		for (const reqItem of items) {
+			const rowItem = fromRowItems.find(
+				(i) => i.business_unit_product_id === reqItem.businessUnitProductId,
+			);
+
+			if (!rowItem) {
+				const buProduct = buProducts.find(
+					(i) => i.id === reqItem.businessUnitProductId,
 				);
+
+				errorMessages.push({
+					rule: "ItemNãoExiste",
+					message: `Item '${
+						buProduct?.productVariation.product.description ?? "-"
+					}' não existe no depósito de ${place}`,
+				});
+				continue;
+			}
+
+			if (reqItem.quantity > rowItem.quantity) {
+				errorMessages.push({
+					rule: "EstoqueInsuficiente",
+					message: `Item '${rowItem.variation.product.description}' possui estoque máximo de ${rowItem.quantity}`,
+				});
 			}
 		}
+
+		return errorMessages;
 	}
 
 	private async $updateDepositItems(

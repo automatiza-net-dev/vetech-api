@@ -49,6 +49,7 @@ import { format } from "date-fns";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 
 const detSchema = z.object({
 	prod: z.object({
@@ -526,7 +527,7 @@ export default class ReceiptService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereILike("tag", `%${data.tag}%`);
 		}
 
 		if (data.supplier) {
@@ -540,6 +541,7 @@ export default class ReceiptService {
 		return (await qb).map((elem) => ({
 			id: elem.id,
 			tag: elem.tag,
+			origin: elem.origin,
 			issueDate: elem.issueDate,
 			receiptDate: elem.receiptDate,
 			totalValue: elem.totalValue,
@@ -568,18 +570,42 @@ export default class ReceiptService {
 
 				query.preload("productVariation", (query) => {
 					query.preload("product", (query) => {
-						query.select("id", "description");
+						query.select(
+							"id",
+							"description",
+							"reference_code",
+							"purpose",
+							"subgroup_id",
+							"unit_id",
+							"taxation_group_id",
+						);
+
+						query.preload("subgroup", (query) => {
+							query.select("id");
+						});
+						query.preload("unit", (query) => {
+							query.select("id");
+						});
+						query.preload("taxationGroup", (query) => {
+							query.select("id");
+						});
 					});
 					query.preload("businessUnitProducts", (query) => {
 						query.where("businness_unit_id", authCtx.unit.id);
-
-						query.select("id", "businness_unit_id", "cost_price");
 					});
 				});
 			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
-			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
+			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[])
+			.whereHas("items", (query) => {
+				query.whereNotNull("product_variation_id");
+				query.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.whereNull("purpose");
+					});
+				});
+			});
 
 		return (await qb).map((elem) => ({
 			id: elem.id,
@@ -661,7 +687,7 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
-				referenceCode: string;
+				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
 				minimumStock: number;
@@ -689,11 +715,13 @@ export default class ReceiptService {
 
 				await product
 					.merge({
-						referenceCode: item.referenceCode,
 						unit_id: item.unitId,
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
+
+						referenceCode: item.referenceCode,
+						purpose: item.purpose,
 					})
 					.useTransaction(trx)
 					.save();
@@ -850,6 +878,7 @@ export default class ReceiptService {
 					seller_id: authCtx.user.id,
 					daily_movement_id: dailyMovementId,
 
+					origin: "Xml",
 					issueDate: DateTime.now(),
 					receiptDate: DateTime.now(),
 					tag: GenerateTag(receiptsCounter.length + 1),
@@ -877,56 +906,56 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			if (parsed.data.nfeProc.NFe.infNFe.cobr) {
-				const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
-				if (d1) {
-					await newReceipt.related("payments").create(
-						{
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							block: 1,
-							installment: 1,
-							blockInstallments: 1,
-							installmentValue: d1.vLiq,
-							issueDate: DateTime.now(),
-							expirationDate: DateTime.now(),
-							nsuDocument: d1.nFat,
-							status: "Ativo",
-						},
-						{ client: trx },
-					);
-
-					newReceipt.merge({
-						paidValue: newReceipt.paidValue + d1.vLiq,
-					});
-				}
-
-				const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
-				if (d2) {
-					await newReceipt.related("payments").create(
-						{
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							block: d1 ? 2 : 1,
-							installment: 1,
-							blockInstallments: 1,
-							installmentValue: d2.vDup,
-							issueDate: DateTime.now(),
-							expirationDate: DateTime.fromISO(d2.dVenc),
-							nsuDocument: d2.nDup,
-							status: "Ativo",
-						},
-						{ client: trx },
-					);
-
-					newReceipt.merge({
-						paidValue: newReceipt.paidValue + d2.vDup,
-					});
-				}
-			}
-
-			await newReceipt.useTransaction(trx).save();
-
+			// if (parsed.data.nfeProc.NFe.infNFe.cobr) {
+			// 	const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
+			// 	if (d1) {
+			// 		await newReceipt.related("payments").create(
+			// 			{
+			// 				economic_group_id: authCtx.group.id,
+			// 				business_unit_id: authCtx.unit.id,
+			// 				block: 1,
+			// 				installment: 1,
+			// 				blockInstallments: 1,
+			// 				installmentValue: d1.vLiq,
+			// 				issueDate: DateTime.now(),
+			// 				expirationDate: DateTime.now(),
+			// 				nsuDocument: d1.nFat,
+			// 				status: "Ativo",
+			// 			},
+			// 			{ client: trx },
+			// 		);
+			//
+			// 		newReceipt.merge({
+			// 			paidValue: newReceipt.paidValue + d1.vLiq,
+			// 		});
+			// 	}
+			//
+			// 	const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
+			// 	if (d2) {
+			// 		await newReceipt.related("payments").create(
+			// 			{
+			// 				economic_group_id: authCtx.group.id,
+			// 				business_unit_id: authCtx.unit.id,
+			// 				block: d1 ? 2 : 1,
+			// 				installment: 1,
+			// 				blockInstallments: 1,
+			// 				installmentValue: d2.vDup,
+			// 				issueDate: DateTime.now(),
+			// 				expirationDate: DateTime.fromISO(d2.dVenc),
+			// 				nsuDocument: d2.nDup,
+			// 				status: "Ativo",
+			// 			},
+			// 			{ client: trx },
+			// 		);
+			//
+			// 		newReceipt.merge({
+			// 			paidValue: newReceipt.paidValue + d2.vDup,
+			// 		});
+			// 	}
+			// }
+			//
+			// await newReceipt.useTransaction(trx).save();
+			//
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,
 				(val) => val,
@@ -1047,7 +1076,7 @@ export default class ReceiptService {
 					movementType: BusinessUnitFiscalDocumentMovementType.E,
 					model: parsed.data.nfeProc.NFe.infNFe.ide.mod,
 					series: parsed.data.nfeProc.NFe.infNFe.ide.serie,
-					sequence: parseInt(parsed.data.nfeProc.NFe.infNFe.ide.nNF, 10),
+					sequence: parsed.data.nfeProc.NFe.infNFe.ide.nNF,
 					purpose: "Importação XML",
 					accessKey: parsed.data.nfeProc.protNFe.infProt.chNFe,
 					authorizationDate: DateTime.fromISO(
@@ -1416,6 +1445,12 @@ export default class ReceiptService {
 			const dailyCashier = await this.sharedService.getContextCashier(
 				authCtx,
 				trx,
+				true,
+			);
+			const dailyMovement = await this.sharedService.getContextMovement(
+				authCtx,
+				trx,
+				true,
 			);
 
 			const receipt = await Receipt.create(
@@ -1426,10 +1461,11 @@ export default class ReceiptService {
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
 					daily_cashier_id: dailyCashier?.id,
-					daily_movement_id: data.dailyMovementId,
+					daily_movement_id: dailyMovement?.id,
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
 
+					origin: "Manual",
 					tag: GenerateTag(counter.length + 1),
 					issueDate: DateTime.now(),
 					receiptDate: data.receiptDate,
@@ -1447,7 +1483,7 @@ export default class ReceiptService {
 					receiptId: receipt.id,
 					productVariationId: elem.productVariationId,
 					quantity: elem.quantity,
-					costValue: elem.costValue,
+					costValue: elem.unitaryValue,
 					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 				});
@@ -1532,23 +1568,23 @@ export default class ReceiptService {
 			.preload("taxOperation")
 			.first();
 
-		const ufIcms = await UfIcms.query()
-			.useTransaction(trx)
-			.where("origin_uf", rule?.toUf ?? "-")
-			.where("destination_uf", rule?.toUf ?? "-")
-			.first();
-
-		const totalValue = data.unitaryValue * data.quantity - data.discountValue;
-		const icmsBase =
-			totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-		const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
-		const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
-		const icmsStPercentageRedBase = rule?.ivaIcmsSt
-			? rule?.icmsPercRedBaseCalculoST
-			: undefined;
-		const icmsStBase_2 = rule?.ivaIcmsSt
-			? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
-			: 0;
+		// const ufIcms = await UfIcms.query()
+		// 	.useTransaction(trx)
+		// 	.where("origin_uf", rule?.toUf ?? "-")
+		// 	.where("destination_uf", rule?.toUf ?? "-")
+		// 	.first();
+		//
+		// const totalValue = data.unitaryValue * data.quantity - data.discountValue;
+		// const icmsBase =
+		// 	totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+		// const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+		// const icmsStBase_1 = icmsBase + (icmsBase * (rule?.ivaIcmsSt ?? 0)) / 100;
+		// const icmsStPercentageRedBase = rule?.ivaIcmsSt
+		// 	? rule?.icmsPercRedBaseCalculoST
+		// 	: undefined;
+		// const icmsStBase_2 = rule?.ivaIcmsSt
+		// 	? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+		// 	: 0;
 
 		return ReceiptItem.create(
 			{
@@ -1568,52 +1604,52 @@ export default class ReceiptService {
 				tax_operation_id: rule?.tax_operation_id,
 				fiscalOperationCode: rule?.taxOperation?.code,
 
-				icmsOriginProduct: productVariation.product.icmsOrigin,
-				icmsCst: rule?.icmsCst,
-				icmsBase,
-				icmsPercentage: rule?.icmsPerc,
-				icmsValue,
-				icmsDeferredValue: 0,
-				icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-				icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
-					? icmsStBase_2
-					: undefined,
-				icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-				icmsStIva: rule?.icmsPercRedAliquota,
-				icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
-				icmsStValue:
-					this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
-						? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
-						: undefined,
-				icmsPartitionValue: 0,
-				icmsFcpPercentage: rule?.fcpPerc,
-				icmsFcpValue: 0,
-				icmsPartitionOriginUfPercentage: rule?.icmsPerc,
-				icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
-				icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
-
-				issCst: rule?.icmsCst,
-				issBase: icmsBase,
-				issPercentage: rule?.icmsPerc,
-				issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
-
-				pisCst: rule?.pisCst,
-				pisBase: totalValue,
-				pisPercentage: rule?.pisPerc,
-				pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
-				pisRetentionValue: 0,
-
-				cofinsCst: rule?.cofinsCst,
-				cofinsBase: totalValue,
-				cofinsPercentage: rule?.cofinsPerc,
-				cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
-				cofinsRetentionValue: 0,
-
-				ipiCst: rule?.ipiCst,
-				ipiBase: 0,
-				ipiPercentage: rule?.ipiPerc,
-				ipiValue: 0,
+				// icmsOriginProduct: productVariation.product.icmsOrigin,
+				// icmsCst: rule?.icmsCst,
+				// icmsBase,
+				// icmsPercentage: rule?.icmsPerc,
+				// icmsValue,
+				// icmsDeferredValue: 0,
+				// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+				// icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				// icmsStBase: this.sharedService.isValidNumber(rule?.ivaIcmsSt)
+				// 	? icmsStBase_2
+				// 	: undefined,
+				// icmsStPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+				// icmsStIva: rule?.icmsPercRedAliquota,
+				// icmsStPercentageUfDestination: ufIcms?.icmsPercentage,
+				// icmsStValue:
+				// 	this.sharedService.isValidNumber(rule?.ivaIcmsSt) && ufIcms
+				// 		? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+				// 		: undefined,
+				// icmsPartitionValue: 0,
+				// icmsFcpPercentage: rule?.fcpPerc,
+				// icmsFcpValue: 0,
+				// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+				// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
+				// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
+				//
+				// issCst: rule?.icmsCst,
+				// issBase: icmsBase,
+				// issPercentage: rule?.icmsPerc,
+				// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
+				//
+				// pisCst: rule?.pisCst,
+				// pisBase: totalValue,
+				// pisPercentage: rule?.pisPerc,
+				// pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
+				// pisRetentionValue: 0,
+				//
+				// cofinsCst: rule?.cofinsCst,
+				// cofinsBase: totalValue,
+				// cofinsPercentage: rule?.cofinsPerc,
+				// cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
+				// cofinsRetentionValue: 0,
+				//
+				// ipiCst: rule?.ipiCst,
+				// ipiBase: 0,
+				// ipiPercentage: rule?.ipiPerc,
+				// ipiValue: 0,
 			},
 			{
 				client: trx,
@@ -1651,27 +1687,60 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
+			const sum = this.sharedService.sum(
+				data.items.map((i) => i.installmentValue),
+			);
+
+			const decimalTotal = new Decimal(receipt.totalValue.toString());
+			const decimalSum = new Decimal(sum);
+			const decimalPaid = new Decimal(receipt.paidValue.toString());
+
+			if (decimalTotal.minus(decimalPaid).lessThan(decimalSum)) {
+				throw new BadRequestException(
+					"Valores adicionais acima do valor total da nota",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			const paymentMethods = await PaymentMethod.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((i) => i.paymentMethodId),
+				);
+
 			const tasks = data.items.map((elem, index) => {
 				return ReceiptPayment.createMany(
 					Array.from<number, Partial<ReceiptPayment>>(
 						{ length: elem.installments },
-						(_, idx) => ({
-							economic_group_id: authCtx.group.id,
-							business_unit_id: authCtx.unit.id,
-							receipt_id: data.receiptId,
-							payment_method_id: elem.paymentMethodId,
-							tef_acquirer_id: elem.tefAcquirerId,
-							tef_flag_id: elem.tefFlagId,
+						(_, idx) => {
+							const paymentMethod = paymentMethods.find(
+								(p) => p.id === elem.paymentMethodId,
+							) as PaymentMethod;
 
-							installment: idx + 1,
-							block: index + 1 + receipt.payments.length,
-							blockInstallments: elem.installments,
-							installmentValue: elem.installmentValue / elem.installments,
-							issueDate: elem.issueDate,
-							expirationDate: elem.expirationDate,
-							nsuDocument: elem.nsuDocument,
-							status: "Ativo",
-						}),
+							return {
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								receipt_id: data.receiptId,
+								payment_method_id: elem.paymentMethodId,
+								tef_acquirer_id: elem.tefAcquirerId,
+								tef_flag_id: elem.tefFlagId,
+
+								installment: idx + 1,
+								block: index + 1 + receipt.payments.length,
+								blockInstallments: elem.installments,
+								installmentValue: elem.installmentValue / elem.installments,
+								issueDate: elem.issueDate,
+								expirationDate: elem.expirationDate.plus({
+									days:
+										paymentMethod.daysFirstInstallment +
+										paymentMethod.daysBetweenInstallments * idx,
+								}),
+								nsuDocument: elem.nsuDocument,
+								status: "Ativo",
+							};
+						},
 					),
 
 					{ client: trx },
@@ -1708,13 +1777,15 @@ export default class ReceiptService {
 	async updatePayment(
 		authCtx: AuthContext,
 		data: {
-			receiptPaymentIds: string[];
-			paymentMethodId: string;
-			tefFlagId?: string;
-			tefAcquirerId?: string;
-			installmentValue: number;
-			expirationDate: DateTime;
-			nsuDocument: string;
+			items: {
+				receiptPaymentId: string;
+				paymentMethodId: string;
+				tefFlagId?: string;
+				tefAcquirerId?: string;
+				installmentValue: number;
+				expirationDate: DateTime;
+				nsuDocument?: string;
+			}[];
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -1725,9 +1796,12 @@ export default class ReceiptService {
 						.where("economic_group_id", authCtx.group.id)
 						.where("business_unit_id", authCtx.unit.id);
 				})
-				.whereIn("id", data.receiptPaymentIds);
+				.whereIn(
+					"id",
+					data.items.map((elem) => elem.receiptPaymentId),
+				);
 
-			if (payments.length !== data.receiptPaymentIds.length) {
+			if (payments.length !== data.items.length) {
 				throw new BadRequestException(
 					"Não foi possível encontrar todos os pagamentos",
 					400,
@@ -1735,37 +1809,41 @@ export default class ReceiptService {
 				);
 			}
 
-			await ReceiptPayment.query()
-				.useTransaction(trx)
-				.whereIn("id", data.receiptPaymentIds)
-				.update({
-					payment_method_id: data.paymentMethodId,
-					tef_acquirer_id: data.tefAcquirerId,
-					tef_flag_id: data.tefFlagId,
-					installmentValue: data.installmentValue,
-					expirationDate: data.expirationDate,
-					nsuDocument: data.nsuDocument,
-				});
+			const updateTasks = data.items.map((item) => {
+				return ReceiptPayment.query()
+					.useTransaction(trx)
+					.where("id", item.receiptPaymentId)
+					.update({
+						payment_method_id: item.paymentMethodId,
+						tef_acquirer_id: item.tefAcquirerId,
+						tef_flag_id: item.tefFlagId,
+						installmentValue: item.installmentValue,
+						expirationDate: item.expirationDate,
+						nsuDocument: item.nsuDocument,
+					});
+			});
+			await Promise.all(updateTasks);
 
 			const updatedPayments = await ReceiptPayment.query()
 				.useTransaction(trx)
-				.whereIn("id", data.receiptPaymentIds)
+				.whereIn(
+					"id",
+					data.items.map((elem) => elem.receiptPaymentId),
+				)
 				.preload("receipt");
 
-			const uniqueReceipts = updatedPayments.reduce(
-				(acc, current) => {
-					if (!acc.find((elem) => elem.id === current.receipt.id)) {
-						acc.push(current.receipt);
-					}
-					return acc;
-				},
-				[] as Receipt[],
-			);
+			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
+				if (!acc.find((elem) => elem.id === current.receipt.id)) {
+					acc.push(current.receipt);
+				}
+				return acc;
+			}, [] as Receipt[]);
 
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()
 					.useTransaction(trx)
-					.where("receipt_id", elem.id);
+					.where("receipt_id", elem.id)
+					.where("status", "Ativo" as TReceiptPaymentStatus);
 
 				await elem
 					.merge({
@@ -1777,6 +1855,22 @@ export default class ReceiptService {
 					.save();
 			});
 			await Promise.all(tasks);
+
+			const checkTasks = uniqueReceipts.map(async (elem) => {
+				const updated = await elem.refresh();
+
+				const decimalTotal = new Decimal(updated.totalValue.toString());
+				const decimalPaid = new Decimal(updated.paidValue.toString());
+
+				if (decimalTotal.lessThan(decimalPaid)) {
+					throw new BadRequestException(
+						`Valores adicionais acima do valor total da nota ${updated.tag}`,
+						400,
+						"E_INVALID",
+					);
+				}
+			});
+			await Promise.all(checkTasks);
 		});
 	}
 
@@ -1873,21 +1967,81 @@ export default class ReceiptService {
 			await Promise.all(tasks);
 
 			await Database.rawQuery(
-				`update deposit_items
-        set quantity = di.quantity + ri.quantity
-        from deposit_items di
-          join deposits d on di.deposit_id = d.id
-          join receipt_items ri
-            on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
-          join business_unit_configs buc
-            on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
-        where ri.receipt_id = ?`,
-				[receipt.id],
+				`
+        insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at, updated_at)
+        select ?, bup.id, bup.product_variation_id, 0, 'Ativo', now(), now()
+        from receipt_items ri
+          join business_unit_products bup
+            on ri.product_variation_id = bup.product_variation_id and ri.business_unit_id = bup.businness_unit_id
+        where ri.receipt_id = ?
+          and ri.product_variation_id not in (select product_variation_id from deposit_items where deposit_id = ?)`,
+				[
+					authCtx.unit.unitConfig.incoming_deposit_id,
+					receipt.id,
+					authCtx.unit.unitConfig.incoming_deposit_id,
+				],
 			)
 				.useTransaction(trx)
 				.exec();
 
-			await this.$syncItems(trx, receipt);
+			await Database.rawQuery(
+				`
+        update deposit_items set quantity =
+(
+    select di.quantity + ri.quantity
+    from deposit_items di
+      join deposits d on di.deposit_id = d.id
+      join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
+      join business_unit_configs buc on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
+    where ri.receipt_id = ?
+      and deposit_items.id = di.id
+          )
+where deposit_id = ?
+and product_variation_id in (
+    select product_variation_id from receipt_items where receipt_id = ?
+)
+          `,
+				[receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
+		});
+	}
+
+	async reopenReceipt(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.receiptId)
+				.first();
+
+			if (!receipt) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (receipt.status !== "Baixada") {
+				throw new BadRequestException(
+					"Esta Nota não está baixada",
+					400,
+					"E_NOTA_FINALIZADA",
+				);
+			}
+
+			await receipt
+				.merge({
+					status: "Aberta",
+					reversal_user_id: authCtx.user.id,
+					reversedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 
@@ -2012,7 +2166,6 @@ export default class ReceiptService {
 	) {
 		const qb = Product.query()
 			.where("economic_group_id", authCtx.group.id)
-			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
 			.where("type", ProductType.PRODUCT)
 			.where("active", true);
 
@@ -2229,12 +2382,13 @@ export default class ReceiptService {
 				.whereIn("id", data.receiptItemIds);
 
 			const newProducts = await Product.createMany(
-				rowItems.map((elem) => ({
+				rowItems.map<Partial<Product>>((elem) => ({
 					economic_group_id: authCtx.group.id,
 					description: elem.descriptionXml ?? "Não informado",
 					type: ProductType.PRODUCT,
 					ncm: elem.ncmXml,
 					active: true,
+					icmsOrigin: "0",
 				})),
 				{ client: trx },
 			);
@@ -2288,47 +2442,48 @@ export default class ReceiptService {
 			await BusinessUnitProduct.createMany(buProductData, { client: trx });
 
 			// fetchOrCreateMany deveria funcionar, mas não funciona 🤔
-			const supplierTasks = rowItems.map((elem) => {
-				const existingProduct = SupplierProduct.query()
-					.useTransaction(trx)
-					.where("economic_group_id", authCtx.group.id)
-					.where("supplier_id", row.supplier_id)
-					.where("product_variation_id", elem.product_variation_id)
-					.first();
+			// const supplierTasks = rowItems.map(async (elem) => {
+			// 	const existingProduct = await SupplierProduct.query()
+			// 		.useTransaction(trx)
+			// 		.where("economic_group_id", authCtx.group.id)
+			// 		.where("supplier_id", row.supplier_id)
+			// 		.where("product_variation_id", elem.product_variation_id)
+			// 		.where("product_supplier_id", elem.barcodeXml)
+			// 		.first();
+			//
+			// 	if (existingProduct) {
+			// 		return existingProduct;
+			// 	}
+			//
+			// 	return SupplierProduct.create(
+			// 		{
+			// 			economic_group_id: authCtx.group.id,
+			// 			supplier_id: row.supplier_id,
+			// 			product_variation_id: elem.product_variation_id,
+			// 			product_supplier_id: elem.barcodeXml,
+			// 		},
+			// 		{ client: trx },
+			// 	);
+			// });
+			// await Promise.all(supplierTasks);
 
-				if (existingProduct) {
-					return existingProduct;
-				}
-
-				return SupplierProduct.create(
-					{
-						economic_group_id: authCtx.group.id,
-						supplier_id: row.supplier_id,
-						product_variation_id: elem.product_variation_id,
-						product_supplier_id: elem.barcodeXml,
-					},
-					{ client: trx },
-				);
-			});
-			await Promise.all(supplierTasks);
-
-			// await SupplierProduct.fetchOrCreateMany(
-			// 	[
-			// 		"economic_group_id",
-			// 		"supplier_id",
-			// 		"product_variation_id",
-			// 		"product_supplier_id",
-			// 	],
-			// 	rowItems.map((elem) => ({
-			// 		economic_group_id: authCtx.group.id,
-			// 		supplier_id: row.supplier_id,
-			// 		product_variation_id: newProductVariations.find(
-			// 			(p) => p.barcode === elem.barcodeXml,
-			// 		)?.id,
-			// 		product_supplier_id: elem.barcodeXml,
-			// 	})),
-			// 	{ client: trx },
-			// );
+			await SupplierProduct.fetchOrCreateMany(
+				[
+					"economic_group_id",
+					"supplier_id",
+					"product_variation_id",
+					"product_supplier_id",
+				],
+				rowItems.map((elem) => ({
+					economic_group_id: authCtx.group.id,
+					supplier_id: row.supplier_id,
+					product_variation_id: newProductVariations.find(
+						(p) => p.barcode === elem.barcodeXml,
+					)?.id,
+					product_supplier_id: elem.barcodeXml,
+				})),
+				{ client: trx },
+			);
 		});
 	}
 
@@ -2487,51 +2642,51 @@ export default class ReceiptService {
 					items.map((elem) => elem.discountValue),
 				),
 				totalValue: this.sharedService.sum(
-					items.flatMap((elem) => [elem.totalValue, -elem.discountValue]),
+					items.map((elem) => elem.totalValue),
 				),
 				deliveryValue: 0,
 
-				icmsBase: this.sharedService.sum(items.map((elem) => elem.icmsBase)),
-				icmsValue: this.sharedService.sum(items.map((elem) => elem.icmsValue)),
-				icmsStBase: this.sharedService.sum(
-					items.map((elem) => elem.icmsStBase),
-				),
-				icmsStValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsStValue),
-				),
-				icmsDeferredValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsDeferredValue),
-				),
-				icmsFcpValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsFcpValue),
-				),
-				icmsUfOriginValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsPartitionOriginUfValue),
-				),
-				icmsUfDestinationValue: this.sharedService.sum(
-					items.map((elem) => elem.icmsPartitionDestinationUfValue),
-				),
-
-				issValue: this.sharedService.sum(items.map((elem) => elem.issValue)),
-
-				pisBase: this.sharedService.sum(items.map((elem) => elem.pisBase)),
-				pisValue: this.sharedService.sum(items.map((elem) => elem.pisValue)),
-				pisRetentionValue: this.sharedService.sum(
-					items.map((elem) => elem.pisRetentionValue),
-				),
-
-				cofinsBase: this.sharedService.sum(
-					items.map((elem) => elem.cofinsBase),
-				),
-				cofinsValue: this.sharedService.sum(
-					items.map((elem) => elem.cofinsValue),
-				),
-				cofinsRetentionValue: this.sharedService.sum(
-					items.map((elem) => elem.cofinsRetentionValue),
-				),
-
-				ipiBase: this.sharedService.sum(items.map((elem) => elem.ipiBase)),
-				ipiValue: this.sharedService.sum(items.map((elem) => elem.ipiValue)),
+				// icmsBase: this.sharedService.sum(items.map((elem) => elem.icmsBase)),
+				// icmsValue: this.sharedService.sum(items.map((elem) => elem.icmsValue)),
+				// icmsStBase: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsStBase),
+				// ),
+				// icmsStValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsStValue),
+				// ),
+				// icmsDeferredValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsDeferredValue),
+				// ),
+				// icmsFcpValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsFcpValue),
+				// ),
+				// icmsUfOriginValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsPartitionOriginUfValue),
+				// ),
+				// icmsUfDestinationValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.icmsPartitionDestinationUfValue),
+				// ),
+				//
+				// issValue: this.sharedService.sum(items.map((elem) => elem.issValue)),
+				//
+				// pisBase: this.sharedService.sum(items.map((elem) => elem.pisBase)),
+				// pisValue: this.sharedService.sum(items.map((elem) => elem.pisValue)),
+				// pisRetentionValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.pisRetentionValue),
+				// ),
+				//
+				// cofinsBase: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsBase),
+				// ),
+				// cofinsValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsValue),
+				// ),
+				// cofinsRetentionValue: this.sharedService.sum(
+				// 	items.map((elem) => elem.cofinsRetentionValue),
+				// ),
+				//
+				// ipiBase: this.sharedService.sum(items.map((elem) => elem.ipiBase)),
+				// ipiValue: this.sharedService.sum(items.map((elem) => elem.ipiValue)),
 			})
 			.useTransaction(trx)
 			.save();

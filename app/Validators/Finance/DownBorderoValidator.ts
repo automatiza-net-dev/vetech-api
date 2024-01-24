@@ -40,6 +40,8 @@ export default class DownBorderoValidator {
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
 
+		interestValue: schema.number(),
+		discountValue: schema.number(),
 		paymentDate: schema.date(),
 	});
 

@@ -185,7 +185,6 @@ export default class AuthService {
 		const qb = user
 			.related("roles")
 			.query()
-			.debug(true)
 			.preload("role", (query) => {
 				query.preload("permissions", (query) => {
 					query.where("status", true);

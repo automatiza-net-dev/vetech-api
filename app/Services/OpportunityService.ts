@@ -387,7 +387,7 @@ export default class OpportunityService {
 
 			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
 				id: v.id,
-				name: v.description,
+				description: v.description,
 				observation: v.observation,
 				balance: v.balance,
 			})),

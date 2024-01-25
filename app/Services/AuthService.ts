@@ -172,7 +172,68 @@ export default class AuthService {
 		};
 	}
 
-	public async getRoles(user: User, sID: number, isLogin: boolean) {
+	public async getUserACL(user: User, sID: number, unitID: string | null) {
+		if (!user.type) {
+			throw new BadRequestException("Usuário sem tipo", 400, "E_NO_TYPE");
+		}
+
+		const qb = Database.from("user_unit_roles")
+			.select(Database.raw("distinct permissions.control_id"))
+			.join("users", "users.id", "user_unit_roles.user_id")
+			.join("roles", "roles.id", "user_unit_roles.role_id")
+			.join("role_permissions", "roles.id", "role_permissions.role_id")
+			.join("permissions", "role_permissions.permission_id", "permissions.id")
+			.join("business_units", "user_unit_roles.unit_id", "business_units.id")
+			.join(
+				"economic_groups",
+				"business_units.economic_group_id",
+				"economic_groups.id",
+			)
+			.where("users.id", user.id)
+			.where("economic_groups.system_id", sID)
+			.where("roles.active", true)
+			.where("role_permissions.active", true)
+			.where("role_permissions.status", true)
+			.whereNull("permissions.deleted_at");
+
+		if (unitID) {
+			qb.where("business_units.id", unitID);
+		}
+
+		if (user.type === "user") {
+			qb.whereIn("roles.type", ["user", "both", "all"] as TRoleType[]);
+			qb.whereIn("permissions.type", [
+				"user",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (user.type === "controller") {
+			qb.whereIn("roles.type", ["controller", "both", "all"] as TRoleType[]);
+			qb.whereIn("permissions.type", [
+				"controller",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (user.type === "system") {
+			qb.whereIn("roles.type", ["system", "all"] as TRoleType[]);
+			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
+		}
+
+		const rows = await qb;
+
+		return rows.map((r) => r.control_id);
+	}
+
+	public async getRoles(
+		user: User,
+		sID: number,
+		unitID: string | null,
+		isLogin: boolean,
+	) {
 		if (!user.type) {
 			throw new BadRequestException("Usuário sem tipo", 400, "E_NO_TYPE");
 		}
@@ -199,9 +260,17 @@ export default class AuthService {
 				});
 				query.where("active", true);
 
+				if (unitID) {
+					query.where("id", unitID);
+				}
+
 				query.preload("economicGroup");
 			})
 			.whereHas("unit", (query) => {
+				if (unitID) {
+					query.where("id", unitID);
+				}
+
 				query.whereHas("economicGroup", (query) => {
 					query.where("system_id", sID);
 				});
@@ -327,7 +396,7 @@ export default class AuthService {
 				);
 			}
 
-			const roles = await this.getRoles(user, system.id, true);
+			const roles = await this.getRoles(user, system.id, null, true);
 
 			const validUnits = roles
 				.map((r) => r.unit)
@@ -447,7 +516,7 @@ export default class AuthService {
 	}
 
 	public async getAvailableSwaps(user: User, systemID: number) {
-		const roles = await this.getRoles(user, systemID, false);
+		const roles = await this.getRoles(user, systemID, null, false);
 
 		const validUnits = roles
 			.map((r) => r.unit)

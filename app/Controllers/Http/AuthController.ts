@@ -150,18 +150,11 @@ export default class AuthController {
 			]);
 		});
 
-		const userRoles = await this.authService.getRoles(user, system.id, false);
-
-		const controlIds = userRoles.flatMap((r) =>
-			r.role.permissions.map((p) => p.control_id),
-		);
-		const uniqueControls = Array.from(new Set(controlIds));
-
 		return response.ok({
 			user,
 			unit,
 			url: economicGroup.system.systemUrls.at(0) ?? null,
-			cl: uniqueControls,
+			cl: await this.authService.getUserACL(user, system_id, unit.id),
 		});
 	}
 

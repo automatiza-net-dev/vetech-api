@@ -432,8 +432,8 @@ export default class FinanceService {
 						"left join tef_flags on borderos.tef_flag_id = tef_flags.id",
 						[],
 					)
-					.whereIn("borderos.business_unit_id", units);
-				// .whereNull("borderos.deleted_at")
+					.whereIn("borderos.business_unit_id", units)
+					.whereNull("borderos.deleted_at");
 
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);

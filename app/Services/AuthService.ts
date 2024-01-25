@@ -172,7 +172,12 @@ export default class AuthService {
 		};
 	}
 
-	public async getRoles(user: User, sID: number, isLogin: boolean) {
+	public async getRoles(
+		user: User,
+		sID: number,
+		unitID: string | null,
+		isLogin: boolean,
+	) {
 		if (!user.type) {
 			throw new BadRequestException("Usuário sem tipo", 400, "E_NO_TYPE");
 		}
@@ -180,6 +185,7 @@ export default class AuthService {
 		const qb = user
 			.related("roles")
 			.query()
+			.debug(true)
 			.preload("role", (query) => {
 				query.preload("permissions", (query) => {
 					query.where("status", true);
@@ -199,9 +205,17 @@ export default class AuthService {
 				});
 				query.where("active", true);
 
+				if (unitID) {
+					query.where("id", unitID);
+				}
+
 				query.preload("economicGroup");
 			})
 			.whereHas("unit", (query) => {
+				if (unitID) {
+					query.where("id", unitID);
+				}
+
 				query.whereHas("economicGroup", (query) => {
 					query.where("system_id", sID);
 				});
@@ -327,7 +341,7 @@ export default class AuthService {
 				);
 			}
 
-			const roles = await this.getRoles(user, system.id, true);
+			const roles = await this.getRoles(user, system.id, null, true);
 
 			const validUnits = roles
 				.map((r) => r.unit)
@@ -447,7 +461,7 @@ export default class AuthService {
 	}
 
 	public async getAvailableSwaps(user: User, systemID: number) {
-		const roles = await this.getRoles(user, systemID, false);
+		const roles = await this.getRoles(user, systemID, null, false);
 
 		const validUnits = roles
 			.map((r) => r.unit)

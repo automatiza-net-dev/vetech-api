@@ -150,7 +150,12 @@ export default class AuthController {
 			]);
 		});
 
-		const userRoles = await this.authService.getRoles(user, system.id, false);
+		const userRoles = await this.authService.getRoles(
+			user,
+			system.id,
+			unit.id,
+			false,
+		);
 
 		const controlIds = userRoles.flatMap((r) =>
 			r.role.permissions.map((p) => p.control_id),

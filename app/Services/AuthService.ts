@@ -183,11 +183,7 @@ export default class AuthService {
 			.join("roles", "roles.id", "user_unit_roles.role_id")
 			.join("role_permissions", "roles.id", "role_permissions.role_id")
 			.join("permissions", "role_permissions.permission_id", "permissions.id")
-			.join(
-				"business_units",
-				"user_unit_roles.unit_id",
-				"user_unit_roles.unit_id",
-			)
+			.join("business_units", "user_unit_roles.unit_id", "business_units.id")
 			.join(
 				"economic_groups",
 				"business_units.economic_group_id",

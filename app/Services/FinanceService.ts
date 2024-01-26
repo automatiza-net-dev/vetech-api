@@ -2182,7 +2182,7 @@ export default class FinanceService {
 		const relativeValue =
 			bordero.type === "Debito" ? -bordero.paymentValue : bordero.paymentValue;
 
-		await Banking.create(
+		const banking = await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
 				business_unit_id: bordero.business_unit_id,
@@ -2192,7 +2192,7 @@ export default class FinanceService {
 				checking_account_id: bordero.checking_account_id,
 				daily_movement_id: bordero.daily_movement_id,
 				// daily_cashier_id: bordero.daily_cashier_id,
-				// finance_id: bordero.id, // TODO - consertar
+				finance_id: bordero.id, // TODO - consertar
 				type: bordero.type === "Debito" ? BankingType.D : BankingType.C,
 				document: bordero.document,
 				historic: bordero.history,
@@ -2217,6 +2217,11 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		await bordero
+			.merge({ bank_statement_id: banking.id })
+			.useTransaction(trx)
+			.save();
 
 		if (checkingAccount) {
 			await checkingAccount
@@ -2328,7 +2333,7 @@ export default class FinanceService {
 		const relativeValue =
 			bordero.type === "Debito" ? bordero.paymentValue : -bordero.paymentValue;
 
-		await Banking.create(
+		const banking = await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
 				business_unit_id: bordero.business_unit_id,
@@ -2338,7 +2343,7 @@ export default class FinanceService {
 				checking_account_id: bordero.checking_account_id,
 				daily_movement_id: bordero.daily_movement_id,
 				// daily_cashier_id: bordero.daily_cashier_id,
-				// finance_id: bordero.id, // TODO - consertar
+				finance_id: bordero.id, // TODO - consertar
 				type: bordero.type === "Debito" ? BankingType.C : BankingType.D,
 				document: bordero.document,
 				historic: bordero.history,
@@ -2363,6 +2368,11 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		await bordero
+			.merge({ bank_statement_id: banking.id })
+			.useTransaction(trx)
+			.save();
 
 		if (checkingAccount) {
 			await checkingAccount

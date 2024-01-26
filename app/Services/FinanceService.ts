@@ -495,11 +495,9 @@ export default class FinanceService {
 					builder.where("borderos.nsu_document", data.nsu);
 				}
 
-				// if (data.status) {
-				// 	builder.where("borderos.status", data.status);
-				// } else {
-				// 	builder.whereNot("borderos.status", '' as TBorderoType)
-				// }
+				if (data.status) {
+					builder.whereILike("borderos.status", `%${data.status}%`);
+				}
 
 				// if (data.accept) {
 				// 	builder.where("borderos.accept", data.accept);

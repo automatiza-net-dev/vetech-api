@@ -15,6 +15,7 @@ import UpdateBorderoValidator from "App/Validators/Finance/UpdateBorderoValidato
 import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDownValidator";
 import UpdateFinanceReversalValidator from "App/Validators/Finance/UpdateFinanceReversalValidator";
 import UpdateFinanceValidator from "App/Validators/Finance/UpdateFinanceValidator";
+import UpdateGroupedFinanceDownValidator from "App/Validators/Finance/UpdateGroupedFinanceDownValidator";
 import UpsertFinanceValidator from "App/Validators/Finance/UpsertFinanceValidator";
 
 @inject()
@@ -86,6 +87,50 @@ export default class FinancesController {
 
 			groupBorderos: qs.groupBorderos,
 		});
+
+		return response.ok(result);
+	}
+
+	async groupedIndex({ auth, request, response }: HttpContextContract) {
+		const qs = request.qs();
+		const result = await this.service.groupedIndex(
+			await this.sharedService.getAuthContext(auth),
+			{
+				fromIssueDate: qs.fromIssue,
+				toIssueDate: qs.toIssue,
+
+				fromExpirationDate: qs.fromExpiration,
+				toExpirationDate: qs.toExpiration,
+
+				fromPaymentDate: qs.fromPayment,
+				toPaymentDate: qs.toPayment,
+
+				ids: qs.ids,
+				client: qs.client,
+				document: qs.document,
+				fiscalNote: qs.fiscalNote,
+				paymentMethod: qs.paymentMethod,
+				nsu: qs.nsu,
+				status: qs.status,
+				accept: qs.accept,
+				reconciled: qs.reconciled,
+				type: qs.type,
+				unit: qs.unit,
+				plan: qs.plan,
+				competence: qs.competence,
+
+				groupBorderos: qs.groupBorderos,
+			},
+		);
+
+		return response.ok(result);
+	}
+
+	async byPaymentGroup({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.financesByPaymentGroup(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
 
 		return response.ok(result);
 	}
@@ -240,6 +285,17 @@ export default class FinancesController {
 		);
 
 		return response.ok(result);
+	}
+
+	async groupedFinanceDown({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(UpdateGroupedFinanceDownValidator);
+
+		await this.service.groupedFinanceDown(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 
 	async updateFinanceDown({ auth, request, response }: HttpContextContract) {

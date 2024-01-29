@@ -875,11 +875,14 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/reduced", "FinancesController.reducedIndex");
+	Route.get("/grouped", "FinancesController.groupedIndex");
+	Route.get("/payment-group", "FinancesController.byPaymentGroup");
 	Route.get("/", "FinancesController.index");
 	Route.post("/create", "FinancesController.storeFinance");
 	Route.post("/create-multiple", "FinancesController.storeMultipleFinances");
 	Route.post("/accept-many", "FinancesController.acceptManyFinances");
 	Route.put("/update/:id", "FinancesController.updateFinance");
+	Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
 	Route.put("/update-down", "FinancesController.updateFinanceDown");
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");

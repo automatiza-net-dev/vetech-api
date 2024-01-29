@@ -218,6 +218,7 @@ export default class ThirdPartyService {
 				expirates_at: userToken.expiresAt,
 				id: user.id,
 				name: user.name,
+				type: user.type,
 				cpf: user.document,
 				email: user.email,
 				cep: user.postalCode,

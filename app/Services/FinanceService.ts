@@ -9,7 +9,7 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, { BorderoStatus, TBorderoType } from "App/Models/Bordero";
+import Bordero, { TBorderoType } from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -23,7 +23,10 @@ import Finance, {
 import FinanceReversal, {
 	FinanceReversalType,
 } from "App/Models/FinanceReversal";
-import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethod, {
+	PaymentMethodTef,
+	PaymentMethodType,
+} from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
@@ -495,11 +498,9 @@ export default class FinanceService {
 					builder.where("borderos.nsu_document", data.nsu);
 				}
 
-				// if (data.status) {
-				// 	builder.where("borderos.status", data.status);
-				// } else {
-				// 	builder.whereNot("borderos.status", '' as TBorderoType)
-				// }
+				if (data.status) {
+					builder.whereILike("borderos.status", `%${data.status}%`);
+				}
 
 				// if (data.accept) {
 				// 	builder.where("borderos.accept", data.accept);
@@ -522,6 +523,478 @@ export default class FinanceService {
 		return qb;
 	}
 
+	async groupedIndex(
+		authCtx: AuthContext,
+		data: ISearch & { checkingAccountId?: string; tefFlagId?: string },
+	) {
+		const units = [authCtx.unit.id];
+		if (data.unit) {
+			units.push(data.unit);
+		}
+
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`finances.id,
+       finances.type,
+       'FINANCE'                   as source,
+       finances.document,
+       finances.installment,
+       finances.issue_date,
+       finances.expiration_date,
+       finances.payment_date,
+       finances.value,
+       finances.total_value,
+       finances.payment_value,
+       finances.origin_flag,
+       finances.origin_down_flag,
+       finances.accept,
+       finances.status,
+       finances.competence_date,
+       finances.fiscal_note,
+       finances.nsu_document,
+       finances.qty_installments,
+       finances.bordero_id,
+       patients.name               as client,
+       finances.payment_method_id,
+       payment_methods.description as payment_method,
+       finances.tef_flag_id,
+       tef_flags.description       as tef_flag,
+       payment_methods.tef         as pm_tef,
+       payment_methods.type        as pm_type`),
+			)
+			.joinRaw("join patients on finances.client_id = patients.id", [])
+			.joinRaw(
+				"left join payment_methods on finances.payment_method_id = payment_methods.id",
+				[],
+			)
+			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.whereNull("finances.deleted_at")
+			.whereIn("finances.business_unit_id", units)
+			.whereNull("finances.bordero_id")
+			.where("payment_methods.tef", PaymentMethodTef.N);
+
+		if (data.fromIssueDate) {
+			qb.whereRaw("finances.issue_date::date >= ?", [data.fromIssueDate]);
+		}
+
+		if (data.toIssueDate) {
+			qb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+		}
+
+		if (data.fromExpirationDate) {
+			qb.whereRaw("finances.expiration_date::date >= ?", [
+				data.fromExpirationDate,
+			]);
+		}
+
+		if (data.toExpirationDate) {
+			qb.whereRaw("finances.expiration_date::date <= ?", [
+				data.toExpirationDate,
+			]);
+		}
+
+		if (data.fromPaymentDate) {
+			qb.whereRaw("finances.payment_date::date >= ?", [data.fromPaymentDate]);
+		}
+
+		if (data.toPaymentDate) {
+			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.client) {
+			qb.where("finances.client_id", data.client);
+		}
+
+		if (data.document) {
+			qb.whereILike("finances.document", `%${data.document}%`);
+		}
+
+		if (data.fiscalNote) {
+			qb.whereILike("finances.fiscal_note", `%${data.fiscalNote}%`);
+		}
+
+		if (data.paymentMethod) {
+			qb.where("finances.payment_method_id", data.paymentMethod);
+		}
+
+		if (data.nsu) {
+			qb.where("finances.nsu_document", data.nsu);
+		}
+
+		if (data.status) {
+			qb.where("finances.status", data.status);
+		} else {
+			qb.whereNot("finances.status", FinanceStatus.E);
+		}
+
+		if (data.accept) {
+			qb.where("finances.accept", data.accept);
+		}
+
+		if (data.reconciled) {
+			qb.where("finances.reconciled", data.reconciled === "true");
+		}
+
+		if (data.type) {
+			qb.where("finances.type", data.type);
+		}
+
+		if (data.plan) {
+			qb.where("finances.account_plan_id", data.plan);
+		}
+
+		if (data.competence) {
+			qb.where("finances.competence_date", data.competence);
+		}
+
+		if (data.checkingAccountId) {
+			qb.where("finances.checking_account_id", data.checkingAccountId);
+		}
+
+		if (data.tefFlagId) {
+			qb.where("finances.tef_flag_id", data.tefFlagId);
+		}
+
+		qb.union((builder) => {
+			builder
+				.from("borderos")
+				.select(
+					Database.raw(`
+		        borderos.id,
+		     upper(borderos.type)                                                    as type,
+		     'BORDERO'                                                               as source,
+		     borderos.document,
+		     1                                                                       as installment,
+		     borderos.issue_date,
+		     borderos.expiration_date                                                as expiration_date,
+		     borderos.payment_date,
+		     borderos.bordero_value                                                  as value,
+		     borderos.total_value,
+		     borderos.payment_value,
+		     'FINANCEIRO'                                                            as origin_flag,
+		     case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
+		     'SIM'                                                                   as accept,
+		     borderos.status,
+		     borderos.competence_date,
+		     null                                                                    as fiscal_note,
+		     borderos.nsu_document                                                   as nsu_document,
+		     borderos.titles_qty                                                     as qty_installments,
+		     borderos.id                                                             as bordero_id,
+		     patients.name                                                           as client,
+		     borderos.payment_method_id,
+		     payment_methods.description                                             as payment_method,
+		     borderos.tef_flag_id,
+		     tef_flags.description                                                   as tef_flag,
+		     payment_methods.tef                                                     as pm_tef,
+		     payment_methods.type                                                    as pm_type
+		                     `),
+				)
+				.joinRaw("join patients on borderos.client_id = patients.id", [])
+				.joinRaw(
+					"join payment_methods on borderos.payment_method_id = payment_methods.id",
+					[],
+				)
+				.joinRaw("join tef_flags on borderos.tef_flag_id = tef_flags.id", [])
+				.whereIn("borderos.business_unit_id", units)
+				.whereNull("borderos.deleted_at");
+
+			if (data.type) {
+				builder.whereILike("borderos.type", data.type);
+			}
+
+			if (data.fromIssueDate) {
+				builder.whereRaw("borderos.issue_date::date >= ?", [
+					data.fromIssueDate,
+				]);
+			}
+
+			if (data.toIssueDate) {
+				builder.whereRaw("borderos.issue_date::date <= ?", [data.toIssueDate]);
+			}
+
+			if (data.fromExpirationDate) {
+				builder.whereRaw("borderos.expiration_date::date >= ?", [
+					data.fromExpirationDate,
+				]);
+			}
+
+			if (data.toExpirationDate) {
+				builder.whereRaw("borderos.expiration_date::date <= ?", [
+					data.toExpirationDate,
+				]);
+			}
+
+			if (data.fromPaymentDate) {
+				builder.whereRaw("borderos.payment_date::date >= ?", [
+					data.fromPaymentDate,
+				]);
+			}
+
+			if (data.toPaymentDate) {
+				builder.whereRaw("borderos.payment_date::date <= ?", [
+					data.toPaymentDate,
+				]);
+			}
+
+			if (data.client) {
+				builder.where("borderos.client_id", data.client);
+			}
+
+			if (data.document) {
+				builder.whereILike("borderos.document", `%${data.document}%`);
+			}
+
+			// if (data.fiscalNote) {
+			// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
+			// }
+
+			if (data.paymentMethod) {
+				builder.where("borderos.payment_method_id", data.paymentMethod);
+			}
+
+			if (data.nsu) {
+				builder.where("borderos.nsu_document", data.nsu);
+			}
+
+			if (data.status) {
+				builder.whereILike("borderos.status", `%${data.status}%`);
+			}
+
+			// if (data.accept) {
+			// 	builder.where("borderos.accept", data.accept);
+			// }
+
+			// if (data.reconciled) {
+			// 	builder.where("borderos.reconciled", data.reconciled === "true");
+			// }
+
+			if (data.plan) {
+				builder.where("borderos.account_plan_id", data.plan);
+			}
+
+			if (data.competence) {
+				builder.where("borderos.competence_date", data.competence);
+			}
+		});
+
+		qb.union((builder) => {
+			builder
+				.from("finances")
+				.select(
+					Database.raw(`
+         null as id,
+		     finances.type,
+		     'GROUP'                        as source,
+		     'finances.document',
+		     1                              as installment,
+		     null                           as issue_date,
+		     finances.expiration_date::date as expiration_date,
+		     null                           as payment_date,
+		     sum(finances.value)            as value,
+		     sum(finances.total_value)      as total_value,
+		     sum(finances.payment_value)    as payment_value,
+		     'finances.origin_flag'         as origin_flag,
+		     'finances.origin_down_flag'    as origin_down_flag,
+		     'finances.accept'              as accept,
+		     'finances.status'              as status,
+		     'finances.competence_date'     as competence_date,
+		     'finances.fiscal_note'         as fiscal_note,
+		     'finances.nsu_document'        as nsu_document,
+		     count(finances.id)             as qty_installments,
+		     null                           as bordero_id,
+		     null                           as client,
+		     finances.payment_method_id,
+		     payment_methods.description    as payment_method,
+		     finances.tef_flag_id,
+		     tef_flags.description          as tef_flag,
+		     payment_methods.tef            as pm_tef,
+		     payment_methods.type           as pm_type`),
+				)
+				.joinRaw(
+					"join payment_methods on finances.payment_method_id = payment_methods.id",
+					[],
+				)
+				.joinRaw("join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+				.whereIn("finances.business_unit_id", units)
+				.whereNull("finances.deleted_at")
+				.groupByRaw(
+					`finances.type, finances.expiration_date::date, finances.payment_method_id, payment_methods.description,
+         finances.tef_flag_id, tef_flags.description, payment_methods.tef,
+         payment_methods.type`,
+					[],
+				);
+
+			if (data.fromIssueDate) {
+				builder.whereRaw("finances.issue_date::date >= ?", [
+					data.fromIssueDate,
+				]);
+			}
+
+			if (data.toIssueDate) {
+				builder.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+			}
+
+			if (data.fromExpirationDate) {
+				builder.whereRaw("finances.expiration_date::date >= ?", [
+					data.fromExpirationDate,
+				]);
+			}
+
+			if (data.toExpirationDate) {
+				builder.whereRaw("finances.expiration_date::date <= ?", [
+					data.toExpirationDate,
+				]);
+			}
+
+			if (data.fromPaymentDate) {
+				builder.whereRaw("finances.payment_date::date >= ?", [
+					data.fromPaymentDate,
+				]);
+			}
+
+			if (data.toPaymentDate) {
+				builder.whereRaw("finances.payment_date::date <= ?", [
+					data.toPaymentDate,
+				]);
+			}
+
+			if (data.client) {
+				builder.where("finances.client_id", data.client);
+			}
+
+			if (data.document) {
+				builder.whereILike("finances.document", `%${data.document}%`);
+			}
+
+			if (data.fiscalNote) {
+				builder.whereILike("finances.fiscal_note", `%${data.fiscalNote}%`);
+			}
+
+			if (data.paymentMethod) {
+				builder.where("finances.payment_method_id", data.paymentMethod);
+			}
+
+			if (data.nsu) {
+				builder.where("finances.nsu_document", data.nsu);
+			}
+
+			if (data.status) {
+				builder.where("finances.status", data.status);
+			} else {
+				builder.whereNot("finances.status", FinanceStatus.E);
+			}
+
+			if (data.accept) {
+				builder.where("finances.accept", data.accept);
+			}
+
+			if (data.reconciled) {
+				builder.where("finances.reconciled", data.reconciled === "true");
+			}
+
+			if (data.type) {
+				builder.where("finances.type", data.type);
+			}
+
+			if (data.plan) {
+				builder.where("finances.account_plan_id", data.plan);
+			}
+
+			if (data.competence) {
+				builder.where("finances.competence_date", data.competence);
+			}
+
+			if (data.checkingAccountId) {
+				builder.where("finances.checking_account_id", data.checkingAccountId);
+			}
+
+			if (data.tefFlagId) {
+				builder.where("finances.tef_flag_id", data.tefFlagId);
+			}
+		});
+
+		return qb;
+	}
+
+	async financesByPaymentGroup(
+		authCtx: AuthContext,
+		data: {
+			type?: string;
+			tef?: string;
+			expirationDate?: string;
+			paymentMethodId?: string;
+			tefFlagId?: string;
+			paymentMethodType?: string;
+		},
+	) {
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`finances.id,
+       finances.type,
+       'FINANCE'                   as source,
+       finances.document,
+       finances.installment,
+       finances.issue_date,
+       finances.expiration_date,
+       finances.payment_date,
+
+       finances.value,
+       finances.total_value,
+       finances.payment_value,
+       finances.origin_flag,
+       finances.origin_down_flag,
+       finances.accept,
+       finances.status,
+       finances.competence_date,
+
+       finances.fiscal_note,
+       finances.nsu_document,
+       finances.qty_installments,
+       finances.bordero_id,
+       patients.name               as client,
+       payment_methods.description as payment_method,
+
+       tef_flags.description       as tef_flag,
+       payment_methods.tef         as pm_tef,
+       payment_methods.type        as pm_type`),
+			)
+			.joinRaw("left join patients on finances.client_id = patients.id", [])
+			.joinRaw(
+				"left join payment_methods on finances.payment_method_id = payment_methods.id",
+				[],
+			)
+			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.whereNull("finances.deleted_at")
+			.whereIn("finances.business_unit_id", [authCtx.unit.id])
+			.whereNull("finances.bordero_id")
+			.whereNot("finances.status", FinanceStatus.E);
+
+		if (data.type) {
+			qb.where("finances.type", data.type);
+		}
+
+		if (data.tef) {
+			qb.where("payment_methods.tef", data.tef);
+		}
+
+		if (data.expirationDate) {
+			qb.whereRaw("finances.expiration_date::date = ?", [data.expirationDate]);
+		}
+
+		if (data.paymentMethodId) {
+			qb.where("finances.payment_method_id", data.paymentMethodId);
+		}
+
+		if (data.tefFlagId) {
+			qb.where("finances.tef_flag_id", data.tefFlagId);
+		}
+
+		if (data.paymentMethodType) {
+			qb.where("payment_methods.type", data.paymentMethodType);
+		}
+
+		return qb;
+	}
 	// 2.1
 	async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
 		if (authCtx.unit.unitConfig.requiresFinanceClient && !data.clientId) {
@@ -781,6 +1254,84 @@ export default class FinanceService {
 			// await this.
 
 			return updated;
+		});
+	}
+
+	async groupedFinanceDown(
+		authCtx: AuthContext,
+		data: {
+			idList: string[];
+			type?: FinanceType;
+			tef?: string;
+			expirationDate?: DateTime;
+			paymentMethodId?: string;
+			tefFlagId?: string;
+		},
+	) {
+		if (data.idList.length === 0) {
+			if (
+				!data.type ||
+				!data.expirationDate ||
+				!data.paymentMethodId ||
+				!data.tef ||
+				!data.tefFlagId
+			) {
+				throw new BadRequestException(
+					"Caso não seja enviado lista de ids, é preciso adicionar campos opcionais",
+					400,
+					"E_INVALID_PAYLOAD",
+				);
+			}
+		}
+		return Database.transaction(async (trx) => {
+			if (data.idList.length === 0) {
+				await Database.rawQuery(
+					`
+      update finances
+      set status              = 'BAIXADO',
+          payment_date        = now(),
+          payment_value       = total_value,
+          down_date           = now(),
+          origin_down_flag    = 'FINANCEIRO'
+      where finances.id in (select finances.id
+                      from finances
+                               left join payment_methods on finances.payment_method_id = payment_methods.id
+                               left join tef_flags on finances.tef_flag_id = tef_flags.id
+                      where finances.deleted_at is null
+                        and finances.business_unit_id = ?
+                        and not finances.status = 'EXCLUIDO'
+                        and finances.bordero_id is null
+                        and finances.type = ?
+                        and payment_methods.tef = ?
+                        and finances.expiration_date::date = ?
+                        and finances.payment_method_id = ?
+                        and finances.tef_flag_id = ?
+                        and payment_methods.type = 'CREDITO')`,
+					[
+						authCtx.unit.id,
+						data.type as FinanceType,
+						data.tef as string,
+						data.expirationDate?.toJSDate() as Date,
+						data.paymentMethodId as string,
+						data.tefFlagId as string,
+					],
+				).useTransaction(trx);
+				return;
+			}
+
+			await Database.rawQuery(
+				`
+      update finances
+      set status              = 'BAIXADO',
+          payment_date        = now(),
+          payment_value       = total_value,
+          down_date           = now(),
+          origin_down_flag    = 'FINANCEIRO'
+      where finances.id = ANY('{${data.idList.join(
+				",",
+			)}}') and business_unit_id = ? `,
+				[authCtx.unit.id],
+			).useTransaction(trx);
 		});
 	}
 
@@ -1173,17 +1724,17 @@ export default class FinanceService {
 			});
 
 		const dataSet = new Map<string, { value: number }>();
-		finances.forEach((elem) => {
+		for (const elem of finances) {
 			const key = elem?.client_id ?? "__";
 			if (!dataSet.has(key)) {
 				dataSet.set(key, { value: 0 });
 			}
 
-			const entry = dataSet.get(key)!;
+			const entry = dataSet.get(key) as { value: number };
 			entry.value += elem.value;
 
 			dataSet.set(key, entry);
-		});
+		}
 
 		return Array.from(dataSet.keys()).map((elem) => ({
 			supplier:
@@ -1191,28 +1742,6 @@ export default class FinanceService {
 				"Título sem fornecedor",
 			value: dataSet.get(elem)?.value ?? 0,
 		}));
-
-		// return finances.map(elem => ({
-		//   id: elem.id,
-		//   document: elem.document,
-		//   installment: elem.installment,
-		//   paymentMethod: {
-		//     id: elem.paymentMethod.id,
-		//     description: elem.paymentMethod.description,
-		//   },
-		//   totalValue: elem.totalValue,
-		//   supplier: {
-		//     id: elem.client.id,
-		//     name: elem.client.name,
-		//     accountPlan: this.sharedService.captureGroup(
-		//       elem.client?.tutor?.accountPlan,
-		//       v => ({
-		//         id: v.id,
-		//         description: v.description,
-		//       }),
-		//     ),
-		//   },
-		// }));
 	}
 
 	async getExpiringPayments(authCtx: AuthContext) {
@@ -2182,7 +2711,7 @@ export default class FinanceService {
 		const relativeValue =
 			bordero.type === "Debito" ? -bordero.paymentValue : bordero.paymentValue;
 
-		await Banking.create(
+		const banking = await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
 				business_unit_id: bordero.business_unit_id,
@@ -2192,7 +2721,7 @@ export default class FinanceService {
 				checking_account_id: bordero.checking_account_id,
 				daily_movement_id: bordero.daily_movement_id,
 				// daily_cashier_id: bordero.daily_cashier_id,
-				// finance_id: bordero.id, // TODO - consertar
+				finance_id: bordero.id, // TODO - consertar
 				type: bordero.type === "Debito" ? BankingType.D : BankingType.C,
 				document: bordero.document,
 				historic: bordero.history,
@@ -2217,6 +2746,11 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		await bordero
+			.merge({ bank_statement_id: banking.id })
+			.useTransaction(trx)
+			.save();
 
 		if (checkingAccount) {
 			await checkingAccount
@@ -2328,7 +2862,7 @@ export default class FinanceService {
 		const relativeValue =
 			bordero.type === "Debito" ? bordero.paymentValue : -bordero.paymentValue;
 
-		await Banking.create(
+		const banking = await Banking.create(
 			{
 				economic_group_id: bordero.economic_group_id,
 				business_unit_id: bordero.business_unit_id,
@@ -2338,7 +2872,7 @@ export default class FinanceService {
 				checking_account_id: bordero.checking_account_id,
 				daily_movement_id: bordero.daily_movement_id,
 				// daily_cashier_id: bordero.daily_cashier_id,
-				// finance_id: bordero.id, // TODO - consertar
+				finance_id: bordero.id, // TODO - consertar
 				type: bordero.type === "Debito" ? BankingType.C : BankingType.D,
 				document: bordero.document,
 				historic: bordero.history,
@@ -2363,6 +2897,11 @@ export default class FinanceService {
 				client: trx,
 			},
 		);
+
+		await bordero
+			.merge({ bank_statement_id: banking.id })
+			.useTransaction(trx)
+			.save();
 
 		if (checkingAccount) {
 			await checkingAccount

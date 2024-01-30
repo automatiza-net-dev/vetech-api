@@ -930,33 +930,30 @@ export default class FinanceService {
 		const qb = Database.from("finances")
 			.select(
 				Database.raw(`finances.id,
-       finances.type,
-       'FINANCE'                   as source,
-       finances.document,
-       finances.installment,
-       finances.issue_date,
-       finances.expiration_date,
-       finances.payment_date,
-
-       finances.value,
-       finances.total_value,
-       finances.payment_value,
-       finances.origin_flag,
-       finances.origin_down_flag,
-       finances.accept,
-       finances.status,
-       finances.competence_date,
-
-       finances.fiscal_note,
-       finances.nsu_document,
-       finances.qty_installments,
-       finances.bordero_id,
-       patients.name               as client,
-       payment_methods.description as payment_method,
-
-       tef_flags.description       as tef_flag,
-       payment_methods.tef         as pm_tef,
-       payment_methods.type        as pm_type`),
+		 finances.type,
+		 'FINANCE'                   as source,
+		 finances.document,
+		 finances.installment,
+		 finances.issue_date,
+		 finances.expiration_date,
+		 finances.payment_date,
+		 finances.value,
+		 finances.total_value,
+		 finances.payment_value,
+		 finances.origin_flag,
+		 finances.origin_down_flag,
+		 finances.accept,
+		 finances.status,
+		 finances.competence_date,
+		 finances.nsu_document,
+		 finances.qty_installments,
+		 finances.bordero_id,
+		 patients.name               as client,
+		 payment_methods.description as payment_method,
+		 tef_flags.description       as tef_flag,
+		 payment_methods.tef         as pm_tef,
+		 payment_methods.type        as pm_type,
+		 tef_acquirers.description   as tef_adquirente`),
 			)
 			.joinRaw("left join patients on finances.client_id = patients.id", [])
 			.joinRaw(
@@ -964,10 +961,20 @@ export default class FinanceService {
 				[],
 			)
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.joinRaw(
+				`left join payment_method_flags
+								 on finances.payment_method_id = payment_method_flags.payment_method_id and
+										finances.tef_flag_id = payment_method_flags.tef_flag_id`,
+				[],
+			)
+			.joinRaw(
+				"left join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id",
+				[],
+			)
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", [authCtx.unit.id])
-			.whereNull("finances.bordero_id")
-			.whereNot("finances.status", FinanceStatus.E);
+			.whereNot("finances.status", FinanceStatus.E)
+			.whereNull("finances.bordero_id");
 
 		if (data.type) {
 			qb.where("finances.type", data.type);

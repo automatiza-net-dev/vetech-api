@@ -525,7 +525,11 @@ export default class FinanceService {
 
 	async groupedIndex(
 		authCtx: AuthContext,
-		data: ISearch & { checkingAccountId?: string; tefFlagId?: string },
+		data: ISearch & {
+			checkingAccountId?: string;
+			tefFlagId?: string;
+			tefAcquirerId?: string;
+		},
 	) {
 		const units = [authCtx.unit.id];
 		if (data.unit) {
@@ -949,6 +953,8 @@ export default class FinanceService {
 			paymentMethodId?: string;
 			tefFlagId?: string;
 			paymentMethodType?: string;
+			tefAcquirerId?: string;
+			paymentDate?: string;
 		},
 	) {
 		const qb = Database.from("finances")
@@ -1012,12 +1018,20 @@ export default class FinanceService {
 			qb.whereRaw("finances.expiration_date::date = ?", [data.expirationDate]);
 		}
 
+		if (data.paymentDate) {
+			qb.whereRaw("finances.payment_date::date = ?", [data.paymentDate]);
+		}
+
 		if (data.paymentMethodId) {
 			qb.where("finances.payment_method_id", data.paymentMethodId);
 		}
 
 		if (data.tefFlagId) {
 			qb.where("finances.tef_flag_id", data.tefFlagId);
+		}
+
+		if (data.tefAcquirerId) {
+			qb.where("payment_method_flags.tef_acquirer_id", data.tefAcquirerId);
 		}
 
 		if (data.paymentMethodType) {

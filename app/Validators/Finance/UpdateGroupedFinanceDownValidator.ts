@@ -41,8 +41,12 @@ export default class UpdateGroupedFinanceDownValidator {
 		tefFlagId: schema.string.optional([
 			rules.exists({ table: "tef_flags", column: "id" }),
 		]),
+		tefAcquirerId: schema.string.optional([
+			rules.exists({ table: "tef_acquirers", column: "id" }),
+		]),
 		type: schema.enum.optional(Object.values(FinanceType)),
 		expirationDate: schema.date.optional(),
+		paymentDate: schema.date.optional(),
 		tef: schema.string.optional(),
 	});
 

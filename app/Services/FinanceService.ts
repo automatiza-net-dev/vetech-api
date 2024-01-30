@@ -1297,18 +1297,15 @@ export default class FinanceService {
 			expirationDate?: DateTime;
 			paymentMethodId?: string;
 			tefFlagId?: string;
+			tefAcquirerId?: string;
+			paymentDate?: DateTime;
 		},
 	) {
 		if (data.idList.length === 0) {
-			if (
-				!data.type ||
-				!data.expirationDate ||
-				!data.paymentMethodId ||
-				!data.tef ||
-				!data.tefFlagId
-			) {
+			// Se tem apenas o ID, é para pedir tudo
+			if (Object.values(data).filter((item) => item).length !== 8) {
 				throw new BadRequestException(
-					"Caso não seja enviado lista de ids, é preciso adicionar campos opcionais",
+					"Caso não seja enviado lista de ids, é preciso adicionar todos os campos opcionais",
 					400,
 					"E_INVALID_PAYLOAD",
 				);
@@ -1328,23 +1325,30 @@ export default class FinanceService {
                       from finances
                                left join payment_methods on finances.payment_method_id = payment_methods.id
                                left join tef_flags on finances.tef_flag_id = tef_flags.id
+                               left join payment_method_flags
+                                         on finances.payment_method_id = payment_method_flags.payment_method_id and
+                                            finances.tef_flag_id = payment_method_flags.tef_flag_id
                       where finances.deleted_at is null
                         and finances.business_unit_id = ?
                         and not finances.status = 'EXCLUIDO'
                         and finances.bordero_id is null
+                        -- params
                         and finances.type = ?
-                        and payment_methods.tef = ?
                         and finances.expiration_date::date = ?
+                        and finances.payment_date::date = ?
                         and finances.payment_method_id = ?
                         and finances.tef_flag_id = ?
-                        and payment_methods.type = 'CREDITO')`,
+                        and payment_method_flags.tef_acquirer_id = ?
+                           )
+                        `,
 					[
 						authCtx.unit.id,
 						data.type as FinanceType,
-						data.tef as string,
 						data.expirationDate?.toJSDate() as Date,
+						data.paymentDate?.toJSDate() as Date,
 						data.paymentMethodId as string,
 						data.tefFlagId as string,
+						data.tefAcquirerId as string,
 					],
 				).useTransaction(trx);
 				return;
@@ -1360,8 +1364,8 @@ export default class FinanceService {
           origin_down_flag    = 'FINANCEIRO'
       where finances.id = ANY('{${data.idList.join(
 				",",
-			)}}') and business_unit_id = ? `,
-				[authCtx.unit.id],
+			)}}') and business_unit_id = ? and finances.status = ?`,
+				[authCtx.unit.id, FinanceStatus.A],
 			).useTransaction(trx);
 		});
 	}

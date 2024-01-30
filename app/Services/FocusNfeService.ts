@@ -700,14 +700,15 @@ export default class FocusNfeService {
 			},
 
 			servico: {
-				valor_servicos: data.service.total_value + data.service.discount_value,
+				valor_servicos: data.service.total_value,
 				valor_pis: data.service.pis_value,
 				valor_cofins: data.service.cofins_value,
 				iss_retido: "false",
 				valor_iss: data.service.iss_value,
 				base_calculo: data.service.base_value,
 				aliquota: data.service.percentage_value,
-				desconto_incondicionado: data.service.discount_value,
+				// desconto_incondicionado: data.service.discount_value,
+				desconto_incondicionado: 0,
 				item_lista_servico: data.service.service_code,
 				codigo_cnae: data.service.cnae,
 				discriminacao: data.service.description,

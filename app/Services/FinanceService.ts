@@ -538,7 +538,8 @@ export default class FinanceService {
 
 		const qb = Database.from("finances")
 			.select(
-				Database.raw(`finances.id,
+				Database.raw(`
+       finances.id,
        finances.type,
        'FINANCE'                   as source,
        finances.document,
@@ -546,7 +547,6 @@ export default class FinanceService {
        finances.issue_date,
        finances.expiration_date,
        finances.payment_date,
-
        finances.value,
        finances.total_value,
        finances.payment_value,
@@ -555,19 +555,19 @@ export default class FinanceService {
        finances.accept,
        finances.status,
        finances.competence_date,
-
        finances.nsu_document,
        finances.qty_installments,
        finances.bordero_id,
        patients.name               as client,
        finances.payment_method_id,
        payment_methods.description as payment_method,
-
        finances.tef_flag_id,
        tef_flags.description       as tef_flag,
        payment_methods.tef         as pm_tef,
        payment_methods.type        as pm_type,
-       null                        as tef_adquirente`),
+       null                        as tef_adquirente,
+       null::uuid as tef_adquirente_id
+                     `),
 			)
 			.joinRaw("left join patients on finances.client_id = patients.id", [])
 			.joinRaw(
@@ -667,7 +667,7 @@ export default class FinanceService {
 				.from("borderos")
 				.select(
 					Database.raw(`
-		        borderos.id,
+                       borderos.id,
        upper(borderos.type)                                                    as type,
        'BORDERO'                                                               as source,
        borderos.document,
@@ -675,29 +675,26 @@ export default class FinanceService {
        borderos.issue_date,
        borderos.expiration_date                                                as expiration_date,
        borderos.payment_date,
-
        borderos.bordero_value                                                  as value,
        borderos.total_value,
        borderos.payment_value,
        'FINANCEIRO'                                                            as origin_flag,
-
        case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
        'SIM'                                                                   as accept,
        borderos.status,
        borderos.competence_date,
-
        borderos.nsu_document                                                   as nsu_document,
        borderos.titles_qty                                                     as qty_installments,
        borderos.id                                                             as bordero_id,
        patients.name                                                           as client,
-
        borderos.payment_method_id,
        payment_methods.description                                             as payment_method,
        borderos.tef_flag_id,
        tef_flags.description                                                   as tef_flag,
        payment_methods.tef                                                     as pm_tef,
        payment_methods.type                                                    as pm_type,
-       null                                                                    as tef_adquirente
+       null                                                                    as tef_adquirente,
+       null::uuid as tef_adquirente_id
                        `),
 				)
 				.joinRaw("join patients on borderos.client_id = patients.id", [])
@@ -793,7 +790,7 @@ export default class FinanceService {
 				.from("finances")
 				.select(
 					Database.raw(`
-				null                           as id,
+                       null                           as id,
        finances.type,
        'GROUP'                        as source,
        'Cartoes'                      as document,
@@ -801,12 +798,10 @@ export default class FinanceService {
        null                           as issue_date,
        finances.expiration_date::date as expiration_date,
        finances.payment_date::date    as payment_date,
-
        sum(finances.value)            as value,
        sum(finances.total_value)      as total_value,
        sum(finances.payment_value)    as payment_value,
        null                           as origin_flag,
-
        null                           as origin_down_flag,
        null                           as accept,
        finances.status                as status,
@@ -814,17 +809,17 @@ export default class FinanceService {
        null                           as nsu_document,
        count(finances.id)             as qty_installments,
        null                           as bordero_id,
-
-       case
-           when tef_acquirers.description <> '' and tef_acquirers.description is not null then tef_acquirers.description
-           else 'Adq. Cartões' end    as client,
+--       case when tef_acquirers.description <> '' and tef_acquirers.description is not null then tef_acquirers.description else 'Adq. Cartões' end    as client,
+       coalesce(tef_acquirers.description, 'Adq. Cartões') as client,
        finances.payment_method_id,
        payment_methods.description    as payment_method,
        finances.tef_flag_id,
        tef_flags.description          as tef_flag,
        payment_methods.tef            as pm_tef,
        payment_methods.type           as pm_type,
-       payment_methods.description    as tef_adquirente`),
+       tef_acquirers.description    as tef_adquirente,
+       tef_acquirers.id as tef_adquirente_id
+                       `),
 				)
 				.joinRaw(
 					"join payment_methods on finances.payment_method_id = payment_methods.id",
@@ -847,8 +842,7 @@ export default class FinanceService {
 					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status,
          finances.payment_method_id,
          payment_methods.description, finances.tef_flag_id, tef_flags.description, payment_methods.tef,
-         payment_methods.type,
-         tef_acquirers.description`,
+         payment_methods.type, tef_acquirers.description, tef_acquirers.id`,
 					[],
 				);
 

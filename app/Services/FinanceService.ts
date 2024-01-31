@@ -1305,13 +1305,12 @@ export default class FinanceService {
 			expirationDate?: DateTime;
 			paymentMethodId?: string;
 			tefFlagId?: string;
-			tefAcquirerId?: string;
-			paymentDate?: DateTime;
+			tefAcquirerId: string;
 		},
 	) {
 		if (data.idList.length === 0) {
 			// Se tem apenas o ID, é para pedir tudo
-			if (Object.values(data).filter((item) => item).length !== 8) {
+			if (Object.values(data).filter((item) => item).length !== 7) {
 				throw new BadRequestException(
 					"Caso não seja enviado lista de ids, é preciso adicionar todos os campos opcionais",
 					400,
@@ -1338,12 +1337,12 @@ export default class FinanceService {
                                             finances.tef_flag_id = payment_method_flags.tef_flag_id
                       where finances.deleted_at is null
                         and finances.business_unit_id = ?
-                        and not finances.status = 'EXCLUIDO'
+                        and finances.status = 'ABERTO'
+                        and finances.payment_date is null
                         and finances.bordero_id is null
                         -- params
                         and finances.type = ?
                         and finances.expiration_date::date = ?
-                        and finances.payment_date::date = ?
                         and finances.payment_method_id = ?
                         and finances.tef_flag_id = ?
                         and payment_method_flags.tef_acquirer_id = ?
@@ -1353,7 +1352,6 @@ export default class FinanceService {
 						authCtx.unit.id,
 						data.type as FinanceType,
 						data.expirationDate?.toJSDate() as Date,
-						data.paymentDate?.toJSDate() as Date,
 						data.paymentMethodId as string,
 						data.tefFlagId as string,
 						data.tefAcquirerId as string,

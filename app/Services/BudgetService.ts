@@ -81,7 +81,7 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
-				query.where("status", BudgetStatus.A);
+				query.whereNot("status", BudgetStatus.N);
 				query.whereNull("deleted_at");
 
 				query.whereHas("items", (query) => {
@@ -109,11 +109,17 @@ export default class BudgetService {
 					"budget_date",
 					"total_value",
 					"tag",
+					"status",
+					"finished_at",
+					"observation",
+					"internal_observation",
 					"client_id",
 					"patient_id",
 					"user_id",
 					"seller_id",
 					"reviewer_id",
+					"conclusion_user_id",
+					"cancelation_reason_id",
 				);
 				query.where("status", BudgetStatus.A);
 				query.whereNull("deleted_at");
@@ -130,12 +136,20 @@ export default class BudgetService {
 					query.select("id", "name");
 				});
 
+				query.preload("conclusionUser", (query) => {
+					query.select("id", "name");
+				});
+
 				query.preload("seller", (query) => {
 					query.select("id", "name");
 				});
 
 				query.preload("reviewer", (query) => {
 					query.select("id", "name");
+				});
+
+				query.preload("cancelationReason", (query) => {
+					query.select("id", "reason");
 				});
 
 				query.preload("items", (query) => {

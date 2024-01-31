@@ -564,7 +564,7 @@ where mov_dep.idVariacao not in (select di.product_variation_id
 
 		return result.rows.map((elem: { description: string }) => ({
 			rule: "ItemNaoExiste",
-			message: `Item '${elem.description}' não existe no depósito de ${label}`,
+			message: `Item '${elem.description}' não possui quantidade suficiente no depósito de ${label}`,
 		}));
 	}
 }

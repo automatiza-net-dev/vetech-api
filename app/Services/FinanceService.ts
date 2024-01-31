@@ -1023,6 +1023,8 @@ export default class FinanceService {
 
 		if (data.paymentDate) {
 			qb.whereRaw("finances.payment_date::date = ?", [data.paymentDate]);
+		} else {
+			qb.whereNull("finances.payment_date");
 		}
 
 		if (data.paymentMethodId) {

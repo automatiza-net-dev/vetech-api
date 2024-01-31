@@ -1,7 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Attendance from "App/Models/Attendance";
 import Banking, {
@@ -9,7 +6,11 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, { TBorderoType } from "App/Models/Bordero";
+import Bordero, {
+	BorderoStatus,
+	TBorderoStatus,
+	TBorderoType,
+} from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -40,6 +41,9 @@ import {
 } from "Contracts/interfaces/IFinanceData";
 import { format } from "date-fns";
 import { DateTime } from "luxon";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -562,7 +566,7 @@ export default class FinanceService {
        finances.payment_method_id,
        payment_methods.description as payment_method,
        finances.tef_flag_id,
-       tef_flags.description       as tef_flag,
+       null as tef_flag,
        payment_methods.tef         as pm_tef,
        payment_methods.type        as pm_type,
        null                        as tef_adquirente,
@@ -577,6 +581,7 @@ export default class FinanceService {
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units)
+			.whereNot("finances.status", FinanceStatus.E)
 			.whereNull("finances.bordero_id")
 			.where("payment_methods.tef", PaymentMethodTef.N);
 
@@ -704,7 +709,8 @@ export default class FinanceService {
 				)
 				.joinRaw("join tef_flags on borderos.tef_flag_id = tef_flags.id", [])
 				.whereIn("borderos.business_unit_id", units)
-				.whereNull("borderos.deleted_at");
+				.whereNull("borderos.deleted_at")
+				.whereNot("borderos.status", "Fechado" as TBorderoStatus);
 
 			if (data.type) {
 				builder.whereILike("borderos.type", data.type);
@@ -833,11 +839,14 @@ export default class FinanceService {
 					[],
 				)
 				.joinRaw(
-					`left join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
+					`join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
 					[],
 				)
-				.whereIn("finances.business_unit_id", units)
 				.whereNull("finances.deleted_at")
+				.whereIn("finances.business_unit_id", units)
+				.whereNot("payment_methods.tef", PaymentMethodTef.N)
+				.whereNot("finances.status", FinanceStatus.E)
+				.whereNull("finances.bordero_id")
 				.groupByRaw(
 					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status,
          finances.payment_method_id,

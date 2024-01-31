@@ -451,7 +451,7 @@ export default class ScheduleService {
 
 		const technician = data.userId ? await User.findOrFail(data.userId) : user;
 
-		if (!technician.onDuty) {
+		if (!technician.onDuty || !data.ignoreOverlapping) {
 			const result = await ScheduleService.checkDisponibility(
 				technician.id,
 				unitId,
@@ -469,7 +469,7 @@ export default class ScheduleService {
 				);
 			}
 
-			if (result.invalidUnavailableDay) {
+			if (result.invalidUnavailableDay && !data.ignoreBlocking) {
 				throw new BadRequestException(
 					"Pessoa não está disponível neste horário",
 					400,

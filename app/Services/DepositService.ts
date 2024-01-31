@@ -518,123 +518,53 @@ where deposit_id = ?
 	private async $checkDepositItems(
 		trx: TransactionClientContract,
 		deposit: Deposit,
-		items: { businessUnitProductId: string; quantity: number }[],
-		place: string,
+		items: { productVariationId: string; quantity: number }[],
+		label: string,
 	) {
-		const errorMessages: unknown[] = [];
-
-		const fromRowItems = await deposit
-			.related("items")
-			.query()
+		await Database.rawQuery(`
+create temporary table mov_dep
+(
+    idVariacao uuid,
+    quantidade int
+);`)
 			.useTransaction(trx)
-			.select(
-				"id",
-				"business_unit_product_id",
-				"product_variation_id",
-				"quantity",
-			)
-			// .whereIn(
-			// 	"business_unit_product_id",
-			// 	items.map((i) => i.businessUnitProductId),
-			// )
-			.preload("variation", (query) => {
-				query.select("product_id");
-
-				query.preload("product", (query) => {
-					query.select("id", "description");
-				});
-			})
 			.exec();
 
-		const buProducts = await BusinessUnitProduct.query()
-			.useTransaction(trx)
-			.whereIn(
-				"id",
-				items.map((i) => i.businessUnitProductId),
-			)
-			.preload("productVariation", (query) => {
-				query.select("id", "product_id");
+		const tasks = items.map((elem) =>
+			Database.rawQuery("insert into mov_dep values (?, ?)", [
+				elem.productVariationId,
+				elem.quantity,
+			])
+				.useTransaction(trx)
+				.exec(),
+		);
+		await Promise.all(tasks);
 
-				query.preload("product", (query) => {
-					query.select("id", "description");
-				});
-			})
+		const result = await Database.rawQuery(
+			`select products.description,
+       mov_dep.idVariacao,
+       mov_dep.quantidade,
+       product_variations.barcode,
+       product_variations.id,
+       *
+from mov_dep
+         join product_variations on mov_dep.idVariacao = product_variations.id
+         join products on product_variations.product_id = products.id
+where mov_dep.idVariacao not in (select di.product_variation_id
+                                 from deposit_items di
+                                 where deposit_id = ?
+                                   and di.product_variation_id = mov_dep.idVariacao
+                                   and di.quantity >= mov_dep.quantidade);`,
+			[deposit.id],
+		)
+			.useTransaction(trx)
 			.exec();
 
-		if (fromRowItems.length === 0) {
-			errorMessages.push({
-				rule: "ItemsNãoExistentes",
-				message: `O depósito de ${place} não possui itens para serem movimentados`,
-			});
-		}
-		if (fromRowItems.length !== items.length) {
-			errorMessages.push({
-				rule: "ItemsNãoExistentes",
-				message: `A lista de itens informada não existe totalmente no depósito de ${place}`,
-			});
-		}
+		await Database.rawQuery("drop table mov_dep;").useTransaction(trx).exec();
 
-		for (const reqItem of items) {
-			const rowItem = fromRowItems.find(
-				(i) => i.business_unit_product_id === reqItem.businessUnitProductId,
-			);
-
-			if (!rowItem) {
-				const buProduct = buProducts.find(
-					(i) => i.id === reqItem.businessUnitProductId,
-				);
-
-				errorMessages.push({
-					rule: "ItemNãoExiste",
-					message: `Item '${
-						buProduct?.productVariation.product.description ?? "-"
-					}' não existe no depósito de ${place}`,
-				});
-				continue;
-			}
-
-			if (reqItem.quantity > rowItem.quantity) {
-				errorMessages.push({
-					rule: "EstoqueInsuficiente",
-					message: `Item '${rowItem.variation.product.description}' possui estoque máximo de ${rowItem.quantity}`,
-				});
-			}
-		}
-
-		return errorMessages;
-	}
-
-	private async $updateDepositItems(
-		trx: TransactionClientContract,
-		movement: DepositMovement,
-		type: "origem" | "destino",
-	) {
-		if (type === "origem") {
-			await Database.rawQuery(
-				`update deposit_items
-        set quantity = di.quantity - dmi.quantity
-        from deposit_items di
-          join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
-          join deposit_movements dm
-            on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
-				[movement.id],
-			)
-				.useTransaction(trx)
-				.exec();
-		}
-
-		if (type === "destino") {
-			await Database.rawQuery(
-				`update deposit_items
-		      set quantity = di.quantity + dmi.quantity
-		      from deposit_items di
-		        join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
-		        join deposit_movements dm
-		          on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
-				[movement.id],
-			)
-				.useTransaction(trx)
-				.exec();
-		}
+		return result.rows.map((elem: { description: string }) => ({
+			rule: "ItemNaoExiste",
+			message: `Item '${elem.description}' não existe no depósito de ${label}`,
+		}));
 	}
 }

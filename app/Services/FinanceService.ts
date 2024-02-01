@@ -702,12 +702,15 @@ export default class FinanceService {
        null::uuid as tef_adquirente_id
                        `),
 				)
-				.joinRaw("join patients on borderos.client_id = patients.id", [])
+				.joinRaw("left join patients on borderos.client_id = patients.id", [])
 				.joinRaw(
-					"join payment_methods on borderos.payment_method_id = payment_methods.id",
+					"left join payment_methods on borderos.payment_method_id = payment_methods.id",
 					[],
 				)
-				.joinRaw("join tef_flags on borderos.tef_flag_id = tef_flags.id", [])
+				.joinRaw(
+					"left join tef_flags on borderos.tef_flag_id = tef_flags.id",
+					[],
+				)
 				.whereIn("borderos.business_unit_id", units)
 				.whereNull("borderos.deleted_at")
 				.whereNot("borderos.status", "Fechado" as TBorderoStatus);
@@ -2582,6 +2585,7 @@ export default class FinanceService {
 				.merge({
 					exclusion_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
+					status: "Excluido",
 				})
 				.useTransaction(trx)
 				.save();

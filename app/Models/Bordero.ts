@@ -26,7 +26,12 @@ import User from "./User";
 export const BorderoType = ["Debito", "Credito"] as const;
 export type TBorderoType = (typeof BorderoType)[number];
 
-export const BorderoStatus = ["Aberto", "Fechado", "Baixado"] as const;
+export const BorderoStatus = [
+	"Aberto",
+	"Fechado",
+	"Baixado",
+	"Excluido",
+] as const;
 export type TBorderoStatus = (typeof BorderoStatus)[number];
 
 export default class Bordero extends BaseModel {

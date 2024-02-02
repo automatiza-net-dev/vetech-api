@@ -24,6 +24,8 @@ export default class extends BaseSchema {
 			table.string("status", 10);
 			table.datetime("confirmation_date");
 			table.string("exclusion_reason");
+			table.timestamp("issue_date", { useTz: true });
+			table.timestamp("update_date", { useTz: true });
 
 			table.timestamp("created_at", { useTz: true });
 			table.timestamp("updated_at", { useTz: true });

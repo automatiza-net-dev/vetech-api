@@ -3,9 +3,12 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
+	BelongsTo,
+	belongsTo,
 	column,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Budget from "./Budget";
 
 export const BudgetPaymentStatus = ["Aberto"] as const;
 export type TBudgetPaymentStatus = (typeof BudgetPaymentStatus)[number];
@@ -37,6 +40,12 @@ export default class BudgetPayment extends BaseModel {
 		columnName: "exclusion_reason",
 	})
 	public exclusionReason: string | null;
+
+	@column.dateTime({ columnName: "issue_date" })
+	public issueDate: DateTime;
+
+	@column.dateTime({ columnName: "update_date" })
+	public updateDate: DateTime | null;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
@@ -71,6 +80,11 @@ export default class BudgetPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public budget_id: string;
+
+	@belongsTo(() => Budget, {
+		foreignKey: "budget_id",
+	})
+	public budget: BelongsTo<typeof Budget>;
 
 	@column({
 		serializeAs: null,

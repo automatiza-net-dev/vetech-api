@@ -956,6 +956,7 @@ Route.group(() => {
 		"BudgetsController.updateBudgetObservation",
 	);
 	Route.put("/update-item/:id", "BudgetsController.updateBudgetItem");
+	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
 	Route.put("/confirm/:id", "BudgetsController.confirmBudget");
 	Route.delete("/delete/:id", "BudgetsController.deleteBudget");

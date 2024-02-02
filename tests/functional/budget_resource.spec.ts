@@ -2,6 +2,7 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
 import Attendance from "App/Models/Attendance";
 import Budget, { BudgetStatus } from "App/Models/Budget";
+import BudgetPayment from "App/Models/BudgetPayment";
 import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 import DailyCashier from "App/Models/DailyCashier";
 import DailyMovement from "App/Models/DailyMovement";
@@ -157,6 +158,19 @@ test.group("Budget resource", (group) => {
 			type: TefFlagType.A,
 		});
 
+		const budgetPayment = await BudgetPayment.create({
+			economic_group_id: group.id,
+			business_unit_id: business.id,
+			budget_id: budget.id,
+			payment_method_id: paymentMethod.id,
+			tef_acquirer_id: tefAcq.id,
+			tef_flag_id: tefFlag.id,
+			user_id: user.id,
+
+			status: "Aberto",
+			totalValue: 0,
+		});
+
 		return {
 			user,
 			client,
@@ -173,6 +187,7 @@ test.group("Budget resource", (group) => {
 			paymentMethod,
 			tefAcq,
 			tefFlag,
+			budgetPayment,
 		};
 	};
 
@@ -694,6 +709,61 @@ test.group("Budget resource", (group) => {
 						installments: 1,
 					},
 				],
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should update budget payment", async ({ assert, client }) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 100 }).save();
+
+		const response = await client
+			.put("/budgets/update-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				paymentMethodId: dataProps.paymentMethod.id,
+				tefFlagId: dataProps.tefFlag.id,
+				tefAcquirerId: dataProps.tefAcq.id,
+
+				totalValue: 50,
+				installments: 1,
+				updateDate: new Date().toISOString(),
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should throw error if updated value is bigger than total value", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 100 }).save();
+
+		const response = await client
+			.put("/budgets/update-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				paymentMethodId: dataProps.paymentMethod.id,
+				tefFlagId: dataProps.tefFlag.id,
+				tefAcquirerId: dataProps.tefAcq.id,
+
+				totalValue: 101,
+				installments: 1,
+				updateDate: new Date().toISOString(),
 			})
 			.bearerToken(token);
 

@@ -1357,6 +1357,7 @@ export default class BudgetService {
 						totalValue: elem.totalValue,
 						installments: elem.installments,
 						status: "Aberto",
+						issueDate: DateTime.now(),
 					},
 					{ client: trx },
 				),
@@ -1366,6 +1367,78 @@ export default class BudgetService {
 			await budget
 				.merge({
 					paidValue: decimalPaid.plus(decimalSum).toNumber(),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async updateBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			paymentMethodId: string;
+			tefFlagId: string;
+			tefAcquirerId: string;
+
+			totalValue: number;
+			installments: number;
+			updateDate: DateTime;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					change_user_id: authCtx.user.id,
+					payment_method_id: data.paymentMethodId,
+					tef_flag_id: data.tefFlagId,
+					tef_acquirer_id: data.tefAcquirerId,
+
+					totalValue: data.totalValue,
+					installments: data.installments,
+					updateDate: data.updateDate,
+				})
+				.useTransaction(trx)
+				.save();
+
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", row.budget_id);
+
+			const sum = this.sharedService.sum(
+				budgetPayments.map((elem) => elem.totalValue),
+			);
+			if (sum > row.budget.totalValue) {
+				throw new BadRequestException(
+					"Valor pago do orçamento acima do total",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row.budget
+				.merge({
+					paidValue: sum,
 				})
 				.useTransaction(trx)
 				.save();

@@ -11,6 +11,7 @@ import CreateBudgetPaymentValidator from "App/Validators/Budget/CreateBudgetPaym
 import CreateBudgetValidator from "App/Validators/Budget/CreateBudgetValidator";
 import UpdateBudgetItemValidator from "App/Validators/Budget/UpdateBudgetItemValidator";
 import UpdateBudgetObservationValidator from "App/Validators/Budget/UpdateBudgetObservationValidator";
+import UpdateBudgetPaymentValidator from "App/Validators/Budget/UpdateBudgetPaymentValidator";
 import UpdateBudgetValidator from "App/Validators/Budget/UpdateBudgetValidator";
 
 @inject()
@@ -276,5 +277,20 @@ export default class BudgetsController {
 		);
 
 		return response.created();
+	}
+
+	public async updateBudgetPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateBudgetPaymentValidator);
+
+		await this.service.updateBudgetPayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 }

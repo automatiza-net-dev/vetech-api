@@ -865,6 +865,11 @@ export default class BillService {
 					client: trx,
 				},
 			);
+
+			return payments.map((elem) => ({
+				billId: elem.bill_id,
+				block: elem.block,
+			}));
 		});
 	}
 

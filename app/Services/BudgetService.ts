@@ -176,6 +176,31 @@ export default class BudgetService {
 						});
 					});
 				});
+
+				query.preload("payments", (query) => {
+					query.select(
+						"id",
+						"block",
+						"total_value",
+						"installments",
+						"status",
+						"payment_method_id",
+						"tef_flag_id",
+						"tef_acquirer_id",
+					);
+
+					query.preload("paymentMethod", (query) => {
+						query.select("id", "description");
+					});
+
+					query.preload("tefFlag", (query) => {
+						query.select("id", "description");
+					});
+
+					query.preload("tefAcquirer", (query) => {
+						query.select("id", "description");
+					});
+				});
 			});
 	}
 

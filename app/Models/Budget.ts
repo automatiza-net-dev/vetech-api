@@ -18,6 +18,7 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Attendance from "./Attendance";
+import BudgetPayment from "./BudgetPayment";
 
 export enum BudgetStatus {
 	A = "ABERTO",
@@ -227,4 +228,9 @@ export default class Budget extends BaseModel {
 		foreignKey: "budget_id",
 	})
 	public items: HasMany<typeof BudgetItem>;
+
+	@hasMany(() => BudgetPayment, {
+		foreignKey: "budget_id",
+	})
+	public payments: HasMany<typeof BudgetPayment>;
 }

@@ -943,6 +943,7 @@ Route.group(() => {
 	Route.get("/complete", "BudgetsController.completeIndex");
 	Route.get("/open/:id", "BudgetsController.openNegotiations");
 	Route.get("/from-attendance/:id", "BudgetsController.fromAttendance");
+	Route.get("/payments/:id", "BudgetsController.listBudgetPayments");
 	Route.get("/:id", "BudgetsController.show");
 	Route.post("/create", "BudgetsController.createBudget");
 	Route.post("/add-kit", "BudgetsController.addKitToBudget");

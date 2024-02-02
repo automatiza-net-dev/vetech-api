@@ -309,4 +309,18 @@ export default class BudgetsController {
 
 		return response.noContent();
 	}
+
+	public async listBudgetPayments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const result = await this.service.listBudgetPayments(
+			await this.sharedService.getAuthContext(auth),
+			request.params().id,
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

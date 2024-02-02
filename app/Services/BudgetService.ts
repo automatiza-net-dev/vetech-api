@@ -1345,6 +1345,11 @@ export default class BudgetService {
 				);
 			}
 
+			const [{ count }] = await Database.from("budget_payments")
+				.useTransaction(trx)
+				.where("budget_id", data.budgetId)
+				.count("*");
+
 			const tasks = data.items.map((elem, index) =>
 				BudgetPayment.create(
 					{
@@ -1356,7 +1361,7 @@ export default class BudgetService {
 						tef_flag_id: elem.tefFlagId,
 						tef_acquirer_id: elem.tefAcquirerId,
 
-						block: index + 1,
+						block: parseInt(count) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
 						status: "Aberto",
@@ -1521,5 +1526,86 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	public async listBudgetPayments(
+		authCtx: AuthContext,
+		id: string,
+		data: {
+			type?: string;
+		},
+	) {
+		const qb = Database.from("budget_payments")
+			.select(
+				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
+       budget_payments.budget_id         as id_Orcamento,
+       block                             as bloco,
+       total_value                       as valor_total,
+       installments                      as qtd_Parcelas_Bloco_pgto,
+       payment_methods.id                as id_Forma_Pagamento,
+       payment_methods.description       as descricao_Forma_Pagamento,
+       tef_flags.id                      as id_badeira_tef,
+       tef_flags.description             as descricao_bandeira_tef,
+       tef_acquirers.id                  as id_adquirente_tef,
+       tef_acquirers.description         as descricao_adquirente_tef,
+       status,
+
+       budget_payments.issue_date        as data_Lancamento,
+       users.id                          as id_Usuario_lancamento,
+       users.name                        as nome_Usuario_lancamento,
+
+       budget_payments.update_date       as data_alteracao,
+       update_user.id                    as id_Usuario_alteracao,
+       update_user.name                  as nome_Usuario_alteracao,
+
+       budget_payments.confirmation_date as data_confirmacao,
+       confirm_user.id                   as id_Usuario_confirmacao,
+       confirm_user.name                 as nome_Usuario_confirmacao,
+
+       budget_payments.deleted_at        as data_exclusao,
+       exclusion_user.id                 as id_Usuario_exclusao,
+       exclusion_user.name               as nome_Usuario_exclusao,
+       budget_payments.exclusion_origin  as origem_exclusao`),
+			)
+			.join(
+				"payment_methods",
+				"payment_methods.id",
+				"budget_payments.payment_method_id",
+			)
+			.join("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
+			.join(
+				"tef_acquirers",
+				"tef_acquirers.id",
+				"budget_payments.tef_acquirer_id",
+			)
+			.join("users", "users.id", "budget_payments.user_id")
+			.joinRaw(
+				"left join users update_user on update_user.id = budget_payments.change_user_id",
+			)
+			.joinRaw(
+				"left join users confirm_user on confirm_user.id = budget_payments.conclusion_user_id",
+			)
+			.joinRaw(
+				"left join users exclusion_user on exclusion_user.id = budget_payments.exclusion_user_id",
+			)
+			.andWhere("budget_payments.economic_group_id", authCtx.group.id)
+			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
+			.where("budget_payments.budget_id", id);
+
+		if (!data.type) {
+			qb.whereNot(
+				"budget_payments.status",
+				"Excluido" as TBudgetPaymentStatus,
+			).whereNull("budget_payments.deleted_at");
+		}
+
+		if (data.type === "Venda") {
+			qb.where(
+				"budget_payments.status",
+				"Aberto" as TBudgetPaymentStatus,
+			).whereNull("budget_payments.deleted_at");
+		}
+
+		return qb.exec();
 	}
 }

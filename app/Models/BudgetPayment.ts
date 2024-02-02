@@ -1,0 +1,109 @@
+import { DateTime } from "luxon";
+import {
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	column,
+} from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+
+export const BudgetPaymentStatus = ["Aberto"] as const;
+export type TBudgetPaymentStatus = (typeof BudgetPaymentStatus)[number];
+
+export default class BudgetPayment extends BaseModel {
+	@column({ isPrimary: true })
+	public id: number;
+
+	@column()
+	public block: number;
+
+	@column({
+		columnName: "total_value",
+	})
+	public totalValue: number;
+
+	@column()
+	public installments: number;
+
+	@column()
+	public status: TBudgetPaymentStatus;
+
+	@column.dateTime({
+		columnName: "confirmation_date",
+	})
+	public confirmationDate: DateTime | null;
+
+	@column({
+		columnName: "exclusion_reason",
+	})
+	public exclusionReason: string | null;
+
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
+
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
+
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
+
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
+
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
+
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
+
+	@column({
+		serializeAs: null,
+	})
+	public economic_group_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public business_unit_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public budget_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public tef_flag_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public tef_acquirer_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public payment_method_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public change_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public conclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string;
+}

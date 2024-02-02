@@ -6,6 +6,7 @@ import Bill, { BillStatus } from "App/Models/Bill";
 import { BillItemStatus } from "App/Models/BillItem";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
+import BudgetPayment from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
@@ -24,6 +25,7 @@ import {
 	ICreateBudgetItemData,
 	IUpdateBudgetItemData,
 } from "Contracts/interfaces/IBudgetData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 interface ISearchPartial {
@@ -194,6 +196,8 @@ export default class BudgetService {
 			.preload("conclusionUser")
 			.preload("cancelationReason")
 			.orderBy("created_at", "desc");
+
+		// TODO preload payments
 
 		if (data.fromCreation) {
 			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
@@ -1292,6 +1296,76 @@ export default class BudgetService {
 					totalValue:
 						budget.totalValue +
 						items.reduce((acc, item) => acc + item.totalValue, 0),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async createBudgetPayments(
+		authCtx: AuthContext,
+		data: {
+			budgetId: string;
+			items: {
+				paymentMethodId: string;
+				tefFlagId: string;
+				tefAcquirerId: string;
+
+				totalValue: number;
+				installments: number;
+			}[];
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const budget = await Budget.query()
+				.useTransaction(trx)
+				.where("id", data.budgetId)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.first();
+
+			if (!budget) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const sum = this.sharedService.sum(
+				data.items.map((elem) => elem.totalValue),
+			);
+			const decimalTotal = new Decimal(budget.totalValue);
+			const decimalSum = new Decimal(sum);
+			const decimalPaid = new Decimal(budget.paidValue);
+
+			if (decimalTotal.minus(decimalPaid).lessThan(decimalSum)) {
+				throw new BadRequestException(
+					"Valores adicionais acima do valor total do orçamento",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			const tasks = data.items.map((elem, index) =>
+				BudgetPayment.create(
+					{
+						economic_group_id: authCtx.group.id,
+						business_unit_id: authCtx.unit.id,
+						user_id: authCtx.user.id,
+						budget_id: budget.id,
+						payment_method_id: elem.paymentMethodId,
+						tef_flag_id: elem.tefFlagId,
+						tef_acquirer_id: elem.tefAcquirerId,
+
+						block: index + 1,
+						totalValue: elem.totalValue,
+						installments: elem.installments,
+						status: "Aberto",
+					},
+					{ client: trx },
+				),
+			);
+			await Promise.all(tasks);
+
+			await budget
+				.merge({
+					paidValue: decimalPaid.plus(decimalSum).toNumber(),
 				})
 				.useTransaction(trx)
 				.save();

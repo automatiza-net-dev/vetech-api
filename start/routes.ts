@@ -948,6 +948,7 @@ Route.group(() => {
 	Route.post("/add-kit", "BudgetsController.addKitToBudget");
 	Route.post("/create-item", "BudgetsController.createBudgetItem");
 	Route.post("/create-items", "BudgetsController.createBudgetItems");
+	Route.post("/create-payments", "BudgetsController.createBudgetPayments");
 
 	Route.put("/update/:id", "BudgetsController.updateBudget");
 	Route.put(

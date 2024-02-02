@@ -63,6 +63,11 @@ export default class Budget extends BaseModel {
 	})
 	public totalValue: number;
 
+	@column({
+		columnName: "paid_value",
+	})
+	public paidValue: number;
+
 	@column()
 	public observation: string;
 

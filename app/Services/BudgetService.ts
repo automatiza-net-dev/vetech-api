@@ -6,7 +6,10 @@ import Bill, { BillStatus } from "App/Models/Bill";
 import { BillItemStatus } from "App/Models/BillItem";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
-import BudgetPayment from "App/Models/BudgetPayment";
+import BudgetPayment, {
+	TBudgetPaymentExclusionOrigin,
+	TBudgetPaymentStatus,
+} from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
@@ -1423,7 +1426,8 @@ export default class BudgetService {
 
 			const budgetPayments = await BudgetPayment.query()
 				.useTransaction(trx)
-				.where("budget_id", row.budget_id);
+				.where("budget_id", row.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
 
 			const sum = this.sharedService.sum(
 				budgetPayments.map((elem) => elem.totalValue),
@@ -1439,6 +1443,80 @@ export default class BudgetService {
 			await row.budget
 				.merge({
 					paidValue: sum,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async excludeBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			origin: TBudgetPaymentExclusionOrigin;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (data.origin === "Orçamento" && row.budget.status !== BudgetStatus.A) {
+				throw new BadRequestException(
+					"Orçamento precisa estar Aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (
+				data.origin === "Venda" &&
+				![BudgetStatus.C, BudgetStatus.P].includes(row.budget.status)
+			) {
+				throw new BadRequestException(
+					"Orçamento precisa estar Confirmado totalmente ou parcialmente",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+
+					exclusionOrigin: data.origin,
+					status: "Excluido",
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", row.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
+
+			await row.budget
+				.merge({
+					paidValue: this.sharedService.sum(
+						budgetPayments.map((elem) => elem.totalValue),
+					),
 				})
 				.useTransaction(trx)
 				.save();

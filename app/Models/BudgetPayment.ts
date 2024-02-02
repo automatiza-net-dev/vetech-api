@@ -10,8 +10,12 @@ import {
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import Budget from "./Budget";
 
-export const BudgetPaymentStatus = ["Aberto"] as const;
+export const BudgetPaymentStatus = ["Aberto", "Excluido"] as const;
 export type TBudgetPaymentStatus = (typeof BudgetPaymentStatus)[number];
+
+export const BudgetPaymentExclusionOrigin = ["Venda", "Orçamento"] as const;
+export type TBudgetPaymentExclusionOrigin =
+	(typeof BudgetPaymentExclusionOrigin)[number];
 
 export default class BudgetPayment extends BaseModel {
 	@column({ isPrimary: true })
@@ -37,9 +41,9 @@ export default class BudgetPayment extends BaseModel {
 	public confirmationDate: DateTime | null;
 
 	@column({
-		columnName: "exclusion_reason",
+		columnName: "exclusion_origin",
 	})
-	public exclusionReason: string | null;
+	public exclusionOrigin: TBudgetPaymentExclusionOrigin | null;
 
 	@column.dateTime({ columnName: "issue_date" })
 	public issueDate: DateTime;

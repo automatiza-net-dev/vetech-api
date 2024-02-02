@@ -9,6 +9,7 @@ import CreateBudgetItemsValidator from "App/Validators/Budget/CreateBudgetItemsV
 import CreateBudgetItemValidator from "App/Validators/Budget/CreateBudgetItemValidator";
 import CreateBudgetPaymentValidator from "App/Validators/Budget/CreateBudgetPaymentValidator";
 import CreateBudgetValidator from "App/Validators/Budget/CreateBudgetValidator";
+import ExcludeBudgetPaymentValidator from "App/Validators/Budget/ExcludeBudgetPaymentValidator";
 import UpdateBudgetItemValidator from "App/Validators/Budget/UpdateBudgetItemValidator";
 import UpdateBudgetObservationValidator from "App/Validators/Budget/UpdateBudgetObservationValidator";
 import UpdateBudgetPaymentValidator from "App/Validators/Budget/UpdateBudgetPaymentValidator";
@@ -287,6 +288,21 @@ export default class BudgetsController {
 		const payload = await request.validate(UpdateBudgetPaymentValidator);
 
 		await this.service.updateBudgetPayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async excludeBudgetPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(ExcludeBudgetPaymentValidator);
+
+		await this.service.excludeBudgetPayment(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

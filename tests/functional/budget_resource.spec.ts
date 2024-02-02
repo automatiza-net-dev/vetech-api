@@ -2,7 +2,9 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
 import Attendance from "App/Models/Attendance";
 import Budget, { BudgetStatus } from "App/Models/Budget";
-import BudgetPayment from "App/Models/BudgetPayment";
+import BudgetPayment, {
+	TBudgetPaymentExclusionOrigin,
+} from "App/Models/BudgetPayment";
 import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 import DailyCashier from "App/Models/DailyCashier";
 import DailyMovement from "App/Models/DailyMovement";
@@ -764,6 +766,96 @@ test.group("Budget resource", (group) => {
 				totalValue: 101,
 				installments: 1,
 				updateDate: new Date().toISOString(),
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should exclude budget payment", async ({ assert, client }) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ status: BudgetStatus.C }).save();
+
+		const response = await client
+			.put("/budgets/exclude-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				origin: "Venda" as TBudgetPaymentExclusionOrigin,
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should throw error if budget payment isnt 'Aberto'", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budgetPayment.merge({ status: "Excluido" }).save();
+		// await dataProps.budget.merge({ status: BudgetStatus.C }).save();
+
+		const response = await client
+			.put("/budgets/exclude-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				origin: "Venda" as TBudgetPaymentExclusionOrigin,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should throw error if 'Venda' exclude has invalid budget status", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		// await dataProps.budget.merge({ status: BudgetStatus.C }).save();
+
+		const response = await client
+			.put("/budgets/exclude-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				origin: "Venda" as TBudgetPaymentExclusionOrigin,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should throw error if 'Orçamento' exclude has invalid budget status", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ status: BudgetStatus.N }).save();
+
+		const response = await client
+			.put("/budgets/exclude-payment")
+			.json({
+				budgetPaymentId: dataProps.budgetPayment.id,
+				origin: "Orçamento" as TBudgetPaymentExclusionOrigin,
 			})
 			.bearerToken(token);
 

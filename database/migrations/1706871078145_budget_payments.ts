@@ -23,7 +23,7 @@ export default class extends BaseSchema {
 			table.integer("installments");
 			table.string("status", 10);
 			table.datetime("confirmation_date");
-			table.string("exclusion_reason");
+			table.string("exclusion_origin");
 			table.timestamp("issue_date", { useTz: true });
 			table.timestamp("update_date", { useTz: true });
 

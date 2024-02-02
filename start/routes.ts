@@ -950,6 +950,7 @@ Route.group(() => {
 	Route.post("/create-item", "BudgetsController.createBudgetItem");
 	Route.post("/create-items", "BudgetsController.createBudgetItems");
 	Route.post("/create-payments", "BudgetsController.createBudgetPayments");
+	Route.post("/confirm-payment", "BudgetsController.confirmBudgetPayment");
 
 	Route.put("/update/:id", "BudgetsController.updateBudget");
 	Route.put(

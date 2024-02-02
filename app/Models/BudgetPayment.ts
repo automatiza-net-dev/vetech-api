@@ -14,7 +14,7 @@ import TefAcquirer from "./TefAcquirer";
 import PaymentMethod from "./PaymentMethod";
 import User from "./User";
 
-export const BudgetPaymentStatus = ["Aberto", "Excluido"] as const;
+export const BudgetPaymentStatus = ["Aberto", "Excluido", "Baixado"] as const;
 export type TBudgetPaymentStatus = (typeof BudgetPaymentStatus)[number];
 
 export const BudgetPaymentExclusionOrigin = ["Venda", "Orçamento"] as const;
@@ -27,6 +27,11 @@ export default class BudgetPayment extends BaseModel {
 
 	@column()
 	public block: number;
+
+	@column({
+		columnName: "block_ref",
+	})
+	public blockRef: number;
 
 	@column({
 		columnName: "total_value",

@@ -1479,6 +1479,54 @@ export default class BudgetService {
 		});
 	}
 
+	public async confirmBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			budgetId: string;
+			blockRef: number;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.andWhere("budget_id", data.budgetId)
+				.whereHas("budget", (query) => {
+					query
+						.andWhere("economic_group_id", authCtx.group.id)
+						.andWhere("business_unit_id", authCtx.unit.id);
+				})
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					conclusion_user_id: authCtx.user.id,
+
+					blockRef: data.blockRef,
+					confirmationDate: DateTime.now(),
+					status: "Baixado",
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
 	public async excludeBudgetPayment(
 		authCtx: AuthContext,
 		data: {

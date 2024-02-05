@@ -540,11 +540,7 @@ export default class FocusNfeService {
 		return obj;
 	}
 
-	public async getNfe(
-		ref: string,
-		token: string,
-		complete = true,
-	): Promise<z.infer<typeof nfeResponseSchema> | null> {
+	public async getNfe(ref: string, token: string, complete = true) {
 		try {
 			const { data } = await this.ax.get(`/v2/nfe/${ref}`, {
 				params: {
@@ -562,14 +558,23 @@ export default class FocusNfeService {
 
 				Logger.error("invalid schema");
 				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
-				return null;
+				return {
+					success: false as const,
+					error: "Resposta inválida",
+				};
 			}
 
-			return zodResponse.data;
+			return {
+				success: true as const,
+				data: zodResponse.data,
+			};
 		} catch (error) {
 			Logger.error(JSON.stringify(error.response.data, null, 2));
 
-			return null;
+			return {
+				success: false as const,
+				error: "Erro ao chamar",
+			};
 		}
 	}
 

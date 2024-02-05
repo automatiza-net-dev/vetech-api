@@ -884,17 +884,13 @@ export default class BusinessUnitFiscalDocumentService {
 			const token = this.getToken(unit);
 
 			const result = await this.focusNfe.getNfe(document.id, token);
-			if (!result) {
-				throw new BadRequestException(
-					"Erro ao atualizar nota",
-					400,
-					"E_NO_NOTE",
-				);
+			if (!result.success) {
+				throw new BadRequestException(result.error, 400, "E_NO_NOTE");
 			}
 
 			await this.mergeNfe(
 				document,
-				result,
+				result.data,
 				unit.unitConfig.fiscalDocumentEnvironment,
 			)
 				.useTransaction(trx)

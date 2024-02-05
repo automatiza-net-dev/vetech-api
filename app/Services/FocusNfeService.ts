@@ -567,8 +567,7 @@ export default class FocusNfeService {
 
 			return zodResponse.data;
 		} catch (error) {
-			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			Logger.error(JSON.stringify(error.response.data, null, 2));
 
 			return null;
 		}

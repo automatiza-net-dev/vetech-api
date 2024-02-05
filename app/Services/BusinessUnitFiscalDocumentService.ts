@@ -886,7 +886,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const result = await this.focusNfe.getNfe(document.id, token);
 			if (!result) {
 				throw new BadRequestException(
-					"Erro ao atualizar nova",
+					"Erro ao atualizar nota",
 					400,
 					"E_NO_NOTE",
 				);
@@ -929,7 +929,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const result = await this.focusNfe.getNfse(document.id, token);
 			if (!result) {
 				throw new BadRequestException(
-					"Erro ao atualizar nova",
+					"Erro ao atualizar nota",
 					400,
 					"E_NO_NOTE",
 				);

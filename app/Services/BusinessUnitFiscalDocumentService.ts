@@ -12,6 +12,7 @@ import BusinessUnitFiscalDocument, {
 } from "App/Models/BusinessUnitFiscalDocument";
 import Cest from "App/Models/Cest";
 import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
+import FocusLog from "App/Models/FocusLog";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
 } from "App/Models/IssuedFiscalDocument";
@@ -24,6 +25,7 @@ import FocusNfeService, {
 	disableWebhookResponseSchema,
 	nfeResponseSchema,
 	nfseResponseSchema,
+	ISendNfse,
 } from "App/Services/FocusNfeService";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IBusinessUnitFiscalDocumentData, {
@@ -372,7 +374,7 @@ export default class BusinessUnitFiscalDocumentService {
 				},
 			};
 
-			const cestTasks = items.map(async (item, idx) => {
+			const cestTasks = items.map((item, idx) => {
 				const result: ISendNfe["items"][number] = {
 					index: (idx + 1).toString(),
 					code: item.product_variation_id,
@@ -447,13 +449,27 @@ export default class BusinessUnitFiscalDocumentService {
 
 				return result;
 			});
-			nfePayload.items = await Promise.all(cestTasks);
+			nfePayload.items = cestTasks;
 
 			const result = await this.focusNfe.sendNfe(
 				issuedDocument.id,
 				nfePayload,
 				token,
 			);
+
+			await FocusLog.create(
+				{
+					document_id: issuedDocument.id,
+					description: "Emissão de NF-e",
+					origin: "BusinessUnitFiscalDocumentService.authorize",
+					input: nfePayload,
+					data: result,
+				},
+				{
+					client: trx,
+				},
+			);
+
 			// if (!result.success) {
 			// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
 			// Logger.info(JSON.stringify(result, undefined, 2));
@@ -654,55 +670,57 @@ export default class BusinessUnitFiscalDocumentService {
 						},
 					);
 
-					const result = await this.focusNfe.sendNfse(
-						serviceDocument.id,
-						{
-							issuedAt: new Date().toISOString(),
-							simple: authCtx.unit.simple,
-							seller: {
-								document: authCtx.unit.document ?? "",
-								city_ie: authCtx.unit.cityRegistration ?? "",
-								city_code: authCtx.unit.cityCode ?? "",
-							},
-							buyer: {
-								cpf_document:
-									responsible.tutor.document?.replaceAll(/\D/g, "") ?? "",
-								cnpj_document:
-									responsible.tutor.document?.length === 14
-										? responsible.tutor.document.replaceAll(/\D/g, "")
-										: null,
-								name: responsible.name,
-								email: responsible.tutor.email,
-								phone:
-									responsible.tutor.telephone ??
-									responsible.tutor.cellphone ??
-									"",
-								address: {
-									street: responsible.tutor.street ?? "",
-									number: responsible.tutor.number ?? "",
-									district: responsible.tutor.district ?? "",
-									city_code: responsible.tutor.cityCode ?? "",
-									uf: responsible.tutor.state ?? "",
-									postal_code: responsible.tutor.postalCode ?? "",
-									complement: responsible.tutor.complement ?? null,
-								},
-							},
-							service: {
-								total_value: item.totalValue,
-								pis_value: item.pisValue,
-								cofins_value: item.cofinsValue,
-								iss_value: item.issValue,
-								base_value: item.issBase,
-								percentage_value: item.issPercentage,
-								discount_value: item.discountValue,
-								service_code: item.productVariation.product.serviceCode ?? "",
-								cnae: authCtx.unit.cnae ?? "",
-								description:
-									authCtx.unit.unitConfig.defaultNfseDescription ??
-									item.productVariation.product.description,
-								city_code: authCtx.unit.cityCode ?? "",
+					const payload: ISendNfse = {
+						issuedAt: new Date().toISOString(),
+						simple: authCtx.unit.simple,
+						seller: {
+							document: authCtx.unit.document ?? "",
+							city_ie: authCtx.unit.cityRegistration ?? "",
+							city_code: authCtx.unit.cityCode ?? "",
+						},
+						buyer: {
+							cpf_document:
+								responsible.tutor.document?.replaceAll(/\D/g, "") ?? "",
+							cnpj_document:
+								responsible.tutor.document?.length === 14
+									? responsible.tutor.document.replaceAll(/\D/g, "")
+									: null,
+							name: responsible.name,
+							email: responsible.tutor.email,
+							phone:
+								responsible.tutor.telephone ??
+								responsible.tutor.cellphone ??
+								"",
+							address: {
+								street: responsible.tutor.street ?? "",
+								number: responsible.tutor.number ?? "",
+								district: responsible.tutor.district ?? "",
+								city_code: responsible.tutor.cityCode ?? "",
+								uf: responsible.tutor.state ?? "",
+								postal_code: responsible.tutor.postalCode ?? "",
+								complement: responsible.tutor.complement ?? null,
 							},
 						},
+						service: {
+							total_value: item.totalValue,
+							pis_value: item.pisValue,
+							cofins_value: item.cofinsValue,
+							iss_value: item.issValue,
+							base_value: item.issBase,
+							percentage_value: item.issPercentage,
+							discount_value: item.discountValue,
+							service_code: item.productVariation.product.serviceCode ?? "",
+							cnae: authCtx.unit.cnae ?? "",
+							description:
+								authCtx.unit.unitConfig.defaultNfseDescription ??
+								item.productVariation.product.description,
+							city_code: authCtx.unit.cityCode ?? "",
+						},
+					};
+
+					const result = await this.focusNfe.sendNfse(
+						serviceDocument.id,
+						payload,
 						token,
 					);
 
@@ -731,6 +749,20 @@ export default class BusinessUnitFiscalDocumentService {
 						})
 						.useTransaction(trx)
 						.save();
+
+					await FocusLog.create(
+						{
+							document_id: serviceDocument.id,
+							description: "Emissão de NFS-e",
+							origin: "BusinessUnitFiscalDocumentService.$sendNfse",
+							input: payload,
+							data: result.data,
+							error: result.message,
+						},
+						{
+							client: trx,
+						},
+					);
 
 					return result;
 				}),

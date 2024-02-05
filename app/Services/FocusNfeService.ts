@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
+import FocusLog from "App/Models/FocusLog";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 
@@ -554,10 +555,17 @@ export default class FocusNfeService {
 
 			const zodResponse = nfeResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
+				await FocusLog.create({
+					document_id: ref,
+					origin: "FocusNfeService.getNfe",
+					description: "Schema inválido",
+					error: zodResponse.error.issues,
+				});
 
-				Logger.error("invalid schema");
-				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+				// Logger.info(JSON.stringify(data, undefined, 2));
+				//
+				// Logger.error("invalid schema");
+				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return {
 					success: false as const,
 					error: "Resposta inválida",
@@ -569,7 +577,13 @@ export default class FocusNfeService {
 				data: zodResponse.data,
 			};
 		} catch (error) {
-			Logger.error(JSON.stringify(error.response.data, null, 2));
+			// Logger.error(JSON.stringify(error.response.data, null, 2));
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfe",
+				description: "Erro na chamada",
+				error: error.response.data,
+			});
 
 			return {
 				success: false as const,

@@ -208,7 +208,7 @@ export const nfeResponseSchema = z.object({
 			chave_nfe: z.string(),
 			data_recebimento: z.string(),
 			numero_protocolo: z.string().optional(),
-			digest_value: z.string(),
+			digest_value: z.string().optional(),
 			status: z.string(),
 			motivo: z.string(),
 		}),

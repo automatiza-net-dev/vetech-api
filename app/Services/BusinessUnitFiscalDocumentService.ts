@@ -478,6 +478,16 @@ export default class BusinessUnitFiscalDocumentService {
 					.save();
 			}
 
+			if (!result.success) {
+				await issuedDocument
+					.merge({
+						sefazStatus: "rejeitado",
+						sefazMessage: result.message,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
 			// await item
 			//   .merge({
 			//     nfeIssued: result.success,

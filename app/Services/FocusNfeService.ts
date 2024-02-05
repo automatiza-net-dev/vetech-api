@@ -572,6 +572,12 @@ export default class FocusNfeService {
 				};
 			}
 
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfse",
+				description: "Resposta completa",
+				data: zodResponse.data,
+			});
 			return {
 				success: true as const,
 				data: zodResponse.data,
@@ -604,15 +610,36 @@ export default class FocusNfeService {
 
 			const zodResponse = nfseResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
-				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+				await FocusLog.create({
+					document_id: ref,
+					origin: "FocusNfeService.getNfse",
+					description: "Schema inválido",
+					error: zodResponse.error.issues,
+				});
+
+				// Logger.info(JSON.stringify(data, undefined, 2));
+				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return null;
 			}
 
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfse",
+				description: "Resposta completa",
+				data: zodResponse.data,
+			});
+
 			return zodResponse.data;
 		} catch (error) {
-			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			// type T = TypedAxiosError<{ mensagem: string }, unknown>;
+			// Logger.error((error as T).response?.data.mensagem ?? "");
+
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfse",
+				description: "Chamada inválida",
+				error: error.response.data,
+			});
 
 			return null;
 		}

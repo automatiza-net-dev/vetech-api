@@ -574,7 +574,7 @@ export default class FocusNfeService {
 
 			await FocusLog.create({
 				document_id: ref,
-				origin: "FocusNfeService.getNfse",
+				origin: "FocusNfeService.getNfe",
 				description: "Resposta completa",
 				data: zodResponse.data,
 			});

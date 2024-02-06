@@ -1265,8 +1265,7 @@ export default class FinanceService {
 				.merge({
 					account_plan_id: data.accountPlanId,
 					payment_method_id: data.paymentMethodId,
-					checking_account_id:
-						paymentMethod.checkingAccountId ?? data.checkingAccountId,
+					checking_account_id: data.checkingAccountId,
 					acquirer_id: data.tefAcquirerId,
 					tef_flag_id: data.tefFlagId,
 
@@ -1282,6 +1281,7 @@ export default class FinanceService {
 						discount,
 					reconciled: data.reconciled,
 
+					issueDate: data.issueDate,
 					feeValue: data.feeValue ?? 0,
 					feePercentage: data.feePercentage ?? 0,
 					discountValue: data.discountValue,

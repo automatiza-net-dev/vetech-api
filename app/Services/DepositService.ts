@@ -476,14 +476,15 @@ where dmi.deposit_movement_id = ?
 
 			await Database.rawQuery(
 				`update deposit_items
-set quantity =
+        set quantity =
         (select diDest.quantity + dmi.quantity
          from deposit_items diDest
                   join deposit_movement_items dmi
                        on diDest.product_variation_id = dmi.product_variation_id and
                           diDest.business_unit_product_id = dmi.business_unit_product_id
          where diDest.deposit_id = ?
-           and dmi.deposit_movement_id = ?)
+           and dmi.deposit_movement_id = ?
+           and deposit_items.business_unit_product_id = diDest.business_unit_product_id)
 where deposit_id = ?
   and product_variation_id in
       (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
@@ -494,17 +495,18 @@ where deposit_id = ?
 
 			await Database.rawQuery(
 				`update deposit_items
-set quantity =
+        set quantity =
         (select diOri.quantity - dmi.quantity
          from deposit_items diOri
                   join deposit_movement_items dmi
                        on diOri.product_variation_id = dmi.product_variation_id and
                           diOri.business_unit_product_id = dmi.business_unit_product_id
          where diOri.deposit_id = ?
-           and dmi.deposit_movement_id = ?)
+           and dmi.deposit_movement_id = ?
+           and deposit_items.business_unit_product_id = diOri.business_unit_product_id)
 where deposit_id = ?
   and product_variation_id in
-      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
+      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?);`,
 				[fromRow.id, movement.id, fromRow.id, movement.id],
 			)
 				.useTransaction(trx)

@@ -1445,6 +1445,8 @@ Route.group(() => {
 	Route.get("/budgets", "ReportsController.budgetsReport");
 	Route.get("/scheduling", "ReportsController.schedulingReport");
 	Route.get("/product-types", "ReportsController.productTypesReport");
+	Route.get("/competence", "ReportsController.competenceReport");
+	Route.get("/plan-group", "ReportsController.planGroupReport");
 })
 	.prefix("reports")
 	.middleware("auth");

@@ -16,6 +16,7 @@ import Finance, {
 	FinanceAccept,
 	FinanceOriginFlag,
 	FinanceStatus,
+	FinanceType,
 } from "App/Models/Finance";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
@@ -2600,6 +2601,7 @@ and product_variation_id in (
 				acquirer_id: data.tefAcquirerId,
 				origin_id: data.item.id,
 
+				type: FinanceType.D,
 				block: data.item.block,
 				installment: data.item.installment,
 				originFlag: FinanceOriginFlag.E,

@@ -502,8 +502,19 @@ export default class FinanceService {
 					builder.where("borderos.nsu_document", data.nsu);
 				}
 
-				if (data.status) {
-					builder.whereILike("borderos.status", `%${data.status}%`);
+				// if (data.status) {
+				// 	builder.whereILike("borderos.status", `%${data.status}%`);
+				// }
+
+				if (data.status === FinanceStatus.A) {
+					builder.whereIn("borderos.status", [
+						"Aberto",
+						"Fechado",
+					] as TBorderoStatus[]);
+				}
+
+				if (data.status === FinanceStatus.B) {
+					builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
 				}
 
 				// if (data.accept) {
@@ -773,8 +784,15 @@ export default class FinanceService {
 				builder.where("borderos.nsu_document", data.nsu);
 			}
 
-			if (data.status) {
-				builder.whereILike("borderos.status", `%${data.status}%`);
+			if (data.status === FinanceStatus.A) {
+				builder.whereIn("borderos.status", [
+					"Aberto",
+					"Fechado",
+				] as TBorderoStatus[]);
+			}
+
+			if (data.status === FinanceStatus.B) {
+				builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
 			}
 
 			// if (data.accept) {

@@ -1321,17 +1321,16 @@ export default class FinanceService {
 		authCtx: AuthContext,
 		data: {
 			idList: string[];
-			type?: FinanceType;
-			tef?: string;
-			expirationDate?: DateTime;
-			paymentMethodId?: string;
-			tefFlagId?: string;
-			tefAcquirerId: string;
+			type?: FinanceType | null;
+			expirationDate?: DateTime | null;
+			paymentMethodId?: string | null;
+			tefFlagId?: string | null;
+			tefAcquirerId?: string | null;
 		},
 	) {
 		if (data.idList.length === 0) {
 			// Se tem apenas o ID, é para pedir tudo
-			if (Object.values(data).filter((item) => item).length !== 7) {
+			if (Object.values(data).filter((item) => item).length !== 6) {
 				throw new BadRequestException(
 					"Caso não seja enviado lista de ids, é preciso adicionar todos os campos opcionais",
 					400,
@@ -1391,7 +1390,7 @@ export default class FinanceService {
           origin_down_flag    = 'FINANCEIRO'
       where finances.id = ANY('{${data.idList.join(
 				",",
-			)}}') and business_unit_id = ? and finances.status = ?`,
+			)}}') and business_unit_id = ? and finances.status = ? and finances.payment_date is null and finances.bordero_id is null`,
 				[authCtx.unit.id, FinanceStatus.A],
 			).useTransaction(trx);
 		});

@@ -35,19 +35,18 @@ export default class UpdateGroupedFinanceDownValidator {
 				}),
 			]),
 		),
-		tefAcquirerId: schema.string([
+		tefAcquirerId: schema.string.nullableAndOptional([
 			rules.exists({ table: "tef_acquirers", column: "id" }),
 		]),
 
-		paymentMethodId: schema.string.optional([
+		paymentMethodId: schema.string.nullableAndOptional([
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
-		tefFlagId: schema.string.optional([
+		tefFlagId: schema.string.nullableAndOptional([
 			rules.exists({ table: "tef_flags", column: "id" }),
 		]),
-		type: schema.enum.optional(Object.values(FinanceType)),
-		expirationDate: schema.date.optional(),
-		tef: schema.string.optional(),
+		type: schema.enum.nullableAndOptional(Object.values(FinanceType)),
+		expirationDate: schema.date.nullableAndOptional(),
 	});
 
 	/**

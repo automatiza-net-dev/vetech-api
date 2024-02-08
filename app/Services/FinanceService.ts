@@ -581,7 +581,8 @@ export default class FinanceService {
        payment_methods.tef         as pm_tef,
        payment_methods.type        as pm_type,
        null                        as tef_adquirente,
-       null::uuid as tef_adquirente_id
+       null::uuid as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
                      `),
 			)
 			.joinRaw("left join patients on finances.client_id = patients.id", [])
@@ -710,7 +711,8 @@ export default class FinanceService {
        payment_methods.tef                                                     as pm_tef,
        payment_methods.type                                                    as pm_type,
        null                                                                    as tef_adquirente,
-       null::uuid as tef_adquirente_id
+       null::uuid as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
                        `),
 				)
 				.joinRaw("left join patients on borderos.client_id = patients.id", [])
@@ -724,7 +726,7 @@ export default class FinanceService {
 				)
 				.whereIn("borderos.business_unit_id", units)
 				.whereNull("borderos.deleted_at")
-				.whereNot("borderos.status", "Fechado" as TBorderoStatus);
+				.whereNot("borderos.status", "Excluido" as TBorderoStatus);
 
 			if (data.type) {
 				builder.whereILike("borderos.type", data.type);
@@ -772,10 +774,6 @@ export default class FinanceService {
 				builder.whereILike("borderos.document", `%${data.document}%`);
 			}
 
-			// if (data.fiscalNote) {
-			// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
-			// }
-
 			if (data.paymentMethod) {
 				builder.where("borderos.payment_method_id", data.paymentMethod);
 			}
@@ -794,14 +792,6 @@ export default class FinanceService {
 			if (data.status === FinanceStatus.B) {
 				builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
 			}
-
-			// if (data.accept) {
-			// 	builder.where("borderos.accept", data.accept);
-			// }
-
-			// if (data.reconciled) {
-			// 	builder.where("borderos.reconciled", data.reconciled === "true");
-			// }
 
 			if (data.plan) {
 				builder.where("borderos.account_plan_id", data.plan);
@@ -845,7 +835,8 @@ export default class FinanceService {
        payment_methods.tef            as pm_tef,
        payment_methods.type           as pm_type,
        tef_acquirers.description    as tef_adquirente,
-       tef_acquirers.id as tef_adquirente_id
+       tef_acquirers.id as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
                        `),
 				)
 				.joinRaw(
@@ -872,7 +863,7 @@ export default class FinanceService {
 					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status,
          finances.payment_method_id,
          payment_methods.description, finances.tef_flag_id, tef_flags.description, payment_methods.tef,
-         payment_methods.type, tef_acquirers.description, tef_acquirers.id`,
+         payment_methods.type, tef_acquirers.description, tef_acquirers.id, payment_methods.checking_account_id `,
 					[],
 				);
 

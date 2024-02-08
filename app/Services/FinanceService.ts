@@ -1330,6 +1330,7 @@ export default class FinanceService {
 		authCtx: AuthContext,
 		data: {
 			idList: string[];
+			checkingAccountId: string;
 			type?: FinanceType | null;
 			expirationDate?: DateTime | null;
 			paymentMethodId?: string | null;
@@ -1339,7 +1340,7 @@ export default class FinanceService {
 	) {
 		if (data.idList.length === 0) {
 			// Se tem apenas o ID, é para pedir tudo
-			if (Object.values(data).filter((item) => item).length !== 6) {
+			if (Object.values(data).filter((item) => item).length !== 7) {
 				throw new BadRequestException(
 					"Caso não seja enviado lista de ids, é preciso adicionar todos os campos opcionais",
 					400,
@@ -1357,6 +1358,7 @@ export default class FinanceService {
           payment_value       = total_value,
           down_date           = now(),
           origin_down_flag    = 'FINANCEIRO'
+          checking_account_id = ?
       where finances.id in (select finances.id
                       from finances
                                left join payment_methods on finances.payment_method_id = payment_methods.id
@@ -1378,6 +1380,7 @@ export default class FinanceService {
                            )
                         `,
 					[
+						data.checkingAccountId,
 						authCtx.unit.id,
 						data.type as FinanceType,
 						data.expirationDate?.toJSDate() as Date,
@@ -1396,11 +1399,12 @@ export default class FinanceService {
           payment_date        = now(),
           payment_value       = total_value,
           down_date           = now(),
-          origin_down_flag    = 'FINANCEIRO'
+          origin_down_flag    = 'FINANCEIRO',
+          checking_account_id = ?
       where finances.id = ANY('{${data.idList.join(
 				",",
 			)}}') and business_unit_id = ? and finances.status = ? and finances.payment_date is null and finances.bordero_id is null`,
-				[authCtx.unit.id, FinanceStatus.A],
+				[data.checkingAccountId, authCtx.unit.id, FinanceStatus.A],
 			).useTransaction(trx);
 		});
 	}

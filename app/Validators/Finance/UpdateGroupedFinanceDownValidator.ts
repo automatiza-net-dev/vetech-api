@@ -35,6 +35,9 @@ export default class UpdateGroupedFinanceDownValidator {
 				}),
 			]),
 		),
+		checkingAccountId: schema.string([
+			rules.exists({ table: "checking_accounts", column: "id" }),
+		]),
 		tefAcquirerId: schema.string.nullableAndOptional([
 			rules.exists({ table: "tef_acquirers", column: "id" }),
 		]),

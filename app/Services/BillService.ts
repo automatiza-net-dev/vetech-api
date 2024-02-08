@@ -2585,7 +2585,7 @@ export default class BillService {
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							treatment_id: treatment.id,
-							id: treatmentItems.length + 1 + idx,
+							id: treatmentItems.length + 2 + idx,
 							reference_item_id: innerItem.id,
 							productivity_item_id: innerItem.id,
 

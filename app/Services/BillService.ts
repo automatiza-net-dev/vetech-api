@@ -33,6 +33,7 @@ import TaxationGroupRule, {
 	MovementType,
 } from "App/Models/TaxationGroupRule";
 import Treatment from "App/Models/Treatment";
+import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
@@ -2603,6 +2604,38 @@ export default class BillService {
 				return Promise.all(innerTasks);
 			});
 			await Promise.all(tasks);
+
+			const tasks2 = treatmentItems.map((elem) => {
+				const product = products.find(
+					(p) =>
+						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
+				);
+				const relatedItems = productivityItems.filter((p) =>
+					p.products.some((p) => p.product_id === (product?.id ?? "")),
+				);
+
+				const innerTasks = relatedItems.map(async (innerItem) => {
+					return TreatmentExecution.create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							treatment_id: treatment.id,
+							productivity_item_id: innerItem.id,
+							treatment_item_id: treatment.id,
+
+							scheduledQuantity: elem.quantity,
+							quantityExecuted: 0,
+							status: "Ativo",
+						},
+						{
+							client: trx,
+						},
+					);
+				});
+
+				return Promise.all(innerTasks);
+			});
+			await Promise.all(tasks2);
 		});
 	}
 

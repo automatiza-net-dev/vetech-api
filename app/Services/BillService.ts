@@ -2571,8 +2571,8 @@ export default class BillService {
 					);
 				});
 
-			let itemsCounter = 1;
-			const tasks = treatmentItems.map((elem) => {
+			let itemsCounter = treatmentItems.length;
+			const tasks = treatmentItems.map((elem, _, totalItems) => {
 				const product = products.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
@@ -2581,13 +2581,13 @@ export default class BillService {
 					p.products.some((p) => p.product_id === (product?.id ?? "")),
 				);
 
-				const innerTasks = relatedItems.map(async (innerItem) => {
+				const innerTasks = relatedItems.map(async (innerItem, idx) => {
 					return TreatmentItem.create(
 						{
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							treatment_id: treatment.id,
-							id: itemsCounter++,
+							id: itemsCounter + idx + 1,
 							reference_item_id: innerItem.id,
 							productivity_item_id: innerItem.id,
 
@@ -2602,12 +2602,14 @@ export default class BillService {
 					);
 				});
 
+				itemsCounter += relatedItems.length;
+
 				return Promise.all(innerTasks);
 			});
 			await Promise.all(tasks);
 
 			let execCounter = 0;
-			const tasks2 = treatmentItems.map((elem, _, totalItems) => {
+			const tasks2 = treatmentItems.map((elem) => {
 				const product = products.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
@@ -2615,8 +2617,6 @@ export default class BillService {
 				const relatedItems = productivityItems.filter((p) =>
 					p.products.some((p) => p.product_id === (product?.id ?? "")),
 				);
-
-				execCounter += totalItems.length;
 
 				const innerTasks = relatedItems.map(async (innerItem, idx) => {
 					return TreatmentExecution.create(

@@ -2605,7 +2605,7 @@ export default class BillService {
 			// });
 			// await Promise.all(tasks);
 
-			const tasks2 = treatmentItems.map((elem) => {
+			const tasks2 = treatmentItems.map((elem, _, some) => {
 				const product = products.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
@@ -2622,7 +2622,7 @@ export default class BillService {
 							productivity_item_id: innerItem.id,
 
 							// pk
-							id: 1 + idx,
+							id: 1 + idx + some.length,
 							treatment_id: treatment.id,
 							treatment_item_id: treatment.id,
 

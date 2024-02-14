@@ -584,16 +584,14 @@ export default class TreatmentService {
 				item: {
 					id: inner?.treatment_item_id,
 				},
-				scheduleUser: {
-					id: inner.scheduleUser.id,
-					name: inner.scheduleUser.name,
-				},
-				executionUser: inner.executionUser
-					? {
-							id: inner.executionUser.id,
-							name: inner.executionUser.name,
-					  }
-					: null,
+				scheduleUser: this.shared.captureGroup(inner.scheduleUser, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
+				executionUser: this.shared.captureGroup(inner.executionUser, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
 				scheduleDate: inner.scheduleDate,
 				schedule: {
 					id: inner.schedule.id,

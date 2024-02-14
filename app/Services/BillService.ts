@@ -2614,13 +2614,16 @@ export default class BillService {
 					p.products.some((p) => p.product_id === (product?.id ?? "")),
 				);
 
-				const innerTasks = relatedItems.map(async (innerItem) => {
+				const innerTasks = relatedItems.map(async (innerItem, idx) => {
 					return TreatmentExecution.create(
 						{
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
-							treatment_id: treatment.id,
 							productivity_item_id: innerItem.id,
+
+							// pk
+							id: 1 + idx,
+							treatment_id: treatment.id,
 							treatment_item_id: treatment.id,
 
 							scheduledQuantity: elem.quantity,

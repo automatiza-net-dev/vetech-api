@@ -582,7 +582,7 @@ export default class TreatmentService {
 			executions: elem.executions.map((inner) => ({
 				id: inner.id,
 				item: {
-					id: inner.treatment_item_id,
+					id: inner?.treatment_item_id,
 				},
 				scheduleUser: {
 					id: inner.scheduleUser.id,
@@ -1083,6 +1083,50 @@ export default class TreatmentService {
 						treatmentItem.scheduledQuantity - execution.scheduledQuantity,
 				})
 				.useTransaction(trx);
+		});
+	}
+
+	public async excludeTreatmentItem(
+		authCtx: AuthContext,
+		data: {
+			treatmentId: number;
+			treatmentItemId: number;
+
+			reason: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const row = await TreatmentItem.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.treatmentItemId)
+				.where("treatment_id", data.treatmentId)
+				.first();
+
+			if (!row) {
+				throw this.shared.ResourceNotFound();
+			}
+
+			if (row.status === "Confirmado") {
+				throw new BadRequestException(
+					"Não é possível excluir item 'Confirmado'",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					status: "Excluido",
+					observations: row.observations
+						? [row.observations, `Obs Exclusão: ${data.reason}`].join(" - ")
+						: data.reason,
+					exclusionDate: DateTime.now(),
+					exclusion_user_id: authCtx.user.id,
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 }

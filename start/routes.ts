@@ -1206,6 +1206,10 @@ Route.group(() => {
 		"/exclude-treatment-execution",
 		"TreatmentsController.excludeTreatmentExecution",
 	);
+	Route.post(
+		"/exclude-treatment-item",
+		"TreatmentsController.excludeTreatmentItem",
+	);
 })
 	.prefix("treatments")
 	.middleware("auth");

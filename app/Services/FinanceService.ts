@@ -1357,7 +1357,7 @@ export default class FinanceService {
           payment_date        = now(),
           payment_value       = total_value,
           down_date           = now(),
-          origin_down_flag    = 'FINANCEIRO'
+          origin_down_flag    = 'FINANCEIRO',
           checking_account_id = ?
       where finances.id in (select finances.id
                       from finances

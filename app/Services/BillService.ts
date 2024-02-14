@@ -2623,7 +2623,7 @@ export default class BillService {
 								productivity_item_id: innerItem.id,
 
 								// pk
-								id: 1 + (totalItems.length - idx) + outerIdx,
+								id: 1 + idx + (outerIdx + 1) * totalItems.length,
 								treatment_id: treatment.id,
 								treatment_item_id: treatment.id,
 

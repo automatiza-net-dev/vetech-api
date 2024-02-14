@@ -593,9 +593,9 @@ export default class TreatmentService {
 					name: v.name,
 				})),
 				scheduleDate: inner.scheduleDate,
-				schedule: {
-					id: inner.schedule.id,
-				},
+				schedule: this.shared.captureGroup(inner.schedule, (v) => ({
+					id: v.id,
+				})),
 				productivityItem: inner.productivityItem,
 				executionDate: inner.executionDate,
 				quantityExecuted: inner.quantityExecuted,

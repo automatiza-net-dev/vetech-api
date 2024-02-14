@@ -2605,7 +2605,8 @@ export default class BillService {
 			// });
 			// await Promise.all(tasks);
 
-			const tasks2 = treatmentItems.map((elem, outerIdx) => {
+			let counter = 1;
+			const tasks2 = treatmentItems.map((elem) => {
 				const product = products.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
@@ -2614,29 +2615,27 @@ export default class BillService {
 					p.products.some((p) => p.product_id === (product?.id ?? "")),
 				);
 
-				const innerTasks = relatedItems.map(
-					async (innerItem, idx, totalItems) => {
-						return TreatmentExecution.create(
-							{
-								economic_group_id: authCtx.group.id,
-								business_unit_id: authCtx.unit.id,
-								productivity_item_id: innerItem.id,
+				const innerTasks = relatedItems.map(async (innerItem) => {
+					return TreatmentExecution.create(
+						{
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							productivity_item_id: innerItem.id,
 
-								// pk
-								id: 1 + idx + (outerIdx + 1) * totalItems.length,
-								treatment_id: treatment.id,
-								treatment_item_id: treatment.id,
+							// pk
+							id: counter++,
+							treatment_id: treatment.id,
+							treatment_item_id: treatment.id,
 
-								scheduledQuantity: elem.quantity,
-								quantityExecuted: 0,
-								status: "Ativo",
-							},
-							{
-								client: trx,
-							},
-						);
-					},
-				);
+							scheduledQuantity: elem.quantity,
+							quantityExecuted: 0,
+							status: "Ativo",
+						},
+						{
+							client: trx,
+						},
+					);
+				});
 
 				return Promise.all(innerTasks);
 			});

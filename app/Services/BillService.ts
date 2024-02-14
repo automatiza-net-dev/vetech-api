@@ -2606,8 +2606,8 @@ export default class BillService {
 			});
 			await Promise.all(tasks);
 
-			let execCounter = 1;
-			const tasks2 = treatmentItems.map((elem) => {
+			let execCounter = 0;
+			const tasks2 = treatmentItems.map((elem, _, totalItems) => {
 				const product = products.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
@@ -2616,7 +2616,9 @@ export default class BillService {
 					p.products.some((p) => p.product_id === (product?.id ?? "")),
 				);
 
-				const innerTasks = relatedItems.map(async (innerItem) => {
+				execCounter += totalItems.length;
+
+				const innerTasks = relatedItems.map(async (innerItem, idx) => {
 					return TreatmentExecution.create(
 						{
 							economic_group_id: authCtx.group.id,
@@ -2624,7 +2626,7 @@ export default class BillService {
 							productivity_item_id: innerItem.id,
 
 							// pk
-							id: execCounter++,
+							id: execCounter + idx + 1,
 							treatment_id: treatment.id,
 							treatment_item_id: treatment.id,
 

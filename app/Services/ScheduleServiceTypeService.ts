@@ -1,145 +1,141 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
-import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import IScheduleServiceTypeData from 'Contracts/interfaces/IScheduleServiceTypeData';
-import { v4 } from 'uuid';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import ScheduleServiceGroup from "App/Models/ScheduleServiceGroup";
+import ScheduleServiceType from "App/Models/ScheduleServiceType";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import IScheduleServiceTypeData from "Contracts/interfaces/IScheduleServiceTypeData";
+import { v4 } from "uuid";
 
 interface ISearch {
-  group?: string;
-  description?: string;
+	group?: string;
+	description?: string;
 }
 
 @inject()
 export default class ScheduleServiceTypeService {
-  constructor(private readonly sharedService: SharedService) { }
+	constructor(private readonly sharedService: SharedService) {}
 
-  public async index(
-    authCtx: AuthContext,
-    data: ISearch,
-  ): Promise<Array<ScheduleServiceType>> {
-    const groupQb = ScheduleServiceGroup.query()
-      .where('description', 'ilike', `%${data.group ?? ''}%`)
-      .andWhere('active', true)
-      .andWhereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .andWhere('system_id', authCtx.system.id)
-      .preload('types', qb => {
-        qb.where('description', 'ilike', `%${data.description ?? ''}%`)
-          .andWhere('active', true)
-          .preload('serviceGroup')
-          .preload('product');
+	public async index(
+		authCtx: AuthContext,
+		data: ISearch,
+	): Promise<Array<ScheduleServiceType>> {
+		return ScheduleServiceType.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("description", "ilike", `%${data.description ?? ""}%`)
+			.where("active", true)
+			.where("system_id", authCtx.system.id)
+			.whereHas("serviceGroup", (qb) => {
+				qb.where("description", "ilike", `%${data.group ?? ""}%`).whereRaw(
+					"(economic_group_id = ? or economic_group_id is null)",
+					[authCtx.group.id],
+				);
+			})
+			.preload("serviceGroup")
+			.preload("product");
+	}
 
-        qb.where('system_id', authCtx.system.id);
-      });
+	public async show(
+		authCtx: AuthContext,
+		id: string,
+	): Promise<ScheduleServiceType> {
+		const qb = ScheduleServiceType.query()
+			.where("id", id)
+			.where("system_id", authCtx.system.id);
 
-    const result = await groupQb;
+		const type = await qb.first();
+		if (!type) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-    return result.map(group => group.types).flat();
-  }
+		return type;
+	}
 
-  public async show(
-    authCtx: AuthContext,
-    id: string,
-  ): Promise<ScheduleServiceType> {
-    const qb = ScheduleServiceType.query()
-      .where('id', id)
-      .where('system_id', authCtx.system.id);
+	public async store(
+		authCtx: AuthContext,
+		data: Omit<IScheduleServiceTypeData, "active">,
+	): Promise<ScheduleServiceType> {
+		const serviceGroup = await ScheduleServiceGroup.findOrFail(
+			data.scheduleServiceGroupId,
+		);
 
-    const type = await qb.first();
-    if (!type) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+		return serviceGroup.related("types").create({
+			id: v4(),
+			economic_group_id: authCtx.group.id,
+			system_id: authCtx.system.id,
+			description: data.description,
+			reservedMinutes: data.reservedMinutes,
+			product_id: data.productId,
+			allowReturn: data.allowReturn,
+			active: true,
+			resume: data.resume,
+		});
+	}
 
-    return type;
-  }
+	public async update(
+		authCtx: AuthContext,
+		id: string,
+		data: IScheduleServiceTypeData,
+	): Promise<ScheduleServiceType> {
+		const schedule = await ScheduleServiceType.query()
+			.where("id", id)
+			.where("system_id", authCtx.system.id)
+			.first();
 
-  public async store(
-    authCtx: AuthContext,
-    data: Omit<IScheduleServiceTypeData, 'active'>,
-  ): Promise<ScheduleServiceType> {
-    const serviceGroup = await ScheduleServiceGroup.findOrFail(
-      data.scheduleServiceGroupId,
-    );
+		if (!schedule) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-    return serviceGroup.related('types').create({
-      id: v4(),
-      economic_group_id: authCtx.group.id,
-      system_id: authCtx.system.id,
-      description: data.description,
-      reservedMinutes: data.reservedMinutes,
-      product_id: data.productId,
-      allowReturn: data.allowReturn,
-      active: true,
-      resume: data.resume,
-    });
-  }
+		if (
+			schedule.economic_group_id &&
+			schedule.economic_group_id !== authCtx.group.id
+		) {
+			throw this.sharedService.SystemResource();
+		}
 
-  public async update(
-    authCtx: AuthContext,
-    id: string,
-    data: IScheduleServiceTypeData,
-  ): Promise<ScheduleServiceType> {
-    const schedule = await ScheduleServiceType.query()
-      .where('id', id)
-      .where('system_id', authCtx.system.id)
-      .first();
+		return schedule
+			.merge({
+				active: data.active,
+				reservedMinutes: data.reservedMinutes,
+				schedule_service_group_id: data.scheduleServiceGroupId,
+				description: data.description,
+				product_id: data.productId,
+				allowReturn: data.allowReturn,
+				resume: data.resume,
+			})
+			.save();
+	}
 
-    if (!schedule) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+		const schedule = await ScheduleServiceType.query()
+			.where("id", id)
+			.where("system_id", authCtx.system.id)
+			.first();
 
-    if (
-      schedule.economic_group_id &&
-      schedule.economic_group_id !== authCtx.group.id
-    ) {
-      throw this.sharedService.SystemResource();
-    }
+		if (!schedule) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-    return schedule
-      .merge({
-        active: data.active,
-        reservedMinutes: data.reservedMinutes,
-        schedule_service_group_id: data.scheduleServiceGroupId,
-        description: data.description,
-        product_id: data.productId,
-        allowReturn: data.allowReturn,
-        resume: data.resume,
-      })
-      .save();
-  }
+		if (
+			schedule.economic_group_id &&
+			schedule.economic_group_id !== authCtx.group.id
+		) {
+			throw this.sharedService.SystemResource();
+		}
 
-  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
-    const schedule = await ScheduleServiceType.query()
-      .where('id', id)
-      .where('system_id', authCtx.system.id)
-      .first();
-
-    if (!schedule) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
-
-    if (
-      schedule.economic_group_id &&
-      schedule.economic_group_id !== authCtx.group.id
-    ) {
-      throw this.sharedService.SystemResource();
-    }
-
-    await schedule.softDelete();
-  }
+		await schedule.softDelete();
+	}
 }

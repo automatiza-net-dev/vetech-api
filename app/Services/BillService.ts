@@ -2608,7 +2608,7 @@ export default class BillService {
 			});
 			await Promise.all(tasks);
 
-			let execCounter = 0;
+			let execCounter = 1;
 			const tasks2 = treatmentItems.map((elem) => {
 				const product = products.find(
 					(p) =>
@@ -2626,7 +2626,7 @@ export default class BillService {
 							productivity_item_id: innerItem.id,
 
 							// pk
-							id: execCounter + idx + 1,
+							id: execCounter++ + idx,
 							treatment_id: treatment.id,
 							treatment_item_id: treatment.id,
 

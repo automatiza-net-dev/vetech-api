@@ -565,10 +565,13 @@ export default class TreatmentService {
 					id: inner.kit?.id ?? null,
 					description: inner.kit?.description ?? null,
 				},
-				productVariation: {
-					id: inner.productVariation.id,
-					description: inner.productVariation.product.description,
-				},
+				productVariation: this.shared.captureGroup(
+					inner.productVariation,
+					(v) => ({
+						id: v.id,
+						description: v.product.description,
+					}),
+				),
 				quantity: inner.quantity,
 				quantityExecuted: inner.quantityExecuted,
 				scheduledQuantity: inner.scheduledQuantity,

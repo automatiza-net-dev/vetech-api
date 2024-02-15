@@ -43,14 +43,13 @@ import TaxationGroupRule, {
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
-import UfIcms from "App/Models/UfIcms";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
 import { format } from "date-fns";
+import { Decimal } from "decimal.js";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
-import { Decimal } from "decimal.js";
 
 const detSchema = z.object({
 	prod: z.object({
@@ -70,248 +69,260 @@ const detSchema = z.object({
 		indTot: z.string(),
 		vDesc: z.optional(z.coerce.number()),
 	}),
-	imposto: z.object({
-		ICMS: z.object({
-			ICMS00: z.optional(
+	imposto: z.optional(
+		z.object({
+			ICMS: z.object({
+				ICMS00: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						modBC: z.string(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+					}),
+				),
+				ICMS10: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+					}),
+				),
+				ICMS20: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						pRedBC: z.coerce.number(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						vICMSDeson: z.coerce.number(),
+					}),
+				),
+				ICMS30: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+						vICMSDeson: z.coerce.number(),
+					}),
+				),
+				ICMS40: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						vICMSDeson: z.coerce.number(),
+					}),
+				),
+				ICMS51: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						pRedBC: z.coerce.number(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMSOP: z.coerce.number(),
+						pDif: z.coerce.number(),
+						vICMSDif: z.coerce.number(),
+						vICMS: z.coerce.number(),
+					}),
+				),
+				ICMS60: z.optional(
+					z.object({
+						orig: z.string(),
+						// CST: z.string(),
+						vBCSTRet: z.coerce.number(),
+						vICMSSTRet: z.coerce.number(),
+					}),
+				),
+				ICMS70: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						pRedBC: z.coerce.number(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+						vICMSDeson: z.coerce.number(),
+					}),
+				),
+				ICMS90: z.optional(
+					z.object({
+						orig: z.string(),
+						CST: z.string(),
+						pRedBC: z.coerce.number(),
+						vBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+						vICMSDeson: z.coerce.number(),
+					}),
+				),
+				ICMSSN101: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+						pCredSN: z.coerce.number(),
+						vCredICMSSN: z.coerce.number(),
+					}),
+				),
+				ICMSSN102: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+					}),
+				),
+				ICMSSN201: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+						pCredSN: z.coerce.number(),
+						vCredICMSSN: z.coerce.number(),
+					}),
+				),
+				ICMSSN202: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+					}),
+				),
+				ICMSSN500: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+						vBCSTRet: z.coerce.number(),
+						pICMSSTRet: z.coerce.number(),
+					}),
+				),
+				ICMSSN900: z.optional(
+					z.object({
+						orig: z.string(),
+						CSOSN: z.string(),
+						pRedBC: z.coerce.number(),
+						pICMS: z.coerce.number(),
+						vICMS: z.coerce.number(),
+						pMVAST: z.coerce.number(),
+						pRedBCST: z.coerce.number(),
+						vBCST: z.coerce.number(),
+						pICMSST: z.coerce.number(),
+						vICMSST: z.coerce.number(),
+						pCredSN: z.coerce.number(),
+						vCredICMSSN: z.coerce.number(),
+					}),
+				),
+			}),
+			PIS: z.optional(
 				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					modBC: z.string(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
+					PISAliq: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pPIS: z.coerce.number(),
+							vPIS: z.coerce.number(),
+						}),
+					),
+					PISQtde: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pPIS: z.coerce.number(),
+							vPIS: z.coerce.number(),
+						}),
+					),
+					PISNT: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.optional(z.string().refine((val) => parseFloat(val))),
+							pPIS: z.optional(z.string().refine((val) => parseFloat(val))),
+							vPIS: z.optional(z.string().refine((val) => parseFloat(val))),
+						}),
+					),
+					PISOutr: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pPIS: z.coerce.number(),
+							vPIS: z.coerce.number(),
+						}),
+					),
 				}),
 			),
-			ICMS10: z.optional(
+			COFINS: z.optional(
 				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-				}),
-			),
-			ICMS20: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					pRedBC: z.coerce.number(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
-					vICMSDeson: z.coerce.number(),
-				}),
-			),
-			ICMS30: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-					vICMSDeson: z.coerce.number(),
-				}),
-			),
-			ICMS40: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					vICMSDeson: z.coerce.number(),
-				}),
-			),
-			ICMS51: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					pRedBC: z.coerce.number(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMSOP: z.coerce.number(),
-					pDif: z.coerce.number(),
-					vICMSDif: z.coerce.number(),
-					vICMS: z.coerce.number(),
-				}),
-			),
-			ICMS60: z.optional(
-				z.object({
-					orig: z.string(),
-					// CST: z.string(),
-					vBCSTRet: z.coerce.number(),
-					vICMSSTRet: z.coerce.number(),
-				}),
-			),
-			ICMS70: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					pRedBC: z.coerce.number(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-					vICMSDeson: z.coerce.number(),
-				}),
-			),
-			ICMS90: z.optional(
-				z.object({
-					orig: z.string(),
-					CST: z.string(),
-					pRedBC: z.coerce.number(),
-					vBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-					vICMSDeson: z.coerce.number(),
-				}),
-			),
-			ICMSSN101: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-					pCredSN: z.coerce.number(),
-					vCredICMSSN: z.coerce.number(),
-				}),
-			),
-			ICMSSN102: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-				}),
-			),
-			ICMSSN201: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-					pCredSN: z.coerce.number(),
-					vCredICMSSN: z.coerce.number(),
-				}),
-			),
-			ICMSSN202: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-				}),
-			),
-			ICMSSN500: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-					vBCSTRet: z.coerce.number(),
-					pICMSSTRet: z.coerce.number(),
-				}),
-			),
-			ICMSSN900: z.optional(
-				z.object({
-					orig: z.string(),
-					CSOSN: z.string(),
-					pRedBC: z.coerce.number(),
-					pICMS: z.coerce.number(),
-					vICMS: z.coerce.number(),
-					pMVAST: z.coerce.number(),
-					pRedBCST: z.coerce.number(),
-					vBCST: z.coerce.number(),
-					pICMSST: z.coerce.number(),
-					vICMSST: z.coerce.number(),
-					pCredSN: z.coerce.number(),
-					vCredICMSSN: z.coerce.number(),
+					COFINSAliq: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pCOFINS: z.coerce.number(),
+							vCOFINS: z.coerce.number(),
+						}),
+					),
+					COFINSQtde: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pCOFINS: z.coerce.number(),
+							vCOFINS: z.coerce.number(),
+						}),
+					),
+					COFINSNT: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.optional(z.string().refine((val) => parseFloat(val))),
+							pCOFINS: z.optional(z.string().refine((val) => parseFloat(val))),
+							vCOFINS: z.optional(z.string().refine((val) => parseFloat(val))),
+						}),
+					),
+					COFINSOutr: z.optional(
+						z.object({
+							CST: z.string(),
+							vBC: z.coerce.number(),
+							pCOFINS: z.coerce.number(),
+							vCOFINS: z.coerce.number(),
+						}),
+					),
 				}),
 			),
 		}),
-		PIS: z.object({
-			PISAliq: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pPIS: z.coerce.number(),
-					vPIS: z.coerce.number(),
-				}),
-			),
-			PISQtde: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pPIS: z.coerce.number(),
-					vPIS: z.coerce.number(),
-				}),
-			),
-			PISNT: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pPIS: z.coerce.number(),
-					vPIS: z.coerce.number(),
-				}),
-			),
-			PISOutr: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pPIS: z.coerce.number(),
-					vPIS: z.coerce.number(),
-				}),
-			),
-		}),
-		COFINS: z.object({
-			COFINSAliq: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pCOFINS: z.coerce.number(),
-					vCOFINS: z.coerce.number(),
-				}),
-			),
-			COFINSQtde: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pCOFINS: z.coerce.number(),
-					vCOFINS: z.coerce.number(),
-				}),
-			),
-			COFINSNT: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pCOFINS: z.coerce.number(),
-					vCOFINS: z.coerce.number(),
-				}),
-			),
-			COFINSOutr: z.optional(
-				z.object({
-					CST: z.string(),
-					vBC: z.coerce.number(),
-					pCOFINS: z.coerce.number(),
-					vCOFINS: z.coerce.number(),
-				}),
-			),
-		}),
-	}),
+	),
 	_nItem: z.optional(z.string()),
+});
+
+const dupSchema = z.object({
+	vDup: z.coerce.number(),
+	dVenc: z.string(),
+	nDup: z.string(),
 });
 
 const schema = z.object({
@@ -368,7 +379,7 @@ const schema = z.object({
 						enderDest: z.object({
 							xLgr: z.string(),
 							nro: z.string(),
-							xCpl: z.string(),
+							xCpl: z.optional(z.string()),
 							xBairro: z.string(),
 							cMun: z.string(),
 							xMun: z.string(),
@@ -376,7 +387,7 @@ const schema = z.object({
 							CEP: z.string(),
 							cPais: z.string(),
 							xPais: z.string(),
-							fone: z.string(),
+							fone: z.optional(z.string()),
 						}),
 						indIEDest: z.string(),
 						IE: z.optional(z.string()),
@@ -422,19 +433,13 @@ const schema = z.object({
 								vLiq: z.coerce.number(),
 							}),
 						),
-						dup: z.optional(
-							z.object({
-								vDup: z.coerce.number(),
-								dVenc: z.string(),
-								nDup: z.string(),
-							}),
-						),
+						dup: z.union([z.array(dupSchema), z.optional(dupSchema)]),
 					}),
 				),
 				pag: z.object({
 					detPag: z.object({
 						tPag: z.string(),
-						xPag: z.string(),
+						xPag: z.optional(z.string()),
 						vPag: z.string(),
 					}),
 				}),
@@ -1046,15 +1051,23 @@ export default class ReceiptService {
 					// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
 					pisCst: pis.CST,
-					pisBase: pis.vBC,
-					pisPercentage: pis.pPIS,
-					pisValue: pis.vPIS,
+					pisBase: !!pis.vBC ? parseFloat(pis.vBC.toString()) : undefined,
+					pisPercentage: !!pis.pPIS
+						? parseFloat(pis.pPIS.toString())
+						: undefined,
+					pisValue: !!pis.vPIS ? parseFloat(pis.vPIS.toString()) : undefined,
 					pisRetentionValue: 0,
 
 					cofinsCst: cofins.CST,
-					cofinsBase: cofins.vBC,
-					cofinsPercentage: cofins.pCOFINS,
-					cofinsValue: cofins.vCOFINS,
+					cofinsBase: !!cofins.vBC
+						? parseFloat(cofins.vBC.toString())
+						: undefined,
+					cofinsPercentage: !!cofins.pCOFINS
+						? parseFloat(cofins.pCOFINS.toString())
+						: undefined,
+					cofinsValue: !!cofins.vCOFINS
+						? parseFloat(cofins.vCOFINS.toString())
+						: undefined,
 					cofinsRetentionValue: 0,
 
 					// ipiCst: rule?.ipiCst,
@@ -1125,60 +1138,60 @@ export default class ReceiptService {
 
 	private getIcms(data: z.infer<typeof schema>, idx: number) {
 		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
-			? data.nfeProc.NFe.infNFe.det[idx].imposto.ICMS
-			: data.nfeProc.NFe.infNFe.det.imposto.ICMS;
+			? data.nfeProc.NFe.infNFe.det[idx].imposto?.ICMS
+			: data.nfeProc.NFe.infNFe.det.imposto?.ICMS;
 
-		if (row.ICMS00) return row.ICMS00;
+		if (row?.ICMS00) return row.ICMS00;
 
-		if (row.ICMS10) return row.ICMS10;
+		if (row?.ICMS10) return row.ICMS10;
 
-		if (row.ICMS20) return row.ICMS20;
+		if (row?.ICMS20) return row.ICMS20;
 
-		if (row.ICMS30) return row.ICMS30;
+		if (row?.ICMS30) return row.ICMS30;
 
-		if (row.ICMS40) return row.ICMS40;
+		if (row?.ICMS40) return row.ICMS40;
 
-		if (row.ICMS51) return row.ICMS51;
+		if (row?.ICMS51) return row.ICMS51;
 
-		if (row.ICMS60) return row.ICMS60;
+		if (row?.ICMS60) return row.ICMS60;
 
-		if (row.ICMS70) return row.ICMS70;
+		if (row?.ICMS70) return row.ICMS70;
 
-		if (row.ICMS90) return row.ICMS90;
+		if (row?.ICMS90) return row.ICMS90;
 
-		if (row.ICMSSN101) return row.ICMSSN101;
+		if (row?.ICMSSN101) return row.ICMSSN101;
 
-		if (row.ICMSSN102) return row.ICMSSN102;
+		if (row?.ICMSSN102) return row.ICMSSN102;
 
-		if (row.ICMSSN201) return row.ICMSSN201;
+		if (row?.ICMSSN201) return row.ICMSSN201;
 
-		if (row.ICMSSN202) return row.ICMSSN202;
+		if (row?.ICMSSN202) return row.ICMSSN202;
 
-		if (row.ICMSSN500) return row.ICMSSN500;
+		if (row?.ICMSSN500) return row.ICMSSN500;
 
-		if (row.ICMSSN900) return row.ICMSSN900;
+		if (row?.ICMSSN900) return row.ICMSSN900;
 
 		throw new BadRequestException("ICMS não encontrado", 400, "E_NO_ICMS");
 	}
 
 	private getCofins(data: z.infer<typeof schema>, idx: number) {
 		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
-			? data.nfeProc.NFe.infNFe.det[idx].imposto.COFINS
-			: data.nfeProc.NFe.infNFe.det.imposto.COFINS;
+			? data.nfeProc.NFe.infNFe.det[idx].imposto?.COFINS
+			: data.nfeProc.NFe.infNFe.det.imposto?.COFINS;
 
-		if (row.COFINSAliq) {
+		if (row?.COFINSAliq) {
 			return row.COFINSAliq;
 		}
 
-		if (row.COFINSQtde) {
+		if (row?.COFINSQtde) {
 			return row.COFINSQtde;
 		}
 
-		if (row.COFINSNT) {
+		if (row?.COFINSNT) {
 			return row.COFINSNT;
 		}
 
-		if (row.COFINSOutr) {
+		if (row?.COFINSOutr) {
 			return row.COFINSOutr;
 		}
 
@@ -1187,22 +1200,22 @@ export default class ReceiptService {
 
 	private getPis(data: z.infer<typeof schema>, idx: number) {
 		const row = Array.isArray(data.nfeProc.NFe.infNFe.det)
-			? data.nfeProc.NFe.infNFe.det[idx].imposto.PIS
-			: data.nfeProc.NFe.infNFe.det.imposto.PIS;
+			? data.nfeProc.NFe.infNFe.det[idx].imposto?.PIS
+			: data.nfeProc.NFe.infNFe.det.imposto?.PIS;
 
-		if (row.PISAliq) {
+		if (row?.PISAliq) {
 			return row.PISAliq;
 		}
 
-		if (row.PISQtde) {
+		if (row?.PISQtde) {
 			return row.PISQtde;
 		}
 
-		if (row.PISNT) {
+		if (row?.PISNT) {
 			return row.PISNT;
 		}
 
-		if (row.PISOutr) {
+		if (row?.PISOutr) {
 			return row.PISOutr;
 		}
 

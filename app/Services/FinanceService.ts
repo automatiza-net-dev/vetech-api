@@ -2632,7 +2632,7 @@ export default class FinanceService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (bordero.status !== "Baixado") {
+			if (bordero.status === "Baixado") {
 				throw new BadRequestException(
 					"Para excluir itens de um borderô, ele não pode estar 'Baixado'",
 					400,

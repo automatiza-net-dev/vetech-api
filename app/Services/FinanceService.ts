@@ -6,11 +6,7 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, {
-	BorderoStatus,
-	TBorderoStatus,
-	TBorderoType,
-} from "App/Models/Bordero";
+import Bordero, { TBorderoStatus, TBorderoType } from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -24,10 +20,7 @@ import Finance, {
 import FinanceReversal, {
 	FinanceReversalType,
 } from "App/Models/FinanceReversal";
-import PaymentMethod, {
-	PaymentMethodTef,
-	PaymentMethodType,
-} from "App/Models/PaymentMethod";
+import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
@@ -559,8 +552,8 @@ export default class FinanceService {
        'FINANCE'                   as source,
        finances.document,
        finances.installment,
-       finances.issue_date,
-       finances.expiration_date,
+       finances.issue_date::date as issue_date,
+       finances.expiration_date::date as expiration_date,
        finances.payment_date,
        finances.value,
        finances.total_value,
@@ -689,8 +682,8 @@ export default class FinanceService {
        'BORDERO'                                                               as source,
        borderos.document,
        1                                                                       as installment,
-       borderos.issue_date,
-       borderos.expiration_date                                                as expiration_date,
+       borderos.issue_date::date as issue_date,
+       borderos.expiration_date::date as expiration_date,
        borderos.payment_date,
        borderos.bordero_value                                                  as value,
        borderos.total_value,

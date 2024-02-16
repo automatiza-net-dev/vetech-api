@@ -157,7 +157,7 @@ export default class ScheduleService {
 			.whereHas("serviceType", (query) => {
 				query.where("allow_return", true);
 			})
-			.whereBetween("start_hour", [
+			.whereRaw("start_hour between ?::date and ?::date", [
 				DateTime.now().minus({ days: 30 }).toJSDate(),
 				DateTime.now().toJSDate(),
 			])

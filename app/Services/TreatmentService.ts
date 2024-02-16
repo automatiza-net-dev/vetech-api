@@ -513,6 +513,7 @@ export default class TreatmentService {
 			.where("schedule_service_groups.active", true)
 			.whereNull("schedule_service_types.deleted_at")
 			.whereNull("schedule_service_groups.deleted_at")
+			.where("schedule_service_types.system_id", authCtx.system.id)
 			.where("schedule_service_types.type", "A")
 			.union((builder) => {
 				builder

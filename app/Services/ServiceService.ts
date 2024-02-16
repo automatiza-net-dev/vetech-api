@@ -229,7 +229,7 @@ export default class ServiceService {
 			const service = await this.show(authCtx, id);
 
 			if (data.serviceType === "exam") {
-				await Exam.firstOrCreate(
+				const exam = await Exam.firstOrCreate(
 					{
 						product_id: service.id,
 					},
@@ -245,6 +245,13 @@ export default class ServiceService {
 						client: trx,
 					},
 				);
+
+				if (exam.description !== data.description) {
+					await exam
+						.merge({ description: data.description })
+						.useTransaction(trx)
+						.save();
+				}
 			}
 
 			return service

@@ -505,6 +505,9 @@ export default class TreatmentService {
 			.joinRaw(
 				`join "schedule_service_groups" on schedule_service_types.schedule_service_group_id = schedule_service_groups.id`,
 			)
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
 			.where("schedule_service_types.active", true)
 			.where("schedule_service_groups.active", true)
 			.whereNull("schedule_service_types.deleted_at")
@@ -549,6 +552,9 @@ export default class TreatmentService {
 					.joinRaw(
 						"join business_unit_configs on treatment_items.business_unit_id = business_unit_configs.business_unit_id",
 					)
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					])
 					.whereNull("treatments.cancellation_date")
 					.whereIn("treatments.status", ["Confirmado"] as TreatmentStatus[])
 					.whereIn("treatment_items.status", ["Ativo"] as TreatmentItemStatus[])

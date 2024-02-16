@@ -55,6 +55,7 @@ export default class ScheduleServiceTypeService {
 			)
 			.where("schedule_service_types.active", true)
 			.where("schedule_service_groups.active", true)
+			.where("schedule_service_types.system_id", authCtx.system.id)
 			.whereNull("schedule_service_types.deleted_at")
 			.whereNull("schedule_service_groups.deleted_at")
 			.where("schedule_service_groups.system_id", authCtx.system.id)

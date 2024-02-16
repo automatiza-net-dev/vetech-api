@@ -490,9 +490,9 @@ export default class TreatmentService {
 			patientId?: string;
 		},
 	) {
-		return Database.from("schedule_service_types")
+		const rows = await Database.from("schedule_service_types")
 			.select(
-				Database.raw(`'servico'                           as tipo,
+				Database.raw(`'Agenda'                           as tipo,
        schedule_service_groups.description as schedule_service_group,
        null                                as productivity_item_id,
        schedule_service_types.id           as service_id,
@@ -505,9 +505,10 @@ export default class TreatmentService {
 			.joinRaw(
 				`join "schedule_service_groups" on schedule_service_types.schedule_service_group_id = schedule_service_groups.id`,
 			)
-			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-				authCtx.group.id,
-			])
+			.whereRaw(
+				"(schedule_service_types.economic_group_id = ? or schedule_service_types.economic_group_id is null)",
+				[authCtx.group.id],
+			)
 			.where("schedule_service_types.active", true)
 			.where("schedule_service_groups.active", true)
 			.whereNull("schedule_service_types.deleted_at")
@@ -517,7 +518,7 @@ export default class TreatmentService {
 				builder
 					.from("treatment_items")
 					.select(
-						Database.raw(`'itemProdutividade'  as tipo,
+						Database.raw(`'Procedimentos'  as tipo,
        products.description as schedule_service_group,
        productivity_items.id,
        business_unit_configs.treatment_schedule_service_type_id,
@@ -552,9 +553,10 @@ export default class TreatmentService {
 					.joinRaw(
 						"join business_unit_configs on treatment_items.business_unit_id = business_unit_configs.business_unit_id",
 					)
-					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-						authCtx.group.id,
-					])
+					.whereRaw(
+						"(treatments.economic_group_id = ? or treatments.economic_group_id is null)",
+						[authCtx.group.id],
+					)
 					.whereNull("treatments.cancellation_date")
 					.whereIn("treatments.status", ["Confirmado"] as TreatmentStatus[])
 					.whereIn("treatment_items.status", ["Ativo"] as TreatmentItemStatus[])
@@ -564,12 +566,32 @@ export default class TreatmentService {
 					.whereNull("treatment_executions.exclusion_date")
 					.whereNull("treatment_executions.schedule_id")
 					.where("treatments.economic_group_id", authCtx.group.id)
-					.where("treatments.business_unit_id", authCtx.unit.id);
+					.where("treatments.business_unit_id", authCtx.unit.id)
+					.orderByRaw("1, 2, 5");
 
 				if (data.patientId) {
 					builder.where("treatments.client_id", data.patientId);
 				}
 			});
+
+		const map: Record<string, Record<string, unknown[]>> = {};
+
+		for (const row of rows) {
+			const firstKey = row.tipo as string;
+			const secondKey = row.schedule_service_group as string;
+
+			if (!map[firstKey]) {
+				map[firstKey] = {};
+			}
+
+			if (!map[firstKey][secondKey]) {
+				map[firstKey][secondKey] = [];
+			}
+
+			map[firstKey][secondKey].push(row);
+		}
+
+		return map;
 	}
 
 	public async searchCompleteTreatments(

@@ -38,9 +38,9 @@ export default class ScheduleServiceTypeService {
 	}
 
 	public async index2(authCtx: AuthContext, _: ISearch) {
-		return Database.from("schedule_service_types")
+		const rows = await Database.from("schedule_service_types")
 			.select(
-				Database.raw(`'servico'                           as tipo,
+				Database.raw(`'Agenda'                            as tipo,
        schedule_service_groups.description as schedule_service_group,
        null                                as productivity_item_id,
        schedule_service_types.id           as service_id,
@@ -61,7 +61,27 @@ export default class ScheduleServiceTypeService {
 			.whereRaw(
 				`(schedule_service_groups.economic_group_id = ? or schedule_service_groups.economic_group_id is null)`,
 				[authCtx.group.id],
-			);
+			)
+			.orderByRaw("1, 2, 5");
+
+		const map: Record<string, Record<string, unknown[]>> = {};
+
+		for (const row of rows) {
+			const firstKey = row.tipo as string;
+			const secondKey = row.schedule_service_group as string;
+
+			if (!map[firstKey]) {
+				map[firstKey] = {};
+			}
+
+			if (!map[firstKey][secondKey]) {
+				map[firstKey][secondKey] = [];
+			}
+
+			map[firstKey][secondKey].push(row);
+		}
+
+		return map;
 	}
 
 	public async show(

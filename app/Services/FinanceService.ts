@@ -2679,6 +2679,70 @@ export default class FinanceService {
 		return installment.fee;
 	}
 
+	public async getAccountBalance(
+		authCtx: AuthContext,
+		data: {
+			checkingAccountId?: string;
+		},
+	) {
+		if (!authCtx.unit.unitConfig.balanceControl) {
+			throw new BadRequestException(
+				"Unidade não tem controle financeiro configurado",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (authCtx.unit.unitConfig.balanceControl === "realizado") {
+			const qb = Database.from("finances")
+				.select(
+					Database.raw(`sum(case
+               when type = 'CREDITO' then coalesce(payment_value, 0)
+               else (coalesce(payment_value, 0) * (-1)) end) as saldo`),
+				)
+				.whereNull("deleted_at")
+				.whereILike("status", `%${FinanceStatus.B}%`)
+				.whereNull("payment_date")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id);
+
+			if (data.checkingAccountId) {
+				qb.where("checking_account_id", data.checkingAccountId);
+			}
+
+			const [{ saldo }] = await qb;
+
+			return {
+				balance: saldo ?? 0,
+			};
+		}
+
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`sum(case
+               when type = 'CREDITO' and coalesce(payment_value, 0) > 0 then coalesce(payment_value, 0)
+
+               when type = 'CREDITO' and reconciled = true and expiration_date::date <= now()::date and
+                    coalesce(payment_value, 0) = 0 then total_value
+
+               when type = 'DEBITO' then coalesce(payment_value, 0) * (-1) end) as saldo`),
+			)
+			.whereNull("deleted_at")
+			.whereILike("status", `%${FinanceStatus.B}%`)
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id);
+
+		if (data.checkingAccountId) {
+			qb.where("checking_account_id", data.checkingAccountId);
+		}
+
+		const [{ saldo }] = await qb;
+
+		return {
+			balance: saldo ?? 0,
+		};
+	}
+
 	private async $registerDown(
 		trx: TransactionClientContract,
 		bordero: Bordero,

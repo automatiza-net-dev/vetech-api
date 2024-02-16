@@ -875,6 +875,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/balance", "FinancesController.accountBalance");
 	Route.get("/reduced", "FinancesController.reducedIndex");
 	Route.get("/grouped", "FinancesController.groupedIndex");
 	Route.get("/payment-group", "FinancesController.byPaymentGroup");

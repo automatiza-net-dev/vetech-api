@@ -443,4 +443,13 @@ export default class FinancesController {
 
 		return response.ok(result);
 	}
+
+	async accountBalance({ auth, response, request }: HttpContextContract) {
+		const result = await this.service.getAccountBalance(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

@@ -2702,7 +2702,7 @@ export default class FinanceService {
 				)
 				.whereNull("deleted_at")
 				.whereILike("status", `%${FinanceStatus.B}%`)
-				.whereNull("payment_date")
+				.whereNotNull("payment_date")
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id);
 
@@ -2729,7 +2729,6 @@ export default class FinanceService {
 			)
 			.whereNull("deleted_at")
 			.whereILike("status", `%${FinanceStatus.B}%`)
-			.whereNotNull("payment_date")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id);
 

@@ -7,6 +7,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public id: number;
 
 	@column({
+		columnName: "shows_treatment_schedules",
+	})
+	public showsTreatmentSchedules: boolean;
+
+	@column({
 		columnName: "xml_download_authorization",
 	})
 	public xmlDownloadAuthorization: string;
@@ -134,4 +139,9 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: null,
 	})
 	public outgoing_deposit_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public treatment_schedule_service_type_id: string;
 }

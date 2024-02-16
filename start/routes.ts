@@ -311,6 +311,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "ScheduleServiceTypesController.index");
+	Route.get("/_v2", "ScheduleServiceTypesController.index2");
 	Route.post("/", "ScheduleServiceTypesController.store");
 	Route.get("/:id", "ScheduleServiceTypesController.show");
 	Route.put("/:id", "ScheduleServiceTypesController.update");
@@ -1160,6 +1161,10 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "TreatmentsController.searchTreatment");
+	Route.get(
+		"/search-schedule-services",
+		"TreatmentsController.searchScheduleServices",
+	);
 	Route.get("/search-complete", "TreatmentsController.searchCompleteTreatment");
 	Route.get("/search-items", "TreatmentsController.searchTreatmentItems");
 	Route.get(

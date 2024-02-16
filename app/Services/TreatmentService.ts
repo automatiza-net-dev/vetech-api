@@ -4,10 +4,12 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import Product from "App/Models/Product";
 import ProductivityItem from "App/Models/ProductivityItem";
 import Schedule from "App/Models/Schedule";
-import Treatment from "App/Models/Treatment";
-import TreatmentExecution from "App/Models/TreatmentExecution";
+import Treatment, { TreatmentStatus } from "App/Models/Treatment";
+import TreatmentExecution, {
+	TreatmentExecutionStatus,
+} from "App/Models/TreatmentExecution";
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
-import TreatmentItem from "App/Models/TreatmentItem";
+import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
@@ -480,6 +482,88 @@ export default class TreatmentService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	public async searchScheduleServicesForTreatments(
+		authCtx: AuthContext,
+		data: {
+			patientId?: string;
+		},
+	) {
+		return Database.from("schedule_service_types")
+			.select(
+				Database.raw(`'servico'                           as tipo,
+       schedule_service_groups.description as schedule_service_group,
+       null                                as productivity_item_id,
+       schedule_service_types.id           as service_id,
+       schedule_service_types.description  as service_description,
+       schedule_service_types.type         as service_type,
+       reserved_minutes,
+       allow_return,
+       resume`),
+			)
+			.joinRaw(
+				`join "schedule_service_groups" on schedule_service_types.schedule_service_group_id = schedule_service_groups.id`,
+			)
+			.where("schedule_service_types.active", true)
+			.where("schedule_service_groups.active", true)
+			.whereNull("schedule_service_types.deleted_at")
+			.whereNull("schedule_service_groups.deleted_at")
+			.where("schedule_service_types.type", "A")
+			.union((builder) => {
+				builder
+					.from("treatment_items")
+					.select(
+						Database.raw(`'itemProdutividade'  as tipo,
+       products.description as schedule_service_group,
+       productivity_items.id,
+       business_unit_configs.treatment_schedule_service_type_id,
+       productivity_items.description,
+       'A',
+       productivity_items.reserved_minutes,
+       false,
+       null`),
+					)
+					.joinRaw(
+						`join treatments
+              on treatment_items.treatment_id = treatments.id and
+                 treatments.economic_group_id = treatment_items.economic_group_id and
+                 treatments.business_unit_id = treatment_items.business_unit_id`,
+					)
+					.joinRaw(
+						`join treatment_executions
+              on treatment_executions.treatment_id = treatment_items.treatment_id and
+                 treatment_executions.treatment_item_id = treatment_items.id and
+                 treatment_executions.economic_group_id = treatment_items.economic_group_id and
+                 treatment_executions.business_unit_id = treatment_items.business_unit_id`,
+					)
+					.joinRaw(
+						"join product_variations on treatment_items.product_variation_id = product_variations.id",
+					)
+					.joinRaw(
+						"join products on product_variations.product_id = products.id",
+					)
+					.joinRaw(
+						"left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+					)
+					.joinRaw(
+						"join business_unit_configs on treatment_items.business_unit_id = business_unit_configs.business_unit_id",
+					)
+					.whereNull("treatments.cancellation_date")
+					.whereIn("treatments.status", ["Confirmado"] as TreatmentStatus[])
+					.whereIn("treatment_items.status", ["Ativo"] as TreatmentItemStatus[])
+					.whereIn("treatment_executions.status", [
+						"Ativo",
+					] as TreatmentExecutionStatus[])
+					.whereNull("treatment_executions.exclusion_date")
+					.whereNull("treatment_executions.schedule_id")
+					.where("treatments.economic_group_id", authCtx.group.id)
+					.where("treatments.business_unit_id", authCtx.unit.id);
+
+				if (data.patientId) {
+					builder.where("treatments.client_id", data.patientId);
+				}
+			});
 	}
 
 	public async searchCompleteTreatments(

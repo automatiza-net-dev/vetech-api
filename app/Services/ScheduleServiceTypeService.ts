@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import ScheduleServiceGroup from "App/Models/ScheduleServiceGroup";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
@@ -34,6 +35,33 @@ export default class ScheduleServiceTypeService {
 			})
 			.preload("serviceGroup")
 			.preload("product");
+	}
+
+	public async index2(authCtx: AuthContext, _: ISearch) {
+		return Database.from("schedule_service_types")
+			.select(
+				Database.raw(`'servico'                           as tipo,
+       schedule_service_groups.description as schedule_service_group,
+       null                                as productivity_item_id,
+       schedule_service_types.id           as service_id,
+       schedule_service_types.description  as service_description,
+       schedule_service_types.type         as service_type,
+       reserved_minutes,
+       allow_return,
+       resume`),
+			)
+			.joinRaw(
+				`join "schedule_service_groups" on schedule_service_types.schedule_service_group_id = schedule_service_groups.id`,
+			)
+			.where("schedule_service_types.active", true)
+			.where("schedule_service_groups.active", true)
+			.whereNull("schedule_service_types.deleted_at")
+			.whereNull("schedule_service_groups.deleted_at")
+			.where("schedule_service_groups.system_id", authCtx.system.id)
+			.whereRaw(
+				`(schedule_service_groups.economic_group_id = ? or schedule_service_groups.economic_group_id is null)`,
+				[authCtx.group.id],
+			);
 	}
 
 	public async show(

@@ -127,6 +127,22 @@ export default class TreatmentsController {
 		return response.noContent();
 	}
 
+	public async searchScheduleServices({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const qs = request.qs();
+		const result = await this.service.searchScheduleServicesForTreatments(
+			authCtx,
+			qs,
+		);
+
+		return response.ok(result);
+	}
+
 	public async searchTreatment({
 		request,
 		response,

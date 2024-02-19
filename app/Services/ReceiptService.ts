@@ -581,8 +581,11 @@ export default class ReceiptService {
 							"description",
 							"reference_code",
 							"purpose",
+							"fractioned",
+							"fractionValue",
 							"subgroup_id",
 							"unit_id",
+							"fraction_unit_id",
 							"taxation_group_id",
 						);
 
@@ -590,6 +593,9 @@ export default class ReceiptService {
 							query.select("id");
 						});
 						query.preload("unit", (query) => {
+							query.select("id");
+						});
+						query.preload("fractionUnit", (query) => {
 							query.select("id");
 						});
 						query.preload("taxationGroup", (query) => {
@@ -870,6 +876,19 @@ export default class ReceiptService {
 				authCtx,
 			);
 
+			const products = await Product.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.preload("variations");
+
+			const supplierProducts = await SupplierProduct.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("supplier_id", supplierId)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
+
 			const receiptsCounter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -912,56 +931,6 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			// if (parsed.data.nfeProc.NFe.infNFe.cobr) {
-			// 	const d1 = parsed.data.nfeProc.NFe.infNFe.cobr.fat;
-			// 	if (d1) {
-			// 		await newReceipt.related("payments").create(
-			// 			{
-			// 				economic_group_id: authCtx.group.id,
-			// 				business_unit_id: authCtx.unit.id,
-			// 				block: 1,
-			// 				installment: 1,
-			// 				blockInstallments: 1,
-			// 				installmentValue: d1.vLiq,
-			// 				issueDate: DateTime.now(),
-			// 				expirationDate: DateTime.now(),
-			// 				nsuDocument: d1.nFat,
-			// 				status: "Ativo",
-			// 			},
-			// 			{ client: trx },
-			// 		);
-			//
-			// 		newReceipt.merge({
-			// 			paidValue: newReceipt.paidValue + d1.vLiq,
-			// 		});
-			// 	}
-			//
-			// 	const d2 = parsed.data.nfeProc.NFe.infNFe.cobr.dup;
-			// 	if (d2) {
-			// 		await newReceipt.related("payments").create(
-			// 			{
-			// 				economic_group_id: authCtx.group.id,
-			// 				business_unit_id: authCtx.unit.id,
-			// 				block: d1 ? 2 : 1,
-			// 				installment: 1,
-			// 				blockInstallments: 1,
-			// 				installmentValue: d2.vDup,
-			// 				issueDate: DateTime.now(),
-			// 				expirationDate: DateTime.fromISO(d2.dVenc),
-			// 				nsuDocument: d2.nDup,
-			// 				status: "Ativo",
-			// 			},
-			// 			{ client: trx },
-			// 		);
-			//
-			// 		newReceipt.merge({
-			// 			paidValue: newReceipt.paidValue + d2.vDup,
-			// 		});
-			// 	}
-			// }
-			//
-			// await newReceipt.useTransaction(trx).save();
-			//
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,
 				(val) => val,
@@ -971,14 +940,20 @@ export default class ReceiptService {
 			// eslint-disable-next-line no-restricted-syntax
 			for (const itemIdx in items) {
 				const item = items[itemIdx];
+				const barcode = item.prod.cEAN;
+
+				const existingProduct = supplierProducts.find(
+					(sp) => sp.productVariation.barcode === barcode,
+				)?.productVariation.product;
+				const anotherExistingProduct = existingProduct
+					? existingProduct
+					: products.find((p) =>
+							p.variations.find((pv) => pv.barcode === barcode),
+					  );
 
 				const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
 				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
 				const icms = this.getIcms(parsed.data, parseInt(itemIdx, 10));
-
-				if ("pICMSSTRet" in icms) {
-					// aposidkas
-				}
 
 				itemData.push({
 					economic_group_id: authCtx.group.id,
@@ -986,6 +961,7 @@ export default class ReceiptService {
 					receipt_id: newReceipt.id,
 
 					quantity: new Decimal(item.prod.qCom),
+					fractionValue: anotherExistingProduct?.fractionValue,
 					costValue: item.prod.vUnCom,
 					unitaryValue: item.prod.vUnCom,
 					discountValue: item.prod.vDesc,
@@ -1610,6 +1586,7 @@ export default class ReceiptService {
 				unitaryValue: data.unitaryValue,
 				discountValue: data.discountValue,
 				totalValue: data.unitaryValue * data.quantity - data.discountValue,
+				fractionValue: productVariation.product.fractionValue,
 				status: "Ativo",
 				issueDate: DateTime.now(),
 
@@ -1844,15 +1821,12 @@ export default class ReceiptService {
 				)
 				.preload("receipt");
 
-			const uniqueReceipts = updatedPayments.reduce(
-				(acc, current) => {
-					if (!acc.find((elem) => elem.id === current.receipt.id)) {
-						acc.push(current.receipt);
-					}
-					return acc;
-				},
-				[] as Receipt[],
-			);
+			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
+				if (!acc.find((elem) => elem.id === current.receipt.id)) {
+					acc.push(current.receipt);
+				}
+				return acc;
+			}, [] as Receipt[]);
 
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()
@@ -2003,7 +1977,7 @@ export default class ReceiptService {
 				`
         update deposit_items set quantity =
 (
-    select di.quantity + ri.quantity
+    select (di.quantity * ri.quantity)
     from deposit_items di
       join deposits d on di.deposit_id = d.id
       join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
@@ -2215,6 +2189,7 @@ and product_variation_id in (
 			query.preload("variationOptions");
 			query.preload("product", (query) => {
 				query.preload("unit");
+				query.preload("fractionUnit");
 			});
 
 			query.preload("businessUnitProducts", (query) => {
@@ -2233,6 +2208,9 @@ and product_variation_id in (
 			},
 			description: elem.product.description,
 			unit: elem.product.unit,
+			fractioned: elem.product.fractioned,
+			fractionValue: elem.product.fractionValue,
+			fractionUnit: elem.product.fractionUnit,
 			stock:
 				elem.businessUnitProducts.find(
 					(p) => p.businness_unit_id === authCtx.unit.id,

@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import ProductVariation from "./ProductVariation";
 
 export default class SupplierProduct extends BaseModel {
 	@column({ isPrimary: true })
@@ -28,6 +29,11 @@ export default class SupplierProduct extends BaseModel {
 		serializeAs: null,
 	})
 	public product_variation_id: string;
+
+	@belongsTo(() => ProductVariation, {
+		foreignKey: "product_variation_id",
+	})
+	public productVariation: BelongsTo<typeof ProductVariation>;
 
 	@column({
 		serializeAs: null,

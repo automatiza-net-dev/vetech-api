@@ -141,6 +141,7 @@ export default class ProductService {
 			.query()
 			.where("id", id)
 			.preload("brand")
+			.preload("fractionUnit")
 			.preload("unit")
 			.preload("taxationGroup")
 			.preload("group", (query) => {

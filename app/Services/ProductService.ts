@@ -12,6 +12,7 @@ import IProductData, {
 	IProductDataVariation,
 } from "Contracts/interfaces/IProductData";
 import IUpdateProduct from "Contracts/interfaces/IUpdateProduct";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 interface ISearch {
@@ -197,6 +198,17 @@ export default class ProductService {
 		try {
 			const product = await Product.create(
 				{
+					economic_group_id: group.id,
+					variation_group_id: variationGroup?.id,
+					unit_id: data.unitId,
+					fraction_unit_id: data.fractionUnitId,
+					group_id: data.groupId,
+					subgroup_id: data.subgroupId,
+					brand_id: data.brandId,
+					taxation_group_id: data.taxationGroupId,
+
+					fractioned: data.fractioned ?? false,
+					fractionValue: new Decimal(data.fractionValue ?? 1),
 					description: data.description,
 					type: ProductType.PRODUCT,
 					referenceCode: data.referenceCode,
@@ -204,14 +216,7 @@ export default class ProductService {
 					ncm: data.ncm,
 					cest: data.cest,
 					features: data.features,
-					unit_id: data.unitId,
 					icmsOrigin: data.icmsOrigin,
-					economic_group_id: group.id,
-					variation_group_id: variationGroup?.id,
-					taxation_group_id: data.taxationGroupId,
-					group_id: data.groupId,
-					subgroup_id: data.subgroupId,
-					brand_id: data.brandId,
 					taxBenefitCode: data.taxBenefitCode,
 					anvisaCode: data.anvisaCode,
 					purpose: data.purpose,
@@ -289,19 +294,23 @@ export default class ProductService {
 
 		return product
 			.merge({
+				unit_id: data.unitId,
+				fraction_unit_id: data.fractionUnitId,
+				group_id: data.groupId,
+				subgroup_id: data.subgroupId,
+				taxation_group_id: data.taxationGroupId,
+				brand_id: data.brandId,
+
+				fractioned: data.fractioned ?? false,
+				fractionValue: new Decimal(data.fractionValue ?? 1),
 				description: data.description,
 				referenceCode: data.referenceCode,
 				collectionYear: data.collectionYear,
 				ncm: data.ncm,
 				cest: data.cest,
 				features: data.features,
-				unit_id: data.unitId,
 				active: data.active,
-				group_id: data.groupId,
-				subgroup_id: data.subgroupId,
 				icmsOrigin: data.icmsOrigin,
-				taxation_group_id: data.taxationGroupId,
-				brand_id: data.brandId,
 				taxBenefitCode: data.taxBenefitCode,
 				anvisaCode: data.anvisaCode,
 				purpose: data.purpose,

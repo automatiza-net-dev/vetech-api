@@ -63,6 +63,10 @@ export default class TreatmentService {
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("treatment_id", data.treatmentId);
+			const existingExecution = await TreatmentExecution.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("treatment_id", data.treatmentId);
 
 			const item = await TreatmentItem.create(
 				{
@@ -96,7 +100,7 @@ export default class TreatmentService {
 						query.where("product_id", product.id);
 					});
 
-				const tasks = productivityItems.map(async (elem) => {
+				const tasks = productivityItems.map(async (elem, idx) => {
 					return TreatmentExecution.create(
 						{
 							economic_group_id: authCtx.group.id,
@@ -105,6 +109,7 @@ export default class TreatmentService {
 							treatment_item_id: item.id,
 							productivity_item_id: elem.id,
 
+							id: existingExecution.length + 1 + idx,
 							scheduledQuantity: data.quantity,
 							quantityExecuted: 0,
 							status: "Ativo",

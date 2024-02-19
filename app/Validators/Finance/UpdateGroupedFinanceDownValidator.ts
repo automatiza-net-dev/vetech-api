@@ -1,7 +1,6 @@
-import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { FinanceType } from "App/Models/Finance";
-import { PaymentMethodType } from "App/Models/PaymentMethod";
 
 export default class UpdateGroupedFinanceDownValidator {
 	constructor(protected ctx: HttpContextContract) {}

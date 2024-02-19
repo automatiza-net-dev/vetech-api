@@ -22,10 +22,10 @@ import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument"
 import User from "App/Models/User";
 import FocusNfeService, {
 	ISendNfe,
+	ISendNfse,
 	disableWebhookResponseSchema,
 	nfeResponseSchema,
 	nfseResponseSchema,
-	ISendNfse,
 } from "App/Services/FocusNfeService";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IBusinessUnitFiscalDocumentData, {

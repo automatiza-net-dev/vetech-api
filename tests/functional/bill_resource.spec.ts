@@ -15,13 +15,13 @@ import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductivityItem from "App/Models/ProductivityItem";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
+import TaxOperation from "App/Models/TaxOperation";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
 	CompanyType,
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
-import TaxOperation from "App/Models/TaxOperation";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
@@ -31,6 +31,7 @@ import {
 	IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
 import PatientFactory from "Database/factories/PatientFactory";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -1244,7 +1245,7 @@ test.group("Bill resource", (group) => {
 			bill_id: bill.id,
 			product_variation_id: variation.id,
 			tax_rule_id: rule.id,
-			quantity: 1,
+			quantity: new Decimal(1),
 			costValue: 10,
 			saleValue: 10,
 			unitaryValue: 10,
@@ -1318,7 +1319,7 @@ test.group("Bill resource", (group) => {
 			bill_id: bill.id,
 			product_variation_id: variation.id,
 			tax_rule_id: rule.id,
-			quantity: 1,
+			quantity: new Decimal(1),
 			costValue: 100,
 			saleValue: 100,
 			unitaryValue: 100,
@@ -1499,7 +1500,7 @@ test.group("Bill resource", (group) => {
 			id: v4(),
 			bill_id: bill.id,
 			product_variation_id: variation.id,
-			quantity: 1,
+			quantity: new Decimal(1),
 		});
 
 		const response = await client
@@ -1630,7 +1631,7 @@ test.group("Bill resource", (group) => {
 		await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,
 			product_variation_id: variation.id,
-			quantity: 1,
+			quantity: new Decimal(1),
 			status: "Ativo",
 		});
 
@@ -1673,7 +1674,7 @@ test.group("Bill resource", (group) => {
 		await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,
 			product_variation_id: variation.id,
-			quantity: 3,
+			quantity: new Decimal(3),
 			status: "Ativo",
 		});
 
@@ -1713,7 +1714,7 @@ test.group("Bill resource", (group) => {
 		const item = await deposit.related("items").create({
 			business_unit_product_id: buProduct.id,
 			product_variation_id: variation.id,
-			quantity: 3,
+			quantity: new Decimal(3),
 			status: "Ativo",
 		});
 
@@ -1747,7 +1748,7 @@ test.group("Bill resource", (group) => {
 	//     business_unit_id: business.id,
 	//     bill_id: bill.id,
 	//     product_variation_id: variation.id,
-	//     quantity: 1,
+	//     quantity: new Decimal(1),
 	//     costValue: 10,
 	//     saleValue: 10,
 	//     unitaryValue: 10,

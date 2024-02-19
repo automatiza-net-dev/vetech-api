@@ -3,16 +3,20 @@ import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import Deposit from "./Deposit";
 import BusinessUnitProduct from "./BusinessUnitProduct";
 import ProductVariation from "./ProductVariation";
+import Decimal from "decimal.js";
 
 export const DepositItemStatus = ["Ativo", "Inativo"] as const;
-export type TDepositItemStatus = typeof DepositItemStatus[number];
+export type TDepositItemStatus = (typeof DepositItemStatus)[number];
 
 export default class DepositItem extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 
-	@column()
-	public quantity: number;
+	@column({
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+	})
+	public quantity: Decimal;
 
 	@column()
 	public status: TDepositItemStatus;

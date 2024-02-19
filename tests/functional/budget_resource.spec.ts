@@ -20,6 +20,7 @@ import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
 import PatientFactory from "Database/factories/PatientFactory";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -79,7 +80,7 @@ test.group("Budget resource", (group) => {
 
 		const budgetItem = await budget.related("items").create({
 			business_unit_id: business.id,
-			quantity: 12,
+			quantity: new Decimal(12),
 			unitaryValue: 10,
 			discountValue: 2,
 			product_variation_id: variation.id,

@@ -15,11 +15,11 @@ import EconomicGroup from "App/Models/EconomicGroup";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
-import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
-import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
 import Patient, { PatientGender, PatientType } from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
 import User from "App/Models/User";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
+import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IAssignPatientTutor from "Contracts/interfaces/IAssignPatientTutor";
 import IPatientData, {
@@ -290,7 +290,7 @@ export default class PatientService {
 			.filter((r) => {
 				if (data.document) {
 					const matches = r.tutors.some((t) =>
-						t.tutor.document?.includes(data.document?.replace(/\D/g, "")),
+						t.tutor.document?.includes(data.document?.replace(/\D/g, "") ?? ""),
 					);
 
 					if (!matches) {
@@ -373,7 +373,7 @@ export default class PatientService {
 			})
 			.select(["id"]);
 
-		return tutors.map((t) => t.dependents).flat();
+		return tutors.flatMap((t) => t.dependents);
 	}
 
 	public async tutorNonPatients(unitId: string, id: string) {

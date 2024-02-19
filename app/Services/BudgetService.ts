@@ -598,7 +598,7 @@ export default class BudgetService {
 
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
@@ -767,7 +767,7 @@ export default class BudgetService {
 
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					totalValue: data.quantity * data.unitaryValue - data.discountValue,
 					status: BudgetStatus.A,
 				},
@@ -817,7 +817,7 @@ export default class BudgetService {
 
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
@@ -881,7 +881,7 @@ export default class BudgetService {
 				.merge({
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					totalValue: data.quantity * data.unitaryValue - data.discountValue,
 					status: data.status,
 				})
@@ -1033,8 +1033,10 @@ export default class BudgetService {
 								r.taxation_group_id ===
 								item.productVariation.product.taxation_group_id,
 						);
-						const totalValue =
-							item.unitaryValue * item.quantity - item.discountValue;
+						const totalValue = item.quantity
+							.times(item.unitaryValue)
+							.minus(item.discountValue)
+							.toNumber();
 						const icmsBase = rule
 							? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
 							: 0;
@@ -1303,7 +1305,7 @@ export default class BudgetService {
 
 						unitaryValue: item.originalPrice,
 						discountValue: item.discountPrice,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.originalPrice - item.discountPrice,
 						status: BudgetStatus.A,
 					};

@@ -17,6 +17,7 @@ import TaxationGroup from "App/Models/TaxationGroup";
 import Unit from "App/Models/Unit";
 import VariationGroup from "App/Models/VariationGroup";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -102,6 +103,16 @@ export default class Product extends BaseModel {
 	})
 	public anvisaCode: string | null;
 
+	@column({
+		columnName: "fraction_value",
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+	})
+	public fractionValue: Decimal | null;
+
+	@column()
+	public fractioned: boolean;
+
 	@column()
 	public active: boolean;
 
@@ -171,6 +182,17 @@ export default class Product extends BaseModel {
 		foreignKey: "subgroup_id",
 	})
 	public subgroup: BelongsTo<typeof Subgroup>;
+
+	@column({
+		serializeAs: null,
+	})
+	public fraction_unit_id: string;
+
+	@belongsTo(() => Unit, {
+		localKey: "id",
+		foreignKey: "fraction_unit_id",
+	})
+	public fractionUnit: BelongsTo<typeof Unit>;
 
 	@column({
 		serializeAs: null,

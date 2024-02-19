@@ -2,17 +2,21 @@ import { DateTime } from "luxon";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import BusinessUnitProduct from "./BusinessUnitProduct";
 import ProductVariation from "./ProductVariation";
+import Decimal from "decimal.js";
 
 export const DepositMovementItemStatus = ["Ativo", "Inativo"] as const;
 export type TDepositMovementItemStatus =
-	typeof DepositMovementItemStatus[number];
+	(typeof DepositMovementItemStatus)[number];
 
 export default class DepositMovementItem extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 
-	@column()
-	public quantity: number;
+	@column({
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+	})
+	public quantity: Decimal;
 
 	@column()
 	public status: TDepositMovementItemStatus;

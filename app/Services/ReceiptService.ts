@@ -985,7 +985,7 @@ export default class ReceiptService {
 					business_unit_id: authCtx.unit.id,
 					receipt_id: newReceipt.id,
 
-					quantity: item.prod.qCom,
+					quantity: new Decimal(item.prod.qCom),
 					costValue: item.prod.vUnCom,
 					unitaryValue: item.prod.vUnCom,
 					discountValue: item.prod.vDesc,
@@ -1051,21 +1051,19 @@ export default class ReceiptService {
 					// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
 					pisCst: pis.CST,
-					pisBase: !!pis.vBC ? parseFloat(pis.vBC.toString()) : undefined,
-					pisPercentage: !!pis.pPIS
-						? parseFloat(pis.pPIS.toString())
-						: undefined,
-					pisValue: !!pis.vPIS ? parseFloat(pis.vPIS.toString()) : undefined,
+					pisBase: pis.vBC ? parseFloat(pis.vBC.toString()) : undefined,
+					pisPercentage: pis.pPIS ? parseFloat(pis.pPIS.toString()) : undefined,
+					pisValue: pis.vPIS ? parseFloat(pis.vPIS.toString()) : undefined,
 					pisRetentionValue: 0,
 
 					cofinsCst: cofins.CST,
-					cofinsBase: !!cofins.vBC
+					cofinsBase: cofins.vBC
 						? parseFloat(cofins.vBC.toString())
 						: undefined,
-					cofinsPercentage: !!cofins.pCOFINS
+					cofinsPercentage: cofins.pCOFINS
 						? parseFloat(cofins.pCOFINS.toString())
 						: undefined,
-					cofinsValue: !!cofins.vCOFINS
+					cofinsValue: cofins.vCOFINS
 						? parseFloat(cofins.vCOFINS.toString())
 						: undefined,
 					cofinsRetentionValue: 0,
@@ -1607,7 +1605,7 @@ export default class ReceiptService {
 				product_variation_id: data.productVariationId,
 				receipt_id: data.receiptId,
 
-				quantity: data.quantity,
+				quantity: new Decimal(data.quantity),
 				costValue: data.costValue,
 				unitaryValue: data.unitaryValue,
 				discountValue: data.discountValue,
@@ -1846,12 +1844,15 @@ export default class ReceiptService {
 				)
 				.preload("receipt");
 
-			const uniqueReceipts = updatedPayments.reduce((acc, current) => {
-				if (!acc.find((elem) => elem.id === current.receipt.id)) {
-					acc.push(current.receipt);
-				}
-				return acc;
-			}, [] as Receipt[]);
+			const uniqueReceipts = updatedPayments.reduce(
+				(acc, current) => {
+					if (!acc.find((elem) => elem.id === current.receipt.id)) {
+						acc.push(current.receipt);
+					}
+					return acc;
+				},
+				[] as Receipt[],
+			);
 
 			const tasks = uniqueReceipts.map(async (elem) => {
 				const receiptPayments = await ReceiptPayment.query()

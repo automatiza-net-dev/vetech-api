@@ -9,6 +9,7 @@ import {
 import Bill from "App/Models/Bill";
 import TaxationGroupRule from "App/Models/TaxationGroupRule";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -23,8 +24,11 @@ export default class BillItem extends BaseModel {
 	@column({ isPrimary: true })
 	public id: string = v4();
 
-	@column()
-	public quantity: number;
+	@column({
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+	})
+	public quantity: Decimal;
 
 	@column({
 		columnName: "cost_value",

@@ -20,6 +20,7 @@ import PatientFactory from "Database/factories/PatientFactory";
 import { DateTime } from "luxon";
 import { generateJwtToken, userBootstrap } from "../utils";
 import Database from "@ioc:Adonis/Lucid/Database";
+import Decimal from "decimal.js";
 
 test.group("Receipt resource", (group) => {
 	group.each.setup(async () => {
@@ -405,6 +406,7 @@ test.group("Receipt resource", (group) => {
 		const item = await receipt.related("items").create({
 			economic_group_id: receipt.economic_group_id,
 			business_unit_id: receipt.business_unit_id,
+			fractionValue: new Decimal(10),
 		});
 
 		const response = await client

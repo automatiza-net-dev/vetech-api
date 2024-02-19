@@ -3,12 +3,12 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
 import DepositMovement from "App/Models/DepositMovement";
 import { DateTime } from "luxon";
 
+import Decimal from "decimal.js";
 import SharedService, { AuthContext } from "./SharedService";
 
 @inject()
@@ -190,7 +190,7 @@ export default class DepositService {
 				{
 					business_unit_product_id: data.businessUnitProductId,
 					product_variation_id: data.productVariationId,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					status: "Ativo",
 				},
 				{ client: trx },
@@ -227,7 +227,7 @@ export default class DepositService {
 
 			return row
 				.merge({
-					quantity: row.quantity + data.quantity,
+					quantity: row.quantity.plus(data.quantity),
 					status: data.status,
 				})
 				.useTransaction(trx)
@@ -451,7 +451,7 @@ export default class DepositService {
 				data.items.map((item) => ({
 					product_variation_id: item.productVariationId,
 					business_unit_product_id: item.businessUnitProductId,
-					quantity: item.quantity,
+					quantity: new Decimal(item.quantity),
 					status: "Ativo",
 				})),
 				{ client: trx },

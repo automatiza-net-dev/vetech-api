@@ -4,7 +4,6 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
-import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
@@ -23,8 +22,8 @@ import Patient from "App/Models/Patient";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
-import ProductivityItem from "App/Models/ProductivityItem";
 import ProductVariation from "App/Models/ProductVariation";
+import ProductivityItem from "App/Models/ProductivityItem";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
@@ -45,6 +44,7 @@ import {
 	ICreateBillPaymentData,
 	IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 interface ISearch {
@@ -365,9 +365,10 @@ export default class BillService {
 			const promises = billItems.map(async (billItem) => {
 				const dataItem = data.items.find((i) => i.billItemId === billItem.id);
 
-				const totalValue =
-					billItem.unitaryValue * billItem.quantity -
-					(dataItem?.discountValue ?? 0);
+				const totalValue = billItem.quantity
+					.times(billItem.unitaryValue)
+					.minus(dataItem?.discountValue ?? 0)
+					.toNumber();
 				const icmsBase =
 					totalValue *
 					((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
@@ -1198,7 +1199,7 @@ export default class BillService {
 
 		const result = await qb;
 
-		return result.map((tax) => tax.rules).flat();
+		return result.flatMap((tax) => tax.rules);
 	}
 
 	async closeBill(unitId: string, user: User, id: string) {
@@ -1533,8 +1534,10 @@ export default class BillService {
 								ufIcms.destinationUf === rule.toUf,
 						);
 
-						const totalValue =
-							item.unitaryValue * item.quantity - item.discountValue;
+						const totalValue = item.quantity
+							.times(item.unitaryValue)
+							.minus(item.discountValue)
+							.toNumber();
 						const icmsBase =
 							totalValue * ((100 - (rule.icmsPercRedBaseCalculo ?? 0)) / 100);
 						const icmsStBase_1 = icmsBase + (icmsBase * rule.ivaIcmsSt) / 100;
@@ -1744,7 +1747,7 @@ export default class BillService {
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
 
-					quantity: item.quantity,
+					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
 					saleValue: price?.price,
 					unitaryValue: item.unitaryValue,
@@ -2043,7 +2046,7 @@ export default class BillService {
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
 
-			quantity: data.quantity,
+			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,
 			saleValue: price.price,
 			unitaryValue: data.unitaryValue,
@@ -2335,25 +2338,23 @@ export default class BillService {
 					query.preload("flag");
 				});
 
-			return bills
-				.map((elem) =>
-					elem.payments.map((payment) => ({
-						id: payment.id,
-						description: payment.paymentMethod.description,
-						flag: payment.flag.description,
-						operation: payment.paymentMethod.tef,
-						client: {
-							id: elem.client?.id,
-							name: elem.client?.name,
-						},
-						tag: elem.tag,
-						nsuDocument: payment.nsuDocument,
-						total: payment.totalValue,
-						expiresAt: payment.expirationDate,
-						createdAt: payment.createdAt,
-					})),
-				)
-				.flat();
+			return bills.flatMap((elem) =>
+				elem.payments.map((payment) => ({
+					id: payment.id,
+					description: payment.paymentMethod.description,
+					flag: payment.flag.description,
+					operation: payment.paymentMethod.tef,
+					client: {
+						id: elem.client?.id,
+						name: elem.client?.name,
+					},
+					tag: elem.tag,
+					nsuDocument: payment.nsuDocument,
+					total: payment.totalValue,
+					expiresAt: payment.expirationDate,
+					createdAt: payment.createdAt,
+				})),
+			);
 		});
 	}
 
@@ -2536,7 +2537,7 @@ export default class BillService {
 					product_variation_id: inner.product_variation_id,
 
 					status: TreatmentItemStatus[0],
-					quantity: inner.quantity,
+					quantity: new Decimal(inner.quantity).toNumber(),
 				})),
 				{ client: trx },
 			);
@@ -2745,7 +2746,7 @@ export default class BillService {
 
 			const row = data.items.find((i) => i.productVariationId === item.id);
 
-			return depositItem.quantity < (row?.quantity ?? 0);
+			return depositItem.quantity.lessThan(row?.quantity ?? 0);
 		});
 		if (invalidItems.length > 0) {
 			throw new BadRequestException(
@@ -2805,7 +2806,7 @@ export default class BillService {
 			);
 			return item
 				.merge({
-					quantity: item.quantity - (row?.quantity ?? 0),
+					quantity: item.quantity.minus(row?.quantity ?? 0),
 				})
 				.save();
 		});

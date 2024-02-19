@@ -148,24 +148,39 @@ export default class ScheduleService {
 			);
 	}
 
-	public async returnableSchedules(unitId: string, patientId: string) {
-		const qb = Schedule.query()
-			.where("business_unit_id", unitId)
-			.where("patient_id", patientId)
-			.whereNull("scheduleOriginId")
-			.whereNull("scheduleReturnId")
-			.whereHas("serviceType", (query) => {
-				query.where("allow_return", true);
+	public async returnableSchedules(authCtx: AuthContext, patientId: string) {
+		return Database.from("schedules")
+			.select(
+				Database.raw(
+					"schedules.id, schedules.schedule_service_type_id, count(schedules.id)",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on schedules.business_unit_id = business_unit_configs.business_unit_id",
+			)
+			.where("schedules.business_unit_id", authCtx.unit.id)
+			.where("schedules.patient_id", patientId)
+			.whereNull("schedules.deleted_at")
+			.whereRaw(
+				"now()::date - start_hour::date <= business_unit_configs.return_interval",
+				[],
+			)
+			.whereExists((query) => {
+				query
+					.from("schedule_service_types")
+					.where("allow_return", true)
+					.whereRaw(
+						'"schedule_service_types"."id" = "schedules"."schedule_service_type_id"',
+					);
 			})
-			.whereRaw("start_hour between ?::date and ?::date", [
-				DateTime.now().minus({ days: 30 }).toJSDate(),
-				DateTime.now().toJSDate(),
-			])
-			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
-			});
-
-		return qb;
+			.groupBy(
+				"schedules.id",
+				"schedules.schedule_service_type_id",
+				"business_unit_configs.allowed_return_qty",
+			)
+			.havingRaw(
+				"count(schedules.id) < business_unit_configs.allowed_return_qty",
+			);
 	}
 
 	public async store(

@@ -51,10 +51,8 @@ export default class SchedulesController {
 		response,
 		params,
 	}: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
 		const result = await this.service.returnableSchedules(
-			unit_id,
+			await this.sharedService.getAuthContext(auth),
 			params.patient,
 		);
 

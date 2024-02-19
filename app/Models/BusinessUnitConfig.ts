@@ -57,6 +57,16 @@ export default class BusinessUnitConfig extends BaseModel {
 	public allowChangeScheduleDuration: string;
 
 	@column({
+		columnName: "return_interval",
+	})
+	public returnInterval: number;
+
+	@column({
+		columnName: "allowed_return_qty",
+	})
+	public allowedReturnQty: number;
+
+	@column({
 		columnName: "bill_counter",
 	})
 	public billCounter: string;

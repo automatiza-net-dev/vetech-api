@@ -20,6 +20,7 @@ export default class BudgetItem extends BaseModel {
 	@column({
 		consume: (value) => new Decimal(value),
 		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => value.toNumber(),
 	})
 	public quantity: Decimal;
 

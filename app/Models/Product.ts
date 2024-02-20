@@ -107,6 +107,7 @@ export default class Product extends BaseModel {
 		columnName: "fraction_value",
 		consume: (value) => new Decimal(value),
 		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => value.toNumber(),
 	})
 	public fractionValue: Decimal | null;
 

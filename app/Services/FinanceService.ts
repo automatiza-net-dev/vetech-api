@@ -1117,6 +1117,7 @@ export default class FinanceService {
 					checking_account_id:
 						data.checkingAccountId ?? paymentMethod.checkingAccountId,
 					qtyInstallments: data.qtyInstallments,
+					reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 
 					paymentDate: data.paymentDate,
 					downDate: data.downDate,

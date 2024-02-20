@@ -854,7 +854,7 @@ export default class BillService {
 						feeDiscountPercentage:
 							payments.at(v)?.paymentMethodDiscountPercentage,
 						accept: FinanceAccept.N,
-						reconciled: false,
+						reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 						competenceDate: DateTime.now().toFormat("MM/yyyy"),
 						nsuDocument: payments.at(v)?.nsuDocument,
 						tef_flag_id: payments.at(v)?.tef_flag_id,

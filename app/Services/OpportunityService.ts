@@ -1182,7 +1182,7 @@ export default class OpportunityService {
 				.update({
 					execution_user_id: null,
 					executed_date: null,
-					status: "Aberto" as TOpportunityActivityStatus,
+					status: "Aberta" as TOpportunityActivityStatus,
 				});
 		});
 	}

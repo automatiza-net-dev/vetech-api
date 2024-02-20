@@ -42,6 +42,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public requiresBillPatient: boolean;
 
 	@column({
+		columnName: "generates_finances_on_receipts_finish",
+	})
+	public generatesFinancesOnReceiptsFinish: boolean;
+
+	@column({
 		columnName: "requires_finance_client",
 	})
 	public requiresFinanceClient: boolean;

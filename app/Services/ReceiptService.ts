@@ -1737,20 +1737,23 @@ export default class ReceiptService {
 			});
 
 			const payments = await Promise.all(tasks);
-			const paymentsTasks = payments.flat().map((elem) => {
-				return this.createFinanceEntry(trx, authCtx, {
-					dailyCashierId: receipt.daily_cashier_id,
-					dailyMovementId: receipt.daily_movement_id,
-					supplierId: receipt.supplier_id,
-					paymentMethodId: elem.payment_method_id,
-					tefAcquirerId: elem.tef_acquirer_id,
-					tefFlagId: elem.tef_flag_id,
 
-					tag: receipt.tag,
-					item: elem,
+			if (!authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
+				const paymentsTasks = payments.flat().map((elem) => {
+					return this.createFinanceEntry(trx, authCtx, {
+						dailyCashierId: receipt.daily_cashier_id,
+						dailyMovementId: receipt.daily_movement_id,
+						supplierId: receipt.supplier_id,
+						paymentMethodId: elem.payment_method_id,
+						tefAcquirerId: elem.tef_acquirer_id,
+						tefFlagId: elem.tef_flag_id,
+
+						tag: receipt.tag,
+						item: elem,
+					});
 				});
-			});
-			await Promise.all(paymentsTasks);
+				await Promise.all(paymentsTasks);
+			}
 
 			await receipt
 				.merge({
@@ -1923,6 +1926,23 @@ export default class ReceiptService {
 					400,
 					"E_NO_PAYMENT",
 				);
+			}
+
+			if (authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
+				const paymentsTasks = receipt.payments.map((elem) => {
+					return this.createFinanceEntry(trx, authCtx, {
+						dailyCashierId: receipt.daily_cashier_id,
+						dailyMovementId: receipt.daily_movement_id,
+						supplierId: receipt.supplier_id,
+						paymentMethodId: elem.payment_method_id,
+						tefAcquirerId: elem.tef_acquirer_id,
+						tefFlagId: elem.tef_flag_id,
+
+						tag: receipt.tag,
+						item: elem,
+					});
+				});
+				await Promise.all(paymentsTasks);
 			}
 
 			await receipt

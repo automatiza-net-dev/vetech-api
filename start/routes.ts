@@ -362,6 +362,10 @@ Route.group(() => {
 		"/sync-schedule-execution",
 		"SchedulesController.syncScheduleExecution",
 	);
+	Route.get(
+		"/search-syncheable-schedule-executions/:patientId",
+		"SchedulesController.searchSyncheableScheduleExecutions",
+	);
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");

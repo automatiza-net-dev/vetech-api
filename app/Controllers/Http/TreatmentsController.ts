@@ -12,6 +12,7 @@ import CreateTreatmentValidator from "App/Validators/Treatment/CreateTreatmentVa
 import ExcludeTreatmentExecutionValidator from "App/Validators/Treatment/ExcludeTreatmentExecutionValidator";
 import ExcludeTreatmentItemValidator from "App/Validators/Treatment/ExcludeTreatmentItemValidator";
 import ExecuteTreatmentExecutionValidator from "App/Validators/Treatment/ExecuteTreatmentExecutionValidator";
+import SyncScheduleExecutionValidator from "App/Validators/Treatment/SyncScheduleExecutionValidator";
 import UpdateTreatmentExecutionValidator from "App/Validators/Treatment/UpdateTreatmentExecutionValidator";
 
 @inject()
@@ -290,5 +291,36 @@ export default class TreatmentsController {
 		await this.service.excludeTreatmentItem(authCtx, data);
 
 		return response.noContent();
+	}
+
+	public async syncScheduleExecution({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await request.validate(SyncScheduleExecutionValidator);
+
+		await this.service.syncScheduleExecution(authCtx, data);
+
+		return response.noContent();
+	}
+
+	public async searchSyncheableScheduleExecutions({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchSyncheableTreatmentExecutions(
+			authCtx,
+			{
+				patientId: request.param("patientId"),
+			},
+		);
+
+		return response.ok(result);
 	}
 }

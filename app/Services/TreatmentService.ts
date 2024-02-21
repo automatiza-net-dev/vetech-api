@@ -1288,4 +1288,37 @@ export default class TreatmentService {
 				.save();
 		});
 	}
+
+	public async searchSyncheableTreatmentExecutions(
+		authCtx: AuthContext,
+		data: {
+			patientId: string;
+		},
+	) {
+		return Database.from("treatments")
+			.select(
+				Database.raw(`treatment_executions.treatment_id,
+       treatment_executions.treatment_item_id,
+       treatment_executions.id        as treatment_execution_id,
+       treatment_executions.productivity_item_id,
+       products.description           as produto,
+       productivity_items.description as item_produtividade`),
+			)
+			.joinRaw(`         join (treatment_items
+    join product_variations on treatment_items.product_variation_id = product_variations.id
+    join products on product_variations.product_id = products.id) on treatments.id = treatment_items.treatment_id`)
+			.joinRaw(
+				`    left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id and
+                                    productivity_items.system_id = ?)
+                   on treatment_items.treatment_id = treatment_executions.treatment_id and
+                      treatment_items.id = treatment_executions.treatment_item_id`,
+				[authCtx.system.id],
+			)
+			.where("treatments.economic_group_id", authCtx.group.id)
+			.where("treatments.business_unit_id", authCtx.unit.id)
+			.where("treatments.client_id", data.patientId)
+			.whereNull("treatment_executions.schedule_id is null")
+			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
+         treatment_executions.productivity_item_id`);
+	}
 }

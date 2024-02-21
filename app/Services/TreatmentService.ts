@@ -1245,4 +1245,47 @@ export default class TreatmentService {
 				.save();
 		});
 	}
+
+	public async syncScheduleExecution(
+		authCtx: AuthContext,
+		data: {
+			treatmentId: number;
+			treatmentItemId: number;
+			treatmentExecutionId: number;
+			scheduleId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const row = await TreatmentExecution.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("treatment_id", data.treatmentId)
+				.where("treatment_item_id", data.treatmentItemId)
+				.where("id", data.treatmentExecutionId)
+				.first();
+
+			if (!row) {
+				throw this.shared.ResourceNotFound("Execução não encontrada");
+			}
+
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.scheduleId)
+				.first();
+			if (!schedule) {
+				throw this.shared.ResourceNotFound("Agenda não encontrada");
+			}
+
+			await row
+				.merge({
+					schedule_user_id: authCtx.user.id,
+					schedule_id: data.scheduleId,
+					scheduleDate: schedule.startHour,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
 }

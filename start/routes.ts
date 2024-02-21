@@ -358,6 +358,11 @@ Route.group(() => {
 	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
 	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
 
+	Route.post(
+		"/sync-schedule-execution",
+		"SchedulesController.syncScheduleExecution",
+	);
+
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");
 	Route.post("/", "SchedulesController.store");

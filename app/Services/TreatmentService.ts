@@ -1304,11 +1304,13 @@ export default class TreatmentService {
        products.description           as produto,
        productivity_items.description as item_produtividade`),
 			)
-			.joinRaw(`         join (treatment_items
+			.joinRaw(`join (treatment_items
     join product_variations on treatment_items.product_variation_id = product_variations.id
-    join products on product_variations.product_id = products.id) on treatments.id = treatment_items.treatment_id`)
+    join products on product_variations.product_id = products.id)
+              on treatments.id = treatment_items.treatment_id`)
 			.joinRaw(
-				`    left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id and
+				`left join (treatment_executions
+    left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id and
                                     productivity_items.system_id = ?)
                    on treatment_items.treatment_id = treatment_executions.treatment_id and
                       treatment_items.id = treatment_executions.treatment_item_id`,
@@ -1317,7 +1319,7 @@ export default class TreatmentService {
 			.where("treatments.economic_group_id", authCtx.group.id)
 			.where("treatments.business_unit_id", authCtx.unit.id)
 			.where("treatments.client_id", data.patientId)
-			.whereNull("treatment_executions.schedule_id is null")
+			.whereNull("treatment_executions.schedule_id")
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
 	}

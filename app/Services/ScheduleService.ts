@@ -152,35 +152,29 @@ export default class ScheduleService {
 		return Database.from("schedules")
 			.select(
 				Database.raw(
-					"schedules.id, schedules.schedule_service_type_id, count(schedules.id)",
+					"schedules.id, schedules.schedule_service_type_id, schedule_service_types.description, schedules.start_hour",
 				),
 			)
 			.joinRaw(
 				"join business_unit_configs on schedules.business_unit_id = business_unit_configs.business_unit_id",
 			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.where("schedules.patient_id", patientId)
 			.whereNull("schedules.deleted_at")
+			.whereNull("schedules.schedule_origin_id")
 			.whereRaw(
 				"now()::date - start_hour::date <= business_unit_configs.return_interval",
 				[],
 			)
-			.whereExists((query) => {
-				query
-					.from("schedule_service_types")
-					.where("allow_return", true)
-					.whereRaw(
-						'"schedule_service_types"."id" = "schedules"."schedule_service_type_id"',
-					);
-			})
-			.groupBy(
-				"schedules.id",
-				"schedules.schedule_service_type_id",
-				"business_unit_configs.allowed_return_qty",
-			)
-			.havingRaw(
-				"count(schedules.id) < business_unit_configs.allowed_return_qty",
-			);
+			.whereRaw(`business_unit_configs.allowed_return_qty >
+      (select count(s1.id) from schedules s1 where s1.schedule_origin_id = schedules.id)
+  and exists (select id
+              from "schedule_service_types"
+              where ("allow_return" = true)
+                and ("schedule_service_types"."id" = "schedules"."schedule_service_type_id"))`);
 	}
 
 	public async store(

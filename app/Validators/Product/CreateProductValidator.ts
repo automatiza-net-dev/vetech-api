@@ -18,12 +18,6 @@ export default class CreateProductValidator {
 		meta: schema.number.optional([rules.unsigned()]),
 		metaType: schema.enum.optional(Object.values(BusinessUnitProductMetaType)),
 		commissionMeta: schema.number.optional([rules.unsigned()]),
-		fractioned: schema.boolean.optional(),
-		fractionUnitId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({ table: "units", column: "id" }),
-		]),
-		fractionValue: schema.number.optional(),
 	});
 
 	public schema = schema.create({
@@ -42,6 +36,12 @@ export default class CreateProductValidator {
 		purpose: schema.enum(Object.values(ProductPurpose)),
 
 		features: schema.string.optional({}, []),
+		fractioned: schema.boolean.optional(),
+		fractionUnitId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "units", column: "id" }),
+		]),
+		fractionValue: schema.number.optional(),
 
 		taxationGroupId: schema.string({}, [
 			rules.uuid(),

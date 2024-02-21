@@ -358,15 +358,6 @@ Route.group(() => {
 	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
 	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
 
-	Route.post(
-		"/sync-schedule-execution",
-		"SchedulesController.syncScheduleExecution",
-	);
-	Route.get(
-		"/search-syncheable-schedule-executions/:patientId",
-		"SchedulesController.searchSyncheableScheduleExecutions",
-	);
-
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");
 	Route.post("/", "SchedulesController.store");
@@ -1224,6 +1215,15 @@ Route.group(() => {
 	Route.post(
 		"/exclude-treatment-item",
 		"TreatmentsController.excludeTreatmentItem",
+	);
+
+	Route.post(
+		"/sync-schedule-execution",
+		"TreatmentsController.syncScheduleExecution",
+	);
+	Route.get(
+		"/search-syncheable-schedule-executions/:patientId",
+		"TreatmentsController.searchSyncheableScheduleExecutions",
 	);
 })
 	.prefix("treatments")

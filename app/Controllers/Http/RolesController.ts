@@ -195,6 +195,7 @@ export default class RolesController {
 		response.ok(
 			await this.roleService.searchControllerRolePermissions(
 				auth.user?.system_id ?? -1,
+				auth?.user && "type" in auth.user ? auth.user.type : "user",
 				{
 					id: qs.id,
 					active: qs.active,

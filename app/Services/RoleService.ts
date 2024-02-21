@@ -2,7 +2,8 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
-import Permission from "App/Models/Permission";
+import Permission, { TPermissionType } from "App/Models/Permission";
+import { TProfileAccessType } from "App/Models/ProfileAccess";
 import Role, { TRoleType } from "App/Models/Role";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
@@ -25,15 +26,15 @@ export default class RoleService {
 			.where("economic_group_id", authCtx.group.id);
 
 		if (authCtx.user.type === "user") {
-			qb.whereIn("type", ["user", "both"] as TRoleType[]);
+			qb.whereIn("type", ["user", "both", "all"] as TRoleType[]);
 		}
 
 		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["controller", "both"] as TRoleType[]);
+			qb.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
 		}
 
 		if (authCtx.user.type === "system") {
-			qb.whereIn("type", ["system"] as TRoleType[]);
+			qb.whereIn("type", ["system", "all"] as TRoleType[]);
 		}
 
 		if (data.name) {
@@ -281,7 +282,7 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
-			.preload("screen")
+			.preload("screen", (query) => {})
 			.pivotColumns(["active", "status"]);
 
 		// if (authCtx.user.type === "user") {
@@ -395,8 +396,36 @@ export default class RoleService {
 			qb.where("active", data.active !== "0");
 		}
 
-		qb.preload("permissions");
+		qb.preload("permissions", (query) => {
+			if (authCtx.user.type === "user") {
+				query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+			}
+
+			if (authCtx.user.type === "controller") {
+				query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+			}
+
+			if (authCtx.user.type === "system") {
+				query.whereIn("type", ["system", "all"] as TRoleType[]);
+			}
+		});
 		qb.preload("accesses", (query) => {
+			if (authCtx.user.type === "user") {
+				query.whereIn("type", ["user", "both", "all"] as TProfileAccessType[]);
+			}
+
+			if (authCtx.user.type === "controller") {
+				query.whereIn("type", [
+					"controller",
+					"both",
+					"all",
+				] as TProfileAccessType[]);
+			}
+
+			if (authCtx.user.type === "system") {
+				query.whereIn("type", ["system", "all"] as TProfileAccessType[]);
+			}
+
 			query.preload("profile");
 		});
 
@@ -433,6 +462,7 @@ export default class RoleService {
 
 	public async searchControllerRolePermissions(
 		systemID: number,
+		roleType: TRoleType,
 		data: { id?: string; active?: string },
 	) {
 		const qb = Role.query()
@@ -447,8 +477,37 @@ export default class RoleService {
 			qb.where("active", data.active !== "0");
 		}
 
-		qb.preload("permissions");
+		qb.preload("permissions", (query) => {
+			if (roleType === "user") {
+				query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+			}
+
+			if (roleType === "controller") {
+				query.whereIn("type", [
+					"controller",
+					"both",
+					"all",
+				] as TPermissionType[]);
+			}
+
+			if (roleType === "system") {
+				query.whereIn("type", ["system", "all"] as TPermissionType[]);
+			}
+		});
+
 		qb.preload("accesses", (query) => {
+			if (roleType === "user") {
+				query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+			}
+
+			if (roleType === "controller") {
+				query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+			}
+
+			if (roleType === "system") {
+				query.whereIn("type", ["system", "all"] as TRoleType[]);
+			}
+
 			query.preload("profile");
 		});
 

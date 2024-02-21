@@ -194,34 +194,6 @@ export default class ProductService {
 			? await VariationGroup.find(data.variationGroup)
 			: null;
 
-		console.log(
-			{ data },
-			{
-				economic_group_id: group.id,
-				variation_group_id: variationGroup?.id,
-				unit_id: data.unitId,
-				fraction_unit_id: data.fractionUnitId,
-				group_id: data.groupId,
-				subgroup_id: data.subgroupId,
-				brand_id: data.brandId,
-				taxation_group_id: data.taxationGroupId,
-
-				fractioned: data.fractioned ?? false,
-				fractionValue: new Decimal(data.fractionValue ?? 1),
-				description: data.description,
-				type: ProductType.PRODUCT,
-				referenceCode: data.referenceCode,
-				collectionYear: data.collectionYear,
-				ncm: data.ncm,
-				cest: data.cest,
-				features: data.features,
-				icmsOrigin: data.icmsOrigin,
-				taxBenefitCode: data.taxBenefitCode,
-				anvisaCode: data.anvisaCode,
-				purpose: data.purpose,
-			},
-		);
-
 		const trx = await Database.transaction();
 
 		try {

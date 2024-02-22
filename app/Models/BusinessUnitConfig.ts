@@ -12,6 +12,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public balanceControl: "realizado" | "previsto";
 
 	@column({
+		columnName: "controls_deposit",
+	})
+	public controlsDeposit: boolean;
+
+	@column({
 		columnName: "shows_treatment_schedules",
 	})
 	public showsTreatmentSchedules: boolean;

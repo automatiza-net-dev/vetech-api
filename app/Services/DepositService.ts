@@ -3,12 +3,12 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import BusinessUnitProduct from "App/Models/BusinessUnitProduct";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
 import DepositItem, { TDepositItemStatus } from "App/Models/DepositItem";
 import DepositMovement from "App/Models/DepositMovement";
 import { DateTime } from "luxon";
 
+import Decimal from "decimal.js";
 import SharedService, { AuthContext } from "./SharedService";
 
 @inject()
@@ -190,7 +190,7 @@ export default class DepositService {
 				{
 					business_unit_product_id: data.businessUnitProductId,
 					product_variation_id: data.productVariationId,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					status: "Ativo",
 				},
 				{ client: trx },
@@ -227,7 +227,7 @@ export default class DepositService {
 
 			return row
 				.merge({
-					quantity: row.quantity + data.quantity,
+					quantity: row.quantity.plus(data.quantity),
 					status: data.status,
 				})
 				.useTransaction(trx)
@@ -451,7 +451,7 @@ export default class DepositService {
 				data.items.map((item) => ({
 					product_variation_id: item.productVariationId,
 					business_unit_product_id: item.businessUnitProductId,
-					quantity: item.quantity,
+					quantity: new Decimal(item.quantity),
 					status: "Ativo",
 				})),
 				{ client: trx },
@@ -476,14 +476,15 @@ where dmi.deposit_movement_id = ?
 
 			await Database.rawQuery(
 				`update deposit_items
-set quantity =
+        set quantity =
         (select diDest.quantity + dmi.quantity
          from deposit_items diDest
                   join deposit_movement_items dmi
                        on diDest.product_variation_id = dmi.product_variation_id and
                           diDest.business_unit_product_id = dmi.business_unit_product_id
          where diDest.deposit_id = ?
-           and dmi.deposit_movement_id = ?)
+           and dmi.deposit_movement_id = ?
+           and deposit_items.business_unit_product_id = diDest.business_unit_product_id)
 where deposit_id = ?
   and product_variation_id in
       (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
@@ -494,17 +495,18 @@ where deposit_id = ?
 
 			await Database.rawQuery(
 				`update deposit_items
-set quantity =
+        set quantity =
         (select diOri.quantity - dmi.quantity
          from deposit_items diOri
                   join deposit_movement_items dmi
                        on diOri.product_variation_id = dmi.product_variation_id and
                           diOri.business_unit_product_id = dmi.business_unit_product_id
          where diOri.deposit_id = ?
-           and dmi.deposit_movement_id = ?)
+           and dmi.deposit_movement_id = ?
+           and deposit_items.business_unit_product_id = diOri.business_unit_product_id)
 where deposit_id = ?
   and product_variation_id in
-      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?)`,
+      (select product_variation_id from deposit_movement_items where deposit_movement_id = ?);`,
 				[fromRow.id, movement.id, fromRow.id, movement.id],
 			)
 				.useTransaction(trx)
@@ -518,123 +520,53 @@ where deposit_id = ?
 	private async $checkDepositItems(
 		trx: TransactionClientContract,
 		deposit: Deposit,
-		items: { businessUnitProductId: string; quantity: number }[],
-		place: string,
+		items: { productVariationId: string; quantity: number }[],
+		label: string,
 	) {
-		const errorMessages: unknown[] = [];
-
-		const fromRowItems = await deposit
-			.related("items")
-			.query()
+		await Database.rawQuery(`
+create temporary table mov_dep
+(
+    idVariacao uuid,
+    quantidade int
+);`)
 			.useTransaction(trx)
-			.select(
-				"id",
-				"business_unit_product_id",
-				"product_variation_id",
-				"quantity",
-			)
-			// .whereIn(
-			// 	"business_unit_product_id",
-			// 	items.map((i) => i.businessUnitProductId),
-			// )
-			.preload("variation", (query) => {
-				query.select("product_id");
-
-				query.preload("product", (query) => {
-					query.select("id", "description");
-				});
-			})
 			.exec();
 
-		const buProducts = await BusinessUnitProduct.query()
-			.useTransaction(trx)
-			.whereIn(
-				"id",
-				items.map((i) => i.businessUnitProductId),
-			)
-			.preload("productVariation", (query) => {
-				query.select("id", "product_id");
+		const tasks = items.map((elem) =>
+			Database.rawQuery("insert into mov_dep values (?, ?)", [
+				elem.productVariationId,
+				elem.quantity,
+			])
+				.useTransaction(trx)
+				.exec(),
+		);
+		await Promise.all(tasks);
 
-				query.preload("product", (query) => {
-					query.select("id", "description");
-				});
-			})
+		const result = await Database.rawQuery(
+			`select products.description,
+       mov_dep.idVariacao,
+       mov_dep.quantidade,
+       product_variations.barcode,
+       product_variations.id,
+       *
+from mov_dep
+         join product_variations on mov_dep.idVariacao = product_variations.id
+         join products on product_variations.product_id = products.id
+where mov_dep.idVariacao not in (select di.product_variation_id
+                                 from deposit_items di
+                                 where deposit_id = ?
+                                   and di.product_variation_id = mov_dep.idVariacao
+                                   and di.quantity >= mov_dep.quantidade);`,
+			[deposit.id],
+		)
+			.useTransaction(trx)
 			.exec();
 
-		if (fromRowItems.length === 0) {
-			errorMessages.push({
-				rule: "ItemsNãoExistentes",
-				message: `O depósito de ${place} não possui itens para serem movimentados`,
-			});
-		}
-		if (fromRowItems.length !== items.length) {
-			errorMessages.push({
-				rule: "ItemsNãoExistentes",
-				message: `A lista de itens informada não existe totalmente no depósito de ${place}`,
-			});
-		}
+		await Database.rawQuery("drop table mov_dep;").useTransaction(trx).exec();
 
-		for (const reqItem of items) {
-			const rowItem = fromRowItems.find(
-				(i) => i.business_unit_product_id === reqItem.businessUnitProductId,
-			);
-
-			if (!rowItem) {
-				const buProduct = buProducts.find(
-					(i) => i.id === reqItem.businessUnitProductId,
-				);
-
-				errorMessages.push({
-					rule: "ItemNãoExiste",
-					message: `Item '${
-						buProduct?.productVariation.product.description ?? "-"
-					}' não existe no depósito de ${place}`,
-				});
-				continue;
-			}
-
-			if (reqItem.quantity > rowItem.quantity) {
-				errorMessages.push({
-					rule: "EstoqueInsuficiente",
-					message: `Item '${rowItem.variation.product.description}' possui estoque máximo de ${rowItem.quantity}`,
-				});
-			}
-		}
-
-		return errorMessages;
-	}
-
-	private async $updateDepositItems(
-		trx: TransactionClientContract,
-		movement: DepositMovement,
-		type: "origem" | "destino",
-	) {
-		if (type === "origem") {
-			await Database.rawQuery(
-				`update deposit_items
-        set quantity = di.quantity - dmi.quantity
-        from deposit_items di
-          join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
-          join deposit_movements dm
-            on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
-				[movement.id],
-			)
-				.useTransaction(trx)
-				.exec();
-		}
-
-		if (type === "destino") {
-			await Database.rawQuery(
-				`update deposit_items
-		      set quantity = di.quantity + dmi.quantity
-		      from deposit_items di
-		        join deposit_movement_items dmi on di.business_unit_product_id = dmi.business_unit_product_id
-		        join deposit_movements dm
-		          on dm.id = dmi.deposit_movement_id and di.deposit_id = dm.from_deposit_id and dm.id = ?;`,
-				[movement.id],
-			)
-				.useTransaction(trx)
-				.exec();
-		}
+		return result.rows.map((elem: { description: string }) => ({
+			rule: "ItemNaoExiste",
+			message: `Item '${elem.description}' não possui quantidade suficiente no depósito de ${label}`,
+		}));
 	}
 }

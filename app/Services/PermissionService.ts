@@ -1,8 +1,9 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
-import Permission from "App/Models/Permission";
+import Permission, { TPermissionType } from "App/Models/Permission";
 import Role from "App/Models/Role";
+import { TScreenType } from "App/Models/Screen";
 import { AuthContext } from "App/Services/SharedService";
 import IPermissionData from "Contracts/interfaces/PermissionData";
 import { DateTime } from "luxon";
@@ -20,6 +21,18 @@ export default class PermissionService {
 		const qb = Permission.query().whereHas("systems", (query) => {
 			query.where("system_id", authCtx.system.id);
 		});
+
+		if (authCtx.user.type === "user") {
+			qb.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+		}
+
+		if (authCtx.user.type === "controller") {
+			qb.whereIn("type", ["controller", "both", "all"] as TPermissionType[]);
+		}
+
+		if (authCtx.user.type === "system") {
+			qb.whereIn("type", ["system", "all"] as TPermissionType[]);
+		}
 
 		if (data.description) {
 			qb.where("description", "ilike", `%${data.description}%`);
@@ -68,7 +81,19 @@ export default class PermissionService {
 			.whereHas("screen", (query) => {
 				query.whereILike("name", `%${data.term}%`);
 			})
-			.preload("screen");
+			.preload("screen", (query) => {
+				if (authCtx.user.type === "user") {
+					query.whereIn("type", ["user", "both", "all"] as TScreenType[]);
+				}
+
+				if (authCtx.user.type === "controller") {
+					query.whereIn("type", ["controller", "both", "all"] as TScreenType[]);
+				}
+
+				if (authCtx.user.type === "system") {
+					query.whereIn("type", ["system", "all"] as TScreenType[]);
+				}
+			});
 	}
 
 	public async show(authCtx: AuthContext, id: number): Promise<Permission> {

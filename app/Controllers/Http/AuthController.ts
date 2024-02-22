@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import EconomicGroup from "App/Models/EconomicGroup";
 import AuthService from "App/Services/AuthService";
 import SharedService from "App/Services/SharedService";
@@ -8,7 +9,6 @@ import SwapUnitValidator from "App/Validators/Auth/SwapUnitValidator";
 import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
-import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 @inject()
 export default class AuthController {
@@ -127,7 +127,7 @@ export default class AuthController {
 			});
 		}
 
-		const { unit, system } = await this.sharedService.getAuthContext(auth);
+		const { unit } = await this.sharedService.getAuthContext(auth);
 
 		const economicGroup = await EconomicGroup.query()
 			.where("id", unit.economicGroupId)

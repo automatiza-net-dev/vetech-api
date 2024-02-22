@@ -6,6 +6,10 @@ import Bill, { BillStatus } from "App/Models/Bill";
 import { BillItemStatus } from "App/Models/BillItem";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
+import BudgetPayment, {
+	TBudgetPaymentExclusionOrigin,
+	TBudgetPaymentStatus,
+} from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
@@ -24,6 +28,7 @@ import {
 	ICreateBudgetItemData,
 	IUpdateBudgetItemData,
 } from "Contracts/interfaces/IBudgetData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 interface ISearchPartial {
@@ -81,7 +86,7 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
-				query.where("status", BudgetStatus.A);
+				query.whereNot("status", BudgetStatus.N);
 				query.whereNull("deleted_at");
 
 				query.whereHas("items", (query) => {
@@ -109,11 +114,17 @@ export default class BudgetService {
 					"budget_date",
 					"total_value",
 					"tag",
+					"status",
+					"finished_at",
+					"observation",
+					"internal_observation",
 					"client_id",
 					"patient_id",
 					"user_id",
 					"seller_id",
 					"reviewer_id",
+					"conclusion_user_id",
+					"cancelation_reason_id",
 				);
 				query.where("status", BudgetStatus.A);
 				query.whereNull("deleted_at");
@@ -130,12 +141,20 @@ export default class BudgetService {
 					query.select("id", "name");
 				});
 
+				query.preload("conclusionUser", (query) => {
+					query.select("id", "name");
+				});
+
 				query.preload("seller", (query) => {
 					query.select("id", "name");
 				});
 
 				query.preload("reviewer", (query) => {
 					query.select("id", "name");
+				});
+
+				query.preload("cancelationReason", (query) => {
+					query.select("id", "reason");
 				});
 
 				query.preload("items", (query) => {
@@ -155,6 +174,31 @@ export default class BudgetService {
 						query.preload("product", (query) => {
 							query.select("id", "description");
 						});
+					});
+				});
+
+				query.preload("payments", (query) => {
+					query.select(
+						"id",
+						"block",
+						"total_value",
+						"installments",
+						"status",
+						"payment_method_id",
+						"tef_flag_id",
+						"tef_acquirer_id",
+					);
+
+					query.preload("paymentMethod", (query) => {
+						query.select("id", "description");
+					});
+
+					query.preload("tefFlag", (query) => {
+						query.select("id", "description");
+					});
+
+					query.preload("tefAcquirer", (query) => {
+						query.select("id", "description");
 					});
 				});
 			});
@@ -180,6 +224,8 @@ export default class BudgetService {
 			.preload("conclusionUser")
 			.preload("cancelationReason")
 			.orderBy("created_at", "desc");
+
+		// TODO preload payments
 
 		if (data.fromCreation) {
 			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
@@ -552,7 +598,7 @@ export default class BudgetService {
 
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
@@ -721,7 +767,7 @@ export default class BudgetService {
 
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					totalValue: data.quantity * data.unitaryValue - data.discountValue,
 					status: BudgetStatus.A,
 				},
@@ -771,7 +817,7 @@ export default class BudgetService {
 
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
@@ -835,7 +881,7 @@ export default class BudgetService {
 				.merge({
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
-					quantity: data.quantity,
+					quantity: new Decimal(data.quantity),
 					totalValue: data.quantity * data.unitaryValue - data.discountValue,
 					status: data.status,
 				})
@@ -987,8 +1033,10 @@ export default class BudgetService {
 								r.taxation_group_id ===
 								item.productVariation.product.taxation_group_id,
 						);
-						const totalValue =
-							item.unitaryValue * item.quantity - item.discountValue;
+						const totalValue = item.quantity
+							.times(item.unitaryValue)
+							.minus(item.discountValue)
+							.toNumber();
 						const icmsBase = rule
 							? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
 							: 0;
@@ -1257,7 +1305,7 @@ export default class BudgetService {
 
 						unitaryValue: item.originalPrice,
 						discountValue: item.discountPrice,
-						quantity: item.quantity,
+						quantity: new Decimal(item.quantity),
 						totalValue: item.quantity * item.originalPrice - item.discountPrice,
 						status: BudgetStatus.A,
 					};
@@ -1282,5 +1330,357 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	public async createBudgetPayments(
+		authCtx: AuthContext,
+		data: {
+			budgetId: string;
+			items: {
+				paymentMethodId: string;
+				tefFlagId: string;
+				tefAcquirerId: string;
+
+				totalValue: number;
+				installments: number;
+			}[];
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const budget = await Budget.query()
+				.useTransaction(trx)
+				.where("id", data.budgetId)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.first();
+
+			if (!budget) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const sum = this.sharedService.sum(
+				data.items.map((elem) => elem.totalValue),
+			);
+			const decimalTotal = new Decimal(budget.totalValue);
+			const decimalSum = new Decimal(sum);
+			const decimalPaid = new Decimal(budget.paidValue);
+
+			if (decimalTotal.minus(decimalPaid).lessThan(decimalSum)) {
+				throw new BadRequestException(
+					"Valores adicionais acima do valor total do orçamento",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			const [{ count }] = await Database.from("budget_payments")
+				.useTransaction(trx)
+				.where("budget_id", data.budgetId)
+				.count("*");
+
+			const tasks = data.items.map((elem, index) =>
+				BudgetPayment.create(
+					{
+						economic_group_id: authCtx.group.id,
+						business_unit_id: authCtx.unit.id,
+						user_id: authCtx.user.id,
+						budget_id: budget.id,
+						payment_method_id: elem.paymentMethodId,
+						tef_flag_id: elem.tefFlagId,
+						tef_acquirer_id: elem.tefAcquirerId,
+
+						block: parseInt(count) + index + 1,
+						totalValue: elem.totalValue,
+						installments: elem.installments,
+						status: "Aberto",
+						issueDate: DateTime.now(),
+					},
+					{ client: trx },
+				),
+			);
+			await Promise.all(tasks);
+
+			await budget
+				.merge({
+					paidValue: decimalPaid.plus(decimalSum).toNumber(),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async updateBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			paymentMethodId: string;
+			tefFlagId: string;
+			tefAcquirerId: string;
+
+			totalValue: number;
+			installments: number;
+			updateDate: DateTime;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					change_user_id: authCtx.user.id,
+					payment_method_id: data.paymentMethodId,
+					tef_flag_id: data.tefFlagId,
+					tef_acquirer_id: data.tefAcquirerId,
+
+					totalValue: data.totalValue,
+					installments: data.installments,
+					updateDate: data.updateDate,
+				})
+				.useTransaction(trx)
+				.save();
+
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", row.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
+
+			const sum = this.sharedService.sum(
+				budgetPayments.map((elem) => elem.totalValue),
+			);
+			if (sum > row.budget.totalValue) {
+				throw new BadRequestException(
+					"Valor pago do orçamento acima do total",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row.budget
+				.merge({
+					paidValue: sum,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async confirmBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			budgetId: string;
+			blockRef: number;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.andWhere("budget_id", data.budgetId)
+				.whereHas("budget", (query) => {
+					query
+						.andWhere("economic_group_id", authCtx.group.id)
+						.andWhere("business_unit_id", authCtx.unit.id);
+				})
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					conclusion_user_id: authCtx.user.id,
+
+					blockRef: data.blockRef,
+					confirmationDate: DateTime.now(),
+					status: "Baixado",
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async excludeBudgetPayment(
+		authCtx: AuthContext,
+		data: {
+			budgetPaymentId: number;
+			origin: TBudgetPaymentExclusionOrigin;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const row = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("id", data.budgetPaymentId)
+				.andWhere("economic_group_id", authCtx.group.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.preload("budget")
+				.first();
+
+			if (!row) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (row.status !== "Aberto") {
+				throw new BadRequestException(
+					"Pagamento não está aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (data.origin === "Orçamento" && row.budget.status !== BudgetStatus.A) {
+				throw new BadRequestException(
+					"Orçamento precisa estar Aberto",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (
+				data.origin === "Venda" &&
+				![BudgetStatus.C, BudgetStatus.P].includes(row.budget.status)
+			) {
+				throw new BadRequestException(
+					"Orçamento precisa estar Confirmado totalmente ou parcialmente",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await row
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+
+					exclusionOrigin: data.origin,
+					status: "Excluido",
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", row.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
+
+			await row.budget
+				.merge({
+					paidValue: this.sharedService.sum(
+						budgetPayments.map((elem) => elem.totalValue),
+					),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async listBudgetPayments(
+		authCtx: AuthContext,
+		id: string,
+		data: {
+			type?: string;
+		},
+	) {
+		const qb = Database.from("budget_payments")
+			.select(
+				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
+       budget_payments.budget_id         as id_Orcamento,
+       block                             as bloco,
+       total_value                       as valor_total,
+       installments                      as qtd_Parcelas_Bloco_pgto,
+       payment_methods.id                as id_Forma_Pagamento,
+       payment_methods.description       as descricao_Forma_Pagamento,
+       tef_flags.id                      as id_badeira_tef,
+       tef_flags.description             as descricao_bandeira_tef,
+       tef_acquirers.id                  as id_adquirente_tef,
+       tef_acquirers.description         as descricao_adquirente_tef,
+       status,
+
+       budget_payments.issue_date        as data_Lancamento,
+       users.id                          as id_Usuario_lancamento,
+       users.name                        as nome_Usuario_lancamento,
+
+       budget_payments.update_date       as data_alteracao,
+       update_user.id                    as id_Usuario_alteracao,
+       update_user.name                  as nome_Usuario_alteracao,
+
+       budget_payments.confirmation_date as data_confirmacao,
+       confirm_user.id                   as id_Usuario_confirmacao,
+       confirm_user.name                 as nome_Usuario_confirmacao,
+
+       budget_payments.deleted_at        as data_exclusao,
+       exclusion_user.id                 as id_Usuario_exclusao,
+       exclusion_user.name               as nome_Usuario_exclusao,
+       budget_payments.exclusion_origin  as origem_exclusao`),
+			)
+			.join(
+				"payment_methods",
+				"payment_methods.id",
+				"budget_payments.payment_method_id",
+			)
+			.join("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
+			.join(
+				"tef_acquirers",
+				"tef_acquirers.id",
+				"budget_payments.tef_acquirer_id",
+			)
+			.join("users", "users.id", "budget_payments.user_id")
+			.joinRaw(
+				"left join users update_user on update_user.id = budget_payments.change_user_id",
+			)
+			.joinRaw(
+				"left join users confirm_user on confirm_user.id = budget_payments.conclusion_user_id",
+			)
+			.joinRaw(
+				"left join users exclusion_user on exclusion_user.id = budget_payments.exclusion_user_id",
+			)
+			.andWhere("budget_payments.economic_group_id", authCtx.group.id)
+			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
+			.where("budget_payments.budget_id", id);
+
+		if (!data.type) {
+			qb.whereNot(
+				"budget_payments.status",
+				"Excluido" as TBudgetPaymentStatus,
+			).whereNull("budget_payments.deleted_at");
+		}
+
+		if (data.type === "Venda") {
+			qb.where(
+				"budget_payments.status",
+				"Aberto" as TBudgetPaymentStatus,
+			).whereNull("budget_payments.deleted_at");
+		}
+
+		return qb.exec();
 	}
 }

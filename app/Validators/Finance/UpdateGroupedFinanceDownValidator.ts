@@ -1,7 +1,6 @@
-import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { FinanceType } from "App/Models/Finance";
-import { PaymentMethodType } from "App/Models/PaymentMethod";
 
 export default class UpdateGroupedFinanceDownValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -35,19 +34,21 @@ export default class UpdateGroupedFinanceDownValidator {
 				}),
 			]),
 		),
-		paymentMethodId: schema.string.optional([
-			rules.exists({ table: "payment_methods", column: "id" }),
+		checkingAccountId: schema.string([
+			rules.exists({ table: "checking_accounts", column: "id" }),
 		]),
-		tefFlagId: schema.string.optional([
-			rules.exists({ table: "tef_flags", column: "id" }),
-		]),
-		tefAcquirerId: schema.string.optional([
+		tefAcquirerId: schema.string.nullableAndOptional([
 			rules.exists({ table: "tef_acquirers", column: "id" }),
 		]),
-		type: schema.enum.optional(Object.values(FinanceType)),
-		expirationDate: schema.date.optional(),
-		paymentDate: schema.date.optional(),
-		tef: schema.string.optional(),
+
+		paymentMethodId: schema.string.nullableAndOptional([
+			rules.exists({ table: "payment_methods", column: "id" }),
+		]),
+		tefFlagId: schema.string.nullableAndOptional([
+			rules.exists({ table: "tef_flags", column: "id" }),
+		]),
+		type: schema.enum.nullableAndOptional(Object.values(FinanceType)),
+		expirationDate: schema.date.nullableAndOptional(),
 	});
 
 	/**

@@ -1457,6 +1457,113 @@ ON bills.patient_id = Dep."id"`,
 		}));
 	}
 
+	async competenceReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			businessUnits?: string[];
+		},
+	) {
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`finances.issue_date::date                                                     data_emissao,
+        case when pc.parent_id is null then pc.description else pcPai.description end Plano_Contas_Grupo,
+        pc.description                                                                Plano_Contas,
+        finances.historic                                                             historico,
+        p."name"                                                                      Pessoa,
+        TO_CHAR(finances.total_value, '9999990D99')                                   valor_Titulo`),
+			)
+			.joinRaw(
+				`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id
+    left join account_plans pcPai on pc.parent_id = pcPai.id) on finances.account_plan_id = pc."id"`,
+			)
+			.joinRaw(`join patients p on finances.client_id = p."id"`)
+			.joinRaw(`join economic_groups eg on finances.economic_group_id = eg.id`)
+			.joinRaw(`join systems sys on eg.system_id = sys.id`)
+			.joinRaw(`join business_units bu on finances.business_unit_id = bu.id`)
+			.orderByRaw(
+				`finances."type", finances.issue_date, finances."document", finances.installment`,
+			)
+			.whereNull("finances.deleted_at")
+			.where("finances.type", FinanceType.D);
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("finances.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("finances.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.whereRaw("issue_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.whereRaw("issue_date::date <= ?", [data.toDate]);
+		}
+
+		return await qb;
+	}
+
+	async planGroupReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			businessUnits?: string[];
+		},
+	) {
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`finances.competence_date                                                                          Competencia,
+       finances.payment_date::date                                                                       data_Pagamento,
+       case when pc.parent_id is null then pc.description else pcPai.description end              Plano_Contas_Grupo,
+       pc.description                                                                             Plano_Contas,
+       concat(trim(TO_CHAR(finances.installment, '999')), '/', trim(TO_CHAR(finances.qty_installments, '999'))) parcela,
+       finances.historic                                                                                 historico,
+       p."name"                                                                                   Pessoa,
+       TO_CHAR(finances.payment_value, '9999990D99')                                                     valor_Pago`),
+			)
+			.joinRaw(
+				`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id
+    left join account_plans pcPai on pc.parent_id = pcPai.id) on finances.account_plan_id = pc."id"`,
+			)
+			.joinRaw(`join patients p on finances.client_id = p."id"`)
+			.joinRaw(`join economic_groups eg on finances.economic_group_id = eg.id`)
+			.joinRaw(`join systems sys on eg.system_id = sys.id`)
+			.joinRaw(`join business_units bu on finances.business_unit_id = bu.id`)
+			.orderByRaw(
+				`finances."type", finances.issue_date, finances."document", finances.installment`,
+			)
+			.whereNull("finances.deleted_at")
+			.whereNotNull("finances.payment_date")
+			.where("finances.type", FinanceType.D);
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("finances.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("finances.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.whereRaw("payment_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.whereRaw("payment_date::date <= ?", [data.toDate]);
+		}
+
+		return await qb;
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

@@ -148,24 +148,33 @@ export default class ScheduleService {
 			);
 	}
 
-	public async returnableSchedules(unitId: string, patientId: string) {
-		const qb = Schedule.query()
-			.where("business_unit_id", unitId)
-			.where("patient_id", patientId)
-			.whereNull("scheduleOriginId")
-			.whereNull("scheduleReturnId")
-			.whereHas("serviceType", (query) => {
-				query.where("allow_return", true);
-			})
-			.whereBetween("start_hour", [
-				DateTime.now().minus({ days: 30 }).toJSDate(),
-				DateTime.now().toJSDate(),
-			])
-			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
-			});
-
-		return qb;
+	public async returnableSchedules(authCtx: AuthContext, patientId: string) {
+		return Database.from("schedules")
+			.select(
+				Database.raw(
+					"schedules.id, schedules.schedule_service_type_id, schedule_service_types.description, schedules.start_hour",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on schedules.business_unit_id = business_unit_configs.business_unit_id",
+			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
+			.where("schedules.business_unit_id", authCtx.unit.id)
+			.where("schedules.patient_id", patientId)
+			.whereNull("schedules.deleted_at")
+			.whereNull("schedules.schedule_origin_id")
+			.whereRaw(
+				"now()::date - start_hour::date <= business_unit_configs.return_interval",
+				[],
+			)
+			.whereRaw(`business_unit_configs.allowed_return_qty >
+      (select count(s1.id) from schedules s1 where s1.schedule_origin_id = schedules.id)
+  and exists (select id
+              from "schedule_service_types"
+              where ("allow_return" = true)
+                and ("schedule_service_types"."id" = "schedules"."schedule_service_type_id"))`);
 	}
 
 	public async store(
@@ -451,7 +460,7 @@ export default class ScheduleService {
 
 		const technician = data.userId ? await User.findOrFail(data.userId) : user;
 
-		if (!technician.onDuty) {
+		if (!technician.onDuty || !data.ignoreOverlapping) {
 			const result = await ScheduleService.checkDisponibility(
 				technician.id,
 				unitId,
@@ -469,7 +478,7 @@ export default class ScheduleService {
 				);
 			}
 
-			if (result.invalidUnavailableDay) {
+			if (result.invalidUnavailableDay && !data.ignoreBlocking) {
 				throw new BadRequestException(
 					"Pessoa não está disponível neste horário",
 					400,

@@ -311,6 +311,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "ScheduleServiceTypesController.index");
+	Route.get("/_v2", "ScheduleServiceTypesController.index2");
 	Route.post("/", "ScheduleServiceTypesController.store");
 	Route.get("/:id", "ScheduleServiceTypesController.show");
 	Route.put("/:id", "ScheduleServiceTypesController.update");
@@ -874,6 +875,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/balance", "FinancesController.accountBalance");
 	Route.get("/reduced", "FinancesController.reducedIndex");
 	Route.get("/grouped", "FinancesController.groupedIndex");
 	Route.get("/payment-group", "FinancesController.byPaymentGroup");
@@ -943,11 +945,14 @@ Route.group(() => {
 	Route.get("/complete", "BudgetsController.completeIndex");
 	Route.get("/open/:id", "BudgetsController.openNegotiations");
 	Route.get("/from-attendance/:id", "BudgetsController.fromAttendance");
+	Route.get("/payments/:id", "BudgetsController.listBudgetPayments");
 	Route.get("/:id", "BudgetsController.show");
 	Route.post("/create", "BudgetsController.createBudget");
 	Route.post("/add-kit", "BudgetsController.addKitToBudget");
 	Route.post("/create-item", "BudgetsController.createBudgetItem");
 	Route.post("/create-items", "BudgetsController.createBudgetItems");
+	Route.post("/create-payments", "BudgetsController.createBudgetPayments");
+	Route.post("/confirm-payment", "BudgetsController.confirmBudgetPayment");
 
 	Route.put("/update/:id", "BudgetsController.updateBudget");
 	Route.put(
@@ -955,6 +960,8 @@ Route.group(() => {
 		"BudgetsController.updateBudgetObservation",
 	);
 	Route.put("/update-item/:id", "BudgetsController.updateBudgetItem");
+	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
+	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
 	Route.put("/confirm/:id", "BudgetsController.confirmBudget");
 	Route.delete("/delete/:id", "BudgetsController.deleteBudget");
@@ -1155,6 +1162,10 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "TreatmentsController.searchTreatment");
+	Route.get(
+		"/search-schedule-services",
+		"TreatmentsController.searchScheduleServices",
+	);
 	Route.get("/search-complete", "TreatmentsController.searchCompleteTreatment");
 	Route.get("/search-items", "TreatmentsController.searchTreatmentItems");
 	Route.get(
@@ -1200,6 +1211,19 @@ Route.group(() => {
 	Route.post(
 		"/exclude-treatment-execution",
 		"TreatmentsController.excludeTreatmentExecution",
+	);
+	Route.post(
+		"/exclude-treatment-item",
+		"TreatmentsController.excludeTreatmentItem",
+	);
+
+	Route.post(
+		"/sync-schedule-execution",
+		"TreatmentsController.syncScheduleExecution",
+	);
+	Route.get(
+		"/search-syncheable-schedule-executions/:patientId",
+		"TreatmentsController.searchSyncheableScheduleExecutions",
 	);
 })
 	.prefix("treatments")
@@ -1440,6 +1464,8 @@ Route.group(() => {
 	Route.get("/budgets", "ReportsController.budgetsReport");
 	Route.get("/scheduling", "ReportsController.schedulingReport");
 	Route.get("/product-types", "ReportsController.productTypesReport");
+	Route.get("/competence", "ReportsController.competenceReport");
+	Route.get("/plan-group", "ReportsController.planGroupReport");
 })
 	.prefix("reports")
 	.middleware("auth");

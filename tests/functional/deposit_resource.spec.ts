@@ -1,15 +1,16 @@
+import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
 import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
+import { TDepositItemStatus } from "App/Models/DepositItem";
+import DepositMovement from "App/Models/DepositMovement";
 import Product, { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Unit, { UnitType } from "App/Models/Unit";
-import Database from "@ioc:Adonis/Lucid/Database";
+import Decimal from "decimal.js";
+import { DateTime } from "luxon";
 
 import { generateJwtToken, userBootstrap } from "../utils";
-import { TDepositItemStatus } from "App/Models/DepositItem";
-import DepositMovement from "App/Models/DepositMovement";
-import { DateTime } from "luxon";
 
 test.group("Deposit resource", (group) => {
 	group.each.setup(async () => {
@@ -77,7 +78,7 @@ test.group("Deposit resource", (group) => {
 		const depositItem = await deposit.related("items").create({
 			business_unit_product_id: unitProduct.id,
 			product_variation_id: variation.id,
-			quantity: 10,
+			quantity: new Decimal(10),
 			status: "Ativo",
 		});
 
@@ -99,7 +100,7 @@ test.group("Deposit resource", (group) => {
 		await depositMovement.related("items").create({
 			business_unit_product_id: unitProduct.id,
 			product_variation_id: variation.id,
-			quantity: 10,
+			quantity: new Decimal(10),
 			status: "Ativo",
 		});
 

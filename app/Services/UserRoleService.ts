@@ -81,7 +81,7 @@ export default class UserRoleService {
 				});
 			})
 			.preload("role")
-			.preload("deposit", (query) => {});
+			.preload("deposit");
 
 		const uniqueUsers = Array.from(
 			new Set(entities.map((entity) => entity.user)),

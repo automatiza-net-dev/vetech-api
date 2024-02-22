@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
+import FocusLog from "App/Models/FocusLog";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 
@@ -208,7 +209,7 @@ export const nfeResponseSchema = z.object({
 			chave_nfe: z.string(),
 			data_recebimento: z.string(),
 			numero_protocolo: z.string().optional(),
-			digest_value: z.string(),
+			digest_value: z.string().optional(),
 			status: z.string(),
 			motivo: z.string(),
 		}),
@@ -540,11 +541,7 @@ export default class FocusNfeService {
 		return obj;
 	}
 
-	public async getNfe(
-		ref: string,
-		token: string,
-		complete = true,
-	): Promise<z.infer<typeof nfeResponseSchema> | null> {
+	public async getNfe(ref: string, token: string, complete = true) {
 		try {
 			const { data } = await this.ax.get(`/v2/nfe/${ref}`, {
 				params: {
@@ -558,19 +555,46 @@ export default class FocusNfeService {
 
 			const zodResponse = nfeResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
+				await FocusLog.create({
+					document_id: ref,
+					origin: "FocusNfeService.getNfe",
+					description: "Schema inválido",
+					error: zodResponse.error.issues,
+				});
 
-				Logger.error("invalid schema");
-				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
-				return null;
+				// Logger.info(JSON.stringify(data, undefined, 2));
+				//
+				// Logger.error("invalid schema");
+				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+				return {
+					success: false as const,
+					error: "Resposta inválida",
+				};
 			}
 
-			return zodResponse.data;
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfe",
+				description: "Resposta completa",
+				data: zodResponse.data,
+			});
+			return {
+				success: true as const,
+				data: zodResponse.data,
+			};
 		} catch (error) {
-			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			// Logger.error(JSON.stringify(error.response.data, null, 2));
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfe",
+				description: "Erro na chamada",
+				error: error.response.data,
+			});
 
-			return null;
+			return {
+				success: false as const,
+				error: "Erro ao chamar",
+			};
 		}
 	}
 
@@ -586,15 +610,36 @@ export default class FocusNfeService {
 
 			const zodResponse = nfseResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
-				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+				await FocusLog.create({
+					document_id: ref,
+					origin: "FocusNfeService.getNfse",
+					description: "Schema inválido",
+					error: zodResponse.error.issues,
+				});
+
+				// Logger.info(JSON.stringify(data, undefined, 2));
+				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return null;
 			}
 
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfse",
+				description: "Resposta completa",
+				data: zodResponse.data,
+			});
+
 			return zodResponse.data;
 		} catch (error) {
-			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			// type T = TypedAxiosError<{ mensagem: string }, unknown>;
+			// Logger.error((error as T).response?.data.mensagem ?? "");
+
+			await FocusLog.create({
+				document_id: ref,
+				origin: "FocusNfeService.getNfse",
+				description: "Chamada inválida",
+				error: error.response.data,
+			});
 
 			return null;
 		}

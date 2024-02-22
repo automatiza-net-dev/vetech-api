@@ -1,10 +1,11 @@
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import Receipt from "App/Models/Receipt";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import ProductVariation from "./ProductVariation";
 
 export const ReceiptItemStatus = ["Ativo", "Excluido", "PendenteXml"] as const;
-export type TReceiptItemStatus = typeof ReceiptItemStatus[number];
+export type TReceiptItemStatus = (typeof ReceiptItemStatus)[number];
 
 export default class ReceiptItem extends BaseModel {
 	@column({ isPrimary: true })
@@ -18,7 +19,7 @@ export default class ReceiptItem extends BaseModel {
 	@column({
 		columnName: "status",
 	})
-	public status: typeof ReceiptItemStatus[number];
+	public status: (typeof ReceiptItemStatus)[number];
 
 	@column.dateTime({
 		columnName: "issue_date",
@@ -30,8 +31,20 @@ export default class ReceiptItem extends BaseModel {
 	})
 	public disabledDate: DateTime;
 
-	@column()
-	public quantity: number;
+	@column({
+		columnName: "fraction_value",
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => value.toNumber(),
+	})
+	public fractionValue: Decimal | null;
+
+	@column({
+		consume: (value) => new Decimal(value),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => value.toNumber(),
+	})
+	public quantity: Decimal;
 
 	@column({
 		columnName: "cost_value",

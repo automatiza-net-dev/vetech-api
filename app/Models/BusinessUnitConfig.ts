@@ -7,6 +7,16 @@ export default class BusinessUnitConfig extends BaseModel {
 	public id: number;
 
 	@column({
+		columnName: "balance_control",
+	})
+	public balanceControl: "realizado" | "previsto";
+
+	@column({
+		columnName: "shows_treatment_schedules",
+	})
+	public showsTreatmentSchedules: boolean;
+
+	@column({
 		columnName: "xml_download_authorization",
 	})
 	public xmlDownloadAuthorization: string;
@@ -32,6 +42,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public requiresBillPatient: boolean;
 
 	@column({
+		columnName: "generates_finances_on_receipts_finish",
+	})
+	public generatesFinancesOnReceiptsFinish: boolean;
+
+	@column({
 		columnName: "requires_finance_client",
 	})
 	public requiresFinanceClient: boolean;
@@ -45,6 +60,16 @@ export default class BusinessUnitConfig extends BaseModel {
 		columnName: "allow_change_schedule_duration",
 	})
 	public allowChangeScheduleDuration: string;
+
+	@column({
+		columnName: "return_interval",
+	})
+	public returnInterval: number;
+
+	@column({
+		columnName: "allowed_return_qty",
+	})
+	public allowedReturnQty: number;
 
 	@column({
 		columnName: "bill_counter",
@@ -134,4 +159,9 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: null,
 	})
 	public outgoing_deposit_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public treatment_schedule_service_type_id: string;
 }

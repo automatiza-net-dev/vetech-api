@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { PatientContactType } from "App/Models/PatientContact";
 
 export default class UpdateBatchPatientContactValidator {
@@ -35,7 +35,7 @@ export default class UpdateBatchPatientContactValidator {
 				]),
 				main: schema.boolean(),
 				notGiven: schema.boolean(),
-				contact: schema.string.optional(),
+				contact: schema.string(),
 				observation: schema.string.optional(),
 				type: schema.enum(Object.values(PatientContactType)),
 				active: schema.boolean(),

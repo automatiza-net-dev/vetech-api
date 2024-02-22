@@ -1,7 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Attendance from "App/Models/Attendance";
 import Banking, {
@@ -9,7 +6,7 @@ import Banking, {
 	BankingStatus,
 	BankingType,
 } from "App/Models/Banking";
-import Bordero, { TBorderoType } from "App/Models/Bordero";
+import Bordero, { TBorderoStatus, TBorderoType } from "App/Models/Bordero";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -23,10 +20,7 @@ import Finance, {
 import FinanceReversal, {
 	FinanceReversalType,
 } from "App/Models/FinanceReversal";
-import PaymentMethod, {
-	PaymentMethodTef,
-	PaymentMethodType,
-} from "App/Models/PaymentMethod";
+import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefFlag from "App/Models/TefFlag";
 import User from "App/Models/User";
@@ -40,6 +34,9 @@ import {
 } from "Contracts/interfaces/IFinanceData";
 import { format } from "date-fns";
 import { DateTime } from "luxon";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -498,8 +495,19 @@ export default class FinanceService {
 					builder.where("borderos.nsu_document", data.nsu);
 				}
 
-				if (data.status) {
-					builder.whereILike("borderos.status", `%${data.status}%`);
+				// if (data.status) {
+				// 	builder.whereILike("borderos.status", `%${data.status}%`);
+				// }
+
+				if (data.status === FinanceStatus.A) {
+					builder.whereIn("borderos.status", [
+						"Aberto",
+						"Fechado",
+					] as TBorderoStatus[]);
+				}
+
+				if (data.status === FinanceStatus.B) {
+					builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
 				}
 
 				// if (data.accept) {
@@ -538,15 +546,15 @@ export default class FinanceService {
 
 		const qb = Database.from("finances")
 			.select(
-				Database.raw(`finances.id,
+				Database.raw(`
+       finances.id,
        finances.type,
        'FINANCE'                   as source,
        finances.document,
        finances.installment,
-       finances.issue_date,
-       finances.expiration_date,
+       finances.issue_date::date as issue_date,
+       finances.expiration_date::date as expiration_date,
        finances.payment_date,
-
        finances.value,
        finances.total_value,
        finances.payment_value,
@@ -555,19 +563,20 @@ export default class FinanceService {
        finances.accept,
        finances.status,
        finances.competence_date,
-
        finances.nsu_document,
        finances.qty_installments,
        finances.bordero_id,
        patients.name               as client,
        finances.payment_method_id,
        payment_methods.description as payment_method,
-
        finances.tef_flag_id,
-       tef_flags.description       as tef_flag,
+       null as tef_flag,
        payment_methods.tef         as pm_tef,
        payment_methods.type        as pm_type,
-       null                        as tef_adquirente`),
+       null                        as tef_adquirente,
+       null::uuid as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
+                     `),
 			)
 			.joinRaw("left join patients on finances.client_id = patients.id", [])
 			.joinRaw(
@@ -577,6 +586,7 @@ export default class FinanceService {
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units)
+			.whereNot("finances.status", FinanceStatus.E)
 			.whereNull("finances.bordero_id")
 			.where("payment_methods.tef", PaymentMethodTef.N);
 
@@ -667,47 +677,49 @@ export default class FinanceService {
 				.from("borderos")
 				.select(
 					Database.raw(`
-		        borderos.id,
+                       borderos.id,
        upper(borderos.type)                                                    as type,
        'BORDERO'                                                               as source,
        borderos.document,
        1                                                                       as installment,
-       borderos.issue_date,
-       borderos.expiration_date                                                as expiration_date,
+       borderos.issue_date::date as issue_date,
+       borderos.expiration_date::date as expiration_date,
        borderos.payment_date,
-
        borderos.bordero_value                                                  as value,
        borderos.total_value,
        borderos.payment_value,
        'FINANCEIRO'                                                            as origin_flag,
-
        case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
        'SIM'                                                                   as accept,
        borderos.status,
        borderos.competence_date,
-
        borderos.nsu_document                                                   as nsu_document,
        borderos.titles_qty                                                     as qty_installments,
        borderos.id                                                             as bordero_id,
        patients.name                                                           as client,
-
        borderos.payment_method_id,
        payment_methods.description                                             as payment_method,
        borderos.tef_flag_id,
        tef_flags.description                                                   as tef_flag,
        payment_methods.tef                                                     as pm_tef,
        payment_methods.type                                                    as pm_type,
-       null                                                                    as tef_adquirente
+       null                                                                    as tef_adquirente,
+       null::uuid as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
                        `),
 				)
-				.joinRaw("join patients on borderos.client_id = patients.id", [])
+				.joinRaw("left join patients on borderos.client_id = patients.id", [])
 				.joinRaw(
-					"join payment_methods on borderos.payment_method_id = payment_methods.id",
+					"left join payment_methods on borderos.payment_method_id = payment_methods.id",
 					[],
 				)
-				.joinRaw("join tef_flags on borderos.tef_flag_id = tef_flags.id", [])
+				.joinRaw(
+					"left join tef_flags on borderos.tef_flag_id = tef_flags.id",
+					[],
+				)
 				.whereIn("borderos.business_unit_id", units)
-				.whereNull("borderos.deleted_at");
+				.whereNull("borderos.deleted_at")
+				.whereNot("borderos.status", "Excluido" as TBorderoStatus);
 
 			if (data.type) {
 				builder.whereILike("borderos.type", data.type);
@@ -755,10 +767,6 @@ export default class FinanceService {
 				builder.whereILike("borderos.document", `%${data.document}%`);
 			}
 
-			// if (data.fiscalNote) {
-			// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
-			// }
-
 			if (data.paymentMethod) {
 				builder.where("borderos.payment_method_id", data.paymentMethod);
 			}
@@ -767,17 +775,16 @@ export default class FinanceService {
 				builder.where("borderos.nsu_document", data.nsu);
 			}
 
-			if (data.status) {
-				builder.whereILike("borderos.status", `%${data.status}%`);
+			if (data.status === FinanceStatus.A) {
+				builder.whereIn("borderos.status", [
+					"Aberto",
+					"Fechado",
+				] as TBorderoStatus[]);
 			}
 
-			// if (data.accept) {
-			// 	builder.where("borderos.accept", data.accept);
-			// }
-
-			// if (data.reconciled) {
-			// 	builder.where("borderos.reconciled", data.reconciled === "true");
-			// }
+			if (data.status === FinanceStatus.B) {
+				builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
+			}
 
 			if (data.plan) {
 				builder.where("borderos.account_plan_id", data.plan);
@@ -793,7 +800,7 @@ export default class FinanceService {
 				.from("finances")
 				.select(
 					Database.raw(`
-				null                           as id,
+                       null                           as id,
        finances.type,
        'GROUP'                        as source,
        'Cartoes'                      as document,
@@ -801,12 +808,10 @@ export default class FinanceService {
        null                           as issue_date,
        finances.expiration_date::date as expiration_date,
        finances.payment_date::date    as payment_date,
-
        sum(finances.value)            as value,
        sum(finances.total_value)      as total_value,
        sum(finances.payment_value)    as payment_value,
        null                           as origin_flag,
-
        null                           as origin_down_flag,
        null                           as accept,
        finances.status                as status,
@@ -814,17 +819,18 @@ export default class FinanceService {
        null                           as nsu_document,
        count(finances.id)             as qty_installments,
        null                           as bordero_id,
-
-       case
-           when tef_acquirers.description <> '' and tef_acquirers.description is not null then tef_acquirers.description
-           else 'Adq. Cartões' end    as client,
+--       case when tef_acquirers.description <> '' and tef_acquirers.description is not null then tef_acquirers.description else 'Adq. Cartões' end    as client,
+       coalesce(tef_acquirers.description, 'Adq. Cartões') as client,
        finances.payment_method_id,
        payment_methods.description    as payment_method,
        finances.tef_flag_id,
        tef_flags.description          as tef_flag,
        payment_methods.tef            as pm_tef,
        payment_methods.type           as pm_type,
-       payment_methods.description    as tef_adquirente`),
+       tef_acquirers.description    as tef_adquirente,
+       tef_acquirers.id as tef_adquirente_id,
+       payment_methods.checking_account_id as payment_methods_checking_account_id
+                       `),
 				)
 				.joinRaw(
 					"join payment_methods on finances.payment_method_id = payment_methods.id",
@@ -838,17 +844,19 @@ export default class FinanceService {
 					[],
 				)
 				.joinRaw(
-					`left join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
+					`join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
 					[],
 				)
-				.whereIn("finances.business_unit_id", units)
 				.whereNull("finances.deleted_at")
+				.whereIn("finances.business_unit_id", units)
+				.whereNot("payment_methods.tef", PaymentMethodTef.N)
+				.whereNot("finances.status", FinanceStatus.E)
+				.whereNull("finances.bordero_id")
 				.groupByRaw(
 					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status,
          finances.payment_method_id,
          payment_methods.description, finances.tef_flag_id, tef_flags.description, payment_methods.tef,
-         payment_methods.type,
-         tef_acquirers.description`,
+         payment_methods.type, tef_acquirers.description, tef_acquirers.id, payment_methods.checking_account_id `,
 					[],
 				);
 
@@ -978,6 +986,13 @@ export default class FinanceService {
 		 finances.nsu_document,
 		 finances.qty_installments,
 		 finances.bordero_id,
+		 finances.original_value,
+		 finances.fee_discount_value,
+		 finances.fee_discount_percentage,
+		 finances.fee_value,
+		 finances.fee_percentage,
+		 finances.discount_value,
+		 finances.discount_percentage,
 		 patients.name               as client,
 		 payment_methods.description as payment_method,
 		 tef_flags.description       as tef_flag,
@@ -1020,6 +1035,8 @@ export default class FinanceService {
 
 		if (data.paymentDate) {
 			qb.whereRaw("finances.payment_date::date = ?", [data.paymentDate]);
+		} else {
+			qb.whereNull("finances.payment_date");
 		}
 
 		if (data.paymentMethodId) {
@@ -1100,6 +1117,7 @@ export default class FinanceService {
 					checking_account_id:
 						data.checkingAccountId ?? paymentMethod.checkingAccountId,
 					qtyInstallments: data.qtyInstallments,
+					reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 
 					paymentDate: data.paymentDate,
 					downDate: data.downDate,
@@ -1257,8 +1275,7 @@ export default class FinanceService {
 				.merge({
 					account_plan_id: data.accountPlanId,
 					payment_method_id: data.paymentMethodId,
-					checking_account_id:
-						paymentMethod.checkingAccountId ?? data.checkingAccountId,
+					checking_account_id: data.checkingAccountId,
 					acquirer_id: data.tefAcquirerId,
 					tef_flag_id: data.tefFlagId,
 
@@ -1274,6 +1291,7 @@ export default class FinanceService {
 						discount,
 					reconciled: data.reconciled,
 
+					issueDate: data.issueDate,
 					feeValue: data.feeValue ?? 0,
 					feePercentage: data.feePercentage ?? 0,
 					discountValue: data.discountValue,
@@ -1306,18 +1324,17 @@ export default class FinanceService {
 		authCtx: AuthContext,
 		data: {
 			idList: string[];
-			type?: FinanceType;
-			tef?: string;
-			expirationDate?: DateTime;
-			paymentMethodId?: string;
-			tefFlagId?: string;
-			tefAcquirerId?: string;
-			paymentDate?: DateTime;
+			checkingAccountId: string;
+			type?: FinanceType | null;
+			expirationDate?: DateTime | null;
+			paymentMethodId?: string | null;
+			tefFlagId?: string | null;
+			tefAcquirerId?: string | null;
 		},
 	) {
 		if (data.idList.length === 0) {
 			// Se tem apenas o ID, é para pedir tudo
-			if (Object.values(data).filter((item) => item).length !== 8) {
+			if (Object.values(data).filter((item) => item).length !== 7) {
 				throw new BadRequestException(
 					"Caso não seja enviado lista de ids, é preciso adicionar todos os campos opcionais",
 					400,
@@ -1334,7 +1351,8 @@ export default class FinanceService {
           payment_date        = now(),
           payment_value       = total_value,
           down_date           = now(),
-          origin_down_flag    = 'FINANCEIRO'
+          origin_down_flag    = 'FINANCEIRO',
+          checking_account_id = ?
       where finances.id in (select finances.id
                       from finances
                                left join payment_methods on finances.payment_method_id = payment_methods.id
@@ -1344,22 +1362,22 @@ export default class FinanceService {
                                             finances.tef_flag_id = payment_method_flags.tef_flag_id
                       where finances.deleted_at is null
                         and finances.business_unit_id = ?
-                        and not finances.status = 'EXCLUIDO'
+                        and finances.status = 'ABERTO'
+                        and finances.payment_date is null
                         and finances.bordero_id is null
                         -- params
                         and finances.type = ?
                         and finances.expiration_date::date = ?
-                        and finances.payment_date::date = ?
                         and finances.payment_method_id = ?
                         and finances.tef_flag_id = ?
                         and payment_method_flags.tef_acquirer_id = ?
                            )
                         `,
 					[
+						data.checkingAccountId,
 						authCtx.unit.id,
 						data.type as FinanceType,
 						data.expirationDate?.toJSDate() as Date,
-						data.paymentDate?.toJSDate() as Date,
 						data.paymentMethodId as string,
 						data.tefFlagId as string,
 						data.tefAcquirerId as string,
@@ -1375,11 +1393,12 @@ export default class FinanceService {
           payment_date        = now(),
           payment_value       = total_value,
           down_date           = now(),
-          origin_down_flag    = 'FINANCEIRO'
+          origin_down_flag    = 'FINANCEIRO',
+          checking_account_id = ?
       where finances.id = ANY('{${data.idList.join(
 				",",
-			)}}') and business_unit_id = ? and finances.status = ?`,
-				[authCtx.unit.id, FinanceStatus.A],
+			)}}') and business_unit_id = ? and finances.status = ? and finances.payment_date is null and finances.bordero_id is null`,
+				[data.checkingAccountId, authCtx.unit.id, FinanceStatus.A],
 			).useTransaction(trx);
 		});
 	}
@@ -2579,6 +2598,7 @@ export default class FinanceService {
 				.merge({
 					exclusion_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
+					status: "Excluido",
 				})
 				.useTransaction(trx)
 				.save();
@@ -2613,7 +2633,7 @@ export default class FinanceService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (bordero.status !== "Baixado") {
+			if (bordero.status === "Baixado") {
 				throw new BadRequestException(
 					"Para excluir itens de um borderô, ele não pode estar 'Baixado'",
 					400,
@@ -2658,6 +2678,70 @@ export default class FinanceService {
 		}
 
 		return installment.fee;
+	}
+
+	public async getAccountBalance(
+		authCtx: AuthContext,
+		data: {
+			checkingAccountId?: string;
+		},
+	) {
+		if (!authCtx.unit.unitConfig.balanceControl) {
+			throw new BadRequestException(
+				"Unidade não tem controle financeiro configurado",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (authCtx.unit.unitConfig.balanceControl === "realizado") {
+			const qb = Database.from("finances")
+				.select(
+					Database.raw(`sum(case
+               when type = 'CREDITO' then coalesce(payment_value, 0)
+               else (coalesce(payment_value, 0) * (-1)) end) as saldo`),
+				)
+				.whereNull("deleted_at")
+				.whereILike("status", `%${FinanceStatus.B}%`)
+				.whereNotNull("payment_date")
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id);
+
+			if (data.checkingAccountId) {
+				qb.where("checking_account_id", data.checkingAccountId);
+			}
+
+			const [{ saldo }] = await qb;
+
+			return {
+				balance: saldo ?? 0,
+			};
+		}
+
+		const qb = Database.from("finances")
+			.select(
+				Database.raw(`sum(case
+               when type = 'CREDITO' and coalesce(payment_value, 0) > 0 then coalesce(payment_value, 0)
+
+               when type = 'CREDITO' and reconciled = true and expiration_date::date <= now()::date and
+                    coalesce(payment_value, 0) = 0 then total_value
+
+               when type = 'DEBITO' then coalesce(payment_value, 0) * (-1) end) as saldo`),
+			)
+			.whereNull("deleted_at")
+			.whereILike("status", `%${FinanceStatus.B}%`)
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id);
+
+		if (data.checkingAccountId) {
+			qb.where("checking_account_id", data.checkingAccountId);
+		}
+
+		const [{ saldo }] = await qb;
+
+		return {
+			balance: saldo ?? 0,
+		};
 	}
 
 	private async $registerDown(

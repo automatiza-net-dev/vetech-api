@@ -1182,7 +1182,7 @@ export default class OpportunityService {
 				.update({
 					execution_user_id: null,
 					executed_date: null,
-					status: "Aberto" as TOpportunityActivityStatus,
+					status: "Aberta" as TOpportunityActivityStatus,
 				});
 		});
 	}
@@ -1575,12 +1575,12 @@ export default class OpportunityService {
 				opening_user_id: model.opening_user_id,
 				user_id: model.user_id,
 				activity_id: model.activity_id,
-				execution_user_id: model.execution_user_id,
+				execution_user_id: model.execution_user_id ?? undefined,
 				exclusion_user_id: model.exclusion_user_id,
 				opportunity_activity_id: model.id,
 
 				issueDate: model.issueDate,
-				executionDate: model.executionDate,
+				executionDate: model.executionDate ?? undefined,
 				duration: model.duration,
 				description: model.description,
 				status: model.status,

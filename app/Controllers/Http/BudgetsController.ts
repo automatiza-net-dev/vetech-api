@@ -7,9 +7,12 @@ import CancelBudgetValidator from "App/Validators/Budget/CancelBudgetValidator";
 import ConfirmBudgetValidator from "App/Validators/Budget/ConfirmBudgetValidator";
 import CreateBudgetItemsValidator from "App/Validators/Budget/CreateBudgetItemsValidator";
 import CreateBudgetItemValidator from "App/Validators/Budget/CreateBudgetItemValidator";
+import CreateBudgetPaymentValidator from "App/Validators/Budget/CreateBudgetPaymentValidator";
 import CreateBudgetValidator from "App/Validators/Budget/CreateBudgetValidator";
+import ExcludeBudgetPaymentValidator from "App/Validators/Budget/ExcludeBudgetPaymentValidator";
 import UpdateBudgetItemValidator from "App/Validators/Budget/UpdateBudgetItemValidator";
 import UpdateBudgetObservationValidator from "App/Validators/Budget/UpdateBudgetObservationValidator";
+import UpdateBudgetPaymentValidator from "App/Validators/Budget/UpdateBudgetPaymentValidator";
 import UpdateBudgetValidator from "App/Validators/Budget/UpdateBudgetValidator";
 
 @inject()
@@ -260,5 +263,64 @@ export default class BudgetsController {
 		await this.service.addFromKit(unit_id, payload);
 
 		return response.noContent();
+	}
+
+	public async createBudgetPayments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateBudgetPaymentValidator);
+
+		await this.service.createBudgetPayments(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
+	}
+
+	public async updateBudgetPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateBudgetPaymentValidator);
+
+		await this.service.updateBudgetPayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async excludeBudgetPayment({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(ExcludeBudgetPaymentValidator);
+
+		await this.service.excludeBudgetPayment(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async listBudgetPayments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const result = await this.service.listBudgetPayments(
+			await this.sharedService.getAuthContext(auth),
+			request.params().id,
+			request.qs(),
+		);
+
+		return response.ok(result);
 	}
 }

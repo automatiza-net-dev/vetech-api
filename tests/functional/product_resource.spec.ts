@@ -9,6 +9,7 @@ import Subgroup from "App/Models/Subgroup";
 import TaxationGroup from "App/Models/TaxationGroup";
 import Unit, { UnitType } from "App/Models/Unit";
 import IProductData from "Contracts/interfaces/IProductData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -55,6 +56,7 @@ test.group("Product resource", (group) => {
 			economic_group_id: group.id,
 			variation_group_id: variationGroup.id,
 			icmsOrigin: "0",
+			fractionValue: new Decimal(10),
 		});
 
 		const variation = await ProductVariation.create({
@@ -153,6 +155,9 @@ test.group("Product resource", (group) => {
 				unitId: unit.id,
 				type: ProductType.PRODUCT,
 				purpose: ProductPurpose.BOTH,
+				fractioned: true,
+				fractionUnitId: unit.id,
+				fractionValue: 10,
 
 				referenceCode: "00001",
 				collectionYear: 2022,
@@ -414,6 +419,9 @@ test.group("Product resource", (group) => {
 				taxBenefitCode: "some",
 				anvisaCode: "some",
 				purpose: ProductPurpose.BOTH,
+				fractioned: true,
+				fractionUnitId: unit.id,
+				fractionValue: 10,
 			})
 			.bearerToken(token);
 

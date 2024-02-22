@@ -18,6 +18,7 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Attendance from "./Attendance";
+import BudgetPayment from "./BudgetPayment";
 
 export enum BudgetStatus {
 	A = "ABERTO",
@@ -62,6 +63,11 @@ export default class Budget extends BaseModel {
 		columnName: "total_value",
 	})
 	public totalValue: number;
+
+	@column({
+		columnName: "paid_value",
+	})
+	public paidValue: number;
 
 	@column()
 	public observation: string;
@@ -222,4 +228,9 @@ export default class Budget extends BaseModel {
 		foreignKey: "budget_id",
 	})
 	public items: HasMany<typeof BudgetItem>;
+
+	@hasMany(() => BudgetPayment, {
+		foreignKey: "budget_id",
+	})
+	public payments: HasMany<typeof BudgetPayment>;
 }

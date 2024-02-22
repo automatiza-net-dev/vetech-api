@@ -44,6 +44,6 @@ export interface IConfirmBudgetData {
 export interface ICancelBudgetData {
 	reasonId: string;
 	finishedAt: DateTime;
-	canceledObservation: string;
+	canceledObservation?: string;
 	internalObservation?: string;
 }

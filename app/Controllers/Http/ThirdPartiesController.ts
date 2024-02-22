@@ -2,7 +2,6 @@ import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import SharedService from "App/Services/SharedService";
 import ThirdPartyService from "App/Services/ThirdPartyService";
 import AuthenticateThirdPartyValidator from "App/Validators/ThirdParty/AuthenticateThirdPartyValidator";
 import ExtendedAuthenticateThirdPartyValidator from "App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator";
@@ -11,10 +10,7 @@ import UnitLoginValidator from "App/Validators/ThirdParty/UnitLoginValidator";
 
 @inject()
 export default class ThirdPartiesController {
-	constructor(
-		private readonly service: ThirdPartyService,
-		private sharedService: SharedService,
-	) {}
+	constructor(private readonly service: ThirdPartyService) {}
 
 	public async authenticateSancla({
 		auth,

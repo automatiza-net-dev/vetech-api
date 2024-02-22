@@ -1997,7 +1997,7 @@ export default class ReceiptService {
 				`
         update deposit_items set quantity =
 (
-    select (di.quantity * ri.quantity)
+    select (di.quantity + (ri.quantity * ri.fraction_value))
     from deposit_items di
       join deposits d on di.deposit_id = d.id
       join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id

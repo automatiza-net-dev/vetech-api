@@ -335,6 +335,11 @@ export default class BillItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public deposit_id: number;
+
+	@column({
+		serializeAs: null,
+	})
 	public economic_group_id: string;
 
 	@column({

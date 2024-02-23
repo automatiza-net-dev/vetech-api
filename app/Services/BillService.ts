@@ -754,18 +754,6 @@ export default class BillService {
 				.useTransaction(trx)
 				.save();
 
-			const [{ deposit_id }] = await Database.from("user_unit_roles")
-				.select(
-					Database.raw(
-						"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-					),
-				)
-				.joinRaw(
-					"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-				)
-				.where("user_unit_roles.user_id", authCtx.user.id)
-				.where("user_unit_roles.unit_id", authCtx.unit.id);
-
 			await Database.rawQuery(
 				`update deposit_items
 set quantity = quantity + ?
@@ -773,7 +761,7 @@ where deposit_id = ?
   and product_variation_id = ?`,
 				[
 					billItem.quantity.toNumber(),
-					deposit_id,
+					billItem.deposit_id,
 					billItem.product_variation_id,
 				],
 			)
@@ -1404,25 +1392,17 @@ where deposit_id = ?
 				.delete();
 
 			if (bill.items.length > 0) {
-				const [{ deposit_id }] = await Database.from("user_unit_roles")
-					.select(
-						Database.raw(
-							"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-						),
-					)
-					.joinRaw(
-						"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-					)
-					.where("user_unit_roles.user_id", authCtx.user.id)
-					.where("user_unit_roles.unit_id", authCtx.unit.id);
-
 				const tasks = bill.items.map(async (item) => {
 					return Database.rawQuery(
 						`update deposit_items
 set quantity = quantity + ?
 where deposit_id = ?
   and product_variation_id = ?`,
-						[item.quantity.toNumber(), deposit_id, item.product_variation_id],
+						[
+							item.quantity.toNumber(),
+							item.deposit_id,
+							item.product_variation_id,
+						],
 					)
 						.useTransaction(trx)
 						.exec();
@@ -1823,6 +1803,19 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
+		const [{ deposit_id }] = await Database.from("user_unit_roles")
+			.useTransaction(trx)
+			.select(
+				Database.raw(
+					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+			)
+			.where("user_unit_roles.user_id", authCtx.user.id)
+			.where("user_unit_roles.unit_id", authCtx.unit.id);
+
 		const items = data.items.map((item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
@@ -1862,6 +1855,7 @@ where deposit_id = ?
 					bill_id: bill.id,
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
+					deposit_id,
 
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
@@ -2052,6 +2046,15 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
+		await this.depositService.updateDepositItems(
+			trx,
+			authCtx,
+			data.items.map((elem) => ({
+				quantity: elem.quantity,
+				productVariationId: elem.productVariationId,
+			})),
+		);
+
 		return bill;
 	}
 
@@ -2142,6 +2145,19 @@ where deposit_id = ?
 			);
 		}
 
+		const [{ deposit_id }] = await Database.from("user_unit_roles")
+			.useTransaction(trx)
+			.select(
+				Database.raw(
+					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+			)
+			.where("user_unit_roles.user_id", authCtx.user.id)
+			.where("user_unit_roles.unit_id", authCtx.unit.id);
+
 		const totalValue = data.unitaryValue * data.quantity - data.discountValue;
 		const icmsBase =
 			totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
@@ -2161,6 +2177,7 @@ where deposit_id = ?
 			product_variation_id: data.productVariationId,
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
+			deposit_id,
 
 			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,

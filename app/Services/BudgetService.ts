@@ -30,6 +30,7 @@ import {
 } from "Contracts/interfaces/IBudgetData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import DepositService from "./DepositService";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -67,6 +68,7 @@ export default class BudgetService {
 	constructor(
 		private sharedService: SharedService,
 		private billService: BillService,
+		private depositService: DepositService,
 	) {}
 
 	public async budgetsFromAttendance(
@@ -981,6 +983,21 @@ export default class BudgetService {
 		});
 
 		return Database.transaction(async (trx) => {
+			const invalidRows = await this.depositService.validateDepositOperation(
+				trx,
+				authCtx,
+				items.map((elem) => ({
+					productVariationId: elem.product_variation_id,
+					quantity: elem.quantity.toNumber(),
+				})),
+			);
+			if (invalidRows.length > 0) {
+				return invalidRows.map((elem) => ({
+					rule: "ItemInexistente",
+					message: `O produto '${elem.description}' não existe no depósito`,
+				}));
+			}
+
 			const totalProductValue = items
 				.filter((item) => !data.notConfirmedItems.includes(item.id))
 				.reduce((total, item) => total + item.totalValue, 0);
@@ -1183,6 +1200,15 @@ export default class BudgetService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			await this.depositService.updateDepositItems(
+				trx,
+				authCtx,
+				items.map((elem) => ({
+					productVariationId: elem.product_variation_id,
+					quantity: elem.quantity.toNumber(),
+				})),
+			);
 
 			return bill;
 		});

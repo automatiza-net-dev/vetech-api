@@ -367,8 +367,6 @@ test.group("Budget resource", (group) => {
 			})
 			.bearerToken(token);
 
-		console.log(response.body());
-
 		assert.equal(400, response.status());
 	});
 

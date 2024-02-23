@@ -217,7 +217,7 @@ export default class BillService {
 			}
 
 			if (data.items.length > 0) {
-				const invalidRows = await this.depositService.updateDepositItems(
+				const invalidRows = await this.depositService.validateDepositOperation(
 					trx,
 					authCtx,
 					data.items.map((elem) => ({
@@ -325,7 +325,7 @@ export default class BillService {
 				return invalid;
 			}
 
-			const invalidRows = await this.depositService.updateDepositItems(
+			const invalidRows = await this.depositService.validateDepositOperation(
 				trx,
 				authCtx,
 				[

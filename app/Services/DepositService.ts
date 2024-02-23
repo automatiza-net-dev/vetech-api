@@ -578,7 +578,7 @@ where deposit_id = ?
 			.exec();
 	}
 
-	public async validatesDepositOperation(
+	public async validateDepositOperation(
 		trx: TransactionClientContract,
 		authCtx: AuthContext,
 		data: { productVariationId: string; quantity: number }[],
@@ -621,7 +621,7 @@ where deposit_id = ?
 		const rows = await Database.from("bill_item_temp")
 			.select(
 				Database.raw(
-					"p.description, bit.idVariacao as id_variacao, bit.quantidade, pv.barcode, pv.id",
+					"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",
 				),
 			)
 			.joinRaw(

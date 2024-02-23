@@ -418,7 +418,6 @@ test.group("Bill resource", (group) => {
 			patient,
 			dailyCashier,
 			dailyMovement,
-			product,
 			variation,
 		} = await createData();
 		const token = await generateJwtToken(client, {
@@ -1213,13 +1212,63 @@ test.group("Bill resource", (group) => {
 	// });
 
 	test("should exclude bill", async ({ assert, client }) => {
-		const { user, bill } = await createData();
+		const { user, bill, business, variation, rule } = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",
 		});
 
 		await bill.related("payments").query().delete();
+		await bill.related("items").create({
+			economic_group_id: business.economicGroupId,
+			business_unit_id: business.id,
+			bill_id: bill.id,
+			product_variation_id: variation.id,
+			tax_rule_id: rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+			icmsStIva: rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: rule.icmsPerc,
+			issPercentage: rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+		});
 
 		const response = await client
 			.put(`/bills/exclude-bill/${bill.id}`)

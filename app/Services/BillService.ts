@@ -1347,7 +1347,10 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
-				.preload("payments")
+				.preload("items", (query) => {
+					query.where("status", BillItemStatus.A);
+				})
+				// .preload("payments")
 				.first();
 
 			if (!bill) {
@@ -1399,6 +1402,34 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.where("bill_id", bill.id)
 				.delete();
+
+			if (bill.items.length > 0) {
+				const [{ deposit_id }] = await Database.from("user_unit_roles")
+					.select(
+						Database.raw(
+							"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+						),
+					)
+					.joinRaw(
+						"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+					)
+					.where("user_unit_roles.user_id", authCtx.user.id)
+					.where("user_unit_roles.unit_id", authCtx.unit.id);
+
+				const tasks = bill.items.map(async (item) => {
+					return Database.rawQuery(
+						`update deposit_items
+set quantity = quantity + ?
+where deposit_id = ?
+  and product_variation_id = ?`,
+						[item.quantity.toNumber(), deposit_id, item.product_variation_id],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+
+				await Promise.all(tasks);
+			}
 		});
 	}
 

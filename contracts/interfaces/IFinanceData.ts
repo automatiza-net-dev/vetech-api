@@ -10,7 +10,7 @@ export interface IUpsertFinance {
 	type: FinanceType;
 	accountPlanId: string;
 	paymentMethodId: string;
-	document: string;
+	document?: string;
 	historic?: string;
 	issueDate: DateTime;
 	expirationDate: DateTime;

@@ -47,6 +47,11 @@ export default class Opportunity extends BaseModel {
 	@column({})
 	public balance: TOpportunityBalance;
 
+	@column({
+		columnName: "client_origin_item_description",
+	})
+	public clientOriginItemDescription: string;
+
 	@column()
 	public description: string;
 

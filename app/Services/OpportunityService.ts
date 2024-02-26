@@ -76,6 +76,7 @@ export default class OpportunityService {
 		return {
 			id: result.id,
 			openingDate: result.openingDate,
+			clientOriginItemDescription: result.clientOriginItemDescription,
 			contactDate: result.contactDate,
 			value: result.value,
 			description: result.description,
@@ -260,6 +261,7 @@ export default class OpportunityService {
 			closingDate: elem.closingDate,
 			profitValue: elem.profitValue,
 			resultObservation: elem.resultObservation,
+			clientOriginItemDescription: elem.clientOriginItemDescription,
 			balance: elem.balance,
 			active: elem.active,
 			race: {
@@ -728,6 +730,7 @@ export default class OpportunityService {
 			originId?: string;
 			raceId?: string;
 
+			clientOriginItemDescription?: string;
 			description?: string;
 			observation?: string;
 			value?: number;
@@ -751,6 +754,7 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					clientOriginItemDescription: data.clientOriginItemDescription,
 
 					openingDate: DateTime.now(),
 					contactDate: data.contactDate,
@@ -786,6 +790,7 @@ export default class OpportunityService {
 			originId?: string;
 			raceId?: string;
 
+			clientOriginItemDescription?: string;
 			description?: string;
 			observation?: string;
 			value?: number;
@@ -816,6 +821,7 @@ export default class OpportunityService {
 					client_origin_id: data.originId,
 					race_id: data.raceId,
 
+					clientOriginItemDescription: data.clientOriginItemDescription,
 					contactDate: data.contactDate,
 					description: data.description,
 					observation: data.observation,

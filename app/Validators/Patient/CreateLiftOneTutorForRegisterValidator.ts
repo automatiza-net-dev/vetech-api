@@ -30,6 +30,7 @@ export default class CreateLiftOneTutorForRegisterValidator {
 		name: schema.string({}),
 		document: schema.string({}, []),
 		birthDate: schema.date(),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
 		email: schema.string([rules.email()]),
 		cellphone: schema.string(),

@@ -466,6 +466,7 @@ export default class OpportunityService {
 			technician?: string;
 			status?: string;
 			units?: string[];
+			orderBy?: string;
 		},
 	) {
 		const qb = Opportunity.query()
@@ -558,7 +559,7 @@ export default class OpportunityService {
 
 		const result = await qb;
 
-		const statusMap = new Map();
+		const statusMap = new Map<string, any[]>();
 		// eslint-disable-next-line
 		for (const op of result) {
 			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
@@ -569,7 +570,7 @@ export default class OpportunityService {
 				statusMap.set(key, []);
 			}
 
-			statusMap.get(key).push({
+			statusMap.get(key)?.push({
 				id: op.id,
 				openingDate: op.openingDate,
 				value: op.value,
@@ -628,7 +629,51 @@ export default class OpportunityService {
 		const mappedResult: Record<string, unknown> = {};
 		// eslint-disable-next-line
 		for (const [key, value] of statusMap.entries()) {
-			mappedResult[key] = value;
+			if (!data.orderBy) {
+				mappedResult[key] = value;
+				continue;
+			}
+
+			const sortedValue = value.sort((a, b) => {
+				if (data.orderBy === "contactDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "openingDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "contact") {
+					qb.orderByRaw(
+						"crm_statuses.description, contact.name, opportunities.contact_date",
+					);
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis()
+					);
+				}
+
+				if (data.orderBy === "client") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis()
+					);
+				}
+
+				return 0;
+			});
+
+			mappedResult[key] = sortedValue;
 		}
 
 		return mappedResult;

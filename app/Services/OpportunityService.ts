@@ -329,6 +329,8 @@ export default class OpportunityService {
 					.preload("reason");
 			})
 			.preload("executionUser")
+			.preload("openingUser")
+			.preload("exclusionUser")
 			.whereHas("opportunity", (query) => {
 				query.where("economic_group_id", authCtx.group.id);
 			});
@@ -413,18 +415,31 @@ export default class OpportunityService {
 					email: v?.tutor?.email ?? null,
 				}),
 			),
-			user: elem.opportunity.user
-				? {
-						id: elem.opportunity.user.id,
-						name: elem.opportunity.user.name,
-				  }
-				: null,
-			executionUser: elem.executionUser
-				? {
-						id: elem.executionUser.id,
-						name: elem.executionUser.name,
-				  }
-				: null,
+			user: this.sharedService.captureGroup(elem.opportunity.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			openingUser: this.sharedService.captureGroup(
+				elem.opportunity.openingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			closingUser: this.sharedService.captureGroup(
+				elem.opportunity.closingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			exclusionUser: this.sharedService.captureGroup(
+				elem.opportunity.exclusionUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
 			reason: this.sharedService.captureGroup(elem.opportunity.reason, (v) => ({
 				id: v.id,
 				reason: v.reason,

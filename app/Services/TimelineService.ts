@@ -764,6 +764,12 @@ export default class TimelineService {
 					tag: data.tag,
 					name: data.name,
 					realizedAt: data.realizedAt.toJSDate(),
+					technician: {
+						// @ts-expect-error
+						id: record.timeline_info?.technician?.id ?? "-",
+						// @ts-expect-error
+						name: record.timeline_info?.technician?.name ?? "-",
+					},
 					updated_technician: {
 						id: technician.id,
 						name: technician.name,

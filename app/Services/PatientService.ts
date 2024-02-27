@@ -158,7 +158,6 @@ export default class PatientService {
 				email: elem.tutor.email,
 				tag: elem.tag,
 				cellphone: elem.tutor.cellphone,
-				clientOriginItemDescription: elem.clientOriginItemDescription,
 				createdAt: elem.createdAt,
 				dependents: elem.dependents.map((patient) => ({
 					id: patient.id,

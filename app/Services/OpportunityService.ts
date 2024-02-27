@@ -883,6 +883,7 @@ export default class OpportunityService {
 				},
 
 				activities: op.activities.map((elem) => ({
+					id: elem.id,
 					description: elem.description,
 					executionDate: elem.executionDate,
 					duration: elem.duration,

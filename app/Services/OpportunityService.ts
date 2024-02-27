@@ -342,6 +342,7 @@ export default class OpportunityService {
 					.preload("user")
 					.preload("reason");
 			})
+			.preload("user")
 			.preload("executionUser")
 			.preload("openingUser")
 			.preload("exclusionUser")
@@ -441,7 +442,7 @@ export default class OpportunityService {
 					email: v?.tutor?.email ?? null,
 				}),
 			),
-			user: this.sharedService.captureGroup(elem.opportunity.user, (v) => ({
+			user: this.sharedService.captureGroup(elem.user, (v) => ({
 				id: v.id,
 				name: v.name,
 			})),

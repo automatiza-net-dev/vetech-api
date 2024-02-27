@@ -139,6 +139,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			clientName?: string;
 			unit?: string[];
 			status?: string[];
 			balance?: string[];
@@ -173,6 +174,14 @@ export default class OpportunityService {
 			.preload("unit")
 			.preload("reason")
 			.preload("clientOrigin");
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("name ~* ?", [
+					`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+				]);
+			});
+		}
 
 		if (data.unit && Array.isArray(data.unit)) {
 			qb.whereIn("business_unit_id", data.unit);
@@ -317,6 +326,7 @@ export default class OpportunityService {
 			patientName?: string;
 			technicianName?: string;
 			status?: string;
+			clientName?: string;
 		},
 	) {
 		const qb = OpportunityActivity.query()
@@ -347,6 +357,16 @@ export default class OpportunityService {
 
 		if (data.status) {
 			qb.where("status", data.status);
+		}
+
+		if (data.clientName) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereHas("client", (query) => {
+					query.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					]);
+				});
+			});
 		}
 
 		if (data.technicianName) {
@@ -465,6 +485,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			clientName?: string;
 			technician?: string;
 			status?: string;
 			units?: string[];
@@ -508,6 +529,14 @@ export default class OpportunityService {
 				query.preload("activity");
 				query.preload("openingUser");
 			});
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("name ~* ?", [
+					`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+				]);
+			});
+		}
 
 		if (data.technician) {
 			qb.where("user_id", data.technician);
@@ -686,6 +715,7 @@ export default class OpportunityService {
 		data: {
 			activity?: string;
 			opportunity?: string;
+			clientName?: string;
 		},
 	) {
 		const qb = OpportunityActivity.query()
@@ -703,6 +733,16 @@ export default class OpportunityService {
 		//     .preload('user')
 		//     .preload('unit');
 		// });
+
+		if (data.clientName) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereHas("client", (query) => {
+					query.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					]);
+				});
+			});
+		}
 
 		if (data.activity) {
 			qb.where("activity_id", data.activity);

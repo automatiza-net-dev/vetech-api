@@ -764,7 +764,7 @@ export default class TimelineService {
 					tag: data.tag,
 					name: data.name,
 					realizedAt: data.realizedAt.toJSDate(),
-					technician: {
+					updated_technician: {
 						id: technician.id,
 						name: technician.name,
 					},

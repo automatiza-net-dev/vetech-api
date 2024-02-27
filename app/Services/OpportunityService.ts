@@ -11,7 +11,7 @@ import OpportunityActivity, {
 } from "App/Models/OpportunityActivity";
 import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
-import Patient, { PatientGender } from "App/Models/Patient";
+import Patient, { PatientGender, PatientType } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
@@ -177,9 +177,11 @@ export default class OpportunityService {
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
-				query.whereRaw("name ~* ?", [
-					`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
-				]);
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
 			});
 		}
 
@@ -362,9 +364,11 @@ export default class OpportunityService {
 		if (data.clientName) {
 			qb.whereHas("opportunity", (query) => {
 				query.whereHas("client", (query) => {
-					query.whereRaw("name ~* ?", [
-						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
-					]);
+					query
+						.whereRaw("name ~* ?", [
+							`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+						])
+						.where("type", PatientType.ANIMAL);
 				});
 			});
 		}
@@ -532,9 +536,11 @@ export default class OpportunityService {
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
-				query.whereRaw("name ~* ?", [
-					`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
-				]);
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
 			});
 		}
 
@@ -773,9 +779,11 @@ export default class OpportunityService {
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
-				query.whereRaw("name ~* ?", [
-					`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
-				]);
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
 			});
 		}
 
@@ -971,9 +979,11 @@ export default class OpportunityService {
 		if (data.clientName) {
 			qb.whereHas("opportunity", (query) => {
 				query.whereHas("client", (query) => {
-					query.whereRaw("name ~* ?", [
-						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
-					]);
+					query
+						.whereRaw("name ~* ?", [
+							`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+						])
+						.where("type", PatientType.ANIMAL);
 				});
 			});
 		}

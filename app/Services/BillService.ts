@@ -216,23 +216,23 @@ export default class BillService {
 				return invalid;
 			}
 
-			if (data.items.length > 0) {
-				const invalidRows = await this.depositService.validateDepositOperation(
-					trx,
-					authCtx,
-					data.items.map((elem) => ({
-						quantity: elem.quantity,
-						productVariationId: elem.productVariationId,
-					})),
-				);
-
-				if (invalidRows.length > 0) {
-					return invalidRows.map((elem) => ({
-						rule: "ItemInexistente",
-						message: `O produto '${elem.description}' não existe no depósito`,
-					}));
-				}
-			}
+			// if (data.items.length > 0) {
+			// 	const invalidRows = await this.depositService.validateDepositOperation(
+			// 		trx,
+			// 		authCtx,
+			// 		data.items.map((elem) => ({
+			// 			quantity: elem.quantity,
+			// 			productVariationId: elem.productVariationId,
+			// 		})),
+			// 	);
+			//
+			// 	if (invalidRows.length > 0) {
+			// 		return invalidRows.map((elem) => ({
+			// 			rule: "ItemInexistente",
+			// 			message: `O produto '${elem.description}' não existe no depósito`,
+			// 		}));
+			// 	}
+			// }
 
 			return this.createBillWithTrx(trx, authCtx, data);
 		});
@@ -325,23 +325,23 @@ export default class BillService {
 				return invalid;
 			}
 
-			const invalidRows = await this.depositService.validateDepositOperation(
-				trx,
-				authCtx,
-				[
-					{
-						productVariationId: data.productVariationId,
-						quantity: data.quantity,
-					},
-				],
-			);
-
-			if (invalidRows.length > 0) {
-				return invalidRows.map((elem) => ({
-					rule: "ItemInexistente",
-					message: `O produto '${elem.description}' não existe no depósito`,
-				}));
-			}
+			// const invalidRows = await this.depositService.validateDepositOperation(
+			// 	trx,
+			// 	authCtx,
+			// 	[
+			// 		{
+			// 			productVariationId: data.productVariationId,
+			// 			quantity: data.quantity,
+			// 		},
+			// 	],
+			// );
+			//
+			// if (invalidRows.length > 0) {
+			// 	return invalidRows.map((elem) => ({
+			// 		rule: "ItemInexistente",
+			// 		message: `O produto '${elem.description}' não existe no depósito`,
+			// 	}));
+			// }
 
 			return this.createBillItemWithTrx(trx, authCtx, data);
 		});
@@ -363,24 +363,24 @@ export default class BillService {
 				return { valid: false, invalid } as const;
 			}
 
-			const invalidRows = await this.depositService.validateDepositOperation(
-				trx,
-				authCtx,
-				data.map((elem) => ({
-					productVariationId: elem.productVariationId,
-					quantity: elem.quantity,
-				})),
-			);
-
-			if (invalidRows.length > 0) {
-				return {
-					valid: false,
-					invalid: invalidRows.map((elem) => ({
-						rule: "ItemInexistente",
-						message: `O produto '${elem.description}' não existe no depósito`,
-					})),
-				} as const;
-			}
+			// const invalidRows = await this.depositService.validateDepositOperation(
+			// 	trx,
+			// 	authCtx,
+			// 	data.map((elem) => ({
+			// 		productVariationId: elem.productVariationId,
+			// 		quantity: elem.quantity,
+			// 	})),
+			// );
+			//
+			// if (invalidRows.length > 0) {
+			// 	return {
+			// 		valid: false,
+			// 		invalid: invalidRows.map((elem) => ({
+			// 			rule: "ItemInexistente",
+			// 			message: `O produto '${elem.description}' não existe no depósito`,
+			// 		})),
+			// 	} as const;
+			// }
 
 			const tasks = data.map((d) =>
 				this.createBillItemWithTrx(trx, authCtx, d),
@@ -2046,14 +2046,14 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		await this.depositService.updateDepositItems(
-			trx,
-			authCtx,
-			data.items.map((elem) => ({
-				quantity: elem.quantity,
-				productVariationId: elem.productVariationId,
-			})),
-		);
+		// await this.depositService.updateDepositItems(
+		// 	trx,
+		// 	authCtx,
+		// 	data.items.map((elem) => ({
+		// 		quantity: elem.quantity,
+		// 		productVariationId: elem.productVariationId,
+		// 	})),
+		// );
 
 		return bill;
 	}

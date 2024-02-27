@@ -983,20 +983,20 @@ export default class BudgetService {
 		});
 
 		return Database.transaction(async (trx) => {
-			const invalidRows = await this.depositService.validateDepositOperation(
-				trx,
-				authCtx,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
-			);
-			if (invalidRows.length > 0) {
-				return invalidRows.map((elem) => ({
-					rule: "ItemInexistente",
-					message: `O produto '${elem.description}' não existe no depósito`,
-				}));
-			}
+			// const invalidRows = await this.depositService.validateDepositOperation(
+			// 	trx,
+			// 	authCtx,
+			// 	items.map((elem) => ({
+			// 		productVariationId: elem.product_variation_id,
+			// 		quantity: elem.quantity.toNumber(),
+			// 	})),
+			// );
+			// if (invalidRows.length > 0) {
+			// 	return invalidRows.map((elem) => ({
+			// 		rule: "ItemInexistente",
+			// 		message: `O produto '${elem.description}' não existe no depósito`,
+			// 	}));
+			// }
 
 			const totalProductValue = items
 				.filter((item) => !data.notConfirmedItems.includes(item.id))
@@ -1201,14 +1201,14 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			await this.depositService.updateDepositItems(
-				trx,
-				authCtx,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
-			);
+			// await this.depositService.updateDepositItems(
+			// 	trx,
+			// 	authCtx,
+			// 	items.map((elem) => ({
+			// 		productVariationId: elem.product_variation_id,
+			// 		quantity: elem.quantity.toNumber(),
+			// 	})),
+			// );
 
 			return bill;
 		});

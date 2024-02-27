@@ -251,6 +251,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/nr/:id", "PatientTutorsController.notRelated");
+	Route.get("/reduced", "PatientTutorsController.reducedIndex");
 	Route.get("/", "PatientTutorsController.index");
 	Route.post("/", "PatientTutorsController.store");
 	Route.post("/assign", "PatientTutorsController.assign");

@@ -2043,6 +2043,60 @@ and product_variation_id in (
 				);
 			}
 
+			const rows = await Database.from("finances")
+				.useTransaction(trx)
+				.select("finances.id")
+				.whereRaw(
+					"finances.origin_id in (select id from receipt_payments rp where receipt_id = ?)",
+					[receipt.id],
+				)
+				.where("finances.status", FinanceStatus.B)
+				.whereNull("finances.deleted_at")
+				.where("finances.origin_flag", FinanceOriginFlag.E);
+			if (rows.length > 0) {
+				throw new BadRequestException(
+					"Já existem títulos baixados que são referentes a esta entrada;",
+					400,
+					"E_INVALID",
+				);
+			}
+
+			const otherRows = await Database.rawQuery(
+				`select
+	di.id,
+	p.description
+from
+	deposit_items di
+join business_unit_configs buc on
+	di.deposit_id = buc.incoming_deposit_id
+join product_variations pv on
+	pv.id = di.product_variation_id
+join products p on
+	p.id = pv.product_id
+where
+	buc.business_unit_id = ?
+	and di.quantity < (
+	select
+		(ri.quantity * ri.fraction_value)
+	from
+		receipt_items ri
+	where
+		ri.receipt_id = ?
+		and di.product_variation_id = ri.product_variation_id);`,
+				[authCtx.unit.id, receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
+			if (otherRows.length > 0) {
+				throw new BadRequestException(
+					`Não existe quantidade suficiente no Deposito de Estoque para fazer a Reabertura da Nota de Entrada: ${otherRows
+						.map((r) => r.description)
+						.join(", ")}`,
+					400,
+					"E_ERR",
+				);
+			}
+
 			await receipt
 				.merge({
 					status: "Aberta",
@@ -2051,6 +2105,45 @@ and product_variation_id in (
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
+				await Database.rawQuery(
+					`delete
+from
+	finances
+where
+	f.origin_id in (
+	select
+		id
+	from
+		receipt_payments rp
+	where
+		receipt_id = ?)`,
+					[receipt.id],
+				)
+					.useTransaction(trx)
+					.exec();
+			}
+
+			await Database.rawQuery(
+				`update deposit_items set quantity =
+(
+    select (di.quantity - (ri.quantity * ri.fraction_value))
+    from deposit_items di
+      join deposits d on di.deposit_id = d.id
+      join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
+      join business_unit_configs buc on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
+    where ri.receipt_id = ?
+      and deposit_items.id = di.id
+          )
+where deposit_id = ?
+and product_variation_id in (
+    select product_variation_id from receipt_items where receipt_id = ?
+)`,
+				[receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
 		});
 	}
 

@@ -251,6 +251,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/nr/:id", "PatientTutorsController.notRelated");
+	Route.get("/reduced", "PatientTutorsController.reducedIndex");
 	Route.get("/", "PatientTutorsController.index");
 	Route.post("/", "PatientTutorsController.store");
 	Route.post("/assign", "PatientTutorsController.assign");
@@ -1273,6 +1274,10 @@ Route.group(() => {
 	Route.get("/search", "OpportunitiesController.search");
 	Route.get("/search-activities", "OpportunitiesController.searchActivities");
 	Route.get("/search-kanban", "OpportunitiesController.searchKanban");
+	Route.get(
+		"/search-complete-kanban",
+		"OpportunitiesController.searchCompleteKanban",
+	);
 	Route.get(
 		"/search-kanban-activities",
 		"OpportunitiesController.searchKanbanActivities",

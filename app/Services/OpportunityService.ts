@@ -11,7 +11,7 @@ import OpportunityActivity, {
 } from "App/Models/OpportunityActivity";
 import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
-import Patient, { PatientGender } from "App/Models/Patient";
+import Patient, { PatientGender, PatientType } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
@@ -76,6 +76,7 @@ export default class OpportunityService {
 		return {
 			id: result.id,
 			openingDate: result.openingDate,
+			clientOriginItemDescription: result.clientOriginItemDescription,
 			contactDate: result.contactDate,
 			value: result.value,
 			description: result.description,
@@ -138,6 +139,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			clientName?: string;
 			unit?: string[];
 			status?: string[];
 			balance?: string[];
@@ -172,6 +174,16 @@ export default class OpportunityService {
 			.preload("unit")
 			.preload("reason")
 			.preload("clientOrigin");
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
+			});
+		}
 
 		if (data.unit && Array.isArray(data.unit)) {
 			qb.whereIn("business_unit_id", data.unit);
@@ -260,6 +272,7 @@ export default class OpportunityService {
 			closingDate: elem.closingDate,
 			profitValue: elem.profitValue,
 			resultObservation: elem.resultObservation,
+			clientOriginItemDescription: elem.clientOriginItemDescription,
 			balance: elem.balance,
 			active: elem.active,
 			race: {
@@ -315,6 +328,7 @@ export default class OpportunityService {
 			patientName?: string;
 			technicianName?: string;
 			status?: string;
+			clientName?: string;
 		},
 	) {
 		const qb = OpportunityActivity.query()
@@ -328,7 +342,10 @@ export default class OpportunityService {
 					.preload("user")
 					.preload("reason");
 			})
+			.preload("user")
 			.preload("executionUser")
+			.preload("openingUser")
+			.preload("exclusionUser")
 			.whereHas("opportunity", (query) => {
 				query.where("economic_group_id", authCtx.group.id);
 			});
@@ -343,6 +360,18 @@ export default class OpportunityService {
 
 		if (data.status) {
 			qb.where("status", data.status);
+		}
+
+		if (data.clientName) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereHas("client", (query) => {
+					query
+						.whereRaw("name ~* ?", [
+							`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+						])
+						.where("type", PatientType.ANIMAL);
+				});
+			});
 		}
 
 		if (data.technicianName) {
@@ -413,18 +442,31 @@ export default class OpportunityService {
 					email: v?.tutor?.email ?? null,
 				}),
 			),
-			user: elem.opportunity.user
-				? {
-						id: elem.opportunity.user.id,
-						name: elem.opportunity.user.name,
-				  }
-				: null,
-			executionUser: elem.executionUser
-				? {
-						id: elem.executionUser.id,
-						name: elem.executionUser.name,
-				  }
-				: null,
+			user: this.sharedService.captureGroup(elem.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			openingUser: this.sharedService.captureGroup(
+				elem.opportunity.openingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			closingUser: this.sharedService.captureGroup(
+				elem.opportunity.closingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			exclusionUser: this.sharedService.captureGroup(
+				elem.opportunity.exclusionUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
 			reason: this.sharedService.captureGroup(elem.opportunity.reason, (v) => ({
 				id: v.id,
 				reason: v.reason,
@@ -432,7 +474,7 @@ export default class OpportunityService {
 		}));
 	}
 
-	public async searchKanbanOpportunities(
+	public async searchCompleteKanbanOpportunities(
 		authCtx: AuthContext,
 		data: {
 			openingFrom?: string;
@@ -448,9 +490,11 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			clientName?: string;
 			technician?: string;
 			status?: string;
 			units?: string[];
+			orderBy?: string;
 		},
 	) {
 		const qb = Opportunity.query()
@@ -490,6 +534,16 @@ export default class OpportunityService {
 				query.preload("activity");
 				query.preload("openingUser");
 			});
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
+			});
+		}
 
 		if (data.technician) {
 			qb.where("user_id", data.technician);
@@ -543,7 +597,7 @@ export default class OpportunityService {
 
 		const result = await qb;
 
-		const statusMap = new Map();
+		const statusMap = new Map<string, any[]>();
 		// eslint-disable-next-line
 		for (const op of result) {
 			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
@@ -554,7 +608,7 @@ export default class OpportunityService {
 				statusMap.set(key, []);
 			}
 
-			statusMap.get(key).push({
+			statusMap.get(key)?.push({
 				id: op.id,
 				openingDate: op.openingDate,
 				value: op.value,
@@ -613,7 +667,288 @@ export default class OpportunityService {
 		const mappedResult: Record<string, unknown> = {};
 		// eslint-disable-next-line
 		for (const [key, value] of statusMap.entries()) {
-			mappedResult[key] = value;
+			if (!data.orderBy) {
+				mappedResult[key] = value;
+				continue;
+			}
+
+			const sortedValue = value.sort((a, b) => {
+				if (data.orderBy === "contactDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "openingDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "contact") {
+					qb.orderByRaw(
+						"crm_statuses.description, contact.name, opportunities.contact_date",
+					);
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis()
+					);
+				}
+
+				if (data.orderBy === "client") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis()
+					);
+				}
+
+				return 0;
+			});
+
+			mappedResult[key] = sortedValue;
+		}
+
+		return mappedResult;
+	}
+
+	public async searchKanbanOpportunities(
+		authCtx: AuthContext,
+		data: {
+			openingFrom?: string;
+			openingTo?: string;
+			contactFrom?: string;
+			contactTo?: string;
+			contactName?: string;
+			contactPhone?: string;
+			patientName?: string;
+			// minWeight?: string;
+			// maxWeight?: string;
+			// specie?: string;
+			// race?: string;
+			// gender?: string;
+			// castrated?: string;
+			clientName?: string;
+			technician?: string;
+			status?: string;
+			units?: string[];
+			orderBy?: string;
+		},
+	) {
+		const qb = Opportunity.query()
+			.where("economic_group_id", authCtx.group.id)
+			.whereNull("closing_date")
+			.preload("client", (query) => {
+				query.select("id", "name", "weight", "gender");
+
+				query.preload("tutor");
+
+				query.preload("patientAnimal", (query) => {
+					query.select("id", "castrated", "race_id");
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+			})
+			.preload("contact", (query) => {
+				query.preload("tutor", (query) => {
+					query.select("id", "email", "cellphone", "telephone");
+				});
+			})
+			.preload("contactType")
+			.preload("contactSubject")
+			.preload("clientOrigin")
+			.preload("status")
+			.preload("user")
+			.preload("unit")
+			.preload("reason")
+			.preload("activities", (query) => {
+				query.where("status", "Aberta");
+
+				query.preload("executionUser");
+				query.preload("activity");
+				query.preload("openingUser");
+			});
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
+			});
+		}
+
+		if (data.technician) {
+			qb.where("user_id", data.technician);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_unit_id", data.units);
+		}
+
+		if (data.openingFrom) {
+			qb.whereRaw("opening_date::date >= ?", [data.openingFrom]);
+		}
+
+		if (data.openingTo) {
+			qb.whereRaw("opening_date::date <= ?", [data.openingTo]);
+		}
+
+		if (data.contactFrom) {
+			qb.whereRaw("contact_date::date >= ?", [data.contactFrom]);
+		}
+
+		if (data.contactTo) {
+			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.contactName) {
+			qb.whereHas("contact", (query) => {
+				if (data.contactName) {
+					query.where("name", "ilike", `%${data.contactName}%`);
+				}
+			});
+		}
+
+		if (data.patientName) {
+			qb.whereHas("client", (query) => {
+				if (data.patientName) {
+					query.where("name", "ilike", `%${data.patientName}%`);
+				}
+			});
+		}
+
+		if (data.contactPhone) {
+			qb.whereHas("contact", (query) => {
+				if (data.contactPhone) {
+					query.whereHas("tutor", (query) => {
+						query.where("cellphone", "ilike", `%${data.contactPhone}%`);
+					});
+				}
+			});
+		}
+
+		const result = await qb;
+
+		const statusMap = new Map<string, any[]>();
+		// eslint-disable-next-line
+		for (const op of result) {
+			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
+				? "Faltou-Desmarcou"
+				: op.status.description;
+
+			if (!statusMap.has(key)) {
+				statusMap.set(key, []);
+			}
+
+			statusMap.get(key)?.push({
+				id: op.id,
+				openingDate: op.openingDate,
+				description: op.description,
+				balance: op.balance,
+
+				status: this.sharedService.captureGroup(op.status, (v) => ({
+					id: v.id,
+					description: v.description,
+				})),
+				contact: this.sharedService.captureGroup(op.contact, (v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v.tutor?.cellphone ?? null,
+				})),
+				contactDate: op.contactDate,
+				client: this.sharedService.captureGroup(op.client, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
+				clientOrigin: op.clientOrigin,
+				user: {
+					id: op.user.id,
+					name: op.user.name,
+				},
+				unit: {
+					id: op.unit.id,
+					companyName: op.unit.companyName,
+					fantasyName: op.unit.fantasyName,
+				},
+
+				activities: op.activities.map((elem) => ({
+					id: elem.id,
+					description: elem.description,
+					executionDate: elem.executionDate,
+					duration: elem.duration,
+					activity: {
+						id: elem.activity.id,
+						description: elem.activity.description,
+						duration: elem.activity.duration,
+					},
+					user: this.sharedService.captureGroup(elem.openingUser, (v) => ({
+						id: v.id,
+						name: v.name,
+					})),
+				})),
+			});
+			// statusMap.set(op.status.description, updatedData);
+		}
+
+		const mappedResult: Record<string, unknown> = {};
+		// eslint-disable-next-line
+		for (const [key, value] of statusMap.entries()) {
+			if (!data.orderBy) {
+				mappedResult[key] = value;
+				continue;
+			}
+
+			const sortedValue = value.sort((a, b) => {
+				if (data.orderBy === "contactDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "openingDate") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis() ||
+						a.contact.name.localeCompare(b.contact.name)
+					);
+				}
+
+				if (data.orderBy === "contact") {
+					qb.orderByRaw(
+						"crm_statuses.description, contact.name, opportunities.contact_date",
+					);
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.contactDate.toMillis() - b.contactDate.toMillis()
+					);
+				}
+
+				if (data.orderBy === "client") {
+					return (
+						a.status.description.localeCompare(b.status.description) ||
+						a.contact.name.localeCompare(b.contact.name) ||
+						a.openingDate.toMillis() - b.openingDate.toMillis()
+					);
+				}
+
+				return 0;
+			});
+
+			mappedResult[key] = sortedValue;
 		}
 
 		return mappedResult;
@@ -624,6 +959,7 @@ export default class OpportunityService {
 		data: {
 			activity?: string;
 			opportunity?: string;
+			clientName?: string;
 		},
 	) {
 		const qb = OpportunityActivity.query()
@@ -641,6 +977,18 @@ export default class OpportunityService {
 		//     .preload('user')
 		//     .preload('unit');
 		// });
+
+		if (data.clientName) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereHas("client", (query) => {
+					query
+						.whereRaw("name ~* ?", [
+							`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+						])
+						.where("type", PatientType.ANIMAL);
+				});
+			});
+		}
 
 		if (data.activity) {
 			qb.where("activity_id", data.activity);
@@ -668,6 +1016,7 @@ export default class OpportunityService {
 			originId?: string;
 			raceId?: string;
 
+			clientOriginItemDescription?: string;
 			description?: string;
 			observation?: string;
 			value?: number;
@@ -691,6 +1040,7 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					clientOriginItemDescription: data.clientOriginItemDescription,
 
 					openingDate: DateTime.now(),
 					contactDate: data.contactDate,
@@ -726,6 +1076,7 @@ export default class OpportunityService {
 			originId?: string;
 			raceId?: string;
 
+			clientOriginItemDescription?: string;
 			description?: string;
 			observation?: string;
 			value?: number;
@@ -756,6 +1107,7 @@ export default class OpportunityService {
 					client_origin_id: data.originId,
 					race_id: data.raceId,
 
+					clientOriginItemDescription: data.clientOriginItemDescription,
 					contactDate: data.contactDate,
 					description: data.description,
 					observation: data.observation,

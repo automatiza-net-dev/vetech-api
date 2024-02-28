@@ -32,6 +32,7 @@ export default class CreateLiftOneTutorForGenericValidator {
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
 		origin: schema.string(),
+		clientOriginItemDescription: schema.string.optional({}, []),
 	});
 
 	/**

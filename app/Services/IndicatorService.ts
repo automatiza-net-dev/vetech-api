@@ -367,6 +367,7 @@ export default class IndicatorService {
 				"subgroups.description",
 			)
 			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
 			.whereIn("bills.business_unit_id", listOfUnits)
 			.where("products.subgroup_id", data.subgroup ?? v4());
 
@@ -1141,7 +1142,7 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA'`,
+				`join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA' and bill_items.deleted_at is null`,
 			)
 			.join(
 				"product_variations",

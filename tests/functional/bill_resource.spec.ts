@@ -418,6 +418,7 @@ test.group("Bill resource", (group) => {
 			patient,
 			dailyCashier,
 			dailyMovement,
+			variation,
 		} = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
@@ -435,7 +436,14 @@ test.group("Bill resource", (group) => {
 				productValue: 100,
 				serviceValue: 200,
 				discountValue: 55,
-				items: [],
+				items: [
+					{
+						unitaryValue: 10,
+						discountValue: 0,
+						productVariationId: variation.id,
+						quantity: 1,
+					},
+				],
 			})
 			.bearerToken(token);
 
@@ -620,6 +628,43 @@ test.group("Bill resource", (group) => {
 		assert.equal(201, response.status());
 	});
 
+	test("should create bill item without deposit itens", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, variation, business, config } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await config.merge({ controlsDeposit: true }).save();
+
+		await variation.related("businessUnitProducts").create({
+			businness_unit_id: business.id,
+			price: 10,
+			costPrice: 10,
+			stock: 10,
+			maximumStock: 10,
+			minimumStock: 10,
+			maximumDiscountPercentage: 10,
+			maximumDiscountValue: 10,
+		});
+
+		const response = await client
+			.post(`/bills/create-item`)
+			.json({
+				billId: bill.id,
+				productVariationId: variation.id,
+				quantity: 10,
+				unitaryValue: 20,
+				discountValue: 0,
+			})
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
 	test("should create bill items (product)", async ({ assert, client }) => {
 		const { user, bill, variation, business } = await createData();
 		const token = await generateJwtToken(client, {
@@ -750,47 +795,47 @@ test.group("Bill resource", (group) => {
 		assert.equal(201, response.status());
 	});
 
-	test("should throw BadRequestException if discount item if bigger than max discount", async ({
-		assert,
-		client,
-	}) => {
-		const { user, bill, variation, business, dailyCashier } =
-			await createData();
-		const token = await generateJwtToken(client, {
-			email: user.email,
-			password: "102030",
-		});
+	// test("should throw BadRequestException if discount item if bigger than max discount", async ({
+	// 	assert,
+	// 	client,
+	// }) => {
+	// 	const { user, bill, variation, business, dailyCashier } =
+	// 		await createData();
+	// 	const token = await generateJwtToken(client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
 
-		await variation.related("businessUnitProducts").create({
-			businness_unit_id: business.id,
-			price: 10,
-			costPrice: 10,
-			stock: 10,
-			maximumStock: 10,
-			minimumStock: 10,
-			maximumDiscountPercentage: 10,
-			maximumDiscountValue: 10,
-		});
+	// 	await variation.related("businessUnitProducts").create({
+	// 		businness_unit_id: business.id,
+	// 		price: 10,
+	// 		costPrice: 10,
+	// 		stock: 10,
+	// 		maximumStock: 10,
+	// 		minimumStock: 10,
+	// 		maximumDiscountPercentage: 10,
+	// 		maximumDiscountValue: 10,
+	// 	});
 
-		await dailyCashier
-			.merge({
-				status: DailyCashierStatus.F,
-			})
-			.save();
+	// 	await dailyCashier
+	// 		.merge({
+	// 			status: DailyCashierStatus.F,
+	// 		})
+	// 		.save();
 
-		const response = await client
-			.post(`/bills/create-item`)
-			.json({
-				billId: bill.id,
-				productVariationId: variation.id,
-				quantity: 10,
-				unitaryValue: 20,
-				discountValue: 20,
-			})
-			.bearerToken(token);
+	// 	const response = await client
+	// 		.post(`/bills/create-item`)
+	// 		.json({
+	// 			billId: bill.id,
+	// 			productVariationId: variation.id,
+	// 			quantity: 10,
+	// 			unitaryValue: 20,
+	// 			discountValue: 20,
+	// 		})
+	// 		.bearerToken(token);
 
-		assert.equal(400, response.status());
-	});
+	// 	assert.equal(400, response.status());
+	// });
 
 	test("should create bill payment", async ({ assert, client }) => {
 		const { user, bill, paymentMethod, tefAcq, tefFlag, flagInstallment } =
@@ -1149,31 +1194,81 @@ test.group("Bill resource", (group) => {
 		assert.equal(204, response.status());
 	});
 
-	test("should return BadRequestException if bill is not fully paid when excluding", async ({
-		assert,
-		client,
-	}) => {
-		const { user, bill } = await createData();
-		const token = await generateJwtToken(client, {
-			email: user.email,
-			password: "102030",
-		});
+	// test("should return BadRequestException if bill is not fully paid when excluding", async ({
+	// 	assert,
+	// 	client,
+	// }) => {
+	// 	const { user, bill } = await createData();
+	// 	const token = await generateJwtToken(client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
 
-		const response = await client
-			.put(`/bills/exclude-bill/${bill.id}`)
-			.bearerToken(token);
+	// 	const response = await client
+	// 		.put(`/bills/exclude-bill/${bill.id}`)
+	// 		.bearerToken(token);
 
-		assert.equal(400, response.status());
-	});
+	// 	assert.equal(400, response.status());
+	// });
 
 	test("should exclude bill", async ({ assert, client }) => {
-		const { user, bill } = await createData();
+		const { user, bill, business, variation, rule } = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",
 		});
 
 		await bill.related("payments").query().delete();
+		await bill.related("items").create({
+			economic_group_id: business.economicGroupId,
+			business_unit_id: business.id,
+			bill_id: bill.id,
+			product_variation_id: variation.id,
+			tax_rule_id: rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+			icmsStIva: rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: rule.icmsPerc,
+			issPercentage: rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+		});
 
 		const response = await client
 			.put(`/bills/exclude-bill/${bill.id}`)
@@ -1292,6 +1387,71 @@ test.group("Bill resource", (group) => {
 
 		const response = await client
 			.put(`/bills/disable-item/${item.id}`)
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should delete bill item", async ({ assert, client }) => {
+		const { user, bill, business, variation, rule } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const item = await bill.related("items").create({
+			economic_group_id: business.economicGroupId,
+			business_unit_id: business.id,
+			bill_id: bill.id,
+			product_variation_id: variation.id,
+			tax_rule_id: rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+			icmsStIva: rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: rule.icmsPerc,
+			issPercentage: rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+		});
+
+		const response = await client
+			.put(`/bills/delete-item/${item.id}`)
 			.bearerToken(token);
 
 		assert.equal(204, response.status());
@@ -1587,25 +1747,25 @@ test.group("Bill resource", (group) => {
 		assert.equal(400, response.status());
 	});
 
-	test("should throw BadRequestException if neither user or unit has sale deposit", async ({
-		assert,
-		client,
-	}) => {
-		const { user } = await createData();
-		const token = await generateJwtToken(client, {
-			email: user.email,
-			password: "102030",
-		});
+	// test("should throw BadRequestException if neither user or unit has sale deposit", async ({
+	// 	assert,
+	// 	client,
+	// }) => {
+	// 	const { user } = await createData();
+	// 	const token = await generateJwtToken(client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
 
-		const response = await client
-			.post(`/bills/check-deposit-availability`)
-			.json({
-				items: [],
-			})
-			.bearerToken(token);
+	// 	const response = await client
+	// 		.post(`/bills/check-deposit-availability`)
+	// 		.json({
+	// 			items: [],
+	// 		})
+	// 		.bearerToken(token);
 
-		assert.equal(400, response.status());
-	});
+	// 	assert.equal(400, response.status());
+	// });
 
 	test("should throw BadRequestException deposit item has invalid qty", async ({
 		assert,

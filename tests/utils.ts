@@ -1,4 +1,5 @@
 import { ApiClient } from "@japa/api-client";
+import Deposit from "App/Models/Deposit";
 import { LicenceType } from "App/Models/Licence";
 import Role from "App/Models/Role";
 import System from "App/Models/System";
@@ -75,7 +76,9 @@ export const userBootstrap = async (system_name = "SUT") => {
 		simple: true,
 	});
 
-	const config = await business.related("unitConfig").create({});
+	const config = await business.related("unitConfig").create({
+		controlsDeposit: false,
+	});
 
 	const licence = await business.related("licences").create({
 		id: v4(),
@@ -92,9 +95,20 @@ export const userBootstrap = async (system_name = "SUT") => {
 		})
 		.save();
 
+	const deposit = await Deposit.create({
+		business_unit_id: business.id,
+		economic_group_id: business.economicGroupId,
+
+		type: "Venda",
+		status: "Ativo",
+		principal: true,
+		description: "Venda",
+	});
+
 	await user.related("roles").create({
 		role_id: role.id,
 		unit_id: business.id,
+		default_sale_deposit_id: deposit.id,
 	});
 
 	return { user, group, business, licence, role, system, config };

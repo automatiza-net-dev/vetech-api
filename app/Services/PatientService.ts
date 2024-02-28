@@ -98,6 +98,82 @@ export default class PatientService {
 		return qb;
 	}
 
+	public async reducedTutorsIndex(unitId: string, data: ISearchTutor) {
+		const group = await this.getEconomicGroup(unitId);
+
+		const qb = group
+			.related("patients")
+			.query()
+			.where("type", PatientType.TUTOR)
+			.preload("tutor", (query) => {
+				query.preload("clientOrigin");
+				query.preload("profession");
+
+				if (data.document) {
+					query.where("document", "ilike", `%${data.document}%`);
+				}
+
+				if (data.phone) {
+					query.where("cellphone", "ilike", `%${data.phone}%`);
+				}
+			})
+			.preload("dependents", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.preload("race", (query) => {
+						query.whereILike("description", `%${data.race ?? ""}`);
+					});
+				});
+			});
+
+		if (data.name) {
+			qb.where("name", "ilike", `%${data.name}%`);
+		}
+
+		if (data.patient) {
+			qb.whereHas("dependents", (query) => {
+				query.where("name", "ilike", `%${data.patient}%`);
+			});
+		}
+
+		const result = await qb;
+
+		return result
+			.filter((model) => {
+				if (data.document && !model.tutor) {
+					return false;
+				}
+				if (data.phone && !model.tutor) {
+					return false;
+				}
+
+				if (data.race && !model.patientAnimal.race) {
+					return false;
+				}
+
+				return true;
+			})
+			.map((elem) => ({
+				id: elem.id,
+				name: elem.name,
+				email: elem.tutor.email,
+				tag: elem.tag,
+				cellphone: elem.tutor.cellphone,
+				createdAt: elem.createdAt,
+				dependents: elem.dependents.map((patient) => ({
+					id: patient.id,
+					name: patient.name,
+					tag: patient.tag,
+					race: this.sharedService.captureGroup(
+						patient?.patientAnimal?.race,
+						(v) => ({
+							id: v.id,
+							description: v.description,
+						}),
+					),
+				})),
+			}));
+	}
+
 	public async tutorsIndex(unitId: string, data: ISearchTutor) {
 		const group = await this.getEconomicGroup(unitId);
 
@@ -166,6 +242,7 @@ export default class PatientService {
 				civilStatus: elem.tutor.civilStatus,
 				nationality: elem.tutor.nationality,
 				clientOriginItemDescription: elem.clientOriginItemDescription,
+				createdAt: elem.createdAt,
 				clientOrigin: this.sharedService.captureGroup(
 					elem.tutor?.clientOrigin,
 					(v) => ({

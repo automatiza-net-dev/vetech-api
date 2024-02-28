@@ -46,6 +46,7 @@ import {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import DepositService from "./DepositService";
 
 interface ISearch {
 	fromBill?: string;
@@ -76,7 +77,10 @@ interface ISearchTax {
 
 @inject()
 export default class BillService {
-	constructor(private sharedService: SharedService) {}
+	constructor(
+		private sharedService: SharedService,
+		private depositService: DepositService,
+	) {}
 
 	isValidNumber(data: number | undefined) {
 		if (!data) {
@@ -212,6 +216,24 @@ export default class BillService {
 				return invalid;
 			}
 
+			// if (data.items.length > 0) {
+			// 	const invalidRows = await this.depositService.validateDepositOperation(
+			// 		trx,
+			// 		authCtx,
+			// 		data.items.map((elem) => ({
+			// 			quantity: elem.quantity,
+			// 			productVariationId: elem.productVariationId,
+			// 		})),
+			// 	);
+			//
+			// 	if (invalidRows.length > 0) {
+			// 		return invalidRows.map((elem) => ({
+			// 			rule: "ItemInexistente",
+			// 			message: `O produto '${elem.description}' não existe no depósito`,
+			// 		}));
+			// 	}
+			// }
+
 			return this.createBillWithTrx(trx, authCtx, data);
 		});
 	}
@@ -303,6 +325,24 @@ export default class BillService {
 				return invalid;
 			}
 
+			// const invalidRows = await this.depositService.validateDepositOperation(
+			// 	trx,
+			// 	authCtx,
+			// 	[
+			// 		{
+			// 			productVariationId: data.productVariationId,
+			// 			quantity: data.quantity,
+			// 		},
+			// 	],
+			// );
+			//
+			// if (invalidRows.length > 0) {
+			// 	return invalidRows.map((elem) => ({
+			// 		rule: "ItemInexistente",
+			// 		message: `O produto '${elem.description}' não existe no depósito`,
+			// 	}));
+			// }
+
 			return this.createBillItemWithTrx(trx, authCtx, data);
 		});
 	}
@@ -322,6 +362,25 @@ export default class BillService {
 			if (invalid.length > 0) {
 				return { valid: false, invalid } as const;
 			}
+
+			// const invalidRows = await this.depositService.validateDepositOperation(
+			// 	trx,
+			// 	authCtx,
+			// 	data.map((elem) => ({
+			// 		productVariationId: elem.productVariationId,
+			// 		quantity: elem.quantity,
+			// 	})),
+			// );
+			//
+			// if (invalidRows.length > 0) {
+			// 	return {
+			// 		valid: false,
+			// 		invalid: invalidRows.map((elem) => ({
+			// 			rule: "ItemInexistente",
+			// 			message: `O produto '${elem.description}' não existe no depósito`,
+			// 		})),
+			// 	} as const;
+			// }
 
 			const tasks = data.map((d) =>
 				this.createBillItemWithTrx(trx, authCtx, d),
@@ -694,6 +753,20 @@ export default class BillService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			await Database.rawQuery(
+				`update deposit_items
+set quantity = quantity + ?
+where deposit_id = ?
+  and product_variation_id = ?`,
+				[
+					billItem.quantity.toNumber(),
+					billItem.deposit_id,
+					billItem.product_variation_id,
+				],
+			)
+				.useTransaction(trx)
+				.exec();
 		});
 	}
 
@@ -1262,7 +1335,10 @@ export default class BillService {
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
-				.preload("payments")
+				.preload("items", (query) => {
+					query.where("status", BillItemStatus.A);
+				})
+				// .preload("payments")
 				.first();
 
 			if (!bill) {
@@ -1314,6 +1390,26 @@ export default class BillService {
 				.useTransaction(trx)
 				.where("bill_id", bill.id)
 				.delete();
+
+			if (bill.items.length > 0) {
+				const tasks = bill.items.map(async (item) => {
+					return Database.rawQuery(
+						`update deposit_items
+set quantity = quantity + ?
+where deposit_id = ?
+  and product_variation_id = ?`,
+						[
+							item.quantity.toNumber(),
+							item.deposit_id,
+							item.product_variation_id,
+						],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+
+				await Promise.all(tasks);
+			}
 		});
 	}
 
@@ -1707,6 +1803,19 @@ export default class BillService {
 			.useTransaction(trx)
 			.save();
 
+		const [{ deposit_id }] = await Database.from("user_unit_roles")
+			.useTransaction(trx)
+			.select(
+				Database.raw(
+					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+			)
+			.where("user_unit_roles.user_id", authCtx.user.id)
+			.where("user_unit_roles.unit_id", authCtx.unit.id);
+
 		const items = data.items.map((item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
@@ -1746,6 +1855,7 @@ export default class BillService {
 					bill_id: bill.id,
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
+					deposit_id,
 
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
@@ -1936,6 +2046,15 @@ export default class BillService {
 			.useTransaction(trx)
 			.save();
 
+		// await this.depositService.updateDepositItems(
+		// 	trx,
+		// 	authCtx,
+		// 	data.items.map((elem) => ({
+		// 		quantity: elem.quantity,
+		// 		productVariationId: elem.productVariationId,
+		// 	})),
+		// );
+
 		return bill;
 	}
 
@@ -2026,6 +2145,19 @@ export default class BillService {
 			);
 		}
 
+		const [{ deposit_id }] = await Database.from("user_unit_roles")
+			.useTransaction(trx)
+			.select(
+				Database.raw(
+					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+				),
+			)
+			.joinRaw(
+				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+			)
+			.where("user_unit_roles.user_id", authCtx.user.id)
+			.where("user_unit_roles.unit_id", authCtx.unit.id);
+
 		const totalValue = data.unitaryValue * data.quantity - data.discountValue;
 		const icmsBase =
 			totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
@@ -2045,6 +2177,7 @@ export default class BillService {
 			product_variation_id: data.productVariationId,
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
+			deposit_id,
 
 			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,

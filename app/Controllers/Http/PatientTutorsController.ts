@@ -36,6 +36,20 @@ export default class PatientTutorsController {
 		return response.ok(patients);
 	}
 
+	public async reducedIndex({ auth, request, response }: HttpContextContract) {
+		const { unit_id } = this.sharedService.extractUser(auth);
+		const qs = request.qs();
+		const patients = await this.service.reducedTutorsIndex(unit_id, {
+			name: qs.name,
+			document: qs.document,
+			patient: qs.patient,
+			phone: qs.phone,
+			race: qs.race,
+		});
+
+		return response.ok(patients);
+	}
+
 	public async notRelated({ auth, params, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 

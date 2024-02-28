@@ -28,6 +28,7 @@ export default class CreateSanclaTutorForGenericValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		cellphone: schema.string(),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

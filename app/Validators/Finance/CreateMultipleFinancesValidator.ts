@@ -20,7 +20,7 @@ export default class CreateMultipleFinancesValidator {
           rules.uuid(),
           rules.exists({ table: 'payment_methods', column: 'id' }),
         ]),
-        document: schema.string(),
+        document: schema.string.optional(),
         historic: schema.string.optional(),
         issueDate: schema.date(),
         expirationDate: schema.date(),

@@ -9,14 +9,14 @@
 */
 
 import { validator } from "@ioc:Adonis/Core/Validator";
-import { validDocument } from "App/Shared";
+import { validate } from "App/Shared";
 
 validator.rule("documento", (value, _, options) => {
 	if (typeof value !== "string") {
 		return;
 	}
 
-	if (!validDocument(value)) {
+	if (!validate(value)) {
 		options.errorReporter.report(
 			options.pointer,
 			"documento",

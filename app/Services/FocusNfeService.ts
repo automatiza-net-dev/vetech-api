@@ -560,6 +560,8 @@ export default class FocusNfeService {
 					origin: "FocusNfeService.getNfe",
 					description: "Schema inválido",
 					error: zodResponse.error.issues,
+				}).catch((err) => {
+					Logger.error("Erro ao criar log", err);
 				});
 
 				// Logger.info(JSON.stringify(data, undefined, 2));
@@ -577,6 +579,8 @@ export default class FocusNfeService {
 				origin: "FocusNfeService.getNfe",
 				description: "Resposta completa",
 				data: zodResponse.data,
+			}).catch((err) => {
+				Logger.error("Erro ao criar log", err);
 			});
 			return {
 				success: true as const,
@@ -589,6 +593,8 @@ export default class FocusNfeService {
 				origin: "FocusNfeService.getNfe",
 				description: "Erro na chamada",
 				error: error.response.data,
+			}).catch((err) => {
+				Logger.error("Erro ao criar log", err);
 			});
 
 			return {
@@ -615,6 +621,8 @@ export default class FocusNfeService {
 					origin: "FocusNfeService.getNfse",
 					description: "Schema inválido",
 					error: zodResponse.error.issues,
+				}).catch((err) => {
+					Logger.error("Erro ao criar log", err);
 				});
 
 				// Logger.info(JSON.stringify(data, undefined, 2));
@@ -627,6 +635,8 @@ export default class FocusNfeService {
 				origin: "FocusNfeService.getNfse",
 				description: "Resposta completa",
 				data: zodResponse.data,
+			}).catch((err) => {
+				Logger.error("Erro ao criar log", err);
 			});
 
 			return zodResponse.data;
@@ -639,6 +649,8 @@ export default class FocusNfeService {
 				origin: "FocusNfeService.getNfse",
 				description: "Chamada inválida",
 				error: error.response.data,
+			}).catch((err) => {
+				Logger.error("Erro ao criar log", err);
 			});
 
 			return null;

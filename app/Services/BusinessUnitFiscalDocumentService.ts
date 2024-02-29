@@ -457,18 +457,18 @@ export default class BusinessUnitFiscalDocumentService {
 				token,
 			);
 
-			await FocusLog.create(
-				{
-					document_id: issuedDocument.id,
-					description: "Emissão de NF-e",
-					origin: "BusinessUnitFiscalDocumentService.authorize",
-					input: nfePayload,
-					data: result,
-				},
-				{
-					client: trx,
-				},
-			);
+			// await FocusLog.create(
+			// 	{
+			// 		document_id: issuedDocument.id,
+			// 		description: "Emissão de NF-e",
+			// 		origin: "BusinessUnitFiscalDocumentService.authorize",
+			// 		input: nfePayload,
+			// 		data: result,
+			// 	},
+			// 	{
+			// 		client: trx,
+			// 	},
+			// );
 
 			// if (!result.success) {
 			// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
@@ -750,19 +750,19 @@ export default class BusinessUnitFiscalDocumentService {
 						.useTransaction(trx)
 						.save();
 
-					await FocusLog.create(
-						{
-							document_id: serviceDocument.id,
-							description: "Emissão de NFS-e",
-							origin: "BusinessUnitFiscalDocumentService.$sendNfse",
-							input: payload,
-							data: result.data,
-							error: result.message,
-						},
-						{
-							client: trx,
-						},
-					);
+					// await FocusLog.create(
+					// 	{
+					// 		document_id: serviceDocument.id,
+					// 		description: "Emissão de NFS-e",
+					// 		origin: "BusinessUnitFiscalDocumentService.$sendNfse",
+					// 		input: payload,
+					// 		data: result.data,
+					// 		error: result.message,
+					// 	},
+					// 	{
+					// 		client: trx,
+					// 	},
+					// );
 
 					return result;
 				}),

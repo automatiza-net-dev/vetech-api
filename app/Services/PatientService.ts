@@ -660,7 +660,19 @@ export default class PatientService {
 			});
 		});
 
-		return result;
+		return result.sort(
+			(a: { date: Date; tag: string }, b: { date: Date; tag: string }) => {
+				if (a.date.getSeconds() > b.date.getSeconds()) {
+					return -1;
+				}
+
+				if (a.date.getSeconds() < b.date.getSeconds()) {
+					return 1;
+				}
+
+				return a.tag.localeCompare(b.tag);
+			},
+		);
 	}
 
 	public async fastStore(unitId: string, data: IFastStorePatient) {

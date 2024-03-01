@@ -2041,7 +2041,7 @@ export default class FinanceService {
 			},
 			{
 				type: "ContasCorrentes",
-				total: this.parseDecimal(fifth.balance) ?? 0,
+				total: this.parseDecimal(fifth?.balance) ?? 0,
 			},
 		];
 	}

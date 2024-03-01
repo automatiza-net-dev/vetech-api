@@ -204,7 +204,7 @@ export default class PatientService {
 			});
 
 		if (data.tutorId) {
-			qb.where("id", data.tutorId);
+			qb.where("patients.id", data.tutorId);
 		}
 
 		if (data.name) {
@@ -214,11 +214,11 @@ export default class PatientService {
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					query.where("name", "ilike", `%${data.patient}%`);
+					query.where("dependents.name", "ilike", `%${data.patient}%`);
 				}
 
 				if (data.patientId) {
-					query.where("id", data.patientId);
+					query.where("dependents.id", data.patientId);
 				}
 			});
 		}

@@ -635,7 +635,7 @@ export default class PatientService {
 				id: sale.id,
 				_type: "sale" as const,
 				tag: sale.tag,
-				date: sale.billDate.toJSDate(),
+				date: sale.billDate,
 				seller: sale.seller.name,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
 				total_value: sale.totalValue,
@@ -651,7 +651,7 @@ export default class PatientService {
 				id: item.id,
 				_type: "budget" as const,
 				tag: item.tag,
-				date: item.budgetDate.toJSDate(),
+				date: item.budgetDate,
 				seller: item.seller ? item.seller.name : authCtx.user.name,
 				client: key === "patient_id" ? item.client?.name : item.user?.name,
 				total_value: item.totalValue,
@@ -661,12 +661,15 @@ export default class PatientService {
 		});
 
 		return result.sort(
-			(a: { date: Date; tag: string }, b: { date: Date; tag: string }) => {
-				if (a.date.getSeconds() > b.date.getSeconds()) {
+			(
+				a: { date: DateTime; tag: string },
+				b: { date: DateTime; tag: string },
+			) => {
+				if (a.date.diff(b.date).milliseconds < 0) {
 					return -1;
 				}
 
-				if (a.date.getSeconds() < b.date.getSeconds()) {
+				if (a.date.diff(b.date).milliseconds > 0) {
 					return 1;
 				}
 

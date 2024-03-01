@@ -1,6 +1,5 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
-import FocusLog from "App/Models/FocusLog";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 
@@ -555,14 +554,14 @@ export default class FocusNfeService {
 
 			const zodResponse = nfeResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				await FocusLog.create({
-					document_id: ref,
-					origin: "FocusNfeService.getNfe",
-					description: "Schema inválido",
-					error: zodResponse.error.issues,
-				}).catch((err) => {
-					Logger.error("Erro ao criar log", err);
-				});
+				// await FocusLog.create({
+				// 	document_id: ref,
+				// 	origin: "FocusNfeService.getNfe",
+				// 	description: "Schema inválido",
+				// 	error: zodResponse.error.issues,
+				// }).catch((err) => {
+				// 	Logger.error("Erro ao criar log", err);
+				// });
 
 				// Logger.info(JSON.stringify(data, undefined, 2));
 				//
@@ -574,28 +573,28 @@ export default class FocusNfeService {
 				};
 			}
 
-			await FocusLog.create({
-				document_id: ref,
-				origin: "FocusNfeService.getNfe",
-				description: "Resposta completa",
-				data: zodResponse.data,
-			}).catch((err) => {
-				Logger.error("Erro ao criar log", err);
-			});
+			// await FocusLog.create({
+			// 	document_id: ref,
+			// 	origin: "FocusNfeService.getNfe",
+			// 	description: "Resposta completa",
+			// 	data: zodResponse.data,
+			// }).catch((err) => {
+			// 	Logger.error("Erro ao criar log", err);
+			// });
 			return {
 				success: true as const,
 				data: zodResponse.data,
 			};
 		} catch (error) {
 			// Logger.error(JSON.stringify(error.response.data, null, 2));
-			await FocusLog.create({
-				document_id: ref,
-				origin: "FocusNfeService.getNfe",
-				description: "Erro na chamada",
-				error: error.response.data,
-			}).catch((err) => {
-				Logger.error("Erro ao criar log", err);
-			});
+			// await FocusLog.create({
+			// 	document_id: ref,
+			// 	origin: "FocusNfeService.getNfe",
+			// 	description: "Erro na chamada",
+			// 	error: error.response.data,
+			// }).catch((err) => {
+			// 	Logger.error("Erro ao criar log", err);
+			// });
 
 			return {
 				success: false as const,
@@ -616,42 +615,42 @@ export default class FocusNfeService {
 
 			const zodResponse = nfseResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				await FocusLog.create({
-					document_id: ref,
-					origin: "FocusNfeService.getNfse",
-					description: "Schema inválido",
-					error: zodResponse.error.issues,
-				}).catch((err) => {
-					Logger.error("Erro ao criar log", err);
-				});
+				// await FocusLog.create({
+				// 	document_id: ref,
+				// 	origin: "FocusNfeService.getNfse",
+				// 	description: "Schema inválido",
+				// 	error: zodResponse.error.issues,
+				// }).catch((err) => {
+				// 	Logger.error("Erro ao criar log", err);
+				// });
 
 				// Logger.info(JSON.stringify(data, undefined, 2));
 				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return null;
 			}
 
-			await FocusLog.create({
-				document_id: ref,
-				origin: "FocusNfeService.getNfse",
-				description: "Resposta completa",
-				data: zodResponse.data,
-			}).catch((err) => {
-				Logger.error("Erro ao criar log", err);
-			});
+			// await FocusLog.create({
+			// 	document_id: ref,
+			// 	origin: "FocusNfeService.getNfse",
+			// 	description: "Resposta completa",
+			// 	data: zodResponse.data,
+			// }).catch((err) => {
+			// 	Logger.error("Erro ao criar log", err);
+			// });
 
 			return zodResponse.data;
 		} catch (error) {
 			// type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			// Logger.error((error as T).response?.data.mensagem ?? "");
 
-			await FocusLog.create({
-				document_id: ref,
-				origin: "FocusNfeService.getNfse",
-				description: "Chamada inválida",
-				error: error.response.data,
-			}).catch((err) => {
-				Logger.error("Erro ao criar log", err);
-			});
+			// await FocusLog.create({
+			// 	document_id: ref,
+			// 	origin: "FocusNfeService.getNfse",
+			// 	description: "Chamada inválida",
+			// 	error: error.response.data,
+			// }).catch((err) => {
+			// 	Logger.error("Erro ao criar log", err);
+			// });
 
 			return null;
 		}

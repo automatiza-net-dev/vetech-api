@@ -665,11 +665,11 @@ export default class PatientService {
 				a: { date: DateTime; tag: string },
 				b: { date: DateTime; tag: string },
 			) => {
-				if (a.date.diff(b.date).milliseconds < 0) {
+				if (a.date.diff(b.date).milliseconds > 0) {
 					return -1;
 				}
 
-				if (a.date.diff(b.date).milliseconds > 0) {
+				if (a.date.diff(b.date).milliseconds < 0) {
 					return 1;
 				}
 

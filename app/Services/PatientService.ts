@@ -602,13 +602,15 @@ export default class PatientService {
 			.where(key, patient.id)
 			.preload("payments")
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user");
+			.preload(key === "patient_id" ? "client" : "user")
+			.orderByRaw(`bill_date desc, tag desc`);
 
 		const budgets = await Budget.query()
 			.where(key, patient.id)
 			.where("status", BudgetStatus.A)
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user");
+			.preload(key === "patient_id" ? "client" : "user")
+			.orderByRaw(`budget_date desc, tag desc`);
 
 		const result: Array<unknown> = [];
 

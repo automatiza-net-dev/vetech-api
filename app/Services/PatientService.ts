@@ -214,7 +214,7 @@ export default class PatientService {
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					query.where("dependents.name", "ilike", `%${data.patient}%`);
+					query.where("name", "ilike", `%${data.patient}%`);
 				}
 
 				if (data.patientId) {

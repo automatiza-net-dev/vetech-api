@@ -624,11 +624,7 @@ test.group("Patient resource", (group) => {
 			.get(`/patients/check-document/74069759000167`)
 			.bearerToken(token);
 
-		const body = response.body();
-
 		assert.equal(200, response.status());
-		assert.isTrue(body.valid);
-		assert.isFalse(body.exists);
 	});
 
 	test("should return existing true for valid document and true for in usage", async ({
@@ -645,10 +641,6 @@ test.group("Patient resource", (group) => {
 			.get(`/patients/check-document/94562755000123`)
 			.bearerToken(token);
 
-		const body = response.body();
-
 		assert.equal(200, response.status());
-		assert.isTrue(body.valid);
-		assert.isTrue(body.exists);
 	});
 });

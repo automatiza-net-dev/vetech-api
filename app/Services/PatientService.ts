@@ -55,6 +55,8 @@ interface ISearchTutor {
 	phone?: string;
 	patient?: string;
 	race?: string;
+	tutorId?: string;
+	patientId?: string;
 }
 
 interface ISearchSupplier {
@@ -201,13 +203,23 @@ export default class PatientService {
 				});
 			});
 
+		if (data.tutorId) {
+			qb.where("id", data.tutorId);
+		}
+
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
 
-		if (data.patient) {
+		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
-				query.where("name", "ilike", `%${data.patient}%`);
+				if (data.patient) {
+					query.where("name", "ilike", `%${data.patient}%`);
+				}
+
+				if (data.patientId) {
+					query.where("id", data.patientId);
+				}
 			});
 		}
 

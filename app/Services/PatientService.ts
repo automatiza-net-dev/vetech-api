@@ -218,7 +218,7 @@ export default class PatientService {
 				}
 
 				if (data.patientId) {
-					query.where("dependents.id", data.patientId);
+					query.where("holder_dependents.dependent_id", data.patientId);
 				}
 			});
 		}

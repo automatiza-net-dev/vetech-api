@@ -13,6 +13,7 @@ import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
 import Patient, { PatientGender, PatientType } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
+import { ScheduleStatusType } from "App/Models/ScheduleStatus";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
@@ -770,6 +771,9 @@ export default class OpportunityService {
 			.preload("user")
 			.preload("unit")
 			.preload("reason")
+			.preload("schedule", (query) => {
+				query.select("id", "start_hour");
+			})
 			.preload("activities", (query) => {
 				query.where("status", "Aberta");
 
@@ -881,6 +885,10 @@ export default class OpportunityService {
 					companyName: op.unit.companyName,
 					fantasyName: op.unit.fantasyName,
 				},
+				schedule: this.sharedService.captureGroup(op.schedule, (v) => ({
+					id: v.id,
+					startHour: v.startHour,
+				})),
 
 				activities: op.activities.map((elem) => ({
 					id: elem.id,
@@ -1685,6 +1693,54 @@ export default class OpportunityService {
 				  }
 				: null,
 		}));
+	}
+
+	public async searchSyncableSchedules(
+		authCtx: AuthContext,
+		data: {
+			group?: string;
+			client?: string;
+			contact?: string;
+		},
+	) {
+		if (!data.client) {
+			throw new BadRequestException("Cliente não informado", 400, "E_ERR");
+		}
+
+		if (!data.contact) {
+			throw new BadRequestException("Contato não informado", 400, "E_ERR");
+		}
+
+		const qb = Database.from("schedules")
+			.select(
+				"schedules.id",
+				"schedules.start_hour",
+				"schedules.major_complaint",
+				"schedule_statuses.description",
+			)
+			.joinRaw(
+				`join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
+			)
+			.joinRaw(
+				`join business_units on schedules.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+			)
+			.where("economic_groups.id", data.group ?? authCtx.group.id)
+			.whereNull("schedules.deleted_at")
+			.whereNull("schedules.opportunity_id")
+			.whereNot("schedule_statuses.type", "CANC" as ScheduleStatusType)
+			.whereRaw(
+				`
+              (
+                (schedules.patient_id = ?) or
+                (schedules.holder_id = ? and schedules.holder_id is null)
+              )`,
+				[data.client, data.contact],
+			);
+
+		return qb;
 	}
 
 	public async syncSchedules(

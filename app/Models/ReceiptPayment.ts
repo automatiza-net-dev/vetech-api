@@ -6,8 +6,8 @@ import TefFlag from "App/Models/TefFlag";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
-export const ReceiptPaymentStatus = ["Ativo", "Excluido"] as const;
-export type TReceiptPaymentStatus = typeof ReceiptPaymentStatus[number];
+export const ReceiptPaymentStatus = ["Ativo", "Excluido", "Baixado"] as const;
+export type TReceiptPaymentStatus = (typeof ReceiptPaymentStatus)[number];
 
 export default class ReceiptPayment extends BaseModel {
 	@column({ isPrimary: true })
@@ -50,7 +50,7 @@ export default class ReceiptPayment extends BaseModel {
 	public expirationDate: DateTime;
 
 	@column()
-	public status: typeof ReceiptPaymentStatus[number];
+	public status: (typeof ReceiptPaymentStatus)[number];
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

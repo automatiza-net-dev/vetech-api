@@ -24,14 +24,9 @@ export default class PatientTutorsController {
 
 	public async index({ auth, request, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
+
 		const qs = request.qs();
-		const patients = await this.service.tutorsIndex(unit_id, {
-			name: qs.name,
-			document: qs.document,
-			patient: qs.patient,
-			phone: qs.phone,
-			race: qs.race,
-		});
+		const patients = await this.service.tutorsIndex(unit_id, qs);
 
 		return response.ok(patients);
 	}

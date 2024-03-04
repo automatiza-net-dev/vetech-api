@@ -1,6 +1,5 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
-import FocusLog from "App/Models/FocusLog";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 

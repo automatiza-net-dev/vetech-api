@@ -144,6 +144,8 @@ export default class BillService {
 			});
 		});
 
+		qb.orderByRaw(`bill_date desc, tag desc`);
+
 		return qb;
 	}
 

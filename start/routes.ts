@@ -861,6 +861,19 @@ Route.group(() => {
 		"PaymentMethodsController.createPaymentMethodFlag",
 	);
 
+	Route.get(
+		"/list-checking-accounts",
+		"PaymentMethodsController.listBusinessUnitCheckingAccountPaymentMethod",
+	);
+	Route.post(
+		"/create-checking-accounts",
+		"PaymentMethodsController.createBusinessUnitCheckingAccountPaymentMethod",
+	);
+	Route.put(
+		"/update-checking-accounts",
+		"PaymentMethodsController.updateBusinessUnitCheckingAccountPaymentMethod",
+	);
+
 	Route.put("/update/:id", "PaymentMethodsController.updatePaymentMethod");
 	Route.put(
 		"/update-flag/:id",

@@ -55,6 +55,8 @@ interface ISearchTutor {
 	phone?: string;
 	patient?: string;
 	race?: string;
+	tutorId?: string;
+	patientId?: string;
 }
 
 interface ISearchSupplier {
@@ -201,13 +203,23 @@ export default class PatientService {
 				});
 			});
 
+		if (data.tutorId) {
+			qb.where("patients.id", data.tutorId);
+		}
+
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
 
-		if (data.patient) {
+		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
-				query.where("name", "ilike", `%${data.patient}%`);
+				if (data.patient) {
+					query.where("name", "ilike", `%${data.patient}%`);
+				}
+
+				if (data.patientId) {
+					query.where("holder_dependents.dependent_id", data.patientId);
+				}
 			});
 		}
 
@@ -590,13 +602,15 @@ export default class PatientService {
 			.where(key, patient.id)
 			.preload("payments")
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user");
+			.preload(key === "patient_id" ? "client" : "user")
+			.orderByRaw(`bill_date desc, tag desc`);
 
 		const budgets = await Budget.query()
 			.where(key, patient.id)
 			.where("status", BudgetStatus.A)
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user");
+			.preload(key === "patient_id" ? "client" : "user")
+			.orderByRaw(`budget_date desc, tag desc`);
 
 		const result: Array<unknown> = [];
 
@@ -621,7 +635,7 @@ export default class PatientService {
 				id: sale.id,
 				_type: "sale" as const,
 				tag: sale.tag,
-				date: sale.billDate.toJSDate(),
+				date: sale.billDate,
 				seller: sale.seller.name,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
 				total_value: sale.totalValue,
@@ -637,7 +651,7 @@ export default class PatientService {
 				id: item.id,
 				_type: "budget" as const,
 				tag: item.tag,
-				date: item.budgetDate.toJSDate(),
+				date: item.budgetDate,
 				seller: item.seller ? item.seller.name : authCtx.user.name,
 				client: key === "patient_id" ? item.client?.name : item.user?.name,
 				total_value: item.totalValue,
@@ -646,7 +660,22 @@ export default class PatientService {
 			});
 		});
 
-		return result;
+		return result.sort(
+			(
+				a: { date: DateTime; tag: string },
+				b: { date: DateTime; tag: string },
+			) => {
+				if (a.date.diff(b.date).milliseconds > 0) {
+					return -1;
+				}
+
+				if (a.date.diff(b.date).milliseconds < 0) {
+					return 1;
+				}
+
+				return a.tag.localeCompare(b.tag);
+			},
+		);
 	}
 
 	public async fastStore(unitId: string, data: IFastStorePatient) {

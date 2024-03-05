@@ -222,11 +222,11 @@ export default class BillService {
 				const key = `bill_item_` + Math.random().toString(36).substring(7);
 
 				await Database.rawQuery(
-					`create table ? (
+					`create table ${key} (
     idVariacao uuid,
     quantidade int
 );`,
-					[key],
+					[],
 				)
 					.useTransaction(trx)
 					.exec();
@@ -276,7 +276,7 @@ export default class BillService {
 				// 	[deposit_id],
 				// );
 
-				await Database.rawQuery(`drop table ?`, [key])
+				await Database.rawQuery(`drop table ${key}`, [])
 					.useTransaction(trx)
 					.exec();
 

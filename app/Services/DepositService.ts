@@ -522,14 +522,14 @@ where deposit_id = ?
 		authCtx: AuthContext,
 		data: { productVariationId: string; quantity: number }[],
 	) {
-		await Database.rawQuery(
-			`create temporary table if not exists bill_item_temp(
-    idVariacao uuid,
-    quantidade int
-) on commit drop;`,
-		)
-			.useTransaction(trx)
-			.exec();
+		// 		await Database.rawQuery(
+		// 			`create temporary table if not exists bill_item_temp(
+		//     idVariacao uuid,
+		//     quantidade int
+		// ) on commit drop;`,
+		// 		)
+		// 			.useTransaction(trx)
+		// 			.exec();
 
 		if (!authCtx.unit.unitConfig.controlsDeposit) {
 			return [];

@@ -219,11 +219,14 @@ export default class BillService {
 			}
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
+				const key = `bill_item_` + Math.random().toString(36).substring(7);
+
 				await Database.rawQuery(
-					`create temporary table if not exists bill_item_temp(
+					`create temporary table ?(
     idVariacao uuid,
     quantidade int
 );`,
+					[key],
 				)
 					.useTransaction(trx)
 					.exec();
@@ -242,7 +245,8 @@ export default class BillService {
 					.where("user_unit_roles.unit_id", authCtx.unit.id);
 
 				const insertTasks = data.items.map((elem) => {
-					return Database.rawQuery("insert into bill_item_temp values (?, ?)", [
+					return Database.rawQuery("insert into ? values (?, ?)", [
+						key,
 						elem.productVariationId,
 						elem.quantity,
 					])
@@ -251,7 +255,7 @@ export default class BillService {
 				});
 				await Promise.all(insertTasks);
 
-				const rows = await Database.from("bill_item_temp")
+				const rows = await Database.from(key)
 					.select(
 						Database.raw(
 							"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",
@@ -272,7 +276,7 @@ export default class BillService {
 				// 	[deposit_id],
 				// );
 
-				await Database.rawQuery(`drop table bill_item_temp`)
+				await Database.rawQuery(`drop table ?`, [key])
 					.useTransaction(trx)
 					.exec();
 

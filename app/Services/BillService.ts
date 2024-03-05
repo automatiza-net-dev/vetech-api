@@ -245,8 +245,7 @@ export default class BillService {
 					.where("user_unit_roles.unit_id", authCtx.unit.id);
 
 				const insertTasks = data.items.map((elem) => {
-					return Database.rawQuery("insert into ? values (?, ?)", [
-						key,
+					return Database.rawQuery(`insert into ${key} values (?, ?)`, [
 						elem.productVariationId,
 						elem.quantity,
 					])

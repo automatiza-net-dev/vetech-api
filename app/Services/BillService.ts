@@ -262,15 +262,15 @@ export default class BillService {
 					)
 					.joinRaw(
 						"join products on product_variations.product_id = products.id",
-					)
-					.whereRaw(
-						`bill_item_temp.idVariacao not in (select di.product_variation_id
-                             from deposit_items di
-                             where deposit_id = ?
-                               and di.product_variation_id = bill_item_temp.idVariacao
-                               and di.quantity > bill_item_temp.quantidade)`,
-						[deposit_id],
 					);
+				// .whereRaw(
+				// 	`bill_item_temp.idVariacao not in (select di.product_variation_id
+				//                         from deposit_items di
+				//                         where deposit_id = ?
+				//                           and di.product_variation_id = bill_item_temp.idVariacao
+				//                           and di.quantity > bill_item_temp.quantidade)`,
+				// 	[deposit_id],
+				// );
 
 				await Database.rawQuery(`drop table bill_item_temp`)
 					.useTransaction(trx)

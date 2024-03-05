@@ -218,18 +218,66 @@ export default class BillService {
 				return invalid;
 			}
 
-			if (data.items.length > 0) {
-				const invalidRows = await this.depositService.validateDepositOperation(
-					trx,
-					authCtx,
-					data.items.map((elem) => ({
-						quantity: elem.quantity,
-						productVariationId: elem.productVariationId,
-					})),
-				);
+			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
+				await Database.rawQuery(
+					`create temporary table if not exists bill_item_temp(
+    idVariacao uuid,
+    quantidade int
+);`,
+				)
+					.useTransaction(trx)
+					.exec();
 
-				if (invalidRows.length > 0) {
-					return invalidRows.map((elem) => ({
+				const [{ deposit_id }] = await Database.from("user_unit_roles")
+					.useTransaction(trx)
+					.select(
+						Database.raw(
+							"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+						),
+					)
+					.joinRaw(
+						"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+					)
+					.where("user_unit_roles.user_id", authCtx.user.id)
+					.where("user_unit_roles.unit_id", authCtx.unit.id);
+
+				const insertTasks = data.items.map((elem) => {
+					return Database.rawQuery("insert into bill_item_temp values (?, ?)", [
+						elem.productVariationId,
+						elem.quantity,
+					])
+						.useTransaction(trx)
+						.exec();
+				});
+				await Promise.all(insertTasks);
+
+				const rows = await Database.from("bill_item_temp")
+					.select(
+						Database.raw(
+							"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",
+						),
+					)
+					.joinRaw(
+						"join product_variations on bill_item_temp.idVariacao = product_variations.id",
+					)
+					.joinRaw(
+						"join products on product_variations.product_id = products.id",
+					)
+					.whereRaw(
+						`bill_item_temp.idVariacao not in (select di.product_variation_id
+                             from deposit_items di
+                             where deposit_id = ?
+                               and di.product_variation_id = bill_item_temp.idVariacao
+                               and di.quantity > bill_item_temp.quantidade)`,
+						[deposit_id],
+					);
+
+				await Database.rawQuery(`drop table bill_item_temp`)
+					.useTransaction(trx)
+					.exec();
+
+				if (rows.length > 0) {
+					return rows.map((elem) => ({
 						rule: "ItemInexistente",
 						message: `O produto '${elem.description}' não existe no depósito`,
 					}));

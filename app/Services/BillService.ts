@@ -204,91 +204,96 @@ export default class BillService {
 		//   );
 		// }
 
-		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx.unit.id,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-				})),
-			);
-			if (invalid.length > 0) {
-				return invalid;
-			}
+		const conn = Database.connection("bills");
+		return Database.transaction(
+			async (trx) => {
+				const invalid = await this.sharedService.checkDiscount(
+					trx,
+					authCtx.unit.id,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+					})),
+				);
+				if (invalid.length > 0) {
+					return invalid;
+				}
 
-			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
-				const key = `bill_item_` + Math.random().toString(36).substring(7);
+				if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
+					const key = `bill_item_` + Math.random().toString(36).substring(7);
 
-				await Database.rawQuery(
-					`create table ${key} (
+					await Database.rawQuery(
+						`create table ${key} (
     idVariacao uuid,
     quantidade int
 );`,
-					[],
-				)
-					.useTransaction(trx)
-					.exec();
-
-				const [{ deposit_id }] = await Database.from("user_unit_roles")
-					.useTransaction(trx)
-					.select(
-						Database.raw(
-							"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-						),
+						[],
 					)
-					.joinRaw(
-						"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-					)
-					.where("user_unit_roles.user_id", authCtx.user.id)
-					.where("user_unit_roles.unit_id", authCtx.unit.id);
-
-				const insertTasks = data.items.map((elem) => {
-					return Database.rawQuery(`insert into ${key} values (?, ?)`, [
-						elem.productVariationId,
-						elem.quantity,
-					])
 						.useTransaction(trx)
 						.exec();
-				});
-				await Promise.all(insertTasks);
 
-				const rows = await Database.from(key)
-					.select(
-						Database.raw(
-							`products.description, ${key}.idVariacao as id_variacao, ${key}.quantidade, product_variations.barcode, product_variations.id`,
-						),
-					)
-					.joinRaw(
-						`join product_variations on ${key}.idVariacao = product_variations.id`,
-					)
-					.joinRaw(
-						`join products on product_variations.product_id = products.id`,
-					)
-					.whereRaw(
-						`${key}.idVariacao not in (select di.product_variation_id
+					const [{ deposit_id }] = await Database.from("user_unit_roles")
+						.select(
+							Database.raw(
+								"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+							),
+						)
+						.joinRaw(
+							"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+						)
+						.where("user_unit_roles.user_id", authCtx.user.id)
+						.where("user_unit_roles.unit_id", authCtx.unit.id);
+
+					const insertTasks = data.items.map((elem) => {
+						return Database.rawQuery(`insert into ${key} values (?, ?)`, [
+							elem.productVariationId,
+							elem.quantity,
+						])
+							.useTransaction(trx)
+							.exec();
+					});
+					await Promise.all(insertTasks);
+
+					const rows = await Database.from(key)
+						.select(
+							Database.raw(
+								`products.description, ${key}.idVariacao as id_variacao, ${key}.quantidade, product_variations.barcode, product_variations.id`,
+							),
+						)
+						.joinRaw(
+							`join product_variations on ${key}.idVariacao = product_variations.id`,
+						)
+						.joinRaw(
+							`join products on product_variations.product_id = products.id`,
+						)
+						.whereRaw(
+							`${key}.idVariacao not in (select di.product_variation_id
 				                        from deposit_items di
 				                        where deposit_id = ?
 				                          and di.product_variation_id = ${key}.idVariacao
 				                          and di.quantity > ${key}.quantidade)`,
-						[deposit_id],
-					);
+							[deposit_id],
+						);
 
-				await Database.rawQuery(`drop table ${key}`, [])
-					.useTransaction(trx)
-					.exec();
+					await Database.rawQuery(`drop table ${key}`, [])
+						.useTransaction(trx)
+						.exec();
 
-				if (rows.length > 0) {
-					return rows.map((elem) => ({
-						rule: "ItemInexistente",
-						message: `O produto '${elem.description}' não existe no depósito`,
-					}));
+					if (rows.length > 0) {
+						return rows.map((elem) => ({
+							rule: "ItemInexistente",
+							message: `O produto '${elem.description}' não existe no depósito`,
+						}));
+					}
 				}
-			}
 
-			return this.createBillWithTrx(trx, authCtx, data);
-		});
+				return this.createBillWithTrx(trx, authCtx, data);
+			},
+			{
+				isolationLevel: "serializable",
+			},
+		);
 	}
 
 	async createBills(authCtx: AuthContext, data: ICreateBillData[]) {

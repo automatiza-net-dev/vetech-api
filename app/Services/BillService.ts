@@ -257,23 +257,23 @@ export default class BillService {
 				const rows = await Database.from(key)
 					.select(
 						Database.raw(
-							"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",
+							`products.description, ${key}.idVariacao as id_variacao, ${key}.quantidade, product_variations.barcode, product_variations.id`,
 						),
 					)
 					.joinRaw(
-						"join product_variations on bill_item_temp.idVariacao = product_variations.id",
+						`join product_variations on ${key}.idVariacao = product_variations.id`,
 					)
 					.joinRaw(
-						"join products on product_variations.product_id = products.id",
+						`join products on product_variations.product_id = products.id`,
+					)
+					.whereRaw(
+						`${key}.idVariacao not in (select di.product_variation_id
+				                        from deposit_items di
+				                        where deposit_id = ?
+				                          and di.product_variation_id = ${key}.idVariacao
+				                          and di.quantity > ${key}.quantidade)`,
+						[deposit_id],
 					);
-				// .whereRaw(
-				// 	`bill_item_temp.idVariacao not in (select di.product_variation_id
-				//                         from deposit_items di
-				//                         where deposit_id = ?
-				//                           and di.product_variation_id = bill_item_temp.idVariacao
-				//                           and di.quantity > bill_item_temp.quantidade)`,
-				// 	[deposit_id],
-				// );
 
 				await Database.rawQuery(`drop table ${key}`, [])
 					.useTransaction(trx)

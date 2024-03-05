@@ -222,7 +222,7 @@ export default class BillService {
 				const key = `bill_item_` + Math.random().toString(36).substring(7);
 
 				await Database.rawQuery(
-					`create temporary table ?(
+					`create table ? (
     idVariacao uuid,
     quantidade int
 );`,

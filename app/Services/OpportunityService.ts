@@ -1064,6 +1064,16 @@ export default class OpportunityService {
 				},
 			);
 
+			if (data.clientId && data.clientOriginItemDescription) {
+				await Patient.query()
+					.update({
+						client_origin_item_description: data.clientOriginItemDescription,
+					})
+					.where("id", data.clientId)
+					.useTransaction(trx)
+					.exec();
+			}
+
 			await this.createLog(model, trx);
 		});
 	}

@@ -621,7 +621,6 @@ where deposit_id = ?
 		await Promise.all(insertTasks);
 
 		const rows = await Database.from("bill_item_temp")
-			.debug(true)
 			.select(
 				Database.raw(
 					"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",

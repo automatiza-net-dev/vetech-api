@@ -419,11 +419,14 @@ test.group("Bill resource", (group) => {
 			dailyCashier,
 			dailyMovement,
 			variation,
+			config,
 		} = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",
 		});
+
+		await config.merge({ controlsDeposit: true }).save();
 
 		const response = await client
 			.post(`/bills/create`)
@@ -446,6 +449,8 @@ test.group("Bill resource", (group) => {
 				],
 			})
 			.bearerToken(token);
+
+		console.log(response.body());
 
 		assert.equal(201, response.status());
 	});

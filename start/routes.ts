@@ -1306,6 +1306,10 @@ Route.group(() => {
 		"/search-syncable-opportunities",
 		"OpportunitiesController.searchSyncableOpportunities",
 	);
+	Route.get(
+		"/search-syncable-schedules",
+		"OpportunitiesController.searchSyncableSchedules",
+	);
 	Route.post("/sync-schedule", "OpportunitiesController.syncSchedule");
 
 	Route.post("/", "OpportunitiesController.store");

@@ -21,6 +21,7 @@ import ContactSubject from "./ContactSubject";
 import ContactType from "./ContactType";
 import Race from "./Race";
 import Reason from "./Reason";
+import Schedule from "./Schedule";
 
 export const OpportunityBalance = ["Aberta", "Perda", "Ganho"] as const;
 export type TOpportunityBalance = (typeof OpportunityBalance)[number];
@@ -243,6 +244,11 @@ export default class Opportunity extends BaseModel {
 		serializeAs: null,
 	})
 	public schedule_id: string;
+
+	@belongsTo(() => Schedule, {
+		foreignKey: "schedule_id",
+	})
+	public schedule: BelongsTo<typeof Schedule>;
 
 	@column({
 		serializeAs: null,

@@ -522,18 +522,18 @@ where deposit_id = ?
 		authCtx: AuthContext,
 		data: { productVariationId: string; quantity: number }[],
 	) {
-		await Database.rawQuery(
-			`create temporary table if not exists bill_item_temp(
-    idVariacao uuid,
-    quantidade int
-) on commit drop;`,
-		)
-			.useTransaction(trx)
-			.exec();
-
 		if (!authCtx.unit.unitConfig.controlsDeposit) {
 			return [];
 		}
+
+		await Database.rawQuery(
+			`create temporary table if not exists bill_item_temp(
+		    idVariacao uuid,
+		    quantidade int
+		);`,
+		)
+			.useTransaction(trx)
+			.exec();
 
 		const [{ deposit_id }] = await Database.from("user_unit_roles")
 			.useTransaction(trx)
@@ -573,6 +573,10 @@ where deposit_id = ?
 		)
 			.useTransaction(trx)
 			.exec();
+
+		await Database.rawQuery(`drop table bill_item_temp`)
+			.useTransaction(trx)
+			.exec();
 	}
 
 	public async validateDepositOperation(
@@ -580,18 +584,18 @@ where deposit_id = ?
 		authCtx: AuthContext,
 		data: { productVariationId: string; quantity: number }[],
 	) {
+		if (!authCtx.unit.unitConfig.controlsDeposit) {
+			return [];
+		}
+
 		await Database.rawQuery(
 			`create temporary table if not exists bill_item_temp(
     idVariacao uuid,
     quantidade int
-) on commit drop;`,
+);`,
 		)
 			.useTransaction(trx)
 			.exec();
-
-		if (!authCtx.unit.unitConfig.controlsDeposit) {
-			return [];
-		}
 
 		const [{ deposit_id }] = await Database.from("user_unit_roles")
 			.useTransaction(trx)
@@ -634,6 +638,10 @@ where deposit_id = ?
                                and di.quantity > bill_item_temp.quantidade)`,
 				[deposit_id],
 			);
+
+		await Database.rawQuery(`drop table bill_item_temp`)
+			.useTransaction(trx)
+			.exec();
 
 		return rows.map((elem) => ({
 			description: elem.description,

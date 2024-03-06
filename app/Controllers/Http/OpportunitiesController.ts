@@ -262,6 +262,20 @@ export default class OpportunitiesController {
 		return response.ok(result);
 	}
 
+	public async searchSyncableSchedules({
+		response,
+		auth,
+		request,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchSyncableSchedules(
+			authCtx,
+			request.qs(),
+		);
+		return response.ok(result);
+	}
+
 	public async syncSchedule({ response, auth, request }: HttpContextContract) {
 		const payload = await request.validate(SyncScheduleValidator);
 		const authCtx = await this.sharedService.getAuthContext(auth);

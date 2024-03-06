@@ -12,6 +12,7 @@ import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import PatientFactory from "Database/factories/PatientFactory";
 import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 import { generateJwtToken, userBootstrap } from "../utils";
 
@@ -574,5 +575,24 @@ test.group("Opportunity resource", (group) => {
 			.bearerToken(token);
 
 		props.assert.equal(response.status(), 204);
+	});
+
+	test("should search syncheable schedules", async (props) => {
+		const { user } = await createData();
+
+		const token = await generateJwtToken(props.client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const params = new URLSearchParams();
+		params.append("client", v4());
+		params.append("contact", v4());
+
+		const response = await props.client
+			.get(`/opportunities/search-syncable-schedules?${params.toString()}`)
+			.bearerToken(token);
+
+		props.assert.equal(response.status(), 200);
 	});
 });

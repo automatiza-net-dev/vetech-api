@@ -494,6 +494,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "DocumentTemplatesController.index");
+	Route.post("/upload", "DocumentTemplatesController.uploadFile");
 	Route.post("/", "DocumentTemplatesController.store");
 	Route.get("/:id", "DocumentTemplatesController.show");
 	Route.put("/:id", "DocumentTemplatesController.update");

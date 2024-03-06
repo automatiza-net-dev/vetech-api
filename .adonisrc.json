@@ -33,7 +33,8 @@
     "@adonisjs/auth",
     "@adonisjs/mail",
     "@adonisjs/view",
-    "@adonisjs/i18n"
+    "@adonisjs/i18n",
+    "@adonisjs/drive-s3"
   ],
   "aceProviders": [
     "@adonisjs/repl"

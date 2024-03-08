@@ -8,6 +8,10 @@ import IDocumentTemplateData from "Contracts/interfaces/IDocumentTemplateData";
 import Drive from "@ioc:Adonis/Core/Drive";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { DateTime } from "luxon";
+import Env from "@ioc:Adonis/Core/Env";
+import Application from "@ioc:Adonis/Core/Application";
+import { PDFEngine } from "chromiumly";
 
 interface ISearch {
 	description?: string;
@@ -54,6 +58,61 @@ export default class DocumentTemplateService {
 		}
 
 		return template;
+	}
+
+	public async renderPdf(authCtx: AuthContext, id: string) {
+		const template = await DocumentTemplate.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("system_id", authCtx.system.id)
+			.where("id", id)
+			.first();
+
+		if (!template) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
+
+		if (template.type !== "pdf") {
+			throw new BadRequestException(
+				"Apenas documentos para PDF são válidos",
+				400,
+				"",
+			);
+		}
+
+		if (!template.sourceFile) {
+			throw new BadRequestException(
+				"Documento sem arquivo de referência",
+				400,
+				"",
+			);
+		}
+
+		const file = await Drive.use("s3").get(template.sourceFile);
+		await Drive.use("local").put(template.sourceFile, file);
+
+		const localFilePath = await Drive.use("local").getUrl(template.sourceFile);
+		const fullPath = `${Env.get(
+			"LOCAL_DISK_ROOT",
+			Application.tmpPath(),
+		)}${localFilePath}`;
+
+		const responseBuffer = await PDFEngine.convert({
+			files: [fullPath],
+		});
+
+		await Drive.use("local").delete(template.sourceFile);
+
+		const key = `${Date.now()}-${template.id}.pdf`;
+		await Drive.use("local").put(key, responseBuffer);
+		return {
+			url: await Drive.use("local").getUrl(key),
+		};
 	}
 
 	public async store(
@@ -168,6 +227,36 @@ export default class DocumentTemplateService {
 		await template.softDelete();
 	}
 
+	public async getPdf(authCtx: AuthContext, id: string) {
+		const template = await DocumentTemplate.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("system_id", authCtx.system.id)
+			.where("id", id)
+			.first();
+
+		if (!template) {
+			throw this.sharedService.ResourceNotFound();
+		}
+
+		if (template.type !== "pdf") {
+			throw new BadRequestException("Documento não é do tipo PDF", 400, "");
+		}
+
+		const file = await Drive.use("s3").getSignedUrl(
+			`documents/${template.sourceFile}`,
+			{
+				expiresIn: "1m",
+			},
+		);
+
+		return {
+			url: file,
+			expiresAt: DateTime.now().plus({ minutes: 1 }),
+		};
+	}
+
 	private async uploadFileToS3(
 		file: MultipartFileContract,
 		doc: DocumentTemplate,
@@ -187,6 +276,10 @@ export default class DocumentTemplateService {
 			"s3",
 		);
 
-		return key;
+		// const signedUrl = await Drive.use("s3").getSignedUrl(key, {
+		// 	expiresIn: "1m",
+		// });
+
+		return `documents/${key}`;
 	}
 }

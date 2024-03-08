@@ -496,6 +496,8 @@ Route.group(() => {
 	Route.get("/", "DocumentTemplatesController.index");
 	Route.post("/upload", "DocumentTemplatesController.uploadFile");
 	Route.post("/", "DocumentTemplatesController.store");
+	Route.get("/pdf/:id", "DocumentTemplatesController.getPdf");
+	Route.get("/render-pdf/:id", "DocumentTemplatesController.renderPdf");
 	Route.get("/:id", "DocumentTemplatesController.show");
 	Route.put("/:id", "DocumentTemplatesController.update");
 	Route.delete("/:id", "DocumentTemplatesController.destroy");

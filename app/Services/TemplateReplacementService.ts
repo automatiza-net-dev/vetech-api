@@ -1,332 +1,401 @@
-import { inject } from '@adonisjs/fold';
-import { ModelObject } from '@ioc:Adonis/Lucid/Orm';
-import BadRequestException from 'App/Exceptions/BadRequestException';
-import BusinessUnit from 'App/Models/BusinessUnit';
+import { inject } from "@adonisjs/fold";
+import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import DocumentTemplate from "App/Models/DocumentTemplate";
+import Drive from "@ioc:Adonis/Core/Drive";
 import Patient, {
-  PatientGender,
-  PatientVaccineOrigin,
-} from 'App/Models/Patient';
-import Schedule from 'App/Models/Schedule';
+	PatientGender,
+	PatientVaccineOrigin,
+} from "App/Models/Patient";
+import Schedule from "App/Models/Schedule";
 import TemplateReplacement, {
-  TemplateReplacementOrigin,
-} from 'App/Models/TemplateReplacement';
-import User from 'App/Models/User';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
+	TemplateReplacementOrigin,
+} from "App/Models/TemplateReplacement";
+import User from "App/Models/User";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 import ITemplateReplacementData, {
-  ITemplateReplacementParser,
-} from 'Contracts/interfaces/ITemplateReplacementData';
-import { differenceInYears, format } from 'date-fns';
-import * as Locales from 'date-fns/locale';
+	ITemplateReplacementParser,
+} from "Contracts/interfaces/ITemplateReplacementData";
+import { differenceInYears, format } from "date-fns";
+import * as Locales from "date-fns/locale";
+import { IPatch, patchDocument, TextRun } from "@stneto1/docx";
+import fs from "node:fs";
+import Env from "@ioc:Adonis/Core/Env";
+import Application from "@ioc:Adonis/Core/Application";
+import axios from "axios";
+import { v4 } from "uuid";
+import { PDFEngine } from "chromiumly";
 
 interface ISearch {
-  origin?: string;
-  attribute?: string;
-  replacer?: string;
+	origin?: string;
+	attribute?: string;
+	replacer?: string;
 }
 
 type RenderTextData = Record<TemplateReplacementOrigin, ModelObject | null>;
+
 @inject()
 export default class TemplateReplacementService {
-  constructor(private readonly sharedService: SharedService) { }
+	constructor(private readonly sharedService: SharedService) {}
 
-  async index(authCtx: AuthContext, data: ISearch) {
-    const qb = TemplateReplacement.query()
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('system_id', authCtx.system.id);
+	async index(authCtx: AuthContext, data: ISearch) {
+		const qb = TemplateReplacement.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("system_id", authCtx.system.id);
 
-    if (data.origin) {
-      qb.where('origin', data.origin);
-    }
+		if (data.origin) {
+			qb.where("origin", data.origin);
+		}
 
-    if (data.attribute) {
-      qb.whereILike('attribute', data.attribute);
-    }
+		if (data.attribute) {
+			qb.whereILike("attribute", data.attribute);
+		}
 
-    if (data.replacer) {
-      qb.whereILike('replacer', data.replacer);
-    }
+		if (data.replacer) {
+			qb.whereILike("replacer", data.replacer);
+		}
 
-    return qb;
-  }
+		return qb;
+	}
 
-  async store(authCtx: AuthContext, data: ITemplateReplacementData) {
-    if (data.origin === TemplateReplacementOrigin.SYSTEM) {
-      throw new BadRequestException(
-        'Você não pode criar esse tipo',
-        400,
-        'E_ERR',
-      );
-    }
+	async store(authCtx: AuthContext, data: ITemplateReplacementData) {
+		if (data.origin === TemplateReplacementOrigin.SYSTEM) {
+			throw new BadRequestException(
+				"Você não pode criar esse tipo",
+				400,
+				"E_ERR",
+			);
+		}
 
-    return TemplateReplacement.create({
-      economic_group_id: authCtx.group.id,
-      system_id: authCtx.system.id,
-      attribute: data.attribute,
-      origin: data.origin,
-      replacer: data.replacer,
-    });
-  }
+		return TemplateReplacement.create({
+			economic_group_id: authCtx.group.id,
+			system_id: authCtx.system.id,
+			attribute: data.attribute,
+			origin: data.origin,
+			replacer: data.replacer,
+		});
+	}
 
-  async update(
-    authCtx: AuthContext,
-    id: string,
-    data: ITemplateReplacementData,
-  ) {
-    const template = await TemplateReplacement.query()
-      .where('economic_group_id', authCtx.group.id)
-      .where('id', id)
-      .first();
+	async update(
+		authCtx: AuthContext,
+		id: string,
+		data: ITemplateReplacementData,
+	) {
+		const template = await TemplateReplacement.query()
+			.where("economic_group_id", authCtx.group.id)
+			.where("id", id)
+			.first();
 
-    if (!template) {
-      throw this.sharedService.ResourceNotFound();
-    }
+		if (!template) {
+			throw this.sharedService.ResourceNotFound();
+		}
 
-    return template
-      .merge({
-        attribute: data.attribute,
-        origin: data.origin,
-        replacer: data.replacer,
-      })
-      .save();
-  }
+		return template
+			.merge({
+				attribute: data.attribute,
+				origin: data.origin,
+				replacer: data.replacer,
+			})
+			.save();
+	}
 
-  async destroy(authCtx: AuthContext, id: string) {
-    const template = await TemplateReplacement.query()
-      .where('economic_group_id', authCtx.group.id)
-      .where('system_id', authCtx.system.id)
-      .where('id', id)
-      .first();
+	async destroy(authCtx: AuthContext, id: string) {
+		const template = await TemplateReplacement.query()
+			.where("economic_group_id", authCtx.group.id)
+			.where("system_id", authCtx.system.id)
+			.where("id", id)
+			.first();
 
-    if (!template) {
-      throw this.sharedService.ResourceNotFound();
-    }
+		if (!template) {
+			throw this.sharedService.ResourceNotFound();
+		}
 
-    return template.delete();
-  }
+		return template.delete();
+	}
 
-  async renderText(authCtx: AuthContext, data: ITemplateReplacementParser) {
-    const date = new Date();
-    const textData: RenderTextData = {
-      BUSINESS: null,
-      USER: null,
-      SCHEDULE: null,
-      TUTOR: null,
-      PATIENT: null,
-      SYSTEM: {
-        date: format(date, 'dd/MM/yyyy', {
-          locale: Locales.ptBR,
-        }),
-        dateextension: format(date, "dd 'de' MMMM 'de' yyyy", {
-          locale: Locales.ptBR,
-        }),
-        time: format(date, 'HH:mm', {
-          locale: Locales.ptBR,
-        }),
-      },
-    };
+	async renderText(authCtx: AuthContext, data: ITemplateReplacementParser) {
+		const template = await DocumentTemplate.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("system_id", authCtx.system.id)
+			.where("id", data.documentId)
+			.first();
 
-    if (data.businessUnitId) {
-      textData.BUSINESS = await this.fetchUnit(data.businessUnitId);
-    }
+		if (!template) {
+			throw this.sharedService.ResourceNotFound();
+		}
 
-    if (data.userId) {
-      textData.USER = await this.fetchUser(data.userId, data.businessUnitId);
-    }
+		const date = new Date();
+		const textData: RenderTextData = {
+			BUSINESS: null,
+			USER: null,
+			SCHEDULE: null,
+			TUTOR: null,
+			PATIENT: null,
+			SYSTEM: {
+				date: format(date, "dd/MM/yyyy", {
+					locale: Locales.ptBR,
+				}),
+				dateextension: format(date, "dd 'de' MMMM 'de' yyyy", {
+					locale: Locales.ptBR,
+				}),
+				time: format(date, "HH:mm", {
+					locale: Locales.ptBR,
+				}),
+			},
+		};
 
-    if (data.scheduleId) {
-      const schedule = await Schedule.findOrFail(data.scheduleId);
-      textData.SCHEDULE = schedule.toObject();
-    }
+		if (data.businessUnitId) {
+			textData.BUSINESS = await this.fetchUnit(data.businessUnitId);
+		}
 
-    if (data.tutorId) {
-      textData.TUTOR = await this.fetchTutor(data.tutorId);
-    }
+		if (data.userId) {
+			textData.USER = await this.fetchUser(data.userId, data.businessUnitId);
+		}
 
-    if (data.dependentId) {
-      textData.PATIENT = await this.fetchPatient(data.dependentId);
-    }
+		if (data.scheduleId) {
+			const schedule = await Schedule.findOrFail(data.scheduleId);
+			textData.SCHEDULE = schedule.toObject();
+		}
 
-    const templates = await TemplateReplacement.query()
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('system_id', authCtx.system.id);
+		if (data.tutorId) {
+			textData.TUTOR = await this.fetchTutor(data.tutorId);
+		}
 
-    return this.parseTemplate(data.base, textData, templates);
-  }
+		if (data.dependentId) {
+			textData.PATIENT = await this.fetchPatient(data.dependentId);
+		}
 
-  parseTemplate(
-    raw: string,
-    data: RenderTextData,
-    templates: TemplateReplacement[],
-  ): string {
-    if (templates.length === 0) {
-      return raw;
-    }
+		const templates = await TemplateReplacement.query()
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
+			.where("system_id", authCtx.system.id);
 
-    const [head, ...tail] = templates;
+		if (template.type === "pdf") {
+			throw new BadRequestException("Em desenvolvimento", 400, "E_NOT_IMPL");
 
-    const elem = data[head.origin];
-    if (!elem) {
-      return this.parseTemplate(raw, data, tail);
-    }
+			// const fileBuffer = await Drive.use("s3").get(template.sourceFile);
+			// if (!fileBuffer) {
+			// 	throw new BadRequestException(
+			// 		"Não foi possível achar o arquivo",
+			// 		400,
+			// 		"",
+			// 	);
+			// }
+			//
+			// const data: { [key: string]: IPatch } = {};
+			// for (const tmpl of templates) {
+			// 	const elem = textData[tmpl.origin];
+			// 	if (!elem) {
+			// 		continue;
+			// 	}
+			//
+			// 	const value = this.$getValue(tmpl.attribute, elem);
+			// 	const value$ = value ? this.$toString(value) ?? tmpl.attribute : "";
+			//
+			// 	data[tmpl.replacer] = {
+			// 		type: "paragraph",
+			// 		children: [new TextRun(value$)],
+			// 	};
+			// }
+			//
+			// const key = `${v4()}.docx`;
+			// const fullPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath("uploads"),
+			// )}/${key}`;
+			//
+			// const docBuffer = await patchDocument({
+			// 	data: fileBuffer,
+			// 	patches: data,
+			// });
+			// await Drive.use("local").put(key, docBuffer);
+			//
+			// // const responseBuffer = await PDFEngine.convert({
+			// // 	files: [fullPath],
+			// // });
+			//
+			// return "CHECK S3";
+		}
 
-    const value = this.$getValue(head.attribute, elem);
-    const value$ = value ? this.$toString(value) ?? head.attribute : '';
+		return this.parseTextTemplate(template.template, textData, templates);
+	}
 
-    const updated = raw.replaceAll(head.replacer, value$);
+	parseTextTemplate(
+		raw: string,
+		data: RenderTextData,
+		templates: TemplateReplacement[],
+	): string {
+		if (templates.length === 0) {
+			return raw;
+		}
 
-    return this.parseTemplate(updated, data, tail);
-  }
+		const [head, ...tail] = templates;
 
-  $getValue(key: string, obj: ModelObject) {
-    if (obj[key]) {
-      return obj[key];
-    }
+		const elem = data[head.origin];
+		if (!elem) {
+			return this.parseTextTemplate(raw, data, tail);
+		}
 
-    const diff = this.snakeToCamelCase(key);
-    if (obj[diff]) {
-      return obj[diff];
-    }
+		const value = this.$getValue(head.attribute, elem);
+		const value$ = value ? this.$toString(value) ?? head.attribute : "";
 
-    return null;
-  }
+		const updated = raw.replaceAll(head.replacer, value$);
 
-  $toString(data: unknown) {
-    if (typeof data === 'string') {
-      return data;
-    }
+		return this.parseTextTemplate(updated, data, tail);
+	}
 
-    if (typeof data === 'number' || typeof data === 'bigint') {
-      return data.toString();
-    }
+	$getValue(key: string, obj: ModelObject) {
+		if (obj[key]) {
+			return obj[key];
+		}
 
-    if (typeof data === 'boolean') {
-      return data ? 'Sim' : 'Não';
-    }
+		const diff = this.snakeToCamelCase(key);
+		if (obj[diff]) {
+			return obj[diff];
+		}
 
-    if (data instanceof Date) {
-      return data.toDateString();
-    }
+		return null;
+	}
 
-    return null;
-  }
+	$toString(data: unknown) {
+		if (typeof data === "string") {
+			return data;
+		}
 
-  async fetchTutor(id: string) {
-    const tutor = await Patient.query()
-      .where('id', id)
-      .preload('tutor', query => {
-        query.preload('profession');
-      })
-      .firstOrFail();
+		if (typeof data === "number" || typeof data === "bigint") {
+			return data.toString();
+		}
 
-    return {
-      ...tutor.toJSON(),
-      firstName: tutor.name.split(' ').at(0),
-      address: [tutor.tutor?.street, tutor.tutor?.number]
-        .filter(Boolean)
-        .join(', '),
-      district: tutor.tutor.district,
-      city: tutor.tutor.city,
-      state: tutor.tutor.state,
-      postalCode: tutor.tutor.postalCode,
-      document: tutor.tutor.document,
-      cellphone: tutor.tutor.cellphone,
-      email: tutor.tutor.email,
+		if (typeof data === "boolean") {
+			return data ? "Sim" : "Não";
+		}
 
-      inscription: tutor.tutor.inscription,
-      nationality: tutor.tutor.nationality,
-      civilStatus: tutor.tutor.civilStatus,
-      profession_description: tutor.tutor.profession?.description,
-    };
-  }
+		if (data instanceof Date) {
+			return data.toDateString();
+		}
 
-  async fetchPatient(id: string) {
-    const patient = await Patient.query()
-      .where('id', id)
-      .preload('patientAnimal', query => {
-        query.preload('hair');
-        query.preload('race', query => {
-          query.preload('specie');
-        });
-      })
-      .firstOrFail();
+		return null;
+	}
 
-    const calculateGender = (data: Patient) => {
-      if (!data.gender) {
-        return 'não informado';
-      }
+	async fetchTutor(id: string) {
+		const tutor = await Patient.query()
+			.where("id", id)
+			.preload("tutor", (query) => {
+				query.preload("profession");
+			})
+			.firstOrFail();
 
-      return data.gender === PatientGender.MALE ? 'macho' : 'fêmea';
-    };
+		return {
+			...tutor.toJSON(),
+			firstName: tutor.name.split(" ").at(0),
+			address: [tutor.tutor?.street, tutor.tutor?.number]
+				.filter(Boolean)
+				.join(", "),
+			district: tutor.tutor.district,
+			city: tutor.tutor.city,
+			state: tutor.tutor.state,
+			postalCode: tutor.tutor.postalCode,
+			document: tutor.tutor.document,
+			cellphone: tutor.tutor.cellphone,
+			email: tutor.tutor.email,
 
-    const calculateVaccine = (data: PatientVaccineOrigin) => {
-      if (data === PatientVaccineOrigin.C) {
-        return 'Própria clinica';
-      }
+			inscription: tutor.tutor.inscription,
+			nationality: tutor.tutor.nationality,
+			civilStatus: tutor.tutor.civilStatus,
+			profession_description: tutor.tutor.profession?.description,
+		};
+	}
 
-      if (data === PatientVaccineOrigin.F) {
-        return 'Fora da clinica';
-      }
+	async fetchPatient(id: string) {
+		const patient = await Patient.query()
+			.where("id", id)
+			.preload("patientAnimal", (query) => {
+				query.preload("hair");
+				query.preload("race", (query) => {
+					query.preload("specie");
+				});
+			})
+			.firstOrFail();
 
-      return 'Não vacinado';
-    };
+		const calculateGender = (data: Patient) => {
+			if (!data.gender) {
+				return "não informado";
+			}
 
-    return {
-      ...patient.toJSON(),
-      ...patient.patientAnimal?.toJSON(),
-      gender: calculateGender(patient),
-      hair: patient.patientAnimal?.hair?.description,
-      race: patient.patientAnimal?.race?.description,
-      specie: patient.patientAnimal?.race?.specie?.description,
-      vaccinated: calculateVaccine(patient.vaccineOrigin),
-      numeric_age: patient.birthDate
-        ? differenceInYears(new Date(), patient.birthDate)
-        : null,
-      birthDate: patient.birthDate
-        ? format(patient.birthDate, 'dd/MM/yyyy', {
-          locale: Locales.ptBR,
-        })
-        : null,
-      castrated: patient.patientAnimal?.castrated ? 'Esterelizado' : 'Fértil',
-      microchip: patient.patientAnimal?.microchip,
-    };
-  }
+			return data.gender === PatientGender.MALE ? "macho" : "fêmea";
+		};
 
-  async fetchUnit(id: string) {
-    const model = await BusinessUnit.query().where('id', id).firstOrFail();
+		const calculateVaccine = (data: PatientVaccineOrigin) => {
+			if (data === PatientVaccineOrigin.C) {
+				return "Própria clinica";
+			}
 
-    return {
-      ...model.toJSON(),
-      fantasyName: model.fantasyName,
-      companyName: model.companyName,
-      postalCode: model.postalCode,
-    };
-  }
+			if (data === PatientVaccineOrigin.F) {
+				return "Fora da clinica";
+			}
 
-  async fetchUser(id: string, unitId: string | undefined) {
-    const model = await User.query().where('id', id).firstOrFail();
-    const related = {
-      ...model.toJSON(),
-      treatment: 'Dr(a).',
-    } as unknown as User & { role?: string };
+			return "Não vacinado";
+		};
 
-    if (unitId) {
-      const userRole = await model
-        .related('roles')
-        .query()
-        .where('unit_id', unitId)
-        .preload('role')
-        .first();
-      related.role = userRole?.role?.name;
-    }
+		return {
+			...patient.toJSON(),
+			...patient.patientAnimal?.toJSON(),
+			gender: calculateGender(patient),
+			hair: patient.patientAnimal?.hair?.description,
+			race: patient.patientAnimal?.race?.description,
+			specie: patient.patientAnimal?.race?.specie?.description,
+			vaccinated: calculateVaccine(patient.vaccineOrigin),
+			numeric_age: patient.birthDate
+				? differenceInYears(new Date(), patient.birthDate)
+				: null,
+			birthDate: patient.birthDate
+				? format(patient.birthDate, "dd/MM/yyyy", {
+						locale: Locales.ptBR,
+				  })
+				: null,
+			castrated: patient.patientAnimal?.castrated ? "Esterelizado" : "Fértil",
+			microchip: patient.patientAnimal?.microchip,
+		};
+	}
 
-    return related;
-  }
+	async fetchUnit(id: string) {
+		const model = await BusinessUnit.query().where("id", id).firstOrFail();
 
-  private snakeToCamelCase(value: string) {
-    return value.replace(/([A-Z])/g, match => `_${match.toLowerCase()}`);
-  }
+		return {
+			...model.toJSON(),
+			fantasyName: model.fantasyName,
+			companyName: model.companyName,
+			postalCode: model.postalCode,
+		};
+	}
+
+	async fetchUser(id: string, unitId: string | undefined) {
+		const model = await User.query().where("id", id).firstOrFail();
+		const related = {
+			...model.toJSON(),
+			treatment: "Dr(a).",
+		} as unknown as User & { role?: string };
+
+		if (unitId) {
+			const userRole = await model
+				.related("roles")
+				.query()
+				.where("unit_id", unitId)
+				.preload("role")
+				.first();
+			related.role = userRole?.role?.name;
+		}
+
+		return related;
+	}
+
+	private snakeToCamelCase(value: string) {
+		return value.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+	}
 }

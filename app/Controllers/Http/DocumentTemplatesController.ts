@@ -82,4 +82,22 @@ export default class DocumentTemplatesController {
 
 		return response.noContent();
 	}
+
+	public async getPdf({ auth, params, response }: HttpContextContract) {
+		const result = await this.service.getPdf(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.ok(result);
+	}
+
+	public async renderPdf({ auth, params, response }: HttpContextContract) {
+		const result = await this.service.renderPdf(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.ok(result);
+	}
 }

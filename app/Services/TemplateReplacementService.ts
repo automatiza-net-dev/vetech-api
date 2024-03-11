@@ -24,6 +24,7 @@ import Application from "@ioc:Adonis/Core/Application";
 import { v4 } from "uuid";
 import { exec } from "node:child_process";
 import { writeFile } from "node:fs/promises";
+import { PDFEngine } from "chromiumly";
 
 interface ISearch {
 	origin?: string;
@@ -189,6 +190,7 @@ export default class TemplateReplacementService {
 			const templatesPath = `tmp/${key}_templates.json`;
 			const inputPath = `tmp/${key}.docx`;
 			const outputPath = `tmp/${key}_output.docx`;
+			const pdfKey = `documents/compiled/${key}.pdf`;
 
 			await Drive.use("local").put(inputPath, fileBuffer);
 
@@ -242,8 +244,17 @@ export default class TemplateReplacementService {
 				throw new BadRequestException("Erro processando arquivo", 400, "");
 			}
 
+			const responseBuffer = await PDFEngine.convert({
+				files: [fullOutputPath],
+			});
+
+			await Drive.use("s3").put(pdfKey, responseBuffer, {
+				contentType: "application/pdf",
+			});
+
 			return {
-				url: await Drive.use("local").getSignedUrl(outputPath),
+				filename: `${key}.pdf`,
+				key: pdfKey,
 			};
 		}
 

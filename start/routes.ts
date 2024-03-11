@@ -1642,3 +1642,9 @@ Route.group(() => {
 })
 	.prefix("deposits")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/generate-link", "S3sController.createLink");
+})
+	.prefix("s3")
+	.middleware("auth");

@@ -19,13 +19,11 @@ import ITemplateReplacementData, {
 } from "Contracts/interfaces/ITemplateReplacementData";
 import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
-import { IPatch, patchDocument, TextRun } from "@stneto1/docx";
-import fs from "node:fs";
 import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
-import axios from "axios";
 import { v4 } from "uuid";
-import { PDFEngine } from "chromiumly";
+import { exec } from "node:child_process";
+import { writeFile } from "node:fs/promises";
 
 interface ISearch {
 	origin?: string;
@@ -177,53 +175,81 @@ export default class TemplateReplacementService {
 			.where("system_id", authCtx.system.id);
 
 		if (template.type === "pdf") {
-			throw new BadRequestException("Em desenvolvimento", 400, "E_NOT_IMPL");
+			const fileBuffer = await Drive.use("s3").get(template.sourceFile);
+			if (!fileBuffer) {
+				throw new BadRequestException(
+					"Não foi possível achar o arquivo",
+					400,
+					"",
+				);
+			}
 
-			// const fileBuffer = await Drive.use("s3").get(template.sourceFile);
-			// if (!fileBuffer) {
-			// 	throw new BadRequestException(
-			// 		"Não foi possível achar o arquivo",
-			// 		400,
-			// 		"",
-			// 	);
-			// }
-			//
-			// const data: { [key: string]: IPatch } = {};
-			// for (const tmpl of templates) {
-			// 	const elem = textData[tmpl.origin];
-			// 	if (!elem) {
-			// 		continue;
-			// 	}
-			//
-			// 	const value = this.$getValue(tmpl.attribute, elem);
-			// 	const value$ = value ? this.$toString(value) ?? tmpl.attribute : "";
-			//
-			// 	data[tmpl.replacer] = {
-			// 		type: "paragraph",
-			// 		children: [new TextRun(value$)],
-			// 	};
-			// }
-			//
-			// const key = `${v4()}.docx`;
-			// const fullPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath("uploads"),
-			// )}/${key}`;
-			//
-			// const docBuffer = await patchDocument({
-			// 	data: fileBuffer,
-			// 	patches: data,
-			// });
-			// await Drive.use("local").put(key, docBuffer);
-			//
-			// // const responseBuffer = await PDFEngine.convert({
-			// // 	files: [fullPath],
-			// // });
-			//
-			// return "CHECK S3";
+			const key = v4();
+			const dataPath = `tmp/${key}_data.json`;
+			const templatesPath = `tmp/${key}_templates.json`;
+			const inputPath = `tmp/${key}.docx`;
+			const outputPath = `tmp/${key}_output.docx`;
+
+			await Drive.use("local").put(inputPath, fileBuffer);
+
+			const fullDataPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${dataPath}`;
+
+			const fullTemplatesPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${templatesPath}`;
+
+			const fullInputPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${inputPath}`;
+
+			const fullOutputPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${outputPath}`;
+
+			await writeFile(fullDataPath, JSON.stringify(textData));
+			await writeFile(
+				fullTemplatesPath,
+				JSON.stringify(
+					templates.map((t) => ({
+						origin: t.origin,
+						attribute: t.attribute,
+						replacer: t.replacer,
+					})),
+				),
+			);
+
+			const success = await new Promise<boolean>((res) => {
+				exec(
+					`./vendor/transpiler ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+					(error, _stdout, _stderr) => {
+						if (error) {
+							// return rej(false);
+							return res(false);
+						}
+
+						return res(true);
+					},
+				);
+			});
+
+			if (!success) {
+				throw new BadRequestException("Erro processando arquivo", 400, "");
+			}
+
+			return {
+				url: await Drive.use("local").getSignedUrl(outputPath),
+			};
 		}
 
-		return this.parseTextTemplate(template.template, textData, templates);
+		return {
+			text: this.parseTextTemplate(template.template, textData, templates),
+		};
 	}
 
 	parseTextTemplate(

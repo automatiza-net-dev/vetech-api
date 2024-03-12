@@ -15,7 +15,11 @@ import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
-import { MovementCategory, MovementType } from "App/Models/TaxationGroupRule";
+import TaxationGroupRule, {
+	CompanyType,
+	MovementCategory,
+	MovementType,
+} from "App/Models/TaxationGroupRule";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
 import BillService from "App/Services/BillService";
@@ -972,15 +976,23 @@ export default class BudgetService {
 				query.preload("product");
 			});
 
-		const rules = await this.billService.searchTax(authCtx.unit.id, {
-			category: MovementCategory.NS,
-			type: MovementType.S,
-			origin: authCtx.unit.state,
-			destination: client.tutor?.state ?? authCtx.unit.state,
-			groups: items.map(
-				(item) => item.productVariation.product.taxation_group_id,
-			),
-		});
+		const rules = await TaxationGroupRule.query()
+			.whereHas("taxationGroup", (query) => {
+				query.whereIn(
+					"id",
+					items.map((item) => item.productVariation.product.taxation_group_id),
+				);
+			})
+			.where("movement_type", MovementType.S)
+			.where("movement_category", MovementCategory.NS)
+			.where("fromUf", authCtx.unit.state ?? "")
+			.where("toUf", authCtx.unit.state ?? "")
+			.where(
+				"company_type",
+				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+			)
+			.preload("taxationGroup")
+			.preload("taxOperation");
 
 		return Database.transaction(async (trx) => {
 			// const invalidRows = await this.depositService.validateDepositOperation(

@@ -569,7 +569,7 @@ where deposit_id = ?
 
 		return result.rows.map((elem) => ({
 			description: elem.descricao,
-		}));
+		})) as { description: string }[];
 	}
 
 	private async $checkDepositItems(

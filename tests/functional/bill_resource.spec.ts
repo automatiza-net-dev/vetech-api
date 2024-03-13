@@ -857,7 +857,7 @@ test.group("Bill resource", (group) => {
 				paymentMethodId: paymentMethod.id,
 				expirationDate: new Date(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
-				installmentsValue: 1000,
+				installmentsValue: 200,
 				acquirerId: tefAcq.id,
 				flagId: tefFlag.id,
 				nsuDocument: "some document",

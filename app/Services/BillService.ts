@@ -830,18 +830,19 @@ where deposit_id = ?
 				existingPayments.length > 0
 					? Math.max(...existingPayments.map((p) => p.block))
 					: 0;
-			const singleValue = data.installmentsValue / installment.installment;
 
-			const lastInstallment = Math.max(installment.installment - 1, 1);
-			const meta2 = singleValue * (installment.installment - 1);
-			const withOffset = data.installmentsValue - meta2;
+			const singleValue =
+				Math.floor((data.installmentsValue / installment.installment) * 100) /
+				100;
+			const withOffset =
+				data.installmentsValue - singleValue * (installment.installment - 1);
 
 			const payments = await BillPayment.createMany(
 				Array.from(
 					{ length: installment.installment ?? 1 },
 					(_, v) => {
 						const installmentValue =
-							v === lastInstallment ? withOffset : singleValue;
+							v === installment.installment - 1 ? withOffset : singleValue;
 
 						return {
 							economic_group_id: authCtx.group.id,
@@ -890,7 +891,7 @@ where deposit_id = ?
 			await Finance.createMany(
 				Array.from({ length: installment.installment }, (_, v) => {
 					const installmentValue =
-						v === lastInstallment ? withOffset : singleValue;
+						v === installment.installment - 1 ? withOffset : singleValue;
 
 					return {
 						economic_group_id: authCtx.group.id,

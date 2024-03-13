@@ -100,12 +100,7 @@ export default class DocumentTemplateService {
 		const fullPath = `${Env.get(
 			"LOCAL_DISK_ROOT",
 			Application.tmpPath(),
-		)}${localFilePath}`;
-
-		console.log({
-			localFilePath,
-			fullPath,
-		});
+		)}${localFilePath}`.replace("/uploads", "");
 
 		const responseBuffer = await PDFEngine.convert({
 			files: [fullPath],

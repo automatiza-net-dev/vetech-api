@@ -961,7 +961,9 @@ export default class ReceiptService {
 					receipt_id: newReceipt.id,
 
 					quantity: new Decimal(item.prod.qCom),
-					fractionValue: anotherExistingProduct?.fractionValue,
+					fractionValue: anotherExistingProduct
+						? anotherExistingProduct.fractionValue
+						: undefined,
 					costValue: item.prod.vUnCom,
 					unitaryValue: item.prod.vUnCom,
 					discountValue: item.prod.vDesc,

@@ -214,6 +214,19 @@ export default class TemplateReplacementService {
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
+			console.log({
+				key,
+				dataPath,
+				templatesPath,
+				inputPath,
+				outputPath,
+				pdfKey,
+				fullDataPath,
+				fullTemplatesPath,
+				fullInputPath,
+				fullOutputPath,
+			});
+
 			await writeFile(fullDataPath, JSON.stringify(textData));
 			await writeFile(
 				fullTemplatesPath,

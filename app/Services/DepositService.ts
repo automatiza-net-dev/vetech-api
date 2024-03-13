@@ -568,7 +568,7 @@ where deposit_id = ?
 			.exec();
 
 		return result.rows.map((elem) => ({
-			description: elem.description,
+			description: elem.descricao,
 		}));
 	}
 

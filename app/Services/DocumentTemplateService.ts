@@ -102,6 +102,11 @@ export default class DocumentTemplateService {
 			Application.tmpPath(),
 		)}${localFilePath}`;
 
+		console.log({
+			localFilePath,
+			fullPath,
+		});
+
 		const responseBuffer = await PDFEngine.convert({
 			files: [fullPath],
 		});

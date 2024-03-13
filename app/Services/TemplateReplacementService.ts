@@ -192,8 +192,6 @@ export default class TemplateReplacementService {
 			const outputPath = `tmp/${key}_output.docx`;
 			const pdfKey = `documents/compiled/${key}.pdf`;
 
-			await Drive.use("local").put(inputPath, fileBuffer);
-
 			const fullDataPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
@@ -226,6 +224,8 @@ export default class TemplateReplacementService {
 				fullInputPath,
 				fullOutputPath,
 			});
+
+			await Drive.use("local").put(inputPath, fileBuffer);
 
 			await writeFile(fullDataPath, JSON.stringify(textData));
 			await writeFile(

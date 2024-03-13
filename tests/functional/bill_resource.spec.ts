@@ -426,7 +426,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
-		await config.merge({ controlsDeposit: true }).save();
+		await config.merge({ controlsDeposit: false }).save();
 
 		const response = await client
 			.post(`/bills/create`)
@@ -449,8 +449,6 @@ test.group("Bill resource", (group) => {
 				],
 			})
 			.bearerToken(token);
-
-		console.log(response.body());
 
 		assert.equal(201, response.status());
 	});

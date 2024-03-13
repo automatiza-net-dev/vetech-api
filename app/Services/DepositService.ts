@@ -520,61 +520,24 @@ where deposit_id = ?
 	public async updateDepositItems(
 		trx: TransactionClientContract,
 		authCtx: AuthContext,
+		billID: string,
 		data: { productVariationId: string; quantity: number }[],
 	) {
 		if (!authCtx.unit.unitConfig.controlsDeposit) {
-			return [];
+			return;
 		}
 
-		await Database.rawQuery(
-			`create temporary table if not exists bill_item_temp(
-		    idVariacao uuid,
-		    quantidade int
-		);`,
-		)
-			.useTransaction(trx)
-			.exec();
-
-		const [{ deposit_id }] = await Database.from("user_unit_roles")
-			.useTransaction(trx)
-			.select(
-				Database.raw(
-					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-				),
-			)
-			.joinRaw(
-				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-			)
-			.where("user_unit_roles.user_id", authCtx.user.id)
-			.where("user_unit_roles.unit_id", authCtx.unit.id);
-
-		const insertTasks = data.map((elem) => {
-			return Database.rawQuery("insert into bill_item_temp values (?, ?)", [
-				elem.productVariationId,
-				elem.quantity,
-			])
-				.useTransaction(trx)
-				.exec();
-		});
-		await Promise.all(insertTasks);
-
-		await Database.rawQuery(
-			`update deposit_items
-set quantity =
-        (select (di.quantity - bit.quantidade)
-         from deposit_items di
-                  join deposits d on di.deposit_id = d.id
-                  join bill_item_temp bit on bit.idVariacao = di.product_variation_id
-         where deposit_items.id = di.id)
-where deposit_id = ?
-  and product_variation_id in (select idVariacao
-                               from bill_item_temp);`,
-			[deposit_id],
-		)
-			.useTransaction(trx)
-			.exec();
-
-		await Database.rawQuery(`drop table bill_item_temp`)
+		await Database.rawQuery(`select update_quantity_on_deposit(?, ?, ?, ?)`, [
+			authCtx.user.id,
+			authCtx.unit.id,
+			billID,
+			JSON.stringify(
+				data.map((elem) => ({
+					variacao: elem.productVariationId,
+					quantidade: elem.quantity,
+				})),
+			),
+		])
 			.useTransaction(trx)
 			.exec();
 	}
@@ -588,62 +551,23 @@ where deposit_id = ?
 			return [];
 		}
 
-		await Database.rawQuery(
-			`create temporary table if not exists bill_item_temp(
-    idVariacao uuid,
-    quantidade int
-);`,
+		const result = await Database.rawQuery(
+			`select * from check_quantity_on_deposit(?, ?, ?)`,
+			[
+				authCtx.user.id,
+				authCtx.unit.id,
+				JSON.stringify(
+					data.map((elem) => ({
+						variacao: elem.productVariationId,
+						quantidade: elem.quantity,
+					})),
+				),
+			],
 		)
 			.useTransaction(trx)
 			.exec();
 
-		const [{ deposit_id }] = await Database.from("user_unit_roles")
-			.useTransaction(trx)
-			.select(
-				Database.raw(
-					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-				),
-			)
-			.joinRaw(
-				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-			)
-			.where("user_unit_roles.user_id", authCtx.user.id)
-			.where("user_unit_roles.unit_id", authCtx.unit.id);
-
-		const insertTasks = data.map((elem) => {
-			return Database.rawQuery("insert into bill_item_temp values (?, ?)", [
-				elem.productVariationId,
-				elem.quantity,
-			])
-				.useTransaction(trx)
-				.exec();
-		});
-		await Promise.all(insertTasks);
-
-		const rows = await Database.from("bill_item_temp")
-			.select(
-				Database.raw(
-					"products.description, bill_item_temp.idVariacao as id_variacao, bill_item_temp.quantidade, product_variations.barcode, product_variations.id",
-				),
-			)
-			.joinRaw(
-				"join product_variations on bill_item_temp.idVariacao = product_variations.id",
-			)
-			.joinRaw("join products on product_variations.product_id = products.id")
-			.whereRaw(
-				`bill_item_temp.idVariacao not in (select di.product_variation_id
-                             from deposit_items di
-                             where deposit_id = ?
-                               and di.product_variation_id = bill_item_temp.idVariacao
-                               and di.quantity > bill_item_temp.quantidade)`,
-				[deposit_id],
-			);
-
-		await Database.rawQuery(`drop table bill_item_temp`)
-			.useTransaction(trx)
-			.exec();
-
-		return rows.map((elem) => ({
+		return result.rows.map((elem) => ({
 			description: elem.description,
 		}));
 	}

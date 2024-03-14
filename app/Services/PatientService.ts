@@ -1635,7 +1635,7 @@ export default class PatientService {
 	public async checkExistingPhone(authContext: AuthContext, phone: string) {
 		const sanitizedValue = phone.replace(/\D/g, "");
 
-		const tutor = await Patient.query()
+		const tutors = await Patient.query()
 			.where("type", PatientType.TUTOR)
 			.whereHas("economicGroup", (query) => {
 				query.where("economic_group_id", authContext.group.id);
@@ -1652,14 +1652,9 @@ export default class PatientService {
 			})
 			.preload("tutor", (query) => {
 				query.preload("clientOrigin");
-			})
-			.first();
+			});
 
-		if (!tutor) {
-			return null;
-		}
-
-		return {
+		return tutors.map((tutor) => ({
 			id: tutor.id,
 			name: tutor.name,
 			email: tutor.tutor.email,
@@ -1674,7 +1669,7 @@ export default class PatientService {
 					race: d?.patientAnimal?.race.toJSON(),
 				};
 			}),
-		};
+		}));
 	}
 
 	private async getEconomicGroup(unitId: string) {

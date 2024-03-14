@@ -10,6 +10,8 @@ export default class AssetsController {
 
 		const filePath = Application.tmpPath(data.key);
 
+		console.log({ filePath });
+
 		return response.download(filePath);
 	}
 }

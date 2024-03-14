@@ -47,6 +47,7 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 
 interface ISearch {
 	fromBill?: string;
@@ -888,6 +889,13 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 
+			const $checkingAccountMeta =
+				await BusinessUnitCheckingAccountPaymentMethod.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("payment_method_id", data.paymentMethodId)
+					.first();
+
 			await Finance.createMany(
 				Array.from({ length: installment.installment }, (_, v) => {
 					const installmentValue =
@@ -902,7 +910,9 @@ where deposit_id = ?
 						payment_method_id: paymentMethod.id,
 						origin_id: payments.at(v)?.id,
 						account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
-						checking_account_id: paymentMethod.checkingAccountId,
+						checking_account_id:
+							$checkingAccountMeta?.checking_account_id ??
+							paymentMethod.checkingAccountId,
 
 						type: FinanceType.C,
 						installment: v + 1,

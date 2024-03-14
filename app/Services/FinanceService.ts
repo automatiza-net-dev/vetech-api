@@ -37,6 +37,7 @@ import { DateTime } from "luxon";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1086,6 +1087,13 @@ export default class FinanceService {
 
 			const discount = data.originalValue * (paymentMethod.fee / 100);
 
+			const $checkingAccountMeta =
+				await BusinessUnitCheckingAccountPaymentMethod.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("payment_method_id", data.paymentMethodId)
+					.first();
+
 			return Finance.create(
 				{
 					daily_movement_id: dailyMovement?.id,
@@ -1115,7 +1123,9 @@ export default class FinanceService {
 					installment: data.installment,
 					originFlag: data.originFlag,
 					checking_account_id:
-						data.checkingAccountId ?? paymentMethod.checkingAccountId,
+						$checkingAccountMeta?.checking_account_id ??
+						data.checkingAccountId ??
+						paymentMethod.checkingAccountId,
 					qtyInstallments: data.qtyInstallments,
 					reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 

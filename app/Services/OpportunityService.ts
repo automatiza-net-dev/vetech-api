@@ -482,6 +482,8 @@ export default class OpportunityService {
 			openingTo?: string;
 			contactFrom?: string;
 			contactTo?: string;
+			dateFrom?: string;
+			dateTo?: string;
 			contactName?: string;
 			contactPhone?: string;
 			patientName?: string;
@@ -568,6 +570,17 @@ export default class OpportunityService {
 
 		if (data.contactTo) {
 			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.dateFrom && data.dateTo) {
+			qb.whereRaw(
+				`((opportunities.opening_date::date between ? and ?)
+   or (opportunities.id in (select opportunity_id
+                            from schedules
+                            where schedules.opportunity_id = opportunities.id
+                              and schedules.start_hour::date between ? and ?)))`,
+				[data.dateFrom, data.dateTo, data.dateFrom, data.dateTo],
+			);
 		}
 
 		if (data.contactName) {

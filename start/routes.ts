@@ -1648,3 +1648,9 @@ Route.group(() => {
 })
 	.prefix("s3")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/download", "AssetsController.download");
+})
+	.prefix("assets")
+	.middleware("auth");

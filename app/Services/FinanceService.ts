@@ -1190,6 +1190,13 @@ export default class FinanceService {
 					.where("user_who_opened_id", authCtx.user.id)
 					.first();
 
+				const $checkingAccountMeta =
+					await BusinessUnitCheckingAccountPaymentMethod.query()
+						.useTransaction(trx)
+						.where("business_unit_id", authCtx.unit.id)
+						.where("payment_method_id", item.paymentMethodId)
+						.first();
+
 				const discount = item.originalValue * (paymentMethod.fee / 100);
 
 				return Finance.create(
@@ -1221,7 +1228,9 @@ export default class FinanceService {
 						installment: item.installment,
 						originFlag: item.originFlag,
 						checking_account_id:
-							item.checkingAccountId ?? paymentMethod.checkingAccountId,
+							$checkingAccountMeta?.checking_account_id ??
+							item.checkingAccountId ??
+							paymentMethod.checkingAccountId,
 						qtyInstallments: item.qtyInstallments,
 
 						paymentDate: item.paymentDate,

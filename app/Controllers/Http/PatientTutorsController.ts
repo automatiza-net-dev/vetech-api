@@ -91,9 +91,10 @@ export default class PatientTutorsController {
 			data = await request.validate(CreatePatientWithTutorValidator);
 		}
 
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		const patient = await this.service.storeTutor(unit_id, data);
+		const patient = await this.service.storeTutor(
+			await this.sharedService.getAuthContext(auth),
+			data,
+		);
 
 		return response.created(patient);
 	}
@@ -114,7 +115,6 @@ export default class PatientTutorsController {
 		response,
 	}: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
-		const { unit_id } = this.sharedService.extractUser(auth);
 
 		const origin = request.input("origin");
 
@@ -144,7 +144,11 @@ export default class PatientTutorsController {
 			data = await request.validate(UpdatePatientWithTutorValidator);
 		}
 
-		const patient = await this.service.updateTutor(unit_id, params.id, data);
+		const patient = await this.service.updateTutor(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			data,
+		);
 
 		return response.ok(patient);
 	}

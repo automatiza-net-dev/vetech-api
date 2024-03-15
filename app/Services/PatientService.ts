@@ -838,12 +838,11 @@ export default class PatientService {
 	}
 
 	public async storeTutor(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientTutorData, "active">,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
 		return Database.transaction(async (trx) => {
-			if (data.document) {
+			if (data.document && authCtx.unit.unitConfig.requiresClientDocument) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
 				// 		"Documento inválido",
@@ -852,7 +851,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -871,7 +870,7 @@ export default class PatientService {
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const tutors = await group
+			const tutors = await authCtx.group
 				.related("patients")
 				.query()
 				.where("type", PatientType.TUTOR)
@@ -923,7 +922,7 @@ export default class PatientService {
 				},
 			);
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			if (data.cellphone) {
 				await patient.related("contacts").create(
@@ -1252,12 +1251,10 @@ export default class PatientService {
 	}
 
 	public async updateTutor(
-		unitId: string,
+		authCtx: AuthContext,
 		id: string,
 		data: IPatientTutorData,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			const tutor = await Patient.query()
 				.useTransaction(trx)
@@ -1270,7 +1267,11 @@ export default class PatientService {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
 			}
 
-			if (data.document && data.document !== tutor.tutor.document) {
+			if (
+				data.document &&
+				data.document !== tutor.tutor.document &&
+				authCtx.unit.unitConfig.requiresClientDocument
+			) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
 				// 		"Documento inválido",
@@ -1279,7 +1280,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -1638,11 +1639,17 @@ export default class PatientService {
 
 		const tutors = await Patient.query()
 			.where("type", PatientType.TUTOR)
+			.whereHas("tutor", (query) => {
+				query.whereRaw("(cellphone = ? or telephone = ?)", [
+					sanitizedValue,
+					sanitizedValue,
+				]);
+			})
 			.whereHas("economicGroup", (query) => {
 				query.where("economic_group_id", authContext.group.id);
 			})
 			.whereHas("contacts", (query) => {
-				query.where("contact", sanitizedValue).andWhereNot("type", "email");
+				query.andWhereNot("type", "email");
 			})
 			.preload("dependents", (query) => {
 				query.preload("patientAnimal", (query) => {

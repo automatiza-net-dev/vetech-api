@@ -148,6 +148,7 @@ export default class HospitalizationService {
 			status: r.status,
 			releasedAt: r.releasedAt,
 			finishedAt: r.finishedAt,
+			createdAt: r.createdAt,
 			deathAt: r.deathAt,
 			technician: this.sharedService.captureGroup(r.technician, (v) => v.name),
 			complaint: r.complaint,

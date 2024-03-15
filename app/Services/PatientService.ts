@@ -1286,6 +1286,7 @@ export default class PatientService {
 					.whereHas("tutor", (query) => {
 						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
+					.whereNot("id", tutor.id)
 					.first();
 				if (document) {
 					throw new BadRequestException(

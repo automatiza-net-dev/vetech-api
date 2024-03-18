@@ -5,6 +5,7 @@ export interface ICreateBudgetItemData {
 	budgetId: string;
 	productVariationId: string;
 	quantity: number;
+	saleValue: number;
 	unitaryValue: number;
 	discountValue: number;
 }

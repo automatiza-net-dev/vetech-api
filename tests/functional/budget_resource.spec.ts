@@ -81,6 +81,7 @@ test.group("Budget resource", (group) => {
 		const budgetItem = await budget.related("items").create({
 			business_unit_id: business.id,
 			quantity: new Decimal(12),
+			saleValue: new Decimal(10),
 			unitaryValue: 10,
 			discountValue: 2,
 			product_variation_id: variation.id,
@@ -338,6 +339,7 @@ test.group("Budget resource", (group) => {
 				budgetId: budget.id,
 				productVariationId: variation.id,
 				quantity: 5,
+				saleValue: 10,
 				unitaryValue: 10,
 				discountValue: 2,
 			})
@@ -362,6 +364,7 @@ test.group("Budget resource", (group) => {
 				budgetId: budget.id,
 				productVariationId: variation.id,
 				quantity: 5,
+				saleValue: 10,
 				unitaryValue: 10,
 				discountValue: 10000,
 			})
@@ -385,6 +388,7 @@ test.group("Budget resource", (group) => {
 						budgetId: budget.id,
 						productVariationId: variation.id,
 						quantity: 5,
+						saleValue: 10,
 						unitaryValue: 10,
 						discountValue: 2,
 					},
@@ -413,6 +417,7 @@ test.group("Budget resource", (group) => {
 						budgetId: budget.id,
 						productVariationId: variation.id,
 						quantity: 5,
+						saleValue: 10,
 						unitaryValue: 10,
 						discountValue: 10000,
 					},
@@ -473,6 +478,7 @@ test.group("Budget resource", (group) => {
 			.json({
 				quantity: 200,
 				unitaryValue: 200,
+				saleValue: 10,
 				discountValue: 0,
 				status: BudgetStatus.C,
 			})

@@ -282,7 +282,7 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
-			.preload("screen", (query) => {})
+			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
 		// if (authCtx.user.type === "user") {

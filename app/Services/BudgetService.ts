@@ -22,7 +22,6 @@ import TaxationGroupRule, {
 } from "App/Models/TaxationGroupRule";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
-import BillService from "App/Services/BillService";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
 import {
@@ -71,7 +70,6 @@ interface ISearchProduct {
 export default class BudgetService {
 	constructor(
 		private sharedService: SharedService,
-		private billService: BillService,
 		private depositService: DepositService,
 	) {}
 
@@ -602,6 +600,7 @@ export default class BudgetService {
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: variation.id,
 
+						saleValue: new Decimal(item.saleValue),
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
 						quantity: new Decimal(item.quantity),
@@ -771,6 +770,7 @@ export default class BudgetService {
 					business_unit_id: authCtx.unit.id,
 					product_variation_id: data.productVariationId,
 
+					saleValue: new Decimal(data.saleValue),
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
 					quantity: new Decimal(data.quantity),
@@ -821,6 +821,7 @@ export default class BudgetService {
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: item.productVariationId,
 
+						saleValue: new Decimal(item.saleValue),
 						unitaryValue: item.unitaryValue,
 						discountValue: item.discountValue,
 						quantity: new Decimal(item.quantity),

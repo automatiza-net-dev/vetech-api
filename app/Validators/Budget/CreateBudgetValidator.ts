@@ -40,6 +40,7 @@ export default class CreateBudgetValidator {
 					rules.exists({ table: "product_variations", column: "id" }),
 				]),
 				quantity: schema.number(),
+				saleValue: schema.number(),
 				unitaryValue: schema.number(),
 				discountValue: schema.number(),
 			}),

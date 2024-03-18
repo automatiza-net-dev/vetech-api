@@ -20,6 +20,9 @@ export default class ProfileAccess extends BaseModel {
 	@column()
 	public active: boolean;
 
+	@column()
+	public type: TProfileAccessType;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

@@ -976,7 +976,10 @@ Route.group(() => {
 		"/update-observation/:id",
 		"BudgetsController.updateBudgetObservation",
 	);
+
 	Route.put("/update-item/:id", "BudgetsController.updateBudgetItem");
+	Route.delete("/delete-item/:id", "BudgetsController.deleteBudgetItem");
+
 	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
 	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");

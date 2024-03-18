@@ -82,6 +82,11 @@ export default class BudgetItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public exclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
 	public budget_id: string;
 
 	@belongsTo(() => Budget, {

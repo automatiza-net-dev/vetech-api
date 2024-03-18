@@ -922,6 +922,74 @@ export default class BudgetService {
 		});
 	}
 
+	public async deleteBudgetItem(authCtx: AuthContext, id: string) {
+		return Database.transaction(async (trx) => {
+			const budgetItem = await BudgetItem.query()
+				.where("id", id)
+				.where("business_unit_id", authCtx.unit.id)
+				.preload("budget")
+				.first();
+
+			if (!budgetItem) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (budgetItem.status !== BudgetStatus.A) {
+				throw new BadRequestException(
+					"Apenas itens ativos podem ser excluidos",
+					400,
+					"E_INVALID_STATUS",
+				);
+			}
+
+			if (
+				budgetItem.budget.paidValue <
+				budgetItem.budget.totalValue - budgetItem.totalValue
+			) {
+				throw new BadRequestException(
+					"Valor dos pagamentos lançados, é maior que o valor do Orçamento sem o item que está sendo excluído. Para excluir o item, é necessário excluir parte dos pagamentos lançados no Orçamento",
+					400,
+					"",
+				);
+			}
+
+			const existingItems = await BudgetItem.query()
+				.where("budget_id", budgetItem.budget_id)
+				.whereNot("id", id)
+				.where("status", BudgetStatus.A);
+
+			const updatedItem = await budgetItem
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+					status: BudgetStatus.E,
+				})
+				.useTransaction(trx)
+				.save();
+
+			const unitarySum = existingItems.reduce(
+				(total, item) => total + item.totalValue,
+				0,
+			);
+
+			const discountSum = existingItems.reduce(
+				(total, item) => total + item.discountValue,
+				0,
+			);
+
+			await budgetItem.budget
+				.merge({
+					productValue: unitarySum,
+					discountValue: discountSum,
+					totalValue: unitarySum - discountSum,
+				})
+				.useTransaction(trx)
+				.save();
+
+			return updatedItem;
+		});
+	}
+
 	public async confirmBudget(
 		authCtx: AuthContext,
 		id: string,

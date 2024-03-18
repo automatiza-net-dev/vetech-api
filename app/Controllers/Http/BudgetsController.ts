@@ -212,6 +212,19 @@ export default class BudgetsController {
 		return response.ok(result);
 	}
 
+	public async deleteBudgetItem({
+		params,
+		response,
+		auth,
+	}: HttpContextContract) {
+		await this.service.deleteBudgetItem(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.noContent();
+	}
+
 	public async confirmBudget({
 		params,
 		request,

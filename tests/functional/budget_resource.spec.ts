@@ -880,8 +880,22 @@ test.group("Budget resource", (group) => {
 			.get(`/budgets/payments/${dataProps.budget.id}`)
 			.bearerToken(token);
 
-		console.log(JSON.stringify(response.body(), null, 2));
-
 		assert.equal(200, response.status());
+	});
+
+	test("should delete budget item", async ({ assert, client }) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budgetItem.merge({ status: BudgetStatus.A }).save();
+
+		const response = await client
+			.delete(`/budgets/delete-item/${dataProps.budgetItem.id}`)
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
 	});
 });

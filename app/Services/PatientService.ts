@@ -190,10 +190,6 @@ export default class PatientService {
 				if (data.document) {
 					query.where("document", "ilike", `%${data.document}%`);
 				}
-
-				if (data.phone) {
-					query.where("cellphone", "ilike", `%${data.phone}%`);
-				}
 			})
 			.preload("dependents", (query) => {
 				query.preload("patientAnimal", (query) => {
@@ -202,6 +198,35 @@ export default class PatientService {
 					});
 				});
 			});
+
+		if (data.phone) {
+			qb.whereHas("contacts", (query) => {
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+					[
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+						data.phone ?? "",
+						data.phone ?? "",
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+					],
+				);
+			});
+		}
 
 		if (data.tutorId) {
 			qb.where("patients.id", data.tutorId);
@@ -354,6 +379,35 @@ export default class PatientService {
 			});
 		}
 
+		if (data.phone) {
+			qb.whereHas("contacts", (query) => {
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+					[
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+						data.phone ?? "",
+						data.phone ?? "",
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+					],
+				);
+			});
+		}
+
 		qb.preload("tutors", (query) => {
 			query
 				.preload("tutor", (query) => {
@@ -387,15 +441,15 @@ export default class PatientService {
 					}
 				}
 
-				if (data.phone) {
-					const matches = r.tutors.some((t) =>
-						t.tutor.cellphone?.includes(data.phone ?? ""),
-					);
-
-					if (!matches) {
-						return false;
-					}
-				}
+				// if (data.phone) {
+				// 	const matches = r.tutors.some((t) =>
+				// 		t.tutor.cellphone?.includes(data.phone ?? ""),
+				// 	);
+				//
+				// 	if (!matches) {
+				// 		return false;
+				// 	}
+				// }
 
 				if (data.specie) {
 					const matches = r.patientAnimal?.race?.specie.description
@@ -1649,7 +1703,30 @@ export default class PatientService {
 				query.where("economic_group_id", authContext.group.id);
 			})
 			.whereHas("contacts", (query) => {
-				query.andWhereNot("type", "email");
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+					[
+						sanitizedValue,
+						`%${sanitizedValue}%`,
+						sanitizedValue,
+						sanitizedValue,
+						sanitizedValue,
+						`%${sanitizedValue}%`,
+					],
+				);
 			})
 			.preload("dependents", (query) => {
 				query.preload("patientAnimal", (query) => {

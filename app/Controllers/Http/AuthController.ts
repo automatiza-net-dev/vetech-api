@@ -19,10 +19,6 @@ export default class AuthController {
 	) {}
 
 	public async login({ auth, request, response }: HttpContextContract) {
-		if (process.env.NODE_ENV === "development") {
-			console.log(request.headers());
-		}
-
 		const payload = await request.validate(LoginValidator);
 
 		const result = await this.authService.login(
@@ -168,6 +164,12 @@ export default class AuthController {
 	public async resetPassword({ request, response }: HttpContextContract) {
 		const payload = await request.validate(ResetPasswordValidator);
 		await this.service.resetPassword(payload);
+
+		return response.noContent();
+	}
+
+	public async logout({ response, auth }: HttpContextContract) {
+		await auth.use("api").revoke();
 
 		return response.noContent();
 	}

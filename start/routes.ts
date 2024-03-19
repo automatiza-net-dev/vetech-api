@@ -38,6 +38,8 @@ Route.group(() => {
 	Route.post("register", "AuthController.register");
 	Route.post("forgot-password", "AuthController.forgotPassword");
 	Route.post("reset-password", "AuthController.resetPassword");
+
+	Route.get("logout", "AuthController.logout").middleware(["auth:tpApi,api"]);
 }).prefix("auth");
 
 Route.group(() => {

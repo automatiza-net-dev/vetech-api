@@ -169,7 +169,17 @@ export default class AuthController {
 	}
 
 	public async logout({ response, auth }: HttpContextContract) {
-		await auth.use("api").revoke();
+		try {
+			await auth.use("api").revoke();
+		} catch (err) {
+			console.error(err);
+		}
+
+		try {
+			await auth.use("tpApi").revoke();
+		} catch (err) {
+			console.error(err);
+		}
 
 		return response.noContent();
 	}

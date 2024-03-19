@@ -574,12 +574,25 @@ export default class OpportunityService {
 
 		if (data.dateFrom && data.dateTo) {
 			qb.whereRaw(
-				`((opportunities.opening_date::date between ? and ?)
-   or (opportunities.id in (select opportunity_id
-                            from schedules
-                            where schedules.opportunity_id = opportunities.id
-                              and schedules.start_hour::date between ? and ?)))`,
-				[data.dateFrom, data.dateTo, data.dateFrom, data.dateTo],
+				`(
+    (opportunities.opening_date::date between ? and ?)
+        or (opportunities.id in (select opportunity_id
+                                 from schedules
+                                 where schedules.opportunity_id = opportunities.id
+                                   and schedules.start_hour::date between ? and ?))
+        or (opportunities.id in (select opportunity_id
+                                 from opportunity_activities
+                                 where opportunity_activities.opportunity_id = opportunities.id
+                                   and opportunity_activities.execution_date::date between ? and ?))
+    )`,
+				[
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+				],
 			);
 		}
 
@@ -833,12 +846,25 @@ export default class OpportunityService {
 
 		if (data.dateFrom && data.dateTo) {
 			qb.whereRaw(
-				`((opportunities.opening_date::date between ? and ?)
-   or (opportunities.id in (select opportunity_id
-                            from schedules
-                            where schedules.opportunity_id = opportunities.id
-                              and schedules.start_hour::date between ? and ?)))`,
-				[data.dateFrom, data.dateTo, data.dateFrom, data.dateTo],
+				`(
+    (opportunities.opening_date::date between ? and ?)
+        or (opportunities.id in (select opportunity_id
+                                 from schedules
+                                 where schedules.opportunity_id = opportunities.id
+                                   and schedules.start_hour::date between ? and ?))
+        or (opportunities.id in (select opportunity_id
+                                 from opportunity_activities
+                                 where opportunity_activities.opportunity_id = opportunities.id
+                                   and opportunity_activities.execution_date::date between ? and ?))
+    )`,
+				[
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+				],
 			);
 		}
 

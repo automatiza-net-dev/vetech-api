@@ -208,9 +208,10 @@ export default class BillService {
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.items.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -218,6 +219,8 @@ export default class BillService {
 			if (invalid.length > 0) {
 				return invalid;
 			}
+
+			console.log(authCtx.unit.unitConfig.toJSON());
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
 				const invalidRows = await this.depositService.validateDepositOperation(
@@ -250,11 +253,12 @@ export default class BillService {
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data
 					.flatMap((elem) => elem.items)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
 						discountValue: elem.discountValue,
 						quantity: elem.quantity,
 					})),
@@ -310,17 +314,14 @@ export default class BillService {
 
 	async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
 		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx.unit.id,
-				[
-					{
-						variationId: data.productVariationId,
-						discountValue: data.discountValue,
-						quantity: data.quantity,
-					},
-				],
-			);
+			const invalid = await this.sharedService.checkDiscount(trx, authCtx, [
+				{
+					variationId: data.productVariationId,
+					unitaryValue: data.unitaryValue,
+					discountValue: data.discountValue,
+					quantity: data.quantity,
+				},
+			]);
 			if (invalid.length > 0) {
 				return invalid;
 			}
@@ -351,9 +352,10 @@ export default class BillService {
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -1813,7 +1815,7 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		const [{ deposit_id }] = await Database.from("user_unit_roles")
+		const depositThing = await Database.from("user_unit_roles")
 			.useTransaction(trx)
 			.select(
 				Database.raw(
@@ -1825,6 +1827,8 @@ where deposit_id = ?
 			)
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
+
+		console.log({ depositThing });
 
 		const items = data.items.map((item) => {
 			const variation = productVariations.find(
@@ -1865,7 +1869,7 @@ where deposit_id = ?
 					bill_id: bill.id,
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
-					deposit_id,
+					deposit_id: undefined,
 
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,

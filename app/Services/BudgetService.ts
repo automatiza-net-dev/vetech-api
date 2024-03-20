@@ -510,9 +510,10 @@ export default class BudgetService {
 		return Database.transaction(async (trx) => {
 			const result = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.items.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -718,17 +719,14 @@ export default class BudgetService {
 				client: trx,
 			});
 
-			const result = await this.sharedService.checkDiscount(
-				trx,
-				authCtx.unit.id,
-				[
-					{
-						variationId: data.productVariationId,
-						discountValue: data.discountValue,
-						quantity: data.quantity,
-					},
-				],
-			);
+			const result = await this.sharedService.checkDiscount(trx, authCtx, [
+				{
+					variationId: data.productVariationId,
+					unitaryValue: data.unitaryValue,
+					discountValue: data.discountValue,
+					quantity: data.quantity,
+				},
+			]);
 			if (result.length > 0) {
 				return result;
 			}
@@ -802,9 +800,10 @@ export default class BudgetService {
 		return Database.transaction(async (trx) => {
 			const result = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -869,17 +868,14 @@ export default class BudgetService {
 				budgetItem.budget_id,
 			);
 
-			const result = await this.sharedService.checkDiscount(
-				trx,
-				authCtx.unit.id,
-				[
-					{
-						variationId: budgetItem.product_variation_id,
-						discountValue: data.discountValue,
-						quantity: data.quantity,
-					},
-				],
-			);
+			const result = await this.sharedService.checkDiscount(trx, authCtx, [
+				{
+					variationId: budgetItem.product_variation_id,
+					unitaryValue: data.unitaryValue,
+					discountValue: data.discountValue,
+					quantity: data.quantity,
+				},
+			]);
 			if (result.length > 0) {
 				return result;
 			}

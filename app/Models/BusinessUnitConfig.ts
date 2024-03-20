@@ -22,6 +22,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public showsTreatmentSchedules: boolean;
 
 	@column({
+		columnName: "alter_prices",
+	})
+	public alterPrices: boolean;
+
+	@column({
 		columnName: "xml_download_authorization",
 	})
 	public xmlDownloadAuthorization: string;

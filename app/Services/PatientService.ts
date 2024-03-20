@@ -182,6 +182,7 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
+			.orderBy("name", "asc")
 			.where("type", PatientType.TUTOR)
 			.preload("tutor", (query) => {
 				query.preload("clientOrigin");
@@ -359,6 +360,7 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
+			.orderBy("name", "asc")
 			.where("type", PatientType.ANIMAL);
 
 		if (data.tag) {

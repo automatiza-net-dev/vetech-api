@@ -111,7 +111,7 @@ export default class DocumentTemplateService {
 		const key = `generated/${Date.now()}-${template.id}.pdf`;
 		await Drive.use("local").put(key, responseBuffer);
 		return {
-			url: await Drive.use("local").getUrl(key),
+			url: key,
 		};
 	}
 

@@ -108,7 +108,7 @@ export default class DocumentTemplateService {
 
 		await Drive.use("local").delete(template.sourceFile);
 
-		const key = `${Date.now()}-${template.id}.pdf`;
+		const key = `generated/${Date.now()}-${template.id}.pdf`;
 		await Drive.use("local").put(key, responseBuffer);
 		return {
 			url: await Drive.use("local").getUrl(key),

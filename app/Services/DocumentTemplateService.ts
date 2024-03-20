@@ -244,12 +244,9 @@ export default class DocumentTemplateService {
 			throw new BadRequestException("Documento não é do tipo PDF", 400, "");
 		}
 
-		const file = await Drive.use("s3").getSignedUrl(
-			`documents/${template.sourceFile}`,
-			{
-				expiresIn: "1m",
-			},
-		);
+		const file = await Drive.use("s3").getSignedUrl(template.sourceFile, {
+			expiresIn: "1m",
+		});
 
 		return {
 			url: file,

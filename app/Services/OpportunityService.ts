@@ -599,15 +599,17 @@ export default class OpportunityService {
 			qb.whereRaw(
 				`(
     (opportunities.opening_date::date between ? and ?)
-        or (opportunities.id in (select opportunity_id
+        or (opportunities.id in (select distinct opportunity_id
                                  from schedules
+                                          left join (schedule_status_changes join schedule_statuses
+                                                     on schedule_status_changes.schedule_status_id =
+                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
+                                                    on schedules.id = schedule_status_changes.schedule_id
                                  where schedules.opportunity_id = opportunities.id
-                                   and schedules.start_hour::date between ? and ?))
-        or (opportunities.id in (select opportunity_id
-                                 from opportunity_activities
-                                 where opportunity_activities.opportunity_id = opportunities.id
-                                   and opportunity_activities.execution_date::date between ? and ?))
-    )`,
+                                   and (schedules.start_hour::date between ? and ?
+                                     or
+                                        schedule_status_changes.created_at::date between ? and ?)))
+      )`,
 				[
 					data.dateFrom,
 					data.dateTo,
@@ -871,15 +873,17 @@ export default class OpportunityService {
 			qb.whereRaw(
 				`(
     (opportunities.opening_date::date between ? and ?)
-        or (opportunities.id in (select opportunity_id
+        or (opportunities.id in (select distinct opportunity_id
                                  from schedules
+                                          left join (schedule_status_changes join schedule_statuses
+                                                     on schedule_status_changes.schedule_status_id =
+                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
+                                                    on schedules.id = schedule_status_changes.schedule_id
                                  where schedules.opportunity_id = opportunities.id
-                                   and schedules.start_hour::date between ? and ?))
-        or (opportunities.id in (select opportunity_id
-                                 from opportunity_activities
-                                 where opportunity_activities.opportunity_id = opportunities.id
-                                   and opportunity_activities.execution_date::date between ? and ?))
-    )`,
+                                   and (schedules.start_hour::date between ? and ?
+                                     or
+                                        schedule_status_changes.created_at::date between ? and ?)))
+      )`,
 				[
 					data.dateFrom,
 					data.dateTo,

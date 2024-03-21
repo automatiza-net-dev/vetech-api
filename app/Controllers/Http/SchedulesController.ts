@@ -92,7 +92,9 @@ export default class SchedulesController {
 								prev[curr.field] = { errors: [] };
 							}
 
-							prev[curr.field].errors.push(curr.message);
+							prev[curr.field].errors.push(
+								curr.message.replace("Campo", `Campo ${curr.field}`),
+							);
 
 							return prev;
 						},

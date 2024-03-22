@@ -263,7 +263,11 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async rolePermissionMetadata(systemID: number, id: number) {
+	public async rolePermissionMetadata(
+		systemID: number,
+		id: number,
+		type?: string,
+	) {
 		const role = await Role.query()
 			.where("system_id", systemID)
 			// .where("economic_group_id", authCtx.group.id)
@@ -285,17 +289,17 @@ export default class RoleService {
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		// if (authCtx.user.type === "user") {
-		// 	qb.whereIn("type", ["user", "both"] as TPermissionType[]);
-		// }
+		if (type === "user") {
+			qb.whereIn("type", ["user", "both"] as TPermissionType[]);
+		}
 
-		// if (authCtx.user.type === "controller") {
-		// 	qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
-		// }
+		if (type === "controller") {
+			qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
+		}
 
-		// if (authCtx.user.type === "controller") {
-		// 	qb.whereIn("type", ["system"] as TPermissionType[]);
-		// }
+		if (type === "controller") {
+			qb.whereIn("type", ["system"] as TPermissionType[]);
+		}
 
 		const permissions = await qb;
 

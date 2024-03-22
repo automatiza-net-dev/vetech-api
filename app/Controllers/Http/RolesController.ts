@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import User from "App/Models/User";
 import RoleService from "App/Services/RoleService";
 import SharedService from "App/Services/SharedService";
 import AddRolePermissionsValidator from "App/Validators/Role/AddRolePermissionsValidator";
@@ -56,9 +57,23 @@ export default class RolesController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		response.ok(
+		if (!auth.user) {
+			return new response.unauthorized();
+		}
+
+		if (auth.user instanceof User) {
+			return response.ok(
+				await this.roleService.rolePermissionMetadata(
+					auth.user.system_id,
+					params.id,
+					auth.user.type,
+				),
+			);
+		}
+
+		return response.ok(
 			await this.roleService.rolePermissionMetadata(
-				auth.user?.system_id ?? -1,
+				auth.user.system_id,
 				params.id,
 			),
 		);

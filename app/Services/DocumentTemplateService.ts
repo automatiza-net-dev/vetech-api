@@ -189,7 +189,7 @@ export default class DocumentTemplateService {
 				},
 			);
 
-			const key = await this.uploadFileToS3(data.file, doc);
+			const key = await this.uploadFileToS3(data.file, doc.id);
 
 			return doc.merge({ sourceFile: key }).useTransaction(trx).save();
 		});
@@ -206,6 +206,11 @@ export default class DocumentTemplateService {
 			throw this.sharedService.SystemResource();
 		}
 
+		let key = template.sourceFile;
+		if (data.file) {
+			key = await this.uploadFileToS3(data.file, template.id);
+		}
+
 		return template
 			.merge({
 				description: data.description,
@@ -213,6 +218,7 @@ export default class DocumentTemplateService {
 				header: data.header,
 				template: data.template,
 				active: data.active,
+				sourceFile: key,
 			})
 			.save();
 	}
@@ -256,9 +262,9 @@ export default class DocumentTemplateService {
 
 	private async uploadFileToS3(
 		file: MultipartFileContract,
-		doc: DocumentTemplate,
+		docID: string,
 	): Promise<string> {
-		const key = `${process.env.NODE_ENV ?? "test"}/${doc.id}.${file.extname}`;
+		const key = `${process.env.NODE_ENV ?? "test"}/${docID}.${file.extname}`;
 
 		await file.moveToDisk(
 			"documents",

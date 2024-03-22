@@ -269,8 +269,8 @@ export default class RoleService {
 		type?: string,
 	) {
 		const role = await Role.query()
-			.where("system_id", systemID)
 			// .where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
 			.where("id", id)
 			.first();
 
@@ -286,22 +286,33 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
+			.debug(true)
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
 		if (type === "user") {
-			qb.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+			qb.whereIn("permissions.type", [
+				"user",
+				"both",
+				"all",
+			] as TPermissionType[]);
 		}
 
 		if (type === "controller") {
-			qb.whereIn("type", ["controller", "both", "all"] as TPermissionType[]);
+			qb.whereIn("permissions.type", [
+				"controller",
+				"both",
+				"all",
+			] as TPermissionType[]);
 		}
 
 		if (type === "controller") {
-			qb.whereIn("type", ["system", "all"] as TPermissionType[]);
+			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
 		}
 
 		const permissions = await qb;
+
+		console.log(permissions.map((p) => p.toJSON()));
 
 		const screens = permissions.map((p) => p.screen).filter(Boolean);
 		const uniqueScreens = screens.filter(

@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
+import User from "App/Models/User";
 import ThirdPartyService from "App/Services/ThirdPartyService";
 import AuthenticateThirdPartyValidator from "App/Validators/ThirdParty/AuthenticateThirdPartyValidator";
 import ExtendedAuthenticateThirdPartyValidator from "App/Validators/ThirdParty/ExtendedAuthenticateThirdPartyValidator";
@@ -153,8 +154,21 @@ export default class ThirdPartiesController {
 	}
 
 	public async searchProfileAccesses({ auth, response }: HttpContextContract) {
+		if (!auth.user) {
+			return new response.unauthorized();
+		}
+
+		if (auth.user instanceof User) {
+			return response.ok(
+				await this.service.searchProfileAccesses(
+					auth.user.system_id,
+					auth.user.type,
+				),
+			);
+		}
+
 		return response.ok(
-			await this.service.searchProfileAccesses(auth.user?.system_id ?? -1),
+			await this.service.searchProfileAccesses(auth.user.system_id),
 		);
 	}
 

@@ -8,7 +8,7 @@ export default class UpdateDocumentTemplateValidator {
 		title: schema.string({}, []),
 		description: schema.string({}, []),
 		header: schema.string.optional({}, []),
-		template: schema.string({}, []),
+		template: schema.string.optional({}, []),
 		file: schema.file.optional({ extnames: ["doc", "docx"] }),
 		active: schema.boolean([]),
 	});

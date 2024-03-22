@@ -216,9 +216,10 @@ export default class DocumentTemplateService {
 				description: data.description,
 				title: data.title,
 				header: data.header,
-				template: data.template,
+				template: data.file ? data.template : "",
 				active: data.active,
 				sourceFile: key,
+				type: data.file ? "pdf" : "text",
 			})
 			.save();
 	}

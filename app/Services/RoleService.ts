@@ -290,15 +290,15 @@ export default class RoleService {
 			.pivotColumns(["active", "status"]);
 
 		if (type === "user") {
-			qb.whereIn("type", ["user", "both"] as TPermissionType[]);
+			qb.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
 		}
 
 		if (type === "controller") {
-			qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
+			qb.whereIn("type", ["controller", "both", "all"] as TPermissionType[]);
 		}
 
 		if (type === "controller") {
-			qb.whereIn("type", ["system"] as TPermissionType[]);
+			qb.whereIn("type", ["system", "all"] as TPermissionType[]);
 		}
 
 		const permissions = await qb;

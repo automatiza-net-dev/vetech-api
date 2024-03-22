@@ -286,7 +286,6 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
-			.debug(true)
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
@@ -306,13 +305,11 @@ export default class RoleService {
 			] as TPermissionType[]);
 		}
 
-		if (type === "controller") {
+		if (type === "system") {
 			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
 		}
 
 		const permissions = await qb;
-
-		console.log(permissions.map((p) => p.toJSON()));
 
 		const screens = permissions.map((p) => p.screen).filter(Boolean);
 		const uniqueScreens = screens.filter(

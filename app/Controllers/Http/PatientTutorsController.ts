@@ -14,6 +14,7 @@ import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatien
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class PatientTutorsController {
@@ -100,12 +101,49 @@ export default class PatientTutorsController {
 	}
 
 	public async assign({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(AssignPatientTutorValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+		try {
+			const payload = await request.validate(AssignPatientTutorValidator);
+			const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.assignPatientTutor(unit_id, payload);
+			await this.service.assignPatientTutor(unit_id, payload);
 
-		return response.created();
+			return response.created();
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${curr.field === "patient" ? "Paciente" : "Tutor"}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async update({

@@ -840,6 +840,7 @@ export default class ScheduleService {
 			user?: string;
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -870,7 +871,7 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const schedules = await Schedule.query()
+		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
@@ -887,6 +888,14 @@ export default class ScheduleService {
 				});
 			})
 			.orderBy("start_hour", "asc");
+
+		if (data.lista_cancelados === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
+
+		const schedules = await schedulesQb;
 
 		const patients = await Patient.query()
 			.whereIn(
@@ -947,6 +956,7 @@ export default class ScheduleService {
 			users?: string[];
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -989,7 +999,7 @@ export default class ScheduleService {
 			days.push(dt.toFormat("dd/MM/yyyy"));
 		}
 
-		const schedules = await Schedule.query()
+		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
@@ -1005,6 +1015,14 @@ export default class ScheduleService {
 					query.select(["cellphone", "telephone"]);
 				});
 			});
+
+		if (data.lista_cancelados === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
+
+		const schedules = await schedulesQb;
 
 		const patients = await Patient.query()
 			.whereIn(

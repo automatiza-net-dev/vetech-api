@@ -492,7 +492,7 @@ export default class ScheduleService {
 			const reason = await Reason.findOrFail(data.reasonId);
 			if (reason.requiresObservation && !data.observation) {
 				throw new BadRequestException(
-					"É preciso informat observação",
+					"É preciso informar observação",
 					400,
 					"E_MISSING",
 				);
@@ -1296,6 +1296,17 @@ export default class ScheduleService {
 
 			if (schedule.schedule_status_id === data.scheduleId) {
 				return schedule;
+			}
+
+			if (data.reasonId) {
+				const reason = await Reason.findOrFail(data.reasonId);
+				if (reason.requiresObservation && !data.observation) {
+					throw new BadRequestException(
+						"É preciso informar observação",
+						400,
+						"E_MISSING",
+					);
+				}
 			}
 
 			const toStatus = await ScheduleStatus.find(data.statusId, {

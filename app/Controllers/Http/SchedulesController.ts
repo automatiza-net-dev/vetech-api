@@ -68,6 +68,8 @@ export default class SchedulesController {
 		holderId: "Tutor",
 		userId: "Usuário",
 		scheduleOriginId: "Agenda de Origem",
+		scheduleId: "Agenda",
+		statusId: "Status",
 		ignoreBlocking: "Ignorar bloqueios",
 		patientName: "Nome do Paciente",
 		patientPhone: "Telefone do Paciente",
@@ -207,17 +209,54 @@ export default class SchedulesController {
 	}
 
 	public async updateStatus({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(
-			UpdateScheduleSpecificStatusValidator,
-		);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		try {
+			const payload = await request.validate(
+				UpdateScheduleSpecificStatusValidator,
+			);
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const result = await this.service.updateScheduleStatusWithStaticValues(
-			authCtx,
-			payload,
-		);
+			const result = await this.service.updateScheduleStatusWithStaticValues(
+				authCtx,
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {

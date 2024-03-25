@@ -76,6 +76,8 @@ export default class SchedulesController {
 		majorComplaint: "Reclamação",
 		ignoreOverlapping: "Ignorar sobreposição",
 		onDuty: "Em plantação",
+		reasonId: "Motivo",
+		observation: "Observação",
 	} as const;
 
 	public async show({ auth, params, response }: HttpContextContract) {
@@ -154,17 +156,54 @@ export default class SchedulesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(RescheduleValidator);
-		const { user, unit_id } = this.sharedService.extractUser(auth);
+		try {
+			const payload = await request.validate(RescheduleValidator);
+			const { user, unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.reschedule(
-			unit_id,
-			user,
-			params.id,
-			payload,
-		);
+			const result = await this.service.reschedule(
+				unit_id,
+				user,
+				params.id,
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async updateStatus({ auth, request, response }: HttpContextContract) {

@@ -33,6 +33,7 @@ import {
 import { DateTime } from "luxon";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
+import Reason from "App/Models/Reason";
 
 interface ISearch {
 	pid?: string;
@@ -487,6 +488,17 @@ export default class ScheduleService {
 			}
 		}
 
+		if (data.reasonId) {
+			const reason = await Reason.findOrFail(data.reasonId);
+			if (reason.requiresObservation && !data.observation) {
+				throw new BadRequestException(
+					"É preciso informat observação",
+					400,
+					"E_MISSING",
+				);
+			}
+		}
+
 		await schedule.related("reschedules").create({
 			update_user_id: user.id,
 			user_id: schedule.user_id,
@@ -531,12 +543,12 @@ export default class ScheduleService {
 					data.business,
 					startDate,
 					endDate,
-			  )
+				)
 			: await this.getGeneralSchedules(
 					data.business,
 					startOfDay(startDate),
 					endOfDay(endDate),
-			  );
+				);
 
 		return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
 	}
@@ -1517,7 +1529,7 @@ export default class ScheduleService {
 						reason: elem.reason?.reason ?? null,
 						observation: elem.observation,
 						cancelledAt: elem.updatedAt,
-				  }
+					}
 				: null,
 			reschedules: elem.reschedules.map((r) => ({
 				id: r.id,

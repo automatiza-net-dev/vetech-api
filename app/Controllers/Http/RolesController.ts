@@ -278,22 +278,25 @@ export default class RolesController {
 	}
 
 	public async searchInfo({ request, response, auth }: HttpContextContract) {
-		const qs = request.qs();
-
 		if (!auth.user) {
 			return response.badRequest("Não autorizado");
 		}
 
-		console.log("user??", auth.user);
+		if (auth.user instanceof User) {
+			return response.ok(
+				await this.roleService.searchRolePermissions(
+					auth.user.system_id ?? -1,
+					auth.user.type,
+					request.qs(),
+				),
+			);
+		}
 
-		response.ok(
+		return response.ok(
 			await this.roleService.searchRolePermissions(
 				auth.user.system_id ?? -1,
-				auth.user && "type" in auth.user ? auth.user.type : "user",
-				{
-					id: qs.id,
-					active: qs.active,
-				},
+				"user",
+				request.qs(),
 			),
 		);
 	}

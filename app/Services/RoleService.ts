@@ -399,9 +399,7 @@ export default class RoleService {
 		type: string | null,
 		data: { id?: string; active?: string },
 	) {
-		console.log({ systemID, type, data });
-
-		const qb = Role.query().debug(true).where("system_id", systemID);
+		const qb = Role.query().where("system_id", systemID);
 
 		if (data.id) {
 			qb.where("id", data.id);

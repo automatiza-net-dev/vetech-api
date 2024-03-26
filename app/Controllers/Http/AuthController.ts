@@ -9,6 +9,7 @@ import SwapUnitValidator from "App/Validators/Auth/SwapUnitValidator";
 import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class AuthController {
@@ -50,12 +51,57 @@ export default class AuthController {
 		return response.ok(result);
 	}
 
+	private static intlMap = {
+		email: "Email",
+		password: "Senha",
+		business_unit_id: "Unidade",
+		system: "Sistema",
+		ipAddress: "Endereço",
+	} as Record<string, string>;
+
 	public async adminLogin({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(LoginValidator);
+		try {
+			const payload = await request.validate(LoginValidator);
 
-		const result = await this.authService.adminLogin(payload, auth);
+			const result = await this.authService.adminLogin(payload, auth);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${AuthController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async availableSwaps({ auth, response }: HttpContextContract) {

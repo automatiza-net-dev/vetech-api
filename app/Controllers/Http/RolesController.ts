@@ -8,6 +8,7 @@ import CopyRoleValidator from "App/Validators/Role/CopyRoleValidator";
 import CreateRoleValidator from "App/Validators/Role/CreateRoleValidator";
 import ManageRolePermissionValidator from "App/Validators/Role/ManageRolePermissionValidator";
 import UpdateRoleValidator from "App/Validators/Role/UpdateRoleValidator";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class RolesController {
@@ -89,18 +90,61 @@ export default class RolesController {
 		return response.created(newRole);
 	}
 
+	private static intlMap = {
+		name: "Nome",
+		externalAccess: "Acesso Externo",
+		active: "Ativo",
+	} as Record<string, string>;
+
 	public async storeController({
 		request,
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateRoleValidator);
-		const newRole = await this.roleService.storeController(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+		try {
+			const payload = await request.validate(CreateRoleValidator);
+			const newRole = await this.roleService.storeController(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.created(newRole);
+			return response.created(newRole);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${RolesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async addPermissions({
@@ -154,15 +198,52 @@ export default class RolesController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const { id } = params;
-		const payload = await request.validate(UpdateRoleValidator);
-		const updatedRole = await this.roleService.updateController(
-			auth?.user?.system_id ?? -1,
-			id,
-			payload,
-		);
+		try {
+			const { id } = params;
+			const payload = await request.validate(UpdateRoleValidator);
+			const updatedRole = await this.roleService.updateController(
+				auth?.user?.system_id ?? -1,
+				id,
+				payload,
+			);
 
-		return response.ok(updatedRole);
+			return response.ok(updatedRole);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${RolesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async destroy({ params, response, auth }: HttpContextContract) {
@@ -180,10 +261,20 @@ export default class RolesController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const { id } = params;
-		await this.roleService.deleteController(auth.user?.system_id ?? -1, id);
+		try {
+			const { id } = params;
+			await this.roleService.deleteController(auth.user?.system_id ?? -1, id);
 
-		return response.noContent();
+			return response.noContent();
+		} catch (e) {
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async searchInfo({ request, response, auth }: HttpContextContract) {

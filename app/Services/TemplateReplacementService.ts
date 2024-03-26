@@ -212,19 +212,6 @@ export default class TemplateReplacementService {
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
-			console.log({
-				key,
-				dataPath,
-				templatesPath,
-				inputPath,
-				outputPath,
-				pdfKey,
-				fullDataPath,
-				fullTemplatesPath,
-				fullInputPath,
-				fullOutputPath,
-			});
-
 			await Drive.use("local").put(inputPath, fileBuffer);
 
 			await writeFile(fullDataPath, JSON.stringify(textData));
@@ -407,7 +394,7 @@ export default class TemplateReplacementService {
 			birthDate: patient.birthDate
 				? format(patient.birthDate, "dd/MM/yyyy", {
 						locale: Locales.ptBR,
-				  })
+					})
 				: null,
 			castrated: patient.patientAnimal?.castrated ? "Esterelizado" : "Fértil",
 			microchip: patient.patientAnimal?.microchip,

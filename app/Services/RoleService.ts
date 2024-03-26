@@ -268,12 +268,6 @@ export default class RoleService {
 		id: number,
 		type?: string,
 	) {
-		console.log({
-			systemID,
-			id,
-			type,
-		});
-
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
 			.where("system_id", systemID)
@@ -405,6 +399,8 @@ export default class RoleService {
 		type: string | null,
 		data: { id?: string; active?: string },
 	) {
+		console.log({ systemID, type, data });
+
 		const qb = Role.query().debug(true).where("system_id", systemID);
 
 		if (data.id) {
@@ -427,8 +423,7 @@ export default class RoleService {
 			if (type === "system") {
 				query.whereIn("type", ["system", "all"] as TRoleType[]);
 			}
-		});
-		qb.preload("accesses", (query) => {
+		}).preload("accesses", (query) => {
 			if (type === "user") {
 				query.whereIn("type", ["user", "both", "all"] as TProfileAccessType[]);
 			}

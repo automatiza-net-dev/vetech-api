@@ -395,10 +395,11 @@ export default class RoleService {
 	}
 
 	public async searchRolePermissions(
-		authCtx: AuthContext,
+		systemID: number,
+		type: string | null,
 		data: { id?: string; active?: string },
 	) {
-		const qb = Role.query().where("economic_group_id", authCtx.group.id);
+		const qb = Role.query().where("system_id", systemID);
 
 		if (data.id) {
 			qb.where("id", data.id);
@@ -409,24 +410,24 @@ export default class RoleService {
 		}
 
 		qb.preload("permissions", (query) => {
-			if (authCtx.user.type === "user") {
+			if (type === "user") {
 				query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
 			}
 
-			if (authCtx.user.type === "controller") {
+			if (type === "controller") {
 				query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
 			}
 
-			if (authCtx.user.type === "system") {
+			if (type === "system") {
 				query.whereIn("type", ["system", "all"] as TRoleType[]);
 			}
 		});
 		qb.preload("accesses", (query) => {
-			if (authCtx.user.type === "user") {
+			if (type === "user") {
 				query.whereIn("type", ["user", "both", "all"] as TProfileAccessType[]);
 			}
 
-			if (authCtx.user.type === "controller") {
+			if (type === "controller") {
 				query.whereIn("type", [
 					"controller",
 					"both",
@@ -434,7 +435,7 @@ export default class RoleService {
 				] as TProfileAccessType[]);
 			}
 
-			if (authCtx.user.type === "system") {
+			if (type === "system") {
 				query.whereIn("type", ["system", "all"] as TProfileAccessType[]);
 			}
 

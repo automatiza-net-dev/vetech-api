@@ -280,9 +280,14 @@ export default class RolesController {
 	public async searchInfo({ request, response, auth }: HttpContextContract) {
 		const qs = request.qs();
 
+		if (!auth.user) {
+			return response.badRequest("Não autorizado");
+		}
+
 		response.ok(
 			await this.roleService.searchRolePermissions(
-				await this.sharedService.getAuthContext(auth),
+				auth.user.system_id ?? -1,
+				auth.user && "type" in auth.user ? auth.user.type : "user",
 				{
 					id: qs.id,
 					active: qs.active,
@@ -311,12 +316,49 @@ export default class RolesController {
 	}
 
 	public async copyRole({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CopyRoleValidator);
-		const result = await this.roleService.copyRole(
-			auth.user?.system_id ?? -1,
-			payload,
-		);
+		try {
+			const payload = await request.validate(CopyRoleValidator);
+			const result = await this.roleService.copyRole(
+				auth.user?.system_id ?? -1,
+				payload,
+			);
 
-		return response.created(result);
+			return response.created(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${RolesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 }

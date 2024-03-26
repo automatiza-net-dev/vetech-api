@@ -62,6 +62,8 @@ export default class RolesController {
 			return new response.unauthorized();
 		}
 
+		console.log({ user: auth.user });
+
 		if (auth.user instanceof User) {
 			return response.ok(
 				await this.roleService.rolePermissionMetadata(

@@ -1022,7 +1022,7 @@ export default class IndicatorService {
 		const salesQb = Database.from("bills")
 			.select(
 				Database.raw(
-					"bills.business_unit_id as id, count(distinct bills.id) as sales",
+					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
 				),
 			)
 			.leftJoin("business_units", (query) => {
@@ -1085,6 +1085,9 @@ export default class IndicatorService {
 			scheduled: parseInt(elem.agendados, 10),
 			attended: parseInt(elem.atendidos, 10),
 			sales: parseInt(salesResult.find((r) => r.id === elem.id)?.sales ?? "0"),
+			clients: parseInt(
+				salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
+			),
 		}));
 	}
 

@@ -276,6 +276,7 @@ export default class RoleService {
 
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
+			.debug(true)
 			.where("system_id", systemID)
 			.where("id", id)
 			.first();
@@ -292,6 +293,7 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
+			.debug(true)
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 

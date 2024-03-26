@@ -218,11 +218,13 @@ export default class RolesController {
 					// @ts-expect-error
 					validationErrors: e.messages.errors.reduce(
 						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
+							const key = `rolesControllerSearch.${curr.field}`;
+
+							if (!prev[key]) {
+								prev[key] = { errors: [] };
 							}
 
-							prev[curr.field].errors.push(
+							prev[key].errors.push(
 								curr.message.replace(
 									"Campo",
 									`Campo '${RolesController.intlMap[curr.field]}'`,

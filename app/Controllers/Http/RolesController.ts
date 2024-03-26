@@ -62,8 +62,6 @@ export default class RolesController {
 			return new response.unauthorized();
 		}
 
-		console.log({ user: auth.user });
-
 		if (auth.user instanceof User) {
 			return response.ok(
 				await this.roleService.rolePermissionMetadata(
@@ -285,6 +283,8 @@ export default class RolesController {
 		if (!auth.user) {
 			return response.badRequest("Não autorizado");
 		}
+
+		console.log("user??", auth.user);
 
 		response.ok(
 			await this.roleService.searchRolePermissions(

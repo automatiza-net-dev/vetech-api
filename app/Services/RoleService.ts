@@ -268,6 +268,12 @@ export default class RoleService {
 		id: number,
 		type?: string,
 	) {
+		console.log({
+			systemID,
+			id,
+			type,
+		});
+
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
 			.where("system_id", systemID)

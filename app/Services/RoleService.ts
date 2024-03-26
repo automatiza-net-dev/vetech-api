@@ -444,7 +444,7 @@ export default class RoleService {
 			return acc;
 		}, [] as number[]);
 
-		return uniqueRoles.map((roleID: number) => {
+		const mappedRoles = uniqueRoles.map((roleID: number) => {
 			return {
 				id: roleID,
 				name: result.find((r) => r.role_id === roleID)?.name,
@@ -456,6 +456,21 @@ export default class RoleService {
 					.map((r) => ({ id: r.a_id, description: r.description })),
 			};
 		});
+
+    if(mappedRoles.length === 0){
+      return []
+    }
+
+    if(data.id){
+      const mappedRole = mappedRoles.find((r) => r.id === parseInt(data.id)))
+      if(!mappedRole){
+        throw new BadRequestException("Cargo não encontrado", 400, "E_NOT_FOUND")
+      }
+
+      return mappedRole
+    }
+
+    return mappedRoles
 	}
 
 	public async searchControllerRolePermissions(

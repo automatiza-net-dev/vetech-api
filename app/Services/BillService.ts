@@ -1,6 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database, {
-	TransactionClientContract,
+	type TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
@@ -8,6 +8,7 @@ import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DepositItem from "App/Models/DepositItem";
 import Finance, {
@@ -35,10 +36,11 @@ import Treatment from "App/Models/Treatment";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
-import User from "App/Models/User";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import type User from "App/Models/User";
+import SharedService from "App/Services/SharedService";
+import type { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
-import {
+import type {
 	ICreateBillData,
 	ICreateBillItemData,
 	ICreateBillPaymentData,
@@ -47,7 +49,6 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
-import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 
 interface ISearch {
 	fromBill?: string;
@@ -196,6 +197,29 @@ export default class BillService {
 		return bill;
 	}
 
+	async checkItemsDiscount(
+		authCtx: AuthContext,
+		data: { items: ICreateBillData["items"] },
+	) {
+		return Database.transaction(async (trx) => {
+			const invalid = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+				})),
+			);
+			if (invalid.length > 0) {
+				return invalid;
+			}
+
+			return [];
+		});
+	}
+
 	async createBill(authCtx: AuthContext, data: ICreateBillData) {
 		// if (ufIcms.length !== taxRules.length) {
 		//   throw new InternalErrorException(
@@ -219,8 +243,6 @@ export default class BillService {
 			if (invalid.length > 0) {
 				return invalid;
 			}
-
-			console.log(authCtx.unit.unitConfig.toJSON());
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
 				const invalidRows = await this.depositService.validateDepositOperation(
@@ -1654,7 +1676,7 @@ where deposit_id = ?
 							: undefined;
 						const icmsStBase_2 = rule.ivaIcmsSt
 							? icmsStBase_1 -
-							  (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+								(icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 							: 0;
 						const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
@@ -1676,7 +1698,7 @@ where deposit_id = ?
 								icmsStIva: rule.ivaIcmsSt,
 								icmsStValue: rule.ivaIcmsSt
 									? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-									  icmsValue
+										icmsValue
 									: undefined,
 								issBase: rule.icmsPerc,
 								issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
@@ -1799,7 +1821,9 @@ where deposit_id = ?
 				status: BillStatus.A,
 
 				otherValue: 0,
-				tag: GenerateTag(parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1),
+				tag: GenerateTag(
+					Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
+				),
 			},
 			{
 				client: trx,
@@ -1809,7 +1833,7 @@ where deposit_id = ?
 		await authCtx.unit.unitConfig
 			.merge({
 				billCounter: (
-					parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
+					Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
 				).toString(),
 			})
 			.useTransaction(trx)
@@ -1827,8 +1851,6 @@ where deposit_id = ?
 			)
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
-
-		console.log({ depositThing });
 
 		const items = data.items.map((item) => {
 			const variation = productVariations.find(
@@ -1912,7 +1934,7 @@ where deposit_id = ?
 						: undefined,
 					icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
 						? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-						  icmsValue
+							icmsValue
 						: undefined,
 					issCst:
 						variation.product.type === ProductType.SERVICE

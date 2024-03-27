@@ -999,6 +999,7 @@ Route.group(() => {
 		"/check-deposit-availability",
 		"BillsController.checkDepositAvailability",
 	);
+	Route.post("/check-item-discount", "BillsController.checkItemDiscount");
 	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
 
 	Route.post("/create-treatment", "BillsController.createTreatment");

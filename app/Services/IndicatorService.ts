@@ -1444,6 +1444,7 @@ export default class IndicatorService {
 		},
 	) {
 		const qb = Database.from("budgets")
+			.debug(true)
 			.select(
 				Database.raw(
 					`
@@ -1457,8 +1458,12 @@ export default class IndicatorService {
 			.join("business_units", (query) => {
 				query.on("business_units.id", "=", "budgets.business_unit_id");
 			})
+			.leftJoin("reasons", (query) => {
+				query.on("reasons.id", "=", "budgets.cancelation_reason_id");
+			})
 			.groupBy("business_units.id")
 			.where("budgets.business_unit_id", data.unit ?? authCtx.unit.id)
+			.where("reasons.counts_for_report", true)
 			.whereNotIn("budgets.status", [BudgetStatus.C, BudgetStatus.P])
 			.whereNull("budgets.deleted_at");
 

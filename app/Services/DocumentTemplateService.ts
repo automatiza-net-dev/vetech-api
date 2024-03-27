@@ -117,7 +117,7 @@ export default class DocumentTemplateService {
 
 	public async store(
 		authCtx: AuthContext,
-		data: Omit<IDocumentTemplateData, "active">,
+		data: Omit<IDocumentTemplateData, "type" | "active">,
 	) {
 		if (!data.template) {
 			throw new BadRequestException("Texto não enviado", 400, "");
@@ -149,7 +149,7 @@ export default class DocumentTemplateService {
 
 	public async uploadFile(
 		authCtx: AuthContext,
-		data: Omit<IDocumentTemplateData, "active">,
+		data: Omit<IDocumentTemplateData, "type" | "active">,
 	) {
 		return Database.transaction(async (trx) => {
 			if (!data.file) {
@@ -216,10 +216,10 @@ export default class DocumentTemplateService {
 				description: data.description,
 				title: data.title,
 				header: data.header,
-				template: data.file ? data.template : "",
+				template: data.template ?? template.template,
 				active: data.active,
 				sourceFile: key,
-				type: data.file ? "pdf" : "text",
+				type: data.file ? "pdf" : data.type,
 			})
 			.save();
 	}

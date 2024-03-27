@@ -1016,7 +1016,7 @@ export default class ScheduleService {
 				});
 			});
 
-		if (data.lista_cancelados === "false") {
+		if (data.lista_cancelados?.toLowerCase() === "false") {
 			schedulesQb.whereHas("serviceStatus", (query) => {
 				query.whereNot("type", "CANC");
 			});

@@ -678,6 +678,7 @@ export default class ScheduleService {
 			user?: string;
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -754,6 +755,12 @@ export default class ScheduleService {
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
 			});
+
+		if (data.lista_cancelados?.toLowerCase() === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
 
 		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
 			schedulesQb.preload("holder", (query) => {

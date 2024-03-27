@@ -390,15 +390,15 @@ export default class PatientService {
   and (
     case
         when length(patient_contacts.contact) = 10 and length(?) = 11 then
-            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            regexp_replace(SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8), '\D', '', 'g') ilike
             ? -- add o 9
-        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '\D', '', 'g') ilike
                                                                            '%' ||
                                                                            SUBSTRING(?, 1, 2) ||
                                                                            '9' ||
                                                                            SUBSTRING(?, 3, 8) ||
                                                                            '%' -- add o 9
-        else patient_contacts.contact ilike ? end
+        else regexp_replace(patient_contacts.contact, '\D', '', 'g')  ilike ? end
     )`,
 					[
 						clearPhone,

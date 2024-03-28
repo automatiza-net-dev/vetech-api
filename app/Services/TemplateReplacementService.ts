@@ -219,8 +219,7 @@ export default class TemplateReplacementService {
 				fullOutputPath,
 			});
 
-			await Drive.use("local").put(inputPath, fileBuffer);
-
+      await writeFile(inputPath, fileBuffer)
 			await writeFile(fullDataPath, JSON.stringify(textData));
 			await writeFile(
 				fullTemplatesPath,

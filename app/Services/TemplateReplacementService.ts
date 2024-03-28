@@ -212,6 +212,13 @@ export default class TemplateReplacementService {
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
+			console.log({
+				fullDataPath,
+				fullTemplatesPath,
+				fullInputPath,
+				fullOutputPath,
+			});
+
 			await Drive.use("local").put(inputPath, fileBuffer);
 
 			await writeFile(fullDataPath, JSON.stringify(textData));

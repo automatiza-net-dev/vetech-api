@@ -23,7 +23,7 @@ import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
 import { v4 } from "uuid";
 import { exec } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { writeFile, write } from "node:fs/promises";
 import { PDFEngine } from "chromiumly";
 
 interface ISearch {
@@ -212,32 +212,27 @@ export default class TemplateReplacementService {
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
-			console.log({
-				fullDataPath,
-				fullTemplatesPath,
-				fullInputPath,
-				fullOutputPath,
-				command: `./vendor/transpiler ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
-			});
-
-			await writeFile(inputPath, fileBuffer);
-			await writeFile(fullDataPath, JSON.stringify(textData));
-			await writeFile(
-				fullTemplatesPath,
-				JSON.stringify(
-					templates.map((t) => ({
-						origin: t.origin,
-						attribute: t.attribute,
-						replacer: t.replacer,
-					})),
+			await Promise.all([
+				await writeFile(fullInputPath, fileBuffer),
+				await writeFile(fullDataPath, JSON.stringify(textData)),
+				await writeFile(
+					fullTemplatesPath,
+					JSON.stringify(
+						templates.map((t) => ({
+							origin: t.origin,
+							attribute: t.attribute,
+							replacer: t.replacer,
+						})),
+					),
 				),
-			);
+			]);
 
 			const success = await new Promise<boolean>((res) => {
 				exec(
 					`./vendor/transpiler ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
 					(error, _stdout, _stderr) => {
 						if (error) {
+							console.error(error);
 							// return rej(false);
 							return res(false);
 						}

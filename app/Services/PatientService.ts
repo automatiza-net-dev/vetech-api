@@ -901,13 +901,13 @@ export default class PatientService {
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
 			if (data.document && authCtx.unit.unitConfig.requiresClientDocument) {
-				// if (!this.sharedService.validDocument(data.document)) {
-				// 	throw new BadRequestException(
-				// 		"Documento inválido",
-				// 		400,
-				// 		"E_INVALID_DOCUMENT",
-				// 	);
-				// }
+				if (!this.sharedService.validDocument(data.document)) {
+					throw new BadRequestException(
+						"Documento inválido",
+						400,
+						"E_INVALID_DOCUMENT",
+					);
+				}
 
 				const document = await authCtx.group
 					.related("patients")
@@ -1330,13 +1330,13 @@ export default class PatientService {
 				data.document !== tutor.tutor.document &&
 				authCtx.unit.unitConfig.requiresClientDocument
 			) {
-				// if (!this.sharedService.validDocument(data.document)) {
-				// 	throw new BadRequestException(
-				// 		"Documento inválido",
-				// 		400,
-				// 		"E_INVALID_DOCUMENT",
-				// 	);
-				// }
+				if (!this.sharedService.validDocument(data.document)) {
+					throw new BadRequestException(
+						"Documento inválido",
+						400,
+						"E_INVALID_DOCUMENT",
+					);
+				}
 
 				const document = await authCtx.group
 					.related("patients")

@@ -217,9 +217,10 @@ export default class TemplateReplacementService {
 				fullTemplatesPath,
 				fullInputPath,
 				fullOutputPath,
+				command: `./vendor/transpiler ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
 			});
 
-      await writeFile(inputPath, fileBuffer)
+			await writeFile(inputPath, fileBuffer);
 			await writeFile(fullDataPath, JSON.stringify(textData));
 			await writeFile(
 				fullTemplatesPath,

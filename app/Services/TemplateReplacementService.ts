@@ -26,6 +26,8 @@ import { exec } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { PDFEngine } from "chromiumly";
 import { DateTime } from "luxon";
+import TimelineType from "App/Models/TimelineType";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 
 interface ISearch {
 	origin?: string;
@@ -128,6 +130,17 @@ export default class TemplateReplacementService {
 		if (!template) {
 			throw this.sharedService.ResourceNotFound();
 		}
+
+		const timelineInfo = await TimelineType.firstOrCreate(
+			{
+				description: "Documento",
+			},
+			{
+				color: "#000000",
+				description: "Documento",
+				requiresObservation: false,
+			},
+		);
 
 		const date = DateTime.now().minus({ hours: 3 }).toJSDate();
 		const textData: RenderTextData = {
@@ -255,11 +268,49 @@ export default class TemplateReplacementService {
 				contentType: "application/pdf",
 			});
 
+			await AnimalTimeline.create({
+				timeline_id: timelineInfo.id,
+				timeline_type: {
+					description: timelineInfo.description,
+					color: timelineInfo.color,
+					requires_observation: timelineInfo.requiresObservation,
+				},
+				timeline_info: {
+					tag: data.tag,
+					type: "PDF",
+					value: pdfKey,
+					realizedAt: new Date(),
+					technician: {
+						id: authCtx.user.id,
+						name: authCtx.user.name,
+					},
+				},
+			});
+
 			return {
 				filename: `${key}.pdf`,
 				key: pdfKey,
 			};
 		}
+
+		await AnimalTimeline.create({
+			timeline_id: timelineInfo.id,
+			timeline_type: {
+				description: timelineInfo.description,
+				color: timelineInfo.color,
+				requires_observation: timelineInfo.requiresObservation,
+			},
+			timeline_info: {
+				tag: data.tag,
+				type: "TEXT",
+				value: this.parseTextTemplate(template.template, textData, templates),
+				realizedAt: new Date(),
+				technician: {
+					id: authCtx.user.id,
+					name: authCtx.user.name,
+				},
+			},
+		});
 
 		return {
 			text: this.parseTextTemplate(template.template, textData, templates),

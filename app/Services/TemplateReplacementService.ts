@@ -23,8 +23,9 @@ import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
 import { v4 } from "uuid";
 import { exec } from "node:child_process";
-import { writeFile, write } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { PDFEngine } from "chromiumly";
+import { DateTime } from "luxon";
 
 interface ISearch {
 	origin?: string;
@@ -128,7 +129,7 @@ export default class TemplateReplacementService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		const date = new Date();
+		const date = DateTime.now().minus({ hours: 3 }).toJSDate();
 		const textData: RenderTextData = {
 			BUSINESS: null,
 			USER: null,

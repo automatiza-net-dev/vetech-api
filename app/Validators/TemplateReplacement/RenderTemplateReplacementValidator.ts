@@ -48,7 +48,7 @@ export default class RenderTemplateReplacementValidator {
 			}),
 		]),
 
-		tag: schema.string(),
+		// tag: schema.string(),
 	});
 
 	public messages: CustomMessages = {};

@@ -170,7 +170,7 @@ export default class TemplateReplacementService {
 
 		if (data.base) {
 			return {
-				text: this.parseTextTemplate(data.base, textData, templates),
+				result: this.parseTextTemplate(data.base, textData, templates),
 			};
 		}
 

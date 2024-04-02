@@ -1,5 +1,5 @@
-import I18n from '@ioc:Adonis/Addons/I18n'
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import I18n from "@ioc:Adonis/Addons/I18n";
+import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 /**
  * The middleware detects the user language using the "Accept-language" HTTP header
@@ -13,40 +13,40 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
  *   not "null" or "undefined"
  */
 export default class DetectUserLocale {
-  /**
-   * Detect user language using "Accept-language" header or
-   * the "lang" query string parameter.
-   *
-   * The user language must be part of the "supportedLocales", otherwise
-   * this method should return null.
-   */
-  protected getUserLanguage(ctx: HttpContextContract) {
-    const availableLocales = I18n.supportedLocales()
-    return ctx.request.language(availableLocales) || ctx.request.input('lang')
-  }
+	/**
+	 * Detect user language using "Accept-language" header or
+	 * the "lang" query string parameter.
+	 *
+	 * The user language must be part of the "supportedLocales", otherwise
+	 * this method should return null.
+	 */
+	protected getUserLanguage(ctx: HttpContextContract) {
+		const availableLocales = I18n.supportedLocales();
+		return ctx.request.language(availableLocales) || ctx.request.input("lang");
+	}
 
-  /**
-   * Handle method is called by AdonisJS automatically on every middleware
-   * class.
-   */
-  public async handle(ctx: HttpContextContract, next: () => Promise<void>) {
-    const language = this.getUserLanguage(ctx)
+	/**
+	 * Handle method is called by AdonisJS automatically on every middleware
+	 * class.
+	 */
+	public async handle(ctx: HttpContextContract, next: () => Promise<void>) {
+		const language = "pt";
 
-    /**
-     * Switch locale when we are able to detect the user language and it
-     * is supported by the application
-     */
-    if (language) {
-      ctx.i18n.switchLocale(language)
-    }
+		/**
+		 * Switch locale when we are able to detect the user language and it
+		 * is supported by the application
+		 */
+		if (language) {
+			ctx.i18n.switchLocale(language);
+		}
 
-    /**
-     * Share i18n with view
-     */
-    if ('view' in ctx) {
-      ctx.view.share({ i18n: ctx.i18n })
-    }
+		/**
+		 * Share i18n with view
+		 */
+		if ("view" in ctx) {
+			ctx.view.share({ i18n: ctx.i18n });
+		}
 
-    await next()
-  }
+		await next();
+	}
 }

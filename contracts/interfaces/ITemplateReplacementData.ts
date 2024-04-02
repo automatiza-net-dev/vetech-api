@@ -7,8 +7,9 @@ export default interface ITemplateReplacementData {
 }
 
 export interface ITemplateReplacementParser {
-	documentId: string;
+	documentId?: string;
 	// tag: string;
+	base?: string;
 	businessUnitId?: string;
 	userId?: string;
 	scheduleId?: string;

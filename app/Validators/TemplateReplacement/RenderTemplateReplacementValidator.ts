@@ -5,7 +5,7 @@ export default class RenderTemplateReplacementValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	public schema = schema.create({
-		documentId: schema.string({}, [
+		documentId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({
 				table: "document_templates",
@@ -49,6 +49,7 @@ export default class RenderTemplateReplacementValidator {
 		]),
 
 		// tag: schema.string(),
+		base: schema.string.optional(),
 	});
 
 	public messages: CustomMessages = {};

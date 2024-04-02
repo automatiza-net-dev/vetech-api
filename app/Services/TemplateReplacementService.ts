@@ -168,7 +168,7 @@ export default class TemplateReplacementService {
 			])
 			.where("system_id", authCtx.system.id);
 
-		if (data.base) {
+		if (data.base && !data.documentId) {
 			return {
 				result: this.parseTextTemplate(data.base, textData, templates),
 			};

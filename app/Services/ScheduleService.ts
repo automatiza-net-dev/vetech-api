@@ -1495,7 +1495,7 @@ export default class ScheduleService {
 				{
 					user_id: authCtx.user.id,
 					schedule_status_id: data.statusId,
-					observation: data.observation,
+					observation: data.observation ?? "",
 					contactDate: data.contactDate,
 				},
 				{

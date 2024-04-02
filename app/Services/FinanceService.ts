@@ -37,6 +37,7 @@ import { DateTime } from "luxon";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1086,6 +1087,13 @@ export default class FinanceService {
 
 			const discount = data.originalValue * (paymentMethod.fee / 100);
 
+			const $checkingAccountMeta =
+				await BusinessUnitCheckingAccountPaymentMethod.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("payment_method_id", data.paymentMethodId)
+					.first();
+
 			return Finance.create(
 				{
 					daily_movement_id: dailyMovement?.id,
@@ -1115,7 +1123,9 @@ export default class FinanceService {
 					installment: data.installment,
 					originFlag: data.originFlag,
 					checking_account_id:
-						data.checkingAccountId ?? paymentMethod.checkingAccountId,
+						$checkingAccountMeta?.checking_account_id ??
+						data.checkingAccountId ??
+						paymentMethod.checkingAccountId,
 					qtyInstallments: data.qtyInstallments,
 					reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 
@@ -1180,6 +1190,13 @@ export default class FinanceService {
 					.where("user_who_opened_id", authCtx.user.id)
 					.first();
 
+				const $checkingAccountMeta =
+					await BusinessUnitCheckingAccountPaymentMethod.query()
+						.useTransaction(trx)
+						.where("business_unit_id", authCtx.unit.id)
+						.where("payment_method_id", item.paymentMethodId)
+						.first();
+
 				const discount = item.originalValue * (paymentMethod.fee / 100);
 
 				return Finance.create(
@@ -1211,7 +1228,9 @@ export default class FinanceService {
 						installment: item.installment,
 						originFlag: item.originFlag,
 						checking_account_id:
-							item.checkingAccountId ?? paymentMethod.checkingAccountId,
+							$checkingAccountMeta?.checking_account_id ??
+							item.checkingAccountId ??
+							paymentMethod.checkingAccountId,
 						qtyInstallments: item.qtyInstallments,
 
 						paymentDate: item.paymentDate,

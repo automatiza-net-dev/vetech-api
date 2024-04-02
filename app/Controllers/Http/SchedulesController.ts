@@ -8,6 +8,7 @@ import RescheduleValidator from "App/Validators/Schedule/RescheduleValidator";
 import UpdateScheduleSpecificStatusValidator from "App/Validators/Schedule/UpdateScheduleSpecificStatusValidator";
 import UpdateScheduleValidator from "App/Validators/Schedule/UpdateScheduleValidator";
 import { addDays } from "date-fns";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class SchedulesController {
@@ -59,6 +60,28 @@ export default class SchedulesController {
 		return response.ok(result);
 	}
 
+	private static intlMap = {
+		scheduleServiceTypeId: "Serviço de agendamento",
+		startHour: "Hora de início",
+		endHour: "Hora de término",
+		patientId: "Paciente",
+		holderId: "Tutor",
+		userId: "Usuário",
+		scheduleOriginId: "Agenda de Origem",
+		scheduleId: "Agenda",
+		statusId: "Status",
+		ignoreBlocking: "Ignorar bloqueios",
+		patientName: "Nome do Paciente",
+		patientPhone: "Telefone do Paciente",
+		age: "Idade",
+		raceId: "Raça",
+		majorComplaint: "Reclamação",
+		ignoreOverlapping: "Ignorar sobreposição",
+		onDuty: "Em plantação",
+		reasonId: "Motivo",
+		observation: "Observação",
+	} as const;
+
 	public async show({ auth, params, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
@@ -68,14 +91,51 @@ export default class SchedulesController {
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateScheduleValidator);
+		try {
+			const payload = await request.validate(CreateScheduleValidator);
 
-		const result = await this.service.store(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			const result = await this.service.store(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.created(result);
+			return response.created(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async update({
@@ -98,31 +158,105 @@ export default class SchedulesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(RescheduleValidator);
-		const { user, unit_id } = this.sharedService.extractUser(auth);
+		try {
+			const payload = await request.validate(RescheduleValidator);
+			const { user, unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.reschedule(
-			unit_id,
-			user,
-			params.id,
-			payload,
-		);
+			const result = await this.service.reschedule(
+				unit_id,
+				user,
+				params.id,
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async updateStatus({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(
-			UpdateScheduleSpecificStatusValidator,
-		);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		try {
+			const payload = await request.validate(
+				UpdateScheduleSpecificStatusValidator,
+			);
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const result = await this.service.updateScheduleStatusWithStaticValues(
-			authCtx,
-			payload,
-		);
+			const result = await this.service.updateScheduleStatusWithStaticValues(
+				authCtx,
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {

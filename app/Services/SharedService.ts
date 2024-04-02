@@ -1,19 +1,20 @@
 import { inject } from "@adonisjs/fold";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
-import { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import EconomicGroup from "App/Models/EconomicGroup";
-import ProductVariation from "App/Models/ProductVariation";
 import System from "App/Models/System";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
+import { validate } from "App/Shared";
 
 export type DateSet = {
 	start: Date;
@@ -118,61 +119,8 @@ export default class SharedService {
 	}
 
 	public validDocument(document: string): boolean {
-		const filteredCPF = document.replace(/\.|-/g, "");
-
-		if (filteredCPF.length !== 11) {
-			return false;
-		}
-
-		const arrCPF: number[] = Array.from(filteredCPF, Number);
-
-		const repeatedNumbers: boolean = arrCPF.every(
-			(num, _, arr) => num === arr[0],
-		);
-		if (repeatedNumbers) {
-			return false;
-		}
-
-		const firstDigit = this.validateDigit(arrCPF, 1);
-		const secondDigit = this.validateDigit(arrCPF, 2);
-		if (!firstDigit || !secondDigit) {
-			return false;
-		}
-
-		return true;
+		return validate(document.replace(/\D/g, ""));
 	}
-
-	private validateDigit = (arr: number[], position: number): boolean => {
-		let factor: number;
-		let arrayDigit: number;
-		let sum = 0;
-
-		if (position === 1) {
-			factor = 10;
-			arrayDigit = 9;
-		} else {
-			factor = 11;
-			arrayDigit = 10;
-		}
-
-		for (let i = 0; i < arrayDigit; i += 1) {
-			sum += arr[i] * factor;
-			factor -= 1;
-		}
-
-		const division = Math.floor(sum % 11);
-		let verifyingDigit = 0;
-
-		if (division > 1) {
-			verifyingDigit = 11 - division;
-		}
-
-		if (arr[arrayDigit] !== verifyingDigit) {
-			return false;
-		}
-
-		return true;
-	};
 
 	public isValidNumber(data: number | undefined) {
 		if (!data) {
@@ -272,70 +220,36 @@ export default class SharedService {
 
 	public async checkDiscount(
 		trx: TransactionClientContract,
-		unitId: string,
+		authCtx: AuthContext,
 		data: {
 			variationId: string;
+			unitaryValue: number;
 			discountValue: number;
 			quantity: number;
 		}[],
 	) {
-		const productVariations = await ProductVariation.query()
+		const rows = await Database.rawQuery(
+			`select * from check_max_discount(?, ?, ?)`,
+			[
+				authCtx.user.id,
+				authCtx.unit.id,
+				JSON.stringify(
+					data.map((d) => ({
+						variacao: d.variationId,
+						quantidade: d.quantity,
+						preco: d.unitaryValue,
+						vlrdesc: d.discountValue,
+					})),
+				),
+			],
+		)
 			.useTransaction(trx)
-			.whereIn(
-				"id",
-				data.map((d) => d.variationId),
-			)
-			.whereHas("businessUnitProducts", (query) => {
-				query.where("businness_unit_id", unitId);
-			})
-			.preload("product")
-			.preload("businessUnitProducts", (query) => {
-				query.where("businness_unit_id", unitId);
-			});
+			.exec();
 
-		const overdiscountedItems = data.filter((elem) => {
-			const variation = productVariations.find(
-				(p) => p.id === elem.variationId,
-			);
-			if (!variation) {
-				throw new BadRequestException(
-					"Não foi possível encontrar um preço para esse produto",
-					400,
-					"E_NO_VARIATION",
-				);
-			}
-
-			return variation.businessUnitProducts.some(
-				(p) => p.maximumDiscountValue * elem.quantity < elem.discountValue,
-			);
-		});
-
-		return overdiscountedItems.map((elem) => {
-			const item = productVariations.find((v) => v.id === elem.variationId);
-
-			if (!item) {
-				throw new InternalErrorException(
-					"Erro ao validar desconto",
-					500,
-					"E_VALIDATE_DISCOUNT",
-				);
-			}
-
-			if (item.businessUnitProducts.length === 0) {
-				throw new InternalErrorException(
-					"Preço não encontrado para produto",
-					500,
-					"E_VALIDATE_DISCOUNT",
-				);
-			}
-
-			const price = item.businessUnitProducts[0];
-
+		return rows.rows.map((elem) => {
 			return {
 				rule: "DescontoMaximo",
-				message: `O desconto máximo para o produto '${
-					item?.product?.description
-				}' é de ${this.parsePriceToBrl(price.maximumDiscountValue)}`,
+				message: elem.descricao,
 			};
 		});
 	}
@@ -356,17 +270,6 @@ export default class SharedService {
 		}
 
 		return fn([data]);
-	}
-
-	private parsePriceToBrl(price: number | string) {
-		if (typeof price === "string") {
-			return this.parsePriceToBrl(parseFloat(price));
-		}
-
-		return price.toLocaleString("pt-BR", {
-			style: "currency",
-			currency: "BRL",
-		});
 	}
 
 	static ParseDecimal(value: string | number) {

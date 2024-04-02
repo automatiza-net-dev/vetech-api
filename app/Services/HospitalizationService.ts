@@ -17,7 +17,7 @@ import HospitalizationMedicalPrescriptionScheduling, {
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
 import Occurrence, { OccurrenceType } from "App/Models/Occurrence";
-import Patient from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -34,15 +34,21 @@ interface IHome {
 	hospitalized_from?: string;
 	hospitalized_to?: string;
 
-	death_from?: string;
-	death_to?: string;
+	finished_from?: string;
+	finished_to?: string;
 
 	released_from?: string;
 	released_to?: string;
 
-	type?: number;
+	death_from?: string;
+	death_to?: string;
+
+	patientName?: string;
+	patientTag?: string;
+	tutorName?: string;
+
+	type?: string;
 	status?: string;
-	patient?: string;
 }
 
 @inject()
@@ -52,80 +58,122 @@ export default class HospitalizationService {
 	public async parsedIndex(unitId: string, data: IHome) {
 		const qb = Hospitalization.query()
 			.where("business_unit_id", unitId)
-			.preload("patient")
-			.preload("tutor")
-			.preload("technician")
-			.preload("bed");
+			.preload("patient", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.preload("race", (query) => {
+						query.preload("specie");
+					});
+				});
+			})
+			.preload("tutor", (query) => {
+				query.preload("tutor");
+			})
+			.preload("technician");
 
 		if (data.hospitalized_from) {
-			qb.where("created_at", ">=", data.hospitalized_from);
+			qb.whereRaw("created_at::date >= ?", [data.hospitalized_from]);
 		}
 
 		if (data.hospitalized_to) {
-			qb.where("created_at", "<=", data.hospitalized_to);
+			qb.whereRaw("created_at::date <= ?", [data.hospitalized_to]);
 		}
 
-		if (data.death_from) {
-			qb.where("deathAt", ">=", data.death_from);
+		if (data.finished_from) {
+			qb.whereRaw("finished_at::date >= ?", [data.finished_from]);
 		}
 
-		if (data.death_to) {
-			qb.where("deathAt", "<=", data.death_to);
+		if (data.finished_to) {
+			qb.whereRaw("finished_at::date <= ?", [data.finished_to]);
 		}
 
 		if (data.released_from) {
-			qb.where("releasedAt", ">=", data.released_from);
+			qb.whereRaw("released_at::date >= ?", [data.released_from]);
 		}
 
 		if (data.released_to) {
-			qb.where("releasedAt", "<=", data.released_to);
+			qb.whereRaw("released_at::date <= ?", [data.released_to]);
+		}
+
+		if (data.death_from) {
+			qb.whereRaw("death_at::date >= ?", [data.death_from]);
+		}
+
+		if (data.death_to) {
+			qb.whereRaw("death_at::date <= ?", [data.death_to]);
 		}
 
 		if (data.type) {
-			qb.where("type", data.type);
+			qb.whereRaw("type = ?", [data.type]);
 		}
 
-		if (data.status) {
-			qb.where("status", data.status);
+		if (data.tutorName) {
+			qb.whereHas("tutor", (query) => {
+				query
+					.whereRaw("name ~* ?", [data.tutorName ?? ""])
+					.where("type", PatientType.TUTOR);
+			});
 		}
 
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
+		if (data.patientName || data.patientTag) {
+			qb.whereHas("patient", (query) => {
+				query.where("type", PatientType.ANIMAL);
+
+				if (data.patientName) {
+					query.whereRaw("name ~* ?", [data.patientName]);
+				}
+
+				if (data.patientTag) {
+					query.whereRaw("tag ~* ?", [data.patientTag]);
+				}
+			});
+		}
+
+		if (data.status?.toLowerCase() === "em aberto") {
+			qb.whereNull("finished_at");
+		} else if (data.status?.toLowerCase() === "finalizadas") {
+			qb.whereNotNull("finished_at");
+		} else if (data.status?.toLowerCase() === "alta") {
+			qb.whereNotNull("released_at").whereNull("death_at");
+		} else if (data.status?.toLowerCase() === "obito") {
+			qb.whereNotNull("death_at");
 		}
 
 		const result = await qb;
 
 		return result.map((r) => ({
 			id: r.id,
-			patient: {
-				id: r.patient.id,
-				name: r.patient.name,
-			},
-			tutor: {
-				id: r.tutor.id,
-				name: r.tutor.name,
-			},
-			technician: {
-				id: r.technician.id,
-				name: r.technician.name,
-			},
 			type: r.type,
 			risk: r.risk,
-			bed: r.bed
-				? {
-						id: r.bed.id,
-						name: r.bed.name,
-						tag: r.bed.tag,
-				  }
-				: null,
+			expectedDischarge: r.expectedDischarge,
+			status: r.status,
+			releasedAt: r.releasedAt,
+			finishedAt: r.finishedAt,
+			createdAt: r.createdAt,
+			deathAt: r.deathAt,
+			technician: this.sharedService.captureGroup(r.technician, (v) => v.name),
 			complaint: r.complaint,
 			diagnosis: r.diagnosis,
 			prognosis: r.prognosis,
-			expectedDischarge: r.expectedDischarge,
-			hospitalizedAt: r.createdAt,
-			releasedAt: r.releasedAt,
-			deathAt: r.deathAt,
-			status: r.status,
+			tutor: this.sharedService.captureGroup(r.tutor, (v) => ({
+				id: v.id,
+				name: v.name,
+				cellphone: v.tutor?.cellphone ?? null,
+			})),
+			patient: this.sharedService.captureGroup(r.patient, (v) => ({
+				id: v.id,
+				name: v.name,
+				gender: v.gender,
+				tag: v.tag,
+				birthDate: v.birthDate,
+				death: v.patientAnimal?.death ?? null,
+				deathDate: v.patientAnimal?.deathDate ?? null,
+				fur: v.patientAnimal?.race?.fur ?? null,
+				race: v.patientAnimal?.race.description ?? null,
+				specie: v.patientAnimal.race?.specie?.description ?? null,
+				weight: v.weight,
+				weightDate: v.weightDate,
+				weightOrigin: v.weightOrigin,
+			})),
 		}));
 	}
 
@@ -673,7 +721,7 @@ export default class HospitalizationService {
 
 			await hospitalization
 				.merge({
-					releasedAt: DateTime.now(),
+					finishedAt: DateTime.now(),
 					status: HospitalizationStatus.COMPLETE,
 				})
 				.useTransaction(trx)

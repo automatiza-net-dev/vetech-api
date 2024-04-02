@@ -182,6 +182,7 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
+			.orderBy("name", "asc")
 			.where("type", PatientType.TUTOR)
 			.preload("tutor", (query) => {
 				query.preload("clientOrigin");
@@ -189,10 +190,6 @@ export default class PatientService {
 
 				if (data.document) {
 					query.where("document", "ilike", `%${data.document}%`);
-				}
-
-				if (data.phone) {
-					query.where("cellphone", "ilike", `%${data.phone}%`);
 				}
 			})
 			.preload("dependents", (query) => {
@@ -202,6 +199,35 @@ export default class PatientService {
 					});
 				});
 			});
+
+		if (data.phone) {
+			qb.whereHas("contacts", (query) => {
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+					[
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+						data.phone ?? "",
+						data.phone ?? "",
+						data.phone ?? "",
+						`%${data.phone ?? ""}%`,
+					],
+				);
+			});
+		}
 
 		if (data.tutorId) {
 			qb.where("patients.id", data.tutorId);
@@ -280,7 +306,7 @@ export default class PatientService {
 						? {
 								id: patient.patientAnimal.race.id,
 								description: patient.patientAnimal.race.description,
-						  }
+							}
 						: null,
 				})),
 			}));
@@ -334,6 +360,7 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
+			.orderBy("name", "asc")
 			.where("type", PatientType.ANIMAL);
 
 		if (data.tag) {
@@ -351,6 +378,37 @@ export default class PatientService {
 		if (data.tutor) {
 			qb.whereHas("tutors", (query) => {
 				query.where("name", "ilike", `%${data.tutor ?? ""}%`);
+			});
+		}
+
+		if (data.phone) {
+			const clearPhone = data.phone.replace(/\D/g, "");
+
+			qb.whereHas("contacts", (query) => {
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            regexp_replace(SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8), '\D', '', 'g') ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '\D', '', 'g') ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else regexp_replace(patient_contacts.contact, '\D', '', 'g')  ilike ? end
+    )`,
+					[
+						clearPhone,
+						`%${clearPhone}%`,
+						clearPhone,
+						clearPhone,
+						clearPhone,
+						`%${clearPhone}%`,
+					],
+				);
 			});
 		}
 
@@ -387,15 +445,15 @@ export default class PatientService {
 					}
 				}
 
-				if (data.phone) {
-					const matches = r.tutors.some((t) =>
-						t.tutor.cellphone?.includes(data.phone ?? ""),
-					);
-
-					if (!matches) {
-						return false;
-					}
-				}
+				// if (data.phone) {
+				// 	const matches = r.tutors.some((t) =>
+				// 		t.tutor.cellphone?.includes(data.phone ?? ""),
+				// 	);
+				//
+				// 	if (!matches) {
+				// 		return false;
+				// 	}
+				// }
 
 				if (data.specie) {
 					const matches = r.patientAnimal?.race?.specie.description
@@ -838,21 +896,20 @@ export default class PatientService {
 	}
 
 	public async storeTutor(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientTutorData, "active">,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
 		return Database.transaction(async (trx) => {
-			if (data.document) {
-				// if (!this.sharedService.validDocument(data.document)) {
-				// 	throw new BadRequestException(
-				// 		"Documento inválido",
-				// 		400,
-				// 		"E_INVALID_DOCUMENT",
-				// 	);
-				// }
+			if (data.document && authCtx.unit.unitConfig.requiresClientDocument) {
+				if (!this.sharedService.validDocument(data.document)) {
+					throw new BadRequestException(
+						"Documento inválido",
+						400,
+						"E_INVALID_DOCUMENT",
+					);
+				}
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -871,7 +928,7 @@ export default class PatientService {
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const tutors = await group
+			const tutors = await authCtx.group
 				.related("patients")
 				.query()
 				.where("type", PatientType.TUTOR)
@@ -923,7 +980,7 @@ export default class PatientService {
 				},
 			);
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			if (data.cellphone) {
 				await patient.related("contacts").create(
@@ -1252,12 +1309,10 @@ export default class PatientService {
 	}
 
 	public async updateTutor(
-		unitId: string,
+		authCtx: AuthContext,
 		id: string,
 		data: IPatientTutorData,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			const tutor = await Patient.query()
 				.useTransaction(trx)
@@ -1270,22 +1325,27 @@ export default class PatientService {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
 			}
 
-			if (data.document && data.document !== tutor.tutor.document) {
-				// if (!this.sharedService.validDocument(data.document)) {
-				// 	throw new BadRequestException(
-				// 		"Documento inválido",
-				// 		400,
-				// 		"E_INVALID_DOCUMENT",
-				// 	);
-				// }
+			if (
+				data.document &&
+				data.document !== tutor.tutor.document &&
+				authCtx.unit.unitConfig.requiresClientDocument
+			) {
+				if (!this.sharedService.validDocument(data.document)) {
+					throw new BadRequestException(
+						"Documento inválido",
+						400,
+						"E_INVALID_DOCUMENT",
+					);
+				}
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
 					.whereHas("tutor", (query) => {
 						query.where("document", data.document?.replace(/\D/g, "") ?? "");
 					})
+					.whereNot("patient_id", tutor.id)
 					.first();
 				if (document) {
 					throw new BadRequestException(
@@ -1635,13 +1695,42 @@ export default class PatientService {
 	public async checkExistingPhone(authContext: AuthContext, phone: string) {
 		const sanitizedValue = phone.replace(/\D/g, "");
 
-		const tutor = await Patient.query()
+		const tutors = await Patient.query()
 			.where("type", PatientType.TUTOR)
+			.whereHas("tutor", (query) => {
+				query.whereRaw("(cellphone = ? or telephone = ?)", [
+					sanitizedValue,
+					sanitizedValue,
+				]);
+			})
 			.whereHas("economicGroup", (query) => {
 				query.where("economic_group_id", authContext.group.id);
 			})
 			.whereHas("contacts", (query) => {
-				query.where("contact", sanitizedValue).andWhereNot("type", "email");
+				query.whereRaw(
+					`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+					[
+						sanitizedValue,
+						`%${sanitizedValue}%`,
+						sanitizedValue,
+						sanitizedValue,
+						sanitizedValue,
+						`%${sanitizedValue}%`,
+					],
+				);
 			})
 			.preload("dependents", (query) => {
 				query.preload("patientAnimal", (query) => {
@@ -1652,14 +1741,9 @@ export default class PatientService {
 			})
 			.preload("tutor", (query) => {
 				query.preload("clientOrigin");
-			})
-			.first();
+			});
 
-		if (!tutor) {
-			return null;
-		}
-
-		return {
+		return tutors.map((tutor) => ({
 			id: tutor.id,
 			name: tutor.name,
 			email: tutor.tutor.email,
@@ -1674,7 +1758,7 @@ export default class PatientService {
 					race: d?.patientAnimal?.race.toJSON(),
 				};
 			}),
-		};
+		}));
 	}
 
 	private async getEconomicGroup(unitId: string) {

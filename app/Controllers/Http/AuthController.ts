@@ -9,6 +9,7 @@ import SwapUnitValidator from "App/Validators/Auth/SwapUnitValidator";
 import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class AuthController {
@@ -19,10 +20,6 @@ export default class AuthController {
 	) {}
 
 	public async login({ auth, request, response }: HttpContextContract) {
-		if (process.env.NODE_ENV === "development") {
-			console.log(request.headers());
-		}
-
 		const payload = await request.validate(LoginValidator);
 
 		const result = await this.authService.login(
@@ -54,12 +51,57 @@ export default class AuthController {
 		return response.ok(result);
 	}
 
+	private static intlMap = {
+		email: "Email",
+		password: "Senha",
+		business_unit_id: "Unidade",
+		system: "Sistema",
+		ipAddress: "Endereço",
+	} as Record<string, string>;
+
 	public async adminLogin({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(LoginValidator);
+		try {
+			const payload = await request.validate(LoginValidator);
 
-		const result = await this.authService.adminLogin(payload, auth);
+			const result = await this.authService.adminLogin(payload, auth);
 
-		return response.ok(result);
+			return response.ok(result);
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${AuthController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async availableSwaps({ auth, response }: HttpContextContract) {
@@ -147,6 +189,7 @@ export default class AuthController {
 				"locked_daily_movement_date",
 				"daily_cashier_type",
 				"requires_finance_client",
+				"alter_prices",
 			]);
 		});
 
@@ -168,6 +211,22 @@ export default class AuthController {
 	public async resetPassword({ request, response }: HttpContextContract) {
 		const payload = await request.validate(ResetPasswordValidator);
 		await this.service.resetPassword(payload);
+
+		return response.noContent();
+	}
+
+	public async logout({ response, auth }: HttpContextContract) {
+		try {
+			await auth.use("api").revoke();
+		} catch (err) {
+			console.error(err);
+		}
+
+		try {
+			await auth.use("tpApi").revoke();
+		} catch (err) {
+			console.error(err);
+		}
 
 		return response.noContent();
 	}

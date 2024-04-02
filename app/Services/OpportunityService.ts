@@ -246,8 +246,31 @@ export default class OpportunityService {
 				}
 
 				if (data.contactPhone) {
-					query.whereHas("tutor", (query) => {
-						query.where("cellphone", "ilike", `%${data.contactPhone}%`);
+					query.whereHas("contacts", (query) => {
+						query.whereRaw(
+							`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(patient_contacts.contact) = 10 and length(?) = 11 then
+            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+            ? -- add o 9
+        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else patient_contacts.contact ilike ? end
+    )`,
+							[
+								data.contactPhone ?? "",
+								`%${data.contactPhone ?? ""}%`,
+								data.contactPhone ?? "",
+								data.contactPhone ?? "",
+								data.contactPhone ?? "",
+								`%${data.contactPhone ?? ""}%`,
+							],
+						);
 					});
 				}
 			});
@@ -482,6 +505,8 @@ export default class OpportunityService {
 			openingTo?: string;
 			contactFrom?: string;
 			contactTo?: string;
+			dateFrom?: string;
+			dateTo?: string;
 			contactName?: string;
 			contactPhone?: string;
 			patientName?: string;
@@ -568,6 +593,32 @@ export default class OpportunityService {
 
 		if (data.contactTo) {
 			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.dateFrom && data.dateTo) {
+			qb.whereRaw(
+				`(
+    (opportunities.opening_date::date between ? and ?)
+        or (opportunities.id in (select distinct opportunity_id
+                                 from schedules
+                                          left join (schedule_status_changes join schedule_statuses
+                                                     on schedule_status_changes.schedule_status_id =
+                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
+                                                    on schedules.id = schedule_status_changes.schedule_id
+                                 where schedules.opportunity_id = opportunities.id
+                                   and (schedules.start_hour::date between ? and ?
+                                     or
+                                        schedule_status_changes.created_at::date between ? and ?)))
+      )`,
+				[
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+				],
+			);
 		}
 
 		if (data.contactName) {
@@ -725,6 +776,8 @@ export default class OpportunityService {
 			openingTo?: string;
 			contactFrom?: string;
 			contactTo?: string;
+			dateFrom?: string;
+			dateTo?: string;
 			contactName?: string;
 			contactPhone?: string;
 			patientName?: string;
@@ -814,6 +867,32 @@ export default class OpportunityService {
 
 		if (data.contactTo) {
 			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.dateFrom && data.dateTo) {
+			qb.whereRaw(
+				`(
+    (opportunities.opening_date::date between ? and ?)
+        or (opportunities.id in (select distinct opportunity_id
+                                 from schedules
+                                          left join (schedule_status_changes join schedule_statuses
+                                                     on schedule_status_changes.schedule_status_id =
+                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
+                                                    on schedules.id = schedule_status_changes.schedule_id
+                                 where schedules.opportunity_id = opportunities.id
+                                   and (schedules.start_hour::date between ? and ?
+                                     or
+                                        schedule_status_changes.created_at::date between ? and ?)))
+      )`,
+				[
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+				],
+			);
 		}
 
 		if (data.contactName) {

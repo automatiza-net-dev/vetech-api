@@ -13,7 +13,7 @@ export default class DepositItem extends BaseModel {
 	public id: number;
 
 	@column({
-		consume: (value) => new Decimal(value),
+		consume: (value) => (value ? new Decimal(value) : new Decimal(0)),
 		prepare: (value) => value.toString(),
 		serialize: (value: Decimal) => value.toNumber(),
 	})

@@ -7,6 +7,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
 import BusinessUnitProduct, {
 	BusinessUnitProductMetaType,
@@ -961,7 +962,9 @@ export default class ReceiptService {
 					receipt_id: newReceipt.id,
 
 					quantity: new Decimal(item.prod.qCom),
-					fractionValue: anotherExistingProduct?.fractionValue,
+					fractionValue: anotherExistingProduct
+						? anotherExistingProduct.fractionValue
+						: undefined,
 					costValue: item.prod.vUnCom,
 					unitaryValue: item.prod.vUnCom,
 					discountValue: item.prod.vDesc,
@@ -2694,6 +2697,13 @@ and product_variation_id in (
 			);
 		}
 
+		const $checkingAccountMeta =
+			await BusinessUnitCheckingAccountPaymentMethod.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("payment_method_id", data.paymentMethodId)
+				.first();
+
 		await Finance.create(
 			{
 				economic_group_id: authCtx.group.id,
@@ -2709,6 +2719,7 @@ and product_variation_id in (
 				tef_flag_id: data.tefFlagId,
 				acquirer_id: data.tefAcquirerId,
 				origin_id: data.item.id,
+				checking_account_id: $checkingAccountMeta?.checking_account_id,
 
 				type: FinanceType.D,
 				block: data.item.block,

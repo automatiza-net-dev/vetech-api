@@ -4,11 +4,11 @@ import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import ProfileAccess from "App/Models/ProfileAccess";
+import ProfileAccess, { TProfileAccessType } from "App/Models/ProfileAccess";
 import RoleProfileAccess from "App/Models/RoleProfileAccess";
 import System from "App/Models/System";
 import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
-import User from "App/Models/User";
+import User, { TUserType } from "App/Models/User";
 import SharedService from "App/Services/SharedService";
 import axios from "axios";
 
@@ -322,10 +322,24 @@ export default class ThirdPartyService {
 		};
 	}
 
-	public async searchProfileAccesses(systemID: number) {
-		const result = await ProfileAccess.query()
+	public async searchProfileAccesses(systemID: number, type?: TUserType) {
+		const qb = ProfileAccess.query()
 			.where("system_id", systemID)
 			.where("active", true);
+
+		if (type === "user") {
+			qb.whereIn("type", ["user", "both", "all"] as TProfileAccessType[]);
+		}
+
+		if (type === "controller") {
+			qb.whereIn("type", ["controller", "both", "all"] as TProfileAccessType[]);
+		}
+
+		if (type === "system") {
+			qb.whereIn("type", ["system", "all"] as TProfileAccessType[]);
+		}
+
+		const result = await qb;
 
 		return result.map((elem) => ({
 			idPerfil: elem.id,

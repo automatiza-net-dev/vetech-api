@@ -263,10 +263,14 @@ export default class RoleService {
 		await role.softDelete();
 	}
 
-	public async rolePermissionMetadata(systemID: number, id: number) {
+	public async rolePermissionMetadata(
+		systemID: number,
+		id: number,
+		type?: string,
+	) {
 		const role = await Role.query()
-			.where("system_id", systemID)
 			// .where("economic_group_id", authCtx.group.id)
+			.where("system_id", systemID)
 			.where("id", id)
 			.first();
 
@@ -282,20 +286,28 @@ export default class RoleService {
 		const qb = role
 			.related("permissions")
 			.query()
-			.preload("screen", (query) => {})
+			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		// if (authCtx.user.type === "user") {
-		// 	qb.whereIn("type", ["user", "both"] as TPermissionType[]);
-		// }
+		if (type === "user") {
+			qb.whereIn("permissions.type", [
+				"user",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
 
-		// if (authCtx.user.type === "controller") {
-		// 	qb.whereIn("type", ["controller", "both"] as TPermissionType[]);
-		// }
+		if (type === "controller") {
+			qb.whereIn("permissions.type", [
+				"controller",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
 
-		// if (authCtx.user.type === "controller") {
-		// 	qb.whereIn("type", ["system"] as TPermissionType[]);
-		// }
+		if (type === "system") {
+			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
+		}
 
 		const permissions = await qb;
 
@@ -383,81 +395,82 @@ export default class RoleService {
 	}
 
 	public async searchRolePermissions(
-		authCtx: AuthContext,
+		systemID: number,
+		type: string | null,
 		data: { id?: string; active?: string },
 	) {
-		const qb = Role.query().where("economic_group_id", authCtx.group.id);
+		const qb = Database.from("role_profile_accesses")
+			.debug(true)
+			.select(
+				Database.raw(`roles.id as role_id,
+       roles.name,
+       roles.active,
+       roles.external_access,
+       profile_accesses.id as a_id,
+       profile_accesses.description`),
+			)
+			.joinRaw(
+				`join profile_accesses on role_profile_accesses.profile_access_id = profile_accesses.id`,
+			)
+			.joinRaw(`join roles on role_profile_accesses.role_id = roles.id`)
+			.where("roles.system_id", systemID);
 
 		if (data.id) {
-			qb.where("id", data.id);
+			qb.where("roles.id", data.id);
 		}
 
 		if (data.active) {
-			qb.where("active", data.active !== "0");
+			qb.where("roles.active", data.active !== "0");
 		}
 
-		qb.preload("permissions", (query) => {
-			if (authCtx.user.type === "user") {
-				query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
-			}
-
-			if (authCtx.user.type === "controller") {
-				query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
-			}
-
-			if (authCtx.user.type === "system") {
-				query.whereIn("type", ["system", "all"] as TRoleType[]);
-			}
-		});
-		qb.preload("accesses", (query) => {
-			if (authCtx.user.type === "user") {
-				query.whereIn("type", ["user", "both", "all"] as TProfileAccessType[]);
-			}
-
-			if (authCtx.user.type === "controller") {
-				query.whereIn("type", [
-					"controller",
-					"both",
-					"all",
-				] as TProfileAccessType[]);
-			}
-
-			if (authCtx.user.type === "system") {
-				query.whereIn("type", ["system", "all"] as TProfileAccessType[]);
-			}
-
-			query.preload("profile");
-		});
+		if (!type || type === "user") {
+			qb.whereIn("profile_accesses.type", ["user", "both", "all"]);
+		}
+		if (type === "controller") {
+			qb.whereIn("profile_accesses.type", ["controller", "both", "all"]);
+		}
+		if (type === "system") {
+			qb.whereIn("profile_accesses.type", ["system", "both", "all"]);
+		}
 
 		const result = await qb;
 
-		if (data.id) {
-			if (result.length === 0) {
-				throw this.sharedService.ResourceNotFound();
+		const uniqueRoles = result.reduce((acc: number[], curr) => {
+			if (acc.includes(curr.role_id)) {
+				return acc;
 			}
 
-			const [elem] = result;
-			return {
-				id: elem.id,
-				name: elem.name,
-				active: elem.active,
-				externalAccess: elem.externalAccess,
-				profiles: elem.accesses.map((access) => ({
-					id: access.profile.id,
-					description: access.profile.description,
-				})),
-			};
-		}
+			acc.push(curr.role_id);
+			return acc;
+		}, [] as number[]);
 
-		return result.map((elem) => ({
-			id: elem.id,
-			name: elem.name,
-			active: elem.active,
-			profiles: elem.accesses.map((access) => ({
-				id: access.profile.id,
-				description: access.profile.description,
-			})),
-		}));
+		const mappedRoles = uniqueRoles.map((roleID: number) => {
+			return {
+				id: roleID,
+				name: result.find((r) => r.role_id === roleID)?.name,
+				active: result.find((r) => r.role_id === roleID)?.active,
+				externalAccess: result.find((r) => r.role_id === roleID)
+					?.external_access,
+				profiles: result
+					.filter((r) => r.role_id === roleID)
+					.map((r) => ({ id: r.a_id, description: r.description })),
+			};
+		});
+
+    if(mappedRoles.length === 0){
+      return []
+    }
+
+    if(data.id){
+      const mappedRole = mappedRoles.find((r) => r.id === parseInt(data.id)))
+      if(!mappedRole){
+        throw new BadRequestException("Cargo não encontrado", 400, "E_NOT_FOUND")
+      }
+
+      return mappedRole
+    }
+
+    return mappedRoles
 	}
 
 	public async searchControllerRolePermissions(

@@ -33,6 +33,7 @@ import {
 import { DateTime } from "luxon";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
+import Reason from "App/Models/Reason";
 
 interface ISearch {
 	pid?: string;
@@ -487,6 +488,17 @@ export default class ScheduleService {
 			}
 		}
 
+		if (data.reasonId) {
+			const reason = await Reason.findOrFail(data.reasonId);
+			if (reason.requiresObservation && !data.observation) {
+				throw new BadRequestException(
+					"É preciso informar observação",
+					400,
+					"E_MISSING",
+				);
+			}
+		}
+
 		await schedule.related("reschedules").create({
 			update_user_id: user.id,
 			user_id: schedule.user_id,
@@ -531,12 +543,12 @@ export default class ScheduleService {
 					data.business,
 					startDate,
 					endDate,
-			  )
+				)
 			: await this.getGeneralSchedules(
 					data.business,
 					startOfDay(startDate),
 					endOfDay(endDate),
-			  );
+				);
 
 		return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
 	}
@@ -666,6 +678,7 @@ export default class ScheduleService {
 			user?: string;
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -742,6 +755,12 @@ export default class ScheduleService {
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
 			});
+
+		if (data.lista_cancelados?.toLowerCase() === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
 
 		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
 			schedulesQb.preload("holder", (query) => {
@@ -828,6 +847,7 @@ export default class ScheduleService {
 			user?: string;
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -858,7 +878,7 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const schedules = await Schedule.query()
+		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
@@ -875,6 +895,14 @@ export default class ScheduleService {
 				});
 			})
 			.orderBy("start_hour", "asc");
+
+		if (data.lista_cancelados?.toLowerCase() === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
+
+		const schedules = await schedulesQb;
 
 		const patients = await Patient.query()
 			.whereIn(
@@ -935,6 +963,7 @@ export default class ScheduleService {
 			users?: string[];
 			to?: string;
 			from?: string;
+			lista_cancelados?: string;
 		},
 	) {
 		if (!data.from || !data.to) {
@@ -977,7 +1006,7 @@ export default class ScheduleService {
 			days.push(dt.toFormat("dd/MM/yyyy"));
 		}
 
-		const schedules = await Schedule.query()
+		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
@@ -993,6 +1022,14 @@ export default class ScheduleService {
 					query.select(["cellphone", "telephone"]);
 				});
 			});
+
+		if (data.lista_cancelados?.toLowerCase() === "false") {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereNot("type", "CANC");
+			});
+		}
+
+		const schedules = await schedulesQb;
 
 		const patients = await Patient.query()
 			.whereIn(
@@ -1268,6 +1305,17 @@ export default class ScheduleService {
 				return schedule;
 			}
 
+			if (data.reasonId) {
+				const reason = await Reason.findOrFail(data.reasonId);
+				if (reason.requiresObservation && !data.observation) {
+					throw new BadRequestException(
+						"É preciso informar observação",
+						400,
+						"E_MISSING",
+					);
+				}
+			}
+
 			const toStatus = await ScheduleStatus.find(data.statusId, {
 				client: trx,
 			});
@@ -1517,7 +1565,7 @@ export default class ScheduleService {
 						reason: elem.reason?.reason ?? null,
 						observation: elem.observation,
 						cancelledAt: elem.updatedAt,
-				  }
+					}
 				: null,
 			reschedules: elem.reschedules.map((r) => ({
 				id: r.id,

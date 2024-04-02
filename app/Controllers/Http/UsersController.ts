@@ -9,6 +9,7 @@ import CreateUserControllerValidator from "App/Validators/User/CreateUserControl
 import DisableUserControllerRoleValidator from "App/Validators/User/DisableUserControllerRoleValidator";
 import UpdateUserControllerValidator from "App/Validators/User/UpdateUserControllerValidator";
 import UpdateUserValidator from "App/Validators/User/UpdateUserValidator";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class UsersController {
@@ -122,18 +123,74 @@ export default class UsersController {
 		return response.noContent();
 	}
 
+	private static intlMap = {
+		id: "ID",
+		name: "Nome",
+		email: "Email",
+		document: "CPF/CNPJ",
+		password: "Senha",
+		roleId: "Cargo",
+		units: "Unidades",
+		phone: "Telefone",
+		postalCode: "CEP",
+		address: "Rua",
+		number: "Número",
+		complement: "Complemento",
+		district: "Bairro",
+		city: "Cidade",
+		state: "Estado",
+		saleDepositId: "Depósito de Venda",
+	} as Record<string, string>;
+
 	public async createUserController({
 		auth,
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateUserControllerValidator);
-		await this.service.createUserController(
-			auth.user?.system_id ?? -1,
-			payload,
-		);
+		try {
+			const payload = await request.validate(CreateUserControllerValidator);
+			await this.service.createUserController(
+				auth.user?.system_id ?? -1,
+				payload,
+			);
 
-		return response.noContent();
+			return response.noContent();
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${UsersController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async updateUserController({
@@ -141,13 +198,50 @@ export default class UsersController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdateUserControllerValidator);
-		await this.service.updateUserController(
-			auth.user?.system_id ?? -1,
-			payload,
-		);
+		try {
+			const payload = await request.validate(UpdateUserControllerValidator);
+			await this.service.updateUserController(
+				auth.user?.system_id ?? -1,
+				payload,
+			);
 
-		return response.noContent();
+			return response.noContent();
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${UsersController.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async fetchUserControllers({ auth, response }: HttpContextContract) {
@@ -163,11 +257,21 @@ export default class UsersController {
 		request,
 		response,
 	}: HttpContextContract) {
-		await this.service.softDeleteUserController(auth.user?.system_id ?? -1, {
-			id: request.param("id"),
-		});
+		try {
+			await this.service.softDeleteUserController(auth.user?.system_id ?? -1, {
+				id: request.param("id"),
+			});
 
-		return response.noContent();
+			return response.noContent();
+		} catch (e) {
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
 	}
 
 	public async disableUserControllerRole({

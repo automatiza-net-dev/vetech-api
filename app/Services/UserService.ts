@@ -584,6 +584,10 @@ export default class UserService {
 			.preload("roles", (query) => {
 				query.select("role_id", "unit_id");
 				query.where("active", true);
+
+				query.preload("unit", (query) => {
+					query.preload("economicGroup");
+				});
 			});
 
 		return result.map((elem) => ({
@@ -592,7 +596,19 @@ export default class UserService {
 			email: elem.email,
 			document: elem.document,
 			roleId: elem.roles.find((r) => r.role_id)?.role_id ?? null,
-			units: elem.roles.map((r) => r.unit_id).filter(Boolean),
+			units: elem.roles
+				.filter((r) => !!r.unit)
+				.map((r) => {
+					return {
+						id: r.unit.id,
+						identification: r.unit.identification ?? null,
+						economicGroup: {
+							id: r.unit.economicGroup.id,
+							fantasy_name: r.unit.economicGroup.fantasyName ?? null,
+							company_name: r.unit.economicGroup.companyName ?? null,
+						},
+					};
+				}),
 		}));
 	}
 

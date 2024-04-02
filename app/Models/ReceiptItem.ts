@@ -34,7 +34,7 @@ export default class ReceiptItem extends BaseModel {
 	@column({
 		columnName: "fraction_value",
 		consume: (value) => new Decimal(value),
-		prepare: (value) => value.toString(),
+		prepare: (value) => value?.toString(),
 		serialize: (value: Decimal) => value.toNumber(),
 	})
 	public fractionValue: Decimal | null;

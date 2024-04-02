@@ -38,6 +38,8 @@ Route.group(() => {
 	Route.post("register", "AuthController.register");
 	Route.post("forgot-password", "AuthController.forgotPassword");
 	Route.post("reset-password", "AuthController.resetPassword");
+
+	Route.get("logout", "AuthController.logout").middleware(["auth:tpApi,api"]);
 }).prefix("auth");
 
 Route.group(() => {
@@ -494,7 +496,10 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "DocumentTemplatesController.index");
+	Route.post("/upload", "DocumentTemplatesController.uploadFile");
 	Route.post("/", "DocumentTemplatesController.store");
+	Route.get("/pdf/:id", "DocumentTemplatesController.getPdf");
+	Route.get("/render-pdf/:id", "DocumentTemplatesController.renderPdf");
 	Route.get("/:id", "DocumentTemplatesController.show");
 	Route.put("/:id", "DocumentTemplatesController.update");
 	Route.delete("/:id", "DocumentTemplatesController.destroy");
@@ -973,7 +978,10 @@ Route.group(() => {
 		"/update-observation/:id",
 		"BudgetsController.updateBudgetObservation",
 	);
+
 	Route.put("/update-item/:id", "BudgetsController.updateBudgetItem");
+	Route.delete("/delete-item/:id", "BudgetsController.deleteBudgetItem");
+
 	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
 	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
@@ -991,6 +999,7 @@ Route.group(() => {
 		"/check-deposit-availability",
 		"BillsController.checkDepositAvailability",
 	);
+	Route.post("/check-item-discount", "BillsController.checkItemDiscount");
 	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
 
 	Route.post("/create-treatment", "BillsController.createTreatment");
@@ -1638,4 +1647,16 @@ Route.group(() => {
 	);
 })
 	.prefix("deposits")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/generate-link", "S3sController.createLink");
+})
+	.prefix("s3")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/download", "AssetsController.download");
+})
+	.prefix("assets")
 	.middleware("auth");

@@ -1,6 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database, {
-	TransactionClientContract,
+	type TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
@@ -8,6 +8,7 @@ import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DepositItem from "App/Models/DepositItem";
 import Finance, {
@@ -35,10 +36,11 @@ import Treatment from "App/Models/Treatment";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
-import User from "App/Models/User";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import type User from "App/Models/User";
+import SharedService from "App/Services/SharedService";
+import type { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
-import {
+import type {
 	ICreateBillData,
 	ICreateBillItemData,
 	ICreateBillPaymentData,
@@ -195,6 +197,29 @@ export default class BillService {
 		return bill;
 	}
 
+	async checkItemsDiscount(
+		authCtx: AuthContext,
+		data: { items: ICreateBillData["items"] },
+	) {
+		return Database.transaction(async (trx) => {
+			const invalid = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+				})),
+			);
+			if (invalid.length > 0) {
+				return invalid;
+			}
+
+			return [];
+		});
+	}
+
 	async createBill(authCtx: AuthContext, data: ICreateBillData) {
 		// if (ufIcms.length !== taxRules.length) {
 		//   throw new InternalErrorException(
@@ -207,9 +232,10 @@ export default class BillService {
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.items.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -219,87 +245,14 @@ export default class BillService {
 			}
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
-				const [{ deposit_id }] = await Database.from("user_unit_roles")
-					.select(
-						Database.raw(
-							"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-						),
-					)
-					.joinRaw(
-						"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-					)
-					.where("user_unit_roles.user_id", authCtx.user.id)
-					.where("user_unit_roles.unit_id", authCtx.unit.id);
+				const invalidRows = await this.depositService.validateDepositOperation(
+					trx,
+					authCtx,
+					data.items,
+				);
 
-				const rows = await Database.rawQuery(
-					`create temporary table tmp_bill_items (
-    idVariacao uuid,
-    quantidade int
-);
-
-
-insert into tmp_bill_items (idVariacao, quantidade)
-values ${data.items
-						.map((elem) => `('${elem.productVariationId}', ${elem.quantity})`)
-						.join(", ")}
-
-select products.description,
-       tmp_bill_items.idVariacao as id_variacao,
-       tmp_bill_items.quantidade,
-       product_variations.barcode,
-       product_variations.id
-from "tmp_bill_items"
-         join product_variations on tmp_bill_items.idVariacao = product_variations.id
-         join products on product_variations.product_id = products.id
-where tmp_bill_items.idVariacao not in (select di.product_variation_id
-                                          from deposit_items di
-                                          where deposit_id = ?
-                                            and di.product_variation_id = tmp_bill_items.idVariacao
-                                            and di.quantity > tmp_bill_items.quantidade);
-
-`,
-					[deposit_id],
-				)
-					.useTransaction(trx)
-					.exec();
-
-				// const insertTasks = data.items.map((elem) => {
-				// 	return Database.rawQuery(`insert into ${key} values (?, ?)`, [
-				// 		elem.productVariationId,
-				// 		elem.quantity,
-				// 	])
-				// 		.useTransaction(trx)
-				// 		.exec();
-				// });
-				// await Promise.all(insertTasks);
-
-				// const rows = await Database.from(key)
-				// 	.select(
-				// 		Database.raw(
-				// 			`products.description, ${key}.idVariacao as id_variacao, ${key}.quantidade, product_variations.barcode, product_variations.id`,
-				// 		),
-				// 	)
-				// 	.joinRaw(
-				// 		`join product_variations on ${key}.idVariacao = product_variations.id`,
-				// 	)
-				// 	.joinRaw(
-				// 		`join products on product_variations.product_id = products.id`,
-				// 	)
-				// 	.whereRaw(
-				// 		`${key}.idVariacao not in (select di.product_variation_id
-				//                        from deposit_items di
-				//                        where deposit_id = ?
-				//                          and di.product_variation_id = ${key}.idVariacao
-				//                          and di.quantity > ${key}.quantidade)`,
-				// 		[deposit_id],
-				// 	);
-
-				await Database.rawQuery(`drop table tmp_bill_items`, [])
-					.useTransaction(trx)
-					.exec();
-
-				if (rows.length > 0) {
-					return rows.map((elem) => ({
+				if (invalidRows.length > 0) {
+					return invalidRows.map((elem) => ({
 						rule: "ItemInexistente",
 						message: `O produto '${elem.description}' não existe no depósito`,
 					}));
@@ -322,11 +275,12 @@ where tmp_bill_items.idVariacao not in (select di.product_variation_id
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data
 					.flatMap((elem) => elem.items)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
 						discountValue: elem.discountValue,
 						quantity: elem.quantity,
 					})),
@@ -382,17 +336,14 @@ where tmp_bill_items.idVariacao not in (select di.product_variation_id
 
 	async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
 		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx.unit.id,
-				[
-					{
-						variationId: data.productVariationId,
-						discountValue: data.discountValue,
-						quantity: data.quantity,
-					},
-				],
-			);
+			const invalid = await this.sharedService.checkDiscount(trx, authCtx, [
+				{
+					variationId: data.productVariationId,
+					unitaryValue: data.unitaryValue,
+					discountValue: data.discountValue,
+					quantity: data.quantity,
+				},
+			]);
 			if (invalid.length > 0) {
 				return invalid;
 			}
@@ -423,9 +374,10 @@ where tmp_bill_items.idVariacao not in (select di.product_variation_id
 		return Database.transaction(async (trx) => {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
-				authCtx.unit.id,
+				authCtx,
 				data.map((elem) => ({
 					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
 				})),
@@ -903,18 +855,19 @@ where deposit_id = ?
 				existingPayments.length > 0
 					? Math.max(...existingPayments.map((p) => p.block))
 					: 0;
-			const singleValue = data.installmentsValue / installment.installment;
 
-			const lastInstallment = Math.max(installment.installment - 1, 1);
-			const meta2 = singleValue * (installment.installment - 1);
-			const withOffset = data.installmentsValue - meta2;
+			const singleValue =
+				Math.floor((data.installmentsValue / installment.installment) * 100) /
+				100;
+			const withOffset =
+				data.installmentsValue - singleValue * (installment.installment - 1);
 
 			const payments = await BillPayment.createMany(
 				Array.from(
 					{ length: installment.installment ?? 1 },
 					(_, v) => {
 						const installmentValue =
-							v === lastInstallment ? withOffset : singleValue;
+							v === installment.installment - 1 ? withOffset : singleValue;
 
 						return {
 							economic_group_id: authCtx.group.id,
@@ -960,10 +913,17 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 
+			const $checkingAccountMeta =
+				await BusinessUnitCheckingAccountPaymentMethod.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("payment_method_id", data.paymentMethodId)
+					.first();
+
 			await Finance.createMany(
 				Array.from({ length: installment.installment }, (_, v) => {
 					const installmentValue =
-						v === lastInstallment ? withOffset : singleValue;
+						v === installment.installment - 1 ? withOffset : singleValue;
 
 					return {
 						economic_group_id: authCtx.group.id,
@@ -974,7 +934,9 @@ where deposit_id = ?
 						payment_method_id: paymentMethod.id,
 						origin_id: payments.at(v)?.id,
 						account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
-						checking_account_id: paymentMethod.checkingAccountId,
+						checking_account_id:
+							$checkingAccountMeta?.checking_account_id ??
+							paymentMethod.checkingAccountId,
 
 						type: FinanceType.C,
 						installment: v + 1,
@@ -1714,7 +1676,7 @@ where deposit_id = ?
 							: undefined;
 						const icmsStBase_2 = rule.ivaIcmsSt
 							? icmsStBase_1 -
-							  (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+								(icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 							: 0;
 						const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
@@ -1736,7 +1698,7 @@ where deposit_id = ?
 								icmsStIva: rule.ivaIcmsSt,
 								icmsStValue: rule.ivaIcmsSt
 									? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-									  icmsValue
+										icmsValue
 									: undefined,
 								issBase: rule.icmsPerc,
 								issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
@@ -1859,7 +1821,9 @@ where deposit_id = ?
 				status: BillStatus.A,
 
 				otherValue: 0,
-				tag: GenerateTag(parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1),
+				tag: GenerateTag(
+					Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
+				),
 			},
 			{
 				client: trx,
@@ -1869,13 +1833,13 @@ where deposit_id = ?
 		await authCtx.unit.unitConfig
 			.merge({
 				billCounter: (
-					parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
+					Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
 				).toString(),
 			})
 			.useTransaction(trx)
 			.save();
 
-		const [{ deposit_id }] = await Database.from("user_unit_roles")
+		const depositThing = await Database.from("user_unit_roles")
 			.useTransaction(trx)
 			.select(
 				Database.raw(
@@ -1927,7 +1891,7 @@ where deposit_id = ?
 					bill_id: bill.id,
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
-					deposit_id,
+					deposit_id: undefined,
 
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
@@ -1970,7 +1934,7 @@ where deposit_id = ?
 						: undefined,
 					icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
 						? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-						  icmsValue
+							icmsValue
 						: undefined,
 					issCst:
 						variation.product.type === ProductType.SERVICE
@@ -2121,6 +2085,7 @@ where deposit_id = ?
 		await this.depositService.updateDepositItems(
 			trx,
 			authCtx,
+			bill.id,
 			data.items.map((elem) => ({
 				quantity: elem.quantity,
 				productVariationId: elem.productVariationId,

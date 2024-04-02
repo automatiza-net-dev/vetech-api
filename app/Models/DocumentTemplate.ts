@@ -1,69 +1,85 @@
 import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import TimelineType from 'App/Models/TimelineType';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	BelongsTo,
+	belongsTo,
+	column,
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import TimelineType from "App/Models/TimelineType";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+
+export const DocumentTemplateType = ["text", "pdf"] as const;
+export type TDocumentTemplateType = (typeof DocumentTemplateType)[number];
 
 export default class DocumentTemplate extends BaseModel {
-  @column({ isPrimary: true })
-  public id: string = v4();
+	@column({ isPrimary: true })
+	public id: string = v4();
 
-  @column()
-  public description: string;
+	@column()
+	public description: string;
 
-  @column()
-  public title: string;
+	@column()
+	public type: TDocumentTemplateType;
 
-  @column()
-  public header?: string;
+	@column({
+		columnName: "file_name",
+	})
+	public fileName: string;
 
-  @column()
-  public template: string;
+	@column({
+		columnName: "source_file",
+	})
+	public sourceFile: string;
 
-  @column()
-  public active: boolean;
+	@column()
+	public title: string;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column()
+	public header?: string;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column()
+	public template: string;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
+	@column()
+	public active: boolean;
 
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
 
-  @column({
-    serializeAs: null,
-  })
-  public system_id: number;
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
 
-  @column()
-  public timeline_type_id: string;
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
 
-  @belongsTo(() => TimelineType)
-  public timelineType: BelongsTo<typeof TimelineType>;
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
 
-  @column()
-  public economic_group_id: string;
+	@column({
+		serializeAs: null,
+	})
+	public system_id: number;
 
-  @belongsTo(() => EconomicGroup)
-  public group: BelongsTo<typeof EconomicGroup>;
+	@column()
+	public timeline_type_id: string;
+
+	@belongsTo(() => TimelineType)
+	public timelineType: BelongsTo<typeof TimelineType>;
+
+	@column()
+	public economic_group_id: string;
+
+	@belongsTo(() => EconomicGroup)
+	public group: BelongsTo<typeof EconomicGroup>;
 }

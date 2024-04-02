@@ -81,6 +81,7 @@ test.group("Budget resource", (group) => {
 		const budgetItem = await budget.related("items").create({
 			business_unit_id: business.id,
 			quantity: new Decimal(12),
+			saleValue: new Decimal(10),
 			unitaryValue: 10,
 			discountValue: 2,
 			product_variation_id: variation.id,
@@ -338,6 +339,7 @@ test.group("Budget resource", (group) => {
 				budgetId: budget.id,
 				productVariationId: variation.id,
 				quantity: 5,
+				saleValue: 10,
 				unitaryValue: 10,
 				discountValue: 2,
 			})
@@ -362,6 +364,7 @@ test.group("Budget resource", (group) => {
 				budgetId: budget.id,
 				productVariationId: variation.id,
 				quantity: 5,
+				saleValue: 10,
 				unitaryValue: 10,
 				discountValue: 10000,
 			})
@@ -385,6 +388,7 @@ test.group("Budget resource", (group) => {
 						budgetId: budget.id,
 						productVariationId: variation.id,
 						quantity: 5,
+						saleValue: 10,
 						unitaryValue: 10,
 						discountValue: 2,
 					},
@@ -413,6 +417,7 @@ test.group("Budget resource", (group) => {
 						budgetId: budget.id,
 						productVariationId: variation.id,
 						quantity: 5,
+						saleValue: 10,
 						unitaryValue: 10,
 						discountValue: 10000,
 					},
@@ -473,6 +478,7 @@ test.group("Budget resource", (group) => {
 			.json({
 				quantity: 200,
 				unitaryValue: 200,
+				saleValue: 10,
 				discountValue: 0,
 				status: BudgetStatus.C,
 			})
@@ -874,8 +880,22 @@ test.group("Budget resource", (group) => {
 			.get(`/budgets/payments/${dataProps.budget.id}`)
 			.bearerToken(token);
 
-		console.log(JSON.stringify(response.body(), null, 2));
-
 		assert.equal(200, response.status());
+	});
+
+	test("should delete budget item", async ({ assert, client }) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budgetItem.merge({ status: BudgetStatus.A }).save();
+
+		const response = await client
+			.delete(`/budgets/delete-item/${dataProps.budgetItem.id}`)
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
 	});
 });

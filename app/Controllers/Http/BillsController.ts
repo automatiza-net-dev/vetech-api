@@ -4,12 +4,13 @@ import BillService from "App/Services/BillService";
 import SharedService from "App/Services/SharedService";
 import AddKitToBillValidator from "App/Validators/Bill/AddKitToBillValidator";
 import CheckDepositAvailabilityValidator from "App/Validators/Bill/CheckDepositAvailabilityValidator";
+import CheckItemDiscountValidator from "App/Validators/Bill/CheckItemDiscountValidator";
 import ConfirmBillPaymentsValidator from "App/Validators/Bill/ConfirmBillPaymentsValidator";
-import CreateBillItemsValidator from "App/Validators/Bill/CreateBillItemsValidator";
 import CreateBillItemValidator from "App/Validators/Bill/CreateBillItemValidator";
+import CreateBillItemsValidator from "App/Validators/Bill/CreateBillItemsValidator";
 import CreateBillPaymentValidator from "App/Validators/Bill/CreateBillPaymentValidator";
-import CreateBillsValidator from "App/Validators/Bill/CreateBillsValidator";
 import CreateBillValidator from "App/Validators/Bill/CreateBillValidator";
+import CreateBillsValidator from "App/Validators/Bill/CreateBillsValidator";
 import CreateTreatmentBillValidator from "App/Validators/Bill/CreateTreatmentBillValidator";
 import DeletePaymentBlockValidator from "App/Validators/Bill/DeletePaymentBlockValidator";
 import UpdateBillFinancialResponsibleValidator from "App/Validators/Bill/UpdateBillFinancialResponsibleValidator";
@@ -53,6 +54,25 @@ export default class BillsController {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
 		await this.service.recalculateItemsTaxes(unit_id, params.id);
+
+		return response.noContent();
+	}
+
+	public async checkItemDiscount({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(CheckItemDiscountValidator);
+
+		const result = await this.service.checkItemsDiscount(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		if (result.length > 0) {
+			return response.badRequest(result);
+		}
 
 		return response.noContent();
 	}

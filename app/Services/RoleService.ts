@@ -400,7 +400,6 @@ export default class RoleService {
 		data: { id?: string; active?: string },
 	) {
 		const qb = Database.from("role_profile_accesses")
-			.debug(true)
 			.select(
 				Database.raw(`roles.id as role_id,
        roles.name,

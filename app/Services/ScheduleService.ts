@@ -132,7 +132,7 @@ export default class ScheduleService {
 	}
 
 	public async usersWithSchedule(authCtx: AuthContext) {
-		return Database.from("users")
+		const qb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
 			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
 			.joinRaw(
@@ -147,6 +147,17 @@ export default class ScheduleService {
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			);
+
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+
+		if (!hasPermission) {
+			qb.where("users.id", authCtx.user.id);
+		}
+
+		return qb;
 	}
 
 	public async returnableSchedules(authCtx: AuthContext, patientId: string) {
@@ -706,6 +717,14 @@ export default class ScheduleService {
 			usersQb.where("users.id", data.user);
 		}
 
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
+
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
@@ -877,6 +896,14 @@ export default class ScheduleService {
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			);
 
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
+
 		if (data.user) {
 			usersQb.where("users.id", data.user);
 		}
@@ -990,7 +1017,7 @@ export default class ScheduleService {
 			);
 		}
 
-		const users = await Database.from("users")
+		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
 			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
 			.joinRaw(
@@ -1007,6 +1034,15 @@ export default class ScheduleService {
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			)
 			.whereIn("users.id", data.users);
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
+		const users = await usersQb;
+
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const days: string[] = [];

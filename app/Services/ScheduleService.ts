@@ -1,4 +1,3 @@
-import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Patient from "App/Models/Patient";
@@ -34,6 +33,7 @@ import { DateTime } from "luxon";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import Reason from "App/Models/Reason";
+import { inject } from "@adonisjs/fold";
 
 interface ISearch {
 	pid?: string;
@@ -754,6 +754,12 @@ export default class ScheduleService {
 			})
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
+			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.preload("scheduleService");
 			});
 
 		if (data.lista_cancelados?.toLowerCase() === "false") {
@@ -893,6 +899,12 @@ export default class ScheduleService {
 				query.preload("tutor", (query) => {
 					query.select(["cellphone", "telephone"]);
 				});
+			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.preload("scheduleService");
 			})
 			.orderBy("start_hour", "asc");
 

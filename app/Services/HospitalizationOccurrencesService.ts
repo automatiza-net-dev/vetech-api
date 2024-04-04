@@ -415,6 +415,34 @@ export default class HospitalizationOccurrencesService {
 			);
 		}
 
+		const attachments = data.attachments
+			? await Promise.all(data.attachments.map(this.uploadFile))
+			: [];
+
+		await ent.related("attachments").createMany(
+			attachments.map((url) => ({
+				attachment: url,
+			})),
+		);
+
+		await HospitalizationTimeline.updateMany(
+			{
+				"meta.hospitalization": hospitalization.id,
+				"meta.occurrence": ent.occurrence_id,
+			},
+			{
+				$set: {
+					"data.resume": data.resume,
+					"data.description": data.description,
+				},
+				$addToSet: {
+					"data.attachments": {
+						$each: attachments,
+					},
+				},
+			},
+		);
+
 		return ent
 			.merge({
 				occurrence_id: data.occurrenceId,

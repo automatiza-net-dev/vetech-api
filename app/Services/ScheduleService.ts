@@ -140,6 +140,7 @@ export default class ScheduleService {
 				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
+			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,

@@ -61,8 +61,8 @@ export default class SharedService {
 			.where("users.id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("control_id", permissionControlID)
-			.where("active", true)
-			.where("status", true);
+			.where("user_unit_roles.active", true)
+			.where("user_unit_roles.status", true);
 
 		return rows.length > 0;
 	}

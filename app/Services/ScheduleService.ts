@@ -134,8 +134,8 @@ export default class ScheduleService {
 			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
 			.joinRaw(
 				`left join working_days
-                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date().getDay().toString()],
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+				[],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
@@ -746,7 +746,7 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date().getDay().toString()],
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
@@ -931,7 +931,7 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date().getDay().toString()],
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
@@ -1074,7 +1074,7 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date().getDay().toString()],
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,

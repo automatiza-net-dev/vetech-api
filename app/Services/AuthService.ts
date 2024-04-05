@@ -86,6 +86,7 @@ export default class AuthService {
 					"daily_cashier_type",
 					"requires_finance_client",
 					"alter_prices",
+					"requires_client_document",
 				]);
 			})
 			.firstOrFail();

@@ -753,6 +753,7 @@ export default class ScheduleService {
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
+			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,

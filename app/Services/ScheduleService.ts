@@ -892,21 +892,22 @@ export default class ScheduleService {
 
 		const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
-		return users.map((elem) => {
-			return {
-				id: elem.id,
-				name: elem.name,
-				onDuty: elem.on_duty,
-				events: allEvents
-					.filter((e) => e.user_id === elem.id)
-					.map((day) => ({
-						start: day.startHour.toString(),
-						end: day.endHour.toString(),
-						type: this.getEventLabel(day),
-						event: day,
-					})),
-			};
-		});
+		return users
+			.map((elem) => {
+				return {
+					id: elem.id,
+					name: elem.name,
+					onDuty: elem.on_duty,
+					events: allEvents
+						.filter((e) => e.user_id === elem.id)
+						.map((day) => ({
+							start: day.startHour.toString(),
+							end: day.endHour.toString(),
+							event: day,
+						})),
+				};
+			})
+			.filter((f) => (f.onDuty ? true : f.events.length > 0));
 	}
 
 	public async simpleUserDailySchedule(
@@ -1025,19 +1026,22 @@ export default class ScheduleService {
 			return jsonKinda;
 		});
 
-		return users.map((elem) => {
-			return {
-				id: elem.id,
-				name: elem.name,
-				events: mappedSchedules
-					.filter((e) => e.user_id === elem.id)
-					.map((day) => ({
-						start: day.startHour.toString(),
-						end: day.endHour.toString(),
-						event: day,
-					})),
-			};
-		});
+		return users
+			.map((elem) => {
+				return {
+					id: elem.id,
+					name: elem.name,
+					onDuty: elem.on_duty,
+					events: mappedSchedules
+						.filter((e) => e.user_id === elem.id)
+						.map((day) => ({
+							start: day.startHour.toString(),
+							end: day.endHour.toString(),
+							event: day,
+						})),
+				};
+			})
+			.filter((f) => (f.onDuty ? true : f.events.length > 0));
 	}
 
 	public async usersWeeklySchedule(

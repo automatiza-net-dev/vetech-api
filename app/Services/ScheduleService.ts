@@ -131,7 +131,9 @@ export default class ScheduleService {
 	public async usersWithSchedule(authCtx: AuthContext) {
 		const qb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
@@ -141,7 +143,6 @@ export default class ScheduleService {
 				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
@@ -742,7 +743,9 @@ export default class ScheduleService {
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
@@ -753,7 +756,6 @@ export default class ScheduleService {
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
@@ -929,7 +931,9 @@ export default class ScheduleService {
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
@@ -940,7 +944,6 @@ export default class ScheduleService {
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
@@ -1073,7 +1076,9 @@ export default class ScheduleService {
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
@@ -1084,7 +1089,6 @@ export default class ScheduleService {
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("user_unit_roles.active", true)
 			.where("users.type", "user")
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,

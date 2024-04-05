@@ -145,9 +145,11 @@ export default class SchedulesController {
 		response,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateScheduleValidator);
-		const { user, unit_id } = this.sharedService.extractUser(auth);
-
-		const result = await this.service.update(unit_id, user, params.id, payload);
+		const result = await this.service.update(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			payload,
+		);
 
 		return response.ok(result);
 	}

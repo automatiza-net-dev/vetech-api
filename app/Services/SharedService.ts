@@ -48,6 +48,25 @@ export default class SharedService {
 		return Boolean(roles.find((r) => r.role?.name === "super-admin"));
 	}
 
+	public async userHasPermission(
+		authCtx: AuthContext,
+		permissionControlID: string,
+	): Promise<boolean> {
+		const rows = await Database.from("users")
+			.select("users.*")
+			.join("user_unit_roles", "users.id", "user_unit_roles.user_id")
+			.join("roles", "user_unit_roles.role_id", "roles.id")
+			.join("role_permissions", "roles.id", "user_unit_roles.role_id")
+			.join("permissions", "role_permissions.permission_id", "permissions.id")
+			.where("users.id", authCtx.user.id)
+			.where("user_unit_roles.unit_id", authCtx.unit.id)
+			.where("control_id", permissionControlID)
+			.where("user_unit_roles.active", true)
+			.where("role_permissions.status", true);
+
+		return rows.length > 0;
+	}
+
 	public extractUser(auth: AuthContract): {
 		user: User;
 		unit_id: string;
@@ -203,19 +222,6 @@ export default class SharedService {
 		}
 
 		return row;
-	}
-
-	public async userHasPermission(user: User, permission: string) {
-		const data = await user
-			.related("roles")
-			.query()
-			.whereHas("role", (query) => {
-				query.whereHas("permissions", (query) => {
-					query.where("control_id", permission);
-				});
-			});
-
-		return data.length > 0;
 	}
 
 	public async checkDiscount(

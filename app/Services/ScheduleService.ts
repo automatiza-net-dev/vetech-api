@@ -1,7 +1,10 @@
 import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
+import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Patient from "App/Models/Patient";
+import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
 import ScheduleStatus, { VALID_CHANGES } from "App/Models/ScheduleStatus";
@@ -10,17 +13,14 @@ import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
 import WeekDay from "App/Models/shared/WeekDay";
 import OpportunityService from "App/Services/OpportunityService";
-import SharedService, {
-	AuthContext,
-	DateSet,
-} from "App/Services/SharedService";
-import IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
-import IScheduleData, {
-	IRescheduleData,
-} from "Contracts/interfaces/IScheduleData";
-import IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
-import IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
-import IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
+import SharedService from "App/Services/SharedService";
+import type { AuthContext, DateSet } from "App/Services/SharedService";
+import type IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
+import type IScheduleData from "Contracts/interfaces/IScheduleData";
+import type { IRescheduleData } from "Contracts/interfaces/IScheduleData";
+import type IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
+import type IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
+import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
 import {
 	addDays,
 	differenceInDays,
@@ -31,9 +31,6 @@ import {
 	startOfDay,
 } from "date-fns";
 import { DateTime } from "luxon";
-import Database from "@ioc:Adonis/Lucid/Database";
-import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
-import Reason from "App/Models/Reason";
 
 interface ISearch {
 	pid?: string;
@@ -132,12 +129,15 @@ export default class ScheduleService {
 	}
 
 	public async usersWithSchedule(authCtx: AuthContext) {
-		return Database.from("users")
+		const qb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+				[],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
@@ -147,6 +147,17 @@ export default class ScheduleService {
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			);
+
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+
+		if (!hasPermission) {
+			qb.where("users.id", authCtx.user.id);
+		}
+
+		return qb;
 	}
 
 	public async returnableSchedules(authCtx: AuthContext, patientId: string) {
@@ -393,46 +404,89 @@ export default class ScheduleService {
 	}
 
 	public async update(
-		unitId: string,
-		user: User,
+		authCtx: AuthContext,
 		id: string,
-		data: Omit<IScheduleData, "startHour" | "endHour">,
+		data: IScheduleData & {
+			scheduleOriginId?: string;
+			ignoreBlocking?: boolean;
+		},
 	): Promise<Schedule> {
-		const schedule = await this.show(unitId, id);
+		const schedule = await this.show(authCtx.unit.id, id);
 
-		// if (
-		//   !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
-		//   !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
-		// ) {
-		//   await ScheduleService.checkDisponibility(
-		//     data.userId ?? user.id,
-		//     unitId,
-		//     {
-		//       start: data.startHour.toJSDate(),
-		//       end: data.endHour.toJSDate(),
-		//     },
-		//     exception,
-		//   );
+		const _user = data.userId
+			? await User.findOrFail(data.userId)
+			: authCtx.user;
+		if (_user.id !== schedule.user_id) {
+			if (!_user.onDuty) {
+				const result = await ScheduleService.checkDisponibility(
+					data.userId ?? authCtx.user.id,
+					authCtx.unit.id,
+					{
+						start: data.startHour.toJSDate(),
+						end: data.endHour.toJSDate(),
+					},
+				);
 
-		//   if (!data.ignoreOverlapping) {
-		//     const overlapping = await Schedule.query()
-		//       .where('user_id', data.userId ?? user.id)
-		//       .andWhere('business_unit_id', unitId)
-		//       .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-		//         data.startHour.toJSDate(),
-		//         data.endHour.toJSDate(),
-		//       ])
-		//       .first();
+				if (result.invalidWorkingDay) {
+					throw new BadRequestException(
+						"Pessoa não trabalha neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
 
-		//     if (overlapping) {
-		//       throw new BadRequestException(
-		//         'Horário já está ocupado',
-		//         400,
-		//         'E_BAD_REQUEST',
-		//       );
-		//     }
-		//   }
-		// }
+				// if (result.invalidUnavailableDay && !hasPermission) {
+				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+					throw new BadRequestException(
+						"Pessoa não está disponível neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+			}
+
+			if (!data.ignoreOverlapping) {
+				const overlapping = await Schedule.query()
+					.where("user_id", data.userId ?? authCtx.user.id)
+					.andWhere("business_unit_id", authCtx.unit.id)
+					.andWhereRaw(
+						`
+            (
+              (
+                (? BETWEEN start_hour AND end_hour) OR
+                (? BETWEEN start_hour AND end_hour)
+              )
+              OR
+              (
+                (start_hour BETWEEN ? AND ?)
+                OR
+                (end_hour BETWEEN ? AND ?)
+              )
+            )
+            `,
+						[
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+						],
+					)
+					.andWhereHas("serviceStatus", (query) => {
+						query.whereNotIn("type", ["CANC"]);
+					})
+					.first();
+
+				if (overlapping) {
+					throw new BadRequestException(
+						"Horário já está ocupado",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+			}
+		}
 
 		return schedule
 			.merge({
@@ -441,12 +495,14 @@ export default class ScheduleService {
 				holder_id: data.holderId,
 				age: data.age,
 				majorComplaint: data.majorComplaint,
-				business_unit_id: unitId,
-				user_id: data?.userId ?? user.id,
+				business_unit_id: authCtx.unit.id,
+				user_id: _user.id,
 				patient_id: data.patientId,
 				race_id: data.raceId,
 				schedule_service_type_id: data.scheduleServiceTypeId,
 				onDuty: data.onDuty,
+				startHour: data.startHour,
+				endHour: data.endHour.minus({ minutes: 1 }),
 			})
 			.save();
 	}
@@ -687,10 +743,13 @@ export default class ScheduleService {
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
-                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
@@ -704,6 +763,14 @@ export default class ScheduleService {
 
 		if (data.user) {
 			usersQb.where("users.id", data.user);
+		}
+
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
 		}
 
 		const users = await usersQb;
@@ -754,6 +821,12 @@ export default class ScheduleService {
 			})
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
+			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.preload("scheduleService");
 			});
 
 		if (data.lista_cancelados?.toLowerCase() === "false") {
@@ -824,21 +897,23 @@ export default class ScheduleService {
 
 		const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
 
-		return users.map((elem) => {
-			return {
-				id: elem.id,
-				name: elem.name,
-				onDuty: elem.on_duty,
-				events: allEvents
-					.filter((e) => e.user_id === elem.id)
-					.map((day) => ({
-						start: day.startHour.toString(),
-						end: day.endHour.toString(),
-						type: this.getEventLabel(day),
-						event: day,
-					})),
-			};
-		});
+		return users
+			.map((elem) => {
+				return {
+					id: elem.id,
+					name: elem.name,
+					onDuty: elem.on_duty,
+					events: allEvents
+						.filter((e) => e.user_id === elem.id)
+						.map((day) => ({
+							start: day.startHour.toString(),
+							end: day.endHour.toString(),
+							event: day,
+							type: this.getEventLabel(day),
+						})),
+				};
+			})
+			.filter((f) => (f.onDuty ? true : f.events.length > 0));
 	}
 
 	public async simpleUserDailySchedule(
@@ -856,10 +931,13 @@ export default class ScheduleService {
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
-                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
@@ -870,6 +948,14 @@ export default class ScheduleService {
 			.whereRaw(
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			);
+
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
 
 		if (data.user) {
 			usersQb.where("users.id", data.user);
@@ -893,6 +979,12 @@ export default class ScheduleService {
 				query.preload("tutor", (query) => {
 					query.select(["cellphone", "telephone"]);
 				});
+			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.preload("scheduleService");
 			})
 			.orderBy("start_hour", "asc");
 
@@ -942,19 +1034,23 @@ export default class ScheduleService {
 			return jsonKinda;
 		});
 
-		return users.map((elem) => {
-			return {
-				id: elem.id,
-				name: elem.name,
-				events: mappedSchedules
-					.filter((e) => e.user_id === elem.id)
-					.map((day) => ({
-						start: day.startHour.toString(),
-						end: day.endHour.toString(),
-						event: day,
-					})),
-			};
-		});
+		return users
+			.map((elem) => {
+				return {
+					id: elem.id,
+					name: elem.name,
+					onDuty: elem.on_duty,
+					events: mappedSchedules
+						.filter((e) => e.user_id === elem.id)
+						.map((day) => ({
+							start: day.startHour.toString(),
+							end: day.endHour.toString(),
+							event: day,
+							type: this.getEventLabel(day),
+						})),
+				};
+			})
+			.filter((f) => (f.onDuty ? true : f.events.length > 0));
 	}
 
 	public async usersWeeklySchedule(
@@ -978,12 +1074,15 @@ export default class ScheduleService {
 			);
 		}
 
-		const users = await Database.from("users")
+		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(`join user_unit_roles on users.id = user_unit_roles.user_id`)
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
 			.joinRaw(
 				`left join working_days
-                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
+				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
@@ -995,6 +1094,15 @@ export default class ScheduleService {
 				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
 			)
 			.whereIn("users.id", data.users);
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
+		const users = await usersQb;
+
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const days: string[] = [];
@@ -1015,6 +1123,9 @@ export default class ScheduleService {
 			})
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
+			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
@@ -1095,6 +1206,7 @@ export default class ScheduleService {
 							onDuty: inner.on_duty,
 						},
 						events: map.get(inner)?.map((e) => ({
+							type: this.getEventLabel(e),
 							start: e.startHour.toString(),
 							end: e.endHour.toString(),
 							event: e,

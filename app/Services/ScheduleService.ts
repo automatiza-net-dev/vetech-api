@@ -906,6 +906,7 @@ export default class ScheduleService {
 							start: day.startHour.toString(),
 							end: day.endHour.toString(),
 							event: day,
+							type: this.getEventLabel(day),
 						})),
 				};
 			})
@@ -1041,6 +1042,7 @@ export default class ScheduleService {
 							start: day.startHour.toString(),
 							end: day.endHour.toString(),
 							event: day,
+							type: this.getEventLabel(day),
 						})),
 				};
 			})
@@ -1199,6 +1201,7 @@ export default class ScheduleService {
 							onDuty: inner.on_duty,
 						},
 						events: map.get(inner)?.map((e) => ({
+							type: this.getEventLabel(e),
 							start: e.startHour.toString(),
 							end: e.endHour.toString(),
 							event: e,

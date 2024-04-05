@@ -1106,6 +1106,9 @@ export default class ScheduleService {
 			.preload("serviceStatus", (query) => {
 				query.select(["id", "description", "color"]);
 			})
+			.preload("reason", (query) => {
+				query.select(["id", "reason"]);
+			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {

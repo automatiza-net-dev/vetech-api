@@ -1,6 +1,10 @@
+import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
+import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Patient from "App/Models/Patient";
+import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
 import ScheduleStatus, { VALID_CHANGES } from "App/Models/ScheduleStatus";
@@ -8,18 +12,15 @@ import UnavailableDay from "App/Models/UnavailableDay";
 import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
 import WeekDay from "App/Models/shared/WeekDay";
-import OpportunityService from "App/Services/OpportunityService";
-import SharedService, {
-	AuthContext,
-	DateSet,
-} from "App/Services/SharedService";
-import IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
-import IScheduleData, {
-	IRescheduleData,
-} from "Contracts/interfaces/IScheduleData";
-import IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
-import IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
-import IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
+import type OpportunityService from "App/Services/OpportunityService";
+import type SharedService from "App/Services/SharedService";
+import type { AuthContext, DateSet } from "App/Services/SharedService";
+import type IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
+import type IScheduleData from "Contracts/interfaces/IScheduleData";
+import type { IRescheduleData } from "Contracts/interfaces/IScheduleData";
+import type IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
+import type IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
+import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
 import {
 	addDays,
 	differenceInDays,
@@ -30,10 +31,6 @@ import {
 	startOfDay,
 } from "date-fns";
 import { DateTime } from "luxon";
-import Database from "@ioc:Adonis/Lucid/Database";
-import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
-import Reason from "App/Models/Reason";
-import { inject } from "@adonisjs/fold";
 
 interface ISearch {
 	pid?: string;
@@ -404,46 +401,89 @@ export default class ScheduleService {
 	}
 
 	public async update(
-		unitId: string,
-		user: User,
+		authCtx: AuthContext,
 		id: string,
-		data: Omit<IScheduleData, "startHour" | "endHour">,
+		data: IScheduleData & {
+			scheduleOriginId?: string;
+			ignoreBlocking?: boolean;
+		},
 	): Promise<Schedule> {
-		const schedule = await this.show(unitId, id);
+		const schedule = await this.show(authCtx.unit.id, id);
 
-		// if (
-		//   !this.sharedService.checkDTEqt(schedule.startHour, data.startHour) ||
-		//   !this.sharedService.checkDTEqt(schedule.endHour, data.endHour)
-		// ) {
-		//   await ScheduleService.checkDisponibility(
-		//     data.userId ?? user.id,
-		//     unitId,
-		//     {
-		//       start: data.startHour.toJSDate(),
-		//       end: data.endHour.toJSDate(),
-		//     },
-		//     exception,
-		//   );
+		const _user = data.userId
+			? await User.findOrFail(data.userId)
+			: authCtx.user;
+		if (_user.id !== schedule.user_id) {
+			if (!_user.onDuty) {
+				const result = await ScheduleService.checkDisponibility(
+					data.userId ?? authCtx.user.id,
+					authCtx.unit.id,
+					{
+						start: data.startHour.toJSDate(),
+						end: data.endHour.toJSDate(),
+					},
+				);
 
-		//   if (!data.ignoreOverlapping) {
-		//     const overlapping = await Schedule.query()
-		//       .where('user_id', data.userId ?? user.id)
-		//       .andWhere('business_unit_id', unitId)
-		//       .andWhereRaw('start_hour <= ? and end_hour >= ?', [
-		//         data.startHour.toJSDate(),
-		//         data.endHour.toJSDate(),
-		//       ])
-		//       .first();
+				if (result.invalidWorkingDay) {
+					throw new BadRequestException(
+						"Pessoa não trabalha neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
 
-		//     if (overlapping) {
-		//       throw new BadRequestException(
-		//         'Horário já está ocupado',
-		//         400,
-		//         'E_BAD_REQUEST',
-		//       );
-		//     }
-		//   }
-		// }
+				// if (result.invalidUnavailableDay && !hasPermission) {
+				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+					throw new BadRequestException(
+						"Pessoa não está disponível neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+			}
+
+			if (!data.ignoreOverlapping) {
+				const overlapping = await Schedule.query()
+					.where("user_id", data.userId ?? authCtx.user.id)
+					.andWhere("business_unit_id", authCtx.unit.id)
+					.andWhereRaw(
+						`
+            (
+              (
+                (? BETWEEN start_hour AND end_hour) OR
+                (? BETWEEN start_hour AND end_hour)
+              )
+              OR
+              (
+                (start_hour BETWEEN ? AND ?)
+                OR
+                (end_hour BETWEEN ? AND ?)
+              )
+            )
+            `,
+						[
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+							data.startHour.toJSDate(),
+							data.endHour.minus({ minutes: 1 }).toJSDate(),
+						],
+					)
+					.andWhereHas("serviceStatus", (query) => {
+						query.whereNotIn("type", ["CANC"]);
+					})
+					.first();
+
+				if (overlapping) {
+					throw new BadRequestException(
+						"Horário já está ocupado",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+			}
+		}
 
 		return schedule
 			.merge({
@@ -452,12 +492,14 @@ export default class ScheduleService {
 				holder_id: data.holderId,
 				age: data.age,
 				majorComplaint: data.majorComplaint,
-				business_unit_id: unitId,
-				user_id: data?.userId ?? user.id,
+				business_unit_id: authCtx.unit.id,
+				user_id: _user.id,
 				patient_id: data.patientId,
 				race_id: data.raceId,
 				schedule_service_type_id: data.scheduleServiceTypeId,
 				onDuty: data.onDuty,
+				startHour: data.startHour,
+				endHour: data.endHour.minus({ minutes: 1 }),
 			})
 			.save();
 	}

@@ -826,7 +826,11 @@ export default class ScheduleService {
 				query.select(["id", "reason"]);
 			})
 			.preload("attendances", (query) => {
-				query.preload("scheduleService");
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			});
 
 		if (data.lista_cancelados?.toLowerCase() === "false") {
@@ -984,7 +988,11 @@ export default class ScheduleService {
 				query.select(["id", "reason"]);
 			})
 			.preload("attendances", (query) => {
-				query.preload("scheduleService");
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			})
 			.orderBy("start_hour", "asc");
 
@@ -1126,6 +1134,13 @@ export default class ScheduleService {
 			})
 			.preload("reason", (query) => {
 				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);

@@ -1555,6 +1555,7 @@ Route.group(() => {
 	Route.get("/scheduling", "IndicatorsController.schedulingIndicators");
 
 	Route.get("/subgroups", "IndicatorsController.subgroupIndicators");
+	Route.get("/subgroup-tree", "IndicatorsController.subgroupTreeIndicators");
 	Route.get(
 		"/subgroups-consolidated",
 		"IndicatorsController.consolidatedSubgroupIndicators",

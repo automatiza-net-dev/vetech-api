@@ -175,6 +175,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async subgroupTreeIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.subgroupTreeIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async consolidatedSubgroupIndicators({
 		auth,
 		request,

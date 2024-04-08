@@ -95,7 +95,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name", "gender"]);
@@ -361,7 +361,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name", "gender"]);
@@ -385,7 +385,7 @@ export default class ScheduleService {
 			.preload("contacts", (query) => {
 				query.preload("user", (query) => query.select(["id", "name", "email"]));
 				query.preload("status", (query) =>
-					query.select(["id", "description", "color"]),
+					query.select(["id", "description", "color", "type"]),
 				);
 			})
 			.preload("scheduleOrigin")
@@ -820,7 +820,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("reason", (query) => {
 				query.select(["id", "reason"]);
@@ -976,7 +976,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
@@ -1130,7 +1130,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("reason", (query) => {
 				query.select(["id", "reason"]);
@@ -1289,7 +1289,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name"]);
@@ -1334,7 +1334,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name"]);

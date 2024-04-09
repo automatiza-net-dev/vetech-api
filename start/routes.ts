@@ -1661,3 +1661,9 @@ Route.group(() => {
 })
 	.prefix("assets")
 	.middleware("auth");
+
+Route.resource("client-origin-categories", "ClientOriginCategoriesController")
+	.apiOnly()
+	.middleware({
+		"*": ["auth"],
+	});

@@ -1312,6 +1312,8 @@ export default class IndicatorService {
 				children: result
 					.filter((r) => r.s_id === key)
 					.map((elem) => ({
+						id: elem.id,
+						description: elem.description,
 						quantity: parseInt(elem.quantity, 10),
 						total: elem.total,
 						percentage: (elem.total / $total) * 100,

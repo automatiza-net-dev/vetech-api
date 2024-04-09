@@ -1667,3 +1667,9 @@ Route.resource("client-origin-categories", "ClientOriginCategoriesController")
 	.middleware({
 		"*": ["auth"],
 	});
+
+Route.resource("client-origin-groups", "ClientOriginGroupsController")
+	.apiOnly()
+	.middleware({
+		"*": ["auth"],
+	});

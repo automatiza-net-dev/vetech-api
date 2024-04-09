@@ -1,7 +1,8 @@
-import { ClientOriginType } from 'App/Models/ClientOrigin';
+import { ClientOriginType } from "App/Models/ClientOrigin";
 
 export default interface IClientOriginData {
-  type: ClientOriginType;
-  description: string;
-  active: boolean;
+	clientOriginGroupId: number;
+	type: ClientOriginType;
+	description: string;
+	active: boolean;
 }

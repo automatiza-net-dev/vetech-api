@@ -41,7 +41,7 @@ export default class ClientOriginCategoryService {
 
 		if (!row) {
 			throw new ResourceNotFoundException(
-				"Vacina não encontrada",
+				"Origem não encontrada",
 				404,
 				"E_NOT_FOUND",
 			);
@@ -53,7 +53,7 @@ export default class ClientOriginCategoryService {
 
 		if (authCtx.group.id !== row.economic_group_id) {
 			throw new ResourceNotFoundException(
-				"Vacina não encontrada",
+				"Origem não encontrada",
 				404,
 				"E_NOT_FOUND",
 			);

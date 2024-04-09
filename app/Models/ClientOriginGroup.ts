@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import ClientOrigin from "./ClientOrigin";
 
 export default class ClientOriginGroup extends BaseModel {
 	@column({ isPrimary: true })
@@ -28,4 +29,9 @@ export default class ClientOriginGroup extends BaseModel {
 		serializeAs: null,
 	})
 	public client_origin_category_id: number;
+
+	@hasMany(() => ClientOrigin, {
+		foreignKey: "client_origin_group_id",
+	})
+	public origins: HasMany<typeof ClientOrigin>;
 }

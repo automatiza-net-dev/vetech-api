@@ -13,6 +13,21 @@ export default class ClientOriginCategoryService {
 
 	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = ClientOriginCategory.query()
+			.preload("groups", (query) => {
+				query
+					.where("system_id", authCtx.system.id)
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					]);
+
+				query.preload("origins", (query) => {
+					query
+						.where("system_id", authCtx.system.id)
+						.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+							authCtx.group.id,
+						]);
+				});
+			})
 			.where("system_id", authCtx.system.id)
 			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 				authCtx.group.id,
@@ -35,6 +50,21 @@ export default class ClientOriginCategoryService {
 
 	public async show(authCtx: AuthContext, id: string) {
 		const row = await ClientOriginCategory.query()
+			.preload("groups", (query) => {
+				query
+					.where("system_id", authCtx.system.id)
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					]);
+
+				query.preload("origins", (query) => {
+					query
+						.where("system_id", authCtx.system.id)
+						.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+							authCtx.group.id,
+						]);
+				});
+			})
 			.where("system_id", authCtx.system.id)
 			.where("id", id)
 			.first();

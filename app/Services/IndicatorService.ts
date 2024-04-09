@@ -1239,15 +1239,12 @@ export default class IndicatorService {
 			.select(
 				Database.raw(
 					`
-        business_units.id,
-       business_units.identification,
-       subgroups.id                    as sID,
-       subgroups.description,
-       subgroups.parent_id,
-       count(bill_items.id)            as count,
-       sum(bill_items.quantity)        as quantity,
-       sum(bill_items.total_value)     as total,
-       count(distinct bills.client_id) as clients
+          subgroups.id                as s_id,
+          subgroups.description       as s_description,
+          products.id,
+          products.description,
+          sum(bill_items.quantity)    as quantity,
+          sum(bill_items.total_value) as total
           `,
 				),
 			)
@@ -1262,8 +1259,8 @@ export default class IndicatorService {
 			.join("products", "products.id", "product_variations.product_id")
 			.join("subgroups", "subgroups.id", "products.subgroup_id")
 			.join("business_units", "business_units.id", "bills.business_unit_id")
-			.groupBy("subgroups.id", "subgroups.description", "business_units.id")
-			.orderBy("total", "desc")
+			.groupBy("products.id", "subgroups.id")
+			.orderByRaw("2, 6")
 			.whereNull("bills.deleted_at");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
@@ -1290,71 +1287,37 @@ export default class IndicatorService {
 
 		const result = await qb;
 
-		const parentSubgroups = await Subgroup.query().whereIn(
-			"id",
-			result.map((r) => r.parent_id),
-		);
-		const withoutParents = result.filter((r) => !r.parent_id);
+		const stats: Map<string, { quantity: number; total: number }> = new Map();
+		for (const row of result) {
+			if (!stats.get(row.s_id)) {
+				stats.set(row.s_id, { quantity: 0, total: 0 });
+			}
 
-		const resultWithParents = parentSubgroups.map((ps) => {
-			const children = result.filter((ch) => ch.parent_id === ps.id);
+			const data = stats.get(row.s_id)!;
+			data.quantity += parseFloat(row.quantity);
+			data.total += parseFloat(row.total);
+
+			stats.set(row.s_id, data);
+		}
+
+		return Array.from(stats.keys()).map((key) => {
+			const $total = stats.get(key)?.total ?? 0;
 
 			return {
-				id: ps.id,
-				description: ps.description,
-				count: children.reduce(
-					(acc, curr) => acc + parseInt(curr.count, 10),
-					0,
-				),
-				quantity: children.reduce(
-					(acc, curr) => acc + parseInt(curr.quantity, 10),
-					0,
-				),
-				total: children.reduce((acc, curr) => acc + curr.total, 0),
-				uniqueClients: children.reduce(
-					(acc, curr) => acc + parseInt(curr.count, 10),
-					0,
-				),
-				percentage: children.reduce(
-					(acc, curr) => acc + parseInt(curr.count, 10),
-					0,
-				),
-				children: children.map((elem) => ({
-					subgroupID: elem.sid,
-					description: elem.description,
-					count: parseInt(elem.count, 10),
-					quantity: parseInt(elem.quantity, 10),
-					total: elem.total,
-					uniqueClients: parseInt(elem.clients, 10),
-					percentage: (elem.total / parsedTotal) * 100,
-				})),
+				id: key,
+				description: result.find((r) => r.s_id === key).s_description,
+				quantity: stats.get(key)?.quantity,
+				total: $total,
+				percentage: ($total / parsedTotal) * 100,
+				children: result
+					.filter((r) => r.s_id === key)
+					.map((elem) => ({
+						quantity: parseInt(elem.quantity, 10),
+						total: elem.total,
+						percentage: (elem.total / $total) * 100,
+					})),
 			};
 		});
-
-		const resultWithoutParents = {
-			id: "-",
-			description: "Sem pai",
-			count: withoutParents.reduce(
-				(acc, curr) => acc + parseInt(curr.count, 10),
-				0,
-			),
-			quantity: withoutParents.reduce(
-				(acc, curr) => acc + parseInt(curr.quantity, 10),
-				0,
-			),
-			total: withoutParents.reduce((acc, curr) => acc + curr.total, 0),
-			uniqueClients: withoutParents.reduce(
-				(acc, curr) => acc + parseInt(curr.count, 10),
-				0,
-			),
-			percentage: withoutParents.reduce(
-				(acc, curr) => acc + parseInt(curr.count, 10),
-				0,
-			),
-			children: [],
-		};
-
-		return resultWithParents.concat(resultWithoutParents);
 	}
 
 	public async consolidatedSubgroupIndicators(

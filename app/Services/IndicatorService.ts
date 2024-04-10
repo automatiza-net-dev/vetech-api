@@ -1260,6 +1260,10 @@ export default class IndicatorService {
 			.join("subgroups", "subgroups.id", "products.subgroup_id")
 			.join("business_units", "business_units.id", "bills.business_unit_id")
 			.groupBy("products.id", "subgroups.id")
+			.havingRaw(
+				"sum(bill_items.quantity) > 0 and sum(bill_items.total_value) > 0",
+				[],
+			)
 			.orderByRaw("2, 6")
 			.whereNull("bills.deleted_at");
 
@@ -1289,15 +1293,16 @@ export default class IndicatorService {
 
 		const stats: Map<string, { quantity: number; total: number }> = new Map();
 		for (const row of result) {
-			if (!stats.get(row.s_id)) {
-				stats.set(row.s_id, { quantity: 0, total: 0 });
+			const key = row.s_id;
+			if (!stats.has(key)) {
+				stats.set(key, { quantity: 0, total: 0 });
 			}
 
-			const data = stats.get(row.s_id)!;
+			const data = stats.get(key)!;
 			data.quantity += parseFloat(row.quantity);
 			data.total += parseFloat(row.total);
 
-			stats.set(row.s_id, data);
+			stats.set(key, data);
 		}
 
 		return Array.from(stats.keys()).map((key) => {

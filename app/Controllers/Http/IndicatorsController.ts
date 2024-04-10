@@ -314,6 +314,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async budgetByStatusIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.budgetsByStatusIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async marketingIndicators({
 		auth,
 		request,

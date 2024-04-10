@@ -1581,6 +1581,10 @@ Route.group(() => {
 		"IndicatorsController.salesPerPeriodIndicators",
 	);
 	Route.get("/budgets", "IndicatorsController.budgetIndicators");
+	Route.get(
+		"/budgets-by-status",
+		"IndicatorsController.budgetByStatusIndicators",
+	);
 	Route.get("/marketing", "IndicatorsController.marketingIndicators");
 	Route.get(
 		"/cost-of-acquisition",

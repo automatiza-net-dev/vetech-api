@@ -6,7 +6,6 @@ import { BudgetStatus } from "App/Models/Budget";
 import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
-import Subgroup from "App/Models/Subgroup";
 import { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
@@ -2248,6 +2247,64 @@ export default class IndicatorService {
 						: elem.total_open_value / parseInt(elem.open, 10),
 			};
 		});
+	}
+
+	public async budgetsByStatusIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+		},
+	) {
+		if (!data.status) {
+			throw new BadRequestException(
+				"Informe o status de orçamento",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("budgets")
+			.debug(true)
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          sum(budgets.total_value)   as total,
+          count(distinct budgets.id) as qtd_Orcamentos
+          `,
+				),
+			)
+			.joinRaw(
+				`join business_units on budgets.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`left join reasons on reasons.id = budgets.cancelation_reason_id and reasons.counts_for_report is true`,
+				[],
+			)
+			.groupBy("business_units.id")
+			.where("status", data.status)
+			.whereNull("budgets.deleted_at")
+			.where("business_units.environment", "P");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("budget_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("budget_date::date <= ?", [data.toDate]);
+		}
+
+		return qb;
 	}
 
 	public async marketingIndicators(

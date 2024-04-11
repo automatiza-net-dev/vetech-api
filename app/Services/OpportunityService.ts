@@ -320,10 +320,10 @@ export default class OpportunityService {
 			client: elem.client,
 			clientOrigin: elem.clientOrigin,
 
-			user: {
-				id: elem.user.id,
-				name: elem.user.name,
-			},
+			user: this.sharedService.captureGroup(elem?.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
 			unit: {
 				id: elem.unit.id,
 				companyName: elem.unit.companyName,

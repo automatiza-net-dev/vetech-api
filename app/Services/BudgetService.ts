@@ -939,7 +939,7 @@ export default class BudgetService {
 			}
 
 			if (
-				budgetItem.budget.paidValue <
+				budgetItem.budget.paidValue >
 				budgetItem.budget.totalValue - budgetItem.totalValue
 			) {
 				throw new BadRequestException(
@@ -1139,7 +1139,7 @@ export default class BudgetService {
 							: 0;
 						const icmsValue = rule
 							? icmsBase *
-							  ((rule.icmsPercRedBaseCalculo *
+								((rule.icmsPercRedBaseCalculo *
 									((100 - rule.icmsPercRedAliquota) / 100)) /
 									100)
 							: 0;

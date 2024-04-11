@@ -541,6 +541,7 @@ export default class BudgetService {
 
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
+				.preload("product")
 				.whereIn(
 					"id",
 					data.items.map(({ productVariationId }) => productVariationId),

@@ -958,10 +958,10 @@ export default class OpportunityService {
 					name: v.name,
 				})),
 				clientOrigin: op.clientOrigin,
-				user: {
-					id: op.user.id,
-					name: op.user.name,
-				},
+				user: this.sharedService.captureGroup(op?.user, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
 				unit: {
 					id: op.unit.id,
 					companyName: op.unit.companyName,

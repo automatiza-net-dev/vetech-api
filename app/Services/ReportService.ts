@@ -1498,12 +1498,11 @@ ON bills.patient_id = Dep."id"`,
 			qb.where("finances.business_unit_id", authCtx.unit.id);
 		}
 
-		if (data.fromDate) {
-			qb.whereRaw("issue_date::date >= ?", [data.fromDate]);
-		}
-
-		if (data.toDate) {
-			qb.whereRaw("issue_date::date <= ?", [data.toDate]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				"to_char((substring(finances.competence_date,4,4) ||'-'|| substring(finances.competence_date,1,2) ||'-01')::date , 'YYYYMM' ) between ? and ?",
+				[data.fromDate, data.toDate],
+			);
 		}
 
 		return await qb;

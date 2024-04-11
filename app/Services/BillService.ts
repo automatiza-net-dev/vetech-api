@@ -148,7 +148,32 @@ export default class BillService {
 
 		qb.orderByRaw(`bill_date desc, tag desc`);
 
-		return qb;
+		const result = await qb;
+
+		const [count1, count2] = await Promise.all([
+			Database.from("issued_fiscal_documents")
+				.select(
+					Database.raw(
+						"issued_fiscal_documents.bill_id, count(issued_fiscal_documents.bill_id)",
+					),
+				)
+				.where("issued_fiscal_documents.business_unit_id", unitId)
+				.groupBy("issued_fiscal_documents.bill_id"),
+			Database.from("service_issued_fiscal_documents")
+				.select(
+					Database.raw(
+						"service_issued_fiscal_documents.bill_id, count(service_issued_fiscal_documents.bill_id)",
+					),
+				)
+				.where("service_issued_fiscal_documents.business_unit_id", unitId)
+				.groupBy("service_issued_fiscal_documents.bill_id"),
+		]);
+		const total = count1.concat(count2);
+
+		return result.map((b) => ({
+			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
+			...b.toJSON(),
+		}));
 	}
 
 	async show(unitId: string, id: string) {

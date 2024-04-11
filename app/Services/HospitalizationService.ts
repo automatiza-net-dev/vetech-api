@@ -487,7 +487,7 @@ export default class HospitalizationService {
 								id: bed?.id,
 								name: bed?.name,
 								tag: bed?.tag,
-						  }
+							}
 						: null,
 					status: data.status,
 				},
@@ -535,7 +535,7 @@ export default class HospitalizationService {
 								id: bed?.id,
 								name: bed?.name,
 								tag: bed?.tag,
-						  }
+							}
 						: null,
 				},
 			});
@@ -675,6 +675,7 @@ export default class HospitalizationService {
 					{
 						$set: {
 							"data.releasedAt": DateTime.now(),
+							"data.finishedAt": DateTime.now(),
 						},
 					},
 				);
@@ -863,7 +864,7 @@ export default class HospitalizationService {
 						id: hospitalization.bed.id,
 						tag: hospitalization.bed.tag,
 						name: hospitalization.bed.name,
-				  }
+					}
 				: null,
 			tutor: hospitalization.tutor
 				? {
@@ -871,7 +872,7 @@ export default class HospitalizationService {
 						name: hospitalization.tutor.name,
 						cellphone: hospitalization.tutor.tutor.cellphone,
 						telephone: hospitalization.tutor.tutor.telephone,
-				  }
+					}
 				: null,
 			patient: {
 				id: hospitalization.patient.id,
@@ -896,7 +897,7 @@ export default class HospitalizationService {
 								: null,
 							weight: hospitalization.patient.weight ?? null,
 							weightDate: hospitalization.patient.weightDate ?? null,
-					  }
+						}
 					: null,
 			},
 			prescriptions: hospitalization.medicalPrescriptions,

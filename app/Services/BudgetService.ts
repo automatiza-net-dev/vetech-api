@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import { BillItemStatus } from "App/Models/BillItem";
@@ -540,6 +541,7 @@ export default class BudgetService {
 
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
+				.preload("product")
 				.whereIn(
 					"id",
 					data.items.map(({ productVariationId }) => productVariationId),
@@ -614,22 +616,37 @@ export default class BudgetService {
 				);
 			});
 
-			const unitarySum = data.items.reduce(
-				(total, item) =>
-					total + (item.unitaryValue * item.quantity - item.discountValue),
-				0,
-			);
+			const [productSum, serviceSum, discountSum] = data.items.reduce(
+				(acc, curr) => {
+					const item = items.find((i) => i.id === curr.productVariationId);
+					if (!item) {
+						throw new InternalErrorException(
+							"Não deveria acontecer, mas um item não foi encontrado",
+							400,
+							"E_ERR",
+						);
+					}
 
-			const discountSum = data.items.reduce(
-				(total, item) => total + item.discountValue,
-				0,
+					if (item.product.type === ProductType.PRODUCT) {
+						acc[0] += curr.unitaryValue * curr.quantity - curr.discountValue;
+					}
+					if (item.product.type === ProductType.SERVICE) {
+						acc[1] += curr.unitaryValue * curr.quantity - curr.discountValue;
+					}
+
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
 			);
 
 			await budget
 				.merge({
-					productValue: unitarySum,
+					productValue: productSum,
+					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: unitarySum,
+					totalValue: productSum + serviceSum,
 				})
 				.useTransaction(trx)
 				.save();
@@ -782,7 +799,14 @@ export default class BudgetService {
 
 			await budget
 				.merge({
-					productValue: budget.productValue + item.totalValue,
+					productValue:
+						productVariation.product.type === ProductType.PRODUCT
+							? budget.productValue + item.totalValue
+							: budget.productValue,
+					serviceValue:
+						productVariation.product.type === ProductType.SERVICE
+							? budget.serviceValue + item.totalValue
+							: budget.serviceValue,
 					discountValue: budget.discountValue + item.discountValue,
 					totalValue: budget.totalValue + item.totalValue,
 				})
@@ -812,6 +836,14 @@ export default class BudgetService {
 				return result;
 			}
 
+			const variations = await ProductVariation.query()
+				.useTransaction(trx)
+				.preload("product")
+				.whereIn(
+					"id",
+					data.map((d) => d.productVariationId),
+				);
+
 			const tasks = data.map(async (item) => {
 				const budget = await Budget.findOrFail(item.budgetId);
 				const dbItem = await budget.related("items").create(
@@ -832,9 +864,27 @@ export default class BudgetService {
 					},
 				);
 
+				const variation = variations.find(
+					(v) => v.id === item.productVariationId,
+				);
+				if (!variation) {
+					throw new BadRequestException(
+						"Variação não encontrada",
+						400,
+						"E_ERR",
+					);
+				}
+
 				await budget
 					.merge({
-						productValue: budget.productValue + dbItem.totalValue,
+						productValue:
+							variation.product.type === ProductType.PRODUCT
+								? budget.productValue + dbItem.totalValue
+								: budget.productValue,
+						serviceValue:
+							variation.product.type === ProductType.SERVICE
+								? budget.serviceValue + dbItem.totalValue
+								: budget.serviceValue,
 						discountValue: budget.discountValue + dbItem.discountValue,
 						totalValue: budget.totalValue + dbItem.totalValue,
 					})
@@ -857,16 +907,14 @@ export default class BudgetService {
 				.where("id", id)
 				.where("business_unit_id", authCtx.unit.id)
 				.preload("budget")
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				})
 				.first();
 
 			if (!budgetItem) {
 				throw this.sharedService.ResourceNotFound();
 			}
-
-			const existingItems = await BudgetItem.query().where(
-				"budget_id",
-				budgetItem.budget_id,
-			);
 
 			const result = await this.sharedService.checkDiscount(trx, authCtx, [
 				{
@@ -891,25 +939,37 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			const unitarySum =
-				existingItems
-					.filter((item) => item.id !== updatedItem.id)
-					.filter((item) => item.status === BudgetStatus.A)
-					.reduce((total, item) => total + item.totalValue, 0) +
-				(data.status === BudgetStatus.A ? updatedItem.totalValue : 0);
+			const existingItems = await BudgetItem.query()
+				.where("budget_id", budgetItem.budget_id)
+				.where("status", BudgetStatus.A)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
 
-			const discountSum =
-				existingItems
-					.filter((item) => item.id !== updatedItem.id)
-					.filter((item) => item.status === BudgetStatus.A)
-					.reduce((total, item) => total + item.discountValue, 0) +
-				(data.status === BudgetStatus.A ? data.discountValue : 0);
+			const [productSum, serviceSum, discountSum] = existingItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
+			);
 
 			await budgetItem.budget
 				.merge({
-					productValue: unitarySum,
+					productValue: productSum,
+					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: unitarySum - discountSum,
+					totalValue: productSum + serviceSum - discountSum,
 				})
 				.useTransaction(trx)
 				.save();
@@ -939,7 +999,7 @@ export default class BudgetService {
 			}
 
 			if (
-				budgetItem.budget.paidValue <
+				budgetItem.budget.paidValue >
 				budgetItem.budget.totalValue - budgetItem.totalValue
 			) {
 				throw new BadRequestException(
@@ -1139,7 +1199,7 @@ export default class BudgetService {
 							: 0;
 						const icmsValue = rule
 							? icmsBase *
-							  ((rule.icmsPercRedBaseCalculo *
+								((rule.icmsPercRedBaseCalculo *
 									((100 - rule.icmsPercRedAliquota) / 100)) /
 									100)
 							: 0;

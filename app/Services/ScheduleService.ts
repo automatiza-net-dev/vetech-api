@@ -92,10 +92,10 @@ export default class ScheduleService {
 		const qb = Schedule.query()
 			.where("business_unit_id", unitId)
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name", "gender"]);
@@ -358,10 +358,10 @@ export default class ScheduleService {
 			.where("id", id)
 			.andWhere("business_unit_id", unitId)
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name", "gender"]);
@@ -385,7 +385,7 @@ export default class ScheduleService {
 			.preload("contacts", (query) => {
 				query.preload("user", (query) => query.select(["id", "name", "email"]));
 				query.preload("status", (query) =>
-					query.select(["id", "description", "color"]),
+					query.select(["id", "description", "color", "type"]),
 				);
 			})
 			.preload("scheduleOrigin")
@@ -817,16 +817,20 @@ export default class ScheduleService {
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("reason", (query) => {
 				query.select(["id", "reason"]);
 			})
 			.preload("attendances", (query) => {
-				query.preload("scheduleService");
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			});
 
 		if (data.lista_cancelados?.toLowerCase() === "false") {
@@ -969,10 +973,10 @@ export default class ScheduleService {
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
@@ -984,7 +988,11 @@ export default class ScheduleService {
 				query.select(["id", "reason"]);
 			})
 			.preload("attendances", (query) => {
-				query.preload("scheduleService");
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			})
 			.orderBy("start_hour", "asc");
 
@@ -1119,13 +1127,20 @@ export default class ScheduleService {
 			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("reason", (query) => {
 				query.select(["id", "reason"]);
+			})
+			.preload("attendances", (query) => {
+				query.select("id", "schedule_service_id");
+
+				query.preload("scheduleService", (query) => {
+					query.select("id", "description");
+				});
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
@@ -1271,10 +1286,10 @@ export default class ScheduleService {
 			.where("business_unit_id", unit)
 			.andWhereBetween("start_hour", [start, end])
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name"]);
@@ -1316,10 +1331,10 @@ export default class ScheduleService {
 			.andWhere("user_id", user)
 			.andWhereBetween("start_hour", [start, end])
 			.preload("serviceType", (query) => {
-				query.select(["id", "description"]);
+				query.select(["id", "description", "type"]);
 			})
 			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color"]);
+				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
 				query.select(["id", "name"]);

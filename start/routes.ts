@@ -1555,6 +1555,7 @@ Route.group(() => {
 	Route.get("/scheduling", "IndicatorsController.schedulingIndicators");
 
 	Route.get("/subgroups", "IndicatorsController.subgroupIndicators");
+	Route.get("/subgroup-tree", "IndicatorsController.subgroupTreeIndicators");
 	Route.get(
 		"/subgroups-consolidated",
 		"IndicatorsController.consolidatedSubgroupIndicators",
@@ -1580,6 +1581,10 @@ Route.group(() => {
 		"IndicatorsController.salesPerPeriodIndicators",
 	);
 	Route.get("/budgets", "IndicatorsController.budgetIndicators");
+	Route.get(
+		"/budgets-by-status",
+		"IndicatorsController.budgetByStatusIndicators",
+	);
 	Route.get("/marketing", "IndicatorsController.marketingIndicators");
 	Route.get(
 		"/cost-of-acquisition",
@@ -1660,3 +1665,15 @@ Route.group(() => {
 })
 	.prefix("assets")
 	.middleware("auth");
+
+Route.resource("client-origin-categories", "ClientOriginCategoriesController")
+	.apiOnly()
+	.middleware({
+		"*": ["auth"],
+	});
+
+Route.resource("client-origin-groups", "ClientOriginGroupsController")
+	.apiOnly()
+	.middleware({
+		"*": ["auth"],
+	});

@@ -1196,6 +1196,136 @@ export default class IndicatorService {
 		}));
 	}
 
+	public async subgroupTreeIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			type?: string;
+		},
+	) {
+		const totalQb = Database.from("bills")
+			.select(Database.raw("sum(bills.total_value) as total_bill_payments"))
+			.join("business_units", "business_units.id", "bills.business_unit_id")
+			.whereNull("bills.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			totalQb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			totalQb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			totalQb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			totalQb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			totalQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		const [{ total_bill_payments = "0" }] = await totalQb;
+		const parsedTotal = parseFloat(total_bill_payments);
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          subgroups.id                as s_id,
+          subgroups.description       as s_description,
+          products.id,
+          products.description,
+          sum(bill_items.quantity)    as quantity,
+          sum(bill_items.total_value) as total
+          `,
+				),
+			)
+			.joinRaw(
+				`join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA' and bill_items.deleted_at is null`,
+			)
+			.join(
+				"product_variations",
+				"product_variations.id",
+				"bill_items.product_variation_id",
+			)
+			.join("products", "products.id", "product_variations.product_id")
+			.join("subgroups", "subgroups.id", "products.subgroup_id")
+			.join("business_units", "business_units.id", "bills.business_unit_id")
+			.groupBy("products.id", "subgroups.id")
+			.havingRaw(
+				"sum(bill_items.quantity) > 0 and sum(bill_items.total_value) > 0",
+				[],
+			)
+			.orderByRaw("2, 6")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (data.type) {
+			qb.andWhere("products.type", data.type);
+		}
+
+		const result = await qb;
+
+		const stats: Map<string, { quantity: number; total: number }> = new Map();
+		for (const row of result) {
+			const key = row.s_id;
+			if (!stats.has(key)) {
+				stats.set(key, { quantity: 0, total: 0 });
+			}
+
+			const data = stats.get(key)!;
+			data.quantity += parseFloat(row.quantity);
+			data.total += parseFloat(row.total);
+
+			stats.set(key, data);
+		}
+
+		return Array.from(stats.keys()).map((key) => {
+			const $total = stats.get(key)?.total ?? 0;
+
+			return {
+				id: key,
+				description: result.find((r) => r.s_id === key).s_description,
+				quantity: stats.get(key)?.quantity,
+				total: $total,
+				percentage: ($total / parsedTotal) * 100,
+				children: result
+					.filter((r) => r.s_id === key)
+					.map((elem) => ({
+						id: elem.id,
+						description: elem.description,
+						quantity: parseInt(elem.quantity, 10),
+						total: elem.total,
+						percentage: (elem.total / $total) * 100,
+					})),
+			};
+		});
+	}
+
 	public async consolidatedSubgroupIndicators(
 		authCtx: AuthContext,
 		data: {
@@ -2117,6 +2247,64 @@ export default class IndicatorService {
 						: elem.total_open_value / parseInt(elem.open, 10),
 			};
 		});
+	}
+
+	public async budgetsByStatusIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+		},
+	) {
+		if (!data.status) {
+			throw new BadRequestException(
+				"Informe o status de orçamento",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("budgets")
+			.debug(true)
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          sum(budgets.total_value)   as total,
+          count(distinct budgets.id) as qtd_Orcamentos
+          `,
+				),
+			)
+			.joinRaw(
+				`join business_units on budgets.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`left join reasons on reasons.id = budgets.cancelation_reason_id and reasons.counts_for_report is true`,
+				[],
+			)
+			.groupBy("business_units.id")
+			.where("status", data.status)
+			.whereNull("budgets.deleted_at")
+			.where("business_units.environment", "P");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("budget_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("budget_date::date <= ?", [data.toDate]);
+		}
+
+		return qb;
 	}
 
 	public async marketingIndicators(

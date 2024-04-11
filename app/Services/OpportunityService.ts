@@ -320,10 +320,10 @@ export default class OpportunityService {
 			client: elem.client,
 			clientOrigin: elem.clientOrigin,
 
-			user: {
-				id: elem.user.id,
-				name: elem.user.name,
-			},
+			user: this.sharedService.captureGroup(elem?.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
 			unit: {
 				id: elem.unit.id,
 				companyName: elem.unit.companyName,
@@ -454,7 +454,7 @@ export default class OpportunityService {
 						name: elem.opportunity?.client.name,
 						cellphone: elem.opportunity?.client?.tutor?.cellphone ?? null,
 						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
-				  }
+					}
 				: null,
 			contact: this.sharedService.captureGroup(
 				elem.opportunity?.contact,
@@ -471,30 +471,33 @@ export default class OpportunityService {
 				name: v.name,
 			})),
 			openingUser: this.sharedService.captureGroup(
-				elem.opportunity.openingUser,
+				elem.opportunity?.openingUser,
 				(v) => ({
 					id: v.id,
 					name: v.name,
 				}),
 			),
 			closingUser: this.sharedService.captureGroup(
-				elem.opportunity.closingUser,
+				elem.opportunity?.closingUser,
 				(v) => ({
 					id: v.id,
 					name: v.name,
 				}),
 			),
 			exclusionUser: this.sharedService.captureGroup(
-				elem.opportunity.exclusionUser,
+				elem.opportunity?.exclusionUser,
 				(v) => ({
 					id: v.id,
 					name: v.name,
 				}),
 			),
-			reason: this.sharedService.captureGroup(elem.opportunity.reason, (v) => ({
-				id: v.id,
-				reason: v.reason,
-			})),
+			reason: this.sharedService.captureGroup(
+				elem.opportunity?.reason,
+				(v) => ({
+					id: v.id,
+					reason: v.reason,
+				}),
+			),
 		}));
 	}
 
@@ -955,10 +958,10 @@ export default class OpportunityService {
 					name: v.name,
 				})),
 				clientOrigin: op.clientOrigin,
-				user: {
-					id: op.user.id,
-					name: op.user.name,
-				},
+				user: this.sharedService.captureGroup(op?.user, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
 				unit: {
 					id: op.unit.id,
 					companyName: op.unit.companyName,
@@ -1767,19 +1770,19 @@ export default class OpportunityService {
 				? {
 						id: elem.contactID ?? null,
 						name: elem?.contactName ?? null,
-				  }
+					}
 				: null,
 			client: elem?.clientID
 				? {
 						id: elem?.clientID ?? null,
 						name: elem?.clientName ?? null,
-				  }
+					}
 				: null,
 			status: elem?.statusID
 				? {
 						id: elem?.statusID ?? null,
 						description: elem?.statusDescription ?? null,
-				  }
+					}
 				: null,
 		}));
 	}

@@ -1697,12 +1697,6 @@ export default class PatientService {
 
 		const tutors = await Patient.query()
 			.where("type", PatientType.TUTOR)
-			.whereHas("tutor", (query) => {
-				query.whereRaw("(cellphone = ? or telephone = ?)", [
-					sanitizedValue,
-					sanitizedValue,
-				]);
-			})
 			.whereHas("economicGroup", (query) => {
 				query.where("economic_group_id", authContext.group.id);
 			})

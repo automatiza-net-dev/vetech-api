@@ -124,14 +124,15 @@ export default class AttendanceService {
 					.useTransaction(trx)
 					.where("patient_id", patient.id)
 					.whereHas("serviceStatus", (query) => {
-						query.whereIn("description", [
-							"Agendado (Confirmado)",
-							"Agendado (Não confirmado)",
-							"Atrasado",
-							"Em atendimento",
-							"Em observação",
-							"Hospitalização",
-							"Na recepção",
+						query.whereIn("type", [
+							"AC",
+							"AN",
+							"ATR",
+							"ATEND",
+							"CIR",
+							"OBS",
+							"INT",
+							"REC",
 						]);
 					})
 					.orderBy("start_hour", "desc")

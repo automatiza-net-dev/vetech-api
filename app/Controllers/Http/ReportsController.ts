@@ -158,4 +158,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async buySuggestionReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.buySuggestionReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

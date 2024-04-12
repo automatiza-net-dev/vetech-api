@@ -1563,6 +1563,63 @@ ON bills.patient_id = Dep."id"`,
 		return await qb;
 	}
 
+	async buySuggestionReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+		},
+	) {
+		const qb = Database.from("deposits")
+			.select(
+				Database.raw(`
+             business_units.id,
+       business_units.identification,
+       products.id                 as product_id,
+       deposit_items.product_variation_id,
+       products.description,
+       sum(deposit_items.quantity) as qtdEstoque,
+       business_unit_products.minimum_stock,
+       business_unit_products.maximum_stock,
+       case
+           when sum(deposit_items.quantity) <= business_unit_products.minimum_stock
+               then business_unit_products.maximum_stock - sum(deposit_items.quantity)
+           else 0 end              as sugestaoCompra
+                     `),
+			)
+			.joinRaw(`join deposit_items on deposits.id = deposit_items.deposit_id`)
+			.joinRaw(
+				`join product_variations on product_variations.id = deposit_items.product_variation_id`,
+			)
+			.joinRaw(`join products on products.id = product_variations.product_id`)
+			.joinRaw(`join business_unit_products
+              on business_unit_products.id = deposit_items.business_unit_product_id and
+                 business_unit_products.product_variation_id = product_variations.id and
+                 business_unit_products.businness_unit_id = deposits.business_unit_id`)
+			.joinRaw(
+				`join business_units on deposits.business_unit_id = business_units.id`,
+			)
+			.where("deposits.economic_group_id", authCtx.group.id)
+			.where("deposits.type", "Venda")
+			.where("deposits.status", "Ativo")
+			.where("deposit_items.status", "Ativo")
+			.groupByRaw(`business_units.id, business_units.identification, products.id, deposit_items.product_variation_id,
+         products.description,
+         business_unit_products.minimum_stock, business_unit_products.maximum_stock`)
+			.havingRaw(
+				"sum(deposit_items.quantity) <= business_unit_products.minimum_stock",
+			);
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("deposits.business_unit_id", data.businessUnits);
+		}
+
+		return qb;
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

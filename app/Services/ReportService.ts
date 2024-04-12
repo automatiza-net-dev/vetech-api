@@ -1617,7 +1617,35 @@ ON bills.patient_id = Dep."id"`,
 			qb.whereIn("deposits.business_unit_id", data.businessUnits);
 		}
 
-		return qb;
+		const result = await qb;
+
+		const reducedKeys = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.id)) {
+				return acc;
+			}
+
+			acc.push(curr.id);
+			return acc;
+		}, [] as string[]);
+
+		return reducedKeys.map((elem) => {
+			return {
+				id: elem,
+				identification:
+					result.find((r) => r.id === elem)?.identification ?? "Erro",
+				products: result
+					.filter((r) => r.id === elem)
+					.map((p) => ({
+						id: p.product_id,
+						variationId: p.product_variation_id,
+						description: p.description,
+						qtyStock: p.qtdestoque,
+						minimumStock: p.minimum_stock,
+						maximumStock: p.maximum_stock,
+						suggestion: p.sugestaocompra,
+					})),
+			};
+		});
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

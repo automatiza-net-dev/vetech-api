@@ -393,6 +393,10 @@ export default class HospitalizationOccurrencesService {
 
 		const newOccurr = await Occurrence.findOrFail(data.occurrenceId);
 
+		const attachments = data.attachments
+			? await Promise.all(data.attachments.map(this.uploadFile))
+			: [];
+
 		if (
 			[
 				OccurrenceType.ALTA_INTERNACAO,
@@ -415,9 +419,45 @@ export default class HospitalizationOccurrencesService {
 			);
 		}
 
-		const attachments = data.attachments
-			? await Promise.all(data.attachments.map(this.uploadFile))
-			: [];
+		if ([OccurrenceType.RELATORIO_MEDICO].includes(newOccurr.type)) {
+			await HospitalizationTimeline.updateMany(
+				{
+					"meta.hospitalization": hospitalization.id,
+					"meta.type": "begin_hospitalization",
+				},
+				{
+					$set: {
+						"data.description": data.description,
+						"data.releasedAt": data.previewedAt.toJSDate(),
+					},
+					$addToSet: {
+						"data.attachments": {
+							$each: attachments,
+						},
+					},
+				},
+			);
+		}
+
+		if ([OccurrenceType.OCORRENCIA].includes(newOccurr.type)) {
+			await HospitalizationTimeline.updateMany(
+				{
+					"meta.hospitalization": hospitalization.id,
+					"meta.type": "begin_hospitalization",
+				},
+				{
+					$set: {
+						"data.description": data.description,
+						"data.releasedAt": data.previewedAt.toJSDate(),
+					},
+					$addToSet: {
+						"data.attachments": {
+							$each: attachments,
+						},
+					},
+				},
+			);
+		}
 
 		await ent.related("attachments").createMany(
 			attachments.map((url) => ({
@@ -425,23 +465,40 @@ export default class HospitalizationOccurrencesService {
 			})),
 		);
 
-		await HospitalizationTimeline.updateMany(
-			{
-				"meta.hospitalization": hospitalization.id,
-				"meta.occurrence": ent.occurrence_id,
-			},
-			{
-				$set: {
-					"data.resume": data.resume,
-					"data.description": data.description,
-				},
-				$addToSet: {
-					"data.attachments": {
-						$each: attachments,
-					},
-				},
-			},
-		);
+		// await HospitalizationTimeline.updateMany(
+		// 	{
+		// 		"meta.hospitalization": hospitalization.id,
+		// 		"meta.occurrence": ent.occurrence_id,
+		// 	},
+		// 	{
+		// 		$set: {
+		// 			"data.resume": data.resume,
+		// 			"data.description": data.description,
+		// 		},
+		// 		$addToSet: {
+		// 			"data.attachments": {
+		// 				$each: attachments,
+		// 			},
+		// 		},
+		// 	},
+		// );
+
+		if ([OccurrenceType.RELATORIO_MEDICO].includes(newOccurr.type)) {
+			return ent
+				.merge({
+					previewedAt: data.previewedAt,
+				})
+				.save();
+		}
+
+		if ([OccurrenceType.OCORRENCIA].includes(newOccurr.type)) {
+			return ent
+				.merge({
+					description: data.description,
+					previewedAt: data.previewedAt,
+				})
+				.save();
+		}
 
 		return ent
 			.merge({

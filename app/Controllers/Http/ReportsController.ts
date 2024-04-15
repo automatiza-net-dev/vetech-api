@@ -197,4 +197,30 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async receiptsReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.receiptsReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
+
+	public async receiptAnalyticsReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.receiptAnalyticsReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

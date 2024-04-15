@@ -1500,6 +1500,8 @@ Route.group(() => {
 	Route.get("/buy-suggestion", "ReportsController.buySuggestionReport");
 	Route.get("/issued-nfe", "ReportsController.issuedNfeReport");
 	Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
+	Route.get("/receipts", "ReportsController.receiptsReport");
+	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
 })
 	.prefix("reports")
 	.middleware("auth");

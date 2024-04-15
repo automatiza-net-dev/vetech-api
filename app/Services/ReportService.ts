@@ -6,6 +6,7 @@ import Budget from "App/Models/Budget";
 import BusinessUnit from "App/Models/BusinessUnit";
 import CheckingAccount from "App/Models/CheckingAccount";
 import Finance, { FinanceStatus, FinanceType } from "App/Models/Finance";
+import Receipt from "App/Models/Receipt";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
@@ -1748,6 +1749,233 @@ ON bills.patient_id = Dep."id"`,
 			)
 			.orderBy("service_issued_fiscal_documents.authorization_date");
 	}
+
+	async receiptsReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnit?: string;
+			fromDate?: string;
+			toDate?: string;
+			supplier?: string;
+			status?: string;
+		},
+	) {
+		if (!data.businessUnit) {
+			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
+		}
+
+		if (!data.fromDate && !data.toDate) {
+			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
+		}
+
+		const qb = Database.from("receipts")
+			.select(
+				Database.raw(`
+        business_units.identification,
+       business_units.city,
+       business_units.state,
+       receipts.receipt_date,
+       receipts.tag,
+       receipts.product_value,
+       receipts.paid_value,
+       receipts.origin,
+       receipts.status,
+       receipts.supplier_id,
+       patients.name
+                     `),
+			)
+			.joinRaw(
+				`join business_units on receipts.business_unit_id = business_units.id`,
+			)
+			.joinRaw(`join patients on receipts.supplier_id = patients.id`)
+			.whereRaw(
+				`exists (select *
+              from "economic_groups"
+              where ("system_id" = ?)
+                and ("economic_groups"."id" = business_units."economic_group_id"))`,
+				[authCtx.system.id],
+			)
+			.where("receipts.economic_group_id", authCtx.group.id)
+			.whereRaw("receipts.receipt_date::date between ?::date and ?::date", [
+				data.fromDate!,
+				data.toDate!,
+			])
+			.whereNull("receipts.deleted_at")
+			.orderByRaw("receipts.receipt_date, receipts.tag");
+
+		if (data.supplier) {
+			qb.where("receipts.supplier_id", data.supplier);
+		}
+
+		if (data.status) {
+			qb.where("receipts.status", data.status);
+		}
+
+		return qb;
+	}
+
+	async receiptAnalyticsReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+			client?: string;
+			patient?: string;
+			businessUnits?: string[];
+			economicGroups?: string[];
+			businessStates?: string[];
+			businessCities?: string[];
+		},
+	) {
+		const qb = Receipt.query()
+			.preload("economicGroup")
+			.preload("businessUnit")
+			.preload("seller")
+			.preload("items", (query) => {
+				query.preload("productVariation", (query) => {
+					query.preload("product", (query) => {
+						query.preload("subgroup");
+					});
+				});
+			})
+			.preload("payments", (query) => {
+				query.preload("flag").preload("paymentMethod");
+			})
+			.where("economic_group_id", authCtx.group.id)
+			.whereNull("deleted_at")
+			.whereHas("businessUnit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", authCtx.system.id);
+				});
+			})
+			.orderBy("receipt_date", "desc");
+
+		if (authCtx.user.type === "user") {
+			qb.where("economic_group_id", authCtx.group.id);
+		} else {
+			if (
+				data.economicGroups &&
+				Array.isArray(data.economicGroups) &&
+				data.economicGroups.length > 0
+			) {
+				qb.whereIn("economic_group_id", data.economicGroups);
+			} else {
+				qb.where("economic_group_id", authCtx.group.id);
+			}
+		}
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("business_unit_id", data.businessUnits);
+		}
+
+		const withBusinessStates =
+			data.businessStates &&
+			Array.isArray(data.businessStates) &&
+			data.businessStates.length > 0;
+		const withBusinessCities =
+			data.businessCities &&
+			Array.isArray(data.businessCities) &&
+			data.businessCities.length > 0;
+		if (withBusinessStates || withBusinessCities) {
+			qb.whereHas("businessUnit", (query) => {
+				if (withBusinessStates) {
+					query.whereIn("state", data.businessStates ?? []);
+				}
+
+				if (withBusinessCities) {
+					query.whereIn("city", data.businessCities ?? []);
+				}
+			});
+		}
+		if (data.fromDate) {
+			qb.whereRaw("receipt_date::date >= ?", [
+				DateTime.fromISO(data.fromDate).toFormat("yyyy-MM-dd"),
+			]);
+		}
+
+		if (data.toDate) {
+			qb.whereRaw("receipt_date::date <= ?", [
+				DateTime.fromISO(data.toDate).toFormat("yyyy-MM-dd"),
+			]);
+		}
+
+		if (data.status) {
+			qb.where("status", data.status);
+		}
+
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			tag: elem.tag,
+			productValue: elem.productValue,
+			serviceValue: elem.serviceValue,
+			discountValue: elem.discountValue,
+			totalValue: elem.totalValue,
+			paidValue: elem.paidValue,
+			missingPaymentValue: elem.totalValue - elem.paidValue,
+			status: elem.status,
+
+			group: {
+				id: elem.economicGroup.id,
+				name: elem.economicGroup.companyName,
+			},
+			unit: {
+				id: elem.businessUnit.id,
+				identification: elem.businessUnit.identification ?? "-",
+				city: elem.businessUnit.city,
+				state: elem.businessUnit.state,
+			},
+			seller: this.sharedService.captureGroup(elem.seller, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			payments: elem.payments.map((inner) => ({
+				id: inner.id,
+				block: inner.block,
+				installment: inner.installment,
+				installmentValue: inner.installmentValue,
+				epxirationDate: inner.expirationDate,
+				nsuDocument: inner.nsuDocument,
+				paymentMethod: this.sharedService.captureGroup(
+					inner.paymentMethod,
+					(v) => ({
+						id: v.id,
+						description: v.description,
+					}),
+				),
+				flag: this.sharedService.captureGroup(inner.flag, (v) => ({
+					id: v.id,
+					description: v.description,
+				})),
+			})),
+			items: elem.items.map((inner) => ({
+				id: inner.id,
+				quantity: inner.quantity,
+				costValue: inner.costValue,
+				saleValue: inner.saleValue,
+				discountValue: inner.discountValue,
+				totalValue: inner.totalValue,
+				product: this.sharedService.captureGroup(
+					inner.productVariation?.product,
+					(v) => ({
+						description: v.description,
+						type: v.type,
+						subgroup: this.sharedService.captureGroup(
+							inner.productVariation?.product?.subgroup,
+							(v) => ({ id: v.id, description: v.description }),
+						),
+					}),
+				),
+			})),
+		}));
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

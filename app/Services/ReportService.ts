@@ -1831,6 +1831,7 @@ ON bills.patient_id = Dep."id"`,
 		const qb = Receipt.query()
 			.preload("economicGroup")
 			.preload("businessUnit")
+			.preload("supplier")
 			.preload("seller")
 			.preload("items", (query) => {
 				query.preload("productVariation", (query) => {
@@ -1932,6 +1933,10 @@ ON bills.patient_id = Dep."id"`,
 				state: elem.businessUnit.state,
 			},
 			seller: this.sharedService.captureGroup(elem.seller, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			supplier: this.sharedService.captureGroup(elem.supplier, (v) => ({
 				id: v.id,
 				name: v.name,
 			})),

@@ -80,6 +80,7 @@ export default class HospitalizationOccurrencesService {
 				await HospitalizationTimeline.create({
 					meta: {
 						hospitalization: hospitalization.id,
+						rootOcurrence: ent.occurrence_id,
 						occurrence: ent.id,
 						group: authCtx.group.id,
 						unit: authCtx.unit.id,

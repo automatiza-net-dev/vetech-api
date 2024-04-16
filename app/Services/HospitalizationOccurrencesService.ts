@@ -408,7 +408,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.type": "begin_hospitalization",
+					"meta.occurrence": ent.occurrence_id,
 				},
 				{
 					$set: {
@@ -424,7 +424,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.type": "begin_hospitalization",
+					"meta.occurrence": ent.occurrence_id,
 				},
 				{
 					$set: {
@@ -444,7 +444,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.type": "begin_hospitalization",
+					"meta.occurrence": ent.occurrence_id,
 				},
 				{
 					$set: {
@@ -487,6 +487,7 @@ export default class HospitalizationOccurrencesService {
 		if ([OccurrenceType.RELATORIO_MEDICO].includes(newOccurr.type)) {
 			return ent
 				.merge({
+					description: data.description,
 					previewedAt: data.previewedAt,
 				})
 				.save();

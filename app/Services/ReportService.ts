@@ -1527,7 +1527,8 @@ ON bills.patient_id = Dep."id"`,
        concat(trim(TO_CHAR(finances.installment, '999')), '/', trim(TO_CHAR(finances.qty_installments, '999'))) parcela,
        finances.historic                                                                                 historico,
        p."name"                                                                                   Pessoa,
-       TO_CHAR(finances.payment_value, '9999990D99')                                                     valor_Pago`),
+       TO_CHAR(finances.payment_value, '9999990D99')                                                     valor_Pago,
+       case when finances.payment_date is null then 'Aberto' else 'Baixado' end status`),
 			)
 			.joinRaw(
 				`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id
@@ -1541,7 +1542,6 @@ ON bills.patient_id = Dep."id"`,
 				`finances."type", finances.issue_date, finances."document", finances.installment`,
 			)
 			.whereNull("finances.deleted_at")
-			.whereNotNull("finances.payment_date")
 			.where("finances.type", FinanceType.D);
 
 		if (
@@ -1554,12 +1554,11 @@ ON bills.patient_id = Dep."id"`,
 			qb.where("finances.business_unit_id", authCtx.unit.id);
 		}
 
-		if (data.fromDate) {
-			qb.whereRaw("payment_date::date >= ?", [data.fromDate]);
-		}
-
-		if (data.toDate) {
-			qb.whereRaw("payment_date::date <= ?", [data.toDate]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				"(((finances.payment_date::date) BETWEEN ? and ?) or (finances.payment_date is null and finances.expiration_date::date BETWEEN ? and ?))",
+				[data.fromDate, data.toDate, data.fromDate, data.toDate],
+			);
 		}
 
 		return await qb;

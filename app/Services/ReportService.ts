@@ -1525,7 +1525,7 @@ ON bills.patient_id = Dep."id"`,
        concat(trim(TO_CHAR(finances.installment, '999')), '/', trim(TO_CHAR(finances.qty_installments, '999'))) parcela,
        finances.historic                                                                                 historico,
        p."name"                                                                                   Pessoa,
-      TO_CHAR(case when finances.payment_value is null then finances.total_value else finances.payment_value end, '9999990D99') valorPago,
+      TO_CHAR(case when finances.payment_value is null then finances.total_value else finances.payment_value end, '9999990D99') valor_Pago,
        case when finances.payment_date is null then 'Aberto' else 'Baixado' end status`),
 			)
 			.joinRaw(

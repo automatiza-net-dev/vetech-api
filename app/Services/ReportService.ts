@@ -3,17 +3,17 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget from "App/Models/Budget";
-import type BusinessUnit from "App/Models/BusinessUnit";
+import BusinessUnit from "App/Models/BusinessUnit";
 import CheckingAccount from "App/Models/CheckingAccount";
 import Finance, { FinanceStatus, FinanceType } from "App/Models/Finance";
 import Receipt from "App/Models/Receipt";
-import type SharedService from "App/Services/SharedService";
+import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
 @inject()
 export default class ReportService {
-	constructor(private sharedService: SharedService) { }
+	constructor(private sharedService: SharedService) {}
 
 	async financeReport(
 		authCtx: AuthContext,
@@ -1656,6 +1656,7 @@ ON bills.patient_id = Dep."id"`,
 			businessUnit?: string;
 			fromDate?: string;
 			toDate?: string;
+			statuses?: string[];
 		},
 	) {
 		if (!data.businessUnit) {
@@ -1666,40 +1667,63 @@ ON bills.patient_id = Dep."id"`,
 			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
 		}
 
-		return Database.from("bills")
+		const qb = Database.from("bills")
 			.select(
 				Database.raw(`
-        bills.tag,
-        movement_type,
-        purpose,
-        issued_fiscal_documents.model,
-        issued_fiscal_documents.series,
-        substring(issued_fiscal_documents.access_key, 29, 9) numero_nota,
-        bills.product_value,
-        issued_fiscal_documents.access_key,
-        issued_fiscal_documents.authorization_date,
-        issued_fiscal_documents.authorization_receipt_date,
-        issued_fiscal_documents.authorization_receipt,
-        issued_fiscal_documents.cancellation_receipt_date,
-        issued_fiscal_documents.cancellation_receipt,
-        issued_fiscal_documents.disabling_receipt_date,
-        issued_fiscal_documents.disabling_receipt,
-        issued_fiscal_documents.disabling_reason,
-        issued_fiscal_documents.sefaz_status,
-        issued_fiscal_documents.sefaz_message
+       bills.tag,
+       movement_type,
+       purpose,
+       issued_fiscal_documents.model,
+       issued_fiscal_documents.series,
+       substring(issued_fiscal_documents.access_key, 29, 9) numero_nota,
+       bills.product_value,
+       issued_fiscal_documents.access_key,
+       issued_fiscal_documents.authorization_date,
+       issued_fiscal_documents.authorization_receipt_date,
+       issued_fiscal_documents.authorization_receipt,
+       issued_fiscal_documents.cancellation_receipt_date,
+       issued_fiscal_documents.cancellation_receipt,
+       issued_fiscal_documents.disabling_receipt_date,
+       issued_fiscal_documents.disabling_receipt,
+       issued_fiscal_documents.disabling_reason,
+       issued_fiscal_documents.sefaz_status,
+       issued_fiscal_documents.sefaz_message
        `),
 			)
 			.joinRaw(
 				`join issued_fiscal_documents on bills.id = issued_fiscal_documents.bill_id`,
 			)
+			.where("bills.economic_group_id", authCtx.group.id)
 			.where("bills.business_unit_id", authCtx.unit.id)
 			.whereNull("issued_fiscal_documents.deleted_at")
-			.whereNotNull("issued_fiscal_documents.sefaz_status")
 			.whereRaw(
 				"issued_fiscal_documents.authorization_date::date between ?::date and ?::date",
 				[data.fromDate!, data.toDate!],
 			)
-			.orderBy("issued_fiscal_documents.authorization_date");
+			.orderByRaw("substring(issued_fiscal_documents.access_key, 29, 9)");
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			const withSemRetorno = data.statuses.includes("sem_retorno");
+			if (withSemRetorno) {
+				const clearStatuses = data.statuses.filter((f) => f !== "sem_retorno");
+				if (clearStatuses.length === 0) {
+					qb.whereRaw(
+						"(issued_fiscal_documents.sefaz_status = '' or issued_fiscal_documents.sefaz_status is null)",
+					);
+				} else {
+					qb.whereRaw(
+						"(issued_fiscal_documents.sefaz_status = '' or issued_fiscal_documents.sefaz_status is null or issued_fiscal_documents.sefaz_status ~* ?)",
+						[clearStatuses.join("|")],
+					);
+				}
+			} else {
+				qb.whereRaw("issued_fiscal_documents.sefaz_status ~* ?", [
+					data.statuses.join("|"),
+				]);
+			}
+		}
+
+		return qb;
 	}
 
 	async issuedNfseReport(
@@ -1708,6 +1732,7 @@ ON bills.patient_id = Dep."id"`,
 			businessUnit?: string;
 			fromDate?: string;
 			toDate?: string;
+			statuses?: string[];
 		},
 	) {
 		if (!data.businessUnit) {
@@ -1718,28 +1743,29 @@ ON bills.patient_id = Dep."id"`,
 			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
 		}
 
-		return Database.from("bills")
+		const qb = Database.from("bills")
 			.select(
 				Database.raw(`
         bills.tag,
-        service_issued_fiscal_documents.model,
-        service_issued_fiscal_documents.sequence,
-        service_issued_fiscal_documents.rps_number,
-        service_issued_fiscal_documents.rps_series,
-        service_issued_fiscal_documents.rps_type,
-        verification_code,
-        service_issued_fiscal_documents.errors,
-        service_issued_fiscal_documents.authorization_date,
-        service_issued_fiscal_documents.authorization_receipt,
-        service_issued_fiscal_documents.cancellation_date,
-        service_issued_fiscal_documents.cancellation_receipt_date,
-        service_issued_fiscal_documents.cancellation_reason,
-        service_issued_fiscal_documents.status
-                     `),
+       service_issued_fiscal_documents.model,
+       service_issued_fiscal_documents.sequence,
+       service_issued_fiscal_documents.rps_number,
+       service_issued_fiscal_documents.rps_series,
+       service_issued_fiscal_documents.rps_type,
+       verification_code,
+       service_issued_fiscal_documents.errors,
+       service_issued_fiscal_documents.authorization_date,
+       service_issued_fiscal_documents.authorization_receipt,
+       service_issued_fiscal_documents.cancellation_date,
+       service_issued_fiscal_documents.cancellation_receipt_date,
+       service_issued_fiscal_documents.cancellation_reason,
+       service_issued_fiscal_documents.status
+       `),
 			)
 			.joinRaw(
 				`join service_issued_fiscal_documents on bills.id = service_issued_fiscal_documents.bill_id`,
 			)
+			.where("bills.economic_group_id", authCtx.group.id)
 			.where("bills.business_unit_id", authCtx.unit.id)
 			.whereNull("service_issued_fiscal_documents.deleted_at")
 			.whereNotNull("service_issued_fiscal_documents.status")
@@ -1747,7 +1773,29 @@ ON bills.patient_id = Dep."id"`,
 				"service_issued_fiscal_documents.authorization_date::date between ?::date and ?::date",
 				[data.fromDate!, data.toDate!],
 			)
-			.orderBy("service_issued_fiscal_documents.authorization_date");
+			.orderBy("service_issued_fiscal_documents.sequence");
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			const withSemRetorno = data.statuses.includes("sem_retorno");
+			if (withSemRetorno) {
+				const clearStatuses = data.statuses.filter((f) => f !== "sem_retorno");
+				if (clearStatuses.length === 0) {
+					qb.whereRaw(
+						"(service_issued_fiscal_documents.status = '' or service_issued_fiscal_documents.status is null)",
+					);
+				} else {
+					qb.whereRaw(
+						"(service_issued_fiscal_documents.status = '' or service_issued_fiscal_documents.status is null or service_issued_fiscal_documents.status ~* ?)",
+						[clearStatuses.join("|")],
+					);
+				}
+			} else {
+				qb.whereRaw("service_issued_fiscal_documents.status ~* ?", [
+					data.statuses.join("|"),
+				]);
+			}
+		}
+		return qb;
 	}
 
 	async receiptsReport(

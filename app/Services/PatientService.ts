@@ -388,32 +388,33 @@ export default class PatientService {
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
 
-			qb.whereHas("contacts", (query) => {
-				query.whereRaw(
-					`patient_contacts.type <> 'email'
-  and (
-    case
-        when length(patient_contacts.contact) = 10 and length(?) = 11 then
-            regexp_replace(SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8), '\D', '', 'g') ilike
-            ? -- add o 9
-        when length(patient_contacts.contact) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '\D', '', 'g') ilike
-                                                                           '%' ||
-                                                                           SUBSTRING(?, 1, 2) ||
-                                                                           '9' ||
-                                                                           SUBSTRING(?, 3, 8) ||
-                                                                           '%' -- add o 9
-        else regexp_replace(patient_contacts.contact, '\D', '', 'g')  ilike ? end
-    )`,
-					[
-						clearPhone,
-						`%${clearPhone}%`,
-						clearPhone,
-						clearPhone,
-						clearPhone,
-						`%${clearPhone}%`,
-					],
-				);
-			});
+			qb.whereRaw(
+				`patients.id in (select holder_dependents.dependent_id
+             from "patient_contacts"
+                      join holder_dependents
+                           on patients.id = holder_dependents.dependent_id and
+                              patient_contacts.patient_id = holder_dependents.holder_id
+             where (patient_contacts.type <> 'email'
+                 and (
+                        case
+                            when length(patient_contacts.contact) = 10 and length(?) = 11 then
+                                regexp_replace(SUBSTRING(patient_contacts.contact, 1, 2) || '9' ||
+                                               SUBSTRING(patient_contacts.contact, 3, 8), 'D', '', 'g') ilike
+                                ? -- add o 9
+                            when length(patient_contacts.contact) = 11 and length(?) = 10 then
+                                regexp_replace(patient_contacts.contact, 'D', '', 'g') ilike
+                                '%' || SUBSTRING(?, 1, 2) || '9' || SUBSTRING(?, 3, 8) || '%' -- add o 9
+                            else regexp_replace(patient_contacts.contact, 'D', '', 'g') ilike ? end
+                        )))`,
+				[
+					clearPhone,
+					`%${clearPhone}%`,
+					clearPhone,
+					clearPhone,
+					clearPhone,
+					`%${clearPhone}%`,
+				],
+			);
 		}
 
 		qb.preload("tutors", (query) => {

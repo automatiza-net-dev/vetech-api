@@ -74,7 +74,7 @@ export default class PatientService {
 		const qb = group.related("patients").query();
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereRaw("name ~* ?", [data.name.replaceAll(" ", "|")]);
 		}
 
 		if (data.gender) {
@@ -128,12 +128,12 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereRaw("name ~* ?", [data.name.replaceAll(" ", "|")]);
 		}
 
 		if (data.patient) {
-			qb.whereHas("dependents", (query) => {
-				query.where("name", "ilike", `%${data.patient}%`);
+			qb.whereHas("dependents", () => {
+				qb.whereRaw("name ~* ?", [data.patient?.replaceAll(" ", "|") ?? ""]);
 			});
 		}
 
@@ -182,6 +182,7 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
+			.debug(true)
 			.orderBy("name", "asc")
 			.where("type", PatientType.TUTOR)
 			.preload("tutor", (query) => {
@@ -234,13 +235,13 @@ export default class PatientService {
 		}
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereRaw("name ~* ?", [data.name.replaceAll(" ", "|")]);
 		}
 
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					query.where("name", "ilike", `%${data.patient}%`);
+					qb.whereRaw("name ~* ?", [data.patient.replaceAll(" ", "|")]);
 				}
 
 				if (data.patientId) {
@@ -330,7 +331,7 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereRaw("name ~* ?", [data.name.replaceAll(" ", "|")]);
 		}
 
 		const result = await qb;
@@ -376,8 +377,8 @@ export default class PatientService {
 		}
 
 		if (data.tutor) {
-			qb.whereHas("tutors", (query) => {
-				query.where("name", "ilike", `%${data.tutor ?? ""}%`);
+			qb.whereHas("tutors", () => {
+				qb.whereRaw("name ~* ?", [data.tutor?.replaceAll(" ", "|") ?? ""]);
 			});
 		}
 

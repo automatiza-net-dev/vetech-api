@@ -105,6 +105,7 @@ export default class HospitalizationOccurrencesService {
 				await HospitalizationTimeline.create({
 					meta: {
 						hospitalization: hospitalization.id,
+						rootOcurrence: ent.occurrence_id,
 						occurrence: ent.id,
 						group: authCtx.group.id,
 						unit: authCtx.unit.id,
@@ -150,6 +151,7 @@ export default class HospitalizationOccurrencesService {
 					meta: {
 						hospitalization: hospitalization.id,
 						occurrence: ent.id,
+						rootOcurrence: ent.occurrence_id,
 						group: authCtx.group.id,
 						unit: authCtx.unit.id,
 						origin: "death_occurrence",
@@ -236,6 +238,7 @@ export default class HospitalizationOccurrencesService {
 					meta: {
 						hospitalization: hospitalization.id,
 						occurrence: ent.id,
+						rootOcurrence: ent.occurrence_id,
 						group: authCtx.group.id,
 						unit: authCtx.unit.id,
 						origin: "weight_occurrence",
@@ -318,6 +321,7 @@ export default class HospitalizationOccurrencesService {
 					meta: {
 						hospitalization: hospitalization.id,
 						occurrence: ent.id,
+						rootOcurrence: ent.occurrence_id,
 						group: authCtx.group.id,
 						unit: authCtx.unit.id,
 						origin: "hospitalization_release",

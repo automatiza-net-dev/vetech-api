@@ -408,7 +408,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.occurrence": ent.occurrence_id,
+					"meta.occurrence": ent.id,
 				},
 				{
 					$set: {
@@ -424,7 +424,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.occurrence": ent.occurrence_id,
+					"meta.occurrence": ent.id,
 				},
 				{
 					$set: {
@@ -444,7 +444,7 @@ export default class HospitalizationOccurrencesService {
 			await HospitalizationTimeline.updateMany(
 				{
 					"meta.hospitalization": hospitalization.id,
-					"meta.occurrence": ent.occurrence_id,
+					"meta.occurrence": ent.id,
 				},
 				{
 					$set: {

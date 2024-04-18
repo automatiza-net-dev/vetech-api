@@ -182,7 +182,6 @@ export default class PatientService {
 		const qb = group
 			.related("patients")
 			.query()
-			.debug(true)
 			.orderBy("name", "asc")
 			.where("type", PatientType.TUTOR)
 			.preload("tutor", (query) => {
@@ -235,7 +234,7 @@ export default class PatientService {
 		}
 
 		if (data.name) {
-			qb.whereRaw("name ~* ?", [data.name.replaceAll(" ", "|")]);
+			qb.whereRaw("name ilike ?", [`%${data.name.replaceAll(" ", "%")}%`]);
 		}
 
 		if (data.patient || data.patientId) {
@@ -378,7 +377,7 @@ export default class PatientService {
 
 		if (data.tutor) {
 			qb.whereHas("tutors", () => {
-				qb.whereRaw("name ~* ?", [data.tutor?.replaceAll(" ", "|") ?? ""]);
+				qb.whereRaw("name ilike ?", [`%${data.tutor!.replaceAll(" ", "%")}%`]);
 			});
 		}
 
@@ -429,7 +428,7 @@ export default class PatientService {
 		});
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereRaw("name ilike ?", [`%${data.name.replaceAll(" ", "%")}%`]);
 		}
 
 		const result = await qb;

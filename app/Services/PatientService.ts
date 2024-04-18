@@ -242,7 +242,7 @@ export default class PatientService {
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					qb.whereRaw("name ilike ?", [
+					query.whereRaw("name ilike ?", [
 						`%${data.patient!.replaceAll(" ", "%")}%`,
 					]);
 				}
@@ -380,8 +380,8 @@ export default class PatientService {
 		}
 
 		if (data.tutor) {
-			qb.whereHas("tutors", () => {
-				qb.whereRaw("name ilike ?", [`%${data.tutor!.replaceAll(" ", "%")}%`]);
+			qb.whereHas("tutors", (q) => {
+				q.whereRaw("name ilike ?", [`%${data.tutor!.replaceAll(" ", "%")}%`]);
 			});
 		}
 

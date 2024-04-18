@@ -3,16 +3,17 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget from "App/Models/Budget";
-import BusinessUnit from "App/Models/BusinessUnit";
+import type BusinessUnit from "App/Models/BusinessUnit";
 import CheckingAccount from "App/Models/CheckingAccount";
 import Finance, { FinanceStatus, FinanceType } from "App/Models/Finance";
 import Receipt from "App/Models/Receipt";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import type SharedService from "App/Services/SharedService";
+import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
 @inject()
 export default class ReportService {
-	constructor(private sharedService: SharedService) {}
+	constructor(private sharedService: SharedService) { }
 
 	async financeReport(
 		authCtx: AuthContext,
@@ -1431,7 +1432,7 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const result = await qb2;
 
@@ -1451,9 +1452,9 @@ ON bills.patient_id = Dep."id"`,
 				type: elem.type,
 			},
 			quantity: elem.quantity,
-			sales: parseInt(elem.sales, 10),
-			clients: parseInt(elem.clients, 10),
-			patients: parseInt(elem.patients, 10),
+			sales: Number.parseInt(elem.sales, 10),
+			clients: Number.parseInt(elem.clients, 10),
+			patients: Number.parseInt(elem.patients, 10),
 			totalValue: elem.total_value,
 			percentage: (elem.total_value / parsedTotal) * 100,
 		}));
@@ -1527,7 +1528,7 @@ ON bills.patient_id = Dep."id"`,
        concat(trim(TO_CHAR(finances.installment, '999')), '/', trim(TO_CHAR(finances.qty_installments, '999'))) parcela,
        finances.historic                                                                                 historico,
        p."name"                                                                                   Pessoa,
-       TO_CHAR(finances.payment_value, '9999990D99')                                                     valor_Pago,
+      TO_CHAR(case when finances.payment_value is null then finances.total_value else finances.payment_value end, '9999990D99') valorPago,
        case when finances.payment_date is null then 'Aberto' else 'Baixado' end status`),
 			)
 			.joinRaw(

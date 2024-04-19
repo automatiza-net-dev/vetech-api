@@ -567,8 +567,8 @@ export default class OpportunityService {
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
 				query
-					.whereRaw("name ~* ?", [
-						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					.whereRaw("name ilike ?", [
+						`%${data.clientName!.replaceAll(" ", "%")}%`,
 					])
 					.where("type", PatientType.ANIMAL);
 			});
@@ -634,8 +634,8 @@ export default class OpportunityService {
 		if (data.contactName) {
 			qb.whereHas("contact", (query) => {
 				if (data.contactName) {
-					query.whereRaw("name ~* ?", [
-						`(${data.contactName?.toLowerCase().split(" ").join("|")})`,
+					query.whereRaw("name ilike ?", [
+						`%${data.contactName!.replaceAll(" ", "%")}%`,
 					]);
 				}
 			});
@@ -644,8 +644,8 @@ export default class OpportunityService {
 		if (data.patientName) {
 			qb.whereHas("client", (query) => {
 				if (data.patientName) {
-					query.whereRaw("name ~* ?", [
-						`(${data.patientName?.toLowerCase().split(" ").join("|")})`,
+					query.whereRaw("name ilike ?", [
+						`%${data.patientName!.replaceAll(" ", "%")}%`,
 					]);
 				}
 			});
@@ -852,8 +852,8 @@ export default class OpportunityService {
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
 				query
-					.whereRaw("name ~* ?", [
-						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					.whereRaw("name ilike ?", [
+						`%${data.clientName!.replaceAll(" ", "%")}%`,
 					])
 					.where("type", PatientType.ANIMAL);
 			});
@@ -919,8 +919,8 @@ export default class OpportunityService {
 		if (data.contactName) {
 			qb.whereHas("contact", (query) => {
 				if (data.contactName) {
-					query.whereRaw("name ~* ?", [
-						`(${data.contactName?.toLowerCase().split(" ").join("|")})`,
+					query.whereRaw("name ilike ?", [
+						`%${data.contactName!.replaceAll(" ", "%")}%`,
 					]);
 				}
 			});
@@ -929,8 +929,8 @@ export default class OpportunityService {
 		if (data.patientName) {
 			qb.whereHas("client", (query) => {
 				if (data.patientName) {
-					query.whereRaw("name ~* ?", [
-						`(${data.patientName?.toLowerCase().split(" ").join("|")})`,
+					query.whereRaw("name ilike ?", [
+						`%${data.patientName!.replaceAll(" ", "%")}%`,
 					]);
 				}
 			});

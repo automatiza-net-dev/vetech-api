@@ -1497,6 +1497,11 @@ Route.group(() => {
 	Route.get("/product-types", "ReportsController.productTypesReport");
 	Route.get("/competence", "ReportsController.competenceReport");
 	Route.get("/plan-group", "ReportsController.planGroupReport");
+	Route.get("/buy-suggestion", "ReportsController.buySuggestionReport");
+	Route.get("/issued-nfe", "ReportsController.issuedNfeReport");
+	Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
+	Route.get("/receipts", "ReportsController.receiptsReport");
+	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
 })
 	.prefix("reports")
 	.middleware("auth");

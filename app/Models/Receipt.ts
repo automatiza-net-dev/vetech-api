@@ -1,5 +1,7 @@
 import {
 	BaseModel,
+	beforeFetch,
+	beforeFind,
 	BelongsTo,
 	belongsTo,
 	column,
@@ -11,8 +13,10 @@ import Patient from "App/Models/Patient";
 import ReceiptItem from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
 import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
+import EconomicGroup from "./EconomicGroup";
 
 export const ReceiptStatus = [
 	"Aberta",
@@ -194,10 +198,28 @@ export default class Receipt extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
+
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
+
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
+
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
+
 	@column({
 		serializeAs: null,
 	})
 	public economic_group_id: string;
+
+	@belongsTo(() => EconomicGroup, {
+		foreignKey: "economic_group_id",
+	})
+	public economicGroup: BelongsTo<typeof EconomicGroup>;
 
 	@column({
 		serializeAs: null,

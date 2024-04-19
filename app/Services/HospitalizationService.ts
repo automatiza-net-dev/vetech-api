@@ -744,6 +744,7 @@ export default class HospitalizationService {
 				{
 					$set: {
 						"data.releasedAt": DateTime.now(),
+						"data.finishedAt": DateTime.now(),
 					},
 				},
 			);

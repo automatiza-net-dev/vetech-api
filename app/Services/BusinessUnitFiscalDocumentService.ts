@@ -35,6 +35,7 @@ import IBusinessUnitFiscalDocumentData, {
 	ICorrectFiscalDocument,
 	IDisableFiscalDocument,
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { z } from "zod";
 
@@ -280,6 +281,10 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 
 			const responsible = bill.financialResponsible ?? bill.client;
+			const offsetPercentage =
+				bill.serviceValue > 0
+					? new Decimal(bill.productValue).div(new Decimal(bill.totalValue))
+					: new Decimal(0);
 
 			const nfePayload: ISendNfe = {
 				nfe_series: issuedDocument.series,
@@ -341,14 +346,16 @@ export default class BusinessUnitFiscalDocumentService {
 						item.paymentMethod.nfe_code === "99"
 							? item.paymentMethod.description
 							: null,
-					installment: item.installmentValue,
+					installment: new Decimal(item.installmentValue)
+						.times(offsetPercentage)
+						.toNumber(),
 					integration_type:
 						// eslint-disable-next-line no-nested-ternary
 						item.paymentMethod.tef === PaymentMethodTef.N
 							? null
 							: item.paymentMethod.tef === PaymentMethodTef.T
-							  ? "1"
-							  : "2",
+								? "1"
+								: "2",
 					acquirer:
 						item.paymentMethod.tef === PaymentMethodTef.N
 							? null
@@ -1397,7 +1404,7 @@ export default class BusinessUnitFiscalDocumentService {
 				? [
 						data.protocolo_cancelamento.descricao_evento,
 						data.protocolo_cancelamento.motivo,
-				  ].join(" - ")
+					].join(" - ")
 				: data.mensagem_sefaz,
 			accessKey: data.chave_nfe,
 			authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

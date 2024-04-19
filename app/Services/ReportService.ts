@@ -1,11 +1,14 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget from "App/Models/Budget";
 import BusinessUnit from "App/Models/BusinessUnit";
 import CheckingAccount from "App/Models/CheckingAccount";
 import Finance, { FinanceStatus, FinanceType } from "App/Models/Finance";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import Receipt from "App/Models/Receipt";
+import SharedService from "App/Services/SharedService";
+import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
 @inject()
@@ -1429,7 +1432,7 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const result = await qb2;
 
@@ -1449,9 +1452,9 @@ ON bills.patient_id = Dep."id"`,
 				type: elem.type,
 			},
 			quantity: elem.quantity,
-			sales: parseInt(elem.sales, 10),
-			clients: parseInt(elem.clients, 10),
-			patients: parseInt(elem.patients, 10),
+			sales: Number.parseInt(elem.sales, 10),
+			clients: Number.parseInt(elem.clients, 10),
+			patients: Number.parseInt(elem.patients, 10),
 			totalValue: elem.total_value,
 			percentage: (elem.total_value / parsedTotal) * 100,
 		}));
@@ -1560,6 +1563,470 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		return await qb;
+	}
+
+	async buySuggestionReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+		},
+	) {
+		const qb = Database.from("deposits")
+			.select(
+				Database.raw(`
+             business_units.id,
+       business_units.identification,
+       products.id                 as product_id,
+       deposit_items.product_variation_id,
+       products.description,
+       sum(deposit_items.quantity) as qtdEstoque,
+       business_unit_products.minimum_stock,
+       business_unit_products.maximum_stock,
+       case
+           when sum(deposit_items.quantity) <= business_unit_products.minimum_stock
+               then business_unit_products.maximum_stock - sum(deposit_items.quantity)
+           else 0 end              as sugestaoCompra
+                     `),
+			)
+			.joinRaw(`join deposit_items on deposits.id = deposit_items.deposit_id`)
+			.joinRaw(
+				`join product_variations on product_variations.id = deposit_items.product_variation_id`,
+			)
+			.joinRaw(`join products on products.id = product_variations.product_id`)
+			.joinRaw(`join business_unit_products
+              on business_unit_products.id = deposit_items.business_unit_product_id and
+                 business_unit_products.product_variation_id = product_variations.id and
+                 business_unit_products.businness_unit_id = deposits.business_unit_id`)
+			.joinRaw(
+				`join business_units on deposits.business_unit_id = business_units.id`,
+			)
+			.where("deposits.economic_group_id", authCtx.group.id)
+			.where("deposits.type", "Venda")
+			.where("deposits.status", "Ativo")
+			.where("deposit_items.status", "Ativo")
+			.groupByRaw(`business_units.id, business_units.identification, products.id, deposit_items.product_variation_id,
+         products.description,
+         business_unit_products.minimum_stock, business_unit_products.maximum_stock`)
+			.havingRaw(
+				"sum(deposit_items.quantity) <= business_unit_products.minimum_stock",
+			);
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("deposits.business_unit_id", data.businessUnits);
+		}
+
+		const result = await qb;
+
+		const reducedKeys = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.id)) {
+				return acc;
+			}
+
+			acc.push(curr.id);
+			return acc;
+		}, [] as string[]);
+
+		return reducedKeys.map((elem) => {
+			return {
+				id: elem,
+				identification:
+					result.find((r) => r.id === elem)?.identification ?? "Erro",
+				products: result
+					.filter((r) => r.id === elem)
+					.map((p) => ({
+						id: p.product_id,
+						variationId: p.product_variation_id,
+						description: p.description,
+						qtyStock: p.qtdestoque,
+						minimumStock: p.minimum_stock,
+						maximumStock: p.maximum_stock,
+						suggestion: p.sugestaocompra,
+					})),
+			};
+		});
+	}
+
+	async issuedNfeReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnit?: string;
+			fromDate?: string;
+			toDate?: string;
+			statuses?: string[];
+		},
+	) {
+		if (!data.businessUnit) {
+			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
+		}
+
+		if (!data.fromDate && !data.toDate) {
+			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`
+       bills.tag,
+       movement_type,
+       purpose,
+       issued_fiscal_documents.model,
+       issued_fiscal_documents.series,
+       substring(issued_fiscal_documents.access_key, 29, 9) numero_nota,
+       bills.product_value,
+       issued_fiscal_documents.access_key,
+       issued_fiscal_documents.authorization_date,
+       issued_fiscal_documents.authorization_receipt_date,
+       issued_fiscal_documents.authorization_receipt,
+       issued_fiscal_documents.cancellation_receipt_date,
+       issued_fiscal_documents.cancellation_receipt,
+       issued_fiscal_documents.disabling_receipt_date,
+       issued_fiscal_documents.disabling_receipt,
+       issued_fiscal_documents.disabling_reason,
+       issued_fiscal_documents.sefaz_status,
+       issued_fiscal_documents.sefaz_message
+       `),
+			)
+			.joinRaw(
+				`join issued_fiscal_documents on bills.id = issued_fiscal_documents.bill_id`,
+			)
+			.where("bills.economic_group_id", authCtx.group.id)
+			.where("bills.business_unit_id", authCtx.unit.id)
+			.whereNull("issued_fiscal_documents.deleted_at")
+			.whereRaw(
+				"issued_fiscal_documents.authorization_date::date between ?::date and ?::date",
+				[data.fromDate!, data.toDate!],
+			)
+			.orderByRaw("substring(issued_fiscal_documents.access_key, 29, 9)");
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			const withSemRetorno = data.statuses.includes("sem_retorno");
+			if (withSemRetorno) {
+				const clearStatuses = data.statuses.filter((f) => f !== "sem_retorno");
+				if (clearStatuses.length === 0) {
+					qb.whereRaw(
+						"(issued_fiscal_documents.sefaz_status = '' or issued_fiscal_documents.sefaz_status is null)",
+					);
+				} else {
+					qb.whereRaw(
+						"(issued_fiscal_documents.sefaz_status = '' or issued_fiscal_documents.sefaz_status is null or issued_fiscal_documents.sefaz_status ~* ?)",
+						[clearStatuses.join("|")],
+					);
+				}
+			} else {
+				qb.whereRaw("issued_fiscal_documents.sefaz_status ~* ?", [
+					data.statuses.join("|"),
+				]);
+			}
+		}
+
+		return qb;
+	}
+
+	async issuedNfseReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnit?: string;
+			fromDate?: string;
+			toDate?: string;
+			statuses?: string[];
+		},
+	) {
+		if (!data.businessUnit) {
+			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
+		}
+
+		if (!data.fromDate && !data.toDate) {
+			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`
+        bills.tag,
+       service_issued_fiscal_documents.model,
+       service_issued_fiscal_documents.sequence,
+       service_issued_fiscal_documents.rps_number,
+       service_issued_fiscal_documents.rps_series,
+       service_issued_fiscal_documents.rps_type,
+       verification_code,
+       service_issued_fiscal_documents.errors,
+       service_issued_fiscal_documents.authorization_date,
+       service_issued_fiscal_documents.authorization_receipt,
+       service_issued_fiscal_documents.cancellation_date,
+       service_issued_fiscal_documents.cancellation_receipt_date,
+       service_issued_fiscal_documents.cancellation_reason,
+       service_issued_fiscal_documents.status
+       `),
+			)
+			.joinRaw(
+				`join service_issued_fiscal_documents on bills.id = service_issued_fiscal_documents.bill_id`,
+			)
+			.where("bills.economic_group_id", authCtx.group.id)
+			.where("bills.business_unit_id", authCtx.unit.id)
+			.whereNull("service_issued_fiscal_documents.deleted_at")
+			.whereNotNull("service_issued_fiscal_documents.status")
+			.whereRaw(
+				"service_issued_fiscal_documents.authorization_date::date between ?::date and ?::date",
+				[data.fromDate!, data.toDate!],
+			)
+			.orderBy("service_issued_fiscal_documents.sequence");
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			const withSemRetorno = data.statuses.includes("sem_retorno");
+			if (withSemRetorno) {
+				const clearStatuses = data.statuses.filter((f) => f !== "sem_retorno");
+				if (clearStatuses.length === 0) {
+					qb.whereRaw(
+						"(service_issued_fiscal_documents.status = '' or service_issued_fiscal_documents.status is null)",
+					);
+				} else {
+					qb.whereRaw(
+						"(service_issued_fiscal_documents.status = '' or service_issued_fiscal_documents.status is null or service_issued_fiscal_documents.status ~* ?)",
+						[clearStatuses.join("|")],
+					);
+				}
+			} else {
+				qb.whereRaw("service_issued_fiscal_documents.status ~* ?", [
+					data.statuses.join("|"),
+				]);
+			}
+		}
+		return qb;
+	}
+
+	async receiptsReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnit?: string;
+			fromDate?: string;
+			toDate?: string;
+			supplier?: string;
+			status?: string;
+		},
+	) {
+		if (!data.businessUnit) {
+			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
+		}
+
+		if (!data.fromDate && !data.toDate) {
+			throw new BadRequestException("Datas não informadas", 400, "E_ERR");
+		}
+
+		const qb = Database.from("receipts")
+			.select(
+				Database.raw(`
+        business_units.identification,
+       business_units.city,
+       business_units.state,
+       receipts.receipt_date,
+       receipts.tag,
+       receipts.product_value,
+       receipts.paid_value,
+       receipts.origin,
+       receipts.status,
+       receipts.supplier_id,
+       patients.name
+                     `),
+			)
+			.joinRaw(
+				`join business_units on receipts.business_unit_id = business_units.id`,
+			)
+			.joinRaw(`join patients on receipts.supplier_id = patients.id`)
+			.whereRaw(
+				`exists (select *
+              from "economic_groups"
+              where ("system_id" = ?)
+                and ("economic_groups"."id" = business_units."economic_group_id"))`,
+				[authCtx.system.id],
+			)
+			.where("receipts.economic_group_id", authCtx.group.id)
+			.whereRaw("receipts.receipt_date::date between ?::date and ?::date", [
+				data.fromDate!,
+				data.toDate!,
+			])
+			.whereNull("receipts.deleted_at")
+			.orderByRaw("receipts.receipt_date, receipts.tag");
+
+		if (data.supplier) {
+			qb.where("receipts.supplier_id", data.supplier);
+		}
+
+		if (data.status) {
+			qb.where("receipts.status", data.status);
+		}
+
+		return qb;
+	}
+
+	async receiptAnalyticsReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+			client?: string;
+			patient?: string;
+			businessUnits?: string[];
+			economicGroups?: string[];
+			businessStates?: string[];
+			businessCities?: string[];
+		},
+	) {
+		const qb = Receipt.query()
+			.preload("economicGroup")
+			.preload("businessUnit")
+			.preload("supplier")
+			.preload("seller")
+			.preload("items", (query) => {
+				query.preload("productVariation", (query) => {
+					query.preload("product", (query) => {
+						query.preload("subgroup");
+					});
+				});
+			})
+			.preload("payments", (query) => {
+				query.preload("flag").preload("paymentMethod");
+			})
+			.where("economic_group_id", authCtx.group.id)
+			.whereNull("deleted_at")
+			.whereHas("businessUnit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", authCtx.system.id);
+				});
+			})
+			.orderBy("receipt_date", "desc");
+
+		if (authCtx.user.type === "user") {
+			qb.where("economic_group_id", authCtx.group.id);
+		} else {
+			if (
+				data.economicGroups &&
+				Array.isArray(data.economicGroups) &&
+				data.economicGroups.length > 0
+			) {
+				qb.whereIn("economic_group_id", data.economicGroups);
+			} else {
+				qb.where("economic_group_id", authCtx.group.id);
+			}
+		}
+
+		if (
+			data.businessUnits &&
+			Array.isArray(data.businessUnits) &&
+			data.businessUnits.length > 0
+		) {
+			qb.whereIn("business_unit_id", data.businessUnits);
+		}
+
+		const withBusinessStates =
+			data.businessStates &&
+			Array.isArray(data.businessStates) &&
+			data.businessStates.length > 0;
+		const withBusinessCities =
+			data.businessCities &&
+			Array.isArray(data.businessCities) &&
+			data.businessCities.length > 0;
+		if (withBusinessStates || withBusinessCities) {
+			qb.whereHas("businessUnit", (query) => {
+				if (withBusinessStates) {
+					query.whereIn("state", data.businessStates ?? []);
+				}
+
+				if (withBusinessCities) {
+					query.whereIn("city", data.businessCities ?? []);
+				}
+			});
+		}
+		if (data.fromDate) {
+			qb.whereRaw("receipt_date::date >= ?", [
+				DateTime.fromISO(data.fromDate).toFormat("yyyy-MM-dd"),
+			]);
+		}
+
+		if (data.toDate) {
+			qb.whereRaw("receipt_date::date <= ?", [
+				DateTime.fromISO(data.toDate).toFormat("yyyy-MM-dd"),
+			]);
+		}
+
+		if (data.status) {
+			qb.where("status", data.status);
+		}
+
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			tag: elem.tag,
+			productValue: elem.productValue,
+			serviceValue: elem.serviceValue,
+			discountValue: elem.discountValue,
+			totalValue: elem.totalValue,
+			paidValue: elem.paidValue,
+			missingPaymentValue: elem.totalValue - elem.paidValue,
+			status: elem.status,
+
+			group: {
+				id: elem.economicGroup.id,
+				name: elem.economicGroup.companyName,
+			},
+			unit: {
+				id: elem.businessUnit.id,
+				identification: elem.businessUnit.identification ?? "-",
+				city: elem.businessUnit.city,
+				state: elem.businessUnit.state,
+			},
+			seller: this.sharedService.captureGroup(elem.seller, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			supplier: this.sharedService.captureGroup(elem.supplier, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			payments: elem.payments.map((inner) => ({
+				id: inner.id,
+				block: inner.block,
+				installment: inner.installment,
+				installmentValue: inner.installmentValue,
+				epxirationDate: inner.expirationDate,
+				nsuDocument: inner.nsuDocument,
+				paymentMethod: this.sharedService.captureGroup(
+					inner.paymentMethod,
+					(v) => ({
+						id: v.id,
+						description: v.description,
+					}),
+				),
+				flag: this.sharedService.captureGroup(inner.flag, (v) => ({
+					id: v.id,
+					description: v.description,
+				})),
+			})),
+			items: elem.items.map((inner) => ({
+				id: inner.id,
+				quantity: inner.quantity,
+				costValue: inner.costValue,
+				saleValue: inner.saleValue,
+				discountValue: inner.discountValue,
+				totalValue: inner.totalValue,
+				product: this.sharedService.captureGroup(
+					inner.productVariation?.product,
+					(v) => ({
+						description: v.description,
+						type: v.type,
+						subgroup: this.sharedService.captureGroup(
+							inner.productVariation?.product?.subgroup,
+							(v) => ({ id: v.id, description: v.description }),
+						),
+					}),
+				),
+			})),
+		}));
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

@@ -612,8 +612,15 @@ export default class OpportunityService {
                                    and (schedules.start_hour::date between ? and ?
                                      or
                                         schedule_status_changes.created_at::date between ? and ?)))
+                              or (opportunities.id in (select distinct opportunity_id
+                             from opportunity_logs ol
+                                      join crm_statuses cs on ol.status_id = cs.id and cs.tag = 'A'
+                             where ol.created_at::date between ? and ?)
+           )
       )`,
 				[
+					data.dateFrom,
+					data.dateTo,
 					data.dateFrom,
 					data.dateTo,
 					data.dateFrom,
@@ -627,7 +634,9 @@ export default class OpportunityService {
 		if (data.contactName) {
 			qb.whereHas("contact", (query) => {
 				if (data.contactName) {
-					query.where("name", "ilike", `%${data.contactName}%`);
+					query.whereRaw("name ~* ?", [
+						`(${data.contactName?.toLowerCase().split(" ").join("|")})`,
+					]);
 				}
 			});
 		}
@@ -635,7 +644,9 @@ export default class OpportunityService {
 		if (data.patientName) {
 			qb.whereHas("client", (query) => {
 				if (data.patientName) {
-					query.where("name", "ilike", `%${data.patientName}%`);
+					query.whereRaw("name ~* ?", [
+						`(${data.patientName?.toLowerCase().split(" ").join("|")})`,
+					]);
 				}
 			});
 		}
@@ -886,8 +897,15 @@ export default class OpportunityService {
                                    and (schedules.start_hour::date between ? and ?
                                      or
                                         schedule_status_changes.created_at::date between ? and ?)))
+                              or (opportunities.id in (select distinct opportunity_id
+                             from opportunity_logs ol
+                                      join crm_statuses cs on ol.status_id = cs.id and cs.tag = 'A'
+                             where ol.created_at::date between ? and ?)
+           )
       )`,
 				[
+					data.dateFrom,
+					data.dateTo,
 					data.dateFrom,
 					data.dateTo,
 					data.dateFrom,
@@ -901,7 +919,9 @@ export default class OpportunityService {
 		if (data.contactName) {
 			qb.whereHas("contact", (query) => {
 				if (data.contactName) {
-					query.where("name", "ilike", `%${data.contactName}%`);
+					query.whereRaw("name ~* ?", [
+						`(${data.contactName?.toLowerCase().split(" ").join("|")})`,
+					]);
 				}
 			});
 		}
@@ -909,7 +929,9 @@ export default class OpportunityService {
 		if (data.patientName) {
 			qb.whereHas("client", (query) => {
 				if (data.patientName) {
-					query.where("name", "ilike", `%${data.patientName}%`);
+					query.whereRaw("name ~* ?", [
+						`(${data.patientName?.toLowerCase().split(" ").join("|")})`,
+					]);
 				}
 			});
 		}

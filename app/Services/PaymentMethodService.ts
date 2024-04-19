@@ -27,6 +27,7 @@ interface ISearchCompletePaymentMethods extends ISearchPaymentMethods {
 	active?: string;
 	cancellation?: string;
 	account?: string;
+	usage?: string;
 }
 
 interface ISearchTefFlags {
@@ -99,6 +100,10 @@ export default class PaymentMethodService {
 
 		if (data.cancellation) {
 			qb.where("automatic_cancellation", data.cancellation === "true");
+		}
+
+		if (data.usage) {
+			qb.where("usage", data.usage);
 		}
 
 		if (data.account) {

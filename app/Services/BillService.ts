@@ -104,11 +104,11 @@ export default class BillService {
 		const qb = Bill.query().where("business_unit_id", unitId);
 
 		if (data.fromBill) {
-			qb.where("bill_date", ">=", data.fromBill);
+			qb.whereRaw("bill_date::date >= ?", [data.fromBill]);
 		}
 
 		if (data.toBill) {
-			qb.where("bill_date", "<=", data.toBill);
+			qb.whereRaw("bill_date::date <= ?", [data.toBill]);
 		}
 
 		if (data.status) {

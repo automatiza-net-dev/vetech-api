@@ -627,6 +627,9 @@ export default class BusinessUnitFiscalDocumentService {
 			.preload("client", (query) => {
 				query.preload("tutor");
 			})
+			.preload("financialResponsible", (query) => {
+				query.preload("tutor");
+			})
 			.firstOrFail();
 
 		if (bill.status !== BillStatus.B) {

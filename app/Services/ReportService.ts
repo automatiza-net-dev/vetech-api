@@ -1629,8 +1629,6 @@ ON bills.patient_id = Dep."id"`,
 			return acc;
 		}, [] as string[]);
 
-		console.log({ result, reducedKeys });
-
 		return reducedKeys.map((elem) => {
 			return {
 				id: elem,
@@ -1642,10 +1640,10 @@ ON bills.patient_id = Dep."id"`,
 						id: p.product_id,
 						variationId: p.product_variation_id,
 						description: p.description,
-						qtyStock: p.qtdestoque,
-						minimumStock: p.minimum_stock,
-						maximumStock: p.maximum_stock,
-						suggestion: p.sugestaocompra,
+						qtyStock: parseFloat(p.qtdestoque),
+						minimumStock: parseFloat(p.minimum_stock),
+						maximumStock: parseFloat(p.maximum_stock),
+						suggestion: parseFloat(p.sugestaocompra),
 					})),
 			};
 		});

@@ -2267,7 +2267,6 @@ export default class IndicatorService {
 		}
 
 		const qb = Database.from("budgets")
-			.debug(true)
 			.select(
 				Database.raw(
 					`

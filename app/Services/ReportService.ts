@@ -1623,10 +1623,9 @@ ON bills.patient_id = Dep."id"`,
 
 		const reducedKeys = result.reduce((acc, curr) => {
 			if (!acc.includes(curr.id)) {
-				return acc;
+				acc.push(curr.id);
 			}
 
-			acc.push(curr.id);
 			return acc;
 		}, [] as string[]);
 

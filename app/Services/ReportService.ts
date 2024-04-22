@@ -1572,7 +1572,6 @@ ON bills.patient_id = Dep."id"`,
 		},
 	) {
 		const qb = Database.from("deposits")
-			.debug(true)
 			.select(
 				Database.raw(`
              business_units.id,
@@ -1630,6 +1629,8 @@ ON bills.patient_id = Dep."id"`,
 			acc.push(curr.id);
 			return acc;
 		}, [] as string[]);
+
+		console.log({ result, reducedKeys });
 
 		return reducedKeys.map((elem) => {
 			return {

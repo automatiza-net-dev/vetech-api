@@ -1572,6 +1572,7 @@ ON bills.patient_id = Dep."id"`,
 		},
 	) {
 		const qb = Database.from("deposits")
+			.debug(true)
 			.select(
 				Database.raw(`
              business_units.id,

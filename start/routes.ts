@@ -1607,6 +1607,10 @@ Route.group(() => {
 		"/avg-receipt-deadline",
 		"IndicatorsController.avgReceiptDeadlineIndicators",
 	);
+	Route.get(
+		"/client-group-tree",
+		"IndicatorsController.clientGroupTreeIndicators",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

@@ -2961,4 +2961,135 @@ export default class IndicatorService {
 			};
 		});
 	}
+
+	public async clientGroupTreeIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(
+					`business_units.id,
+       business_units.identification,
+       'Recorrentes'          as categoria,
+       'Recorrentes'          as grupo,
+       'Recorrentes'          as description,
+       sum(bills.total_value) as total`,
+				),
+			)
+			.joinRaw(`join patients on bills.client_id = patients.id`)
+			.joinRaw(
+				`inner join business_units on business_units.id = bills.business_unit_id`,
+			)
+			.groupByRaw(`business_units.id`)
+			.whereNull("bills.deleted_at")
+			.whereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+			)
+			.whereRaw(`business_units.environment = 'P'`);
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					`business_units.id,
+       business_units.identification,
+       client_origin_categories.description as categoria,
+       client_origin_groups.description     as grupo,
+       client_origins.description,
+       sum(bills.total_value)               as total`,
+				),
+			)
+			.joinRaw(`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id)
+    join client_origins
+        left join client_origin_groups
+            left join client_origin_categories on client_origin_categories.id =
+                                                  client_origin_groups.client_origin_category_id
+        on client_origin_groups.id = client_origins.client_origin_group_id
+               on patient_tutors.client_origin_id = client_origins.id
+    )
+              on bills.client_id = patient_tutors.patient_id`)
+			.joinRaw(
+				`inner join business_units on business_units.id = bills.business_unit_id`,
+			)
+			.groupByRaw(`business_units.id, client_origin_categories.description, client_origin_groups.description,
+         client_origins.description`)
+			.whereNull("bills.deleted_at")
+			.whereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+			)
+			.whereRaw(`business_units.environment = 'P'`);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb2.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const [result1, result2] = await Promise.all([qb1, qb2]);
+		const result = result1.concat(result2) as {
+			id: string;
+			identification: string;
+			categoria: string | null;
+			grupo: string | null;
+			description: string;
+			total: string;
+		}[];
+
+		const total = result.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+
+		const keys = result.reduce((acc, curr) => {
+			const innerKey = curr.categoria ? curr.categoria : "Não identificado";
+
+			if (!acc.includes(innerKey)) {
+				acc.push(innerKey);
+			}
+
+			return acc;
+		}, [] as string[]);
+
+		const categories = keys.reduce((acc, curr) => {
+			const categoryRows =
+				curr === "Não identificado"
+					? result.filter((r) => !r.categoria)
+					: result.filter((r) => r.categoria === curr);
+			const rowsSum = categoryRows.reduce(
+				(sumAcc, sumCurr) => sumAcc + parseFloat(sumCurr.total),
+				0,
+			);
+
+			acc.push({
+				categoria: curr,
+				faturamento: rowsSum,
+				porcentagem: (rowsSum / total) * 100,
+				grupos: categoryRows.map((elem) => ({
+					grupo: elem.grupo ?? "Não informado",
+					total: elem.total,
+					porcentagem: (rowsSum / parseFloat(elem.total)) * 100,
+				})),
+			});
+
+			return acc;
+		}, [] as unknown[]);
+
+		return {
+			total,
+			categories,
+		};
+	}
 }

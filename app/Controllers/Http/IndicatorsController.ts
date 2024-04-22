@@ -391,4 +391,17 @@ export default class IndicatorsController {
 
 		return response.ok(result);
 	}
+
+	public async clientGroupTreeIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.clientGroupTreeIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

@@ -29,7 +29,8 @@ import SystemPaymentMethod from "App/Models/SystemPaymentMethod";
 import SystemProduct from "App/Models/SystemProduct";
 import SystemTaxationGroup from "App/Models/SystemTaxationGroup";
 import SystemVariationGroup from "App/Models/SystemVariationGroup";
-import {
+import TaxationGroup from "App/Models/TaxationGroup";
+import TaxationGroupRule, {
 	CompanyType,
 	MovementCategory,
 	MovementType,
@@ -280,38 +281,67 @@ export default class UserService {
 			const systemTaxationGroups = await SystemTaxationGroup.query()
 				.useTransaction(trx)
 				.where("system_id", system.id)
-				.preload("rules");
+				.preload("rules", (query) => {
+					query
+						.whereILike("from_uf", `%${data.state ?? "SKIP"}%`)
+						.whereILike("to_uf", `%${data.state ?? "SKIP"}%`);
+				});
+			console.log(systemTaxationGroups);
 			const taxationGroups = await newGroup
 				.related("taxationGroups")
 				.createMany(
-					systemTaxationGroups.map((t) => ({
+					systemTaxationGroups.map<Partial<TaxationGroup>>((t) => ({
 						name: t.name,
+						active: t.active,
 					})),
 					{
 						client: trx,
 					},
 				);
+
+			const taxOperations = await TaxOperation.query()
+				.useTransaction(trx)
+				.whereNull("economic_group_id");
+
 			const tasks = taxationGroups.map(async (group, idx) => {
 				const rules = systemTaxationGroups[idx].rules;
 
 				return await group.related("rules").createMany(
-					rules.map((r) => ({
-						// tax_operation_id: r.system_taxation_group_id, // diference
-						companyType: r.companyType,
-						movementType: r.movementType,
-						movementCategory: r.movementCategory,
-						fromUf: r.fromUf,
-						toUf: r.toUf,
-						icmsCst: r.icmsCst,
-						icmsPerc: r.icmsPerc,
-						fcpPerc: r.fcpPerc,
-						pisCst: r.pisCst,
-						pisPerc: r.pisPerc,
-						cofinsCst: r.cofinsCst,
-						cofinsPerc: r.cofinsPerc,
-						ipiCst: r.ipiCst,
-						ipiPerc: r.ipiPerc,
-					})),
+					rules.map<Partial<TaxationGroupRule>>((r) => {
+						const operation = taxOperations.find(
+							(t) =>
+								t.code === r.taxOperationCode &&
+								t.movementType === r.movementType &&
+								t.movementCategory === r.movementCategory &&
+								t.active,
+						);
+
+						return {
+							tax_operation_id: operation?.id,
+
+							active: r.active,
+							ivaIcmsSt: r.ivaIcmsSt,
+							icmsPercRedBaseCalculoST: r.icmsPercRedBaseCalculoST,
+							icmsPercDiferimento: r.icmsPercDiferimento,
+							icmsPercRedAliquota: r.icmsPercRedAliquota,
+							icmsPercRedBaseCalculo: r.icmsPercRedBaseCalculo,
+							taxBenefitCode: r.taxBenefitCode,
+							companyType: r.companyType,
+							movementType: r.movementType,
+							movementCategory: r.movementCategory,
+							fromUf: r.fromUf,
+							toUf: r.toUf,
+							icmsCst: r.icmsCst,
+							icmsPerc: r.icmsPerc,
+							fcpPerc: r.fcpPerc,
+							pisCst: r.pisCst,
+							pisPerc: r.pisPerc,
+							cofinsCst: r.cofinsCst,
+							cofinsPerc: r.cofinsPerc,
+							ipiCst: r.ipiCst,
+							ipiPerc: r.ipiPerc,
+						};
+					}),
 					{
 						client: trx,
 					},

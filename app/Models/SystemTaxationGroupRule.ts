@@ -30,6 +30,11 @@ export default class SystemTaxationGroupRule extends BaseModel {
 	public movementCategory: MovementCategory;
 
 	@column({
+		columnName: "tax_operation_code",
+	})
+	public taxOperationCode: string;
+
+	@column({
 		columnName: "from_uf",
 	})
 	public fromUf: string;
@@ -47,7 +52,7 @@ export default class SystemTaxationGroupRule extends BaseModel {
 	@column({
 		columnName: "icms_cst",
 	})
-	public icmsCst: typeof COMPLETE_ICMS[number];
+	public icmsCst: (typeof COMPLETE_ICMS)[number];
 
 	@column({
 		columnName: "icms_perc",
@@ -87,7 +92,7 @@ export default class SystemTaxationGroupRule extends BaseModel {
 	@column({
 		columnName: "ipi_cst",
 	})
-	public ipiCst: typeof IPI_CST[number];
+	public ipiCst: (typeof IPI_CST)[number];
 
 	@column({
 		columnName: "ipi_perc",
@@ -98,7 +103,7 @@ export default class SystemTaxationGroupRule extends BaseModel {
 	@column({
 		columnName: "pis_cst",
 	})
-	public pisCst: typeof PIS_CST__COFINS_CST[number];
+	public pisCst: (typeof PIS_CST__COFINS_CST)[number];
 
 	@column({
 		columnName: "pis_perc",
@@ -109,7 +114,7 @@ export default class SystemTaxationGroupRule extends BaseModel {
 	@column({
 		columnName: "cofins_cst",
 	})
-	public cofinsCst: typeof PIS_CST__COFINS_CST[number];
+	public cofinsCst: (typeof PIS_CST__COFINS_CST)[number];
 
 	@column({
 		columnName: "cofins_perc",

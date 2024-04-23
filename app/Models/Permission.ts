@@ -39,6 +39,12 @@ export default class Permission extends BaseModel {
 	@column()
 	public type: TPermissionType;
 
+	@column({})
+	public icon: string;
+
+	@column({})
+	public route: string;
+
 	@column({
 		columnName: "systems",
 		prepare(value) {

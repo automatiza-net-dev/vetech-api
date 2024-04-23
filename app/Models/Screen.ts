@@ -25,4 +25,9 @@ export default class Screen extends BaseModel {
 
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
+
+	@column({
+		serializeAs: null,
+	})
+	public screen_id: number;
 }

@@ -29,5 +29,5 @@ export default class Screen extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public screen_id: number;
+	public menu_id: number;
 }

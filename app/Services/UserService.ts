@@ -991,18 +991,20 @@ export default class UserService {
 			type: "forgot",
 		});
 
-		await Mail.send((message) => {
-			message
-				.from("sysvetech@gmail.com")
-				.to(user.email)
-				.subject("Recuperação de Senha")
-				.htmlView("emails/reset_password", {
-					email,
-					url: `${
-						user.system.systemUrls.find((r) => r.url)?.url
-					}/senha/reset/${hash}`,
-				});
-		});
+		console.log(
+			await Mail.send((message) => {
+				message
+					.from("sysvetech@gmail.com")
+					.to(email)
+					.subject("Recuperação de Senha")
+					.htmlView("emails/reset_password", {
+						email,
+						url: `${
+							user.system.systemUrls.find((r) => r.url)?.url
+						}/senha/reset/${hash}`,
+					});
+			}),
+		);
 	}
 
 	public async resetPassword({

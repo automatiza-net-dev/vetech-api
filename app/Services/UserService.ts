@@ -286,7 +286,6 @@ export default class UserService {
 						.whereILike("from_uf", `%${data.state ?? "SKIP"}%`)
 						.whereILike("to_uf", `%${data.state ?? "SKIP"}%`);
 				});
-			console.log(systemTaxationGroups);
 			const taxationGroups = await newGroup
 				.related("taxationGroups")
 				.createMany(

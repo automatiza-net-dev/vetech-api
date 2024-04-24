@@ -192,7 +192,6 @@ Route.group(() => {
 Route.group(() => {
 	Route.post("/sync", "PermissionsController.sync");
 
-	Route.get("/menu", "PermissionsController.fetchMenu");
 	Route.post("/screens", "PermissionsController.fetchScreens");
 
 	Route.get("/", "PermissionsController.index");
@@ -1686,3 +1685,5 @@ Route.resource("client-origin-groups", "ClientOriginGroupsController")
 	.middleware({
 		"*": ["auth"],
 	});
+
+Route.get("/menu", "PermissionsController.fetchMenu");

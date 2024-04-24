@@ -120,8 +120,6 @@ export default class PermissionService {
 			permissao_rota: string | null;
 		}[];
 
-		console.log({ typedRows });
-
 		const dataMap: Map<
 			number,
 			{
@@ -147,16 +145,15 @@ export default class PermissionService {
 			});
 		}
 
-		console.log({ dataMap });
-
 		return {
 			status: 200,
 			title: "Ok",
 			message: null,
 			validationErrors: {},
 			data: {
-				items: dataMap.forEach((value, key) => {
+				items: Array.from(dataMap.keys()).map((key) => {
 					const info = typedRows.find((r) => r.menu_id === key)!;
+					const value = dataMap.get(key)!;
 
 					return {
 						id: info.menu_id,

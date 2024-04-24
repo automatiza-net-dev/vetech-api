@@ -1,5 +1,11 @@
 import { DateTime } from "luxon";
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	column,
+	ManyToMany,
+	manyToMany,
+} from "@ioc:Adonis/Lucid/Orm";
+import Variation from "./Variation";
 
 export default class SystemVariationGroup extends BaseModel {
 	@column({ isPrimary: true })
@@ -21,4 +27,15 @@ export default class SystemVariationGroup extends BaseModel {
 		serializeAs: null,
 	})
 	public system_id: number;
+
+	@manyToMany(() => Variation, {
+		pivotTable: "system_variation_group_variations",
+		pivotTimestamps: false,
+		localKey: "id",
+		pivotForeignKey: "system_variation_group_id",
+		relatedKey: "id",
+		pivotRelatedForeignKey: "variation_id",
+	})
+	// eslint-disable-next-line no-use-before-define
+	public variations: ManyToMany<typeof Variation>;
 }

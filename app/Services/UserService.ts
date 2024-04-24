@@ -350,17 +350,30 @@ export default class UserService {
 
 			const systemVariationGroups = await SystemVariationGroup.query()
 				.useTransaction(trx)
+				.preload("variations")
 				.where("system_id", system.id);
+
 			const variationGroups = await newGroup
 				.related("variationGroups")
 				.createMany(
 					systemVariationGroups.map((v) => ({
 						description: v.description,
+						active: v.active,
 					})),
 					{
 						client: trx,
 					},
 				);
+			const variationTasks = variationGroups.map(async (vg) => {
+				return vg
+					.related("variations")
+					.attach(
+						systemVariationGroups
+							.find((f) => f.description === vg.description)
+							?.variations.map((v) => v.id) ?? [],
+					);
+			});
+			await Promise.all(variationTasks);
 
 			const systemProducts = await SystemProduct.query()
 				.useTransaction(trx)
@@ -389,7 +402,14 @@ export default class UserService {
 						unit_id: p.unit_id,
 						taxation_group_id: realTaxationGroup?.id,
 						variation_group_id: realVariationGroup?.id,
+						group_id: p.group_id,
 
+						// fractioned: p.fr,
+						serviceCode: p.serviceCode,
+						serviceType: p.serviceType,
+						collectionYear: p.collectionYear,
+						taxBenefitCode: p.taxBenefitCode,
+						features: p.features,
 						description: p.description,
 						type: p.type,
 						referenceCode: p.referenceCode,

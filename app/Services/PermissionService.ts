@@ -150,8 +150,8 @@ export default class PermissionService {
 			message: null,
 			validationErrors: {},
 			data: {
-				items: dataMap.forEach((key, value) => {
-					const info = rows.find((r) => r.menu_id === key)!;
+				items: dataMap.forEach((value, key) => {
+					const info = typedRows.find((r) => r.menu_id === key)!;
 
 					return {
 						id: info.menu_id,

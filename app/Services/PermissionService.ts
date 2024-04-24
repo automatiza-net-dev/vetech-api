@@ -120,6 +120,8 @@ export default class PermissionService {
 			permissao_rota: string | null;
 		}[];
 
+		console.log({ typedRows });
+
 		const dataMap: Map<
 			number,
 			{
@@ -144,6 +146,8 @@ export default class PermissionService {
 				route: row.permissao_rota,
 			});
 		}
+
+		console.log({ dataMap });
 
 		return {
 			status: 200,

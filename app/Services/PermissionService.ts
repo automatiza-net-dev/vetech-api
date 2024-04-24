@@ -66,6 +66,7 @@ export default class PermissionService {
 
 	public async fetchMenu(authCtx: AuthContext) {
 		const rows = await Database.from("users")
+			.debug(true)
 			.select(
 				Database.raw(`menus.id                as menu_id,
        menus.description       as menu_descricao,

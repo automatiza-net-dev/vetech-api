@@ -1961,6 +1961,7 @@ ON bills.patient_id = Dep."id"`,
 		return result.map((elem) => ({
 			id: elem.id,
 			tag: elem.tag,
+			receiptDate: elem.receiptDate,
 			productValue: elem.productValue,
 			serviceValue: elem.serviceValue,
 			discountValue: elem.discountValue,
@@ -1968,6 +1969,7 @@ ON bills.patient_id = Dep."id"`,
 			paidValue: elem.paidValue,
 			missingPaymentValue: elem.totalValue - elem.paidValue,
 			status: elem.status,
+			origin: elem.origin,
 
 			group: {
 				id: elem.economicGroup.id,
@@ -2013,6 +2015,7 @@ ON bills.patient_id = Dep."id"`,
 				saleValue: inner.saleValue,
 				discountValue: inner.discountValue,
 				totalValue: inner.totalValue,
+				unitaryValue: inner.unitaryValue,
 				product: this.sharedService.captureGroup(
 					inner.productVariation?.product,
 					(v) => ({

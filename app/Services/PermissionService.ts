@@ -160,6 +160,7 @@ export default class PermissionService {
 						order: info.menu_ordem,
 						title: info.menu_descricao,
 						route: info.menu_rota,
+						icon: info.menu_icon,
 						items: value,
 					};
 				}),

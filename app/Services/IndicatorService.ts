@@ -3563,6 +3563,7 @@ export default class IndicatorService {
 			this.invoicingByProductType_2(authCtx, data),
 			this.invoicingByPaymentMethod_2(authCtx, data),
 			this.invoicingByNewClients_2(authCtx, data),
+			this.billPaymentFormatIndicators_2(authCtx, data),
 		]);
 
 		return {
@@ -3676,6 +3677,143 @@ export default class IndicatorService {
 					type: "line",
 					stack: "Total",
 					data: result.map((r) => r.total_recorrentes),
+				},
+			],
+		};
+	}
+
+	public async billPaymentFormatIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          economic_groups.id              as e_id,
+          economic_groups.company_name,
+          business_units.id               as b_id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY/MM') as campo_order,
+          to_char(bills.bill_date, 'MM/YYYY') as periodo,
+          sum(case
+               when ((payment_methods.tef = 'NAO' or
+                      (payment_methods.tef <> 'NAO' and payment_methods.type = 'DEBITO')) and
+                     (to_char(bills.bill_date, 'YYYY/MM') = to_char(bill_payments.expiration_date, 'YYYY/MM')))
+                   then bill_payments.total_value
+               else 0 end)                 as a_vista,
+          sum(case
+               when ((to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM')) or
+                     (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')) then bill_payments.total_value
+               else 0 end)                 as a_prazo
+          `,
+				),
+			)
+			.joinRaw(
+				`left join business_units on bills.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+			)
+			.joinRaw(
+				`join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+			)
+			.joinRaw(
+				`join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+			)
+			.groupByRaw(
+				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
+			)
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("business_units.economic_group_id", data.groups);
+		} else {
+			qb.where("business_units.economic_group_id", authCtx.group.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const result = await qb;
+
+		const aVistaSum = result.reduce((acc, curr) => acc + curr.a_vista, 0);
+		const aPrazoSum = result.reduce((acc, curr) => acc + curr.a_prazo, 0);
+
+		return {
+			name: "bill-payment-format",
+			type: "bar",
+			// legend: true,
+			title: {
+				text: "Faturamento x Condicao de Pagamento",
+				left: "center",
+			},
+			tooltip: {
+				trigger: "axis",
+				axisPointer: {
+					type: "shadow",
+				},
+			},
+			legend: { show: false },
+			grid: {
+				left: "3%",
+				right: "4%",
+				bottom: "80%",
+				containLabel: true,
+			},
+			xAxis: {
+				type: "value",
+			},
+			yAxis: {
+				type: "category",
+				data: result.map((r) => r.periodo),
+			},
+			series: [
+				{
+					name: "A Vista",
+					type: "bar",
+					stack: "total",
+					label: {
+						show: true,
+					},
+					emphasis: {
+						focus: "series",
+					},
+					data: result.map((r) => r.a_vista),
+					valor: result.map((r) => (r.a_vista / aVistaSum) * 100),
+				},
+				{
+					name: "A Prazo",
+					type: "bar",
+					stack: "total",
+					label: {
+						show: true,
+					},
+					emphasis: {
+						focus: "series",
+					},
+					data: result.map((r) => r.a_prazo),
+					valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
 				},
 			],
 		};

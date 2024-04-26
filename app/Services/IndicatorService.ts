@@ -562,7 +562,7 @@ export default class IndicatorService {
 			data: result.map((elem, idx) => ({
 				value: elem.total_sales,
 				percentage: (elem.total_sales / parsedTotal) * 100,
-				description: elem.description,
+				name: elem.description,
 				qtySales: parseInt(elem.qty_sales, 10),
 				qtyClients: parseInt(elem.qty_clients, 10),
 				itemStyle: {

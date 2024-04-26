@@ -1518,10 +1518,22 @@ Route.group(() => {
 		"/median-ticket-origin",
 		"IndicatorsController.medianTicketByOrigin",
 	);
+
+	Route.get(
+		"/median-ticket-origin-2",
+		"IndicatorsController.medianTicketByOrigin_2",
+	);
+
 	Route.get(
 		"/invoicing-product-type",
 		"IndicatorsController.invoicingByProductType",
 	);
+
+	Route.get(
+		"/invoicing-product-type-2",
+		"IndicatorsController.invoicingByProductType_2",
+	);
+
 	Route.get(
 		"/invoicing-product-type-subgroup",
 		"IndicatorsController.invoicingByProductTypeWithSubgroup",
@@ -1529,6 +1541,10 @@ Route.group(() => {
 	Route.get(
 		"/invoicing-payment-method",
 		"IndicatorsController.invoicingByPaymentMethod",
+	);
+	Route.get(
+		"/invoicing-payment-method-2",
+		"IndicatorsController.invoicingByPaymentMethod_2",
 	);
 	Route.get(
 		"/invoicing-new-clients",

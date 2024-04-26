@@ -12,6 +12,29 @@ import { v4 } from "uuid";
 
 @inject()
 export default class IndicatorService {
+	static COLORS = [
+		"black",
+		"silver",
+		"gray",
+		"white",
+		"maroon",
+		"red",
+		"purple",
+		"fuchsia",
+		"green",
+		"lime",
+		"olive",
+		"yellow",
+		"navy",
+		"blue",
+		"teal",
+		"aqua",
+		"orange",
+		"aliceblue",
+		"cyan",
+		"magenta",
+	] as const;
+
 	public async medianTicket(
 		authCtx: AuthContext,
 		data: {
@@ -178,6 +201,147 @@ export default class IndicatorService {
 			.sort((a, b) => b.total - a.total);
 	}
 
+	public async medianTicketByOrigin_2(
+		authCtx: AuthContext,
+		data: {
+			unit?: string;
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            'Recorrentes'          as description,
+            sum(bills.total_value) as total
+          `,
+				),
+			)
+			.joinRaw(
+				`
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          client_origins.description,
+          sum(bills.total_value) as total
+          `,
+				),
+			)
+			.joinRaw(
+				`
+              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id
+               `,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id", "client_origins.description")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.unit) {
+			qb1.where("bills.business_unit_id", data.unit);
+			qb2.where("bills.business_unit_id", data.unit);
+		} else {
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb2.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const [r1, r2] = await Promise.all([qb1, qb2]);
+		const result = r1.concat(r2);
+
+		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
+
+		return {
+			data: result.map((elem, idx) => ({
+				value: elem.total,
+				name: elem.description,
+				percentage: (elem.total / sum) * 100,
+				itemStyle: {
+					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+				},
+			})),
+			configs: {
+				title: {
+					text: "Faturamento X Origem Clientes",
+					subtext: "",
+					left: "center",
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+				},
+				series: [
+					{
+						name: "Origem Clientes",
+						type: "pie",
+						radius: "50%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+					},
+				],
+			},
+		};
+	}
+
 	public async invoicingByProductType(
 		authCtx: AuthContext,
 		data: {
@@ -290,6 +454,155 @@ export default class IndicatorService {
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
 		}));
+	}
+
+	public async invoicingByProductType_2(
+		authCtx: AuthContext,
+		data: {
+			unit?: string;
+			fromDate?: string;
+			toDate?: string;
+			type?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(Database.raw("sum(total_value) as total_sales"))
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.where("bills.business_unit_id", data.unit ?? authCtx.unit.id)
+			.whereNull("bills.deleted_at");
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		const [{ total_sales = "0" }] = await qb1;
+		const parsedTotal = parseFloat(total_sales);
+
+		const qb = Database.from("bill_items")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          products.id as pID,
+          products.description,
+          sum(bill_items.quantity) as qty_sales,
+          sum(bill_items.total_value) as total_sales,
+          count(distinct bills.client_id) as qty_clients
+          `,
+				),
+			)
+			.leftJoin("bills", (query) => {
+				query.on("bills.id", "=", "bill_items.bill_id");
+			})
+			.leftJoin("product_variations", (query) => {
+				query.on(
+					"product_variations.id",
+					"=",
+					"bill_items.product_variation_id",
+				);
+			})
+			.leftJoin("products", (query) => {
+				query.on("products.id", "=", "product_variations.product_id");
+			})
+			.leftJoin("business_unit_products", (query) => {
+				query
+					.on(
+						"business_unit_products.product_variation_id",
+						"=",
+						"bill_items.product_variation_id",
+					)
+					.andOn(
+						"business_unit_products.businness_unit_id",
+						"=",
+						"bill_items.business_unit_id",
+					);
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("products.id", "products.description", "business_units.id")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.unit) {
+			qb.where("bills.business_unit_id", data.unit);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+		qb.andWhereIn(
+			"products.type",
+			data.type ? [data.type] : [ProductType.PRODUCT, ProductType.SERVICE],
+		);
+
+		const result = await qb;
+
+		return {
+			data: result.map((elem, idx) => ({
+				value: elem.total_sales,
+				percentage: (elem.total_sales / parsedTotal) * 100,
+				description: elem.description,
+				qtySales: parseInt(elem.qty_sales, 10),
+				qtyClients: parseInt(elem.qty_clients, 10),
+				itemStyle: {
+					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+				},
+			})),
+			configs: {
+				title: {
+					text: "Participação de Produtos x Serviços",
+					subtext: "",
+					left: "center",
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+				},
+				series: [
+					{
+						name: "Participação",
+						type: "pie",
+						radius: "50%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+					},
+				],
+			},
+		};
 	}
 
 	public async invoicingByProductTypeWithSubgroup(
@@ -497,6 +810,134 @@ export default class IndicatorService {
 			totalSales: elem.totalpayments,
 			percentage: (elem.totalpayments / total) * 100,
 		}));
+	}
+
+	public async invoicingByPaymentMethod_2(
+		authCtx: AuthContext,
+		data: {
+			unit?: string;
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          'Em Aberto'                               as description,
+          sum(bills.total_value - bills.paid_value) as totalPayments,
+          sum(bills.total_value)           as totalBills
+          `,
+				),
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id", "business_units.identification")
+			.orderBy("totalpayments", "desc")
+			.whereNull("bills.deleted_at");
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          payment_methods.description,
+          sum(bill_payments.total_value) as totalPayments
+        `,
+				),
+			)
+			.joinRaw(
+				`
+          join bill_payments left join tef_flags on bill_payments.tef_flag_id = tef_flags.id
+            on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id
+               `,
+				[],
+			)
+			.join("payment_methods", (query) => {
+				query.on("payment_methods.id", "=", "bill_payments.payment_method_id");
+			})
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id", "payment_methods.description")
+			.orderBy("totalpayments", "desc")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.unit) {
+			qb1.where("bills.business_unit_id", data.unit);
+			qb2.where("bills.business_unit_id", data.unit);
+		} else {
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb2.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const [result1, result2] = await Promise.all([qb1, qb2]);
+		const result = result1.concat(result2);
+
+		const total = result1.at(0)?.totalbills ?? 0;
+
+		return {
+			data: result.map((elem, idx) => ({
+				value: elem.totalpayments,
+				name: elem.description,
+				percentage: (elem.totalpayments / total) * 100,
+				itemStyle: {
+					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+				},
+			})),
+			configs: {
+				title: {
+					text: "Faturamento X Forma Pagamento",
+					subtext: "",
+					left: "center",
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+				},
+				series: [
+					{
+						name: "Forma Pagamento",
+						type: "pie",
+						radius: "50%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+					},
+				],
+			},
+		};
 	}
 
 	public async invoicingByNewClients(

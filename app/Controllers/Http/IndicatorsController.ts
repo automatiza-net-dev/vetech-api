@@ -32,12 +32,38 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async medianTicketByOrigin_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.medianTicketByOrigin_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async invoicingByProductType({
 		auth,
 		request,
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.invoicingByProductType(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingByProductType_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingByProductType_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);
@@ -64,6 +90,19 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.invoicingByPaymentMethod(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingByPaymentMethod_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingByPaymentMethod_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

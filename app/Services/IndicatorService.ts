@@ -298,9 +298,16 @@ export default class IndicatorService {
 		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
 
 		return {
+			name: "median-ticket-by-origin",
+			type: "pie",
+			legend: false,
 			data: result.map((elem, idx) => ({
 				value: elem.total,
 				name: elem.description,
+				unit: {
+					id: elem.id,
+					identification: elem.identification,
+				},
 				percentage: (elem.total / sum) * 100,
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
@@ -559,7 +566,14 @@ export default class IndicatorService {
 		const result = await qb;
 
 		return {
+			name: "invoicing-by-product-type",
+			type: "pie",
+			legend: false,
 			data: result.map((elem, idx) => ({
+				unit: {
+					id: elem.id,
+					identification: elem.identification,
+				},
 				value: elem.total_sales,
 				percentage: (elem.total_sales / parsedTotal) * 100,
 				name: elem.description,
@@ -896,7 +910,14 @@ export default class IndicatorService {
 		const total = result1.at(0)?.totalbills ?? 0;
 
 		return {
+			name: "invoicing-by-payment-method",
+			type: "pie",
+			legend: false,
 			data: result.map((elem, idx) => ({
+				unit: {
+					id: elem.id,
+					identification: elem.identification,
+				},
 				value: elem.totalpayments,
 				name: elem.description,
 				percentage: (elem.totalpayments / total) * 100,
@@ -3530,6 +3551,133 @@ export default class IndicatorService {
 		return {
 			total,
 			categories,
+		};
+	}
+
+	public async chartsIndicators(
+		authCtx: AuthContext,
+		data: Record<string, any>,
+	) {
+		const responses = await Promise.all([
+			this.medianTicketByOrigin_2(authCtx, data),
+			this.invoicingByProductType_2(authCtx, data),
+			this.invoicingByPaymentMethod_2(authCtx, data),
+			this.invoicingByNewClients_2(authCtx, data),
+		]);
+
+		return {
+			tmp: responses,
+		};
+	}
+
+	public async invoicingByNewClients_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY-MM') as mes_ano,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end)                 as total_novos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end)                 as total_recorrentes,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end)                 as qtd_novos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end)                 as qtd_recorrentes
+          `,
+				),
+			)
+			.leftJoin("patients", (query) => {
+				query.on("patients.id", "=", "bills.client_id");
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupByRaw("business_units.id, to_char(bills.bill_date, 'YYYY-MM')")
+			.orderByRaw("business_units.id, to_char(bills.bill_date, 'YYYY-MM')")
+			.whereNull("bills.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				`bill_date::date between (?::date - interval '5 months')::date and ?`,
+				[data.fromDate, data.toDate],
+			);
+		}
+
+		const result = await qb;
+
+		return {
+			name: "invoicing-new-clients",
+			type: "line",
+			// legend: true,
+			title: {
+				text: "Clientes Novos x Recorrentes",
+				left: "center",
+			},
+			tooltip: {
+				trigger: "axis",
+			},
+			legend: {
+				data: ["Novos", "Recorrentes"],
+				show: true,
+				bottom: -5,
+			},
+			grid: {
+				left: "3%",
+				right: "4%",
+				bottom: "3%",
+				containLabel: true,
+			},
+			toolbox: {
+				feature: {
+					saveAsImage: {},
+				},
+			},
+			xAxis: {
+				type: "category",
+				boundaryGap: false,
+				data: result.map((r) => r.mes_ano),
+			},
+			yAxis: {
+				type: "value",
+			},
+			series: [
+				{
+					name: "Novos",
+					type: "line",
+					stack: "Total",
+					data: result.map((r) => r.total_novos),
+				},
+				{
+					name: "Recorrentes",
+					type: "line",
+					stack: "Total",
+					data: result.map((r) => r.total_recorrentes),
+				},
+			],
 		};
 	}
 }

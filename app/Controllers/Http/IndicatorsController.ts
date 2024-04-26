@@ -443,4 +443,31 @@ export default class IndicatorsController {
 
 		return response.ok(result);
 	}
+
+	public async invoicingByNewClients_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingByNewClients_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async chartsIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.chartsIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		response.header("Cache-Control", "private, max-age=60");
+		return response.ok(result);
+	}
 }

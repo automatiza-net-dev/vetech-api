@@ -3729,6 +3729,7 @@ export default class IndicatorService {
 			.groupByRaw(
 				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
 			)
+			.orderByRaw(`to_char(bills.bill_date, 'YYYY/MM')`)
 			.whereNull("bills.deleted_at");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {

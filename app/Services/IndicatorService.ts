@@ -3567,7 +3567,7 @@ export default class IndicatorService {
 		]);
 
 		return {
-			tmp: responses,
+			charts: responses,
 		};
 	}
 

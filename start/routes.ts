@@ -1637,8 +1637,6 @@ Route.group(() => {
 		"/bill-payment-format-2",
 		"IndicatorsController.billPaymentFormatIndicators_2",
 	);
-
-	Route.get("/charts", "IndicatorsController.chartsIndicators");
 })
 	.prefix("indicators")
 	.middleware("auth");
@@ -1716,3 +1714,6 @@ Route.resource("client-origin-groups", "ClientOriginGroupsController")
 	});
 
 Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
+Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
+	"auth",
+);

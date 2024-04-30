@@ -41,6 +41,7 @@ export default class IndicatorService {
 			unit?: string;
 			fromDate?: string;
 			toDate?: string;
+			status?: string;
 		},
 	) {
 		const qb = Database.from("bills")
@@ -78,6 +79,10 @@ export default class IndicatorService {
 
 		if (data.toDate) {
 			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (data.status) {
+			qb.andWhereRaw("status ~* ?", [data.status]);
 		}
 
 		const result = (await qb).at(0);
@@ -3572,9 +3577,141 @@ export default class IndicatorService {
 
 		const tables = await Promise.all([this.billForUserPeriod_2(authCtx, data)]);
 
+		const cards = await Promise.all([
+			this.billingIndicators(authCtx, data),
+			this.medianTicket(authCtx, data),
+			this.budgetsByStatusIndicators(authCtx, {
+				...data,
+				status: BudgetStatus.A,
+			}),
+			this.budgetsByStatusIndicators(authCtx, {
+				...data,
+				status: BudgetStatus.N,
+			}),
+			this.marketingIndicators(authCtx, data),
+			this.costOfAcquisitionIndicators(authCtx, data),
+		]);
+
+		const medianTicket = cards.at(1) as Awaited<
+			ReturnType<typeof this.medianTicket>
+		>;
+		const openBudgets = cards.at(2) as Awaited<
+			ReturnType<typeof this.budgetsByStatusIndicators>
+		>;
+		const cancelledBudgets = cards.at(3) as Awaited<
+			ReturnType<typeof this.budgetsByStatusIndicators>
+		>;
+		const marketing = cards.at(4) as Awaited<
+			ReturnType<typeof this.marketingIndicators>
+		>;
+		const cac = cards.at(5) as Awaited<
+			ReturnType<typeof this.costOfAcquisitionIndicators>
+		>;
+
 		return {
 			charts,
 			tables,
+			cards: [
+				{
+					name: "Faturamento",
+					items: [
+						{
+							description: "FaturamentoRealizado",
+							value: cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+						},
+					],
+				},
+				{
+					name: "Meta",
+					items: [
+						{
+							description: "MetaFaturamento",
+							value: cards
+								.at(0)
+								?.reduce((acc, curr) => acc + curr.meta.value, 0),
+						},
+					],
+				},
+				{
+					name: "MetaAtingimento",
+					items: [
+						{
+							description: "Faturamento Realizado",
+							value: cards
+								.at(0)
+								?.reduce((acc, curr) => acc + curr.percentage, 0),
+						},
+					],
+				},
+				{
+					name: "MetaTendencia",
+					items: [
+						{
+							description: "Faturamento Realizado",
+							percentage: cards
+								.at(0)
+								?.reduce((acc, curr) => acc + curr.projection, 0),
+							value: cards
+								.at(0)
+								?.reduce((acc, curr) => acc + curr.metaProjection, 0),
+						},
+					],
+				},
+				{
+					name: "Ticket Medio",
+					items: [
+						{
+							description: "Faturamento Realizado",
+							value: medianTicket
+								? medianTicket.salesTotal / medianTicket.qtyClients
+								: 0,
+						},
+					],
+				},
+				{
+					name: "OrçamentosAbertos",
+					items: [
+						{
+							description: "Orçamentos em Aberto",
+							value: openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+						},
+					],
+				},
+				{
+					name: "OrçamentosCancelados",
+					items: [
+						{
+							description: "Faturamento Cancelados",
+							value: cancelledBudgets.reduce(
+								(acc, curr) => acc + curr.total,
+								0,
+							),
+						},
+					],
+				},
+				{
+					name: "ROI",
+					items: [
+						{
+							description: "Retorno MKT (ROI)",
+							value: marketing.reduce((acc, curr) => acc + curr.roi, 0),
+						},
+					],
+				},
+				{
+					name: "CAC",
+					items: [
+						{
+							description: "Custo Aquisição Cliente",
+							value:
+								cac.length === 0
+									? 0
+									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
+										cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+						},
+					],
+				},
+			],
 		};
 	}
 
@@ -3900,7 +4037,7 @@ export default class IndicatorService {
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.andWhereRaw("bill_date::date bwtween ? and ?", [
+			qb.andWhereRaw("bill_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);

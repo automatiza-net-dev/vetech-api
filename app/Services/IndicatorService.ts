@@ -3558,16 +3558,19 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
-		const responses = await Promise.all([
+		const charts = await Promise.all([
 			this.medianTicketByOrigin_2(authCtx, data),
-			this.invoicingByProductType_2(authCtx, data),
+			// this.invoicingByProductType_2(authCtx, data),
 			this.invoicingByPaymentMethod_2(authCtx, data),
 			this.invoicingByNewClients_2(authCtx, data),
 			this.billPaymentFormatIndicators_2(authCtx, data),
 		]);
 
+		const tables = await Promise.all([this.billForUserPeriod_2(authCtx, data)]);
+
 		return {
-			charts: responses,
+			charts,
+			tables,
 		};
 	}
 
@@ -3817,6 +3820,155 @@ export default class IndicatorService {
 					valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
 				},
 			],
+		};
+	}
+
+	public async billForUserPeriod_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          economic_groups.id                       as e_id,
+       economic_groups.company_name,
+       business_units.id                        as b_id,
+       business_units.identification,
+       users.id                                 as u_id,
+       coalesce(users.name, 'Não identificado') as name,
+       count(bills.id)                          as total_bills,
+       sum(bills.total_value)                   as total_value,
+       avg(bills.total_value)                   as avg_value,
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then 1
+               else 0 end)                      as "madrugada_qtd",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end)                      as "madrugada_total",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then 1
+               else 0 end)                      as "manha_qtd",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end)                      as "manha_total",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then 1
+               else 0 end)                      as "tarde_qtd",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end)                      as "tarde_total",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then 1
+               else 0 end)                      as "noite_qtd",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end)                      as "noite_total"
+          `,
+				),
+			)
+			.joinRaw(
+				`left join business_units on bills.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+			)
+			.joinRaw(`join users on bills.user_id = users.id`)
+			.groupByRaw(`economic_groups.id, business_units.id, users.id`)
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("business_units.economic_group_id", data.groups);
+		} else {
+			qb.where("business_units.economic_group_id", authCtx.group.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bill_date::date bwtween ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result = await qb;
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.b_id)) {
+				acc.push(curr.b_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "bill-user-period",
+			type: "table",
+			data: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.b_id === elem);
+				const users = result.filter((r) => r.b_id === elem);
+
+				return {
+					group: {
+						id: unit.e_id,
+						name: unit.company_name,
+					},
+					unit: {
+						id: unit.b_id,
+						identification: unit.identification,
+					},
+					users: users.map((row) => ({
+						id: row.id,
+						name: row.name,
+						bills_qtd: row.total_bills,
+						bills_total: row.total_value,
+						bills_avg: row.avg_value,
+						dawn: {
+							qtd: Number.parseInt(row.madrugada_qtd),
+							total: row.madrugada_total,
+							avg:
+								row.madrugada_total === 0
+									? 0
+									: row.madrugada_total / Number.parseInt(row.madrugada_qtd),
+						},
+						morning: {
+							qtd: Number.parseInt(row.manha_qtd),
+							total: row.manha_total,
+							avg:
+								row.manha_total === 0
+									? 0
+									: row.manha_total / Number.parseInt(row.manha_qtd),
+						},
+						afternoon: {
+							qtd: Number.parseInt(row.tarde_qtd),
+							total: row.tarde_total,
+							avg:
+								row.tarde_total === 0
+									? 0
+									: row.tarde_total / Number.parseInt(row.tarde_qtd),
+						},
+						night: {
+							qtd: Number.parseInt(row.noite_qtd),
+							total: row.noite_total,
+							avg:
+								row.noite_total === 0
+									? 0
+									: row.noite_total / Number.parseInt(row.noite_qtd),
+						},
+					})),
+				};
+			}),
 		};
 	}
 }

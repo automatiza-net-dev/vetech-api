@@ -1637,6 +1637,10 @@ Route.group(() => {
 		"/bill-payment-format-2",
 		"IndicatorsController.billPaymentFormatIndicators_2",
 	);
+	Route.get(
+		"/bill-for-user-period-2",
+		"IndicatorsController.billForUserPeriod_2",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

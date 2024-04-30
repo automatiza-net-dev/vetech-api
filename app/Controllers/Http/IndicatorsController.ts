@@ -470,6 +470,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async billForUserPeriod_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.billForUserPeriod_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async chartsIndicators({
 		auth,
 		request,

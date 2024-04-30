@@ -3616,7 +3616,7 @@ export default class IndicatorService {
 					name: "Faturamento",
 					items: [
 						{
-							description: "FaturamentoRealizado",
+							description: "Faturamento Realizado",
 							value: cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
 						},
 					],
@@ -3625,7 +3625,7 @@ export default class IndicatorService {
 					name: "Meta",
 					items: [
 						{
-							description: "MetaFaturamento",
+							description: "Meta Faturamento",
 							value: cards
 								.at(0)
 								?.reduce((acc, curr) => acc + curr.meta.value, 0),
@@ -3636,7 +3636,7 @@ export default class IndicatorService {
 					name: "MetaAtingimento",
 					items: [
 						{
-							description: "Faturamento Realizado",
+							description: "Atingimento",
 							value: cards
 								.at(0)
 								?.reduce((acc, curr) => acc + curr.percentage, 0),
@@ -3647,7 +3647,7 @@ export default class IndicatorService {
 					name: "MetaTendencia",
 					items: [
 						{
-							description: "Faturamento Realizado",
+							description: "Tendencia",
 							percentage: cards
 								.at(0)
 								?.reduce((acc, curr) => acc + curr.projection, 0),
@@ -3658,10 +3658,10 @@ export default class IndicatorService {
 					],
 				},
 				{
-					name: "Ticket Medio",
+					name: "TicketMedio",
 					items: [
 						{
-							description: "Faturamento Realizado",
+							description: "Ticket Medio Pacientes",
 							value: medianTicket
 								? medianTicket.salesTotal / medianTicket.qtyClients
 								: 0,

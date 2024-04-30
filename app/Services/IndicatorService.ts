@@ -300,7 +300,6 @@ export default class IndicatorService {
 		return {
 			name: "median-ticket-by-origin",
 			type: "pie",
-			legend: false,
 			data: result.map((elem, idx) => ({
 				value: elem.total,
 				name: elem.description,
@@ -327,6 +326,7 @@ export default class IndicatorService {
 					bottom: 10,
 					orient: "horizontal",
 					left: "center",
+					show: false,
 				},
 				series: [
 					{
@@ -335,6 +335,7 @@ export default class IndicatorService {
 						radius: "50%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
+							show: false,
 						},
 						emphasis: {
 							itemStyle: {
@@ -939,6 +940,7 @@ export default class IndicatorService {
 					bottom: 10,
 					orient: "horizontal",
 					left: "center",
+					show: false,
 				},
 				series: [
 					{
@@ -947,6 +949,7 @@ export default class IndicatorService {
 						radius: "50%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
+							show: false,
 						},
 						emphasis: {
 							itemStyle: {
@@ -4082,6 +4085,7 @@ export default class IndicatorService {
 						radius: "50%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
+							show: false,
 						},
 						emphasis: {
 							itemStyle: {

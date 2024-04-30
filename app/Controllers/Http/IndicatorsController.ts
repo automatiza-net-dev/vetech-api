@@ -483,6 +483,15 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async productType_2({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.productTypeIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async chartsIndicators({
 		auth,
 		request,

@@ -3564,6 +3564,7 @@ export default class IndicatorService {
 			this.invoicingByPaymentMethod_2(authCtx, data),
 			this.invoicingByNewClients_2(authCtx, data),
 			this.billPaymentFormatIndicators_2(authCtx, data),
+			this.productTypeIndicators_2(authCtx, data),
 		]);
 
 		const tables = await Promise.all([this.billForUserPeriod_2(authCtx, data)]);
@@ -3969,6 +3970,129 @@ export default class IndicatorService {
 					})),
 				};
 			}),
+		};
+	}
+
+	public async productTypeIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+        economic_groups.id                                                      as e_id,
+        economic_groups.company_name                                            as e_name,
+        business_units.id                                                       as b_id,
+        business_units.identification,
+        sum(case when products.type = 'product' then bill_items.total_value else 0 end) as product_total,
+        sum(case when products.type = 'service' then bill_items.total_value else 0 end) as service_total
+          `,
+				),
+			)
+			.joinRaw(
+				`join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
+			)
+			.joinRaw(
+				`join product_variations on bill_items.product_variation_id = product_variations.id`,
+			)
+			.joinRaw(`join products on product_variations.product_id = products.id`)
+			.joinRaw(
+				`join business_units on bills.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+			)
+			.groupBy("economic_groups.id", "business_units.id")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("business_units.economic_group_id", data.groups);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const metasResult = await qb;
+		const productSum = metasResult.reduce(
+			(acc, curr) => acc + curr.product_total,
+			0,
+		);
+		const serviceSum = metasResult.reduce(
+			(acc, curr) => acc + curr.service_total,
+			0,
+		);
+
+		return {
+			name: "product-type",
+			type: "pie",
+			data: [
+				{
+					value: productSum,
+					name: "Produtos",
+					percentage: (productSum / (productSum + serviceSum)) * 100,
+					itemStyle: { color: "red" },
+				},
+				{
+					value: serviceSum,
+					name: "Serviços",
+					percentage: (serviceSum / (productSum + serviceSum)) * 100,
+					itemStyle: { color: "blue" },
+				},
+			],
+			configs: {
+				title: {
+					text: "Participação de Produtos x Serviços",
+					subtext: "",
+					left: "center",
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Participação",
+						type: "pie",
+						radius: "50%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+					},
+				],
+			},
 		};
 	}
 }

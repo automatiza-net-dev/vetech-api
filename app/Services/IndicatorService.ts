@@ -4332,18 +4332,6 @@ export default class IndicatorService {
 
 		const result = await qb;
 
-		// return result.map((elem) => ({
-		// 	id: elem.id,
-		// 	identification: elem.identification,
-		// 	subgroupID: elem.sid,
-		// 	description: elem.description,
-		// 	count: parseInt(elem.count, 10),
-		// 	quantity: parseInt(elem.quantity, 10),
-		// 	total: elem.total,
-		// 	uniqueClients: parseInt(elem.clients, 10),
-		// 	percentage: (elem.total / parsedTotal) * 100,
-		// }));
-
 		const uniqueUnits = result.reduce((acc, curr) => {
 			if (!acc.includes(curr.id)) {
 				acc.push(curr.id);

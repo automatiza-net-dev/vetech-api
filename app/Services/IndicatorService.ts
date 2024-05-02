@@ -3681,7 +3681,7 @@ export default class IndicatorService {
 					name: "OrçamentosCancelados",
 					items: [
 						{
-							description: "Faturamento Cancelados",
+							description: "Orçamentos Cancelados",
 							value: cancelledBudgets.reduce(
 								(acc, curr) => acc + curr.total,
 								0,

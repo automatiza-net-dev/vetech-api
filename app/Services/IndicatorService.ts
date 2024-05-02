@@ -3575,7 +3575,10 @@ export default class IndicatorService {
 			this.productTypeIndicators_2(authCtx, data),
 		]);
 
-		const tables = await Promise.all([this.billForUserPeriod_2(authCtx, data)]);
+		const tables = await Promise.all([
+			this.billForUserPeriod_2(authCtx, data),
+			this.subgroupIndicators_2(authCtx, data),
+		]);
 
 		const cards = await Promise.all([
 			this.billingIndicators(authCtx, data),
@@ -4234,6 +4237,143 @@ export default class IndicatorService {
 					},
 				],
 			},
+		};
+	}
+
+	public async subgroupIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			type?: string;
+		},
+	) {
+		const totalQb = Database.from("bills")
+			.select(Database.raw("sum(bills.total_value) as total_bill_payments"))
+			.join("business_units", "business_units.id", "bills.business_unit_id")
+			.whereNull("bills.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			totalQb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			totalQb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			totalQb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			totalQb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			totalQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		const [{ total_bill_payments = "0" }] = await totalQb;
+		const parsedTotal = parseFloat(total_bill_payments);
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+        business_units.id,
+       business_units.identification,
+       subgroups.id                    as sID,
+       subgroups.description,
+       count(bill_items.id)            as count,
+       sum(bill_items.quantity)        as quantity,
+       sum(bill_items.total_value)     as total,
+       count(distinct bills.client_id) as clients
+          `,
+				),
+			)
+			.joinRaw(
+				`join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA' and bill_items.deleted_at is null`,
+			)
+			.join(
+				"product_variations",
+				"product_variations.id",
+				"bill_items.product_variation_id",
+			)
+			.join("products", "products.id", "product_variations.product_id")
+			.join("subgroups", "subgroups.id", "products.subgroup_id")
+			.join("business_units", "business_units.id", "bills.business_unit_id")
+			.groupBy("subgroups.id", "subgroups.description", "business_units.id")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
+		}
+
+		if (data.type) {
+			qb.andWhere("products.type", data.type);
+		}
+
+		const result = await qb;
+
+		// return result.map((elem) => ({
+		// 	id: elem.id,
+		// 	identification: elem.identification,
+		// 	subgroupID: elem.sid,
+		// 	description: elem.description,
+		// 	count: parseInt(elem.count, 10),
+		// 	quantity: parseInt(elem.quantity, 10),
+		// 	total: elem.total,
+		// 	uniqueClients: parseInt(elem.clients, 10),
+		// 	percentage: (elem.total / parsedTotal) * 100,
+		// }));
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.id)) {
+				acc.push(curr.id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "subgroups",
+			type: "table",
+			data: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.id === elem);
+
+				return {
+					id: unit.id,
+					identification: unit.identification,
+					subgroups: result
+						.filter((r) => r.id === elem)
+						.map((elem) => ({
+							id: elem.sid,
+							description: elem.description,
+							count: parseInt(elem.count, 10),
+							quantity: parseInt(elem.quantity, 10),
+							total: elem.total,
+							uniqueClients: parseInt(elem.clients, 10),
+							percentage: (elem.total / parsedTotal) * 100,
+						})),
+				};
+			}),
 		};
 	}
 }

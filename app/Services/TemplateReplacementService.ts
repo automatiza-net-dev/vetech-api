@@ -240,7 +240,9 @@ export default class TemplateReplacementService {
 
 			const success = await new Promise<boolean>((res) => {
 				exec(
-					`./vendor/transpiler ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+					`${Env.get(
+						"TRANSPILER_PATH",
+					)} ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
 					(error, _stdout, _stderr) => {
 						if (error) {
 							console.error(error);

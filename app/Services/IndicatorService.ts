@@ -3578,6 +3578,7 @@ export default class IndicatorService {
 		const tables = await Promise.all([
 			this.billForUserPeriod_2(authCtx, data),
 			this.subgroupIndicators_2(authCtx, data),
+			this.salesPerPeriodIndicators_2(authCtx, data),
 		]);
 
 		const cards = await Promise.all([
@@ -4360,6 +4361,148 @@ export default class IndicatorService {
 							uniqueClients: parseInt(elem.clients, 10),
 							percentage: (elem.total / parsedTotal) * 100,
 						})),
+				};
+			}),
+		};
+	}
+
+	public async salesPerPeriodIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          economic_groups.id  as e_id,
+          economic_groups.company_name,
+          business_units.id   as b_id,
+          business_units.identification,
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_recorrentes",
+          sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_total",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_novos",
+          sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_recorrentes"
+          `,
+				),
+			)
+			.joinRaw(`join patients on patients.id = bills.client_id`)
+			.joinRaw(
+				`join business_units on bills.business_unit_id = business_units.id`,
+			)
+			.joinRaw(
+				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+			)
+			.groupBy("economic_groups.id", "business_units.id")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("business_units.economic_group_id", data.groups);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const result = await qb;
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.b_id)) {
+				acc.push(curr.b_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "sales-per-period",
+			type: "table",
+			data: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.b_id === elem);
+
+				return {
+					id: unit.b_id,
+					identification: unit.identification,
+					period: {
+						dawn: {
+							total: unit.madrugada_total,
+							new: unit.madrugada_novos,
+							recurrent: unit.madrugada_recorrentes,
+						},
+						morning: {
+							total: unit.manha_total,
+							new: unit.manha_novos,
+							recurrent: unit.manha_recorrentes,
+						},
+						afternoon: {
+							total: unit.tarde_total,
+							new: unit.tarde_novos,
+							recurrent: unit.tarde_recorrentes,
+						},
+						night: {
+							total: unit.noite_total,
+							new: unit.noite_novos,
+							recurrent: unit.noite_recorrentes,
+						},
+					},
 				};
 			}),
 		};

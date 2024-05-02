@@ -1643,6 +1643,10 @@ Route.group(() => {
 	);
 	Route.get("/product-type-2", "IndicatorsController.productType_2");
 	Route.get("/subgroups-2", "IndicatorsController.subgroupIndicators_2");
+	Route.get(
+		"/sales-per-period-2",
+		"IndicatorsController.salesPerPeriodIndicators_2",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

@@ -1647,6 +1647,7 @@ Route.group(() => {
 		"/sales-per-period-2",
 		"IndicatorsController.salesPerPeriodIndicators_2",
 	);
+	Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
 })
 	.prefix("indicators")
 	.middleware("auth");

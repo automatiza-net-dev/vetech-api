@@ -4071,10 +4071,10 @@ export default class IndicatorService {
 				const users = result.filter((r) => r.b_id === elem);
 
 				return {
-					group: {
-						id: unit.e_id,
-						name: unit.company_name,
-					},
+					// group: {
+					// 	id: unit.e_id,
+					// 	name: unit.company_name,
+					// },
 					unit: {
 						id: unit.b_id,
 						identification: unit.identification,
@@ -4082,9 +4082,11 @@ export default class IndicatorService {
 					users: users.map((row) => ({
 						id: row.id,
 						name: row.name,
-						bills_qtd: row.total_bills,
-						bills_total: row.total_value,
-						bills_avg: row.avg_value,
+						total: {
+							qtd: row.total_bills,
+							total: row.total_value,
+							avg: row.avg_value,
+						},
 						dawn: {
 							qtd: Number.parseInt(row.madrugada_qtd),
 							total: row.madrugada_total,

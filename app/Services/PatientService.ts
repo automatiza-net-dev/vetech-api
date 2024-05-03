@@ -569,6 +569,10 @@ export default class PatientService {
 			);
 		}
 
+		const openHospitalizations = await Hospitalization.query()
+			.where("patient_id", patientId)
+			.where("status", HospitalizationStatus.ACTIVE);
+
 		if (patient.type === PatientType.ANIMAL) {
 			const tutors = await patient
 				.related("tutors")
@@ -589,7 +593,11 @@ export default class PatientService {
 				return { ...t.toJSON(), is_main: Boolean(t.$extras.pivot_is_main) };
 			});
 
-			return { ...patient.toJSON(), tutors: mapped };
+			return {
+				...patient.toJSON(),
+				tutors: mapped,
+				isHospitalized: openHospitalizations.length > 0,
+			};
 		}
 
 		if (patient.type === PatientType.TUTOR) {
@@ -607,7 +615,10 @@ export default class PatientService {
 			});
 		}
 
-		return patient;
+		return {
+			...patient.toJSON(),
+			isHospitalized: openHospitalizations.length > 0,
+		};
 	}
 
 	public async metadata(authCtx: AuthContext, patientId: string) {

@@ -4063,6 +4063,11 @@ export default class IndicatorService {
 			return acc;
 		}, [] as string[]) as string[];
 
+		const formatter = new Intl.NumberFormat("pt-BR", {
+			style: "currency",
+			currency: "BRL",
+		});
+
 		return {
 			name: "bill-user-period",
 			type: "table",
@@ -4082,32 +4087,40 @@ export default class IndicatorService {
 							total: row.madrugada_total,
 							avg:
 								row.madrugada_total === 0
-									? 0
-									: row.madrugada_total / Number.parseInt(row.madrugada_qtd),
+									? formatter.format(0)
+									: formatter.format(
+											row.madrugada_total / Number.parseInt(row.madrugada_qtd),
+										),
 						},
 						morning: {
 							qtd: Number.parseInt(row.manha_qtd),
 							total: row.manha_total,
 							avg:
 								row.manha_total === 0
-									? 0
-									: row.manha_total / Number.parseInt(row.manha_qtd),
+									? formatter.format(0)
+									: formatter.format(
+											row.manha_total / Number.parseInt(row.manha_qtd),
+										),
 						},
 						afternoon: {
 							qtd: Number.parseInt(row.tarde_qtd),
 							total: row.tarde_total,
 							avg:
 								row.tarde_total === 0
-									? 0
-									: row.tarde_total / Number.parseInt(row.tarde_qtd),
+									? formatter.format(0)
+									: formatter.format(
+											row.tarde_total / Number.parseInt(row.tarde_qtd),
+										),
 						},
 						night: {
 							qtd: Number.parseInt(row.noite_qtd),
 							total: row.noite_total,
 							avg:
 								row.noite_total === 0
-									? 0
-									: row.noite_total / Number.parseInt(row.noite_qtd),
+									? formatter.format(0)
+									: formatter.format(
+											row.noite_total / Number.parseInt(row.noite_qtd),
+										),
 						},
 					}));
 			}),

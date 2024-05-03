@@ -4067,19 +4067,9 @@ export default class IndicatorService {
 			name: "bill-user-period",
 			type: "table",
 			data: uniqueUnits.map((elem) => {
-				const unit = result.find((r) => r.b_id === elem);
-				const users = result.filter((r) => r.b_id === elem);
-
-				return {
-					// group: {
-					// 	id: unit.e_id,
-					// 	name: unit.company_name,
-					// },
-					unit: {
-						id: unit.b_id,
-						identification: unit.identification,
-					},
-					users: users.map((row) => ({
+				return result
+					.filter((r) => r.b_id === elem)
+					.map((row) => ({
 						id: row.id,
 						name: row.name,
 						total: {
@@ -4119,8 +4109,7 @@ export default class IndicatorService {
 									? 0
 									: row.noite_total / Number.parseInt(row.noite_qtd),
 						},
-					})),
-				};
+					}));
 			}),
 		};
 	}

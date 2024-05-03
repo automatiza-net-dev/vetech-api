@@ -305,13 +305,9 @@ export default class IndicatorService {
 		return {
 			name: "median-ticket-by-origin",
 			type: "pie",
-			data: result.map((elem, idx) => ({
+			legend: result.map((elem, idx) => ({
 				value: elem.total,
 				name: elem.description,
-				unit: {
-					id: elem.id,
-					identification: elem.identification,
-				},
 				percentage: (elem.total / sum) * 100,
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
@@ -334,6 +330,15 @@ export default class IndicatorService {
 					show: false,
 				},
 				series: [
+					result.map((elem, idx) => ({
+						value: elem.total,
+						name: elem.description,
+						percentage: (elem.total / sum) * 100,
+						itemStyle: {
+							color:
+								IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+						},
+					})),
 					{
 						name: "Origem Clientes",
 						type: "pie",

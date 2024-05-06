@@ -35,6 +35,11 @@ export default class IndicatorService {
 		"magenta",
 	] as const;
 
+	private formatter = new Intl.NumberFormat("pt-BR", {
+		style: "currency",
+		currency: "BRL",
+	});
+
 	public async medianTicket(
 		authCtx: AuthContext,
 		data: {
@@ -923,15 +928,10 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-payment-method",
 			type: "pie",
-			legend: false,
-			data: result.map((elem, idx) => ({
-				unit: {
-					id: elem.id,
-					identification: elem.identification,
-				},
-				value: elem.totalpayments,
+			legend: result.map((elem, idx) => ({
+				value: this.formatter.format(elem.totalpayments),
 				name: elem.description,
-				percentage: (elem.totalpayments / total) * 100,
+				percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
 				},
@@ -968,6 +968,15 @@ export default class IndicatorService {
 								shadowColor: "rgba(0, 0, 0, 0.5)",
 							},
 						},
+						data: result.map((elem, idx) => ({
+							value: this.formatter.format(elem.totalpayments),
+							name: elem.description,
+							percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
+							itemStyle: {
+								color:
+									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+							},
+						})),
 					},
 				],
 			},
@@ -4063,11 +4072,6 @@ export default class IndicatorService {
 			return acc;
 		}, [] as string[]) as string[];
 
-		const formatter = new Intl.NumberFormat("pt-BR", {
-			style: "currency",
-			currency: "BRL",
-		});
-
 		return {
 			name: "bill-user-period",
 			type: "table",
@@ -4087,8 +4091,8 @@ export default class IndicatorService {
 							total: row.madrugada_total,
 							avg:
 								row.madrugada_total === 0
-									? formatter.format(0)
-									: formatter.format(
+									? this.formatter.format(0)
+									: this.formatter.format(
 											row.madrugada_total / Number.parseInt(row.madrugada_qtd),
 										),
 						},
@@ -4097,8 +4101,8 @@ export default class IndicatorService {
 							total: row.manha_total,
 							avg:
 								row.manha_total === 0
-									? formatter.format(0)
-									: formatter.format(
+									? this.formatter.format(0)
+									: this.formatter.format(
 											row.manha_total / Number.parseInt(row.manha_qtd),
 										),
 						},
@@ -4107,8 +4111,8 @@ export default class IndicatorService {
 							total: row.tarde_total,
 							avg:
 								row.tarde_total === 0
-									? formatter.format(0)
-									: formatter.format(
+									? this.formatter.format(0)
+									: this.formatter.format(
 											row.tarde_total / Number.parseInt(row.tarde_qtd),
 										),
 						},
@@ -4117,8 +4121,8 @@ export default class IndicatorService {
 							total: row.noite_total,
 							avg:
 								row.noite_total === 0
-									? formatter.format(0)
-									: formatter.format(
+									? this.formatter.format(0)
+									: this.formatter.format(
 											row.noite_total / Number.parseInt(row.noite_qtd),
 										),
 						},

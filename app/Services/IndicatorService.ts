@@ -330,15 +330,6 @@ export default class IndicatorService {
 					show: false,
 				},
 				series: [
-					result.map((elem, idx) => ({
-						value: elem.total,
-						name: elem.description,
-						percentage: (elem.total / sum) * 100,
-						itemStyle: {
-							color:
-								IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
-						},
-					})),
 					{
 						name: "Origem Clientes",
 						type: "pie",
@@ -354,6 +345,15 @@ export default class IndicatorService {
 								shadowColor: "rgba(0, 0, 0, 0.5)",
 							},
 						},
+						data: result.map((elem, idx) => ({
+							value: elem.total,
+							name: elem.description,
+							percentage: (elem.total / sum) * 100,
+							itemStyle: {
+								color:
+									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+							},
+						})),
 					},
 				],
 			},

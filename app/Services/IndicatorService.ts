@@ -617,10 +617,10 @@ export default class IndicatorService {
 							formatter: "{b} : {c} ({d}%)",
 						},
 						data: result.map((elem, idx) => ({
-							value: this.formatter.format(elem.total_sales),
-							percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(
-								2,
-							)}%`,
+							value: parseFloat(elem.total_sales.toFixed(2)),
+							percentage: parseFloat(
+								((elem.total_sales / parsedTotal) * 100).toFixed(2),
+							),
 							name: elem.description,
 							itemStyle: {
 								color:

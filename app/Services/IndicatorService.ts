@@ -214,7 +214,7 @@ export default class IndicatorService {
 	public async medianTicketByOrigin_2(
 		authCtx: AuthContext,
 		data: {
-			unit?: string;
+			units?: string[];
 			fromDate?: string;
 			toDate?: string;
 		},
@@ -284,11 +284,11 @@ export default class IndicatorService {
 			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
 		}
 
-		if (data.unit) {
-			qb1.where("bills.business_unit_id", data.unit);
-			qb2.where("bills.business_unit_id", data.unit);
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
 		} else {
-			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb1.where("schedules.business_unit_id", authCtx.unit.id);
 			qb2.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
@@ -3594,6 +3594,7 @@ export default class IndicatorService {
 			this.invoicingByNewClients_2(authCtx, data),
 			this.billPaymentFormatIndicators_2(authCtx, data),
 			this.productTypeIndicators_2(authCtx, data),
+			this.schedulingIndicators_2(authCtx, data),
 		]);
 
 		const tables = await Promise.all([
@@ -4742,6 +4743,92 @@ export default class IndicatorService {
 					}),
 				};
 			}),
+		};
+	}
+
+	public async schedulingIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const salesQb = Database.from("bills")
+			.select(
+				Database.raw(
+					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("bills.business_unit_id")
+			.whereNot("status", BillStatus.EX);
+
+		const qb = Database.from("schedules")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            count(schedules.id)          as agendados,
+            count(schedules.started_at)  as atendidos
+          `,
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "schedules.business_unit_id");
+			})
+			.joinRaw(
+				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
+			)
+			.groupBy("business_units.id");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			salesQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("schedules.business_unit_id", data.units);
+			salesQb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("schedules.business_unit_id", authCtx.unit.id);
+			salesQb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("schedules.start_hour::date >= ?", [data.fromDate]);
+			salesQb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("schedules.start_hour::date <= ?", [data.toDate]);
+			salesQb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
+		}
+
+		const salesResult = await salesQb;
+		const generalResult = await qb;
+
+		return {
+			name: "scheduling",
+			type: "funnel",
+			configs: generalResult.map((elem) => ({
+				id: elem.id,
+				identification: elem.identification,
+				scheduled: parseInt(elem.agendados, 10),
+				attended: parseInt(elem.atendidos, 10),
+				sales: parseInt(
+					salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
+				),
+				clients: parseInt(
+					salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
+				),
+			})),
 		};
 	}
 }

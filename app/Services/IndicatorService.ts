@@ -779,7 +779,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("business_units.id", "business_units.identification")
-			.orderBy("totalpayments", "desc")
+			.orderBy("4", "desc")
 			.whereNull("bills.deleted_at");
 
 		const qb2 = Database.from("bills")
@@ -907,7 +907,7 @@ export default class IndicatorService {
 			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
 		}
 
-    if (data.units && Array.isArray(data.units)) {
+		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
 		} else {

@@ -313,7 +313,7 @@ export default class IndicatorService {
 			legend: result.map((elem, idx) => ({
 				value: this.formatter.format(elem.total),
 				name: elem.description,
-				percentage: `${((elem.total / sum) * 100).toFixed(2)}`,
+				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
 				},

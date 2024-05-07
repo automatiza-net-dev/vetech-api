@@ -351,9 +351,9 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: elem.total,
+							value: this.formatter.format(elem.total),
 							name: elem.description,
-							percentage: (elem.total / sum) * 100,
+							percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
 							itemStyle: {
 								color:
 									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
@@ -3636,7 +3636,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Faturamento Realizado",
-							value: cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+							value: this.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+							),
 						},
 					],
 				},
@@ -3645,9 +3647,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Meta Faturamento",
-							value: cards
-								.at(0)
-								?.reduce((acc, curr) => acc + curr.meta.value, 0),
+							value: this.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.meta.value, 0) ??
+									0,
+							),
 						},
 					],
 				},
@@ -3656,9 +3659,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Atingimento",
-							value: cards
-								.at(0)
-								?.reduce((acc, curr) => acc + curr.percentage, 0),
+							value: this.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
+									0,
+							),
 						},
 					],
 				},
@@ -3667,12 +3671,14 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Tendencia",
-							percentage: cards
-								.at(0)
-								?.reduce((acc, curr) => acc + curr.projection, 0),
-							value: cards
-								.at(0)
-								?.reduce((acc, curr) => acc + curr.metaProjection, 0),
+							percentage: `${(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0)
+							).toFixed(2)}%`,
+							value: this.formatter.format(
+								cards
+									.at(0)
+									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
+							),
 						},
 					],
 				},
@@ -3681,9 +3687,11 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Ticket Medio Pacientes",
-							value: medianTicket
-								? medianTicket.salesTotal / medianTicket.qtyClients
-								: 0,
+							value: this.formatter.format(
+								medianTicket
+									? medianTicket.salesTotal / medianTicket.qtyClients
+									: 0,
+							),
 						},
 					],
 				},
@@ -3692,7 +3700,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Orçamentos em Aberto",
-							value: openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+							value: this.formatter.format(
+								openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+							),
 						},
 					],
 				},
@@ -3701,9 +3711,8 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Orçamentos Cancelados",
-							value: cancelledBudgets.reduce(
-								(acc, curr) => acc + curr.total,
-								0,
+							value: this.formatter.format(
+								cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
 							),
 						},
 					],
@@ -3713,7 +3722,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Retorno MKT (ROI)",
-							value: marketing.reduce((acc, curr) => acc + curr.roi, 0),
+							value: this.formatter.format(
+								marketing.reduce((acc, curr) => acc + curr.roi, 0),
+							),
 						},
 					],
 				},
@@ -3722,11 +3733,12 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Custo Aquisição Cliente",
-							value:
+							value: this.formatter.format(
 								cac.length === 0
 									? 0
 									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
-										cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+											cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+							),
 						},
 					],
 				},

@@ -4614,7 +4614,7 @@ export default class IndicatorService {
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
 			.whereNull("budgets.deleted_at");
 
-		if (data.type === "VENDEDOR") {
+		if (!data.type || data.type === "VENDEDOR") {
 			qb.joinRaw(`left join users on budgets.seller_id = users.id`);
 		}
 

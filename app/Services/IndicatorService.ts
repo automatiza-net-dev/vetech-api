@@ -3949,58 +3949,60 @@ export default class IndicatorService {
 			name: "bill-payment-format",
 			type: "bar",
 			// legend: true,
-			title: {
-				text: "Faturamento x Condicao de Pagamento",
-				left: "center",
-			},
-			tooltip: {
-				trigger: "axis",
-				axisPointer: {
-					type: "shadow",
+			configs: {
+				title: {
+					text: "Faturamento x Condicao de Pagamento",
+					left: "center",
 				},
-			},
-			legend: { show: false },
-			grid: {
-				left: "3%",
-				right: "4%",
-				bottom: "80%",
-				containLabel: true,
-			},
-			xAxis: {
-				type: "value",
-			},
-			yAxis: {
-				type: "category",
-				data: result.map((r) => r.periodo),
-			},
-			series: [
-				{
-					name: "A Vista",
-					type: "bar",
-					stack: "total",
-					label: {
-						show: true,
+				tooltip: {
+					trigger: "axis",
+					axisPointer: {
+						type: "shadow",
 					},
-					emphasis: {
-						focus: "series",
-					},
-					data: result.map((r) => r.a_vista),
-					valor: result.map((r) => (r.a_vista / aVistaSum) * 100),
 				},
-				{
-					name: "A Prazo",
-					type: "bar",
-					stack: "total",
-					label: {
-						show: true,
-					},
-					emphasis: {
-						focus: "series",
-					},
-					data: result.map((r) => r.a_prazo),
-					valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
+				legend: { show: false },
+				grid: {
+					left: "3%",
+					right: "4%",
+					bottom: "80%",
+					containLabel: true,
 				},
-			],
+				xAxis: {
+					type: "value",
+				},
+				yAxis: {
+					type: "category",
+					data: result.map((r) => r.periodo),
+				},
+				series: [
+					{
+						name: "A Vista",
+						type: "bar",
+						stack: "total",
+						label: {
+							show: true,
+						},
+						emphasis: {
+							focus: "series",
+						},
+						data: result.map((r) => r.a_vista),
+						valor: result.map((r) => (r.a_vista / aVistaSum) * 100),
+					},
+					{
+						name: "A Prazo",
+						type: "bar",
+						stack: "total",
+						label: {
+							show: true,
+						},
+						emphasis: {
+							focus: "series",
+						},
+						data: result.map((r) => r.a_prazo),
+						valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
+					},
+				],
+			},
 		};
 	}
 

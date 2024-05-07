@@ -311,9 +311,9 @@ export default class IndicatorService {
 			name: "median-ticket-by-origin",
 			type: "pie",
 			legend: result.map((elem, idx) => ({
-				value: elem.total,
+				value: this.formatter.format(elem.total),
 				name: elem.description,
-				percentage: (elem.total / sum) * 100,
+				percentage: `${((elem.total / sum) * 100).toFixed(2)}`,
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
 				},

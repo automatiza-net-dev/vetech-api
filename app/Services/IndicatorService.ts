@@ -311,9 +311,9 @@ export default class IndicatorService {
 			name: "median-ticket-by-origin",
 			type: "pie",
 			legend: result.map((elem, idx) => ({
-				value: this.formatter.format(elem.total),
+				value: elem.total.toFixed(2),
 				name: elem.description,
-				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
+				percentage: ((elem.total / sum) * 100).toFixed(2),
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
 				},
@@ -351,9 +351,9 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: this.formatter.format(elem.total),
+							value: elem.total.toFixed(2),
 							name: elem.description,
-							percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
+							percentage: ((elem.total / sum) * 100).toFixed(2),
 							itemStyle: {
 								color:
 									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],

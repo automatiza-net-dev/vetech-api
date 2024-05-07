@@ -4532,15 +4532,15 @@ export default class IndicatorService {
 			type?: string;
 		},
 	) {
-		if (!data.type) {
-			throw new BadRequestException(
-				"Informe o tipo de orçamento",
-				400,
-				"E_ERR",
-			);
-		}
+		// if (!data.type) {
+		// 	throw new BadRequestException(
+		// 		"Informe o tipo de orçamento",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
 
-		if (!["AVALIADOR", "VENDEDOR"].includes(data.type)) {
+		if (data.type && !["AVALIADOR", "VENDEDOR"].includes(data.type)) {
 			throw new BadRequestException(
 				"Tipo de orçamento inválido. Valores permitidos: AVALIADOR, VENDEDOR",
 				400,
@@ -4599,7 +4599,9 @@ export default class IndicatorService {
 
 		if (data.type === "VENDEDOR") {
 			qb.joinRaw(`left join users on budgets.seller_id = users.id`);
-		} else {
+		}
+
+		if (data.type === "AVALIADOR") {
 			qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
 		}
 

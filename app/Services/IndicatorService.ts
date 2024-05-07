@@ -974,9 +974,11 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: this.formatter.format(elem.totalpayments),
+							value: parseFloat(elem.totalpayments.toFixed(2)),
 							name: elem.description,
-							percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
+							percentage: parseFloat(
+								((elem.totalpayments / total) * 100).toFixed(2),
+							),
 							itemStyle: {
 								color:
 									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],

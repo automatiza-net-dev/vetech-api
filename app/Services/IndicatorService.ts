@@ -4230,13 +4230,17 @@ export default class IndicatorService {
 				{
 					value: this.formatter.format(productSum),
 					name: "Produtos",
-					percentage: (productSum / (productSum + serviceSum)) * 100,
+					percentage: parseFloat(
+						((productSum / (productSum + serviceSum)) * 100).toFixed(2),
+					),
 					itemStyle: { color: "red" },
 				},
 				{
-					value: serviceSum,
+					value: this.formatter.format(serviceSum),
 					name: "Serviços",
-					percentage: (serviceSum / (productSum + serviceSum)) * 100,
+					percentage: parseFloat(
+						((serviceSum / (productSum + serviceSum)) * 100).toFixed(2),
+					),
 					itemStyle: { color: "blue" },
 				},
 			],

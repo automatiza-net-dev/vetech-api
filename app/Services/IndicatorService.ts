@@ -4226,9 +4226,9 @@ export default class IndicatorService {
 		return {
 			name: "product-type",
 			type: "pie",
-			data: [
+			legend: [
 				{
-					value: productSum,
+					value: this.formatter.format(productSum),
 					name: "Produtos",
 					percentage: (productSum / (productSum + serviceSum)) * 100,
 					itemStyle: { color: "red" },
@@ -4272,6 +4272,24 @@ export default class IndicatorService {
 								shadowColor: "rgba(0, 0, 0, 0.5)",
 							},
 						},
+						data: [
+							{
+								value: parseFloat(productSum.toFixed(2)),
+								name: "Produtos",
+								percentage: parseFloat(
+									((productSum / (productSum + serviceSum)) * 100).toFixed(2),
+								),
+								itemStyle: { color: "red" },
+							},
+							{
+								value: parseFloat(serviceSum.toFixed(2)),
+								name: "Serviços",
+								percentage: parseFloat(
+									((serviceSum / (productSum + serviceSum)) * 100).toFixed(2),
+								),
+								itemStyle: { color: "blue" },
+							},
+						],
 					},
 				],
 			},

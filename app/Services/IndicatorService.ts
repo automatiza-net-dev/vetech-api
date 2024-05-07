@@ -288,7 +288,7 @@ export default class IndicatorService {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
 		} else {
-			qb1.where("schedules.business_unit_id", authCtx.unit.id);
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
 			qb2.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
@@ -850,7 +850,7 @@ export default class IndicatorService {
 	public async invoicingByPaymentMethod_2(
 		authCtx: AuthContext,
 		data: {
-			unit?: string;
+			units?: string[];
 			fromDate?: string;
 			toDate?: string;
 		},
@@ -907,11 +907,11 @@ export default class IndicatorService {
 			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
 		}
 
-		if (data.unit) {
-			qb1.where("bills.business_unit_id", data.unit);
-			qb2.where("bills.business_unit_id", data.unit);
+    if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
 		} else {
-			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb1.where("schedules.business_unit_id", authCtx.unit.id);
 			qb2.where("bills.business_unit_id", authCtx.unit.id);
 		}
 

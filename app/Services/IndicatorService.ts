@@ -3666,10 +3666,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Atingimento",
-							value: this.formatter.format(
+							value: `${(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
-									0,
-							),
+								0
+							).toFixed(2)}%`,
 						},
 					],
 				},
@@ -3729,9 +3729,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Retorno MKT (ROI)",
-							value: this.formatter.format(
-								marketing.reduce((acc, curr) => acc + curr.roi, 0),
-							),
+							value: `${(
+								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0
+							).toFixed(2)}%`,
 						},
 					],
 				},

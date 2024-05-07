@@ -779,7 +779,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("business_units.id", "business_units.identification")
-			.orderBy("4", "desc")
+			.orderByRaw("4 desc")
 			.whereNull("bills.deleted_at");
 
 		const qb2 = Database.from("bills")
@@ -807,7 +807,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("business_units.id", "payment_methods.description")
-			.orderBy("totalpayments", "desc")
+			.orderByRaw("totalPayments desc")
 			.whereNull("bills.deleted_at");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
@@ -871,7 +871,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("business_units.id", "business_units.identification")
-			.orderBy("totalpayments", "desc")
+			.orderByRaw("totalPayments desc")
 			.whereNull("bills.deleted_at");
 
 		const qb2 = Database.from("bills")
@@ -911,7 +911,7 @@ export default class IndicatorService {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
 		} else {
-			qb1.where("schedules.business_unit_id", authCtx.unit.id);
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
 			qb2.where("bills.business_unit_id", authCtx.unit.id);
 		}
 

@@ -3595,6 +3595,7 @@ export default class IndicatorService {
 			this.billPaymentFormatIndicators_2(authCtx, data),
 			this.productTypeIndicators_2(authCtx, data),
 			this.schedulingIndicators_2(authCtx, data),
+			this.opportunitiesIndicators_2(authCtx, data),
 		]);
 
 		const tables = await Promise.all([
@@ -4828,6 +4829,79 @@ export default class IndicatorService {
 				clients: parseInt(
 					salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
 				),
+			})),
+		};
+	}
+
+	public async opportunitiesIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("opportunity_logs")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          sum(case when crm_statuses.tag = 'N' then 1 else 0 end) as novas,
+          sum(case when crm_statuses.tag = 'A' then 1 else 0 end) as agendadas,
+          sum(case when crm_statuses.tag = 'C' then 1 else 0 end) as comparecidas,
+          sum(case when crm_statuses.tag = 'G' then 1 else 0 end) as ganhos
+          `,
+				),
+			)
+			.leftJoin("crm_statuses", (query) => {
+				query.on("crm_statuses.id", "=", "opportunity_logs.status_id");
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "opportunity_logs.business_unit_id");
+			})
+			.groupBy("business_units.id");
+		// .where(".business_unit_id", data.unit);
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("opportunity_logs.business_unit_id", data.units);
+		} else {
+			qb.where("opportunity_logs.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("opportunity_logs.economic_group_id", data.groups);
+		} else {
+			qb.where("opportunity_logs.economic_group_id", authCtx.group.id);
+		}
+
+		if (data.fromDate) {
+			qb.andWhereRaw("opportunity_logs.contact_date::date >= ?", [
+				data.fromDate,
+			]);
+		}
+
+		if (data.toDate) {
+			qb.andWhereRaw("opportunity_logs.contact_date::date <= ?", [data.toDate]);
+		}
+
+		const result = await qb;
+
+		return {
+			name: "opportunities",
+			type: "funnel",
+			configs: result.map((elem) => ({
+				id: elem.id,
+				identification: elem.identification,
+				new: parseInt(elem.novas, 10),
+				scheduled: parseInt(elem.agendadas, 10),
+				attended: parseInt(elem.comparecidas, 10),
+				gained: parseInt(elem.ganhos, 10),
 			})),
 		};
 	}

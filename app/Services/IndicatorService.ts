@@ -584,17 +584,11 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-product-type",
 			type: "pie",
-			legend: false,
-			data: result.map((elem, idx) => ({
-				unit: {
-					id: elem.id,
-					identification: elem.identification,
-				},
-				value: elem.total_sales,
-				percentage: (elem.total_sales / parsedTotal) * 100,
+			// legend: false,
+			legend: result.map((elem, idx) => ({
+				value: this.formatter.format(elem.total_sales),
+				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
 				name: elem.description,
-				qtySales: parseInt(elem.qty_sales, 10),
-				qtyClients: parseInt(elem.qty_clients, 10),
 				itemStyle: {
 					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
 				},
@@ -622,6 +616,17 @@ export default class IndicatorService {
 						label: {
 							formatter: "{b} : {c} ({d}%)",
 						},
+						data: result.map((elem, idx) => ({
+							value: this.formatter.format(elem.total_sales),
+							percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(
+								2,
+							)}%`,
+							name: elem.description,
+							itemStyle: {
+								color:
+									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+							},
+						})),
 						emphasis: {
 							itemStyle: {
 								shadowBlur: 10,

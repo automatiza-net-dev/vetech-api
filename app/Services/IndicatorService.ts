@@ -3816,51 +3816,53 @@ export default class IndicatorService {
 			name: "invoicing-new-clients",
 			type: "line",
 			// legend: true,
-			title: {
-				text: "Clientes Novos x Recorrentes",
-				left: "center",
-			},
-			tooltip: {
-				trigger: "axis",
-			},
-			legend: {
-				data: ["Novos", "Recorrentes"],
-				show: true,
-				bottom: -5,
-			},
-			grid: {
-				left: "3%",
-				right: "4%",
-				bottom: "3%",
-				containLabel: true,
-			},
-			toolbox: {
-				feature: {
-					saveAsImage: {},
+			configs: {
+				title: {
+					text: "Clientes Novos x Recorrentes",
+					left: "center",
 				},
-			},
-			xAxis: {
-				type: "category",
-				boundaryGap: false,
-				data: result.map((r) => r.mes_ano),
-			},
-			yAxis: {
-				type: "value",
-			},
-			series: [
-				{
-					name: "Novos",
-					type: "line",
-					stack: "Total",
-					data: result.map((r) => r.total_novos),
+				tooltip: {
+					trigger: "axis",
 				},
-				{
-					name: "Recorrentes",
-					type: "line",
-					stack: "Total",
-					data: result.map((r) => r.total_recorrentes),
+				legend: {
+					data: ["Novos", "Recorrentes"],
+					show: true,
+					bottom: -5,
 				},
-			],
+				grid: {
+					left: "3%",
+					right: "4%",
+					bottom: "3%",
+					containLabel: true,
+				},
+				toolbox: {
+					feature: {
+						saveAsImage: {},
+					},
+				},
+				xAxis: {
+					type: "category",
+					boundaryGap: false,
+					data: result.map((r) => r.mes_ano),
+				},
+				yAxis: {
+					type: "value",
+				},
+				series: [
+					{
+						name: "Novos",
+						type: "line",
+						stack: "Total",
+						data: result.map((r) => r.total_novos),
+					},
+					{
+						name: "Recorrentes",
+						type: "line",
+						stack: "Total",
+						data: result.map((r) => r.total_recorrentes),
+					},
+				],
+			},
 		};
 	}
 

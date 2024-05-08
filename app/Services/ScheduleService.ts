@@ -87,6 +87,128 @@ export default class ScheduleService {
 		return result;
 	}
 
+	public async homeContent_2(
+		authCtx: AuthContext,
+		data: Pick<IHomeSearch, "unit">,
+	) {
+		const usersQb = Database.from("users")
+			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.joinRaw(
+				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+			)
+			.joinRaw(
+				`left join working_days
+                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
+			)
+			.joinRaw(`left join schedules on schedules.user_id = users.id`)
+			.where("user_unit_roles.unit_id", authCtx.unit.id)
+			.where("users.type", "user")
+			.whereRaw(
+				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+			);
+
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE10",
+		);
+		if (!hasPermission) {
+			usersQb.where("users.id", authCtx.user.id);
+		}
+
+		const users = await usersQb;
+		const userIds = Array.from(new Set(users.map((u) => u.id)));
+
+		const confirmedQb = Schedule.query()
+			.where("business_unit_id", data.unit ?? authCtx.unit.id)
+			.whereHas("serviceStatus", (query) => {
+				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
+			})
+			.preload("patient", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.preload("race", (query) => {
+						query.preload("specie");
+					});
+				});
+			})
+			.preload("holder", (query) => {
+				query.preload("tutor");
+			})
+			.preload("serviceType")
+			.preload("serviceStatus")
+			.orderBy("start_hour", "asc");
+
+		const nonConfirmedQb = Schedule.query()
+			.where("business_unit_id", data.unit ?? authCtx.unit.id)
+			.whereHas("serviceStatus", (query) => {
+				query.where("type", "AN");
+			})
+			.preload("patient", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.preload("race", (query) => {
+						query.preload("specie");
+					});
+				});
+			})
+			.preload("holder", (query) => {
+				query.preload("tutor");
+			})
+			.preload("serviceType")
+			.preload("serviceStatus")
+			.orderBy("start_hour", "asc");
+
+		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([
+			confirmedQb,
+			nonConfirmedQb,
+		]);
+
+		const patients = await Patient.query()
+			.whereIn(
+				"id",
+				confirmedSchedules
+					.map((r) => r.patient_id)
+					.concat(nonConfirmedSchedules.map((r) => r.patient_id))
+					.filter((r) => !!r) as string[],
+			)
+			.preload("tutor");
+
+		return {
+			confirmed: users
+				.map((elem) => {
+					return {
+						id: elem.id,
+						name: elem.name,
+						onDuty: elem.on_duty,
+						events: confirmedSchedules
+							.filter((e) => e.user_id === elem.id)
+							.map((day) => ({
+								start: day.startHour.toString(),
+								end: day.endHour.toString(),
+								event: day,
+								type: this.getEventLabel(day),
+							})),
+					};
+				})
+				.filter((f) => (f.onDuty ? true : f.events.length > 0)),
+			nonConfirmed: users
+				.map((elem) => {
+					return {
+						id: elem.id,
+						name: elem.name,
+						onDuty: elem.on_duty,
+						events: nonConfirmedSchedules
+							.filter((e) => e.user_id === elem.id)
+							.map((day) => ({
+								start: day.startHour.toString(),
+								end: day.endHour.toString(),
+								event: day,
+								type: this.getEventLabel(day),
+							})),
+					};
+				})
+				.filter((f) => (f.onDuty ? true : f.events.length > 0)),
+		};
+	}
+
 	public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
 		const qb = Schedule.query()
 			.where("business_unit_id", unitId)

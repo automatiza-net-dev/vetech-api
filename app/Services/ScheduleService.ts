@@ -72,7 +72,6 @@ export default class ScheduleService {
 
 		if (data.confirmed === "false") {
 			// Confirmar consultas
-
 			// qb.where('schedule_status_id', SS_NOT_CONFIRMED);
 			qb.whereHas("serviceStatus", (query) => {
 				query.where("type", "AN");
@@ -735,11 +734,14 @@ export default class ScheduleService {
 			to?: string;
 			from?: string;
 			lista_cancelados?: string;
+			status?: string[];
+			working?: string;
+			unavailable?: string;
 		},
 	) {
-		if (!data.from || !data.to) {
-			throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
-		}
+		// if (!data.from || !data.to) {
+		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
+		// }
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
@@ -749,11 +751,11 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date(data.from).getDay().toString()],
+				[(data.from ? new Date(data.from) : new Date()).getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
-				[data.from, data.to],
+				[data.from ?? new Date(), data.to ?? new Date()],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
@@ -776,45 +778,26 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = differenceInDays(new Date(data.to), new Date(data.from));
+		const days =
+			data.to && data.from
+				? differenceInDays(new Date(data.to), new Date(data.from))
+				: 1;
 		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
 			const tmpDate = addDays(new Date(data.from!), k);
 			return ScheduleService.GetWD(tmpDate);
 		});
-
-		const workingDaysQb = WorkingDay.query()
-			.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
-			.where("business_unit_id", authCtx.unit.id)
-			.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
-			.whereIn("user_id", userIds);
-
-		const unavailableDaysQb = UnavailableDay.query()
-			.select(
-				"id",
-				"user_id",
-				"start_hour",
-				"end_hour",
-				"frequency",
-				"start_date",
-				"end_date",
-				"active",
-				"title",
-			)
-			.where("active", true)
-			.where("business_unit_id", authCtx.unit.id)
-			.whereILike(
-				"frequency",
-				`%${ScheduleService.GetWD(new Date(data.from))}%`,
-			)
-			.whereRaw("(start_date::date <= ? or start_date::date is null)", [
-				data.from,
-			])
-			.whereRaw("(end_date::date >= ? or end_date::date is null)", [data.to])
-			.whereIn("user_id", userIds);
+		const resultData: [Schedule[], WorkingDay[], UnavailableDay[]] = [
+			[],
+			[],
+			[],
+		];
 
 		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
+			.whereRaw("start_hour::date between ? and ?", [
+				data.from ?? new Date(),
+				data.to ?? new Date(),
+			])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
 				query.select(["id", "description", "type"]);
@@ -855,20 +838,54 @@ export default class ScheduleService {
 			});
 		}
 
-		const [workingDays, unavailableDays, schedules] = await Promise.all([
-			workingDaysQb,
-			unavailableDaysQb,
-			schedulesQb,
-		]);
+		resultData[0] = await schedulesQb;
+
+		if (data.working === "true") {
+			resultData[1] = await WorkingDay.query()
+				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
+				.where("business_unit_id", authCtx.unit.id)
+				.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
+				.whereIn("user_id", userIds);
+		}
+
+		if (data.unavailable === "true") {
+			resultData[2] = await UnavailableDay.query()
+				.select(
+					"id",
+					"user_id",
+					"start_hour",
+					"end_hour",
+					"frequency",
+					"start_date",
+					"end_date",
+					"active",
+					"title",
+				)
+				.where("active", true)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereILike(
+					"frequency",
+					`%${ScheduleService.GetWD(
+						data.from ? new Date(data.from) : new Date(),
+					)}%`,
+				)
+				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
+					data.from ?? new Date(),
+				])
+				.whereRaw("(end_date::date >= ? or end_date::date is null)", [
+					data.to ?? new Date(),
+				])
+				.whereIn("user_id", userIds);
+		}
 
 		const patients = await Patient.query()
 			.whereIn(
 				"id",
-				schedules.map((s) => s.patient_id).filter(Boolean) as string[],
+				resultData[0].map((s) => s.patient_id).filter(Boolean) as string[],
 			)
 			.preload("tutor");
 
-		const mappedSchedules = schedules.map((schedule) => {
+		const mappedSchedules = resultData[0].map((schedule) => {
 			const jsonKinda = schedule.toJSON();
 			const patient = patients.find((p) => p.id === schedule.patient_id);
 
@@ -899,7 +916,7 @@ export default class ScheduleService {
 			return jsonKinda;
 		});
 
-		const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
+		const allEvents = [...resultData[1], ...resultData[2], ...mappedSchedules];
 
 		return users
 			.map((elem) => {

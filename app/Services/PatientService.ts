@@ -636,9 +636,7 @@ export default class PatientService {
 			.preload("tutors", (query) => {
 				query.preload("tutor").pivotColumns(["is_main"]);
 			})
-			.preload("tutor", (query) => {
-				// query.preload("tutor").pivotColumns(["is_main"]);
-			})
+			.preload("tutor")
 			.first();
 
 		if (!patient) {

@@ -32,6 +32,7 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 import { HospitalizationStatus } from "../Models/Hospitalization";
+import Attendance from "App/Models/Attendance";
 
 interface ISearch {
 	name?: string;
@@ -619,6 +620,115 @@ export default class PatientService {
 			...patient.toJSON(),
 			isHospitalized: openHospitalizations.length > 0,
 		};
+	}
+
+	public async display(authCtx: AuthContext, patientId: string) {
+		const patient = await authCtx.group
+			.related("patients")
+			.query()
+			.where("patient_id", patientId)
+			.preload("patientAnimal", (query) => {
+				query.preload("race", (query) => {
+					query.preload("specie");
+				});
+				query.preload("hair");
+			})
+			.preload("tutors", (query) => {
+				query.preload("tutor").pivotColumns(["is_main"]);
+			})
+			.preload("tutor", (query) => {
+				// query.preload("tutor").pivotColumns(["is_main"]);
+			})
+			.first();
+
+		if (!patient) {
+			throw new ResourceNotFoundException(
+				"Paciente não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
+
+		const openHospitalizations = await Hospitalization.query()
+			.where("patient_id", patientId)
+			.where("status", HospitalizationStatus.ACTIVE);
+		const sales = await Bill.query()
+			.where("patient_id", patient.id)
+			.where("status", BillStatus.A);
+		const attendances = await Attendance.query()
+			.where("business_unit_id", authCtx.unit.id)
+			.where("patient_id", patient.id)
+			.whereNull("close_user_id");
+
+		const displayData = {
+			id: patient.id,
+			name: patient.name,
+			type: patient.type,
+			photo: patient.photo,
+			gender: patient.gender,
+			genderText: patient.gender
+				? patient.gender === PatientGender.MALE
+					? "Macho"
+					: "Femea"
+				: null,
+			tags: patient.tags,
+			birth_date: patient.birthDate,
+			age: "",
+			active: patient.active,
+			tag: patient.tag,
+			weight: patient.weight,
+			weight_date: patient.weightDate,
+			hypertension: patient.hypertension,
+			diabetes: patient.diabetes,
+			glycemia: patient.glycemia,
+			pressure: patient.pressure,
+			firstSale: patient.firstSale,
+			isHospitalized: openHospitalizations.length > 0,
+			missingBills: this.sharedService.formatter.format(
+				sales.reduce(
+					(acc, curr) => acc + (curr.totalValue - curr.paidValue),
+					0,
+				),
+			),
+			openAttendances: attendances.length > 0,
+		};
+
+		if (patient.patientAnimal) {
+			Object.assign(displayData, {
+				death: patient.patientAnimal.death,
+				death_date: patient.patientAnimal.deathDate,
+				microchip: patient.patientAnimal.microchip,
+				castrated: patient.patientAnimal.castrated,
+				hair: patient.patientAnimal.hair?.description ?? null,
+				race: patient.patientAnimal.race?.description ?? null,
+				specie: patient.patientAnimal.race?.specie?.description ?? null,
+			});
+		}
+
+		if (patient.tutors) {
+			const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
+			if (mainTutor) {
+				Object.assign(displayData, {
+					tutor: {
+						id: mainTutor?.id,
+						name: mainTutor?.name,
+						cellphone: mainTutor?.tutor.cellphone ?? null,
+						telephone: mainTutor?.tutor?.telephone ?? null,
+						email: mainTutor?.tutor?.email ?? null,
+					},
+				});
+			}
+		}
+
+		if (patient.tutor) {
+			Object.assign(displayData, {
+				cellphone: patient.tutor?.cellphone ?? null,
+				telephone: patient.tutor?.telephone ?? null,
+				email: patient.tutor?.email ?? null,
+			});
+		}
+
+		return displayData;
 	}
 
 	public async metadata(authCtx: AuthContext, patientId: string) {

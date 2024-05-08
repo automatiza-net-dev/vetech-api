@@ -31,6 +31,11 @@ export type AuthContext = {
 
 @inject()
 export default class SharedService {
+	public formatter = new Intl.NumberFormat("pt-BR", {
+		style: "currency",
+		currency: "BRL",
+	});
+
 	public async getUserGroup(unitId: string): Promise<EconomicGroup> {
 		const unit = await BusinessUnit.findOrFail(unitId);
 		return unit.related("economicGroup").query().firstOrFail();

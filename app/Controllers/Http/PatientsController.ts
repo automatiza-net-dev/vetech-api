@@ -50,6 +50,15 @@ export default class PatientsController {
 		return response.ok(patients);
 	}
 
+	public async display({ auth, params, response }: HttpContextContract) {
+		const patients = await this.service.display(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.ok(patients);
+	}
+
 	public async checkDocument({ params, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 

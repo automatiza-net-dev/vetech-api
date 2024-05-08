@@ -816,13 +816,19 @@ export default class ScheduleService {
 				});
 			});
 
+		if (data.status) {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereIn("type", data.status ?? []);
+			});
+		}
+
 		if (data.lista_cancelados?.toLowerCase() === "false") {
 			schedulesQb.whereHas("serviceStatus", (query) => {
 				query.whereNot("type", "CANC");
 			});
 		}
 
-		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+		if (authCtx.unit.unitConfig?.requiresScheduleTutor) {
 			schedulesQb.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {

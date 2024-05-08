@@ -160,17 +160,6 @@ export default class ScheduleService {
 			confirmedQb,
 			nonConfirmedQb,
 		]);
-
-		const patients = await Patient.query()
-			.whereIn(
-				"id",
-				confirmedSchedules
-					.map((r) => r.patient_id)
-					.concat(nonConfirmedSchedules.map((r) => r.patient_id))
-					.filter((r) => !!r) as string[],
-			)
-			.preload("tutor");
-
 		return {
 			confirmed: users
 				.map((elem) => {

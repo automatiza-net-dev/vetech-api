@@ -36,6 +36,14 @@ export default class SharedService {
 		currency: "BRL",
 	});
 
+	public formatPercentage(value: number) {
+		if (Number.isNaN(value)) {
+			return "0%";
+		}
+
+		return `${value.toFixed(2)}%`;
+	}
+
 	public async getUserGroup(unitId: string): Promise<EconomicGroup> {
 		const unit = await BusinessUnit.findOrFail(unitId);
 		return unit.related("economicGroup").query().firstOrFail();

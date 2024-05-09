@@ -6,12 +6,14 @@ import { BudgetStatus } from "App/Models/Budget";
 import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
-import { AuthContext } from "App/Services/SharedService";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 @inject()
 export default class IndicatorService {
+	constructor(private shared: SharedService) {}
+
 	static COLORS = [
 		"black",
 		"silver",
@@ -34,11 +36,6 @@ export default class IndicatorService {
 		"cyan",
 		"magenta",
 	] as const;
-
-	private formatter = new Intl.NumberFormat("pt-BR", {
-		style: "currency",
-		currency: "BRL",
-	});
 
 	public async medianTicket(
 		authCtx: AuthContext,
@@ -311,7 +308,7 @@ export default class IndicatorService {
 			name: "median-ticket-by-origin",
 			type: "pie",
 			legend: result.map((elem, idx) => ({
-				value: this.formatter.format(elem.total.toFixed(2)),
+				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
 				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
 				itemStyle: {
@@ -338,7 +335,7 @@ export default class IndicatorService {
 					{
 						name: "Origem Clientes",
 						type: "pie",
-						radius: "50%",
+						radius: "80%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
 							show: false,
@@ -586,7 +583,7 @@ export default class IndicatorService {
 			type: "pie",
 			// legend: false,
 			legend: result.map((elem, idx) => ({
-				value: this.formatter.format(elem.total_sales),
+				value: this.shared.formatter.format(elem.total_sales),
 				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
 				name: elem.description,
 				itemStyle: {
@@ -934,7 +931,7 @@ export default class IndicatorService {
 			name: "invoicing-by-payment-method",
 			type: "pie",
 			legend: result.map((elem, idx) => ({
-				value: this.formatter.format(elem.totalpayments),
+				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
 				percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
 				itemStyle: {
@@ -961,7 +958,7 @@ export default class IndicatorService {
 					{
 						name: "Forma Pagamento",
 						type: "pie",
-						radius: "50%",
+						radius: "80%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
 							show: false,
@@ -3645,7 +3642,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Faturamento Realizado",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
 							),
 						},
@@ -3656,7 +3653,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Meta Faturamento",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.meta.value, 0) ??
 									0,
 							),
@@ -3683,7 +3680,7 @@ export default class IndicatorService {
 							percentage: `${(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0)
 							).toFixed(2)}%`,
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								cards
 									.at(0)
 									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
@@ -3696,7 +3693,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Ticket Medio Pacientes",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								medianTicket
 									? medianTicket.salesTotal / medianTicket.qtyClients
 									: 0,
@@ -3709,7 +3706,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Orçamentos em Aberto",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								openBudgets.reduce((acc, curr) => acc + curr.total, 0),
 							),
 						},
@@ -3720,7 +3717,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Orçamentos Cancelados",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
 							),
 						},
@@ -3742,7 +3739,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Custo Aquisição Cliente",
-							value: this.formatter.format(
+							value: this.shared.formatter.format(
 								cac.length === 0
 									? 0
 									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
@@ -4108,46 +4105,46 @@ export default class IndicatorService {
 						name: row.name,
 						total: {
 							qtd: row.total_bills,
-							total: row.total_value,
-							avg: row.avg_value,
+							total: this.shared.formatter.format(row.total_value),
+							avg: this.shared.formatPercentage(row.avg_value),
 						},
 						dawn: {
 							qtd: Number.parseInt(row.madrugada_qtd),
-							total: row.madrugada_total,
+							total: this.shared.formatter.format(row.madrugada_total),
 							avg:
 								row.madrugada_total === 0
-									? this.formatter.format(0)
-									: this.formatter.format(
+									? this.shared.formatter.format(0)
+									: this.shared.formatter.format(
 											row.madrugada_total / Number.parseInt(row.madrugada_qtd),
 										),
 						},
 						morning: {
 							qtd: Number.parseInt(row.manha_qtd),
-							total: row.manha_total,
+							total: this.shared.formatter.format(row.manha_total),
 							avg:
 								row.manha_total === 0
-									? this.formatter.format(0)
-									: this.formatter.format(
+									? this.shared.formatter.format(0)
+									: this.shared.formatter.format(
 											row.manha_total / Number.parseInt(row.manha_qtd),
 										),
 						},
 						afternoon: {
 							qtd: Number.parseInt(row.tarde_qtd),
-							total: row.tarde_total,
+							total: this.shared.formatter.format(row.tarde_total),
 							avg:
 								row.tarde_total === 0
-									? this.formatter.format(0)
-									: this.formatter.format(
+									? this.shared.formatter.format(0)
+									: this.shared.formatter.format(
 											row.tarde_total / Number.parseInt(row.tarde_qtd),
 										),
 						},
 						night: {
 							qtd: Number.parseInt(row.noite_qtd),
-							total: row.noite_total,
+							total: this.shared.formatter.format(row.noite_total),
 							avg:
 								row.noite_total === 0
-									? this.formatter.format(0)
-									: this.formatter.format(
+									? this.shared.formatter.format(0)
+									: this.shared.formatter.format(
 											row.noite_total / Number.parseInt(row.noite_qtd),
 										),
 						},
@@ -4230,22 +4227,19 @@ export default class IndicatorService {
 			type: "pie",
 			legend: [
 				{
-					value: this.formatter.format(productSum),
+					value: this.shared.formatter.format(productSum),
 					name: "Produtos",
-					percentage: `${(
-						(productSum / (productSum + serviceSum)) *
-						100
-					).toFixed(2)}%`,
-
+					percentage: this.shared.formatPercentage(
+						(productSum / (productSum + serviceSum)) * 100,
+					),
 					itemStyle: { color: "red" },
 				},
 				{
-					value: this.formatter.format(serviceSum),
+					value: this.shared.formatter.format(serviceSum),
 					name: "Serviços",
-					percentage: `${(
-						(serviceSum / (productSum + serviceSum)) *
-						100
-					).toFixed(2)}%`,
+					percentage: this.shared.formatPercentage(
+						(serviceSum / (productSum + serviceSum)) * 100,
+					),
 
 					itemStyle: { color: "blue" },
 				},
@@ -4270,7 +4264,7 @@ export default class IndicatorService {
 					{
 						name: "Participação",
 						type: "pie",
-						radius: "50%",
+						radius: "80%",
 						label: {
 							formatter: "{b} : {c} ({d}%)",
 							show: false,
@@ -4422,9 +4416,11 @@ export default class IndicatorService {
 							description: elem.description,
 							count: parseInt(elem.count, 10),
 							quantity: parseInt(elem.quantity, 10),
-							total: elem.total,
+							total: this.shared.formatter.format(elem.total),
 							uniqueClients: parseInt(elem.clients, 10),
-							percentage: (elem.total / parsedTotal) * 100,
+							percentage: this.shared.formatPercentage(
+								(elem.total / parsedTotal) * 100,
+							),
 						})),
 				};
 			}),
@@ -4548,24 +4544,26 @@ export default class IndicatorService {
 					identification: unit.identification,
 					period: {
 						dawn: {
-							total: unit.madrugada_total,
-							new: unit.madrugada_novos,
-							recurrent: unit.madrugada_recorrentes,
+							total: this.shared.formatter.format(unit.madrugada_total),
+							new: this.shared.formatter.format(unit.madrugada_novos),
+							recurrent: this.shared.formatter.format(
+								unit.madrugada_recorrentes,
+							),
 						},
 						morning: {
-							total: unit.manha_total,
-							new: unit.manha_novos,
-							recurrent: unit.manha_recorrentes,
+							total: this.shared.formatter.format(unit.manha_total),
+							new: this.shared.formatter.format(unit.manha_novos),
+							recurrent: this.shared.formatter.format(unit.manha_recorrentes),
 						},
 						afternoon: {
-							total: unit.tarde_total,
-							new: unit.tarde_novos,
-							recurrent: unit.tarde_recorrentes,
+							total: this.shared.formatter.format(unit.tarde_total),
+							new: this.shared.formatter.format(unit.tarde_novos),
+							recurrent: this.shared.formatter.format(unit.tarde_recorrentes),
 						},
 						night: {
-							total: unit.noite_total,
-							new: unit.noite_novos,
-							recurrent: unit.noite_recorrentes,
+							total: this.shared.formatter.format(unit.noite_total),
+							new: this.shared.formatter.format(unit.noite_novos),
+							recurrent: this.shared.formatter.format(unit.noite_recorrentes),
 						},
 					},
 				};
@@ -4717,28 +4715,38 @@ export default class IndicatorService {
 									id: elem.u_id,
 									name: elem.name,
 									totalBudgets: parseInt(elem.total_budgets, 10),
-									totalValue: elem.total_value,
-									avgValue: elem.avg_value,
+									totalValue: this.shared.formatter.format(elem.total_value),
+									avgValue: this.shared.formatter.format(elem.avg_value),
 									confirmed: parseInt(elem.confirmed, 10),
-									totalConfirmedValue: elem.total_confirmed_value,
+									totalConfirmedValue: this.shared.formatter.format(
+										elem.total_confirmed_value,
+									),
 									avgConfirmedValue:
 										elem.confirmed === "0"
-											? 0
-											: elem.total_confirmed_value /
-												parseInt(elem.confirmed, 10),
+											? this.shared.formatter.format(0)
+											: this.shared.formatter.format(
+													elem.total_confirmed_value /
+														parseInt(elem.confirmed, 10),
+												),
 									cancelled: parseInt(elem.cancelled, 10),
-									totalCancelledValue: elem.total_cancelled_value,
+									totalCancelledValue: this.shared.formatter.format(
+										elem.total_cancelled_value,
+									),
 									avgCancelledValue:
 										elem.cancelled === "0"
-											? 0
+											? this.shared.formatter.format(0)
 											: elem.total_cancelled_value /
 												parseInt(elem.cancelled, 10),
 									open: parseInt(elem.open, 10),
-									totalOpenValue: elem.total_open_value,
+									totalOpenValue: this.shared.formatter.format(
+										elem.total_open_value,
+									),
 									avgOpenValue:
 										elem.open === "0"
-											? 0
-											: elem.total_open_value / parseInt(elem.open, 10),
+											? this.shared.formatter.format(0)
+											: this.shared.formatter.format(
+													elem.total_open_value / parseInt(elem.open, 10),
+												),
 								})),
 						};
 					}),

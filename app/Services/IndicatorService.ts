@@ -4106,7 +4106,7 @@ export default class IndicatorService {
 						total: {
 							qtd: row.total_bills,
 							total: this.shared.formatter.format(row.total_value),
-							avg: this.shared.formatPercentage(row.avg_value),
+							avg: this.shared.formatter.format(row.avg_value),
 						},
 						dawn: {
 							qtd: Number.parseInt(row.madrugada_qtd),
@@ -4735,8 +4735,10 @@ export default class IndicatorService {
 									avgCancelledValue:
 										elem.cancelled === "0"
 											? this.shared.formatter.format(0)
-											: elem.total_cancelled_value /
-												parseInt(elem.cancelled, 10),
+											: this.shared.formatter.format(
+													elem.total_cancelled_value /
+														parseInt(elem.cancelled, 10),
+												),
 									open: parseInt(elem.open, 10),
 									totalOpenValue: this.shared.formatter.format(
 										elem.total_open_value,

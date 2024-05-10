@@ -93,11 +93,13 @@ export default class DocumentTemplatesController {
 	}
 
 	public async renderPdf({ auth, params, response }: HttpContextContract) {
-		const result = await this.service.renderPdf(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+		return this.sharedService.errorHoc(response, async () => {
+			const result = await this.service.renderPdf(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		});
 	}
 }

@@ -140,9 +140,10 @@ export default class TimelinesController {
 	}
 
 	public async storeAnimalDocument({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDocumentValidator);
-		await this.timelineService.storeDocument(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDocumentValidator);
+			await this.timelineService.storeDocument(payload);
+		});
 	}
 
 	public async updateAnimalDocument({
@@ -150,9 +151,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDocumentValidator);
-		await this.timelineService.updateDocument(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDocumentValidator);
+			await this.timelineService.updateDocument(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalPathologyIndex({ params, response }: HttpContextContract) {

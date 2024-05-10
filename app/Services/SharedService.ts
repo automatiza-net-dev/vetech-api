@@ -31,6 +31,32 @@ export type AuthContext = {
 
 @inject()
 export default class SharedService {
+	public static intlMap = {
+		scheduleServiceTypeId: "Serviço de agendamento",
+		scheduleServiceId: "Serviço de agendamento",
+		startHour: "Hora de início",
+		endHour: "Hora de término",
+		patientId: "Paciente",
+		holderId: "Tutor",
+		userId: "Usuário",
+		scheduleOriginId: "Agenda de Origem",
+		scheduleId: "Agenda",
+		statusId: "Status",
+		ignoreBlocking: "Ignorar bloqueios",
+		patientName: "Nome do Paciente",
+		patientPhone: "Telefone do Paciente",
+		age: "Idade",
+		raceId: "Raça",
+		majorComplaint: "Reclamação",
+		ignoreOverlapping: "Ignorar sobreposição",
+		onDuty: "Em plantação",
+		reasonId: "Motivo",
+		observation: "Observação",
+		resume: "Resumo",
+		protocol: "Protocolo",
+		internalObservation: "Observação interna",
+	} as const;
+
 	public formatter = new Intl.NumberFormat("pt-BR", {
 		style: "currency",
 		currency: "BRL",

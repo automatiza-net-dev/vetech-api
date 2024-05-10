@@ -70,28 +70,6 @@ export default class SchedulesController {
 		return response.ok(result);
 	}
 
-	private static intlMap = {
-		scheduleServiceTypeId: "Serviço de agendamento",
-		startHour: "Hora de início",
-		endHour: "Hora de término",
-		patientId: "Paciente",
-		holderId: "Tutor",
-		userId: "Usuário",
-		scheduleOriginId: "Agenda de Origem",
-		scheduleId: "Agenda",
-		statusId: "Status",
-		ignoreBlocking: "Ignorar bloqueios",
-		patientName: "Nome do Paciente",
-		patientPhone: "Telefone do Paciente",
-		age: "Idade",
-		raceId: "Raça",
-		majorComplaint: "Reclamação",
-		ignoreOverlapping: "Ignorar sobreposição",
-		onDuty: "Em plantação",
-		reasonId: "Motivo",
-		observation: "Observação",
-	} as const;
-
 	public async show({ auth, params, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
@@ -127,7 +105,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 
@@ -199,7 +177,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 
@@ -250,7 +228,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 

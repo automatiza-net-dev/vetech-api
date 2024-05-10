@@ -55,6 +55,10 @@ export default class SharedService {
 		resume: "Resumo",
 		protocol: "Protocolo",
 		internalObservation: "Observação interna",
+		tag: "Identificador do Paciente",
+		technicianId: "Técnico",
+		photos: "Fotos",
+		title: "Título",
 	} as const;
 
 	public formatter = new Intl.NumberFormat("pt-BR", {

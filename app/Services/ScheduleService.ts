@@ -116,7 +116,6 @@ export default class ScheduleService {
 		}
 
 		const users = await usersQb;
-		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const confirmedQb = Schedule.query()
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
@@ -125,16 +124,30 @@ export default class ScheduleService {
 			})
 			.preload("patient", (query) => {
 				query.preload("patientAnimal", (query) => {
+					query.select("race_id", "id", "death", "death_date");
+
 					query.preload("race", (query) => {
-						query.preload("specie");
+						query.select("specie_id", "id", "description");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
 					});
 				});
+
+				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
 			.preload("holder", (query) => {
-				query.preload("tutor");
+				query.preload("tutor", (query) => {
+					query.select(["id", "cellphone", "telephone"]);
+				});
+				query.select(["id", "name", "type", "photo"]);
 			})
-			.preload("serviceType")
-			.preload("serviceStatus")
+			.preload("serviceType", (query) => {
+				query.select(["id", "description", "reserved_minutes", "type"]);
+			})
+			.preload("serviceStatus", (query) => {
+				query.select(["id", "description", "color", "type"]);
+			})
 			.orderBy("start_hour", "asc");
 
 		const nonConfirmedQb = Schedule.query()
@@ -160,6 +173,7 @@ export default class ScheduleService {
 			confirmedQb,
 			nonConfirmedQb,
 		]);
+
 		return {
 			confirmed: users
 				.map((elem) => {
@@ -853,6 +867,8 @@ export default class ScheduleService {
 		// if (!data.from || !data.to) {
 		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
 		// }
+		const refStart = data.from ? new Date(data.from) : new Date();
+		const refEnd = data.to ? new Date(data.to) : new Date();
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
@@ -862,11 +878,11 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[(data.from ? new Date(data.from) : new Date()).getDay().toString()],
+				[refStart.getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
-				[data.from ?? new Date(), data.to ?? new Date()],
+				[refStart],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
@@ -889,12 +905,9 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days =
-			data.to && data.from
-				? differenceInDays(new Date(data.to), new Date(data.from))
-				: 1;
+		const days = Math.max(differenceInDays(refStart, refEnd), 1);
 		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
-			const tmpDate = addDays(new Date(data.from!), k);
+			const tmpDate = addDays(refStart, k);
 			return ScheduleService.GetWD(tmpDate);
 		});
 		const resultData: [Schedule[], WorkingDay[], UnavailableDay[]] = [
@@ -905,10 +918,7 @@ export default class ScheduleService {
 
 		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [
-				data.from ?? new Date(),
-				data.to ?? new Date(),
-			])
+			.whereRaw("start_hour::date between ? and ?", [refStart, refEnd])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
 				query.select(["id", "description", "type"]);
@@ -980,12 +990,7 @@ export default class ScheduleService {
 				)
 				.where("active", true)
 				.where("business_unit_id", authCtx.unit.id)
-				.whereILike(
-					"frequency",
-					`%${ScheduleService.GetWD(
-						data.from ? new Date(data.from) : new Date(),
-					)}%`,
-				)
+				.whereILike("frequency", `%${ScheduleService.GetWD(refStart)}%`)
 				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
 					data.from ?? new Date(),
 				])

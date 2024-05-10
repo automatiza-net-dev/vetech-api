@@ -340,9 +340,11 @@ export default class TimelinesController {
 	}
 
 	public async storeObservation({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalObservationValidator);
-		await this.timelineService.storeObservations(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalObservationValidator);
+			await this.timelineService.storeObservations(payload);
+			return response.created();
+		});
 	}
 
 	public async updateObservations({
@@ -350,17 +352,24 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalObservationValidator);
-		await this.timelineService.updateObservations(params.id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalObservationValidator);
+			await this.timelineService.updateObservations(params.id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async deleteObservationMedia({
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deleteObservationMedia(params.id, params.index);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteObservationMedia(
+				params.id,
+				params.index,
+			);
+			return response.noContent();
+		});
 	}
 
 	public async storeDeath({ request, response, auth }: HttpContextContract) {

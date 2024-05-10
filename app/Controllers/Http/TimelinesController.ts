@@ -53,12 +53,14 @@ export default class TimelinesController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreatePatientEvaluationValidator);
-		const result = await this.timelineService.storeEvaluation(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
-		return response.created(result);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreatePatientEvaluationValidator);
+			const result = await this.timelineService.storeEvaluation(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
+			return response.created(result);
+		});
 	}
 
 	public async updatePatientEvaluation({
@@ -66,9 +68,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreatePatientEvaluationValidator);
-		await this.timelineService.updateEvaluation(params.id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreatePatientEvaluationValidator);
+			await this.timelineService.updateEvaluation(params.id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async deletePatientEvaluationPhoto({
@@ -360,11 +364,13 @@ export default class TimelinesController {
 	}
 
 	public async storeDeath({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDeathValidator);
-		await this.timelineService.storeDeath(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDeathValidator);
+			await this.timelineService.storeDeath(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
+			return response.created();
+		});
 	}
 }

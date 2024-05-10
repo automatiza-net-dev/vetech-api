@@ -15,6 +15,8 @@ import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
 import { validate } from "App/Shared";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export type DateSet = {
 	start: Date;
@@ -60,6 +62,47 @@ export default class SharedService {
 		photos: "Fotos",
 		title: "Título",
 	} as const;
+
+	public errorHoc(response: HttpContextContract["response"], fn: () => void) {
+		try {
+			return fn();
+		} catch (e) {
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SharedService.intlMap[curr.field]}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
+	}
 
 	public formatter = new Intl.NumberFormat("pt-BR", {
 		style: "currency",

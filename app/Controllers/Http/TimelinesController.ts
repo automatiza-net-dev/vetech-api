@@ -1,5 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import SharedService from "App/Services/SharedService";
 import TimelineService from "App/Services/TimelineService";
@@ -32,22 +31,14 @@ export default class TimelinesController {
 	}
 
 	public async delete({ auth, params, response }: HttpContextContract) {
-		try {
+		return this.sharedService.errorHoc(response, async () => {
 			return response.ok(
 				await this.timelineService.softDeleteRecord(
 					await this.sharedService.getAuthContext(auth),
 					params.id,
 				),
 			);
-		} catch (e) {
-			return response.badRequest({
-				data: null,
-				status: 400,
-				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
-				validationErrors: {},
-			});
-		}
+		});
 	}
 
 	public async patientEvaluationIndex({
@@ -84,8 +75,10 @@ export default class TimelinesController {
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
+			return response.noContent();
+		});
 	}
 
 	public async patientPressureIndex({ params, response }: HttpContextContract) {
@@ -210,46 +203,11 @@ export default class TimelinesController {
 	}
 
 	public async animalPhotoStore({ request, response }: HttpContextContract) {
-		try {
+		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(CreateAnimalPhotoValidator);
 			await this.timelineService.storePhoto(payload);
 			return response.created();
-		} catch (e) {
-			if (e instanceof ValidationException) {
-				return response.unprocessableEntity({
-					data: null,
-					status: 422,
-					title: "Entidade não processável",
-					message: null,
-					// @ts-expect-error
-					validationErrors: e.messages.errors.reduce(
-						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
-							}
-
-							prev[curr.field].errors.push(
-								curr.message.replace(
-									"Campo",
-									`Campo '${SharedService.intlMap[curr.field]}'`,
-								),
-							);
-
-							return prev;
-						},
-						{} as Record<string, Record<string, string[]>>,
-					),
-				});
-			}
-
-			return response.badRequest({
-				data: null,
-				status: 400,
-				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
-				validationErrors: {},
-			});
-		}
+		});
 	}
 
 	public async updateAnimalPhoto({
@@ -257,9 +215,11 @@ export default class TimelinesController {
 		response,
 		params,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdateAnimalPhotoValidator);
-		await this.timelineService.updatePhoto(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateAnimalPhotoValidator);
+			await this.timelineService.updatePhoto(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async addAnimalPhotoAttachments({
@@ -267,22 +227,28 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(AddAttachmentsValidator);
-		await this.timelineService.addPhotoAttachment(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(AddAttachmentsValidator);
+			await this.timelineService.addPhotoAttachment(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async deleteAnimalPhotoAttachments({
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deletePhotoAttachment(params.id, params.index);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deletePhotoAttachment(params.id, params.index);
+			return response.created();
+		});
 	}
 
 	public async deleteAnimalPhoto({ params, response }: HttpContextContract) {
-		await this.timelineService.deletePhoto(params.id);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deletePhoto(params.id);
+			return response.noContent();
+		});
 	}
 
 	public async animalVaccineIndex({ params, response }: HttpContextContract) {

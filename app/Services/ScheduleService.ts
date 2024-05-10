@@ -924,7 +924,7 @@ export default class ScheduleService {
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
-				[refStart],
+				[refStart, refEnd],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")

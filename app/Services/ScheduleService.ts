@@ -91,32 +91,6 @@ export default class ScheduleService {
 		authCtx: AuthContext,
 		data: Pick<IHomeSearch, "unit">,
 	) {
-		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
-			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
-			)
-			.joinRaw(
-				`left join working_days
-                   on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
-			)
-			.joinRaw(`left join schedules on schedules.user_id = users.id`)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", "user")
-			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
-			);
-
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE10",
-		);
-		if (!hasPermission) {
-			usersQb.where("users.id", authCtx.user.id);
-		}
-
-		const users = await usersQb;
-
 		const confirmedQb = Schedule.query()
 			.select(
 				"patient_id",
@@ -217,40 +191,19 @@ export default class ScheduleService {
 		]);
 
 		return {
-			confirmed: users
-				.map((elem) => {
-					return {
-						id: elem.id,
-						name: elem.name,
-						onDuty: elem.on_duty,
-						events: confirmedSchedules
-							.filter((e) => e.user_id === elem.id)
-							.map((day) => ({
-								start: day.startHour.toString(),
-								end: day.endHour.toString(),
-								event: day,
-								type: this.getEventLabel(day),
-							})),
-					};
-				})
-				.filter((f) => (f.onDuty ? true : f.events.length > 0)),
-			nonConfirmed: users
-				.map((elem) => {
-					return {
-						id: elem.id,
-						name: elem.name,
-						onDuty: elem.on_duty,
-						events: nonConfirmedSchedules
-							.filter((e) => e.user_id === elem.id)
-							.map((day) => ({
-								start: day.startHour.toString(),
-								end: day.endHour.toString(),
-								event: day,
-								type: this.getEventLabel(day),
-							})),
-					};
-				})
-				.filter((f) => (f.onDuty ? true : f.events.length > 0)),
+			confirmed: confirmedSchedules.map((day) => ({
+				start: day.startHour.toString(),
+				end: day.endHour.toString(),
+				event: day,
+				type: this.getEventLabel(day),
+			})),
+
+			nonConfirmed: nonConfirmedSchedules.map((day) => ({
+				start: day.startHour.toString(),
+				end: day.endHour.toString(),
+				event: day,
+				type: this.getEventLabel(day),
+			})),
 		};
 	}
 

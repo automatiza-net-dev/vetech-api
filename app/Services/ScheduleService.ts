@@ -118,6 +118,19 @@ export default class ScheduleService {
 		const users = await usersQb;
 
 		const confirmedQb = Schedule.query()
+			.select(
+				"patient_id",
+				"holder_id",
+				"schedule_service_type_id",
+				"schedule_status_id",
+				"id",
+				"patient_name",
+				"patient_phone",
+				"start_hour",
+				"end_hour",
+				"major_complaint",
+				"observation",
+			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
 				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
@@ -151,22 +164,49 @@ export default class ScheduleService {
 			.orderBy("start_hour", "asc");
 
 		const nonConfirmedQb = Schedule.query()
+			.select(
+				"patient_id",
+				"holder_id",
+				"schedule_service_type_id",
+				"schedule_status_id",
+				"id",
+				"patient_name",
+				"patient_phone",
+				"start_hour",
+				"end_hour",
+				"major_complaint",
+				"observation",
+			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
 				query.where("type", "AN");
 			})
 			.preload("patient", (query) => {
 				query.preload("patientAnimal", (query) => {
+					query.select("race_id", "id", "death", "death_date");
+
 					query.preload("race", (query) => {
-						query.preload("specie");
+						query.select("specie_id", "id", "description");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
 					});
 				});
+
+				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
 			.preload("holder", (query) => {
-				query.preload("tutor");
+				query.preload("tutor", (query) => {
+					query.select(["id", "cellphone", "telephone"]);
+				});
+				query.select(["id", "name", "type", "photo"]);
 			})
-			.preload("serviceType")
-			.preload("serviceStatus")
+			.preload("serviceType", (query) => {
+				query.select(["id", "description", "reserved_minutes", "type"]);
+			})
+			.preload("serviceStatus", (query) => {
+				query.select(["id", "description", "color", "type"]);
+			})
 			.orderBy("start_hour", "asc");
 
 		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([

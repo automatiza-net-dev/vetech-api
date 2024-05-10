@@ -195,9 +195,13 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
-		await this.timelineService.storeMedicalRecipe(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateAnimalMedicalRecipeValidator,
+			);
+			await this.timelineService.storeMedicalRecipe(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalMedicalRecipe({
@@ -205,9 +209,13 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
-		await this.timelineService.updateMedicalRecipe(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateAnimalMedicalRecipeValidator,
+			);
+			await this.timelineService.updateMedicalRecipe(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalPhotoIndex({ params, response }: HttpContextContract) {
@@ -268,9 +276,11 @@ export default class TimelinesController {
 	}
 
 	public async animalVaccineStore({ request, response }: HttpContextContract) {
-		const payload = await request.validate(UpsertAnimalVaccineValidator);
-		await this.timelineService.storeVaccine(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpsertAnimalVaccineValidator);
+			await this.timelineService.storeVaccine(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalVaccine({
@@ -278,10 +288,12 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const { id } = params;
-		const payload = await request.validate(UpsertAnimalVaccineValidator);
-		await this.timelineService.updateVaccine(id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const { id } = params;
+			const payload = await request.validate(UpsertAnimalVaccineValidator);
+			await this.timelineService.updateVaccine(id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async animalExamIndex({ params, response }: HttpContextContract) {

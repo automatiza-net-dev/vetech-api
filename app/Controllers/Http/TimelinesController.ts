@@ -159,9 +159,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalPathologyValidator);
-		await this.timelineService.storePathology(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalPathologyValidator);
+			await this.timelineService.storePathology(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalPathology({
@@ -169,9 +171,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalPathologyValidator);
-		await this.timelineService.updatePathology(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalPathologyValidator);
+			await this.timelineService.updatePathology(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalMedicalRecipeIndex({

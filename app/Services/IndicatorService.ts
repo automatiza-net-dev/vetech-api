@@ -3584,6 +3584,342 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
+		if (authCtx.system.name === "Sanclá") {
+			const charts = await Promise.all([
+				this.medianTicketByOrigin_2(authCtx, data),
+				this.invoicingByPaymentMethod_2(authCtx, data),
+				this.invoicingByNewClients_2(authCtx, data),
+				this.billPaymentFormatIndicators_2(authCtx, data),
+				this.productTypeIndicators_2(authCtx, data),
+				this.schedulingIndicators_2(authCtx, data),
+				this.opportunitiesIndicators_2(authCtx, data),
+			]);
+
+			const tables = await Promise.all([
+				this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
+				this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
+				this.billForUserPeriod_2(
+					authCtx,
+					data,
+					"Vendas por Vendedor e Período",
+				),
+			]);
+
+			const cards = await Promise.all([
+				this.billingIndicators(authCtx, data),
+				this.medianTicket(authCtx, data),
+				this.budgetsByStatusIndicators(authCtx, {
+					...data,
+					status: BudgetStatus.A,
+				}),
+				this.budgetsByStatusIndicators(authCtx, {
+					...data,
+					status: BudgetStatus.N,
+				}),
+				this.marketingIndicators(authCtx, data),
+				this.costOfAcquisitionIndicators(authCtx, data),
+			]);
+
+			const medianTicket = cards.at(1) as Awaited<
+				ReturnType<typeof this.medianTicket>
+			>;
+			const openBudgets = cards.at(2) as Awaited<
+				ReturnType<typeof this.budgetsByStatusIndicators>
+			>;
+			const cancelledBudgets = cards.at(3) as Awaited<
+				ReturnType<typeof this.budgetsByStatusIndicators>
+			>;
+			const marketing = cards.at(4) as Awaited<
+				ReturnType<typeof this.marketingIndicators>
+			>;
+			const cac = cards.at(5) as Awaited<
+				ReturnType<typeof this.costOfAcquisitionIndicators>
+			>;
+
+			return {
+				charts,
+				tables,
+				cards: [
+					{
+						name: "Faturamento",
+						items: [
+							{
+								description: "Faturamento Realizado",
+								value: this.shared.formatter.format(
+									cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "Meta",
+						items: [
+							{
+								description: "Meta Faturamento",
+								value: this.shared.formatter.format(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "MetaAtingimento",
+						items: [
+							{
+								description: "Atingimento",
+								value: this.shared.formatPercentage(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "MetaTendencia",
+						items: [
+							{
+								description: "Tendencia",
+								percentage: this.shared.formatPercentage(
+									cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
+								),
+								value: this.shared.formatter.format(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "TicketMedio",
+						items: [
+							{
+								description: "Ticket Medio Pacientes",
+								value: this.shared.formatter.format(
+									medianTicket
+										? medianTicket.salesTotal / medianTicket.qtyClients
+										: 0,
+								),
+							},
+						],
+					},
+					{
+						name: "OrçamentosAbertos",
+						items: [
+							{
+								description: "Orçamentos em Aberto",
+								value: this.shared.formatter.format(
+									openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "OrçamentosCancelados",
+						items: [
+							{
+								description: "Orçamentos Cancelados",
+								value: this.shared.formatter.format(
+									cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "ROI",
+						items: [
+							{
+								description: "Retorno MKT (ROI)",
+								value: this.shared.formatPercentage(
+									marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "CAC",
+						items: [
+							{
+								description: "Custo Aquisição Cliente",
+								value: this.shared.formatter.format(
+									cac.length === 0
+										? 0
+										: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
+												cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+								),
+							},
+						],
+					},
+				],
+			};
+		}
+		if (authCtx.system.name === "LiftOne") {
+			const charts = await Promise.all([
+				this.medianTicketByOrigin_2(authCtx, data),
+				this.invoicingByPaymentMethod_2(authCtx, data),
+				this.invoicingByNewClients_2(authCtx, data),
+				this.schedulingIndicators_2(authCtx, data),
+			]);
+
+			const tables = await Promise.all([
+				this.budgetsIndicators_2(authCtx, { ...data, type: "AVALIADOR" }),
+				this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+			]);
+
+			const cards = await Promise.all([
+				this.billingIndicators(authCtx, data),
+				this.medianTicket(authCtx, data),
+				this.budgetsByStatusIndicators(authCtx, {
+					...data,
+					status: BudgetStatus.A,
+				}),
+				this.budgetsByStatusIndicators(authCtx, {
+					...data,
+					status: BudgetStatus.N,
+				}),
+				this.marketingIndicators(authCtx, data),
+				this.costOfAcquisitionIndicators(authCtx, data),
+			]);
+
+			const medianTicket = cards.at(1) as Awaited<
+				ReturnType<typeof this.medianTicket>
+			>;
+			const openBudgets = cards.at(2) as Awaited<
+				ReturnType<typeof this.budgetsByStatusIndicators>
+			>;
+			const cancelledBudgets = cards.at(3) as Awaited<
+				ReturnType<typeof this.budgetsByStatusIndicators>
+			>;
+			const marketing = cards.at(4) as Awaited<
+				ReturnType<typeof this.marketingIndicators>
+			>;
+			const cac = cards.at(5) as Awaited<
+				ReturnType<typeof this.costOfAcquisitionIndicators>
+			>;
+
+			return {
+				charts,
+				tables,
+				cards: [
+					{
+						name: "Faturamento",
+						items: [
+							{
+								description: "Faturamento Realizado",
+								value: this.shared.formatter.format(
+									cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "Meta",
+						items: [
+							{
+								description: "Meta Faturamento",
+								value: this.shared.formatter.format(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "MetaAtingimento",
+						items: [
+							{
+								description: "Atingimento",
+								value: this.shared.formatPercentage(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "MetaTendencia",
+						items: [
+							{
+								description: "Tendencia",
+								percentage: this.shared.formatPercentage(
+									cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
+								),
+								value: this.shared.formatter.format(
+									cards
+										.at(0)
+										?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "TicketMedio",
+						items: [
+							{
+								description: "Ticket Medio Pacientes",
+								value: this.shared.formatter.format(
+									medianTicket
+										? medianTicket.salesTotal / medianTicket.qtyClients
+										: 0,
+								),
+							},
+						],
+					},
+					{
+						name: "OrçamentosAbertos",
+						items: [
+							{
+								description: "Orçamentos em Aberto",
+								value: this.shared.formatter.format(
+									openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "OrçamentosCancelados",
+						items: [
+							{
+								description: "Orçamentos Cancelados",
+								value: this.shared.formatter.format(
+									cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
+								),
+							},
+						],
+					},
+					{
+						name: "ROI",
+						items: [
+							{
+								description: "Retorno MKT (ROI)",
+								value: this.shared.formatPercentage(
+									marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
+								),
+							},
+						],
+					},
+					{
+						name: "CAC",
+						items: [
+							{
+								description: "Custo Aquisição Cliente",
+								value: this.shared.formatter.format(
+									cac.length === 0
+										? 0
+										: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
+												cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+								),
+							},
+						],
+					},
+				],
+			};
+		}
 		const charts = await Promise.all([
 			this.medianTicketByOrigin_2(authCtx, data),
 			// this.invoicingByProductType_2(authCtx, data),
@@ -4013,6 +4349,7 @@ export default class IndicatorService {
 			fromDate?: string;
 			toDate?: string;
 		},
+		description: string = "",
 	) {
 		const qb = Database.from("bills")
 			.select(
@@ -4096,6 +4433,7 @@ export default class IndicatorService {
 
 		return {
 			name: "bill-user-period",
+			description: description ?? undefined,
 			type: "table",
 			data: uniqueUnits.map((elem) => {
 				return result
@@ -4308,6 +4646,7 @@ export default class IndicatorService {
 			toDate?: string;
 			type?: string;
 		},
+		description = "",
 	) {
 		const totalQb = Database.from("bills")
 			.select(Database.raw("sum(bills.total_value) as total_bill_payments"))
@@ -4402,6 +4741,7 @@ export default class IndicatorService {
 
 		return {
 			name: "subgroups",
+			description: description ?? undefined,
 			type: "table",
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.id === elem);
@@ -4435,6 +4775,7 @@ export default class IndicatorService {
 			fromDate?: string;
 			toDate?: string;
 		},
+		description: string = "",
 	) {
 		const qb = Database.from("bills")
 			.select(
@@ -4535,6 +4876,7 @@ export default class IndicatorService {
 
 		return {
 			name: "sales-per-period",
+			description: description ?? undefined,
 			type: "table",
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
@@ -4688,6 +5030,11 @@ export default class IndicatorService {
 
 		return {
 			name: "budgets",
+			description: data.type
+				? data.type === "AVALIADOR"
+					? "Orçamentos por Avaliador"
+					: "Orçamentos por Vendedor"
+				: "Orçamentos Gerais",
 			type: "table",
 			data: uniqueGroups.map((elem) => {
 				const group = result.find((r) => r.e_id === elem);

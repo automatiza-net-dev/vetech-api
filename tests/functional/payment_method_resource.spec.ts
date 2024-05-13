@@ -321,7 +321,7 @@ test.group("Payment method resource", (group) => {
 			password: "102030",
 		});
 
-		const row = await BusinessUnitCheckingAccountPaymentMethod.create({
+		await BusinessUnitCheckingAccountPaymentMethod.create({
 			business_unit_id: checkingAccount.business_unit_id ?? "",
 			checking_account_id: checkingAccount.id,
 			payment_method_id: paymentMethod.id,

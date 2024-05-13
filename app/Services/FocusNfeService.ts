@@ -775,9 +775,6 @@ export default class FocusNfeService {
 			},
 		};
 
-		Logger.info("SENDING NFSE BEFORE");
-		Logger.info(JSON.stringify(payload, undefined, 2));
-
 		if (payload.tomador.cpf) {
 			// @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
 			delete payload.tomador.cnpj;
@@ -788,9 +785,9 @@ export default class FocusNfeService {
 			delete payload.tomador.cpf;
 		}
 
-		// Logger.info(JSON.stringify(payload, undefined, 2));
-		Logger.info("SENDING NFSE AFTER");
-		Logger.info(JSON.stringify(payload, undefined, 2));
+		if (payload.tomador.cnpj === "53165106001264") {
+			payload.tomador["situacao"] = "tt";
+		}
 
 		try {
 			const { data } = await this.ax.post(
@@ -804,9 +801,10 @@ export default class FocusNfeService {
 				},
 			);
 
+			Logger.info(JSON.stringify(data, undefined, 2));
+
 			const parsedResponse = createNfseResponseSchema.safeParse(data);
 			if (!parsedResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
 				Logger.error("invalid schema");
 				Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
 				return {

@@ -59,14 +59,19 @@ export default class SharedService {
 		internalObservation: "Observação interna",
 		tag: "Identificador do Paciente",
 		technicianId: "Técnico",
+		tutorId: "Tutor",
 		photos: "Fotos",
 		title: "Título",
 	} as const;
 
-	public errorHoc(response: HttpContextContract["response"], fn: () => void) {
+	public async errorHoc(
+		response: HttpContextContract["response"],
+		fn: () => Promise<void>,
+	) {
 		try {
-			return fn();
+			await fn();
 		} catch (e) {
+			console.log("got an error", e);
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,
@@ -83,7 +88,7 @@ export default class SharedService {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SharedService.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field] ?? curr.field}'`,
 								),
 							);
 

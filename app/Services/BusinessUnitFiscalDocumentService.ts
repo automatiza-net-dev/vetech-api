@@ -12,7 +12,6 @@ import BusinessUnitFiscalDocument, {
 } from "App/Models/BusinessUnitFiscalDocument";
 import Cest from "App/Models/Cest";
 import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
-import FocusLog from "App/Models/FocusLog";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
 } from "App/Models/IssuedFiscalDocument";
@@ -285,6 +284,7 @@ export default class BusinessUnitFiscalDocumentService {
 				bill.serviceValue > 0
 					? new Decimal(bill.productValue).div(new Decimal(bill.totalValue))
 					: new Decimal(0);
+			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
 			const nfePayload: ISendNfe = {
 				nfe_series: issuedDocument.series,
@@ -319,11 +319,8 @@ export default class BusinessUnitFiscalDocumentService {
 						unit.unitConfig.fiscalDocumentEnvironment === "H"
 							? "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL"
 							: responsible.name,
-					cpf_document: responsible.tutor.document?.replaceAll(/\D/g, "") ?? "",
-					cnpj_document:
-						responsible.tutor.document?.length === 14
-							? responsible.tutor.document.replaceAll(/\D/g, "")
-							: null,
+					cpf_document: clearDoc.length === 11 ? clearDoc : null,
+					cnpj_document: clearDoc.length === 14 ? clearDoc : null,
 					phone: responsible.tutor.cellphone,
 					ie: responsible.tutor.inscription ?? "",
 					email: responsible.tutor.email,
@@ -810,6 +807,8 @@ export default class BusinessUnitFiscalDocumentService {
 				},
 			);
 
+			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
+
 			const result = await this.focusNfe.sendNfse(
 				serviceDocument.id,
 				{
@@ -821,12 +820,8 @@ export default class BusinessUnitFiscalDocumentService {
 						city_code: authCtx.unit.cityCode ?? "",
 					},
 					buyer: {
-						cpf_document:
-							responsible.tutor.document?.replaceAll(/\D/g, "") ?? "",
-						cnpj_document:
-							responsible.tutor.document?.length === 14
-								? responsible.tutor.document.replaceAll(/\D/g, "")
-								: null,
+						cpf_document: clearDoc.length === 11 ? clearDoc : null,
+						cnpj_document: clearDoc.length === 14 ? clearDoc : null,
 						name: responsible.name,
 						email: responsible.tutor.email,
 						phone: responsible.tutor.telephone ?? "",

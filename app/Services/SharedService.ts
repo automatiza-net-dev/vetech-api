@@ -62,6 +62,8 @@ export default class SharedService {
 		tutorId: "Tutor",
 		photos: "Fotos",
 		title: "Título",
+		complaint: "Reclamação",
+		type: "Tipo",
 	} as const;
 
 	public async errorHoc(

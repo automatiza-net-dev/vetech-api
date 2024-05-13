@@ -387,7 +387,10 @@ export default class FocusNfeService {
 			cpf_destinatario: data.buyer.cpf_document,
 			logradouro_destinatario: data.buyer.location.street,
 			numero_destinatario: data.buyer.location.number,
-			complemento_destinatario: data.buyer.location.complement?.substring(0, 30),
+			complemento_destinatario: data.buyer.location.complement?.substring(
+				0,
+				30,
+			),
 			bairro_destinatario: data.buyer.location.district,
 			municipio_destinatario: data.buyer.location.city,
 			uf_destinatario: data.buyer.location.uf,
@@ -772,6 +775,9 @@ export default class FocusNfeService {
 			},
 		};
 
+		Logger.info("SENDING NFSE BEFORE");
+		Logger.info(JSON.stringify(payload, undefined, 2));
+
 		if (payload.tomador.cpf) {
 			// @ts-expect-error Aqui vai ocorrer um erro, mas estou ignorando
 			delete payload.tomador.cnpj;
@@ -783,9 +789,7 @@ export default class FocusNfeService {
 		}
 
 		// Logger.info(JSON.stringify(payload, undefined, 2));
-		Logger.info("SENDING NFSE");
-		Logger.info(`${process.env.FOCUS_NFE_URL}/v2/nfse?ref=${ref}`);
-		Logger.info(`TOKEN => ${token}`);
+		Logger.info("SENDING NFSE AFTER");
 		Logger.info(JSON.stringify(payload, undefined, 2));
 
 		try {

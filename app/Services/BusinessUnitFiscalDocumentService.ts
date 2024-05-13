@@ -661,6 +661,9 @@ export default class BusinessUnitFiscalDocumentService {
 		if (!authCtx.unit.unitConfig.groupNfseDocuments) {
 			const results = await Promise.all(
 				items.map(async (item) => {
+					const clearDoc =
+						responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
+
 					const serviceDocument = await ServiceIssuedFiscalDocument.create(
 						{
 							economic_group_id: authCtx.group.id,
@@ -686,12 +689,8 @@ export default class BusinessUnitFiscalDocumentService {
 							city_code: authCtx.unit.cityCode ?? "",
 						},
 						buyer: {
-							cpf_document:
-								responsible.tutor.document?.replaceAll(/\D/g, "") ?? "",
-							cnpj_document:
-								responsible.tutor.document?.length === 14
-									? responsible.tutor.document.replaceAll(/\D/g, "")
-									: null,
+							cpf_document: clearDoc,
+							cnpj_document: clearDoc.length === 14 ? clearDoc : "",
 							name: responsible.name,
 							email: responsible.tutor.email,
 							phone:

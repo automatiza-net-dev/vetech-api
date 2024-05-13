@@ -689,8 +689,8 @@ export default class BusinessUnitFiscalDocumentService {
 							city_code: authCtx.unit.cityCode ?? "",
 						},
 						buyer: {
-							cpf_document: clearDoc,
-							cnpj_document: clearDoc.length === 14 ? clearDoc : "",
+							cpf_document: clearDoc.length === 11 ? clearDoc : null,
+							cnpj_document: clearDoc.length === 14 ? clearDoc : null,
 							name: responsible.name,
 							email: responsible.tutor.email,
 							phone:

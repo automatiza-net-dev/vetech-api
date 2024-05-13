@@ -5175,18 +5175,49 @@ export default class IndicatorService {
 		return {
 			name: "scheduling",
 			type: "funnel",
-			configs: generalResult.map((elem) => ({
-				id: elem.id,
-				identification: elem.identification,
-				scheduled: parseInt(elem.agendados, 10),
-				attended: parseInt(elem.atendidos, 10),
-				sales: parseInt(
-					salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
-				),
-				clients: parseInt(
-					salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
-				),
-			})),
+			configs:
+				generalResult.length === 0
+					? []
+					: [
+							{
+								name: "Agendados",
+								value: Number.parseInt(generalResult.at(0).agendados, 10),
+								normal: { fill: "blue" },
+							},
+							{
+								name: "Atendidos",
+								value: Number.parseInt(generalResult.at(0).atendidos, 10),
+								normal: { fill: "red" },
+							},
+							{
+								name: "Vendidos",
+								value: Number.parseInt(
+									salesResult.find((r) => r.id === generalResult.at(0)?.id)
+										.sales ?? "0",
+								),
+								normal: { fill: "orange" },
+							},
+							{
+								name: "Clientes",
+								value: Number.parseInt(
+									salesResult.find((r) => r.id === generalResult.at(0)?.id)
+										.clients ?? "0",
+								),
+								normal: { fill: "orange" },
+							},
+						],
+			// configs: generalResult.map((elem) => ({
+			// 	id: elem.id,
+			// 	identification: elem.identification,
+			// 	scheduled: parseInt(elem.agendados, 10),
+			// 	attended: parseInt(elem.atendidos, 10),
+			// 	sales: parseInt(
+			// 		salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
+			// 	),
+			// 	clients: parseInt(
+			// 		salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
+			// 	),
+			// })),
 		};
 	}
 
@@ -5252,14 +5283,44 @@ export default class IndicatorService {
 		return {
 			name: "opportunities",
 			type: "funnel",
-			configs: result.map((elem) => ({
-				id: elem.id,
-				identification: elem.identification,
-				new: parseInt(elem.novas, 10),
-				scheduled: parseInt(elem.agendadas, 10),
-				attended: parseInt(elem.comparecidas, 10),
-				gained: parseInt(elem.ganhos, 10),
-			})),
+			configs: [
+				{
+					name: "Novas Oportunidades",
+					value:
+						result.length === 0 ? 0 : Number.parseInt(result.at(0).novas, 10),
+					normal: { fill: "blue" },
+				},
+				{
+					name: "Agendadas",
+					value:
+						result.length === 0
+							? 0
+							: Number.parseInt(result.at(0).agendadas, 10),
+					normal: { fill: "red" },
+				},
+				{
+					name: "Comparecidos",
+					value:
+						result.length === 0
+							? 0
+							: Number.parseInt(result.at(0).comparecidas, 10),
+					normal: { fill: "orange" },
+				},
+				{
+					name: "Ganho",
+					value:
+						result.length === 0 ? 0 : Number.parseInt(result.at(0).ganhos, 10),
+					normal: { fill: "orange" },
+				},
+			],
+			// configs: result.map((elem) => ({
+			// 	id: elem.id,
+			// 	identification: elem.identification,
+			// 	new: parseInt(elem.novas, 10),
+			// 	scheduled: parseInt(elem.agendadas, 10),
+			// 	attended: parseInt(elem.comparecidas, 10),
+			// 	gained: parseInt(elem.ganhos, 10),
+			// })),
 		};
 	}
 }

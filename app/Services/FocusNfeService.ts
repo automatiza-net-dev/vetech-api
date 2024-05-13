@@ -786,8 +786,10 @@ export default class FocusNfeService {
 		}
 
 		if (payload.tomador.cnpj === "53165106001264") {
-			payload.tomador["situacao"] = "tt";
+			payload["situacao"] = "tt";
 		}
+
+		Logger.info(JSON.stringify(payload, undefined, 2));
 
 		try {
 			const { data } = await this.ax.post(

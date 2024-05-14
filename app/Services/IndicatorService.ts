@@ -5342,7 +5342,7 @@ export default class IndicatorService {
           coalesce(users.name, 'Não identificado') as name,
           count(bills.id) as total_bills,
           sum(bills.total_value) as total_value,
-          avg(bills.total_value) as avg_valu
+          avg(bills.total_value) as avg_value
           `,
 				),
 			)

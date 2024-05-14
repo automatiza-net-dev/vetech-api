@@ -3598,11 +3598,8 @@ export default class IndicatorService {
 			const tables = await Promise.all([
 				this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
 				this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
-				this.billForUserPeriod_2(
-					authCtx,
-					data,
-					"Vendas por Vendedor e Período",
-				),
+				this.salesPerUserIndicators_2(authCtx, data),
+				this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
 			]);
 
 			const cards = await Promise.all([
@@ -5321,6 +5318,101 @@ export default class IndicatorService {
 			// 	attended: parseInt(elem.comparecidas, 10),
 			// 	gained: parseInt(elem.ganhos, 10),
 			// })),
+		};
+	}
+
+	public async salesPerUserIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          economic_groups.id as e_id,
+          economic_groups.company_name,
+          business_units.id as b_id,
+          business_units.identification,
+          users.id as u_id,
+          coalesce(users.name, 'Não identificado') as name,
+          count(bills.id) as total_bills,
+          sum(bills.total_value) as total_value,
+          avg(bills.total_value) as avg_valu
+          `,
+				),
+			)
+			.leftJoin("economic_groups", (query) => {
+				query.on("economic_groups.id", "=", "bills.economic_group_id");
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.join("users", (query) => {
+				query.on("users.id", "=", "bills.user_id");
+			})
+			.groupByRaw("economic_groups.id, business_units.id, users.id")
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			qb.whereIn("bills.economic_group_id", data.groups);
+		} else {
+			qb.where("bills.economic_group_id", authCtx.group.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result = await qb;
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.b_id)) {
+				acc.push(curr.b_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "sales-per-user",
+			description: "Vendas por Usuário",
+			type: "table",
+			configs: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.b_id === elem);
+
+				return {
+					id: unit.id,
+					identification: unit.identification,
+					users: result
+						.filter((f) => f.b_id === elem)
+						.map((usr) => ({
+							id: usr.u_id,
+							name: usr.name,
+							total: this.shared.formatter.format(
+								Number.parseFloat(usr.total_value),
+							),
+							qty: usr.total_bills,
+							avg: this.shared.formatter.format(
+								Number.parseFloat(usr.avg_value),
+							),
+						})),
+				};
+			}),
 		};
 	}
 }

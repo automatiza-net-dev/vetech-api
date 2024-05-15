@@ -3541,7 +3541,7 @@ export default class IndicatorService {
 		const total = result.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
 
 		const keys = result.reduce((acc, curr) => {
-			const innerKey = curr.categoria ? curr.categoria : "Não identificado";
+			const innerKey = curr.categoria ?? "-";
 
 			if (!acc.includes(innerKey)) {
 				acc.push(innerKey);
@@ -3552,50 +3552,53 @@ export default class IndicatorService {
 
 		const categories = keys.reduce((acc, curr) => {
 			const categoryRows =
-				curr === "Não identificado"
+				curr === "-"
 					? result.filter((r) => !r.categoria)
 					: result.filter((r) => r.categoria === curr);
+
 			const categorySum = categoryRows.reduce(
 				(sumAcc, sumCurr) => sumAcc + parseFloat(sumCurr.total),
 				0,
 			);
 
-			const categoryGroups = result.reduce((acc, curr) => {
-				const key = curr.grupo ?? "Não identificado";
-
-				if (!acc.includes(key)) {
-					acc.push(key);
-				}
-
-				return acc;
-			}, [] as string[]);
-			const groupSum = result.reduce((acc, curr) => {
-				const key = curr.grupo ?? "Não identificado";
-
-				if (categoryGroups.includes(key)) {
-					acc += parseFloat(curr.total);
-				}
-
-				return acc;
-			}, 0);
+			// const categoryGroups = result
+			// 	.filter((r) => r.categoria === curr)
+			// 	.reduce((acc, curr) => {
+			// 		const key = curr.grupo ?? "Não identificado";
+			//
+			// 		if (!acc.includes(key)) {
+			// 			acc.push(key);
+			// 		}
+			//
+			// 		return acc;
+			// 	}, [] as string[]);
+			// const groupSum = result.reduce((acc, curr) => {
+			// 	const key = curr.grupo ?? "Não identificado";
+			//
+			// 	if (categoryGroups.includes(key)) {
+			// 		acc += parseFloat(curr.total);
+			// 	}
+			//
+			// 	return acc;
+			// }, 0);
 
 			acc.push({
 				categoria: curr,
 				faturamento: categorySum,
 				porcentagem: (categorySum / total) * 100,
-				grupos: categoryGroups.map((elem) => ({
-					grupo: elem,
-					total: groupSum,
-					porcentagem: (groupSum / categorySum) * 100,
-					origem_clientes: [],
-					// origem_clientes: result
-					// .filter((r) => r.categoria === curr)
-					// .map((ori) => ({
-					// 	origem: ori.description,
-					// 	total: parseFloat(ori.total),
-					// 	porcentagem: (parseFloat(ori.total) / categorySum) * 100,
-					// })),
-				})),
+				// grupos: categoryGroups.map((elem) => ({
+				// 	grupo: elem,
+				// total: groupSum,
+				// porcentagem: (groupSum / categorySum) * 100,
+				// origem_clientes: [],
+				// origem_clientes: result
+				// .filter((r) => r.categoria === curr)
+				// .map((ori) => ({
+				// 	origem: ori.description,
+				// 	total: parseFloat(ori.total),
+				// 	porcentagem: (parseFloat(ori.total) / categorySum) * 100,
+				// })),
+				// })),
 			});
 
 			return acc;

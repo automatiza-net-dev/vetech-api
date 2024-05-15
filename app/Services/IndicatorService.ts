@@ -3568,9 +3568,13 @@ export default class IndicatorService {
 					grupo: elem.grupo ?? "Não informado",
 					total: elem.total,
 					porcentagem: (rowsSum / parseFloat(elem.total)) * 100,
-					origens: result
+					origem_clientes: result
 						.filter((r) => r.categoria === curr)
-						.map((ori) => ori.description),
+						.map((ori) => ({
+							origem: ori.description,
+							total: parseFloat(ori.total),
+							porcentagem: (parseFloat(ori.total) / rowsSum) * 100,
+						})),
 				})),
 			});
 

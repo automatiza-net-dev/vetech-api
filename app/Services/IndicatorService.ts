@@ -3580,24 +3580,28 @@ export default class IndicatorService {
 				categoria: curr,
 				faturamento: categorySum,
 				porcentagem: (categorySum / total) * 100,
-				grupos: categoryGroups.map((elem) => ({
-					grupo: elem === "-" ? "Não identiicado" : elem,
-					total:
+				grupos: categoryGroups.map((elem) => {
+					const groupTotal =
 						elem === "-"
 							? -1
 							: result
 									.filter((r) => r.categoria === curr && r.grupo === elem)
-									.reduce((acc, curr) => acc + parseFloat(curr.total), 0),
-					// porcentagem: (groupSum / categorySum) * 100,
-					// origem_clientes: [],
-					// origem_clientes: result
-					// .filter((r) => r.categoria === curr)
-					// .map((ori) => ({
-					// 	origem: ori.description,
-					// 	total: parseFloat(ori.total),
-					// 	porcentagem: (parseFloat(ori.total) / categorySum) * 100,
-					// })),
-				})),
+									.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+
+					return {
+						grupo: elem === "-" ? "Não identicado" : elem,
+						total: groupTotal,
+						porcentagem: (groupTotal / categorySum) * 100,
+						origem_clientes: result
+							.filter((r) => r.categoria === curr)
+							.filter((r) => r.grupo === elem ?? "-")
+							.map((ori) => ({
+								origem: ori.description,
+								total: parseFloat(ori.total),
+								porcentagem: (parseFloat(ori.total) / groupTotal) * 100,
+							})),
+					};
+				}),
 			});
 
 			return acc;

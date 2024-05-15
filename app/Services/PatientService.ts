@@ -33,6 +33,7 @@ import { v4 } from "uuid";
 
 import { HospitalizationStatus } from "../Models/Hospitalization";
 import Attendance from "App/Models/Attendance";
+import { intervalToDuration } from "date-fns";
 
 interface ISearch {
 	name?: string;
@@ -671,7 +672,9 @@ export default class PatientService {
 				: null,
 			tags: patient.tags,
 			birth_date: patient.birthDate,
-			age: "",
+			age: patient.birthDate
+				? this.dateDiff(patient.birthDate, new Date())
+				: "-",
 			active: patient.active,
 			tag: patient.tag,
 			weight: patient.weight,
@@ -1895,5 +1898,27 @@ export default class PatientService {
 		);
 
 		return Drive.getUrl(`patients/${key}`);
+	}
+
+	private dateDiff(from: Date, to: Date) {
+		const { years, months, days } = intervalToDuration({
+			start: from,
+			end: to,
+		});
+		const tokens: string[] = [];
+
+		if (years) {
+			tokens.push(`${years} ${years === 1 ? "ano" : "anos"}`);
+		}
+
+		if (months) {
+			tokens.push(`${months} ${months === 1 ? "mês" : "meses"}`);
+		}
+
+		if (days) {
+			tokens.push(`${days} ${days === 1 ? "dia" : "dias"}`);
+		}
+
+		return tokens.join(", ");
 	}
 }

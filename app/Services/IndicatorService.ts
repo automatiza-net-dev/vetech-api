@@ -3573,8 +3573,7 @@ export default class IndicatorService {
 						.map((ori) => ({
 							origem: ori.description,
 							total: parseFloat(ori.total),
-							porcentagem:
-								(parseFloat(ori.total) / parseFloat(elem.total)) * 100,
+							porcentagem: (parseFloat(ori.total) / rowsSum) * 100,
 						})),
 				})),
 			});

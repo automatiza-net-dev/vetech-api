@@ -3570,7 +3570,7 @@ export default class IndicatorService {
 					porcentagem: (rowsSum / parseFloat(elem.total)) * 100,
 					origens: result
 						.filter((r) => r.categoria === curr)
-						.map((ori) => ({ descricao: ori.description })),
+						.map((ori) => ori.description),
 				})),
 			});
 

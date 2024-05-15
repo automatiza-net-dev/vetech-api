@@ -3561,17 +3561,15 @@ export default class IndicatorService {
 				0,
 			);
 
-			// const categoryGroups = result
-			// 	.filter((r) => r.categoria === curr)
-			// 	.reduce((acc, curr) => {
-			// 		const key = curr.grupo ?? "Não identificado";
-			//
-			// 		if (!acc.includes(key)) {
-			// 			acc.push(key);
-			// 		}
-			//
-			// 		return acc;
-			// 	}, [] as string[]);
+			const categoryGroups = categoryRows.reduce((acc, curr) => {
+				const key = curr.grupo ?? "Não identificado";
+
+				if (!acc.includes(key)) {
+					acc.push(key);
+				}
+
+				return acc;
+			}, [] as string[]);
 			// const groupSum = result.reduce((acc, curr) => {
 			// 	const key = curr.grupo ?? "Não identificado";
 			//
@@ -3586,19 +3584,19 @@ export default class IndicatorService {
 				categoria: curr,
 				faturamento: categorySum,
 				porcentagem: (categorySum / total) * 100,
-				// grupos: categoryGroups.map((elem) => ({
-				// 	grupo: elem,
-				// total: groupSum,
-				// porcentagem: (groupSum / categorySum) * 100,
-				// origem_clientes: [],
-				// origem_clientes: result
-				// .filter((r) => r.categoria === curr)
-				// .map((ori) => ({
-				// 	origem: ori.description,
-				// 	total: parseFloat(ori.total),
-				// 	porcentagem: (parseFloat(ori.total) / categorySum) * 100,
-				// })),
-				// })),
+				grupos: categoryGroups.map((elem) => ({
+					grupo: elem,
+					// total: groupSum,
+					// porcentagem: (groupSum / categorySum) * 100,
+					// origem_clientes: [],
+					// origem_clientes: result
+					// .filter((r) => r.categoria === curr)
+					// .map((ori) => ({
+					// 	origem: ori.description,
+					// 	total: parseFloat(ori.total),
+					// 	porcentagem: (parseFloat(ori.total) / categorySum) * 100,
+					// })),
+				})),
 			});
 
 			return acc;

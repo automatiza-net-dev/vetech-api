@@ -3562,7 +3562,7 @@ export default class IndicatorService {
 			);
 
 			const categoryGroups = categoryRows.reduce((acc, curr) => {
-				const key = curr.grupo ?? "Não identificado";
+				const key = curr.grupo ?? "-";
 
 				if (!acc.includes(key)) {
 					acc.push(key);
@@ -3581,11 +3581,13 @@ export default class IndicatorService {
 				faturamento: categorySum,
 				porcentagem: (categorySum / total) * 100,
 				grupos: categoryGroups.map((elem) => ({
-					grupo: elem,
-					total: parseFloat(
-						result.find((r) => r.categoria === curr && r.grupo === elem)
-							?.total ?? "0",
-					),
+					grupo: elem === "-" ? "Não identiicado" : elem,
+					total:
+						elem === "-"
+							? -1
+							: result
+									.filter((r) => r.categoria === curr && r.grupo === elem)
+									.reduce((acc, curr) => acc + parseFloat(curr.total), 0),
 					// porcentagem: (groupSum / categorySum) * 100,
 					// origem_clientes: [],
 					// origem_clientes: result

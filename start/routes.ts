@@ -1633,7 +1633,11 @@ Route.group(() => {
 	);
 	Route.get(
 		"/invoicing-new-clients-period-2",
-		"IndicatorsController.invoicingByNewClients_2",
+		"IndicatorsController.invoicingNewClientsPeriod_2",
+	);
+	Route.get(
+		"/invoicing-new-clients-2",
+		"IndicatorsController.invoicingNewClients_2",
 	);
 	Route.get(
 		"/bill-payment-format-2",

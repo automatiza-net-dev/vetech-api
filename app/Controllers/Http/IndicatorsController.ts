@@ -444,7 +444,7 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
-	public async invoicingNewClientPeriod_2({
+	public async invoicingNewClientsPeriod_2({
 		auth,
 		request,
 		response,
@@ -564,6 +564,19 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.opportunitiesIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingNewClients_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingNewClients_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

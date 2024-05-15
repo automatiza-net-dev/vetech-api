@@ -5448,4 +5448,161 @@ export default class IndicatorService {
 			}),
 		};
 	}
+
+	public async invoicingNewClients_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          to_char(bills.bill_date, 'YYYY-MM') as mes_ano,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end)                 as total_novos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then total_value
+               else 0 end)                 as total_recorrentes,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end)                 as qtd_novos,
+          sum(case
+               when to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM') then 1
+               else 0 end)                 as qtd_recorrentes
+          `,
+				),
+			)
+			.leftJoin("patients", (query) => {
+				query.on("patients.id", "=", "bills.client_id");
+			})
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupByRaw("business_units.id, to_char(bills.bill_date, 'YYYY-MM')")
+			.orderByRaw("business_units.id, to_char(bills.bill_date, 'YYYY-MM')")
+			.whereNull("bills.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				`bill_date::date between (?::date - interval '5 months')::date and ?`,
+				[data.fromDate, data.toDate],
+			);
+		}
+
+		console.log(qb.toQuery());
+
+		const result = await qb;
+
+		const totalSum = result.reduce(
+			(acc, curr) =>
+				acc + parseFloat(curr.total_recorrentes) + parseFloat(curr.total_novos),
+			0,
+		);
+		const recurringSum = result.reduce(
+			(acc, curr) => acc + parseFloat(curr.total_recorrentes),
+			0,
+		);
+		const newSum = result.reduce(
+			(acc, curr) => acc + parseFloat(curr.total_novos),
+			0,
+		);
+
+		return {
+			name: "invoicing-new-clients",
+			type: "pie",
+			// legend: true,
+			legend: [
+				{
+					name: "Recorrentes",
+					value: this.shared.formatter.format(recurringSum),
+					percentage: this.shared.formatPercentage(
+						(recurringSum / totalSum) * 100,
+					),
+					itemStyle: {
+						color: IndicatorService.COLORS[0 % IndicatorService.COLORS.length],
+					},
+				},
+				{
+					name: "Novos",
+					value: this.shared.formatter.format(newSum),
+					percentage: this.shared.formatPercentage((newSum / totalSum) * 100),
+					itemStyle: {
+						color: IndicatorService.COLORS[1 % IndicatorService.COLORS.length],
+					},
+				},
+			],
+			configs: {
+				title: {
+					text: "Clientes Novos X Recorrentes",
+					subtext: "",
+					left: "center",
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Clientes",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: [
+							{
+								value: recurringSum,
+								name: "Recorrentes",
+								percentage: parseFloat(
+									((recurringSum / totalSum) * 100).toFixed(2),
+								),
+								itemStyle: {
+									color: "black",
+								},
+							},
+							{
+								value: newSum,
+								name: "Novos",
+								percentage: parseFloat(((newSum / totalSum) * 100).toFixed(2)),
+								itemStyle: {
+									color: "silver",
+								},
+							},
+						],
+					},
+				],
+			},
+		};
+	}
 }

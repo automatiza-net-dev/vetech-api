@@ -3570,15 +3570,11 @@ export default class IndicatorService {
 
 				return acc;
 			}, [] as string[]);
-			// const groupSum = result.reduce((acc, curr) => {
-			// 	const key = curr.grupo ?? "Não identificado";
-			//
-			// 	if (categoryGroups.includes(key)) {
-			// 		acc += parseFloat(curr.total);
-			// 	}
-			//
-			// 	return acc;
-			// }, 0);
+
+			// const groupSum = categoryRows.reduce(
+			// 	(acc, curr) => acc + parseFloat(curr.total),
+			// 	0,
+			// );
 
 			acc.push({
 				categoria: curr,
@@ -3586,7 +3582,10 @@ export default class IndicatorService {
 				porcentagem: (categorySum / total) * 100,
 				grupos: categoryGroups.map((elem) => ({
 					grupo: elem,
-					// total: groupSum,
+					total: parseFloat(
+						result.find((r) => r.categoria === curr && r.grupo === elem)
+							?.total ?? "0",
+					),
 					// porcentagem: (groupSum / categorySum) * 100,
 					// origem_clientes: [],
 					// origem_clientes: result

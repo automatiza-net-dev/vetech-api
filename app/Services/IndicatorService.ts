@@ -3621,7 +3621,7 @@ export default class IndicatorService {
 			const charts = await Promise.all([
 				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
-				this.invoicingByNewClients_2(authCtx, data),
+				this.invoicingNewClientsPeriod_2(authCtx, data),
 				this.billPaymentFormatIndicators_2(authCtx, data),
 				this.productTypeIndicators_2(authCtx, data),
 				this.schedulingIndicators_2(authCtx, data),
@@ -3790,7 +3790,7 @@ export default class IndicatorService {
 			const charts = await Promise.all([
 				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
-				this.invoicingByNewClients_2(authCtx, data),
+				this.invoicingNewClientsPeriod_2(authCtx, data),
 				this.schedulingIndicators_2(authCtx, data),
 			]);
 
@@ -3954,7 +3954,7 @@ export default class IndicatorService {
 			this.medianTicketByOrigin_2(authCtx, data),
 			// this.invoicingByProductType_2(authCtx, data),
 			this.invoicingByPaymentMethod_2(authCtx, data),
-			this.invoicingByNewClients_2(authCtx, data),
+			this.invoicingNewClientsPeriod_2(authCtx, data),
 			this.billPaymentFormatIndicators_2(authCtx, data),
 			this.productTypeIndicators_2(authCtx, data),
 			this.schedulingIndicators_2(authCtx, data),
@@ -4118,7 +4118,7 @@ export default class IndicatorService {
 		};
 	}
 
-	public async invoicingByNewClients_2(
+	public async invoicingNewClientsPeriod_2(
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
@@ -4178,7 +4178,7 @@ export default class IndicatorService {
 		const result = await qb;
 
 		return {
-			name: "invoicing-new-clients",
+			name: "invoicing-new-clients-period",
 			type: "line",
 			// legend: true,
 			configs: {

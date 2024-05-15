@@ -444,12 +444,12 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
-	public async invoicingByNewClients_2({
+	public async invoicingNewClientPeriod_2({
 		auth,
 		request,
 		response,
 	}: HttpContextContract) {
-		const result = await this.service.invoicingByNewClients_2(
+		const result = await this.service.invoicingNewClientsPeriod_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

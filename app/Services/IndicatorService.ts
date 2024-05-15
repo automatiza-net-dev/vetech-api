@@ -3475,7 +3475,7 @@ export default class IndicatorService {
 			.groupByRaw(`business_units.id`)
 			.whereNull("bills.deleted_at")
 			.whereRaw(
-				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
 			)
 			.whereRaw(`business_units.environment = 'P'`);
 
@@ -3506,7 +3506,7 @@ export default class IndicatorService {
          client_origins.description`)
 			.whereNull("bills.deleted_at")
 			.whereRaw(
-				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
 			)
 			.whereRaw(`business_units.environment = 'P'`);
 

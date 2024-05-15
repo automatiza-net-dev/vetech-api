@@ -3475,7 +3475,7 @@ export default class IndicatorService {
 			.groupByRaw(`business_units.id`)
 			.whereNull("bills.deleted_at")
 			.whereRaw(
-				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
 			)
 			.whereRaw(`business_units.environment = 'P'`);
 
@@ -3568,6 +3568,9 @@ export default class IndicatorService {
 					grupo: elem.grupo ?? "Não informado",
 					total: elem.total,
 					porcentagem: (rowsSum / parseFloat(elem.total)) * 100,
+					origens: result
+						.filter((r) => r.categoria === curr)
+						.map((ori) => ({ descricao: ori.description })),
 				})),
 			});
 

@@ -480,6 +480,7 @@ export default class PatientService {
 					name: patient.name,
 					tag: patient.tag,
 					gender: patient.gender,
+					community: patient.community,
 					birthDate: patient.birthDate,
 					castrated: patient.patientAnimal?.castrated,
 					weight: patient.weight,
@@ -671,6 +672,7 @@ export default class PatientService {
 					: "Femea"
 				: null,
 			tags: patient.tags,
+			community: patient.community,
 			birth_date: patient.birthDate,
 			age: patient.birthDate
 				? this.dateDiff(patient.birthDate, new Date())
@@ -969,6 +971,7 @@ export default class PatientService {
 					name: data.name,
 					gender: data.gender,
 					tags: data.tags,
+					community: data.community,
 					birthDate: data.birthDate?.toJSDate(),
 					type: PatientType.ANIMAL,
 					photo,
@@ -1271,6 +1274,7 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
+					community: data.community,
 					birthDate: data.birthDate?.toJSDate(),
 					active: data.active,
 					vaccineOrigin: data.vaccineOrigin,

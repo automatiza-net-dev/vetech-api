@@ -698,9 +698,10 @@ export default class PatientService {
 					: this.dateDiff(patient.birthDate, new Date())
 				: "-",
 			birth_date_text: patient.birthDate
-				? `${patient.birthDate.getDay()} de ${
-						PatientService.MESES[patient.birthDate.getMonth()]
-					}`
+				? new Intl.DateTimeFormat("pt-BR", {
+						day: "numeric",
+						month: "long",
+					}).format(patient.birthDate)
 				: "-",
 			active: patient.active,
 			tag: patient.tag,

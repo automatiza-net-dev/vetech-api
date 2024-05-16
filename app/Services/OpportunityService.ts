@@ -1770,7 +1770,6 @@ export default class OpportunityService {
 				`left join crm_statuses on crm_statuses.id = opportunities.status_id`,
 			)
 			.where("opportunities.economic_group_id", data.group ?? authCtx.group.id)
-			.whereNull("opportunities.schedule_id")
 			.whereNull("opportunities.closing_date")
 			.whereRaw(
 				`
@@ -1779,6 +1778,13 @@ export default class OpportunityService {
                 (opportunities.contact_id = ? and opportunities.client_id is null)
               )`,
 				[data.client, data.contact],
+			)
+			.whereRaw(
+				`("opportunities"."schedule_id" is null or ("opportunities"."schedule_id" in (select s.id
+                                                                                   from schedules s
+                                                                                            join schedule_statuses ss
+                                                                                                 on s.schedule_status_id = ss.id and ss.type in ('FAL', 'CANC'))))`,
+				[],
 			)
 			.whereNull("opportunities.deleted_at");
 

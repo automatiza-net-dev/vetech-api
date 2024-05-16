@@ -70,6 +70,21 @@ interface ISearchSupplier {
 export default class PatientService {
 	constructor(private readonly sharedService: SharedService) {}
 
+	static MESES = [
+		"Janeiro",
+		"Fevereiro",
+		"Março",
+		"Abril",
+		"Maio",
+		"Junho",
+		"Julho",
+		"Agosto",
+		"Setembro",
+		"Outubro",
+		"Novembro",
+		"Dezembro",
+	];
+
 	public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
 		const group = await this.getEconomicGroup(unitId);
 
@@ -675,7 +690,17 @@ export default class PatientService {
 			community: patient.community,
 			birth_date: patient.birthDate,
 			age: patient.birthDate
-				? this.dateDiff(patient.birthDate, new Date())
+				? patient.patientAnimal?.deathDate
+					? this.dateDiff(
+							patient.birthDate,
+							patient.patientAnimal?.deathDate.toJSDate(),
+						)
+					: this.dateDiff(patient.birthDate, new Date())
+				: "-",
+			birth_date_text: patient.birthDate
+				? `${patient.birthDate.getDay()} de ${
+						PatientService.MESES[patient.birthDate.getMonth()]
+					}`
 				: "-",
 			active: patient.active,
 			tag: patient.tag,

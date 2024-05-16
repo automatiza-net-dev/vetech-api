@@ -1841,6 +1841,9 @@ export default class OpportunityService {
 				`join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
 			)
 			.joinRaw(
+				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types."type" = 'A'`,
+			)
+			.joinRaw(
 				`join business_units on schedules.business_unit_id = business_units.id`,
 			)
 			.joinRaw(

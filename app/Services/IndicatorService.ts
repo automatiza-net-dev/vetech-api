@@ -5167,7 +5167,7 @@ export default class IndicatorService {
 								name: "Vendidos",
 								value: Number.parseInt(
 									salesResult.find((r) => r.id === generalResult.at(0)?.id)
-										.sales ?? "0",
+										?.sales ?? "0",
 								),
 								normal: { fill: "orange" },
 							},
@@ -5175,7 +5175,7 @@ export default class IndicatorService {
 								name: "Clientes",
 								value: Number.parseInt(
 									salesResult.find((r) => r.id === generalResult.at(0)?.id)
-										.clients ?? "0",
+										?.clients ?? "0",
 								),
 								normal: { fill: "orange" },
 							},

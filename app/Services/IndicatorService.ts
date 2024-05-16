@@ -3790,7 +3790,7 @@ export default class IndicatorService {
 			const charts = await Promise.all([
 				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
-				this.invoicingNewClientsPeriod_2(authCtx, data),
+				this.invoicingNewClients_2(authCtx, data),
 				this.schedulingIndicators_2(authCtx, data),
 			]);
 
@@ -3800,156 +3800,100 @@ export default class IndicatorService {
 			]);
 
 			const cards = await Promise.all([
-				this.billingIndicators(authCtx, data),
 				this.medianTicket(authCtx, data),
-				this.budgetsByStatusIndicators(authCtx, {
-					...data,
-					status: BudgetStatus.A,
-				}),
-				this.budgetsByStatusIndicators(authCtx, {
-					...data,
-					status: BudgetStatus.N,
-				}),
-				this.marketingIndicators(authCtx, data),
-				this.costOfAcquisitionIndicators(authCtx, data),
+				this.billPaymentFormatIndicators(authCtx, data),
+				this.installmentAvgIndicators(authCtx, data),
+				this.subgroupIndicators(authCtx, data),
+				this.subgroupTreeIndicators(authCtx, data),
+				this.unconfirmedBudgetsIndicators(authCtx, data),
 			]);
 
-			const medianTicket = cards.at(1) as Awaited<
+			const medianTicket = cards.at(0) as Awaited<
 				ReturnType<typeof this.medianTicket>
 			>;
-			const openBudgets = cards.at(2) as Awaited<
-				ReturnType<typeof this.budgetsByStatusIndicators>
+			const billPaymentFormat = cards.at(1) as Awaited<
+				ReturnType<typeof this.billPaymentFormatIndicators>
 			>;
-			const cancelledBudgets = cards.at(3) as Awaited<
-				ReturnType<typeof this.budgetsByStatusIndicators>
+			const installmentAvg = cards.at(2) as Awaited<
+				ReturnType<typeof this.installmentAvgIndicators>
 			>;
-			const marketing = cards.at(4) as Awaited<
-				ReturnType<typeof this.marketingIndicators>
+			const subgroup = cards.at(3) as Awaited<
+				ReturnType<typeof this.subgroupIndicators>
 			>;
-			const cac = cards.at(5) as Awaited<
-				ReturnType<typeof this.costOfAcquisitionIndicators>
+			const subgroupTree = cards.at(4) as Awaited<
+				ReturnType<typeof this.subgroupTreeIndicators>
 			>;
+			const unconfirmedBudgets = cards.at(4) as Awaited<
+				ReturnType<typeof this.unconfirmedBudgetsIndicators>
+			>;
+
+			const billPaymentCashSum = billPaymentFormat.reduce(
+				(acc, curr) => acc + parseFloat(curr.cash),
+				0,
+			);
+			const billPaymentInstallmentSum = billPaymentFormat.reduce(
+				(acc, curr) => acc + parseFloat(curr.installment),
+				0,
+			);
 
 			return {
 				charts,
 				tables,
 				cards: [
 					{
-						name: "Faturamento",
+						name: "FaturamentoAgrupado",
 						items: [
 							{
 								description: "Faturamento Realizado",
 								value: this.shared.formatter.format(
-									cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+									medianTicket?.salesTotal ?? 0,
 								),
+							},
+							{
+								description: "Vendas a vista",
+								value: `${(
+									billPaymentCashSum /
+									(billPaymentCashSum + billPaymentInstallmentSum)
+								).toFixed(2)}% de Vendas a Vista`,
+							},
+							{
+								description: "Parcelamento Medio",
+								value: `${
+									installmentAvg.at(0)?.avgInstallment ?? 0
+								}x de Parcelamento Médio`,
+							},
+							{
+								description: "Ticket Médio",
+								value: `${this.shared.formatter.format(
+									(medianTicket?.salesTotal ?? 0) /
+										(medianTicket?.qtyClients ?? 1),
+								)} (${medianTicket?.qtyClients}) tkt médio clientes`,
 							},
 						],
 					},
 					{
-						name: "Meta",
-						items: [
-							{
-								description: "Meta Faturamento",
-								value: this.shared.formatter.format(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
-								),
-							},
-						],
+						name: "SubgruposDetalhado",
+						items: subgroupTree,
 					},
 					{
-						name: "MetaAtingimento",
-						items: [
-							{
-								description: "Atingimento",
-								value: this.shared.formatPercentage(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
-								),
-							},
-						],
+						name: "OrigemClientesporCategoria",
+						items: subgroup,
 					},
 					{
-						name: "MetaTendencia",
+						name: "OrçamentosNaoConfirmados",
 						items: [
 							{
-								description: "Tendencia",
-								percentage: this.shared.formatPercentage(
-									cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
-								),
-								value: this.shared.formatter.format(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "TicketMedio",
-						items: [
-							{
-								description: "Ticket Medio Pacientes",
-								value: this.shared.formatter.format(
-									medianTicket
-										? medianTicket.salesTotal / medianTicket.qtyClients
-										: 0,
-								),
-							},
-						],
-					},
-					{
-						name: "OrçamentosAbertos",
-						items: [
-							{
-								description: "Orçamentos em Aberto",
-								value: this.shared.formatter.format(
-									openBudgets.reduce((acc, curr) => acc + curr.total, 0),
-								),
-							},
-						],
-					},
-					{
-						name: "OrçamentosCancelados",
-						items: [
-							{
-								description: "Orçamentos Cancelados",
-								value: this.shared.formatter.format(
-									cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
-								),
-							},
-						],
-					},
-					{
-						name: "ROI",
-						items: [
-							{
-								description: "Retorno MKT (ROI)",
-								value: this.shared.formatPercentage(
-									marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "CAC",
-						items: [
-							{
-								description: "Custo Aquisição Cliente",
-								value: this.shared.formatter.format(
-									cac.length === 0
-										? 0
-										: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
-												cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
-								),
+								description: "Orçamentos não confirmados",
+								value: `${this.shared.formatter.format(
+									parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
+								)} (${unconfirmedBudgets.at(0)?.unique ?? 0})`,
 							},
 						],
 					},
 				],
 			};
 		}
+
 		const charts = await Promise.all([
 			this.medianTicketByOrigin_2(authCtx, data),
 			// this.invoicingByProductType_2(authCtx, data),

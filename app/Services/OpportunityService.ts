@@ -811,6 +811,7 @@ export default class OpportunityService {
 		const qb = Opportunity.query()
 			.where("economic_group_id", authCtx.group.id)
 			.whereNull("closing_date")
+			.orderByRaw("opening_date desc")
 			.preload("client", (query) => {
 				query.select("id", "name", "weight", "gender");
 
@@ -1020,47 +1021,45 @@ export default class OpportunityService {
 				mappedResult[key] = value;
 				continue;
 			}
+			//
+			// const sortedValue = value.sort((a, b) => {
+			// 	if (data.orderBy === "contactDate") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contactDate.toMillis() - b.contactDate.toMillis() ||
+			// 			a.contact.name.localeCompare(b.contact.name)
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "openingDate") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.openingDate.toMillis() - b.openingDate.toMillis() ||
+			// 			a.contact.name.localeCompare(b.contact.name)
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "contact") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contact.name.localeCompare(b.contact.name) ||
+			// 			a.contactDate.toMillis() - b.contactDate.toMillis()
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "client") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contact.name.localeCompare(b.contact.name) ||
+			// 			a.openingDate.toMillis() - b.openingDate.toMillis()
+			// 		);
+			// 	}
+			//
+			// 	return 0;
+			// });
 
-			const sortedValue = value.sort((a, b) => {
-				if (data.orderBy === "contactDate") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contactDate.toMillis() - b.contactDate.toMillis() ||
-						a.contact.name.localeCompare(b.contact.name)
-					);
-				}
-
-				if (data.orderBy === "openingDate") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.openingDate.toMillis() - b.openingDate.toMillis() ||
-						a.contact.name.localeCompare(b.contact.name)
-					);
-				}
-
-				if (data.orderBy === "contact") {
-					qb.orderByRaw(
-						"crm_statuses.description, contact.name, opportunities.contact_date",
-					);
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contact.name.localeCompare(b.contact.name) ||
-						a.contactDate.toMillis() - b.contactDate.toMillis()
-					);
-				}
-
-				if (data.orderBy === "client") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contact.name.localeCompare(b.contact.name) ||
-						a.openingDate.toMillis() - b.openingDate.toMillis()
-					);
-				}
-
-				return 0;
-			});
-
-			mappedResult[key] = sortedValue;
+			// mappedResult[key] = sortedValue;
+			mappedResult[key] = value;
 		}
 
 		return mappedResult;

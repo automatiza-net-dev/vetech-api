@@ -1047,6 +1047,7 @@ export default class ScheduleService {
 							start: day.startHour.toString(),
 							end: day.endHour.toString(),
 							event: day,
+							name: elem.name,
 							type: this.getEventLabel(day),
 						})),
 				};

@@ -70,6 +70,18 @@ pipeline {
                 }
             }
         }
+        stage('CopyAssets') {
+            steps {
+                sshagent(['PCORDISTA-SSH']) {
+                    sh """#!/bin/bash
+                        ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
+                            cd '$FOLDER'
+                            cp -r public build/public
+                        '
+                    """
+                }
+            }
+        }
         stage('Run Migrations') {
             steps {
                 sshagent(['PCORDISTA-SSH']) {

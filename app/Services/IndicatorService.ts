@@ -1519,6 +1519,29 @@ export default class IndicatorService {
 			.groupBy("bills.business_unit_id")
 			.whereNot("status", BillStatus.EX);
 
+		const opportunityLogsQb = Database.from("opportunity_logs")
+			.select(
+				Database.raw(
+					"business_units.id, business_units.identification, count(*) as novas_oportunidades",
+				),
+			)
+			.joinRaw(
+				"join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null",
+				[],
+			)
+			.joinRaw(
+				"join business_units on opportunity_logs.business_unit_id = business_units.id",
+				[],
+			)
+			.joinRaw(
+				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
+				[],
+			)
+			.where("business_units.environment", "P")
+			.where("crm_statuses.type", "OP")
+			.where("crm_statuses.tag", "N")
+			.groupBy("business_units.id");
+
 		const qb = Database.from("schedules")
 			.select(
 				Database.raw(
@@ -1549,9 +1572,11 @@ export default class IndicatorService {
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("schedules.business_unit_id", data.units);
 			salesQb.whereIn("bills.business_unit_id", data.units);
+			opportunityLogsQb.whereIn("business_units.id", data.units);
 		} else {
 			qb.where("schedules.business_unit_id", authCtx.unit.id);
 			salesQb.where("bills.business_unit_id", authCtx.unit.id);
+			opportunityLogsQb.where("business_units.id", authCtx.unit.id);
 		}
 
 		if (data.fromDate && data.toDate) {
@@ -1563,14 +1588,25 @@ export default class IndicatorService {
 				data.fromDate,
 				data.toDate,
 			]);
+			opportunityLogsQb.andWhereRaw(
+				"opportunity_logs.contact_date::date between ? and ?",
+				[data.fromDate, data.toDate],
+			);
 		}
 
-		const salesResult = await salesQb;
-		const generalResult = await qb;
+		const [salesResult, generalResult, opportunityResult] = await Promise.all([
+			salesQb,
+			qb,
+			opportunityLogsQb,
+		]);
 
 		return generalResult.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
+			opportunities: parseInt(
+				opportunityResult.find((r) => elem.id === r.id)?.novas_oportunidades ??
+					"0",
+			),
 			scheduled: parseInt(elem.agendados, 10),
 			attended: parseInt(elem.atendidos, 10),
 			sales: parseInt(salesResult.find((r) => r.id === elem.id)?.sales ?? "0"),

@@ -1689,7 +1689,7 @@ export default class ScheduleService {
 				.first();
 			if (!toStatus) {
 				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
+					"Status de agendamento não encontrado",
 					400,
 					"E_ERR",
 				);

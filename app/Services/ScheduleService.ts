@@ -1644,6 +1644,113 @@ export default class ScheduleService {
 		});
 	}
 
+	public async updateScheduleStatusFromType(
+		authCtx: AuthContext,
+		data: {
+			scheduleId: string;
+			scheduleStatusType: string;
+
+			reasonId?: string;
+			observation?: string;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.where("business_unit_id", authCtx.unit.id)
+				.preload("serviceStatus")
+				.first();
+
+			if (!schedule) {
+				throw new ResourceNotFoundException(
+					"Agendamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (data.reasonId) {
+				const reason = await Reason.findOrFail(data.reasonId);
+				if (reason.requiresObservation && !data.observation) {
+					throw new BadRequestException(
+						"É preciso informar observação",
+						400,
+						"E_MISSING",
+					);
+				}
+			}
+
+			const toStatus = await ScheduleStatus.query()
+				.useTransaction(trx)
+				.whereRaw("(system_id = ? or system_id is null)", [authCtx.system.id])
+				.whereRaw("economic_group_id = ?", [authCtx.group.id])
+				.where("type", data.scheduleStatusType)
+				.first();
+			if (!toStatus) {
+				throw new ResourceNotFoundException(
+					"Agendamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+			if (!validChanges || !validChanges.includes(toStatus.type)) {
+				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
+			}
+
+			if (toStatus.type === "REC") {
+				await this.opportunityService.updateOpportunityScheduleAsAttended(
+					authCtx,
+					schedule,
+					trx,
+				);
+			}
+
+			if (toStatus.type === "CANC") {
+				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
+					authCtx,
+					schedule,
+					trx,
+				);
+			}
+
+			await schedule.related("statusChanges").create(
+				{
+					user_id: authCtx.user.id,
+					schedule_status_id: toStatus.id,
+					reason_id: data.reasonId,
+					observation: data.observation,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			return schedule
+				.merge({
+					schedule_status_id: toStatus.id,
+					finishedAt:
+						toStatus.type === "FIN"
+							? DateTime.now().minus({ hours: 3 })
+							: schedule.finishedAt,
+					reason_id: data.reasonId,
+					observation: data.observation,
+					cancellation_user_id:
+						toStatus.type === "CANC"
+							? authCtx.user.id
+							: schedule.cancellation_user_id,
+					startedAt:
+						toStatus.type === "ATEND"
+							? DateTime.now().minus({ hours: 3 })
+							: schedule.startedAt,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
 	public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {
 		return Database.transaction(async (trx) => {
 			const schedule = await Schedule.query()

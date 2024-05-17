@@ -9,6 +9,7 @@ import UpdateScheduleSpecificStatusValidator from "App/Validators/Schedule/Updat
 import UpdateScheduleValidator from "App/Validators/Schedule/UpdateScheduleValidator";
 import { addDays } from "date-fns";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateScheduleStatusTypeValidator";
 
 @inject()
 export default class SchedulesController {
@@ -247,6 +248,24 @@ export default class SchedulesController {
 				validationErrors: {},
 			});
 		}
+	}
+
+	public async updateStatusType({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateScheduleStatusTypeValidator);
+			const authCtx = await this.sharedService.getAuthContext(auth);
+
+			const result = await this.service.updateScheduleStatusFromType(
+				authCtx,
+				payload,
+			);
+
+			return response.ok(result);
+		});
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {

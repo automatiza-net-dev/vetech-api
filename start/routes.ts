@@ -368,6 +368,7 @@ Route.group(() => {
 	Route.get("/:id", "SchedulesController.show");
 	Route.put("/reschedule/:id", "SchedulesController.reschedule");
 	Route.put("/status", "SchedulesController.updateStatus");
+	Route.put("/status-type", "SchedulesController.updateStatusType");
 	Route.put("/:id", "SchedulesController.update");
 	Route.delete("/:id", "SchedulesController.destroy");
 })

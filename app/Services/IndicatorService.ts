@@ -1554,14 +1554,15 @@ export default class IndicatorService {
 			salesQb.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
-		if (data.fromDate) {
-			qb.andWhereRaw("schedules.start_hour::date >= ?", [data.fromDate]);
-			salesQb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
-		}
-
-		if (data.toDate) {
-			qb.andWhereRaw("schedules.start_hour::date <= ?", [data.toDate]);
-			salesQb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("schedules.start_hour::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			salesQb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const salesResult = await salesQb;
@@ -2115,7 +2116,7 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const qb = Database.from("opportunity_logs")
+		const opportunityQb = Database.from("opportunity_logs")
 			.select(
 				Database.raw(
 					`
@@ -2143,30 +2144,30 @@ export default class IndicatorService {
 			.groupBy("business_units.id");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			opportunityQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
 		}
 
 		if (data.units && Array.isArray(data.units)) {
-			qb.whereIn("business_units.id", data.units);
+			opportunityQb.whereIn("business_units.id", data.units);
 		} else {
-			qb.where("business_units.id", authCtx.unit.id);
+			opportunityQb.where("business_units.id", authCtx.unit.id);
 		}
 
 		if (data.groups && Array.isArray(data.groups)) {
-			qb.whereIn("opportunities.economic_group_id", data.groups);
+			opportunityQb.whereIn("opportunities.economic_group_id", data.groups);
 		}
 
-		if (data.fromDate) {
-			qb.andWhereRaw("opportunity_logs.contact_date::date >= ?", [
-				data.fromDate,
-			]);
+		if (data.fromDate && data.toDate) {
+			opportunityQb.andWhereRaw(
+				"opportunity_logs.contact_date::date between ? and ?",
+				[data.fromDate, data.toDate],
+			);
 		}
 
-		if (data.toDate) {
-			qb.andWhereRaw("opportunity_logs.contact_date::date <= ?", [data.toDate]);
-		}
-
-		const result = await qb;
+		const result = await opportunityQb;
 
 		return result.map((elem) => ({
 			id: elem.id,

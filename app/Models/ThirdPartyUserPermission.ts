@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import { v4 } from "uuid";
 import System from "App/Models/System";
+import ThirdPartyUser from "./ThirdPartyUser";
 
 export default class ThirdPartyUserPermission extends BaseModel {
 	@column({ isPrimary: true })
@@ -28,6 +29,11 @@ export default class ThirdPartyUserPermission extends BaseModel {
 		serializeAs: null,
 	})
 	public user_id: string;
+
+	@belongsTo(() => ThirdPartyUser, {
+		foreignKey: "user_id",
+	})
+	public user: BelongsTo<typeof ThirdPartyUser>;
 
 	@column({
 		serializeAs: null,

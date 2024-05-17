@@ -25,7 +25,7 @@ Route.get("/", () => {
 });
 
 Route.group(() => {
-	Route.get("me", "AuthController.whoAmI").middleware("auth");
+	Route.get("me", "AuthController.whoAmI").middleware(["auth:tpApi,api"]);
 	Route.get("available-swaps", "AuthController.availableSwaps").middleware(
 		"auth",
 	);

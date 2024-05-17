@@ -31,9 +31,8 @@ export default class UpdateScheduleStatusTypeValidator {
 				column: "id",
 			}),
 		]),
-		statusId: schema.string({}, [
-			rules.uuid(),
-			rules.exists({ table: "schedule_statuses", column: "id" }),
+		scheduleStatusType: schema.string({}, [
+			rules.exists({ table: "schedule_statuses", column: "type" }),
 		]),
 
 		reasonId: schema.string.optional({}, [

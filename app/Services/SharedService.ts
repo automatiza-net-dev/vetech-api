@@ -64,6 +64,7 @@ export default class SharedService {
 		title: "Título",
 		complaint: "Reclamação",
 		type: "Tipo",
+		scheduleStatusType: "Tipo de Status",
 	} as const;
 
 	public async errorHoc(

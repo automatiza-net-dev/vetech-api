@@ -210,6 +210,8 @@ export default class AuthController {
 				"requires_finance_client",
 				"alter_prices",
 				"requires_client_document",
+				"schedule_late_minutes",
+				"schedule_missed_minutes",
 			]);
 		});
 

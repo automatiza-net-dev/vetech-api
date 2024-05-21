@@ -1622,7 +1622,7 @@ export default class ScheduleService {
 				},
 			);
 
-			return schedule
+			await schedule
 				.merge({
 					schedule_status_id: data.statusId,
 					finishedAt:
@@ -1642,6 +1642,8 @@ export default class ScheduleService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			return schedule.refresh();
 		});
 	}
 

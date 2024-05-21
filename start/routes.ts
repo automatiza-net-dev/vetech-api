@@ -371,6 +371,8 @@ Route.group(() => {
 	Route.put("/status-type", "SchedulesController.updateStatusType");
 	Route.put("/:id", "SchedulesController.update");
 	Route.delete("/:id", "SchedulesController.destroy");
+
+	Route.post("/sync", "SchedulesController.syncLateSchedules");
 })
 	.prefix("schedules")
 	.middleware("auth");

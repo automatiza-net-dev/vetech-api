@@ -1951,4 +1951,97 @@ export default class ScheduleService {
 			})),
 		}));
 	}
+
+	static async RunSyncLateOrMissingSchedules() {
+		const scheduleStatuses = await ScheduleStatus.query();
+
+		const toBeMissedSchedules = (await Database.from("schedules")
+			.select(
+				"schedules.id",
+				"schedules.business_unit_id",
+				"schedule_statuses.system_id",
+			)
+			.join(
+				"schedule_statuses",
+				"schedules.schedule_status_id",
+				"schedule_statuses.id",
+			)
+			.join("business_units", "schedules.business_unit_id", "business_units.id")
+			.join(
+				"business_unit_configs",
+				"business_units.id",
+				"business_unit_configs.business_unit_id",
+			)
+			.whereNull("schedules.deleted_at")
+			.whereRaw(
+				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+			)
+			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
+			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+
+		if (toBeMissedSchedules.length > 0) {
+			const tasks = toBeMissedSchedules.map(async (elem) => {
+				const newStatus = scheduleStatuses.find(
+					(s) => s.system_id === elem.system_id && s.type === "FAL",
+				);
+
+				if (!newStatus) {
+					return Promise.resolve(null);
+				}
+
+				return Schedule.query().where("id", elem.id).update({
+					schedule_status_id: newStatus.id,
+				});
+			});
+
+			await Promise.all(tasks);
+		}
+
+		const lateSchedules = (await Database.from("schedules")
+			.select(
+				"schedules.id",
+				"schedules.business_unit_id",
+				"schedule_statuses.system_id",
+			)
+			.join(
+				"schedule_statuses",
+				"schedules.schedule_status_id",
+				"schedule_statuses.id",
+			)
+			.join("business_units", "schedules.business_unit_id", "business_units.id")
+			.join(
+				"business_unit_configs",
+				"business_units.id",
+				"business_unit_configs.business_unit_id",
+			)
+			.whereNull("schedules.deleted_at")
+			.whereRaw(
+				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+			)
+			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
+			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+
+		if (lateSchedules.length > 0) {
+			const tasks = lateSchedules.map(async (elem) => {
+				const newStatus = scheduleStatuses.find(
+					(s) => s.system_id === elem.system_id && s.type === "ATR",
+				);
+
+				if (!newStatus) {
+					return Promise.resolve(null);
+				}
+
+				return Schedule.query().where("id", elem.id).update({
+					schedule_status_id: newStatus.id,
+				});
+			});
+
+			await Promise.all(tasks);
+		}
+
+		return {
+			toBeMissed: toBeMissedSchedules.length,
+			late: lateSchedules.length,
+		};
+	}
 }

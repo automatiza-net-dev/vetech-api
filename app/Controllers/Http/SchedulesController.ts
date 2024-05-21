@@ -405,4 +405,10 @@ export default class SchedulesController {
 
 		return response.ok(result);
 	}
+
+	public async syncLateSchedules({ response }: HttpContextContract) {
+		const result = await ScheduleService.RunSyncLateOrMissingSchedules();
+
+		return response.ok(result);
+	}
 }

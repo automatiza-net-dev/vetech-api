@@ -429,6 +429,13 @@ export default class ScheduleService {
 				},
 			);
 
+			const scheduleType = await ScheduleServiceType.findOrFail(
+				data.scheduleServiceTypeId,
+				{
+					client: trx,
+				},
+			);
+
 			const result = await Schedule.create(
 				{
 					patientName: data.patientName,
@@ -484,6 +491,7 @@ export default class ScheduleService {
 				patient_id: result.patient_id,
 				race_id: result.race_id,
 				schedule_service_type_id: result.schedule_service_type_id,
+				schedule_service_type_type: scheduleType.type,
 				schedule_status_id: status.id,
 				scheduleOriginId: result.scheduleOriginId,
 				onDuty: result.onDuty,

@@ -1998,6 +1998,7 @@ export default class ScheduleService {
 				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
+			.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
 			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
 
 		if (toBeMissedSchedules.length > 0) {
@@ -2040,6 +2041,7 @@ export default class ScheduleService {
 				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
+			.whereRaw("business_unit_configs.schedule_late_minutes > 0")
 			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
 
 		if (lateSchedules.length > 0) {

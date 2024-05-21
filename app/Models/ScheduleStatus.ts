@@ -41,14 +41,17 @@ export const ScheduleStatusTypes = [
 export type ScheduleStatusType = (typeof ScheduleStatusTypes)[number];
 
 export const VALID_CHANGES = {
-	AN: ["AC", "REC", "ATR", "CANC"],
-	AC: ["REC", "CIR", "CANC", "ATR"],
+	AN: ["AC", "REC", "ATR", "CANC", "FAL"],
+	AC: ["REC", "CIR", "CANC", "ATR", "FAL"],
 	REC: ["ATEND", "CIR", "INT", "OBS", "CANC"],
 	ATEND: ["FIN", "CIR", "INT", "OBS"],
 	CIR: ["FIN", "INT", "OBS"],
 	INT: ["FIN", "OBS", "CIR"],
 	OBS: ["FIN", "CIR", "INT"],
-	ATR: ["ATEND", "CIR", "INT", "OBS", "CANC"],
+	ATR: ["ATEND", "CIR", "INT", "OBS", "CANC", "FAL"],
+	FAL: [],
+	CANC: [],
+	FIN: [],
 } as const;
 
 export default class ScheduleStatus extends BaseModel {

@@ -24,9 +24,12 @@ import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibil
 import {
 	addDays,
 	differenceInDays,
+	differenceInMinutes,
 	endOfDay,
 	format,
 	intervalToDuration,
+	isAfter,
+	isBefore,
 	isSameDay,
 	startOfDay,
 } from "date-fns";
@@ -195,6 +198,11 @@ export default class ScheduleService {
 				start: day.startHour.toString(),
 				end: day.endHour.toString(),
 				event: day,
+				name: day.user?.name,
+				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+				late: isAfter(new Date(), day.startHour.toJSDate())
+					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+					: null,
 				type: this.getEventLabel(day),
 			})),
 
@@ -202,6 +210,11 @@ export default class ScheduleService {
 				start: day.startHour.toString(),
 				end: day.endHour.toString(),
 				event: day,
+				name: day.user?.name,
+				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+				late: isAfter(new Date(), day.startHour.toJSDate())
+					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+					: null,
 				type: this.getEventLabel(day),
 			})),
 		};

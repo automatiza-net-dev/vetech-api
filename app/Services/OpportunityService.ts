@@ -1875,6 +1875,9 @@ export default class OpportunityService {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
 				.useTransaction(trx)
+				.preload("schedule", (query) => {
+					query.preload("serviceStatus");
+				})
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", data.opportunityId)
 				.first();
@@ -1885,7 +1888,10 @@ export default class OpportunityService {
 				);
 			}
 
-			if (model.schedule_id) {
+			if (
+				model.schedule_id &&
+				!["FAL", "CANC"].includes(model.schedule.serviceStatus.type)
+			) {
 				throw new BadRequestException(
 					"Oportunidade já possui agendamento",
 					400,

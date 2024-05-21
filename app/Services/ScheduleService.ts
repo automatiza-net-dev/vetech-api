@@ -127,6 +127,9 @@ export default class ScheduleService {
 
 				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
 			.preload("holder", (query) => {
 				query.preload("tutor", (query) => {
 					query.select(["id", "cellphone", "telephone"]);
@@ -174,6 +177,9 @@ export default class ScheduleService {
 
 				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
 			.preload("holder", (query) => {
 				query.preload("tutor", (query) => {
 					query.select(["id", "cellphone", "telephone"]);
@@ -198,7 +204,7 @@ export default class ScheduleService {
 				start: day.startHour.toString(),
 				end: day.endHour.toString(),
 				event: day,
-				name: day.user?.name,
+				name: day.user?.name ?? "-",
 				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 				late: isAfter(new Date(), day.startHour.toJSDate())
 					? differenceInMinutes(new Date(), day.startHour.toJSDate())
@@ -210,7 +216,7 @@ export default class ScheduleService {
 				start: day.startHour.toString(),
 				end: day.endHour.toString(),
 				event: day,
-				name: day.user?.name,
+				name: day.user?.name ?? "-",
 				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 				late: isAfter(new Date(), day.startHour.toJSDate())
 					? differenceInMinutes(new Date(), day.startHour.toJSDate())

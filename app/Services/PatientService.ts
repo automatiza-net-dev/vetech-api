@@ -224,6 +224,7 @@ export default class PatientService {
 			});
 
 		if (data.phone) {
+			const clearPhone = data.phone.replace(/\D/g, "");
 			qb.whereHas("contacts", (query) => {
 				query.whereRaw(
 					`patient_contacts.type <> 'email'
@@ -241,12 +242,12 @@ export default class PatientService {
         else patient_contacts.contact ilike ? end
     )`,
 					[
-						data.phone ?? "",
-						`%${data.phone ?? ""}%`,
-						data.phone ?? "",
-						data.phone ?? "",
-						data.phone ?? "",
-						`%${data.phone ?? ""}%`,
+						clearPhone,
+						`%${clearPhone}%`,
+						clearPhone,
+						clearPhone,
+						clearPhone,
+						`%${clearPhone}%`,
 					],
 				);
 			});

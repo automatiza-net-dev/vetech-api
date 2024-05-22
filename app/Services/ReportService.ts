@@ -1623,10 +1623,9 @@ ON bills.patient_id = Dep."id"`,
 
 		const reducedKeys = result.reduce((acc, curr) => {
 			if (!acc.includes(curr.id)) {
-				return acc;
+				acc.push(curr.id);
 			}
 
-			acc.push(curr.id);
 			return acc;
 		}, [] as string[]);
 
@@ -1641,10 +1640,10 @@ ON bills.patient_id = Dep."id"`,
 						id: p.product_id,
 						variationId: p.product_variation_id,
 						description: p.description,
-						qtyStock: p.qtdestoque,
-						minimumStock: p.minimum_stock,
-						maximumStock: p.maximum_stock,
-						suggestion: p.sugestaocompra,
+						qtyStock: parseFloat(p.qtdestoque),
+						minimumStock: parseFloat(p.minimum_stock),
+						maximumStock: parseFloat(p.maximum_stock),
+						suggestion: parseFloat(p.sugestaocompra),
 					})),
 			};
 		});
@@ -1962,6 +1961,7 @@ ON bills.patient_id = Dep."id"`,
 		return result.map((elem) => ({
 			id: elem.id,
 			tag: elem.tag,
+			receiptDate: elem.receiptDate,
 			productValue: elem.productValue,
 			serviceValue: elem.serviceValue,
 			discountValue: elem.discountValue,
@@ -1969,6 +1969,7 @@ ON bills.patient_id = Dep."id"`,
 			paidValue: elem.paidValue,
 			missingPaymentValue: elem.totalValue - elem.paidValue,
 			status: elem.status,
+			origin: elem.origin,
 
 			group: {
 				id: elem.economicGroup.id,
@@ -2014,6 +2015,7 @@ ON bills.patient_id = Dep."id"`,
 				saleValue: inner.saleValue,
 				discountValue: inner.discountValue,
 				totalValue: inner.totalValue,
+				unitaryValue: inner.unitaryValue,
 				product: this.sharedService.captureGroup(
 					inner.productVariation?.product,
 					(v) => ({

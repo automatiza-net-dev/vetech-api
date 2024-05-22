@@ -25,7 +25,7 @@ Route.get("/", () => {
 });
 
 Route.group(() => {
-	Route.get("me", "AuthController.whoAmI").middleware("auth");
+	Route.get("me", "AuthController.whoAmI").middleware(["auth:tpApi,api"]);
 	Route.get("available-swaps", "AuthController.availableSwaps").middleware(
 		"auth",
 	);
@@ -192,7 +192,6 @@ Route.group(() => {
 Route.group(() => {
 	Route.post("/sync", "PermissionsController.sync");
 
-	Route.get("/menu", "PermissionsController.fetchMenu");
 	Route.post("/screens", "PermissionsController.fetchScreens");
 
 	Route.get("/", "PermissionsController.index");
@@ -238,6 +237,7 @@ Route.group(() => {
 	Route.get("/metadata/:id", "PatientsController.metadata");
 	Route.get("/sales-metadata/:id", "PatientsController.salesMetadata");
 	Route.get("/non-pets", "PatientsController.nonPets");
+	Route.get("/display/:id", "PatientsController.display");
 	Route.get("/:id", "PatientsController.show");
 
 	Route.post("/fast", "PatientsController.fastStore");
@@ -345,6 +345,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/home", "SchedulesController.homeContent");
+	Route.get("/home-2", "SchedulesController.homeContent_2");
 	Route.get("/disponibility", "SchedulesController.viewDisponibility");
 	Route.get(
 		"/status-changes/:id",
@@ -367,8 +368,11 @@ Route.group(() => {
 	Route.get("/:id", "SchedulesController.show");
 	Route.put("/reschedule/:id", "SchedulesController.reschedule");
 	Route.put("/status", "SchedulesController.updateStatus");
+	Route.put("/status-type", "SchedulesController.updateStatusType");
 	Route.put("/:id", "SchedulesController.update");
 	Route.delete("/:id", "SchedulesController.destroy");
+
+	Route.post("/sync", "SchedulesController.syncLateSchedules");
 })
 	.prefix("schedules")
 	.middleware("auth");
@@ -1519,6 +1523,7 @@ Route.group(() => {
 		"/median-ticket-origin",
 		"IndicatorsController.medianTicketByOrigin",
 	);
+
 	Route.get(
 		"/invoicing-product-type",
 		"IndicatorsController.invoicingByProductType",
@@ -1591,6 +1596,7 @@ Route.group(() => {
 		"IndicatorsController.budgetByStatusIndicators",
 	);
 	Route.get("/marketing", "IndicatorsController.marketingIndicators");
+
 	Route.get(
 		"/cost-of-acquisition",
 		"IndicatorsController.costOfAcquisitionIndicators",
@@ -1599,13 +1605,62 @@ Route.group(() => {
 		"/bill-payment-format",
 		"IndicatorsController.billPaymentFormatIndicators",
 	);
+
 	Route.get(
 		"/installment-avg",
 		"IndicatorsController.installmentAvgIndicators",
 	);
+
 	Route.get(
 		"/avg-receipt-deadline",
 		"IndicatorsController.avgReceiptDeadlineIndicators",
+	);
+
+	Route.get(
+		"/client-group-tree",
+		"IndicatorsController.clientGroupTreeIndicators",
+	);
+
+	Route.get(
+		"/median-ticket-origin-2",
+		"IndicatorsController.medianTicketByOrigin_2",
+	);
+
+	Route.get(
+		"/invoicing-product-type-2",
+		"IndicatorsController.invoicingByProductType_2",
+	);
+	Route.get(
+		"/invoicing-payment-method-2",
+		"IndicatorsController.invoicingByPaymentMethod_2",
+	);
+	Route.get(
+		"/invoicing-new-clients-period-2",
+		"IndicatorsController.invoicingNewClientsPeriod_2",
+	);
+	Route.get(
+		"/invoicing-new-clients-2",
+		"IndicatorsController.invoicingNewClients_2",
+	);
+	Route.get(
+		"/bill-payment-format-2",
+		"IndicatorsController.billPaymentFormatIndicators_2",
+	);
+	Route.get(
+		"/bill-for-user-period-2",
+		"IndicatorsController.billForUserPeriod_2",
+	);
+	Route.get("/product-type-2", "IndicatorsController.productType_2");
+	Route.get("/subgroups-2", "IndicatorsController.subgroupIndicators_2");
+	Route.get(
+		"/sales-per-period-2",
+		"IndicatorsController.salesPerPeriodIndicators_2",
+	);
+	Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
+	Route.get("/scheduling-2", "IndicatorsController.schedulingIndicators_2");
+	Route.get(
+		"/opportunities-2",
+		"IndicatorsController.opportunitiesIndicators_2",
 	);
 })
 	.prefix("indicators")
@@ -1682,3 +1737,8 @@ Route.resource("client-origin-groups", "ClientOriginGroupsController")
 	.middleware({
 		"*": ["auth"],
 	});
+
+Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
+Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
+	"auth",
+);

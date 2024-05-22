@@ -15,6 +15,8 @@ import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
 import { validate } from "App/Shared";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export type DateSet = {
 	start: Date;
@@ -31,6 +33,98 @@ export type AuthContext = {
 
 @inject()
 export default class SharedService {
+	public static intlMap = {
+		scheduleServiceTypeId: "Serviço de agendamento",
+		scheduleServiceId: "Serviço de agendamento",
+		startHour: "Hora de início",
+		endHour: "Hora de término",
+		patientId: "Paciente",
+		holderId: "Tutor",
+		userId: "Usuário",
+		scheduleOriginId: "Agenda de Origem",
+		scheduleId: "Agenda",
+		statusId: "Status",
+		ignoreBlocking: "Ignorar bloqueios",
+		patientName: "Nome do Paciente",
+		patientPhone: "Telefone do Paciente",
+		age: "Idade",
+		raceId: "Raça",
+		majorComplaint: "Reclamação",
+		ignoreOverlapping: "Ignorar sobreposição",
+		onDuty: "Em plantação",
+		reasonId: "Motivo",
+		observation: "Observação",
+		resume: "Resumo",
+		protocol: "Protocolo",
+		internalObservation: "Observação interna",
+		tag: "Identificador do Paciente",
+		technicianId: "Técnico",
+		tutorId: "Tutor",
+		photos: "Fotos",
+		title: "Título",
+		complaint: "Reclamação",
+		type: "Tipo",
+		scheduleStatusType: "Tipo de Status",
+	} as const;
+
+	public async errorHoc(
+		response: HttpContextContract["response"],
+		fn: () => Promise<void>,
+	) {
+		try {
+			await fn();
+		} catch (e) {
+			console.log("got an error", e);
+			if (e instanceof ValidationException) {
+				return response.unprocessableEntity({
+					data: null,
+					status: 422,
+					title: "Entidade não processável",
+					message: null,
+					// @ts-expect-error
+					validationErrors: e.messages.errors.reduce(
+						(prev, curr) => {
+							if (!prev[curr.field]) {
+								prev[curr.field] = { errors: [] };
+							}
+
+							prev[curr.field].errors.push(
+								curr.message.replace(
+									"Campo",
+									`Campo '${SharedService.intlMap[curr.field] ?? curr.field}'`,
+								),
+							);
+
+							return prev;
+						},
+						{} as Record<string, Record<string, string[]>>,
+					),
+				});
+			}
+
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
+	}
+
+	public formatter = new Intl.NumberFormat("pt-BR", {
+		style: "currency",
+		currency: "BRL",
+	});
+
+	public formatPercentage(value: number) {
+		if (Number.isNaN(value)) {
+			return "0%";
+		}
+
+		return `${value.toFixed(2)}%`;
+	}
+
 	public async getUserGroup(unitId: string): Promise<EconomicGroup> {
 		const unit = await BusinessUnit.findOrFail(unitId);
 		return unit.related("economicGroup").query().firstOrFail();

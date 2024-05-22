@@ -31,12 +31,14 @@ export default class TimelinesController {
 	}
 
 	public async delete({ auth, params, response }: HttpContextContract) {
-		return response.ok(
-			await this.timelineService.softDeleteRecord(
-				await this.sharedService.getAuthContext(auth),
-				params.id,
-			),
-		);
+		return this.sharedService.errorHoc(response, async () => {
+			return response.ok(
+				await this.timelineService.softDeleteRecord(
+					await this.sharedService.getAuthContext(auth),
+					params.id,
+				),
+			);
+		});
 	}
 
 	public async patientEvaluationIndex({
@@ -51,12 +53,14 @@ export default class TimelinesController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreatePatientEvaluationValidator);
-		const result = await this.timelineService.storeEvaluation(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
-		return response.created(result);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreatePatientEvaluationValidator);
+			const result = await this.timelineService.storeEvaluation(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
+			return response.created(result);
+		});
 	}
 
 	public async updatePatientEvaluation({
@@ -64,17 +68,21 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreatePatientEvaluationValidator);
-		await this.timelineService.updateEvaluation(params.id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreatePatientEvaluationValidator);
+			await this.timelineService.updateEvaluation(params.id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async deletePatientEvaluationPhoto({
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
+			return response.noContent();
+		});
 	}
 
 	public async patientPressureIndex({ params, response }: HttpContextContract) {
@@ -108,9 +116,11 @@ export default class TimelinesController {
 	}
 
 	public async storeAnimalWeight({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalWeightValidator);
-		await this.timelineService.storeWeight(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalWeightValidator);
+			await this.timelineService.storeWeight(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalWeight({
@@ -118,9 +128,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalWeightValidator);
-		await this.timelineService.updateWeight(params.id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalWeightValidator);
+			await this.timelineService.updateWeight(params.id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async animalDocumentIndex({ params, response }: HttpContextContract) {
@@ -128,9 +140,10 @@ export default class TimelinesController {
 	}
 
 	public async storeAnimalDocument({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDocumentValidator);
-		await this.timelineService.storeDocument(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDocumentValidator);
+			await this.timelineService.storeDocument(payload);
+		});
 	}
 
 	public async updateAnimalDocument({
@@ -138,9 +151,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDocumentValidator);
-		await this.timelineService.updateDocument(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDocumentValidator);
+			await this.timelineService.updateDocument(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalPathologyIndex({ params, response }: HttpContextContract) {
@@ -151,9 +166,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalPathologyValidator);
-		await this.timelineService.storePathology(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalPathologyValidator);
+			await this.timelineService.storePathology(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalPathology({
@@ -161,9 +178,11 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalPathologyValidator);
-		await this.timelineService.updatePathology(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalPathologyValidator);
+			await this.timelineService.updatePathology(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalMedicalRecipeIndex({
@@ -179,9 +198,13 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
-		await this.timelineService.storeMedicalRecipe(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateAnimalMedicalRecipeValidator,
+			);
+			await this.timelineService.storeMedicalRecipe(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalMedicalRecipe({
@@ -189,9 +212,13 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalMedicalRecipeValidator);
-		await this.timelineService.updateMedicalRecipe(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateAnimalMedicalRecipeValidator,
+			);
+			await this.timelineService.updateMedicalRecipe(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async animalPhotoIndex({ params, response }: HttpContextContract) {
@@ -199,9 +226,11 @@ export default class TimelinesController {
 	}
 
 	public async animalPhotoStore({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalPhotoValidator);
-		await this.timelineService.storePhoto(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalPhotoValidator);
+			await this.timelineService.storePhoto(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalPhoto({
@@ -209,9 +238,11 @@ export default class TimelinesController {
 		response,
 		params,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdateAnimalPhotoValidator);
-		await this.timelineService.updatePhoto(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateAnimalPhotoValidator);
+			await this.timelineService.updatePhoto(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async addAnimalPhotoAttachments({
@@ -219,22 +250,28 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(AddAttachmentsValidator);
-		await this.timelineService.addPhotoAttachment(params.id, payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(AddAttachmentsValidator);
+			await this.timelineService.addPhotoAttachment(params.id, payload);
+			return response.created();
+		});
 	}
 
 	public async deleteAnimalPhotoAttachments({
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deletePhotoAttachment(params.id, params.index);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deletePhotoAttachment(params.id, params.index);
+			return response.created();
+		});
 	}
 
 	public async deleteAnimalPhoto({ params, response }: HttpContextContract) {
-		await this.timelineService.deletePhoto(params.id);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deletePhoto(params.id);
+			return response.noContent();
+		});
 	}
 
 	public async animalVaccineIndex({ params, response }: HttpContextContract) {
@@ -242,9 +279,11 @@ export default class TimelinesController {
 	}
 
 	public async animalVaccineStore({ request, response }: HttpContextContract) {
-		const payload = await request.validate(UpsertAnimalVaccineValidator);
-		await this.timelineService.storeVaccine(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpsertAnimalVaccineValidator);
+			await this.timelineService.storeVaccine(payload);
+			return response.created();
+		});
 	}
 
 	public async updateAnimalVaccine({
@@ -252,10 +291,12 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const { id } = params;
-		const payload = await request.validate(UpsertAnimalVaccineValidator);
-		await this.timelineService.updateVaccine(id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const { id } = params;
+			const payload = await request.validate(UpsertAnimalVaccineValidator);
+			await this.timelineService.updateVaccine(id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async animalExamIndex({ params, response }: HttpContextContract) {
@@ -322,9 +363,11 @@ export default class TimelinesController {
 	}
 
 	public async storeObservation({ request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalObservationValidator);
-		await this.timelineService.storeObservations(payload);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalObservationValidator);
+			await this.timelineService.storeObservations(payload);
+			return response.created();
+		});
 	}
 
 	public async updateObservations({
@@ -332,25 +375,34 @@ export default class TimelinesController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalObservationValidator);
-		await this.timelineService.updateObservations(params.id, payload);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalObservationValidator);
+			await this.timelineService.updateObservations(params.id, payload);
+			return response.noContent();
+		});
 	}
 
 	public async deleteObservationMedia({
 		params,
 		response,
 	}: HttpContextContract) {
-		await this.timelineService.deleteObservationMedia(params.id, params.index);
-		return response.noContent();
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteObservationMedia(
+				params.id,
+				params.index,
+			);
+			return response.noContent();
+		});
 	}
 
 	public async storeDeath({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateAnimalDeathValidator);
-		await this.timelineService.storeDeath(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
-		return response.created();
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateAnimalDeathValidator);
+			await this.timelineService.storeDeath(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
+			return response.created();
+		});
 	}
 }

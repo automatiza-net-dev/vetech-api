@@ -10,6 +10,7 @@ import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 
 @inject()
 export default class AuthController {
@@ -146,6 +147,23 @@ export default class AuthController {
 	}
 
 	public async whoAmI({ auth, response }: HttpContextContract) {
+		const $user = auth.user;
+		if ($user instanceof ThirdPartyUserPermission) {
+			await $user.load("user");
+			await $user.load("system", (query) => {
+				query.preload("systemUrls", (query) => {
+					query.select(["id", "url", "active"]);
+				});
+			});
+			return response.ok({
+				user: $user.user,
+				unit: null,
+				url: $user.system.systemUrls.at(0) ?? null,
+				cl: null,
+				isThirdParty: true,
+			});
+		}
+
 		const { user, unit_id, system_id } = this.sharedService.extractUser(auth);
 
 		if (user.type === "controller") {
@@ -166,6 +184,7 @@ export default class AuthController {
 				unit: null,
 				url: null,
 				cl: null,
+				isThirdParty: false,
 			});
 		}
 
@@ -191,6 +210,8 @@ export default class AuthController {
 				"requires_finance_client",
 				"alter_prices",
 				"requires_client_document",
+				"schedule_late_minutes",
+				"schedule_missed_minutes",
 			]);
 		});
 
@@ -199,6 +220,7 @@ export default class AuthController {
 			unit,
 			url: economicGroup.system.systemUrls.at(0) ?? null,
 			cl: await this.authService.getUserACL(user, system_id, unit.id),
+			isThirdParty: false,
 		});
 	}
 

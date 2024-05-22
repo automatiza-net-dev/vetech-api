@@ -811,6 +811,7 @@ export default class OpportunityService {
 		const qb = Opportunity.query()
 			.where("economic_group_id", authCtx.group.id)
 			.whereNull("closing_date")
+			.orderByRaw("opening_date desc")
 			.preload("client", (query) => {
 				query.select("id", "name", "weight", "gender");
 
@@ -1020,47 +1021,45 @@ export default class OpportunityService {
 				mappedResult[key] = value;
 				continue;
 			}
+			//
+			// const sortedValue = value.sort((a, b) => {
+			// 	if (data.orderBy === "contactDate") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contactDate.toMillis() - b.contactDate.toMillis() ||
+			// 			a.contact.name.localeCompare(b.contact.name)
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "openingDate") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.openingDate.toMillis() - b.openingDate.toMillis() ||
+			// 			a.contact.name.localeCompare(b.contact.name)
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "contact") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contact.name.localeCompare(b.contact.name) ||
+			// 			a.contactDate.toMillis() - b.contactDate.toMillis()
+			// 		);
+			// 	}
+			//
+			// 	if (data.orderBy === "client") {
+			// 		return (
+			// 			a.status.description.localeCompare(b.status.description) ||
+			// 			a.contact.name.localeCompare(b.contact.name) ||
+			// 			a.openingDate.toMillis() - b.openingDate.toMillis()
+			// 		);
+			// 	}
+			//
+			// 	return 0;
+			// });
 
-			const sortedValue = value.sort((a, b) => {
-				if (data.orderBy === "contactDate") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contactDate.toMillis() - b.contactDate.toMillis() ||
-						a.contact.name.localeCompare(b.contact.name)
-					);
-				}
-
-				if (data.orderBy === "openingDate") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.openingDate.toMillis() - b.openingDate.toMillis() ||
-						a.contact.name.localeCompare(b.contact.name)
-					);
-				}
-
-				if (data.orderBy === "contact") {
-					qb.orderByRaw(
-						"crm_statuses.description, contact.name, opportunities.contact_date",
-					);
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contact.name.localeCompare(b.contact.name) ||
-						a.contactDate.toMillis() - b.contactDate.toMillis()
-					);
-				}
-
-				if (data.orderBy === "client") {
-					return (
-						a.status.description.localeCompare(b.status.description) ||
-						a.contact.name.localeCompare(b.contact.name) ||
-						a.openingDate.toMillis() - b.openingDate.toMillis()
-					);
-				}
-
-				return 0;
-			});
-
-			mappedResult[key] = sortedValue;
+			// mappedResult[key] = sortedValue;
+			mappedResult[key] = value;
 		}
 
 		return mappedResult;
@@ -1771,7 +1770,6 @@ export default class OpportunityService {
 				`left join crm_statuses on crm_statuses.id = opportunities.status_id`,
 			)
 			.where("opportunities.economic_group_id", data.group ?? authCtx.group.id)
-			.whereNull("opportunities.schedule_id")
 			.whereNull("opportunities.closing_date")
 			.whereRaw(
 				`
@@ -1780,6 +1778,13 @@ export default class OpportunityService {
                 (opportunities.contact_id = ? and opportunities.client_id is null)
               )`,
 				[data.client, data.contact],
+			)
+			.whereRaw(
+				`("opportunities"."schedule_id" is null or ("opportunities"."schedule_id" in (select s.id
+                                                                                   from schedules s
+                                                                                            join schedule_statuses ss
+                                                                                                 on s.schedule_status_id = ss.id and ss.type in ('FAL', 'CANC'))))`,
+				[],
 			)
 			.whereNull("opportunities.deleted_at");
 
@@ -1836,6 +1841,9 @@ export default class OpportunityService {
 				`join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
 			)
 			.joinRaw(
+				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types."type" = 'A'`,
+			)
+			.joinRaw(
 				`join business_units on schedules.business_unit_id = business_units.id`,
 			)
 			.joinRaw(
@@ -1867,6 +1875,9 @@ export default class OpportunityService {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
 				.useTransaction(trx)
+				.preload("schedule", (query) => {
+					query.preload("serviceStatus");
+				})
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", data.opportunityId)
 				.first();
@@ -1877,7 +1888,10 @@ export default class OpportunityService {
 				);
 			}
 
-			if (model.schedule_id) {
+			if (
+				model.schedule_id &&
+				!["FAL", "CANC"].includes(model.schedule.serviceStatus.type)
+			) {
 				throw new BadRequestException(
 					"Oportunidade já possui agendamento",
 					400,

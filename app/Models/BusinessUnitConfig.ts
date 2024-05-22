@@ -82,6 +82,16 @@ export default class BusinessUnitConfig extends BaseModel {
 	public returnInterval: number;
 
 	@column({
+		columnName: "schedule_late_minutes",
+	})
+	public scheduleLateMinutes: number;
+
+	@column({
+		columnName: "schedule_missed_minutes",
+	})
+	public scheduleMissedMinutes: number;
+
+	@column({
 		columnName: "allowed_return_qty",
 	})
 	public allowedReturnQty: number;

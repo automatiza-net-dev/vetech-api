@@ -65,12 +65,106 @@ export default class PermissionService {
 	}
 
 	public async fetchMenu(authCtx: AuthContext) {
-		return Permission.query()
-			.whereHas("systems", (query) => {
-				query.where("system_id", authCtx.system.id);
-			})
-			.whereILike("control", `%${"menu"}%`)
-			.preload("screen");
+		const rows = await Database.from("users")
+			.select(
+				Database.raw(`menus.id                as menu_id,
+       menus.description       as menu_descricao,
+       menus.icon              as menu_icon,
+       menus.route             as menu_rota,
+       menus."order"           as menu_ordem,
+
+       screens."name"          as tela,
+
+       permissions.id          as permissao_id,
+       0                       as permissao_ordem,
+       permissions.icon        as permissao_icon,
+       permissions.description as permissao_descricao,
+       permissions.route       as permissao_rota`),
+			)
+			.joinRaw(
+				`join user_unit_roles
+              on users.id = user_unit_roles.user_id and user_unit_roles.active = true and
+                 user_unit_roles.unit_id = ?`,
+				[authCtx.unit.id],
+			)
+			.joinRaw(
+				`join roles on roles.id = user_unit_roles.role_id and roles.deleted_at is null and roles.active = true`,
+			)
+			.joinRaw(
+				`join role_permissions on role_permissions.role_id = roles.id and role_permissions.active = true`,
+			)
+			.joinRaw(
+				`join permissions on role_permissions.permission_id = permissions.id and permissions.deleted_at is null`,
+			)
+			.joinRaw(`join screens on screens.id = permissions.screen_id`)
+			.joinRaw(`join menus on screens.menu_id = menus.id`)
+			.where("users.id", authCtx.user.id)
+			.whereILike("permissions.control_id", "%00")
+			.where("role_permissions.active", true)
+			.orderByRaw(
+				'menus.id, menus."order", screens.id, screens."name", permissions.control_id',
+			)
+			.exec();
+		const typedRows = rows as {
+			menu_id: number;
+			menu_descricao: string;
+			menu_icon: string | null;
+			menu_rota: string | null;
+			menu_ordem: number;
+			tela: string;
+			permissao_id: number;
+			permissao_ordem: number;
+			permissao_descricao: string;
+			permissao_icon: string | null;
+			permissao_rota: string | null;
+		}[];
+
+		const dataMap: Map<
+			number,
+			{
+				id: number;
+				order: number;
+				icon: string | null;
+				title: string;
+				route: string | null;
+			}[]
+		> = new Map();
+		for (const row of typedRows) {
+			if (!dataMap.has(row.menu_id)) {
+				dataMap.set(row.menu_id, []);
+			}
+
+			const entry = dataMap.get(row.menu_id)!;
+			entry.push({
+				id: row.permissao_id,
+				order: row.permissao_ordem,
+				icon: row.permissao_icon,
+				title: row.tela,
+				route: row.permissao_rota,
+			});
+		}
+
+		return {
+			status: 200,
+			title: "Ok",
+			message: null,
+			validationErrors: {},
+			data: {
+				items: Array.from(dataMap.keys()).map((key) => {
+					const info = typedRows.find((r) => r.menu_id === key)!;
+					const value = dataMap.get(key)!;
+
+					return {
+						id: info.menu_id,
+						order: info.menu_ordem,
+						title: info.menu_descricao,
+						route: info.menu_rota,
+						icon: info.menu_icon,
+						items: value,
+					};
+				}),
+			},
+		};
 	}
 
 	public async fetchScreens(authCtx: AuthContext, data: { term: string }) {

@@ -11,7 +11,6 @@ import CheckingAccount, {
 import { LicenceType } from "App/Models/Licence";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import { validDocument } from "App/Shared";
 import { IBusinessUnitAcquirerData } from "Contracts/interfaces/IBusinessUnitAcquirerData";
 import { ICreateBusinessUnit } from "Contracts/interfaces/ICreateBusinessUnit";
 import { IUpdateUnitUser } from "Contracts/interfaces/IUpdateUnitUser";
@@ -294,7 +293,7 @@ export default class BusinessUnitService {
 		});
 	}
 
-	public async show(id: string): Promise<BusinessUnit> {
+	public async show(id: string) {
 		const unit = await BusinessUnit.query()
 			.where("id", id)
 			.preload("economicGroup")
@@ -308,7 +307,22 @@ export default class BusinessUnitService {
 			);
 		}
 
-		return unit;
+		const jsonData = unit.toJSON();
+		jsonData["fantasyName"] = jsonData["fantasy_name"];
+		jsonData["companyName"] = jsonData["company_name"];
+		jsonData["postalCode"] = jsonData["postal_code"];
+		jsonData["stateRegistration"] = jsonData["state_registration"];
+		jsonData["cityRegistration"] = jsonData["city_registration"];
+		jsonData["cityCode"] = jsonData["city_code"];
+
+		jsonData["fantasy_name"] = undefined;
+		jsonData["company_name"] = undefined;
+		jsonData["postal_code"] = undefined;
+		jsonData["state_registration"] = undefined;
+		jsonData["city_registration"] = undefined;
+		jsonData["city_code"] = undefined;
+
+		return jsonData;
 	}
 
 	public async update(
@@ -594,7 +608,7 @@ export default class BusinessUnitService {
 	}
 
 	public async checkExistingDocument(document: string) {
-		const isValidDocument = validDocument(document);
+		const isValidDocument = this.sharedService.validDocument(document);
 		if (!isValidDocument) {
 			return {
 				valid: false,

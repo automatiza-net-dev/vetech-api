@@ -24,9 +24,12 @@ import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibil
 import {
 	addDays,
 	differenceInDays,
+	differenceInMinutes,
 	endOfDay,
 	format,
 	intervalToDuration,
+	isAfter,
+	isBefore,
 	isSameDay,
 	startOfDay,
 } from "date-fns";
@@ -72,7 +75,6 @@ export default class ScheduleService {
 
 		if (data.confirmed === "false") {
 			// Confirmar consultas
-
 			// qb.where('schedule_status_id', SS_NOT_CONFIRMED);
 			qb.whereHas("serviceStatus", (query) => {
 				query.where("type", "AN");
@@ -86,6 +88,142 @@ export default class ScheduleService {
 		const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
 
 		return result;
+	}
+
+	public async homeContent_2(
+		authCtx: AuthContext,
+		data: Pick<IHomeSearch, "unit">,
+	) {
+		const confirmedQb = Schedule.query()
+			.select(
+				"patient_id",
+				"holder_id",
+				"schedule_service_type_id",
+				"schedule_status_id",
+				"user_id",
+				"id",
+				"patient_name",
+				"patient_phone",
+				"start_hour",
+				"end_hour",
+				"major_complaint",
+				"observation",
+			)
+			.where("business_unit_id", data.unit ?? authCtx.unit.id)
+			.whereHas("serviceStatus", (query) => {
+				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
+			})
+			.preload("patient", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.select("race_id", "id", "death", "death_date");
+
+					query.preload("race", (query) => {
+						query.select("specie_id", "id", "description");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+
+				query.select(["id", "name", "type", "photo", "gender", "tag"]);
+			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
+			.preload("holder", (query) => {
+				query.preload("tutor", (query) => {
+					query.select(["id", "cellphone", "telephone"]);
+				});
+				query.select(["id", "name", "type", "photo"]);
+			})
+			.preload("serviceType", (query) => {
+				query.select(["id", "description", "reserved_minutes", "type"]);
+			})
+			.preload("serviceStatus", (query) => {
+				query.select(["id", "description", "color", "type"]);
+			})
+			.orderBy("start_hour", "asc");
+
+		const nonConfirmedQb = Schedule.query()
+			.select(
+				"patient_id",
+				"holder_id",
+				"schedule_service_type_id",
+				"schedule_status_id",
+				"user_id",
+				"id",
+				"patient_name",
+				"patient_phone",
+				"start_hour",
+				"end_hour",
+				"major_complaint",
+				"observation",
+			)
+			.where("business_unit_id", data.unit ?? authCtx.unit.id)
+			.whereHas("serviceStatus", (query) => {
+				query.where("type", "AN");
+			})
+			.preload("patient", (query) => {
+				query.preload("patientAnimal", (query) => {
+					query.select("race_id", "id", "death", "death_date");
+
+					query.preload("race", (query) => {
+						query.select("specie_id", "id", "description");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+
+				query.select(["id", "name", "type", "photo", "gender", "tag"]);
+			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
+			.preload("holder", (query) => {
+				query.preload("tutor", (query) => {
+					query.select(["id", "cellphone", "telephone"]);
+				});
+				query.select(["id", "name", "type", "photo"]);
+			})
+			.preload("serviceType", (query) => {
+				query.select(["id", "description", "reserved_minutes", "type"]);
+			})
+			.preload("serviceStatus", (query) => {
+				query.select(["id", "description", "color", "type"]);
+			})
+			.orderBy("start_hour", "asc");
+
+		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([
+			confirmedQb,
+			nonConfirmedQb,
+		]);
+
+		return {
+			confirmed: confirmedSchedules.map((day) => ({
+				start: day.startHour.toString(),
+				end: day.endHour.toString(),
+				event: day,
+				name: day.user?.name ?? "-",
+				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+				late: isAfter(new Date(), day.startHour.toJSDate())
+					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+					: null,
+				type: this.getEventLabel(day),
+			})),
+
+			nonConfirmed: nonConfirmedSchedules.map((day) => ({
+				start: day.startHour.toString(),
+				end: day.endHour.toString(),
+				event: day,
+				name: day.user?.name ?? "-",
+				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+				late: isAfter(new Date(), day.startHour.toJSDate())
+					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+					: null,
+				type: this.getEventLabel(day),
+			})),
+		};
 	}
 
 	public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
@@ -291,6 +429,13 @@ export default class ScheduleService {
 				},
 			);
 
+			const scheduleType = await ScheduleServiceType.findOrFail(
+				data.scheduleServiceTypeId,
+				{
+					client: trx,
+				},
+			);
+
 			const result = await Schedule.create(
 				{
 					patientName: data.patientName,
@@ -346,6 +491,7 @@ export default class ScheduleService {
 				patient_id: result.patient_id,
 				race_id: result.race_id,
 				schedule_service_type_id: result.schedule_service_type_id,
+				schedule_service_type_type: scheduleType.type,
 				schedule_status_id: status.id,
 				scheduleOriginId: result.scheduleOriginId,
 				onDuty: result.onDuty,
@@ -735,11 +881,16 @@ export default class ScheduleService {
 			to?: string;
 			from?: string;
 			lista_cancelados?: string;
+			status?: string[];
+			working?: string;
+			unavailable?: string;
 		},
 	) {
-		if (!data.from || !data.to) {
-			throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
-		}
+		// if (!data.from || !data.to) {
+		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
+		// }
+		const refStart = data.from ? new Date(data.from) : new Date();
+		const refEnd = data.to ? new Date(data.to) : new Date();
 
 		const usersQb = Database.from("users")
 			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
@@ -749,11 +900,11 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date(data.from).getDay().toString()],
+				[refStart.getDay().toString()],
 			)
 			.joinRaw(
 				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
-				[data.from, data.to],
+				[refStart, refEnd],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
@@ -776,45 +927,20 @@ export default class ScheduleService {
 		const users = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = differenceInDays(new Date(data.to), new Date(data.from));
+		const days = Math.max(differenceInDays(refStart, refEnd), 1);
 		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
-			const tmpDate = addDays(new Date(data.from!), k);
+			const tmpDate = addDays(refStart, k);
 			return ScheduleService.GetWD(tmpDate);
 		});
-
-		const workingDaysQb = WorkingDay.query()
-			.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
-			.where("business_unit_id", authCtx.unit.id)
-			.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
-			.whereIn("user_id", userIds);
-
-		const unavailableDaysQb = UnavailableDay.query()
-			.select(
-				"id",
-				"user_id",
-				"start_hour",
-				"end_hour",
-				"frequency",
-				"start_date",
-				"end_date",
-				"active",
-				"title",
-			)
-			.where("active", true)
-			.where("business_unit_id", authCtx.unit.id)
-			.whereILike(
-				"frequency",
-				`%${ScheduleService.GetWD(new Date(data.from))}%`,
-			)
-			.whereRaw("(start_date::date <= ? or start_date::date is null)", [
-				data.from,
-			])
-			.whereRaw("(end_date::date >= ? or end_date::date is null)", [data.to])
-			.whereIn("user_id", userIds);
+		const resultData: [Schedule[], WorkingDay[], UnavailableDay[]] = [
+			[],
+			[],
+			[],
+		];
 
 		const schedulesQb = Schedule.query()
 			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
+			.whereRaw("start_hour::date between ? and ?", [refStart, refEnd])
 			.whereIn("user_id", userIds)
 			.preload("serviceType", (query) => {
 				query.select(["id", "description", "type"]);
@@ -833,13 +959,19 @@ export default class ScheduleService {
 				});
 			});
 
+		if (data.status) {
+			schedulesQb.whereHas("serviceStatus", (query) => {
+				query.whereIn("type", data.status ?? []);
+			});
+		}
+
 		if (data.lista_cancelados?.toLowerCase() === "false") {
 			schedulesQb.whereHas("serviceStatus", (query) => {
 				query.whereNot("type", "CANC");
 			});
 		}
 
-		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
+		if (authCtx.unit.unitConfig?.requiresScheduleTutor) {
 			schedulesQb.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {
@@ -855,20 +987,49 @@ export default class ScheduleService {
 			});
 		}
 
-		const [workingDays, unavailableDays, schedules] = await Promise.all([
-			workingDaysQb,
-			unavailableDaysQb,
-			schedulesQb,
-		]);
+		resultData[0] = await schedulesQb;
+
+		if (data.working === "true") {
+			resultData[1] = await WorkingDay.query()
+				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
+				.where("business_unit_id", authCtx.unit.id)
+				.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
+				.whereIn("user_id", userIds);
+		}
+
+		if (data.unavailable === "true") {
+			resultData[2] = await UnavailableDay.query()
+				.select(
+					"id",
+					"user_id",
+					"start_hour",
+					"end_hour",
+					"frequency",
+					"start_date",
+					"end_date",
+					"active",
+					"title",
+				)
+				.where("active", true)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereILike("frequency", `%${ScheduleService.GetWD(refStart)}%`)
+				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
+					data.from ?? new Date(),
+				])
+				.whereRaw("(end_date::date >= ? or end_date::date is null)", [
+					data.to ?? new Date(),
+				])
+				.whereIn("user_id", userIds);
+		}
 
 		const patients = await Patient.query()
 			.whereIn(
 				"id",
-				schedules.map((s) => s.patient_id).filter(Boolean) as string[],
+				resultData[0].map((s) => s.patient_id).filter(Boolean) as string[],
 			)
 			.preload("tutor");
 
-		const mappedSchedules = schedules.map((schedule) => {
+		const mappedSchedules = resultData[0].map((schedule) => {
 			const jsonKinda = schedule.toJSON();
 			const patient = patients.find((p) => p.id === schedule.patient_id);
 
@@ -899,7 +1060,7 @@ export default class ScheduleService {
 			return jsonKinda;
 		});
 
-		const allEvents = [...workingDays, ...unavailableDays, ...mappedSchedules];
+		const allEvents = [...resultData[1], ...resultData[2], ...mappedSchedules];
 
 		return users
 			.map((elem) => {
@@ -913,6 +1074,7 @@ export default class ScheduleService {
 							start: day.startHour.toString(),
 							end: day.endHour.toString(),
 							event: day,
+							name: elem.name,
 							type: this.getEventLabel(day),
 						})),
 				};
@@ -1487,9 +1649,120 @@ export default class ScheduleService {
 				},
 			);
 
-			return schedule
+			await schedule
 				.merge({
 					schedule_status_id: data.statusId,
+					finishedAt:
+						toStatus.type === "FIN"
+							? DateTime.now().minus({ hours: 3 })
+							: schedule.finishedAt,
+					reason_id: data.reasonId,
+					observation: data.observation,
+					cancellation_user_id:
+						toStatus.type === "CANC"
+							? authCtx.user.id
+							: schedule.cancellation_user_id,
+					startedAt:
+						toStatus.type === "ATEND"
+							? DateTime.now().minus({ hours: 3 })
+							: schedule.startedAt,
+				})
+				.useTransaction(trx)
+				.save();
+
+			return schedule.refresh();
+		});
+	}
+
+	public async updateScheduleStatusFromType(
+		authCtx: AuthContext,
+		data: {
+			scheduleId: string;
+			scheduleStatusType: string;
+
+			reasonId?: string;
+			observation?: string;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.where("business_unit_id", authCtx.unit.id)
+				.preload("serviceStatus")
+				.first();
+
+			if (!schedule) {
+				throw new ResourceNotFoundException(
+					"Agendamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (data.reasonId) {
+				const reason = await Reason.findOrFail(data.reasonId);
+				if (reason.requiresObservation && !data.observation) {
+					throw new BadRequestException(
+						"É preciso informar observação",
+						400,
+						"E_MISSING",
+					);
+				}
+			}
+
+			const toStatus = await ScheduleStatus.query()
+				.useTransaction(trx)
+				.whereRaw("(system_id = ? or system_id is null)", [authCtx.system.id])
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
+				.where("type", data.scheduleStatusType)
+				.first();
+			if (!toStatus) {
+				throw new ResourceNotFoundException(
+					"Status de agendamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+			if (!validChanges || !validChanges.includes(toStatus.type)) {
+				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
+			}
+
+			if (toStatus.type === "REC") {
+				await this.opportunityService.updateOpportunityScheduleAsAttended(
+					authCtx,
+					schedule,
+					trx,
+				);
+			}
+
+			if (toStatus.type === "CANC") {
+				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
+					authCtx,
+					schedule,
+					trx,
+				);
+			}
+
+			await schedule.related("statusChanges").create(
+				{
+					user_id: authCtx.user.id,
+					schedule_status_id: toStatus.id,
+					reason_id: data.reasonId,
+					observation: data.observation,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			return schedule
+				.merge({
+					schedule_status_id: toStatus.id,
 					finishedAt:
 						toStatus.type === "FIN"
 							? DateTime.now().minus({ hours: 3 })
@@ -1706,5 +1979,100 @@ export default class ScheduleService {
 				},
 			})),
 		}));
+	}
+
+	static async RunSyncLateOrMissingSchedules() {
+		const scheduleStatuses = await ScheduleStatus.query();
+
+		const toBeMissedSchedules = (await Database.from("schedules")
+			.select(
+				"schedules.id",
+				"schedules.business_unit_id",
+				"schedule_statuses.system_id",
+			)
+			.join(
+				"schedule_statuses",
+				"schedules.schedule_status_id",
+				"schedule_statuses.id",
+			)
+			.join("business_units", "schedules.business_unit_id", "business_units.id")
+			.join(
+				"business_unit_configs",
+				"business_units.id",
+				"business_unit_configs.business_unit_id",
+			)
+			.whereNull("schedules.deleted_at")
+			.whereRaw(
+				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+			)
+			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
+			.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
+			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+
+		if (toBeMissedSchedules.length > 0) {
+			const tasks = toBeMissedSchedules.map(async (elem) => {
+				const newStatus = scheduleStatuses.find(
+					(s) => s.system_id === elem.system_id && s.type === "FAL",
+				);
+
+				if (!newStatus) {
+					return Promise.resolve(null);
+				}
+
+				return Schedule.query().where("id", elem.id).update({
+					schedule_status_id: newStatus.id,
+				});
+			});
+
+			await Promise.all(tasks);
+		}
+
+		const lateSchedules = (await Database.from("schedules")
+			.select(
+				"schedules.id",
+				"schedules.business_unit_id",
+				"schedule_statuses.system_id",
+			)
+			.join(
+				"schedule_statuses",
+				"schedules.schedule_status_id",
+				"schedule_statuses.id",
+			)
+			.join("business_units", "schedules.business_unit_id", "business_units.id")
+			.join(
+				"business_unit_configs",
+				"business_units.id",
+				"business_unit_configs.business_unit_id",
+			)
+			.whereNull("schedules.deleted_at")
+			.whereRaw(
+				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+			)
+			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
+			.whereRaw("business_unit_configs.schedule_late_minutes > 0")
+			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+
+		if (lateSchedules.length > 0) {
+			const tasks = lateSchedules.map(async (elem) => {
+				const newStatus = scheduleStatuses.find(
+					(s) => s.system_id === elem.system_id && s.type === "ATR",
+				);
+
+				if (!newStatus) {
+					return Promise.resolve(null);
+				}
+
+				return Schedule.query().where("id", elem.id).update({
+					schedule_status_id: newStatus.id,
+				});
+			});
+
+			await Promise.all(tasks);
+		}
+
+		return {
+			toBeMissed: toBeMissedSchedules.length,
+			late: lateSchedules.length,
+		};
 	}
 }

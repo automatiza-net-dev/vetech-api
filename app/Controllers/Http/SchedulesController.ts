@@ -9,6 +9,7 @@ import UpdateScheduleSpecificStatusValidator from "App/Validators/Schedule/Updat
 import UpdateScheduleValidator from "App/Validators/Schedule/UpdateScheduleValidator";
 import { addDays } from "date-fns";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateScheduleStatusTypeValidator";
 
 @inject()
 export default class SchedulesController {
@@ -22,6 +23,16 @@ export default class SchedulesController {
 
 		const qs = request.qs();
 		const result = await this.service.homeContent(unit_id, qs);
+
+		return response.ok(result);
+	}
+
+	public async homeContent_2({ auth, request, response }: HttpContextContract) {
+		const qs = request.qs();
+		const result = await this.service.homeContent_2(
+			await this.sharedService.getAuthContext(auth),
+			qs,
+		);
 
 		return response.ok(result);
 	}
@@ -60,28 +71,6 @@ export default class SchedulesController {
 		return response.ok(result);
 	}
 
-	private static intlMap = {
-		scheduleServiceTypeId: "Serviço de agendamento",
-		startHour: "Hora de início",
-		endHour: "Hora de término",
-		patientId: "Paciente",
-		holderId: "Tutor",
-		userId: "Usuário",
-		scheduleOriginId: "Agenda de Origem",
-		scheduleId: "Agenda",
-		statusId: "Status",
-		ignoreBlocking: "Ignorar bloqueios",
-		patientName: "Nome do Paciente",
-		patientPhone: "Telefone do Paciente",
-		age: "Idade",
-		raceId: "Raça",
-		majorComplaint: "Reclamação",
-		ignoreOverlapping: "Ignorar sobreposição",
-		onDuty: "Em plantação",
-		reasonId: "Motivo",
-		observation: "Observação",
-	} as const;
-
 	public async show({ auth, params, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
@@ -117,7 +106,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 
@@ -189,7 +178,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 
@@ -240,7 +229,7 @@ export default class SchedulesController {
 							prev[curr.field].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SchedulesController.intlMap[curr.field]}'`,
+									`Campo '${SharedService.intlMap[curr.field]}'`,
 								),
 							);
 
@@ -259,6 +248,24 @@ export default class SchedulesController {
 				validationErrors: {},
 			});
 		}
+	}
+
+	public async updateStatusType({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateScheduleStatusTypeValidator);
+			const authCtx = await this.sharedService.getAuthContext(auth);
+
+			const result = await this.service.updateScheduleStatusFromType(
+				authCtx,
+				payload,
+			);
+
+			return response.ok(result);
+		});
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {
@@ -395,6 +402,12 @@ export default class SchedulesController {
 			authCtx,
 			params.patient,
 		);
+
+		return response.ok(result);
+	}
+
+	public async syncLateSchedules({ response }: HttpContextContract) {
+		const result = await ScheduleService.RunSyncLateOrMissingSchedules();
 
 		return response.ok(result);
 	}

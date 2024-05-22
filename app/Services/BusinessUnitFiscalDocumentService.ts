@@ -267,7 +267,7 @@ export default class BusinessUnitFiscalDocumentService {
 					fiscal_document_id: document.id,
 					model: document.model,
 					series: document.series,
-					// sequence: document.sequence + 1,
+					sequence: (document.sequence + 1).toString(),
 					user_who_authorized_id: user.id,
 					authorizationDate: DateTime.now(),
 					contingency: IssuedFiscalDocumentContingency.N,
@@ -622,6 +622,9 @@ export default class BusinessUnitFiscalDocumentService {
 			.useTransaction(trx)
 			.where("id", data.billId)
 			.preload("client", (query) => {
+				query.preload("tutor");
+			})
+			.preload("financialResponsible", (query) => {
 				query.preload("tutor");
 			})
 			.firstOrFail();

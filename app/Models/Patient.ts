@@ -102,6 +102,9 @@ export default class Patient extends BaseModel {
 	public hypertension: boolean;
 
 	@column()
+	public community: boolean;
+
+	@column()
 	public diabetes: boolean;
 
 	@column()

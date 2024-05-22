@@ -50,6 +50,25 @@ export default class PatientsController {
 		return response.ok(patients);
 	}
 
+	public async display({ auth, params, response }: HttpContextContract) {
+		try {
+			const patients = await this.service.display(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+			);
+
+			return response.ok(patients);
+		} catch (e) {
+			return response.badRequest({
+				data: null,
+				status: 400,
+				title: "Requisição inválida",
+				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				validationErrors: {},
+			});
+		}
+	}
+
 	public async checkDocument({ params, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 

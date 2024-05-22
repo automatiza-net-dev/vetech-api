@@ -32,12 +32,38 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async medianTicketByOrigin_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.medianTicketByOrigin_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async invoicingByProductType({
 		auth,
 		request,
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.invoicingByProductType(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingByProductType_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingByProductType_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);
@@ -64,6 +90,19 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.invoicingByPaymentMethod(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingByPaymentMethod_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingByPaymentMethod_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);
@@ -385,6 +424,159 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.avgReceiptDeadlineIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async clientGroupTreeIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.clientGroupTreeIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingNewClientsPeriod_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingNewClientsPeriod_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async billPaymentFormatIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.billPaymentFormatIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async billForUserPeriod_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.billForUserPeriod_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async productType_2({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.productTypeIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async subgroupIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.subgroupIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async chartsIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.chartsIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		response.header("Cache-Control", "private, max-age=60");
+		return response.ok(result);
+	}
+
+	public async salesPerPeriodIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.salesPerPeriodIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async budgetsIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.budgetsIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async schedulingIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.schedulingIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async opportunitiesIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.opportunitiesIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async invoicingNewClients_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.invoicingNewClients_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

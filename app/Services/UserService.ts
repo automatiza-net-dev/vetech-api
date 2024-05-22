@@ -29,7 +29,8 @@ import SystemPaymentMethod from "App/Models/SystemPaymentMethod";
 import SystemProduct from "App/Models/SystemProduct";
 import SystemTaxationGroup from "App/Models/SystemTaxationGroup";
 import SystemVariationGroup from "App/Models/SystemVariationGroup";
-import {
+import TaxationGroup from "App/Models/TaxationGroup";
+import TaxationGroupRule, {
 	CompanyType,
 	MovementCategory,
 	MovementType,
@@ -280,38 +281,66 @@ export default class UserService {
 			const systemTaxationGroups = await SystemTaxationGroup.query()
 				.useTransaction(trx)
 				.where("system_id", system.id)
-				.preload("rules");
+				.preload("rules", (query) => {
+					query
+						.whereILike("from_uf", `%${data.state ?? "SKIP"}%`)
+						.whereILike("to_uf", `%${data.state ?? "SKIP"}%`);
+				});
 			const taxationGroups = await newGroup
 				.related("taxationGroups")
 				.createMany(
-					systemTaxationGroups.map((t) => ({
+					systemTaxationGroups.map<Partial<TaxationGroup>>((t) => ({
 						name: t.name,
+						active: t.active,
 					})),
 					{
 						client: trx,
 					},
 				);
+
+			const taxOperations = await TaxOperation.query()
+				.useTransaction(trx)
+				.whereNull("economic_group_id");
+
 			const tasks = taxationGroups.map(async (group, idx) => {
 				const rules = systemTaxationGroups[idx].rules;
 
 				return await group.related("rules").createMany(
-					rules.map((r) => ({
-						// tax_operation_id: r.system_taxation_group_id, // diference
-						companyType: r.companyType,
-						movementType: r.movementType,
-						movementCategory: r.movementCategory,
-						fromUf: r.fromUf,
-						toUf: r.toUf,
-						icmsCst: r.icmsCst,
-						icmsPerc: r.icmsPerc,
-						fcpPerc: r.fcpPerc,
-						pisCst: r.pisCst,
-						pisPerc: r.pisPerc,
-						cofinsCst: r.cofinsCst,
-						cofinsPerc: r.cofinsPerc,
-						ipiCst: r.ipiCst,
-						ipiPerc: r.ipiPerc,
-					})),
+					rules.map<Partial<TaxationGroupRule>>((r) => {
+						const operation = taxOperations.find(
+							(t) =>
+								t.code === r.taxOperationCode &&
+								t.movementType === r.movementType &&
+								t.movementCategory === r.movementCategory &&
+								t.active,
+						);
+
+						return {
+							tax_operation_id: operation?.id,
+
+							active: r.active,
+							ivaIcmsSt: r.ivaIcmsSt,
+							icmsPercRedBaseCalculoST: r.icmsPercRedBaseCalculoST,
+							icmsPercDiferimento: r.icmsPercDiferimento,
+							icmsPercRedAliquota: r.icmsPercRedAliquota,
+							icmsPercRedBaseCalculo: r.icmsPercRedBaseCalculo,
+							taxBenefitCode: r.taxBenefitCode,
+							companyType: r.companyType,
+							movementType: r.movementType,
+							movementCategory: r.movementCategory,
+							fromUf: r.fromUf,
+							toUf: r.toUf,
+							icmsCst: r.icmsCst,
+							icmsPerc: r.icmsPerc,
+							fcpPerc: r.fcpPerc,
+							pisCst: r.pisCst,
+							pisPerc: r.pisPerc,
+							cofinsCst: r.cofinsCst,
+							cofinsPerc: r.cofinsPerc,
+							ipiCst: r.ipiCst,
+							ipiPerc: r.ipiPerc,
+						};
+					}),
 					{
 						client: trx,
 					},
@@ -321,17 +350,30 @@ export default class UserService {
 
 			const systemVariationGroups = await SystemVariationGroup.query()
 				.useTransaction(trx)
+				.preload("variations")
 				.where("system_id", system.id);
+
 			const variationGroups = await newGroup
 				.related("variationGroups")
 				.createMany(
 					systemVariationGroups.map((v) => ({
 						description: v.description,
+						active: v.active,
 					})),
 					{
 						client: trx,
 					},
 				);
+			const variationTasks = variationGroups.map(async (vg) => {
+				return vg
+					.related("variations")
+					.attach(
+						systemVariationGroups
+							.find((f) => f.description === vg.description)
+							?.variations.map((v) => v.id) ?? [],
+					);
+			});
+			await Promise.all(variationTasks);
 
 			const systemProducts = await SystemProduct.query()
 				.useTransaction(trx)
@@ -360,7 +402,14 @@ export default class UserService {
 						unit_id: p.unit_id,
 						taxation_group_id: realTaxationGroup?.id,
 						variation_group_id: realVariationGroup?.id,
+						group_id: p.group_id,
 
+						// fractioned: p.fr,
+						serviceCode: p.serviceCode,
+						serviceType: p.serviceType,
+						collectionYear: p.collectionYear,
+						taxBenefitCode: p.taxBenefitCode,
+						features: p.features,
 						description: p.description,
 						type: p.type,
 						referenceCode: p.referenceCode,
@@ -965,7 +1014,7 @@ export default class UserService {
 		await Mail.send((message) => {
 			message
 				.from("sysvetech@gmail.com")
-				.to(user.email)
+				.to(email)
 				.subject("Recuperação de Senha")
 				.htmlView("emails/reset_password", {
 					email,

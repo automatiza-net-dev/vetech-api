@@ -69,13 +69,17 @@ export default class TemplateReplacementsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(RenderTemplateReplacementValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				RenderTemplateReplacementValidator,
+			);
 
-		const result = await this.service.renderText(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			const result = await this.service.renderText(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		});
 	}
 }

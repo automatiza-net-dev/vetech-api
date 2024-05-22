@@ -39,7 +39,8 @@
       "@adonisjs/mail",
       "@adonisjs/view",
       "@adonisjs/i18n",
-      "@adonisjs/drive-s3"
+      "@adonisjs/drive-s3",
+      "@verful/scheduler"
     ]
   }
 }

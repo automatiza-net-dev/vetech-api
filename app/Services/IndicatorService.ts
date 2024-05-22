@@ -3843,6 +3843,7 @@ export default class IndicatorService {
 				this.subgroupIndicators(authCtx, data),
 				this.subgroupTreeIndicators(authCtx, data),
 				this.unconfirmedBudgetsIndicators(authCtx, data),
+				this.clientGroupTreeIndicators(authCtx, data),
 			]);
 
 			const medianTicket = cards.at(0) as Awaited<
@@ -3854,8 +3855,8 @@ export default class IndicatorService {
 			const installmentAvg = cards.at(2) as Awaited<
 				ReturnType<typeof this.installmentAvgIndicators>
 			>;
-			const subgroup = cards.at(3) as Awaited<
-				ReturnType<typeof this.subgroupIndicators>
+			const treeIndicators = cards.at(6) as Awaited<
+				ReturnType<typeof this.clientGroupTreeIndicators>
 			>;
 			const subgroupTree = cards.at(4) as Awaited<
 				ReturnType<typeof this.subgroupTreeIndicators>
@@ -3916,7 +3917,7 @@ export default class IndicatorService {
 					},
 					{
 						name: "OrigemClientesporCategoria",
-						items: subgroup,
+						items: treeIndicators,
 					},
 					{
 						name: "OrçamentosNaoConfirmados",

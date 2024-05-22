@@ -1792,7 +1792,7 @@ export default class OpportunityService {
 
 		return result.map((elem) => ({
 			id: elem.opID,
-			description: elem.opDescription,
+			description: elem.opDescription ?? "-",
 			contact: elem.contactID
 				? {
 						id: elem.contactID ?? null,

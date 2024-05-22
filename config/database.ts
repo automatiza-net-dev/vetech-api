@@ -35,13 +35,11 @@ const databaseConfig: DatabaseConfig = {
     */
 		pg: {
 			client: "pg",
-			connection: {
-				host: Env.get("PG_HOST"),
-				port: Env.get("PG_PORT"),
-				user: Env.get("PG_USER"),
-				password: Env.get("PG_PASSWORD", ""),
-				database: Env.get("PG_DB_NAME"),
-			},
+			connection: `postgresql://${Env.get("PG_USER")}:${Env.get(
+				"PG_PASSWORD",
+			)}@${Env.get("PG_HOST")}:${Env.get("PG_PORT")}/${Env.get(
+				"PG_DB_NAME",
+			)}?options=-c%20TimeZone=America/Sao_Paulo`,
 			migrations: {
 				naturalSort: true,
 			},

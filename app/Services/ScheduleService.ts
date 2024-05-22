@@ -882,8 +882,8 @@ export default class ScheduleService {
 			from?: string;
 			lista_cancelados?: string;
 			status?: string[];
-			working?: string;
-			unavailable?: string;
+			working?: "true";
+			unavailable?: "true";
 		},
 	) {
 		// if (!data.from || !data.to) {

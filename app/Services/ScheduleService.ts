@@ -882,8 +882,8 @@ export default class ScheduleService {
 			from?: string;
 			lista_cancelados?: string;
 			status?: string[];
-			working?: "true";
-			unavailable?: "true";
+			working?: string;
+			unavailable?: string;
 		},
 	) {
 		// if (!data.from || !data.to) {
@@ -989,7 +989,7 @@ export default class ScheduleService {
 
 		resultData[0] = await schedulesQb;
 
-		if (data.working === "true") {
+		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()
 				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
 				.where("business_unit_id", authCtx.unit.id)
@@ -997,7 +997,10 @@ export default class ScheduleService {
 				.whereIn("user_id", userIds);
 		}
 
-		if (data.unavailable === "true") {
+		if (
+			typeof data.unavailable === "undefined" ||
+			data.unavailable === "true"
+		) {
 			resultData[2] = await UnavailableDay.query()
 				.select(
 					"id",

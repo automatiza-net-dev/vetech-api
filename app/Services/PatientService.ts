@@ -91,7 +91,9 @@ export default class PatientService {
 		const qb = group.related("patients").query();
 
 		if (data.name) {
-			qb.whereRaw("name ilike ?", [`%${data.name!.replaceAll(" ", "%")}%`]);
+			qb.whereRaw("unaccent(name) ilike ?", [
+				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			]);
 		}
 
 		if (data.gender) {
@@ -145,13 +147,15 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.whereRaw("name ilike ?", [`%${data.name!.replaceAll(" ", "%")}%`]);
+			qb.whereRaw("unaccent(name) ilike ?", [
+				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			]);
 		}
 
 		if (data.patient) {
 			qb.whereHas("dependents", () => {
-				qb.whereRaw("name ilike ?", [
-					`%${data.patient!.replaceAll(" ", "%")}%`,
+				qb.whereRaw("unaccent(name) ilike ?", [
+					`%unaccent(${data.patient!.replaceAll(" ", "%")})%`,
 				]);
 			});
 		}
@@ -253,14 +257,16 @@ export default class PatientService {
 		}
 
 		if (data.name) {
-			qb.whereRaw("name ilike ?", [`%${data.name.replaceAll(" ", "%")}%`]);
+			qb.whereRaw("unaccent(name) ilike ?", [
+				`%unaccent(${data.name.replaceAll(" ", "%")})%`,
+			]);
 		}
 
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					query.whereRaw("name ilike ?", [
-						`%${data.patient!.replaceAll(" ", "%")}%`,
+					query.whereRaw("unaccent(name) ilike ?", [
+						`%unaccent(${data.patient!.replaceAll(" ", "%")})%`,
 					]);
 				}
 
@@ -351,7 +357,9 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.whereRaw("name ilike ?", [`%${data.name!.replaceAll(" ", "%")}%`]);
+			qb.whereRaw("unaccent(name) ilike ?", [
+				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			]);
 		}
 
 		const result = await qb;
@@ -398,7 +406,9 @@ export default class PatientService {
 
 		if (data.tutor) {
 			qb.whereHas("tutors", (q) => {
-				q.whereRaw("name ilike ?", [`%${data.tutor!.replaceAll(" ", "%")}%`]);
+				q.whereRaw("unaccent(name) ilike ?", [
+					`%unaccent(${data.tutor!.replaceAll(" ", "%")})%`,
+				]);
 			});
 		}
 
@@ -450,7 +460,9 @@ export default class PatientService {
 		});
 
 		if (data.name) {
-			qb.whereRaw("name ilike ?", [`%${data.name.replaceAll(" ", "%")}%`]);
+			qb.whereRaw("unaccent(name) ilike ?", [
+				`%unaccent(${data.name.replaceAll(" ", "%")})%`,
+			]);
 		}
 
 		const result = await qb;

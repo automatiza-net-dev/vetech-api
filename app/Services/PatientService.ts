@@ -91,8 +91,8 @@ export default class PatientService {
 		const qb = group.related("patients").query();
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike ?", [
-				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
 			]);
 		}
 
@@ -147,15 +147,15 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike ?", [
-				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
 			]);
 		}
 
 		if (data.patient) {
 			qb.whereHas("dependents", () => {
-				qb.whereRaw("unaccent(name) ilike ?", [
-					`%unaccent(${data.patient!.replaceAll(" ", "%")})%`,
+				qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+					data.patient!.replaceAll(" ", "%"),
 				]);
 			});
 		}
@@ -257,16 +257,16 @@ export default class PatientService {
 		}
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike ?", [
-				`%unaccent(${data.name.replaceAll(" ", "%")})%`,
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
 			]);
 		}
 
 		if (data.patient || data.patientId) {
 			qb.whereHas("dependents", (query) => {
 				if (data.patient) {
-					query.whereRaw("unaccent(name) ilike ?", [
-						`%unaccent(${data.patient!.replaceAll(" ", "%")})%`,
+					query.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+						data.patient!.replaceAll(" ", "%"),
 					]);
 				}
 
@@ -357,8 +357,8 @@ export default class PatientService {
 			});
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike ?", [
-				`%unaccent(${data.name!.replaceAll(" ", "%")})%`,
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name!.replaceAll(" ", "%"),
 			]);
 		}
 
@@ -406,8 +406,8 @@ export default class PatientService {
 
 		if (data.tutor) {
 			qb.whereHas("tutors", (q) => {
-				q.whereRaw("unaccent(name) ilike ?", [
-					`%unaccent(${data.tutor!.replaceAll(" ", "%")})%`,
+				q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+					data.tutor!.replaceAll(" ", "%"),
 				]);
 			});
 		}
@@ -460,8 +460,8 @@ export default class PatientService {
 		});
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike ?", [
-				`%unaccent(${data.name.replaceAll(" ", "%")})%`,
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
 			]);
 		}
 

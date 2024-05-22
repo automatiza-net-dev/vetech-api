@@ -3896,7 +3896,9 @@ export default class IndicatorService {
 							{
 								description: "Parcelamento Medio",
 								value: `${
-									installmentAvg.at(0)?.avgInstallment ?? 0
+									installmentAvg.at(0)?.avgInstallment
+										? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
+										: 0
 								}x de Parcelamento Médio`,
 							},
 							{

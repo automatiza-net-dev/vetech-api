@@ -14,29 +14,6 @@ import { v4 } from "uuid";
 export default class IndicatorService {
 	constructor(private shared: SharedService) {}
 
-	static COLORS = [
-		"black",
-		"silver",
-		"gray",
-		"white",
-		"maroon",
-		"red",
-		"purple",
-		"fuchsia",
-		"green",
-		"lime",
-		"olive",
-		"yellow",
-		"navy",
-		"blue",
-		"teal",
-		"aqua",
-		"orange",
-		"aliceblue",
-		"cyan",
-		"magenta",
-	] as const;
-
 	public async medianTicket(
 		authCtx: AuthContext,
 		data: {
@@ -98,9 +75,9 @@ export default class IndicatorService {
 			id: result?.id,
 			identification: result.identification ?? null,
 			salesTotal: result.total_vendas,
-			qtySales: parseInt(result.qtd_vendas, 10),
-			qtyClients: parseInt(result.qtd_clientes, 10),
-			qtyPatients: parseInt(result.qtd_pacientes, 10),
+			qtySales: Number.parseInt(result.qtd_vendas, 10),
+			qtyClients: Number.parseInt(result.qtd_clientes, 10),
+			qtyPatients: Number.parseInt(result.qtd_pacientes, 10),
 		};
 	}
 
@@ -312,7 +289,7 @@ export default class IndicatorService {
 				name: elem.description,
 				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -348,12 +325,13 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.total.toFixed(2)),
+							value: Number.parseFloat(elem.total.toFixed(2)),
 							name: elem.description,
-							percentage: parseFloat(((elem.total / sum) * 100).toFixed(2)),
+							percentage: Number.parseFloat(
+								((elem.total / sum) * 100).toFixed(2),
+							),
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 					},
@@ -392,7 +370,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -469,8 +447,8 @@ export default class IndicatorService {
 			identification: elem.identification,
 			productId: elem.pID,
 			description: elem.description,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
 		}));
@@ -506,7 +484,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -587,7 +565,7 @@ export default class IndicatorService {
 				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
 				name: elem.description,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -614,14 +592,13 @@ export default class IndicatorService {
 							formatter: "{b} : {c} ({d}%)",
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.total_sales.toFixed(2)),
-							percentage: parseFloat(
+							value: Number.parseFloat(elem.total_sales.toFixed(2)),
+							percentage: Number.parseFloat(
 								((elem.total_sales / parsedTotal) * 100).toFixed(2),
 							),
 							name: elem.description,
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 						emphasis: {
@@ -735,7 +712,7 @@ export default class IndicatorService {
 		const result = await qb;
 
 		const sum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_sales),
+			(acc, curr) => acc + Number.parseFloat(curr.total_sales),
 			0,
 		);
 
@@ -745,8 +722,8 @@ export default class IndicatorService {
 			productId: elem.pID,
 			description: elem.description,
 			subgroup: elem.subgroup,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / sum) * 100,
 		}));
@@ -935,7 +912,7 @@ export default class IndicatorService {
 				name: elem.description,
 				percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -971,14 +948,13 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.totalpayments.toFixed(2)),
+							value: Number.parseFloat(elem.totalpayments.toFixed(2)),
 							name: elem.description,
-							percentage: parseFloat(
+							percentage: Number.parseFloat(
 								((elem.totalpayments / total) * 100).toFixed(2),
 							),
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 					},
@@ -1045,11 +1021,11 @@ export default class IndicatorService {
 			identification: elem.identification,
 			new: {
 				total: elem.totalnovos,
-				qty: parseInt(elem.qtdnovos, 10),
+				qty: Number.parseInt(elem.qtdnovos, 10),
 			},
 			recurrent: {
 				total: elem.totalrecorrentes,
-				qty: parseInt(elem.qtdrecorrentes, 10),
+				qty: Number.parseInt(elem.qtdrecorrentes, 10),
 			},
 		}));
 	}
@@ -1106,9 +1082,9 @@ export default class IndicatorService {
 			id: result?.id,
 			identification: result.identification ?? null,
 			salesTotal: result.total_vendas,
-			qtySales: parseInt(result.qtd_vendas, 10),
-			qtyClients: parseInt(result.qtd_clientes, 10),
-			qtyPatients: parseInt(result.qtd_pacientes, 10),
+			qtySales: Number.parseInt(result.qtd_vendas, 10),
+			qtyClients: Number.parseInt(result.qtd_clientes, 10),
+			qtyPatients: Number.parseInt(result.qtd_pacientes, 10),
 		};
 	}
 
@@ -1251,7 +1227,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -1328,8 +1304,8 @@ export default class IndicatorService {
 			identification: elem.identification,
 			productId: elem.pID,
 			description: elem.description,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
 		}));
@@ -1490,11 +1466,11 @@ export default class IndicatorService {
 			identification: elem.identification,
 			new: {
 				total: elem.totalnovos,
-				qty: parseInt(elem.qtdnovos, 10),
+				qty: Number.parseInt(elem.qtdnovos, 10),
 			},
 			recurrent: {
 				total: elem.totalrecorrentes,
-				qty: parseInt(elem.qtdrecorrentes, 10),
+				qty: Number.parseInt(elem.qtdrecorrentes, 10),
 			},
 		}));
 	}
@@ -1603,14 +1579,16 @@ export default class IndicatorService {
 		return generalResult.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			opportunities: parseInt(
+			opportunities: Number.parseInt(
 				opportunityResult.find((r) => elem.id === r.id)?.novas_oportunidades ??
 					"0",
 			),
-			scheduled: parseInt(elem.agendados, 10),
-			attended: parseInt(elem.atendidos, 10),
-			sales: parseInt(salesResult.find((r) => r.id === elem.id)?.sales ?? "0"),
-			clients: parseInt(
+			scheduled: Number.parseInt(elem.agendados, 10),
+			attended: Number.parseInt(elem.atendidos, 10),
+			sales: Number.parseInt(
+				salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
+			),
+			clients: Number.parseInt(
 				salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
 			),
 		}));
@@ -1652,7 +1630,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1713,10 +1691,10 @@ export default class IndicatorService {
 			identification: elem.identification,
 			subgroupID: elem.sid,
 			description: elem.description,
-			count: parseInt(elem.count, 10),
-			quantity: parseInt(elem.quantity, 10),
+			count: Number.parseInt(elem.count, 10),
+			quantity: Number.parseInt(elem.quantity, 10),
 			total: elem.total,
-			uniqueClients: parseInt(elem.clients, 10),
+			uniqueClients: Number.parseInt(elem.clients, 10),
 			percentage: (elem.total / parsedTotal) * 100,
 		}));
 	}
@@ -1757,7 +1735,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1823,8 +1801,8 @@ export default class IndicatorService {
 			}
 
 			const data = stats.get(key)!;
-			data.quantity += parseFloat(row.quantity);
-			data.total += parseFloat(row.total);
+			data.quantity += Number.parseFloat(row.quantity);
+			data.total += Number.parseFloat(row.total);
 
 			stats.set(key, data);
 		}
@@ -1843,7 +1821,7 @@ export default class IndicatorService {
 					.map((elem) => ({
 						id: elem.id,
 						description: elem.description,
-						quantity: parseInt(elem.quantity, 10),
+						quantity: Number.parseInt(elem.quantity, 10),
 						total: elem.total,
 						percentage: (elem.total / $total) * 100,
 					})),
@@ -1887,7 +1865,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1951,7 +1929,7 @@ export default class IndicatorService {
 			subgroupID: elem.id,
 			description: elem.description,
 			total: elem.total,
-			uniqueClients: parseInt(elem.clients, 10),
+			uniqueClients: Number.parseInt(elem.clients, 10),
 			percentage: (elem.total / parsedTotal) * 100,
 		}));
 	}
@@ -2014,10 +1992,10 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas, 10),
-			scheduled: parseInt(elem.agendadas, 10),
-			attended: parseInt(elem.comparecidas, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas, 10),
+			scheduled: Number.parseInt(elem.agendadas, 10),
+			attended: Number.parseInt(elem.comparecidas, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
 	}
 
@@ -2083,10 +2061,10 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas, 10),
-			scheduled: parseInt(elem.agendadas, 10),
-			attended: parseInt(elem.comparecidas, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas, 10),
+			scheduled: Number.parseInt(elem.agendadas, 10),
+			attended: Number.parseInt(elem.comparecidas, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
 	}
 
@@ -2139,7 +2117,7 @@ export default class IndicatorService {
 			id: elem.id,
 			identification: elem.identification,
 			total: elem.total,
-			unique: parseInt(elem.qtd_orcamentos, 10),
+			unique: Number.parseInt(elem.qtd_orcamentos, 10),
 		}));
 	}
 
@@ -2208,10 +2186,10 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas_oportunidades, 10),
-			scheduled: parseInt(elem.agendados, 10),
-			attended: parseInt(elem.comparecidos, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas_oportunidades, 10),
+			scheduled: Number.parseInt(elem.agendados, 10),
+			attended: Number.parseInt(elem.comparecidos, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
 	}
 
@@ -2749,27 +2727,27 @@ export default class IndicatorService {
 					id: elem.u_id,
 					name: elem.name,
 				},
-				totalBudgets: parseInt(elem.total_budgets, 10),
+				totalBudgets: Number.parseInt(elem.total_budgets, 10),
 				totalValue: elem.total_value,
 				avgValue: elem.avg_value,
-				confirmed: parseInt(elem.confirmed, 10),
+				confirmed: Number.parseInt(elem.confirmed, 10),
 				totalConfirmedValue: elem.total_confirmed_value,
 				avgConfirmedValue:
 					elem.confirmed === "0"
 						? 0
-						: elem.total_confirmed_value / parseInt(elem.confirmed, 10),
-				cancelled: parseInt(elem.cancelled, 10),
+						: elem.total_confirmed_value / Number.parseInt(elem.confirmed, 10),
+				cancelled: Number.parseInt(elem.cancelled, 10),
 				totalCancelledValue: elem.total_cancelled_value,
 				avgCancelledValue:
 					elem.cancelled === "0"
 						? 0
-						: elem.total_cancelled_value / parseInt(elem.cancelled, 10),
-				open: parseInt(elem.open, 10),
+						: elem.total_cancelled_value / Number.parseInt(elem.cancelled, 10),
+				open: Number.parseInt(elem.open, 10),
 				totalOpenValue: elem.total_open_value,
 				avgOpenValue:
 					elem.open === "0"
 						? 0
-						: elem.total_open_value / parseInt(elem.open, 10),
+						: elem.total_open_value / Number.parseInt(elem.open, 10),
 			};
 		});
 	}
@@ -3189,7 +3167,7 @@ export default class IndicatorService {
 							"Não encontrado?",
 					},
 					competenceDate: competence_date,
-					uniqueClients: parseInt(bill?.unique_clients ?? 0, 10),
+					uniqueClients: Number.parseInt(bill?.unique_clients ?? 0, 10),
 					totalBills: bill?.total ?? 0,
 					totalFinances: finance?.total ?? 0,
 				};
@@ -3384,9 +3362,9 @@ export default class IndicatorService {
 					name: elem.identification,
 				},
 				period: elem.periodo,
-				avgInstallment: parseFloat(elem.prazo_medio),
-				totalSales: parseInt(elem.qtd_vendas, 10),
-				totalInstallments: parseInt(elem.qtd_parcelas, 10),
+				avgInstallment: Number.parseFloat(elem.prazo_medio),
+				totalSales: Number.parseInt(elem.qtd_vendas, 10),
+				totalInstallments: Number.parseInt(elem.qtd_parcelas, 10),
 			};
 		});
 	}
@@ -3481,7 +3459,7 @@ export default class IndicatorService {
 					name: elem.identification,
 				},
 				period: elem.period,
-				avgDelay: parseFloat(elem.avg_delay),
+				avgDelay: Number.parseFloat(elem.avg_delay),
 			};
 		});
 	}
@@ -3575,7 +3553,10 @@ export default class IndicatorService {
 			total: string;
 		}[];
 
-		const total = result.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+		const total = result.reduce(
+			(acc, curr) => acc + Number.parseFloat(curr.total),
+			0,
+		);
 
 		const keys = result.reduce((acc, curr) => {
 			const innerKey = curr.categoria ?? "-";
@@ -3594,7 +3575,7 @@ export default class IndicatorService {
 					: result.filter((r) => r.categoria === curr);
 
 			const categorySum = categoryRows.reduce(
-				(sumAcc, sumCurr) => sumAcc + parseFloat(sumCurr.total),
+				(sumAcc, sumCurr) => sumAcc + Number.parseFloat(sumCurr.total),
 				0,
 			);
 
@@ -3609,7 +3590,7 @@ export default class IndicatorService {
 			}, [] as string[]);
 
 			// const groupSum = categoryRows.reduce(
-			// 	(acc, curr) => acc + parseFloat(curr.total),
+			// 	(acc, curr) => acc + Number.parseFloat(curr.total),
 			// 	0,
 			// );
 
@@ -3623,7 +3604,10 @@ export default class IndicatorService {
 							? -1
 							: result
 									.filter((r) => r.categoria === curr && r.grupo === elem)
-									.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+									.reduce(
+										(acc, curr) => acc + Number.parseFloat(curr.total),
+										0,
+									);
 
 					return {
 						grupo: elem === "-" ? "Não identicado" : elem,
@@ -3634,8 +3618,8 @@ export default class IndicatorService {
 							.filter((r) => r.grupo === elem ?? "-")
 							.map((ori) => ({
 								origem: ori.description,
-								total: parseFloat(ori.total),
-								porcentagem: (parseFloat(ori.total) / groupTotal) * 100,
+								total: Number.parseFloat(ori.total),
+								porcentagem: (Number.parseFloat(ori.total) / groupTotal) * 100,
 							})),
 					};
 				}),
@@ -3866,11 +3850,11 @@ export default class IndicatorService {
 			>;
 
 			const billPaymentCashSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + parseFloat(curr.cash),
+				(acc, curr) => acc + Number.parseFloat(curr.cash),
 				0,
 			);
 			const billPaymentInstallmentSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + parseFloat(curr.installment),
+				(acc, curr) => acc + Number.parseFloat(curr.installment),
 				0,
 			);
 
@@ -3925,7 +3909,7 @@ export default class IndicatorService {
 							{
 								description: "Orçamentos não confirmados",
 								value: `${this.shared.formatter.format(
-									parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
+									Number.parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
 								)} (${unconfirmedBudgets.at(0)?.unique ?? 0})`,
 							},
 						],
@@ -4630,17 +4614,17 @@ export default class IndicatorService {
 						},
 						data: [
 							{
-								value: parseFloat(productSum.toFixed(2)),
+								value: Number.parseFloat(productSum.toFixed(2)),
 								name: "Produtos",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((productSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
 								itemStyle: { color: "red" },
 							},
 							{
-								value: parseFloat(serviceSum.toFixed(2)),
+								value: Number.parseFloat(serviceSum.toFixed(2)),
 								name: "Serviços",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((serviceSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
 								itemStyle: { color: "blue" },
@@ -4689,7 +4673,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -4768,10 +4752,10 @@ export default class IndicatorService {
 						.map((elem) => ({
 							id: elem.sid,
 							description: elem.description,
-							count: parseInt(elem.count, 10),
-							quantity: parseInt(elem.quantity, 10),
+							count: Number.parseInt(elem.count, 10),
+							quantity: Number.parseInt(elem.quantity, 10),
 							total: this.shared.formatter.format(elem.total),
-							uniqueClients: parseInt(elem.clients, 10),
+							uniqueClients: Number.parseInt(elem.clients, 10),
 							percentage: this.shared.formatPercentage(
 								(elem.total / parsedTotal) * 100,
 							),
@@ -5075,10 +5059,10 @@ export default class IndicatorService {
 								.map((elem) => ({
 									id: elem.u_id,
 									name: elem.name,
-									totalBudgets: parseInt(elem.total_budgets, 10),
+									totalBudgets: Number.parseInt(elem.total_budgets, 10),
 									totalValue: this.shared.formatter.format(elem.total_value),
 									avgValue: this.shared.formatter.format(elem.avg_value),
-									confirmed: parseInt(elem.confirmed, 10),
+									confirmed: Number.parseInt(elem.confirmed, 10),
 									totalConfirmedValue: this.shared.formatter.format(
 										elem.total_confirmed_value,
 									),
@@ -5087,9 +5071,9 @@ export default class IndicatorService {
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
 													elem.total_confirmed_value /
-														parseInt(elem.confirmed, 10),
+														Number.parseInt(elem.confirmed, 10),
 												),
-									cancelled: parseInt(elem.cancelled, 10),
+									cancelled: Number.parseInt(elem.cancelled, 10),
 									totalCancelledValue: this.shared.formatter.format(
 										elem.total_cancelled_value,
 									),
@@ -5098,9 +5082,9 @@ export default class IndicatorService {
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
 													elem.total_cancelled_value /
-														parseInt(elem.cancelled, 10),
+														Number.parseInt(elem.cancelled, 10),
 												),
-									open: parseInt(elem.open, 10),
+									open: Number.parseInt(elem.open, 10),
 									totalOpenValue: this.shared.formatter.format(
 										elem.total_open_value,
 									),
@@ -5108,7 +5092,8 @@ export default class IndicatorService {
 										elem.open === "0"
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
-													elem.total_open_value / parseInt(elem.open, 10),
+													elem.total_open_value /
+														Number.parseInt(elem.open, 10),
 												),
 								})),
 						};
@@ -5223,12 +5208,12 @@ export default class IndicatorService {
 			// configs: generalResult.map((elem) => ({
 			// 	id: elem.id,
 			// 	identification: elem.identification,
-			// 	scheduled: parseInt(elem.agendados, 10),
-			// 	attended: parseInt(elem.atendidos, 10),
-			// 	sales: parseInt(
+			// 	scheduled: Number.parseInt(elem.agendados, 10),
+			// 	attended: Number.parseInt(elem.atendidos, 10),
+			// 	sales: Number.parseInt(
 			// 		salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
 			// 	),
-			// 	clients: parseInt(
+			// 	clients: Number.parseInt(
 			// 		salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
 			// 	),
 			// })),
@@ -5330,10 +5315,10 @@ export default class IndicatorService {
 			// configs: result.map((elem) => ({
 			// 	id: elem.id,
 			// 	identification: elem.identification,
-			// 	new: parseInt(elem.novas, 10),
-			// 	scheduled: parseInt(elem.agendadas, 10),
-			// 	attended: parseInt(elem.comparecidas, 10),
-			// 	gained: parseInt(elem.ganhos, 10),
+			// 	new: Number.parseInt(elem.novas, 10),
+			// 	scheduled: Number.parseInt(elem.agendadas, 10),
+			// 	attended: Number.parseInt(elem.comparecidas, 10),
+			// 	gained: Number.parseInt(elem.ganhos, 10),
 			// })),
 		};
 	}
@@ -5496,15 +5481,17 @@ export default class IndicatorService {
 
 		const totalSum = result.reduce(
 			(acc, curr) =>
-				acc + parseFloat(curr.total_recorrentes) + parseFloat(curr.total_novos),
+				acc +
+				Number.parseFloat(curr.total_recorrentes) +
+				Number.parseFloat(curr.total_novos),
 			0,
 		);
 		const recurringSum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_recorrentes),
+			(acc, curr) => acc + Number.parseFloat(curr.total_recorrentes),
 			0,
 		);
 		const newSum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_novos),
+			(acc, curr) => acc + Number.parseFloat(curr.total_novos),
 			0,
 		);
 
@@ -5520,7 +5507,7 @@ export default class IndicatorService {
 						(recurringSum / totalSum) * 100,
 					),
 					itemStyle: {
-						color: IndicatorService.COLORS[0 % IndicatorService.COLORS.length],
+						color: authCtx.group.colors[0 % authCtx.group.colors.length],
 					},
 				},
 				{
@@ -5528,7 +5515,7 @@ export default class IndicatorService {
 					value: this.shared.formatter.format(newSum),
 					percentage: this.shared.formatPercentage((newSum / totalSum) * 100),
 					itemStyle: {
-						color: IndicatorService.COLORS[1 % IndicatorService.COLORS.length],
+						color: authCtx.group.colors[1 % authCtx.group.colors.length],
 					},
 				},
 			],
@@ -5568,7 +5555,7 @@ export default class IndicatorService {
 							{
 								value: recurringSum,
 								name: "Recorrentes",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((recurringSum / totalSum) * 100).toFixed(2),
 								),
 								itemStyle: {
@@ -5578,7 +5565,9 @@ export default class IndicatorService {
 							{
 								value: newSum,
 								name: "Novos",
-								percentage: parseFloat(((newSum / totalSum) * 100).toFixed(2)),
+								percentage: Number.parseFloat(
+									((newSum / totalSum) * 100).toFixed(2),
+								),
 								itemStyle: {
 									color: "silver",
 								},

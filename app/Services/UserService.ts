@@ -160,6 +160,7 @@ export default class UserService {
 					companyName: `Grupo ${user.name}`,
 					fantasyName: `Grupo ${user.name}`,
 					system_id: system.id,
+					colors: system.colors,
 				},
 				{},
 				{

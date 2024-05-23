@@ -456,20 +456,26 @@ export default class RoleService {
 			};
 		});
 
-    if(mappedRoles.length === 0){
-      return []
-    }
+		if (mappedRoles.length === 0) {
+			return [];
+		}
 
-    if(data.id){
-      const mappedRole = mappedRoles.find((r) => r.id === parseInt(data.id)))
-      if(!mappedRole){
-        throw new BadRequestException("Cargo não encontrado", 400, "E_NOT_FOUND")
-      }
+		if (data.id) {
+			const mappedRole = mappedRoles.find(
+				(r) => r.id === Number.parseInt(data.id),
+			);
+			if (!mappedRole) {
+				throw new BadRequestException(
+					"Cargo não encontrado",
+					400,
+					"E_NOT_FOUND",
+				);
+			}
 
-      return mappedRole
-    }
+			return mappedRole;
+		}
 
-    return mappedRoles
+		return mappedRoles;
 	}
 
 	public async searchControllerRolePermissions(

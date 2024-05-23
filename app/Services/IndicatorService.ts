@@ -3864,19 +3864,19 @@ export default class IndicatorService {
 				cards: [
 					{
 						name: "FaturamentoAgrupado",
+						faturamento_realizado: {
+							description: "Faturamento Realizado",
+							value: this.shared.formatter.format(
+								medianTicket?.salesTotal ?? 0,
+							),
+						},
 						items: [
 							{
-								description: "Faturamento Realizado",
-								value: this.shared.formatter.format(
-									medianTicket?.salesTotal ?? 0,
-								),
-							},
-							{
 								description: "Vendas a vista",
-								value: `${(
+								value: `${this.shared.formatPercentage(
 									billPaymentCashSum /
-									(billPaymentCashSum + billPaymentInstallmentSum)
-								).toFixed(2)}% de Vendas a Vista`,
+										(billPaymentCashSum + billPaymentInstallmentSum),
+								)} de Vendas a Vista`,
 							},
 							{
 								description: "Parcelamento Medio",
@@ -4879,6 +4879,12 @@ export default class IndicatorService {
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
+				const sum =
+					unit.madrugada_total +
+					unit.manha_total +
+					unit.tarde_total +
+					unit.noite_total;
+
 				return {
 					id: unit.b_id,
 					identification: unit.identification,
@@ -4889,21 +4895,33 @@ export default class IndicatorService {
 							recurrent: this.shared.formatter.format(
 								unit.madrugada_recorrentes,
 							),
+							percentage: this.shared.formatPercentage(
+								(unit.madrugada_total * 100) / sum,
+							),
 						},
 						morning: {
 							total: this.shared.formatter.format(unit.manha_total),
 							new: this.shared.formatter.format(unit.manha_novos),
 							recurrent: this.shared.formatter.format(unit.manha_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.manha_total * 100) / sum,
+							),
 						},
 						afternoon: {
 							total: this.shared.formatter.format(unit.tarde_total),
 							new: this.shared.formatter.format(unit.tarde_novos),
 							recurrent: this.shared.formatter.format(unit.tarde_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.tarde_total * 100) / sum,
+							),
 						},
 						night: {
 							total: this.shared.formatter.format(unit.noite_total),
 							new: this.shared.formatter.format(unit.noite_novos),
 							recurrent: this.shared.formatter.format(unit.noite_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.noite_total * 100) / sum,
+							),
 						},
 					},
 				};
@@ -5397,6 +5415,10 @@ export default class IndicatorService {
 			configs: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
+				const sum = result
+					.filter((f) => f.b_id === elem)
+					.reduce((acc, curr) => acc + Number.parseFloat(curr.total_value), 0);
+
 				return {
 					id: unit.id,
 					identification: unit.identification,
@@ -5411,6 +5433,9 @@ export default class IndicatorService {
 							qty: usr.total_bills,
 							avg: this.shared.formatter.format(
 								Number.parseFloat(usr.avg_value),
+							),
+							percentage: this.shared.formatPercentage(
+								(Number.parseFloat(usr.total_value) * 100) / sum,
 							),
 						})),
 				};

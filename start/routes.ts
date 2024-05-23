@@ -1657,6 +1657,10 @@ Route.group(() => {
 		"/sales-per-period-2",
 		"IndicatorsController.salesPerPeriodIndicators_2",
 	);
+	Route.get(
+		"/sales-per-user-2",
+		"IndicatorsController.salesPerUserIndicators_2",
+	);
 	Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
 	Route.get("/scheduling-2", "IndicatorsController.schedulingIndicators_2");
 	Route.get(

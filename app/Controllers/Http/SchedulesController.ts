@@ -19,10 +19,11 @@ export default class SchedulesController {
 	) {}
 
 	public async homeContent({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
 		const qs = request.qs();
-		const result = await this.service.homeContent(unit_id, qs);
+		const result = await this.service.homeContent(
+			await this.sharedService.getAuthContext(auth),
+			qs,
+		);
 
 		return response.ok(result);
 	}

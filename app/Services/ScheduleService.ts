@@ -54,9 +54,9 @@ export default class ScheduleService {
 		private opportunityService: OpportunityService,
 	) {}
 
-	public async homeContent(unitId: string, data: IHomeSearch) {
+	public async homeContent(authCtx: AuthContext, data: IHomeSearch) {
 		const qb = Schedule.query()
-			.where("business_unit_id", data.unit ?? unitId)
+			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.preload("patient", (query) => {
 				query.preload("patientAnimal", (query) => {
 					query.preload("race", (query) => {
@@ -73,8 +73,6 @@ export default class ScheduleService {
 			.orderBy("start_hour", "asc");
 
 		if (data.confirmed === "false") {
-			// Confirmar consultas
-			// qb.where('schedule_status_id', SS_NOT_CONFIRMED);
 			qb.whereHas("serviceStatus", (query) => {
 				query.where("type", "AN");
 			});
@@ -82,6 +80,10 @@ export default class ScheduleService {
 			qb.whereHas("serviceStatus", (query) => {
 				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
 			});
+		}
+
+		if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
+			qb.whereRaw("schedules.start_hour::date >= now()::date", []);
 		}
 
 		const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
@@ -192,6 +194,11 @@ export default class ScheduleService {
 				query.select(["id", "description", "color", "type"]);
 			})
 			.orderBy("start_hour", "asc");
+
+		if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
+			confirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
+			nonConfirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
+		}
 
 		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([
 			confirmedQb,

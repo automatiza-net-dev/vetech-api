@@ -26,6 +26,9 @@ import Schedule from "./Schedule";
 export const OpportunityBalance = ["Aberta", "Perda", "Ganho"] as const;
 export type TOpportunityBalance = (typeof OpportunityBalance)[number];
 
+export const OpportunityOrigin = ["agenda", "crm"] as const;
+export type TOpportunityOrigin = (typeof OpportunityOrigin)[number];
+
 export default class Opportunity extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
@@ -47,6 +50,9 @@ export default class Opportunity extends BaseModel {
 
 	@column({})
 	public balance: TOpportunityBalance;
+
+	@column({})
+	public origin: TOpportunityOrigin | null;
 
 	@column({
 		columnName: "client_origin_item_description",

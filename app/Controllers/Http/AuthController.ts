@@ -212,6 +212,7 @@ export default class AuthController {
 				"requires_client_document",
 				"schedule_late_minutes",
 				"schedule_missed_minutes",
+				"integrates_to_crm_schedules",
 			]);
 		});
 

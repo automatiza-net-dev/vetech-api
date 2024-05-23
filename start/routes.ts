@@ -1325,6 +1325,7 @@ Route.group(() => {
 	);
 	Route.post("/sync-schedule", "OpportunitiesController.syncSchedule");
 
+	Route.post("/from-schedule", "OpportunitiesController.storeFromSchedule");
 	Route.post("/", "OpportunitiesController.store");
 	Route.get("/show/:id", "OpportunitiesController.show");
 	Route.put("/patient", "OpportunitiesController.updateOpportunityPatient");

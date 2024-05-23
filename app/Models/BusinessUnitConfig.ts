@@ -12,6 +12,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public balanceControl: "realizado" | "previsto";
 
 	@column({
+		columnName: "integrates_to_crm_schedules",
+	})
+	public integratesToCrmSchedules: boolean;
+
+	@column({
 		columnName: "dashboard_lists_retroactive_schedules",
 	})
 	public dashboardListsRetroactiveSchedules: boolean;

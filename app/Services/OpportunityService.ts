@@ -1151,8 +1151,9 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
-					clientOriginItemDescription: data.clientOriginItemDescription,
 
+					clientOriginItemDescription: data.clientOriginItemDescription,
+					origin: "crm",
 					openingDate: DateTime.now(),
 					contactDate: data.contactDate,
 					description: data.description,
@@ -1181,6 +1182,91 @@ export default class OpportunityService {
 		});
 	}
 
+	public async storeFromSchedule(
+		authCtx: AuthContext,
+		data: {
+			scheduleId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.scheduleId)
+				.preload("serviceType")
+				.preload("holder")
+				.preload("patient", (q) => {
+					q.preload("patientAnimal");
+				})
+				.first();
+
+			if (!schedule) {
+				throw this.sharedService.ResourceNotFound("Agendamento não encontrado");
+			}
+
+			if (schedule.serviceType.type !== "A") {
+				throw new BadRequestException(
+					"Tipo de Agendamento precisa ser A",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const status = await CrmStatus.query()
+				.useTransaction(trx)
+				.where("system_id", authCtx.system.id)
+				.where("type", "OP")
+				.where("tag", "N")
+				.first();
+			if (!status) {
+				throw new BadRequestException(
+					"Não tem status de oportunidade válido",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const model = await Opportunity.create(
+				{
+					system_id: authCtx.system.id,
+					business_unit_id: authCtx.unit.id,
+					economic_group_id: authCtx.group.id,
+					opening_user_id: authCtx.user.id,
+					user_id: authCtx.user.id,
+					contact_id: schedule.holder_id
+						? schedule.holder_id
+						: schedule.patient_id,
+					// client_origin_id: schedule.holder_id ? schedule.holder_id : schedule.patient.patientAnimal.
+					status_id: status.id,
+					openingDate: DateTime.now(),
+					contactDate: DateTime.now(),
+					description: schedule.serviceType.description,
+					observation: schedule.majorComplaint,
+					value: 0,
+					active: true,
+					origin: "agenda",
+					schedule_id: schedule.id,
+					client_id: schedule.holder_id ? undefined : schedule.patient_id,
+					race_id: schedule.holder_id
+						? undefined
+						: schedule.patient?.patientAnimal.race_id,
+					gender: schedule.holder_id ? undefined : schedule.patient.gender,
+					weight: schedule.holder_id ? undefined : schedule.patient.weight,
+					castrated: schedule.holder_id
+						? undefined
+						: schedule.patient?.patientAnimal.castrated,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			await schedule
+				.merge({ opportunity_id: model.id })
+				.useTransaction(trx)
+				.save();
+		});
+	}
 	public async update(
 		authCtx: AuthContext,
 		id: number,

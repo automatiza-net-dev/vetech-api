@@ -927,7 +927,7 @@ export default class ScheduleService {
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const days = Math.max(differenceInDays(refStart, refEnd), 1);
-		const diffDays = Array.from({ length: days + 1 }, (_, k) => {
+		const diffDays = Array.from({ length: days }, (_, k) => {
 			const tmpDate = addDays(refStart, k);
 			return ScheduleService.GetWD(tmpDate);
 		});

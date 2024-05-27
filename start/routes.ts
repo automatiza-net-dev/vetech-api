@@ -1667,6 +1667,7 @@ Route.group(() => {
 		"/opportunities-2",
 		"IndicatorsController.opportunitiesIndicators_2",
 	);
+	Route.get("/crm-2", "IndicatorsController.crmIndicators_2");
 })
 	.prefix("indicators")
 	.middleware("auth");

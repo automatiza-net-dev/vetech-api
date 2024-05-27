@@ -571,6 +571,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async schedulingOpportunitiesIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.schedulingOpportunitiesIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async opportunitiesIndicators_2({
 		auth,
 		request,

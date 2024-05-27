@@ -2266,7 +2266,10 @@ export default class IndicatorService {
 		);
 		const _ganhos = Number.parseInt(result.at(0)?.ganhos ?? "0", 10);
 
-		return `    <svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none">
+		return {
+			name: "opportunities",
+			type: "funnel",
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
 					0,
@@ -2313,7 +2316,8 @@ export default class IndicatorService {
         <rect width="330" height="330" fill="white"/>
         </clipPath>
         </defs>
-        </svg>`;
+        </svg>`,
+		};
 	}
 
 	public async projectionIndicators(
@@ -3935,7 +3939,7 @@ export default class IndicatorService {
 				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
 				this.invoicingNewClients_2(authCtx, data),
-				this.schedulingIndicators_2(authCtx, data),
+				this.schedulingOpportunitiesIndicators_2(authCtx, data),
 			]);
 
 			const tables = await Promise.all([
@@ -5312,6 +5316,80 @@ export default class IndicatorService {
 		const salesResult = await salesQb;
 		const generalResult = await qb;
 
+		if (authCtx.system.name.startsWith("Sanc")) {
+			const _agendados = Number.parseInt(
+				generalResult.at(0)?.agendados ?? "0",
+				10,
+			);
+			const _atendidos = Number.parseInt(
+				generalResult.at(0)?.atendidos ?? "0",
+				10,
+			);
+			const _vendidos = Number.parseInt(
+				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+			);
+			const _clientes = Number.parseInt(
+				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ??
+					"0",
+			);
+
+			return {
+				name: "scheduling",
+				type: "funnel",
+				configs: `<svg width="420" height="330" viewBox="0 0 330 330" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_485_2392)">
+        <path d="M296.878 121.754L329.565 38.0934C331.089 34.1976 328.207 30 324.016 30H5.95974C1.84702 30 -1.03481 34.071 0.352378 37.9375L30.3234 121.598C31.1733 123.965 33.4202 125.543 35.9308 125.543H291.329C293.781 125.543 295.989 124.043 296.878 121.764V121.754Z" fill="${authCtx.group.colors.at(
+					0,
+				)}" />
+        <path d="M36.782 138.928L67.2396 223.874C68.0903 226.241 70.3392 227.819 72.852 227.819H251.794C254.248 227.819 256.458 226.319 257.348 224.04L290.573 139.093C292.098 135.198 289.213 131 285.019 131H42.3944C38.2682 131 35.3936 135.071 36.782 138.938V138.928Z" fill="${authCtx.group.colors.at(
+					1,
+				)}" />
+        <path d="M73.2014 241.928L103.662 326.757C104.514 329.124 106.766 330.702 109.284 330.702H211.81C214.268 330.702 216.482 329.202 217.373 326.923L250.605 242.093C252.133 238.198 249.244 234 245.042 234H78.8331C74.6999 234 71.8204 238.071 73.2112 241.938L73.2014 241.928Z" fill="${authCtx.group.colors.at(
+					2,
+				)}" />
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.6582" y="73.9">Agendadas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="152.183" y="91.9">${_agendados}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.1582" y="174.9">Atendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="150.683" y="192.9">${_atendidos}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.9531" y="280.9">Vendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="149.183" y="298.9">${_vendidos}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="100.9863" y="14.9">Resumo Agendamentos</tspan>
+        </text>
+      </g>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="340" y="135.6">${this.shared.formatPercentage(
+					(_atendidos / _agendados) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="300" y="240">${this.shared.formatPercentage(
+					(_clientes / _atendidos) * 100,
+				)}</tspan>
+      </text>
+      <path d="M339.6 106.95C338.66 106.3 337.52 106 336.38 106H312.82C311.92 106 311.1 106.53 310.74 107.36L307.9 113.81C307.24 115.31 308.34 117 309.98 117H328.45L319.06 141.1H309.28L310.97 135.35C311.3 134.22 310.1 133.27 309.07 133.84L294.08 142.29C293.44 142.65 293.22 143.48 293.6 144.11L302.05 158C302.64 158.97 304.1 158.78 304.42 157.69L306.06 152.11H322.82C325.09 152.11 327.12 150.72 327.94 148.61L341.63 113.5C342.53 111.19 341.79 108.48 339.61 106.95H339.6Z" fill="#828282" />
+      <path d="M299.6 211.579C298.66 210.929 297.52 210.629 296.38 210.629H272.82C271.92 210.629 271.1 211.159 270.74 211.989L267.9 218.439C267.24 219.939 268.34 221.629 269.98 221.629H288.45L279.06 245.729H269.28L270.97 239.979C271.3 238.849 270.1 237.899 269.07 238.469L254.08 246.919C253.44 247.279 253.22 248.109 253.6 248.739L262.05 262.629C262.64 263.599 264.1 263.409 264.42 262.319L266.06 256.739H282.82C285.09 256.739 287.12 255.349 287.94 253.239L301.63 218.129C302.53 215.819 301.79 213.109 299.61 211.579H299.6Z" fill="#828282" />
+      <defs>
+        <clipPath id="clip0_485_2392">
+          <rect width="330" height="330" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>`,
+			};
+		}
+
 		return {
 			name: "scheduling",
 			type: "funnel",
@@ -5346,18 +5424,204 @@ export default class IndicatorService {
 								normal: { fill: "orange" },
 							},
 						],
-			// configs: generalResult.map((elem) => ({
-			// 	id: elem.id,
-			// 	identification: elem.identification,
-			// 	scheduled: Number.parseInt(elem.agendados, 10),
-			// 	attended: Number.parseInt(elem.atendidos, 10),
-			// 	sales: Number.parseInt(
-			// 		salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
-			// 	),
-			// 	clients: Number.parseInt(
-			// 		salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
-			// 	),
-			// })),
+		};
+	}
+
+	public async schedulingOpportunitiesIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const salesQb = Database.from("bills")
+			.select(
+				Database.raw(
+					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("bills.business_unit_id")
+			.whereNot("status", BillStatus.EX);
+
+		const opportunityLogsQb = Database.from("opportunity_logs")
+			.select(
+				Database.raw(
+					"business_units.id, business_units.identification, count(*) as novas_oportunidades",
+				),
+			)
+			.joinRaw(
+				"join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null",
+				[],
+			)
+			.joinRaw(
+				"join business_units on opportunity_logs.business_unit_id = business_units.id",
+				[],
+			)
+			.joinRaw(
+				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
+				[],
+			)
+			.where("business_units.environment", "P")
+			.where("crm_statuses.type", "OP")
+			.where("crm_statuses.tag", "N")
+			.groupBy("business_units.id");
+
+		const qb = Database.from("schedules")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            count(schedules.id)          as agendados,
+            count(schedules.started_at)  as atendidos
+          `,
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "schedules.business_unit_id");
+			})
+			.joinRaw(
+				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
+			)
+			.groupBy("business_units.id");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			salesQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("schedules.business_unit_id", data.units);
+			salesQb.whereIn("bills.business_unit_id", data.units);
+			opportunityLogsQb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("schedules.business_unit_id", authCtx.unit.id);
+			salesQb.where("bills.business_unit_id", authCtx.unit.id);
+			opportunityLogsQb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("schedules.start_hour::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			salesQb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			opportunityLogsQb.andWhereRaw(
+				"opportunity_logs.contact_date::date between ? and ?",
+				[data.fromDate, data.toDate],
+			);
+		}
+
+		const [salesResult, generalResult, opportunityResult] = await Promise.all([
+			salesQb,
+			qb,
+			opportunityLogsQb,
+		]);
+
+		const _oportunidades = Number.parseInt(
+			opportunityResult.find((r) => r.id === generalResult.at(0)?.id)
+				?.novas_oportunidades ?? "0",
+			10,
+		);
+
+		const _agendados = Number.parseInt(
+			generalResult.at(0)?.agendados ?? "0",
+			10,
+		);
+
+		const _atendidos = Number.parseInt(
+			generalResult.at(0)?.atendidos ?? "0",
+			10,
+		);
+
+		const _vendidos = Number.parseInt(
+			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+		);
+
+		const _clientes = Number.parseInt(
+			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ?? "0",
+		);
+
+		return {
+			name: "scheduling",
+			type: "funnel",
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none">
+      <g clip-path="url(#clip0_2003_2250)">
+        <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
+					0,
+				)}" />
+        <path d="M27.398 113.928L48.7858 173.591C49.6363 175.957 51.8845 177.535 54.3967 177.535H271.188C273.642 177.535 275.851 176.035 276.74 173.756L300.073 114.093C301.598 110.198 298.715 106 294.521 106H33.0089C28.8838 106 26.0099 110.071 27.398 113.938V113.928Z" fill="${authCtx.group.colors.at(
+					1,
+				)}" />
+        <path d="M54.8924 190.928L76.3011 250.591C77.1524 252.957 79.4029 254.535 81.9175 254.535H241.152C243.608 254.535 245.82 253.035 246.71 250.756L270.066 191.093C271.592 187.198 268.706 183 264.508 183H60.5087C56.3796 183 53.503 187.071 54.8924 190.938V190.928Z" fill="${authCtx.group.colors.at(
+					2,
+				)}" />
+        <path d="M82.3968 266.928L103.381 325.305C104.234 327.672 106.488 329.25 109.007 329.25H211.606C214.066 329.25 216.281 327.75 217.173 325.471L240.058 267.093C241.587 263.198 238.696 259 234.491 259H88.0226C83.8865 259 81.005 263.071 82.3968 266.938V266.928Z" fill="${authCtx.group.colors.at(
+					3,
+				)}" />
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="87.6837" y="60.9">Oportunidades</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="152.208" y="78.9">${_oportunidades}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="86.1837" y="137.9">Agendadas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="150.708" y="155.9">${_agendados}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="85.1837" y="214.9">Atendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="149.708" y="232.9">${_atendidos}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="114.186" y="281.9">Vendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="148.208" y="315.9">${_clientes}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="80.9863" y="14.9">Resumo Agendamentos</tspan>
+        </text>
+      </g>
+      <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282" />
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="353" y="109.6">${this.shared.formatPercentage(
+					(_agendados / _oportunidades) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="323" y="189.6">${this.shared.formatPercentage(
+					(_atendidos / _agendados) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="293" y="269.6">${this.shared.formatPercentage(
+					(_vendidos / _atendidos) * 100,
+				)}</tspan>
+
+      </text>
+      <path d="M320.187 158.95C319.247 158.3 318.107 158 316.967 158H293.407C292.507 158 291.687 158.53 291.327 159.36L288.487 165.81C287.827 167.31 288.927 169 290.567 169H309.037L299.647 193.1H289.867L291.557 187.35C291.887 186.22 290.687 185.27 289.657 185.84L274.667 194.29C274.027 194.65 273.807 195.48 274.187 196.11L282.637 210C283.227 210.97 284.687 210.78 285.007 209.69L286.647 204.11H303.407C305.677 204.11 307.707 202.72 308.527 200.61L322.217 165.5C323.117 163.19 322.377 160.48 320.197 158.95H320.187Z" fill="#828282" />
+      <path d="M289.19 237.95C288.25 237.3 287.11 237 285.97 237H262.41C261.51 237 260.69 237.53 260.33 238.36L257.49 244.81C256.83 246.31 257.93 248 259.57 248H278.04L268.65 272.1H258.87L260.56 266.35C260.89 265.22 259.69 264.27 258.66 264.84L243.67 273.29C243.03 273.65 242.81 274.48 243.19 275.11L251.64 289C252.23 289.97 253.69 289.78 254.01 288.69L255.65 283.11H272.41C274.68 283.11 276.71 281.72 277.53 279.61L291.22 244.5C292.12 242.19 291.38 239.48 289.2 237.95H289.19Z" fill="#828282" />
+      <defs>
+        <clipPath id="clip0_2003_2250">
+          <rect width="330" height="330" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>`,
 		};
 	}
 

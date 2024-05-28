@@ -3765,6 +3765,7 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
+		console.log("systemName =>", authCtx.system.name);
 		if (authCtx.system.name === "Sanclá") {
 			const charts = await Promise.all([
 				this.invoicingByPaymentMethod_2(authCtx, data),

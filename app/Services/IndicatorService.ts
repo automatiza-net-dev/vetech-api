@@ -3767,13 +3767,13 @@ export default class IndicatorService {
 	) {
 		if (authCtx.system.name === "Sanclá") {
 			const charts = await Promise.all([
-				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
+				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingNewClientsPeriod_2(authCtx, data),
-				this.billPaymentFormatIndicators_2(authCtx, data),
 				this.productTypeIndicators_2(authCtx, data),
 				this.schedulingIndicators_2(authCtx, data),
-				this.opportunitiesIndicators_2(authCtx, data),
+				this.crmIndicators_2(authCtx, data),
+				this.billPaymentFormatIndicators_2(authCtx, data),
 			]);
 
 			const tables = await Promise.all([
@@ -3936,8 +3936,8 @@ export default class IndicatorService {
 		}
 		if (authCtx.system.name === "LiftOne") {
 			const charts = await Promise.all([
-				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
+				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingNewClients_2(authCtx, data),
 				this.schedulingOpportunitiesIndicators_2(authCtx, data),
 			]);
@@ -5716,14 +5716,6 @@ export default class IndicatorService {
 					normal: { fill: "orange" },
 				},
 			],
-			// configs: result.map((elem) => ({
-			// 	id: elem.id,
-			// 	identification: elem.identification,
-			// 	new: Number.parseInt(elem.novas, 10),
-			// 	scheduled: Number.parseInt(elem.agendadas, 10),
-			// 	attended: Number.parseInt(elem.comparecidas, 10),
-			// 	gained: Number.parseInt(elem.ganhos, 10),
-			// })),
 		};
 	}
 

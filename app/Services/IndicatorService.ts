@@ -5316,7 +5316,7 @@ export default class IndicatorService {
 		const salesResult = await salesQb;
 		const generalResult = await qb;
 
-		if (authCtx.system.name.startsWith("Sanc")) {
+		if (authCtx.system.name === "Sanclá") {
 			const _agendados = Number.parseInt(
 				generalResult.at(0)?.agendados ?? "0",
 				10,

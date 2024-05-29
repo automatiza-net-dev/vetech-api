@@ -198,7 +198,7 @@ export default class PermissionService {
 			}
 
 			const entry = dataMap.get(row.menu_id)!;
-			if (!entry.some((e) => e.id === row.permissao_id)) {
+			if (!entry.some((e) => e.title === row.tela)) {
 				entry.push({
 					id: row.permissao_id,
 					order: row.menu_ordem,

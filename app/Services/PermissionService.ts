@@ -174,6 +174,7 @@ export default class PermissionService {
 				icon: string | null;
 				title: string;
 				route: string | null;
+				items?: unknown[];
 			}[]
 		> = new Map();
 		for (const row of typedRows) {
@@ -199,10 +200,19 @@ export default class PermissionService {
 			const entry = dataMap.get(row.menu_id)!;
 			entry.push({
 				id: row.permissao_id,
-				order: row.permissao_ordem,
-				icon: row.permissao_icon,
+				order: row.menu_ordem,
+				icon: row.menu_icon,
 				title: row.tela,
-				route: row.permissao_rota,
+				route: "#",
+				items: typedReportRows
+					.filter((r) => r.tela === row.tela)
+					.map((r) => ({
+						id: r.permissao_id,
+						order: r.permissao_ordem,
+						icon: r.permissao_icon,
+						title: r.permissao_descricao,
+						route: r.permissao_rota,
+					})),
 			});
 		}
 

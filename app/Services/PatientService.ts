@@ -743,6 +743,7 @@ export default class PatientService {
 				castrated: patient.patientAnimal.castrated,
 				hair: patient.patientAnimal.hair?.description ?? null,
 				race: patient.patientAnimal.race?.description ?? null,
+				specie_id: patient.patientAnimal.race?.specie?.id ?? null,
 				specie: patient.patientAnimal.race?.specie?.description ?? null,
 			});
 		}

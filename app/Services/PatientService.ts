@@ -751,13 +751,25 @@ export default class PatientService {
 		if (patient.tutors) {
 			const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
 			if (mainTutor) {
+				const obj = mainTutor;
+				const tutorObj = obj.tutor;
 				Object.assign(displayData, {
 					tutor: {
-						id: mainTutor?.id,
-						name: mainTutor?.name,
-						cellphone: mainTutor?.tutor.cellphone ?? null,
-						telephone: mainTutor?.tutor?.telephone ?? null,
-						email: mainTutor?.tutor?.email ?? null,
+						id: obj.id,
+						name: obj.name,
+						cellphone: tutorObj.cellphone ?? null,
+						telephone: tutorObj.telephone ?? null,
+						email: tutorObj.email ?? null,
+						document: tutorObj.document ?? null,
+						address: [
+							tutorObj.street,
+							tutorObj.number,
+							tutorObj.complement,
+							tutorObj.district,
+							`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
+						]
+							.filter(Boolean)
+							.join(", "),
 					},
 				});
 			}

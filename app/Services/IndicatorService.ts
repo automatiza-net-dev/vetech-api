@@ -5376,7 +5376,7 @@ export default class IndicatorService {
           <tspan x="130.9531" y="280.9">Vendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="149.183" y="298.9">${_vendidos}</tspan>
+          <tspan x="149.183" y="298.9">${_clientes}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
           <tspan x="100.9863" y="14.9">Resumo Agendamentos</tspan>

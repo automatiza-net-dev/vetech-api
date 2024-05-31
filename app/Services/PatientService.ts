@@ -696,8 +696,8 @@ export default class PatientService {
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE
-					? "Macho"
-					: "Femea"
+					? "Masculino"
+					: "Feminino"
 				: null,
 			tags: patient.tags,
 			community: patient.community,

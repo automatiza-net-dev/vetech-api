@@ -678,13 +678,13 @@ export default class PatientService {
 		}
 
 		const openHospitalizations = await Hospitalization.query()
-			.where(
-				authCtx.system.name === "LiftOne" ? "client_id" : "patient_id",
-				patientId,
-			)
+			.where("patient_id", patientId)
 			.where("status", HospitalizationStatus.ACTIVE);
 		const sales = await Bill.query()
-			.where("patient_id", patient.id)
+			.where(
+				authCtx.system.name === "LiftOne" ? "client_id" : "patient_id",
+				patient.id,
+			)
 			.where("status", BillStatus.A);
 		const attendances = await Attendance.query()
 			.where("business_unit_id", authCtx.unit.id)

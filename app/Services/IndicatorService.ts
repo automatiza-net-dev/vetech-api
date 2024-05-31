@@ -4450,6 +4450,9 @@ export default class IndicatorService {
 						label: {
 							show: true,
 						},
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 						emphasis: {
 							focus: "series",
 						},
@@ -4462,6 +4465,9 @@ export default class IndicatorService {
 						stack: "total",
 						label: {
 							show: true,
+						},
+						itemStyle: {
+							color: authCtx.group.colors.at(1),
 						},
 						emphasis: {
 							focus: "series",
@@ -4703,7 +4709,7 @@ export default class IndicatorService {
 					percentage: this.shared.formatPercentage(
 						(productSum / (productSum + serviceSum)) * 100,
 					),
-					itemStyle: { color: "red" },
+					itemStyle: { color: authCtx.group.colors.at(0) },
 				},
 				{
 					value: this.shared.formatter.format(serviceSum),
@@ -4711,8 +4717,7 @@ export default class IndicatorService {
 					percentage: this.shared.formatPercentage(
 						(serviceSum / (productSum + serviceSum)) * 100,
 					),
-
-					itemStyle: { color: "blue" },
+					itemStyle: { color: authCtx.group.colors.at(1) },
 				},
 			],
 			configs: {
@@ -4754,7 +4759,7 @@ export default class IndicatorService {
 								percentage: Number.parseFloat(
 									((productSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
-								itemStyle: { color: "red" },
+								itemStyle: { color: authCtx.group.colors.at(0) },
 							},
 							{
 								value: Number.parseFloat(serviceSum.toFixed(2)),
@@ -4762,7 +4767,7 @@ export default class IndicatorService {
 								percentage: Number.parseFloat(
 									((serviceSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
-								itemStyle: { color: "blue" },
+								itemStyle: { color: authCtx.group.colors.at(1) },
 							},
 						],
 					},
@@ -5970,7 +5975,7 @@ export default class IndicatorService {
 									((recurringSum / totalSum) * 100).toFixed(2),
 								),
 								itemStyle: {
-									color: "black",
+									color: authCtx.group.colors.at(0),
 								},
 							},
 							{
@@ -5980,7 +5985,7 @@ export default class IndicatorService {
 									((newSum / totalSum) * 100).toFixed(2),
 								),
 								itemStyle: {
-									color: "silver",
+									color: authCtx.group.colors.at(1),
 								},
 							},
 						],

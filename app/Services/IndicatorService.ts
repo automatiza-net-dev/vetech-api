@@ -4419,6 +4419,36 @@ export default class IndicatorService {
 			name: "bill-payment-format",
 			type: "bar",
 			// legend: true,
+			legend: [
+				{
+					value: this.shared.formatter.format(
+						result.map((r) => r.a_vista).at(0) ?? 0,
+					),
+					name: "A Vista",
+					percentage: this.shared.formatPercentage(
+						result
+							.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
+							.at(0) ?? 0,
+					),
+					itemStyle: {
+						color: "#4BC0C0",
+					},
+				},
+				{
+					value: this.shared.formatter.format(
+						result.map((r) => r.a_prazo).at(0) ?? 0,
+					),
+					name: "A Prazo",
+					percentage: this.shared.formatPercentage(
+						result
+							.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
+							.at(0) ?? 0,
+					),
+					itemStyle: {
+						color: "#FFCD56",
+					},
+				},
+			],
 			configs: {
 				title: {
 					text: "Faturamento x Cond. Pgto",
@@ -4431,36 +4461,6 @@ export default class IndicatorService {
 					},
 				},
 				// legend: { show: false },
-				legend: [
-					{
-						value: this.shared.formatter.format(
-							result.map((r) => r.a_vista).at(0) ?? 0,
-						),
-						name: "A Vista",
-						percentage: this.shared.formatPercentage(
-							result
-								.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
-								.at(0) ?? 0,
-						),
-						itemStyle: {
-							color: "#4BC0C0",
-						},
-					},
-					{
-						value: this.shared.formatter.format(
-							result.map((r) => r.a_prazo).at(0) ?? 0,
-						),
-						name: "A Prazo",
-						percentage: this.shared.formatPercentage(
-							result
-								.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
-								.at(0) ?? 0,
-						),
-						itemStyle: {
-							color: "#FFCD56",
-						},
-					},
-				],
 				grid: {
 					left: "3%",
 					right: "4%",

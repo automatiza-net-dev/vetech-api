@@ -284,6 +284,7 @@ export default class IndicatorService {
 		return {
 			name: "median-ticket-by-origin",
 			type: "pie",
+			hasData: result.length > 0,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
@@ -559,6 +560,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-product-type",
 			type: "pie",
+			hasData: result.length > 0,
 			// legend: false,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total_sales),
@@ -907,6 +909,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-payment-method",
 			type: "pie",
+			hasData: result.length > 0,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
@@ -2269,7 +2272,8 @@ export default class IndicatorService {
 		return {
 			name: "opportunities",
 			type: "funnel",
-			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none">
+			hasData: result.length > 0,
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
 					0,
@@ -2285,19 +2289,21 @@ export default class IndicatorService {
 				)}"/>
 
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="87.6837" y="60.9">Novas Oportunidades</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152.208" y="78.9">${_novos}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="105" y="60.9">Novas Oportunidades</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${_novos}</tspan></text>
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="86.1837" y="137.9">Agendadas</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="150.708" y="155.9">${_agendados}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="135" y="137.9">Agendadas</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${_agendados}</tspan></text>
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="85.1837" y="214.9">Comparecidas</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="149.708" y="232.9">${_comparecidos}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="125" y="214.9">Comparecidas</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${_comparecidos}</tspan></text>
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="114.186" y="281.9">Ganho</text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="148.208" y="315.9">${_ganhos}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="145" y="295">Ganho</text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${_ganhos}</tspan></text>
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="80.9863" y="14.9">Funil Crm</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em">
+          <tspan x="120" y="14.9">Funil Crm</tspan>
+        </text>
         </g>
         <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="353" y="109.6">${this.shared.formatPercentage(
@@ -4283,6 +4289,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-new-clients-period",
 			type: "line",
+			hasData: result.length > 0,
 			// legend: true,
 			configs: {
 				title: {
@@ -4416,10 +4423,41 @@ export default class IndicatorService {
 		return {
 			name: "bill-payment-format",
 			type: "bar",
+			hasData: result.length > 0,
 			// legend: true,
+			legend: [
+				{
+					value: this.shared.formatter.format(
+						result.map((r) => r.a_vista).at(0) ?? 0,
+					),
+					name: "A Vista",
+					percentage: this.shared.formatPercentage(
+						result
+							.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
+							.at(0) ?? 0,
+					),
+					itemStyle: {
+						color: "#4BC0C0",
+					},
+				},
+				{
+					value: this.shared.formatter.format(
+						result.map((r) => r.a_prazo).at(0) ?? 0,
+					),
+					name: "A Prazo",
+					percentage: this.shared.formatPercentage(
+						result
+							.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
+							.at(0) ?? 0,
+					),
+					itemStyle: {
+						color: "#FFCD56",
+					},
+				},
+			],
 			configs: {
 				title: {
-					text: "Faturamento x Condicao de Pagamento",
+					text: "Faturamento x Cond. Pgto",
 					left: "center",
 				},
 				tooltip: {
@@ -4428,11 +4466,11 @@ export default class IndicatorService {
 						type: "shadow",
 					},
 				},
-				legend: { show: false },
+				// legend: { show: false },
 				grid: {
 					left: "3%",
 					right: "4%",
-					bottom: "50%",
+					bottom: "25%",
 					containLabel: true,
 				},
 				xAxis: {
@@ -4457,7 +4495,9 @@ export default class IndicatorService {
 							focus: "series",
 						},
 						data: result.map((r) => r.a_vista),
-						valor: result.map((r) => (r.a_vista / aVistaSum) * 100),
+						valor: result.map(
+							(r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100,
+						),
 					},
 					{
 						name: "A Prazo",
@@ -4473,7 +4513,9 @@ export default class IndicatorService {
 							focus: "series",
 						},
 						data: result.map((r) => r.a_prazo),
-						valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
+						valor: result.map(
+							(r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100,
+						),
 					},
 				],
 			},
@@ -4574,6 +4616,7 @@ export default class IndicatorService {
 			name: "bill-user-period",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				return result
 					.filter((r) => r.b_id === elem)
@@ -4702,6 +4745,7 @@ export default class IndicatorService {
 		return {
 			name: "product-type",
 			type: "pie",
+			hasData: metasResult.length > 0,
 			legend: [
 				{
 					value: this.shared.formatter.format(productSum),
@@ -4722,7 +4766,7 @@ export default class IndicatorService {
 			],
 			configs: {
 				title: {
-					text: "Participação de Produtos x Serviços",
+					text: "Partic. de Produtos x Serviços",
 					subtext: "",
 					left: "center",
 				},
@@ -4881,6 +4925,7 @@ export default class IndicatorService {
 			name: "subgroups",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.id === elem);
 
@@ -5016,6 +5061,7 @@ export default class IndicatorService {
 			name: "sales-per-period",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
@@ -5192,6 +5238,7 @@ export default class IndicatorService {
 					: "Orçamentos por Vendedor"
 				: "Orçamentos Gerais",
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
 				const group = result.find((r) => r.e_id === elem);
 				const units = result.filter((r) => r.e_id === elem);
@@ -5349,7 +5396,8 @@ export default class IndicatorService {
 			return {
 				name: "scheduling",
 				type: "funnel",
-				configs: `<svg width="420" height="330" viewBox="0 0 330 330" fill="none" xmlns="http://www.w3.org/2000/svg">
+				hasData: generalResult.length > 0,
+				configs: `<svg width="400" height="330" viewBox="0 0 400 330" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_485_2392)">
         <path d="M296.878 121.754L329.565 38.0934C331.089 34.1976 328.207 30 324.016 30H5.95974C1.84702 30 -1.03481 34.071 0.352378 37.9375L30.3234 121.598C31.1733 123.965 33.4202 125.543 35.9308 125.543H291.329C293.781 125.543 295.989 124.043 296.878 121.764V121.754Z" fill="${authCtx.group.colors.at(
 					0,
@@ -5364,22 +5412,22 @@ export default class IndicatorService {
           <tspan x="130.6582" y="73.9">Agendadas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="152.183" y="91.9">${_agendados}</tspan>
+          <tspan x="152" y="91.9">${_agendados}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
           <tspan x="130.1582" y="174.9">Atendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="150.683" y="192.9">${_atendidos}</tspan>
+          <tspan x="152" y="192.9">${_atendidos}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
           <tspan x="130.9531" y="280.9">Vendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="149.183" y="298.9">${_clientes}</tspan>
+          <tspan x="152" y="298.9">${_clientes}</tspan>
         </text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="100.9863" y="14.9">Resumo Agendamentos</tspan>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em" >
+          <tspan x="65" y="14.9">Resumo Agendamentos </tspan>
         </text>
       </g>
       <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
@@ -5406,6 +5454,7 @@ export default class IndicatorService {
 		return {
 			name: "scheduling",
 			type: "funnel",
+			hasData: generalResult.length > 0,
 			configs:
 				generalResult.length === 0
 					? []
@@ -5568,7 +5617,8 @@ export default class IndicatorService {
 		return {
 			name: "scheduling",
 			type: "funnel",
-			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none"><g clip-path="url(#clip0_2003_2250)">
+			hasData: generalResult.length > 0,
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none"><g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
 					0,
 				)}" />
@@ -5582,31 +5632,31 @@ export default class IndicatorService {
 					3,
 				)}" />
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
-          <tspan x="87.6837" y="60.9">Oportunidades</tspan>
+          <tspan x="120" y="60.9">Oportunidades</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="152.208" y="78.9">${_oportunidades}</tspan>
+          <tspan x="152" y="78.9">${_oportunidades}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
-          <tspan x="86.1837" y="137.9">Agendadas</tspan>
+          <tspan x="135" y="137.9">Agendadas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="150.708" y="155.9">${_agendados}</tspan>
+          <tspan x="152" y="155.9">${_agendados}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
-          <tspan x="85.1837" y="214.9">Atendidas</tspan>
+          <tspan x="135" y="214.9">Atendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="149.708" y="232.9">${_atendidos}</tspan>
+          <tspan x="152" y="232.9">${_atendidos}</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
-          <tspan x="114.186" y="281.9">Vendidas</tspan>
+          <tspan x="135" y="295">Vendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="148.208" y="315.9">${_clientes}</tspan>
+          <tspan x="152" y="310">${_clientes}</tspan>
         </text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="80.9863" y="14.9">Resumo Agendamentos</tspan>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em">
+          <tspan x="60" y="14.9">Resumo Agendamentos</tspan>
         </text>
       </g>
       <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282" />
@@ -5699,6 +5749,7 @@ export default class IndicatorService {
 		return {
 			name: "opportunities",
 			type: "funnel",
+			hasData: result.length > 0,
 			configs: [
 				{
 					name: "Novas Oportunidades",
@@ -5803,6 +5854,7 @@ export default class IndicatorService {
 			name: "sales-per-user",
 			description: "Vendas por Usuário",
 			type: "table",
+			hasData: result.length > 0,
 			configs: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
@@ -5914,6 +5966,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-new-clients",
 			type: "pie",
+			hasData: result.length > 0,
 			// legend: true,
 			legend: [
 				{

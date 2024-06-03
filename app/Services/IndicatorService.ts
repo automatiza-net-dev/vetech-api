@@ -4419,7 +4419,7 @@ export default class IndicatorService {
 			// legend: true,
 			configs: {
 				title: {
-					text: "Faturamento x Condicao de Pagamento",
+					text: "Faturamento x Cond. Pgto",
 					left: "center",
 				},
 				tooltip: {
@@ -4722,7 +4722,7 @@ export default class IndicatorService {
 			],
 			configs: {
 				title: {
-					text: "Participação de Produtos x Serviços",
+					text: "Partic. de Produtos x Serviços",
 					subtext: "",
 					left: "center",
 				},

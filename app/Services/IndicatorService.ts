@@ -4428,7 +4428,37 @@ export default class IndicatorService {
 						type: "shadow",
 					},
 				},
-				legend: { show: false },
+				// legend: { show: false },
+				legend: [
+					{
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_vista).at(0) ?? 0,
+						),
+						name: "A Vista",
+						percentage: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: {
+							color: "#4BC0C0",
+						},
+					},
+					{
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_prazo).at(0) ?? 0,
+						),
+						name: "A Prazo",
+						percentage: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: {
+							color: "#FFCD56",
+						},
+					},
+				],
 				grid: {
 					left: "3%",
 					right: "4%",
@@ -4457,7 +4487,9 @@ export default class IndicatorService {
 							focus: "series",
 						},
 						data: result.map((r) => r.a_vista),
-						valor: result.map((r) => (r.a_vista / aVistaSum) * 100),
+						valor: result.map(
+							(r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100,
+						),
 					},
 					{
 						name: "A Prazo",
@@ -4473,7 +4505,9 @@ export default class IndicatorService {
 							focus: "series",
 						},
 						data: result.map((r) => r.a_prazo),
-						valor: result.map((r) => (r.a_prazo / aPrazoSum) * 100),
+						valor: result.map(
+							(r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100,
+						),
 					},
 				],
 			},

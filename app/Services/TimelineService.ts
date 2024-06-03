@@ -86,6 +86,16 @@ export default class TimelineService {
 					deleted_at: DateTime.now(),
 				});
 		}
+
+		// @ts-ignore
+		if (res.timeline_info?.patient_exam?.id) {
+			await PatientExam.query()
+				// @ts-ignore
+				.where("id", res.timeline_info?.patient_exam?.id ?? v4())
+				.update({
+					deleted_at: DateTime.now(),
+				});
+		}
 	}
 
 	public async all(tag: string) {
@@ -477,7 +487,7 @@ export default class TimelineService {
 								// @ts-ignore does have photos
 								...(record.timeline_info?.photos ?? []),
 								...(await Promise.all(data.photos.map(this.uploadPhoto))),
-						  ].filter(Boolean)
+							].filter(Boolean)
 						: [],
 				},
 			});
@@ -1407,7 +1417,7 @@ export default class TimelineService {
 							// @ts-ignore does have photos
 							...(record.timeline_info?.medias ?? []),
 							...(await Promise.all(data.medias.map(this.uploadPhoto))),
-					  ].filter(Boolean)
+						].filter(Boolean)
 					: [],
 			},
 		});

@@ -14,29 +14,6 @@ import { v4 } from "uuid";
 export default class IndicatorService {
 	constructor(private shared: SharedService) {}
 
-	static COLORS = [
-		"black",
-		"silver",
-		"gray",
-		"white",
-		"maroon",
-		"red",
-		"purple",
-		"fuchsia",
-		"green",
-		"lime",
-		"olive",
-		"yellow",
-		"navy",
-		"blue",
-		"teal",
-		"aqua",
-		"orange",
-		"aliceblue",
-		"cyan",
-		"magenta",
-	] as const;
-
 	public async medianTicket(
 		authCtx: AuthContext,
 		data: {
@@ -98,9 +75,9 @@ export default class IndicatorService {
 			id: result?.id,
 			identification: result.identification ?? null,
 			salesTotal: result.total_vendas,
-			qtySales: parseInt(result.qtd_vendas, 10),
-			qtyClients: parseInt(result.qtd_clientes, 10),
-			qtyPatients: parseInt(result.qtd_pacientes, 10),
+			qtySales: Number.parseInt(result.qtd_vendas, 10),
+			qtyClients: Number.parseInt(result.qtd_clientes, 10),
+			qtyPatients: Number.parseInt(result.qtd_pacientes, 10),
 		};
 	}
 
@@ -312,7 +289,7 @@ export default class IndicatorService {
 				name: elem.description,
 				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -348,12 +325,13 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.total.toFixed(2)),
+							value: Number.parseFloat(elem.total.toFixed(2)),
 							name: elem.description,
-							percentage: parseFloat(((elem.total / sum) * 100).toFixed(2)),
+							percentage: Number.parseFloat(
+								((elem.total / sum) * 100).toFixed(2),
+							),
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 					},
@@ -392,7 +370,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -469,8 +447,8 @@ export default class IndicatorService {
 			identification: elem.identification,
 			productId: elem.pID,
 			description: elem.description,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
 		}));
@@ -506,7 +484,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -587,7 +565,7 @@ export default class IndicatorService {
 				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
 				name: elem.description,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -614,14 +592,13 @@ export default class IndicatorService {
 							formatter: "{b} : {c} ({d}%)",
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.total_sales.toFixed(2)),
-							percentage: parseFloat(
+							value: Number.parseFloat(elem.total_sales.toFixed(2)),
+							percentage: Number.parseFloat(
 								((elem.total_sales / parsedTotal) * 100).toFixed(2),
 							),
 							name: elem.description,
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 						emphasis: {
@@ -735,7 +712,7 @@ export default class IndicatorService {
 		const result = await qb;
 
 		const sum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_sales),
+			(acc, curr) => acc + Number.parseFloat(curr.total_sales),
 			0,
 		);
 
@@ -745,8 +722,8 @@ export default class IndicatorService {
 			productId: elem.pID,
 			description: elem.description,
 			subgroup: elem.subgroup,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / sum) * 100,
 		}));
@@ -935,7 +912,7 @@ export default class IndicatorService {
 				name: elem.description,
 				percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
 				itemStyle: {
-					color: IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
 			})),
 			configs: {
@@ -971,14 +948,13 @@ export default class IndicatorService {
 							},
 						},
 						data: result.map((elem, idx) => ({
-							value: parseFloat(elem.totalpayments.toFixed(2)),
+							value: Number.parseFloat(elem.totalpayments.toFixed(2)),
 							name: elem.description,
-							percentage: parseFloat(
+							percentage: Number.parseFloat(
 								((elem.totalpayments / total) * 100).toFixed(2),
 							),
 							itemStyle: {
-								color:
-									IndicatorService.COLORS[idx % IndicatorService.COLORS.length],
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
 							},
 						})),
 					},
@@ -1045,11 +1021,11 @@ export default class IndicatorService {
 			identification: elem.identification,
 			new: {
 				total: elem.totalnovos,
-				qty: parseInt(elem.qtdnovos, 10),
+				qty: Number.parseInt(elem.qtdnovos, 10),
 			},
 			recurrent: {
 				total: elem.totalrecorrentes,
-				qty: parseInt(elem.qtdrecorrentes, 10),
+				qty: Number.parseInt(elem.qtdrecorrentes, 10),
 			},
 		}));
 	}
@@ -1106,9 +1082,9 @@ export default class IndicatorService {
 			id: result?.id,
 			identification: result.identification ?? null,
 			salesTotal: result.total_vendas,
-			qtySales: parseInt(result.qtd_vendas, 10),
-			qtyClients: parseInt(result.qtd_clientes, 10),
-			qtyPatients: parseInt(result.qtd_pacientes, 10),
+			qtySales: Number.parseInt(result.qtd_vendas, 10),
+			qtyClients: Number.parseInt(result.qtd_clientes, 10),
+			qtyPatients: Number.parseInt(result.qtd_pacientes, 10),
 		};
 	}
 
@@ -1251,7 +1227,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_sales = "0" }] = await qb1;
-		const parsedTotal = parseFloat(total_sales);
+		const parsedTotal = Number.parseFloat(total_sales);
 
 		const qb = Database.from("bill_items")
 			.select(
@@ -1328,8 +1304,8 @@ export default class IndicatorService {
 			identification: elem.identification,
 			productId: elem.pID,
 			description: elem.description,
-			qtySales: parseInt(elem.qty_sales, 10),
-			qtyClients: parseInt(elem.qty_clients, 10),
+			qtySales: Number.parseInt(elem.qty_sales, 10),
+			qtyClients: Number.parseInt(elem.qty_clients, 10),
 			totalSales: elem.total_sales,
 			percentage: (elem.total_sales / parsedTotal) * 100,
 		}));
@@ -1490,11 +1466,11 @@ export default class IndicatorService {
 			identification: elem.identification,
 			new: {
 				total: elem.totalnovos,
-				qty: parseInt(elem.qtdnovos, 10),
+				qty: Number.parseInt(elem.qtdnovos, 10),
 			},
 			recurrent: {
 				total: elem.totalrecorrentes,
-				qty: parseInt(elem.qtdrecorrentes, 10),
+				qty: Number.parseInt(elem.qtdrecorrentes, 10),
 			},
 		}));
 	}
@@ -1603,14 +1579,16 @@ export default class IndicatorService {
 		return generalResult.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			opportunities: parseInt(
+			opportunities: Number.parseInt(
 				opportunityResult.find((r) => elem.id === r.id)?.novas_oportunidades ??
 					"0",
 			),
-			scheduled: parseInt(elem.agendados, 10),
-			attended: parseInt(elem.atendidos, 10),
-			sales: parseInt(salesResult.find((r) => r.id === elem.id)?.sales ?? "0"),
-			clients: parseInt(
+			scheduled: Number.parseInt(elem.agendados, 10),
+			attended: Number.parseInt(elem.atendidos, 10),
+			sales: Number.parseInt(
+				salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
+			),
+			clients: Number.parseInt(
 				salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
 			),
 		}));
@@ -1652,7 +1630,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1713,10 +1691,10 @@ export default class IndicatorService {
 			identification: elem.identification,
 			subgroupID: elem.sid,
 			description: elem.description,
-			count: parseInt(elem.count, 10),
-			quantity: parseInt(elem.quantity, 10),
+			count: Number.parseInt(elem.count, 10),
+			quantity: Number.parseInt(elem.quantity, 10),
 			total: elem.total,
-			uniqueClients: parseInt(elem.clients, 10),
+			uniqueClients: Number.parseInt(elem.clients, 10),
 			percentage: (elem.total / parsedTotal) * 100,
 		}));
 	}
@@ -1757,7 +1735,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1823,8 +1801,8 @@ export default class IndicatorService {
 			}
 
 			const data = stats.get(key)!;
-			data.quantity += parseFloat(row.quantity);
-			data.total += parseFloat(row.total);
+			data.quantity += Number.parseFloat(row.quantity);
+			data.total += Number.parseFloat(row.total);
 
 			stats.set(key, data);
 		}
@@ -1843,7 +1821,7 @@ export default class IndicatorService {
 					.map((elem) => ({
 						id: elem.id,
 						description: elem.description,
-						quantity: parseInt(elem.quantity, 10),
+						quantity: Number.parseInt(elem.quantity, 10),
 						total: elem.total,
 						percentage: (elem.total / $total) * 100,
 					})),
@@ -1887,7 +1865,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -1951,7 +1929,7 @@ export default class IndicatorService {
 			subgroupID: elem.id,
 			description: elem.description,
 			total: elem.total,
-			uniqueClients: parseInt(elem.clients, 10),
+			uniqueClients: Number.parseInt(elem.clients, 10),
 			percentage: (elem.total / parsedTotal) * 100,
 		}));
 	}
@@ -2014,10 +1992,10 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas, 10),
-			scheduled: parseInt(elem.agendadas, 10),
-			attended: parseInt(elem.comparecidas, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas, 10),
+			scheduled: Number.parseInt(elem.agendadas, 10),
+			attended: Number.parseInt(elem.comparecidas, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
 	}
 
@@ -2083,10 +2061,10 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas, 10),
-			scheduled: parseInt(elem.agendadas, 10),
-			attended: parseInt(elem.comparecidas, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas, 10),
+			scheduled: Number.parseInt(elem.agendadas, 10),
+			attended: Number.parseInt(elem.comparecidas, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
 	}
 
@@ -2139,7 +2117,7 @@ export default class IndicatorService {
 			id: elem.id,
 			identification: elem.identification,
 			total: elem.total,
-			unique: parseInt(elem.qtd_orcamentos, 10),
+			unique: Number.parseInt(elem.qtd_orcamentos, 10),
 		}));
 	}
 
@@ -2208,11 +2186,138 @@ export default class IndicatorService {
 		return result.map((elem) => ({
 			id: elem.id,
 			identification: elem.identification,
-			new: parseInt(elem.novas_oportunidades, 10),
-			scheduled: parseInt(elem.agendados, 10),
-			attended: parseInt(elem.comparecidos, 10),
-			gained: parseInt(elem.ganhos, 10),
+			new: Number.parseInt(elem.novas_oportunidades, 10),
+			scheduled: Number.parseInt(elem.agendados, 10),
+			attended: Number.parseInt(elem.comparecidos, 10),
+			gained: Number.parseInt(elem.ganhos, 10),
 		}));
+	}
+
+	public async crmIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			groups?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const opportunityQb = Database.from("opportunity_logs")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
+          count(*) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
+          `,
+				),
+			)
+			.joinRaw(
+				`join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null`,
+				[],
+			)
+			.joinRaw(
+				`join business_units on opportunity_logs.business_unit_id = business_units.id`,
+				[],
+			)
+			.joinRaw(
+				`join crm_statuses on opportunity_logs.status_id = crm_statuses.id`,
+				[],
+			)
+			.groupBy("business_units.id");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			opportunityQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			opportunityQb.whereIn("business_units.id", data.units);
+		} else {
+			opportunityQb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.groups && Array.isArray(data.groups)) {
+			opportunityQb.whereIn("opportunities.economic_group_id", data.groups);
+		}
+
+		if (data.fromDate && data.toDate) {
+			opportunityQb.andWhereRaw(
+				"opportunity_logs.contact_date::date between ? and ?",
+				[data.fromDate, data.toDate],
+			);
+		}
+
+		const result = await opportunityQb;
+
+		const _novos = Number.parseInt(
+			result.at(0)?.novas_oportunidades ?? "0",
+			10,
+		);
+		const _agendados = Number.parseInt(result.at(0)?.agendados ?? "0", 10);
+		const _comparecidos = Number.parseInt(
+			result.at(0)?.comparecidos ?? "0",
+			10,
+		);
+		const _ganhos = Number.parseInt(result.at(0)?.ganhos ?? "0", 10);
+
+		return {
+			name: "opportunities",
+			type: "funnel",
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none">
+        <g clip-path="url(#clip0_2003_2250)">
+        <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
+					0,
+				)}"/>
+        <path d="M27.398 113.928L48.7858 173.591C49.6363 175.957 51.8845 177.535 54.3967 177.535H271.188C273.642 177.535 275.851 176.035 276.74 173.756L300.073 114.093C301.598 110.198 298.715 106 294.521 106H33.0089C28.8838 106 26.0099 110.071 27.398 113.938V113.928Z" fill="${authCtx.group.colors.at(
+					1,
+				)}"/>
+        <path d="M54.8924 190.928L76.3011 250.591C77.1524 252.957 79.4029 254.535 81.9175 254.535H241.152C243.608 254.535 245.82 253.035 246.71 250.756L270.066 191.093C271.592 187.198 268.706 183 264.508 183H60.5087C56.3796 183 53.503 187.071 54.8924 190.938V190.928Z" fill="${authCtx.group.colors.at(
+					2,
+				)}"/>
+        <path d="M82.3968 266.928L103.381 325.305C104.234 327.672 106.488 329.25 109.007 329.25H211.606C214.066 329.25 216.281 327.75 217.173 325.471L240.058 267.093C241.587 263.198 238.696 259 234.491 259H88.0226C83.8865 259 81.005 263.071 82.3968 266.938V266.928Z" fill="${authCtx.group.colors.at(
+					3,
+				)}"/>
+
+
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="87.6837" y="60.9">Novas Oportunidades</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152.208" y="78.9">${_novos}</tspan></text>
+
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="86.1837" y="137.9">Agendadas</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="150.708" y="155.9">${_agendados}</tspan></text>
+
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="85.1837" y="214.9">Comparecidas</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="149.708" y="232.9">${_comparecidos}</tspan></text>
+
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="114.186" y="281.9">Ganho</text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="148.208" y="315.9">${_ganhos}</tspan></text>
+
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="80.9863" y="14.9">Funil Crm</tspan></text>
+        </g>
+        <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="353" y="109.6">${this.shared.formatPercentage(
+					(_agendados / _novos) * 100,
+				)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="323" y="189.6">${this.shared.formatPercentage(
+					(_comparecidos / _agendados) * 100,
+				)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="293" y="269.6">${this.shared.formatPercentage(
+					(_ganhos / _comparecidos) * 100,
+				)}</tspan></text>
+        <path d="M320.187 158.95C319.247 158.3 318.107 158 316.967 158H293.407C292.507 158 291.687 158.53 291.327 159.36L288.487 165.81C287.827 167.31 288.927 169 290.567 169H309.037L299.647 193.1H289.867L291.557 187.35C291.887 186.22 290.687 185.27 289.657 185.84L274.667 194.29C274.027 194.65 273.807 195.48 274.187 196.11L282.637 210C283.227 210.97 284.687 210.78 285.007 209.69L286.647 204.11H303.407C305.677 204.11 307.707 202.72 308.527 200.61L322.217 165.5C323.117 163.19 322.377 160.48 320.197 158.95H320.187Z" fill="#828282"/>
+        <path d="M289.19 237.95C288.25 237.3 287.11 237 285.97 237H262.41C261.51 237 260.69 237.53 260.33 238.36L257.49 244.81C256.83 246.31 257.93 248 259.57 248H278.04L268.65 272.1H258.87L260.56 266.35C260.89 265.22 259.69 264.27 258.66 264.84L243.67 273.29C243.03 273.65 242.81 274.48 243.19 275.11L251.64 289C252.23 289.97 253.69 289.78 254.01 288.69L255.65 283.11H272.41C274.68 283.11 276.71 281.72 277.53 279.61L291.22 244.5C292.12 242.19 291.38 239.48 289.2 237.95H289.19Z" fill="#828282"/>
+        <defs>
+        <clipPath id="clip0_2003_2250">
+        <rect width="330" height="330" fill="white"/>
+        </clipPath>
+        </defs>
+        </svg>`,
+		};
 	}
 
 	public async projectionIndicators(
@@ -2749,27 +2854,27 @@ export default class IndicatorService {
 					id: elem.u_id,
 					name: elem.name,
 				},
-				totalBudgets: parseInt(elem.total_budgets, 10),
+				totalBudgets: Number.parseInt(elem.total_budgets, 10),
 				totalValue: elem.total_value,
 				avgValue: elem.avg_value,
-				confirmed: parseInt(elem.confirmed, 10),
+				confirmed: Number.parseInt(elem.confirmed, 10),
 				totalConfirmedValue: elem.total_confirmed_value,
 				avgConfirmedValue:
 					elem.confirmed === "0"
 						? 0
-						: elem.total_confirmed_value / parseInt(elem.confirmed, 10),
-				cancelled: parseInt(elem.cancelled, 10),
+						: elem.total_confirmed_value / Number.parseInt(elem.confirmed, 10),
+				cancelled: Number.parseInt(elem.cancelled, 10),
 				totalCancelledValue: elem.total_cancelled_value,
 				avgCancelledValue:
 					elem.cancelled === "0"
 						? 0
-						: elem.total_cancelled_value / parseInt(elem.cancelled, 10),
-				open: parseInt(elem.open, 10),
+						: elem.total_cancelled_value / Number.parseInt(elem.cancelled, 10),
+				open: Number.parseInt(elem.open, 10),
 				totalOpenValue: elem.total_open_value,
 				avgOpenValue:
 					elem.open === "0"
 						? 0
-						: elem.total_open_value / parseInt(elem.open, 10),
+						: elem.total_open_value / Number.parseInt(elem.open, 10),
 			};
 		});
 	}
@@ -3189,7 +3294,7 @@ export default class IndicatorService {
 							"Não encontrado?",
 					},
 					competenceDate: competence_date,
-					uniqueClients: parseInt(bill?.unique_clients ?? 0, 10),
+					uniqueClients: Number.parseInt(bill?.unique_clients ?? 0, 10),
 					totalBills: bill?.total ?? 0,
 					totalFinances: finance?.total ?? 0,
 				};
@@ -3384,9 +3489,9 @@ export default class IndicatorService {
 					name: elem.identification,
 				},
 				period: elem.periodo,
-				avgInstallment: parseFloat(elem.prazo_medio),
-				totalSales: parseInt(elem.qtd_vendas, 10),
-				totalInstallments: parseInt(elem.qtd_parcelas, 10),
+				avgInstallment: Number.parseFloat(elem.prazo_medio),
+				totalSales: Number.parseInt(elem.qtd_vendas, 10),
+				totalInstallments: Number.parseInt(elem.qtd_parcelas, 10),
 			};
 		});
 	}
@@ -3481,7 +3586,7 @@ export default class IndicatorService {
 					name: elem.identification,
 				},
 				period: elem.period,
-				avgDelay: parseFloat(elem.avg_delay),
+				avgDelay: Number.parseFloat(elem.avg_delay),
 			};
 		});
 	}
@@ -3575,7 +3680,10 @@ export default class IndicatorService {
 			total: string;
 		}[];
 
-		const total = result.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+		const total = result.reduce(
+			(acc, curr) => acc + Number.parseFloat(curr.total),
+			0,
+		);
 
 		const keys = result.reduce((acc, curr) => {
 			const innerKey = curr.categoria ?? "-";
@@ -3594,7 +3702,7 @@ export default class IndicatorService {
 					: result.filter((r) => r.categoria === curr);
 
 			const categorySum = categoryRows.reduce(
-				(sumAcc, sumCurr) => sumAcc + parseFloat(sumCurr.total),
+				(sumAcc, sumCurr) => sumAcc + Number.parseFloat(sumCurr.total),
 				0,
 			);
 
@@ -3609,7 +3717,7 @@ export default class IndicatorService {
 			}, [] as string[]);
 
 			// const groupSum = categoryRows.reduce(
-			// 	(acc, curr) => acc + parseFloat(curr.total),
+			// 	(acc, curr) => acc + Number.parseFloat(curr.total),
 			// 	0,
 			// );
 
@@ -3623,7 +3731,10 @@ export default class IndicatorService {
 							? -1
 							: result
 									.filter((r) => r.categoria === curr && r.grupo === elem)
-									.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
+									.reduce(
+										(acc, curr) => acc + Number.parseFloat(curr.total),
+										0,
+									);
 
 					return {
 						grupo: elem === "-" ? "Não identicado" : elem,
@@ -3634,8 +3745,8 @@ export default class IndicatorService {
 							.filter((r) => r.grupo === elem ?? "-")
 							.map((ori) => ({
 								origem: ori.description,
-								total: parseFloat(ori.total),
-								porcentagem: (parseFloat(ori.total) / groupTotal) * 100,
+								total: Number.parseFloat(ori.total),
+								porcentagem: (Number.parseFloat(ori.total) / groupTotal) * 100,
 							})),
 					};
 				}),
@@ -3650,185 +3761,193 @@ export default class IndicatorService {
 		};
 	}
 
+	public async sanclaChartsIndicators(
+		authCtx: AuthContext,
+		data: Record<string, any>,
+	) {
+		const charts = await Promise.all([
+			this.invoicingByPaymentMethod_2(authCtx, data),
+			this.medianTicketByOrigin_2(authCtx, data),
+			this.invoicingNewClientsPeriod_2(authCtx, data),
+			this.productTypeIndicators_2(authCtx, data),
+			this.schedulingIndicators_2(authCtx, data),
+			this.crmIndicators_2(authCtx, data),
+			this.billPaymentFormatIndicators_2(authCtx, data),
+		]);
+
+		const tables = await Promise.all([
+			this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
+			this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
+			this.salesPerUserIndicators_2(authCtx, data),
+			this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+		]);
+
+		const cards = await Promise.all([
+			this.billingIndicators(authCtx, data),
+			this.medianTicket(authCtx, data),
+			this.budgetsByStatusIndicators(authCtx, {
+				...data,
+				status: BudgetStatus.A,
+			}),
+			this.budgetsByStatusIndicators(authCtx, {
+				...data,
+				status: BudgetStatus.N,
+			}),
+			this.marketingIndicators(authCtx, data),
+			this.costOfAcquisitionIndicators(authCtx, data),
+		]);
+
+		const medianTicket = cards.at(1) as Awaited<
+			ReturnType<typeof this.medianTicket>
+		>;
+		const openBudgets = cards.at(2) as Awaited<
+			ReturnType<typeof this.budgetsByStatusIndicators>
+		>;
+		const cancelledBudgets = cards.at(3) as Awaited<
+			ReturnType<typeof this.budgetsByStatusIndicators>
+		>;
+		const marketing = cards.at(4) as Awaited<
+			ReturnType<typeof this.marketingIndicators>
+		>;
+		const cac = cards.at(5) as Awaited<
+			ReturnType<typeof this.costOfAcquisitionIndicators>
+		>;
+
+		return {
+			charts,
+			tables,
+			cards: [
+				{
+					name: "Faturamento",
+					items: [
+						{
+							description: "Faturamento Realizado",
+							value: this.shared.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+							),
+						},
+					],
+				},
+				{
+					name: "Meta",
+					items: [
+						{
+							description: "Meta Faturamento",
+							value: this.shared.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.meta.value, 0) ??
+									0,
+							),
+						},
+					],
+				},
+				{
+					name: "MetaAtingimento",
+					items: [
+						{
+							description: "Atingimento",
+							value: this.shared.formatPercentage(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
+									0,
+							),
+						},
+					],
+				},
+				{
+					name: "MetaTendencia",
+					items: [
+						{
+							description: "Tendencia",
+							percentage: this.shared.formatPercentage(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
+							),
+							value: this.shared.formatter.format(
+								cards
+									.at(0)
+									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
+							),
+						},
+					],
+				},
+				{
+					name: "TicketMedio",
+					items: [
+						{
+							description: "Ticket Medio Pacientes",
+							value: this.shared.formatter.format(
+								medianTicket
+									? medianTicket.salesTotal / medianTicket.qtyClients
+									: 0,
+							),
+						},
+					],
+				},
+				{
+					name: "OrçamentosAbertos",
+					items: [
+						{
+							description: "Orçamentos em Aberto",
+							value: this.shared.formatter.format(
+								openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+							),
+						},
+					],
+				},
+				{
+					name: "OrçamentosCancelados",
+					items: [
+						{
+							description: "Orçamentos Cancelados",
+							value: this.shared.formatter.format(
+								cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
+							),
+						},
+					],
+				},
+				{
+					name: "ROI",
+					items: [
+						{
+							description: "Retorno MKT (ROI)",
+							value: this.shared.formatPercentage(
+								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
+							),
+						},
+					],
+				},
+				{
+					name: "CAC",
+					items: [
+						{
+							description: "Custo Aquisição Cliente",
+							value: this.shared.formatter.format(
+								cac.length === 0
+									? 0
+									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
+											cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
+							),
+						},
+					],
+				},
+			],
+		};
+	}
+
 	public async chartsIndicators(
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
+		console.log("systemName =>", authCtx.system.name);
 		if (authCtx.system.name === "Sanclá") {
-			const charts = await Promise.all([
-				this.medianTicketByOrigin_2(authCtx, data),
-				this.invoicingByPaymentMethod_2(authCtx, data),
-				this.invoicingNewClientsPeriod_2(authCtx, data),
-				this.billPaymentFormatIndicators_2(authCtx, data),
-				this.productTypeIndicators_2(authCtx, data),
-				this.schedulingIndicators_2(authCtx, data),
-				this.opportunitiesIndicators_2(authCtx, data),
-			]);
-
-			const tables = await Promise.all([
-				this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
-				this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
-				this.salesPerUserIndicators_2(authCtx, data),
-				this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
-			]);
-
-			const cards = await Promise.all([
-				this.billingIndicators(authCtx, data),
-				this.medianTicket(authCtx, data),
-				this.budgetsByStatusIndicators(authCtx, {
-					...data,
-					status: BudgetStatus.A,
-				}),
-				this.budgetsByStatusIndicators(authCtx, {
-					...data,
-					status: BudgetStatus.N,
-				}),
-				this.marketingIndicators(authCtx, data),
-				this.costOfAcquisitionIndicators(authCtx, data),
-			]);
-
-			const medianTicket = cards.at(1) as Awaited<
-				ReturnType<typeof this.medianTicket>
-			>;
-			const openBudgets = cards.at(2) as Awaited<
-				ReturnType<typeof this.budgetsByStatusIndicators>
-			>;
-			const cancelledBudgets = cards.at(3) as Awaited<
-				ReturnType<typeof this.budgetsByStatusIndicators>
-			>;
-			const marketing = cards.at(4) as Awaited<
-				ReturnType<typeof this.marketingIndicators>
-			>;
-			const cac = cards.at(5) as Awaited<
-				ReturnType<typeof this.costOfAcquisitionIndicators>
-			>;
-
-			return {
-				charts,
-				tables,
-				cards: [
-					{
-						name: "Faturamento",
-						items: [
-							{
-								description: "Faturamento Realizado",
-								value: this.shared.formatter.format(
-									cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
-								),
-							},
-						],
-					},
-					{
-						name: "Meta",
-						items: [
-							{
-								description: "Meta Faturamento",
-								value: this.shared.formatter.format(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "MetaAtingimento",
-						items: [
-							{
-								description: "Atingimento",
-								value: this.shared.formatPercentage(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "MetaTendencia",
-						items: [
-							{
-								description: "Tendencia",
-								percentage: this.shared.formatPercentage(
-									cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
-								),
-								value: this.shared.formatter.format(
-									cards
-										.at(0)
-										?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "TicketMedio",
-						items: [
-							{
-								description: "Ticket Medio Pacientes",
-								value: this.shared.formatter.format(
-									medianTicket
-										? medianTicket.salesTotal / medianTicket.qtyClients
-										: 0,
-								),
-							},
-						],
-					},
-					{
-						name: "OrçamentosAbertos",
-						items: [
-							{
-								description: "Orçamentos em Aberto",
-								value: this.shared.formatter.format(
-									openBudgets.reduce((acc, curr) => acc + curr.total, 0),
-								),
-							},
-						],
-					},
-					{
-						name: "OrçamentosCancelados",
-						items: [
-							{
-								description: "Orçamentos Cancelados",
-								value: this.shared.formatter.format(
-									cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
-								),
-							},
-						],
-					},
-					{
-						name: "ROI",
-						items: [
-							{
-								description: "Retorno MKT (ROI)",
-								value: this.shared.formatPercentage(
-									marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
-								),
-							},
-						],
-					},
-					{
-						name: "CAC",
-						items: [
-							{
-								description: "Custo Aquisição Cliente",
-								value: this.shared.formatter.format(
-									cac.length === 0
-										? 0
-										: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
-												cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
-								),
-							},
-						],
-					},
-				],
-			};
+			console.log("will call pvt");
+			return this.sanclaChartsIndicators(authCtx, data);
 		}
+
 		if (authCtx.system.name === "LiftOne") {
 			const charts = await Promise.all([
-				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingByPaymentMethod_2(authCtx, data),
+				this.medianTicketByOrigin_2(authCtx, data),
 				this.invoicingNewClients_2(authCtx, data),
-				this.schedulingIndicators_2(authCtx, data),
+				this.schedulingOpportunitiesIndicators_2(authCtx, data),
 			]);
 
 			const tables = await Promise.all([
@@ -3843,6 +3962,7 @@ export default class IndicatorService {
 				this.subgroupIndicators(authCtx, data),
 				this.subgroupTreeIndicators(authCtx, data),
 				this.unconfirmedBudgetsIndicators(authCtx, data),
+				this.clientGroupTreeIndicators(authCtx, data),
 			]);
 
 			const medianTicket = cards.at(0) as Awaited<
@@ -3854,8 +3974,8 @@ export default class IndicatorService {
 			const installmentAvg = cards.at(2) as Awaited<
 				ReturnType<typeof this.installmentAvgIndicators>
 			>;
-			const subgroup = cards.at(3) as Awaited<
-				ReturnType<typeof this.subgroupIndicators>
+			const treeIndicators = cards.at(6) as Awaited<
+				ReturnType<typeof this.clientGroupTreeIndicators>
 			>;
 			const subgroupTree = cards.at(4) as Awaited<
 				ReturnType<typeof this.subgroupTreeIndicators>
@@ -3865,11 +3985,11 @@ export default class IndicatorService {
 			>;
 
 			const billPaymentCashSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + parseFloat(curr.cash),
+				(acc, curr) => acc + Number.parseFloat(curr.cash),
 				0,
 			);
 			const billPaymentInstallmentSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + parseFloat(curr.installment),
+				(acc, curr) => acc + Number.parseFloat(curr.installment),
 				0,
 			);
 
@@ -3879,19 +3999,19 @@ export default class IndicatorService {
 				cards: [
 					{
 						name: "FaturamentoAgrupado",
+						faturamento_realizado: {
+							description: "Faturamento Realizado",
+							value: this.shared.formatter.format(
+								medianTicket?.salesTotal ?? 0,
+							),
+						},
 						items: [
 							{
-								description: "Faturamento Realizado",
-								value: this.shared.formatter.format(
-									medianTicket?.salesTotal ?? 0,
-								),
-							},
-							{
 								description: "Vendas a vista",
-								value: `${(
+								value: `${this.shared.formatPercentage(
 									billPaymentCashSum /
-									(billPaymentCashSum + billPaymentInstallmentSum)
-								).toFixed(2)}% de Vendas a Vista`,
+										(billPaymentCashSum + billPaymentInstallmentSum),
+								)} de Vendas a Vista`,
 							},
 							{
 								description: "Parcelamento Medio",
@@ -3916,7 +4036,7 @@ export default class IndicatorService {
 					},
 					{
 						name: "OrigemClientesporCategoria",
-						items: subgroup,
+						items: treeIndicators,
 					},
 					{
 						name: "OrçamentosNaoConfirmados",
@@ -3924,7 +4044,7 @@ export default class IndicatorService {
 							{
 								description: "Orçamentos não confirmados",
 								value: `${this.shared.formatter.format(
-									parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
+									Number.parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
 								)} (${unconfirmedBudgets.at(0)?.unique ?? 0})`,
 							},
 						],
@@ -4312,7 +4432,7 @@ export default class IndicatorService {
 				grid: {
 					left: "3%",
 					right: "4%",
-					bottom: "80%",
+					bottom: "50%",
 					containLabel: true,
 				},
 				xAxis: {
@@ -4330,6 +4450,9 @@ export default class IndicatorService {
 						label: {
 							show: true,
 						},
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 						emphasis: {
 							focus: "series",
 						},
@@ -4342,6 +4465,9 @@ export default class IndicatorService {
 						stack: "total",
 						label: {
 							show: true,
+						},
+						itemStyle: {
+							color: authCtx.group.colors.at(1),
 						},
 						emphasis: {
 							focus: "series",
@@ -4583,7 +4709,7 @@ export default class IndicatorService {
 					percentage: this.shared.formatPercentage(
 						(productSum / (productSum + serviceSum)) * 100,
 					),
-					itemStyle: { color: "red" },
+					itemStyle: { color: authCtx.group.colors.at(0) },
 				},
 				{
 					value: this.shared.formatter.format(serviceSum),
@@ -4591,8 +4717,7 @@ export default class IndicatorService {
 					percentage: this.shared.formatPercentage(
 						(serviceSum / (productSum + serviceSum)) * 100,
 					),
-
-					itemStyle: { color: "blue" },
+					itemStyle: { color: authCtx.group.colors.at(1) },
 				},
 			],
 			configs: {
@@ -4629,20 +4754,20 @@ export default class IndicatorService {
 						},
 						data: [
 							{
-								value: parseFloat(productSum.toFixed(2)),
+								value: Number.parseFloat(productSum.toFixed(2)),
 								name: "Produtos",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((productSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
-								itemStyle: { color: "red" },
+								itemStyle: { color: authCtx.group.colors.at(0) },
 							},
 							{
-								value: parseFloat(serviceSum.toFixed(2)),
+								value: Number.parseFloat(serviceSum.toFixed(2)),
 								name: "Serviços",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((serviceSum / (productSum + serviceSum)) * 100).toFixed(2),
 								),
-								itemStyle: { color: "blue" },
+								itemStyle: { color: authCtx.group.colors.at(1) },
 							},
 						],
 					},
@@ -4688,7 +4813,7 @@ export default class IndicatorService {
 		}
 
 		const [{ total_bill_payments = "0" }] = await totalQb;
-		const parsedTotal = parseFloat(total_bill_payments);
+		const parsedTotal = Number.parseFloat(total_bill_payments);
 
 		const qb = Database.from("bills")
 			.select(
@@ -4767,10 +4892,10 @@ export default class IndicatorService {
 						.map((elem) => ({
 							id: elem.sid,
 							description: elem.description,
-							count: parseInt(elem.count, 10),
-							quantity: parseInt(elem.quantity, 10),
+							count: Number.parseInt(elem.count, 10),
+							quantity: Number.parseInt(elem.quantity, 10),
 							total: this.shared.formatter.format(elem.total),
-							uniqueClients: parseInt(elem.clients, 10),
+							uniqueClients: Number.parseInt(elem.clients, 10),
 							percentage: this.shared.formatPercentage(
 								(elem.total / parsedTotal) * 100,
 							),
@@ -4894,6 +5019,12 @@ export default class IndicatorService {
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
+				const sum =
+					unit.madrugada_total +
+					unit.manha_total +
+					unit.tarde_total +
+					unit.noite_total;
+
 				return {
 					id: unit.b_id,
 					identification: unit.identification,
@@ -4904,21 +5035,33 @@ export default class IndicatorService {
 							recurrent: this.shared.formatter.format(
 								unit.madrugada_recorrentes,
 							),
+							percentage: this.shared.formatPercentage(
+								(unit.madrugada_total * 100) / sum,
+							),
 						},
 						morning: {
 							total: this.shared.formatter.format(unit.manha_total),
 							new: this.shared.formatter.format(unit.manha_novos),
 							recurrent: this.shared.formatter.format(unit.manha_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.manha_total * 100) / sum,
+							),
 						},
 						afternoon: {
 							total: this.shared.formatter.format(unit.tarde_total),
 							new: this.shared.formatter.format(unit.tarde_novos),
 							recurrent: this.shared.formatter.format(unit.tarde_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.tarde_total * 100) / sum,
+							),
 						},
 						night: {
 							total: this.shared.formatter.format(unit.noite_total),
 							new: this.shared.formatter.format(unit.noite_novos),
 							recurrent: this.shared.formatter.format(unit.noite_recorrentes),
+							percentage: this.shared.formatPercentage(
+								(unit.noite_total * 100) / sum,
+							),
 						},
 					},
 				};
@@ -5074,10 +5217,10 @@ export default class IndicatorService {
 								.map((elem) => ({
 									id: elem.u_id,
 									name: elem.name,
-									totalBudgets: parseInt(elem.total_budgets, 10),
+									totalBudgets: Number.parseInt(elem.total_budgets, 10),
 									totalValue: this.shared.formatter.format(elem.total_value),
 									avgValue: this.shared.formatter.format(elem.avg_value),
-									confirmed: parseInt(elem.confirmed, 10),
+									confirmed: Number.parseInt(elem.confirmed, 10),
 									totalConfirmedValue: this.shared.formatter.format(
 										elem.total_confirmed_value,
 									),
@@ -5086,9 +5229,9 @@ export default class IndicatorService {
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
 													elem.total_confirmed_value /
-														parseInt(elem.confirmed, 10),
+														Number.parseInt(elem.confirmed, 10),
 												),
-									cancelled: parseInt(elem.cancelled, 10),
+									cancelled: Number.parseInt(elem.cancelled, 10),
 									totalCancelledValue: this.shared.formatter.format(
 										elem.total_cancelled_value,
 									),
@@ -5097,9 +5240,9 @@ export default class IndicatorService {
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
 													elem.total_cancelled_value /
-														parseInt(elem.cancelled, 10),
+														Number.parseInt(elem.cancelled, 10),
 												),
-									open: parseInt(elem.open, 10),
+									open: Number.parseInt(elem.open, 10),
 									totalOpenValue: this.shared.formatter.format(
 										elem.total_open_value,
 									),
@@ -5107,7 +5250,8 @@ export default class IndicatorService {
 										elem.open === "0"
 											? this.shared.formatter.format(0)
 											: this.shared.formatter.format(
-													elem.total_open_value / parseInt(elem.open, 10),
+													elem.total_open_value /
+														Number.parseInt(elem.open, 10),
 												),
 								})),
 						};
@@ -5185,6 +5329,80 @@ export default class IndicatorService {
 		const salesResult = await salesQb;
 		const generalResult = await qb;
 
+		if (authCtx.system.name === "Sanclá") {
+			const _agendados = Number.parseInt(
+				generalResult.at(0)?.agendados ?? "0",
+				10,
+			);
+			const _atendidos = Number.parseInt(
+				generalResult.at(0)?.atendidos ?? "0",
+				10,
+			);
+			const _vendidos = Number.parseInt(
+				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+			);
+			const _clientes = Number.parseInt(
+				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ??
+					"0",
+			);
+
+			return {
+				name: "scheduling",
+				type: "funnel",
+				configs: `<svg width="420" height="330" viewBox="0 0 330 330" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_485_2392)">
+        <path d="M296.878 121.754L329.565 38.0934C331.089 34.1976 328.207 30 324.016 30H5.95974C1.84702 30 -1.03481 34.071 0.352378 37.9375L30.3234 121.598C31.1733 123.965 33.4202 125.543 35.9308 125.543H291.329C293.781 125.543 295.989 124.043 296.878 121.764V121.754Z" fill="${authCtx.group.colors.at(
+					0,
+				)}" />
+        <path d="M36.782 138.928L67.2396 223.874C68.0903 226.241 70.3392 227.819 72.852 227.819H251.794C254.248 227.819 256.458 226.319 257.348 224.04L290.573 139.093C292.098 135.198 289.213 131 285.019 131H42.3944C38.2682 131 35.3936 135.071 36.782 138.938V138.928Z" fill="${authCtx.group.colors.at(
+					1,
+				)}" />
+        <path d="M73.2014 241.928L103.662 326.757C104.514 329.124 106.766 330.702 109.284 330.702H211.81C214.268 330.702 216.482 329.202 217.373 326.923L250.605 242.093C252.133 238.198 249.244 234 245.042 234H78.8331C74.6999 234 71.8204 238.071 73.2112 241.938L73.2014 241.928Z" fill="${authCtx.group.colors.at(
+					2,
+				)}" />
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.6582" y="73.9">Agendadas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="152.183" y="91.9">${_agendados}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.1582" y="174.9">Atendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="150.683" y="192.9">${_atendidos}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="130.9531" y="280.9">Vendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="149.183" y="298.9">${_clientes}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="100.9863" y="14.9">Resumo Agendamentos</tspan>
+        </text>
+      </g>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="340" y="135.6">${this.shared.formatPercentage(
+					(_atendidos / _agendados) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="300" y="240">${this.shared.formatPercentage(
+					(_clientes / _atendidos) * 100,
+				)}</tspan>
+      </text>
+      <path d="M339.6 106.95C338.66 106.3 337.52 106 336.38 106H312.82C311.92 106 311.1 106.53 310.74 107.36L307.9 113.81C307.24 115.31 308.34 117 309.98 117H328.45L319.06 141.1H309.28L310.97 135.35C311.3 134.22 310.1 133.27 309.07 133.84L294.08 142.29C293.44 142.65 293.22 143.48 293.6 144.11L302.05 158C302.64 158.97 304.1 158.78 304.42 157.69L306.06 152.11H322.82C325.09 152.11 327.12 150.72 327.94 148.61L341.63 113.5C342.53 111.19 341.79 108.48 339.61 106.95H339.6Z" fill="#828282" />
+      <path d="M299.6 211.579C298.66 210.929 297.52 210.629 296.38 210.629H272.82C271.92 210.629 271.1 211.159 270.74 211.989L267.9 218.439C267.24 219.939 268.34 221.629 269.98 221.629H288.45L279.06 245.729H269.28L270.97 239.979C271.3 238.849 270.1 237.899 269.07 238.469L254.08 246.919C253.44 247.279 253.22 248.109 253.6 248.739L262.05 262.629C262.64 263.599 264.1 263.409 264.42 262.319L266.06 256.739H282.82C285.09 256.739 287.12 255.349 287.94 253.239L301.63 218.129C302.53 215.819 301.79 213.109 299.61 211.579H299.6Z" fill="#828282" />
+      <defs>
+        <clipPath id="clip0_485_2392">
+          <rect width="330" height="330" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>`,
+			};
+		}
+
 		return {
 			name: "scheduling",
 			type: "funnel",
@@ -5219,18 +5437,203 @@ export default class IndicatorService {
 								normal: { fill: "orange" },
 							},
 						],
-			// configs: generalResult.map((elem) => ({
-			// 	id: elem.id,
-			// 	identification: elem.identification,
-			// 	scheduled: parseInt(elem.agendados, 10),
-			// 	attended: parseInt(elem.atendidos, 10),
-			// 	sales: parseInt(
-			// 		salesResult.find((r) => r.id === elem.id)?.sales ?? "0",
-			// 	),
-			// 	clients: parseInt(
-			// 		salesResult.find((r) => r.id === elem.id)?.clients ?? "0",
-			// 	),
-			// })),
+		};
+	}
+
+	public async schedulingOpportunitiesIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const salesQb = Database.from("bills")
+			.select(
+				Database.raw(
+					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("bills.business_unit_id")
+			.whereNot("status", BillStatus.EX);
+
+		const opportunityLogsQb = Database.from("opportunity_logs")
+			.select(
+				Database.raw(
+					"business_units.id, business_units.identification, count(*) as novas_oportunidades",
+				),
+			)
+			.joinRaw(
+				"join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null",
+				[],
+			)
+			.joinRaw(
+				"join business_units on opportunity_logs.business_unit_id = business_units.id",
+				[],
+			)
+			.joinRaw(
+				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
+				[],
+			)
+			.where("business_units.environment", "P")
+			.where("crm_statuses.type", "OP")
+			.where("crm_statuses.tag", "N")
+			.groupBy("business_units.id");
+
+		const qb = Database.from("schedules")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            count(schedules.id)          as agendados,
+            count(schedules.started_at)  as atendidos
+          `,
+				),
+			)
+			.leftJoin("business_units", (query) => {
+				query.on("business_units.id", "=", "schedules.business_unit_id");
+			})
+			.joinRaw(
+				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
+			)
+			.groupBy("business_units.id");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+			salesQb.where(
+				"business_units.environment",
+				"P" as TBusinessUnitEnvironment,
+			);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("schedules.business_unit_id", data.units);
+			salesQb.whereIn("bills.business_unit_id", data.units);
+			opportunityLogsQb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("schedules.business_unit_id", authCtx.unit.id);
+			salesQb.where("bills.business_unit_id", authCtx.unit.id);
+			opportunityLogsQb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("schedules.start_hour::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			salesQb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			opportunityLogsQb.andWhereRaw(
+				"opportunity_logs.contact_date::date between ? and ?",
+				[data.fromDate, data.toDate],
+			);
+		}
+
+		const [salesResult, generalResult, opportunityResult] = await Promise.all([
+			salesQb,
+			qb,
+			opportunityLogsQb,
+		]);
+
+		const _oportunidades = Number.parseInt(
+			opportunityResult.find((r) => r.id === generalResult.at(0)?.id)
+				?.novas_oportunidades ?? "0",
+			10,
+		);
+
+		const _agendados = Number.parseInt(
+			generalResult.at(0)?.agendados ?? "0",
+			10,
+		);
+
+		const _atendidos = Number.parseInt(
+			generalResult.at(0)?.atendidos ?? "0",
+			10,
+		);
+
+		const _vendidos = Number.parseInt(
+			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+		);
+
+		const _clientes = Number.parseInt(
+			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ?? "0",
+		);
+
+		return {
+			name: "scheduling",
+			type: "funnel",
+			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="388" height="330" viewBox="0 0 388 330" fill="none"><g clip-path="url(#clip0_2003_2250)">
+        <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
+					0,
+				)}" />
+        <path d="M27.398 113.928L48.7858 173.591C49.6363 175.957 51.8845 177.535 54.3967 177.535H271.188C273.642 177.535 275.851 176.035 276.74 173.756L300.073 114.093C301.598 110.198 298.715 106 294.521 106H33.0089C28.8838 106 26.0099 110.071 27.398 113.938V113.928Z" fill="${authCtx.group.colors.at(
+					1,
+				)}" />
+        <path d="M54.8924 190.928L76.3011 250.591C77.1524 252.957 79.4029 254.535 81.9175 254.535H241.152C243.608 254.535 245.82 253.035 246.71 250.756L270.066 191.093C271.592 187.198 268.706 183 264.508 183H60.5087C56.3796 183 53.503 187.071 54.8924 190.938V190.928Z" fill="${authCtx.group.colors.at(
+					2,
+				)}" />
+        <path d="M82.3968 266.928L103.381 325.305C104.234 327.672 106.488 329.25 109.007 329.25H211.606C214.066 329.25 216.281 327.75 217.173 325.471L240.058 267.093C241.587 263.198 238.696 259 234.491 259H88.0226C83.8865 259 81.005 263.071 82.3968 266.938V266.928Z" fill="${authCtx.group.colors.at(
+					3,
+				)}" />
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="87.6837" y="60.9">Oportunidades</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="152.208" y="78.9">${_oportunidades}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="86.1837" y="137.9">Agendadas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="150.708" y="155.9">${_agendados}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="85.1837" y="214.9">Atendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="149.708" y="232.9">${_atendidos}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em">
+          <tspan x="114.186" y="281.9">Vendidas</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="148.208" y="315.9">${_clientes}</tspan>
+        </text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
+          <tspan x="80.9863" y="14.9">Resumo Agendamentos</tspan>
+        </text>
+      </g>
+      <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282" />
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="353" y="109.6">${this.shared.formatPercentage(
+					(_agendados / _oportunidades) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="323" y="189.6">${this.shared.formatPercentage(
+					(_atendidos / _agendados) * 100,
+				)}</tspan>
+      </text>
+      <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
+        <tspan x="293" y="269.6">${this.shared.formatPercentage(
+					(_vendidos / _atendidos) * 100,
+				)}</tspan>
+
+      </text>
+      <path d="M320.187 158.95C319.247 158.3 318.107 158 316.967 158H293.407C292.507 158 291.687 158.53 291.327 159.36L288.487 165.81C287.827 167.31 288.927 169 290.567 169H309.037L299.647 193.1H289.867L291.557 187.35C291.887 186.22 290.687 185.27 289.657 185.84L274.667 194.29C274.027 194.65 273.807 195.48 274.187 196.11L282.637 210C283.227 210.97 284.687 210.78 285.007 209.69L286.647 204.11H303.407C305.677 204.11 307.707 202.72 308.527 200.61L322.217 165.5C323.117 163.19 322.377 160.48 320.197 158.95H320.187Z" fill="#828282" />
+      <path d="M289.19 237.95C288.25 237.3 287.11 237 285.97 237H262.41C261.51 237 260.69 237.53 260.33 238.36L257.49 244.81C256.83 246.31 257.93 248 259.57 248H278.04L268.65 272.1H258.87L260.56 266.35C260.89 265.22 259.69 264.27 258.66 264.84L243.67 273.29C243.03 273.65 242.81 274.48 243.19 275.11L251.64 289C252.23 289.97 253.69 289.78 254.01 288.69L255.65 283.11H272.41C274.68 283.11 276.71 281.72 277.53 279.61L291.22 244.5C292.12 242.19 291.38 239.48 289.2 237.95H289.19Z" fill="#828282" />
+      <defs>
+        <clipPath id="clip0_2003_2250">
+          <rect width="330" height="330" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>`,
 		};
 	}
 
@@ -5326,14 +5729,6 @@ export default class IndicatorService {
 					normal: { fill: "orange" },
 				},
 			],
-			// configs: result.map((elem) => ({
-			// 	id: elem.id,
-			// 	identification: elem.identification,
-			// 	new: parseInt(elem.novas, 10),
-			// 	scheduled: parseInt(elem.agendadas, 10),
-			// 	attended: parseInt(elem.comparecidas, 10),
-			// 	gained: parseInt(elem.ganhos, 10),
-			// })),
 		};
 	}
 
@@ -5411,6 +5806,10 @@ export default class IndicatorService {
 			configs: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
+				const sum = result
+					.filter((f) => f.b_id === elem)
+					.reduce((acc, curr) => acc + Number.parseFloat(curr.total_value), 0);
+
 				return {
 					id: unit.id,
 					identification: unit.identification,
@@ -5425,6 +5824,9 @@ export default class IndicatorService {
 							qty: usr.total_bills,
 							avg: this.shared.formatter.format(
 								Number.parseFloat(usr.avg_value),
+							),
+							percentage: this.shared.formatPercentage(
+								(Number.parseFloat(usr.total_value) * 100) / sum,
 							),
 						})),
 				};
@@ -5495,15 +5897,17 @@ export default class IndicatorService {
 
 		const totalSum = result.reduce(
 			(acc, curr) =>
-				acc + parseFloat(curr.total_recorrentes) + parseFloat(curr.total_novos),
+				acc +
+				Number.parseFloat(curr.total_recorrentes) +
+				Number.parseFloat(curr.total_novos),
 			0,
 		);
 		const recurringSum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_recorrentes),
+			(acc, curr) => acc + Number.parseFloat(curr.total_recorrentes),
 			0,
 		);
 		const newSum = result.reduce(
-			(acc, curr) => acc + parseFloat(curr.total_novos),
+			(acc, curr) => acc + Number.parseFloat(curr.total_novos),
 			0,
 		);
 
@@ -5519,7 +5923,7 @@ export default class IndicatorService {
 						(recurringSum / totalSum) * 100,
 					),
 					itemStyle: {
-						color: IndicatorService.COLORS[0 % IndicatorService.COLORS.length],
+						color: authCtx.group.colors[0 % authCtx.group.colors.length],
 					},
 				},
 				{
@@ -5527,7 +5931,7 @@ export default class IndicatorService {
 					value: this.shared.formatter.format(newSum),
 					percentage: this.shared.formatPercentage((newSum / totalSum) * 100),
 					itemStyle: {
-						color: IndicatorService.COLORS[1 % IndicatorService.COLORS.length],
+						color: authCtx.group.colors[1 % authCtx.group.colors.length],
 					},
 				},
 			],
@@ -5567,19 +5971,21 @@ export default class IndicatorService {
 							{
 								value: recurringSum,
 								name: "Recorrentes",
-								percentage: parseFloat(
+								percentage: Number.parseFloat(
 									((recurringSum / totalSum) * 100).toFixed(2),
 								),
 								itemStyle: {
-									color: "black",
+									color: authCtx.group.colors.at(0),
 								},
 							},
 							{
 								value: newSum,
 								name: "Novos",
-								percentage: parseFloat(((newSum / totalSum) * 100).toFixed(2)),
+								percentage: Number.parseFloat(
+									((newSum / totalSum) * 100).toFixed(2),
+								),
 								itemStyle: {
-									color: "silver",
+									color: authCtx.group.colors.at(1),
 								},
 							},
 						],

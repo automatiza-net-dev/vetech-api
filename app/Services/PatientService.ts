@@ -681,7 +681,10 @@ export default class PatientService {
 			.where("patient_id", patientId)
 			.where("status", HospitalizationStatus.ACTIVE);
 		const sales = await Bill.query()
-			.where("patient_id", patient.id)
+			.where(
+				authCtx.system.name === "LiftOne" ? "client_id" : "patient_id",
+				patient.id,
+			)
 			.where("status", BillStatus.A);
 		const attendances = await Attendance.query()
 			.where("business_unit_id", authCtx.unit.id)
@@ -696,8 +699,8 @@ export default class PatientService {
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE
-					? "Macho"
-					: "Femea"
+					? "Masculino"
+					: "Feminino"
 				: null,
 			tags: patient.tags,
 			community: patient.community,
@@ -743,6 +746,7 @@ export default class PatientService {
 				castrated: patient.patientAnimal.castrated,
 				hair: patient.patientAnimal.hair?.description ?? null,
 				race: patient.patientAnimal.race?.description ?? null,
+				specie_id: patient.patientAnimal.race?.specie?.id ?? null,
 				specie: patient.patientAnimal.race?.specie?.description ?? null,
 			});
 		}
@@ -750,13 +754,25 @@ export default class PatientService {
 		if (patient.tutors) {
 			const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
 			if (mainTutor) {
+				const obj = mainTutor;
+				const tutorObj = obj.tutor;
 				Object.assign(displayData, {
 					tutor: {
-						id: mainTutor?.id,
-						name: mainTutor?.name,
-						cellphone: mainTutor?.tutor.cellphone ?? null,
-						telephone: mainTutor?.tutor?.telephone ?? null,
-						email: mainTutor?.tutor?.email ?? null,
+						id: obj.id,
+						name: obj.name,
+						cellphone: tutorObj.cellphone ?? null,
+						telephone: tutorObj.telephone ?? null,
+						email: tutorObj.email ?? null,
+						document: tutorObj.document ?? null,
+						address: [
+							tutorObj.street,
+							tutorObj.number,
+							tutorObj.complement,
+							tutorObj.district,
+							`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
+						]
+							.filter(Boolean)
+							.join(", "),
 					},
 				});
 			}

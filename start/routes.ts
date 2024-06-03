@@ -1325,6 +1325,7 @@ Route.group(() => {
 	);
 	Route.post("/sync-schedule", "OpportunitiesController.syncSchedule");
 
+	Route.post("/from-schedule", "OpportunitiesController.storeFromSchedule");
 	Route.post("/", "OpportunitiesController.store");
 	Route.get("/show/:id", "OpportunitiesController.show");
 	Route.put("/patient", "OpportunitiesController.updateOpportunityPatient");
@@ -1656,11 +1657,20 @@ Route.group(() => {
 		"/sales-per-period-2",
 		"IndicatorsController.salesPerPeriodIndicators_2",
 	);
+	Route.get(
+		"/sales-per-user-2",
+		"IndicatorsController.salesPerUserIndicators_2",
+	);
 	Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
 	Route.get("/scheduling-2", "IndicatorsController.schedulingIndicators_2");
 	Route.get(
 		"/opportunities-2",
 		"IndicatorsController.opportunitiesIndicators_2",
+	);
+	Route.get("/crm-2", "IndicatorsController.crmIndicators_2");
+	Route.get(
+		"/scheduling-opportunities-2",
+		"IndicatorsController.schedulingOpportunitiesIndicators_2",
 	);
 })
 	.prefix("indicators")

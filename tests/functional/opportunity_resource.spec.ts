@@ -10,7 +10,10 @@ import OpportunityActivity from "App/Models/OpportunityActivity";
 import { PatientType } from "App/Models/Patient";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
+import ScheduleServiceType from "App/Models/ScheduleServiceType";
+import ScheduleStatus from "App/Models/ScheduleStatus";
 import PatientFactory from "Database/factories/PatientFactory";
+import ScheduleServiceTypeFactory from "Database/factories/ScheduleServiceTypeFactory";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -37,9 +40,10 @@ test.group("Opportunity resource", (group) => {
 		});
 
 		const crmStatus = await CrmStatus.create({
+			system_id: system.id,
 			description: "Agendado (Confirmado)",
 			type: "OP",
-			tag: "some tag",
+			tag: "N",
 		});
 
 		const someActivity = await Activity.create({
@@ -97,6 +101,32 @@ test.group("Opportunity resource", (group) => {
 			system_id: system.id,
 		});
 
+		const serviceType = await ScheduleServiceType.create({
+			system_id: system.id,
+			economic_group_id: group.id,
+			description: "SUT",
+			type: "A",
+		});
+		const serviceStatus = await ScheduleStatus.create({
+			system_id: system.id,
+			description: "SUT",
+		});
+
+		const schedule = await Schedule.create({
+			patientName: "any name",
+			patientPhone: "any phone",
+			holder_id: holder.id,
+			age: 2,
+			startHour: DateTime.now(),
+			endHour: DateTime.now().endOf("day"),
+			majorComplaint: "some complaint",
+			business_unit_id: business.id,
+			user_id: user.id,
+			patient_id: holder.id,
+			schedule_service_type_id: serviceType.id,
+			schedule_status_id: serviceStatus.id,
+		});
+
 		return {
 			user,
 			business,
@@ -110,6 +140,9 @@ test.group("Opportunity resource", (group) => {
 			activity,
 			someActivity,
 			reason,
+			serviceStatus,
+			serviceType,
+			schedule,
 		};
 	};
 
@@ -139,6 +172,90 @@ test.group("Opportunity resource", (group) => {
 			.bearerToken(token);
 
 		props.assert.equal(response.status(), 201);
+	});
+
+	test("should create an opportunity from schedule", async (props) => {
+		const { user, schedule } = await createData();
+
+		const token = await generateJwtToken(props.client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const response = await props.client
+			.post("/opportunities/from-schedule")
+			.json({
+				scheduleId: schedule.id,
+			})
+			.bearerToken(token);
+
+		props.assert.equal(response.status(), 201);
+	});
+
+	test("should create an opportunity from schedule without holder", async (props) => {
+		const { user, holder, serviceStatus, serviceType, business } =
+			await createData();
+
+		const token = await generateJwtToken(props.client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const schedule = await Schedule.create({
+			patientName: "any name",
+			patientPhone: "any phone",
+			age: 2,
+			startHour: DateTime.now(),
+			endHour: DateTime.now().endOf("day"),
+			majorComplaint: "some complaint",
+			business_unit_id: business.id,
+			user_id: user.id,
+			patient_id: holder.id,
+			schedule_service_type_id: serviceType.id,
+			schedule_status_id: serviceStatus.id,
+		});
+
+		const response = await props.client
+			.post("/opportunities/from-schedule")
+			.json({
+				scheduleId: schedule.id,
+			})
+			.bearerToken(token);
+
+		console.log(JSON.stringify(response.body(), null, 2));
+
+		props.assert.equal(response.status(), 201);
+	});
+
+	test("should throw ResourceNotFound if no schedule was found ", async (props) => {
+		const { user, holder, serviceStatus, serviceType } = await createData();
+
+		const token = await generateJwtToken(props.client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const schedule = await Schedule.create({
+			patientName: "any name",
+			patientPhone: "any phone",
+			age: 2,
+			startHour: DateTime.now(),
+			endHour: DateTime.now().endOf("day"),
+			majorComplaint: "some complaint",
+			user_id: user.id,
+			patient_id: holder.id,
+			schedule_service_type_id: serviceType.id,
+			schedule_status_id: serviceStatus.id,
+		});
+
+		const response = await props.client
+			.post("/opportunities/from-schedule")
+			.json({
+				scheduleId: schedule.id,
+			})
+			.bearerToken(token);
+
+		props.assert.equal(response.status(), 404);
 	});
 
 	test("should update an opportunity", async (props) => {

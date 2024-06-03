@@ -275,6 +275,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async crmIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.crmIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async unconfirmedBudgetsIndicators({
 		auth,
 		request,
@@ -558,6 +571,19 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async schedulingOpportunitiesIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.schedulingOpportunitiesIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async opportunitiesIndicators_2({
 		auth,
 		request,
@@ -577,6 +603,19 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.invoicingNewClients_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async salesPerUserIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.salesPerUserIndicators_2(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

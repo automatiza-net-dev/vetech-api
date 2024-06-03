@@ -284,6 +284,7 @@ export default class IndicatorService {
 		return {
 			name: "median-ticket-by-origin",
 			type: "pie",
+			hasData: result.length > 0,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
@@ -559,6 +560,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-product-type",
 			type: "pie",
+			hasData: result.length > 0,
 			// legend: false,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total_sales),
@@ -907,6 +909,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-by-payment-method",
 			type: "pie",
+			hasData: result.length > 0,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
@@ -2269,6 +2272,7 @@ export default class IndicatorService {
 		return {
 			name: "opportunities",
 			type: "funnel",
+			hasData: result.length > 0,
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
@@ -4285,6 +4289,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-new-clients-period",
 			type: "line",
+			hasData: result.length > 0,
 			// legend: true,
 			configs: {
 				title: {
@@ -4418,6 +4423,7 @@ export default class IndicatorService {
 		return {
 			name: "bill-payment-format",
 			type: "bar",
+			hasData: result.length > 0,
 			// legend: true,
 			legend: [
 				{
@@ -4610,6 +4616,7 @@ export default class IndicatorService {
 			name: "bill-user-period",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				return result
 					.filter((r) => r.b_id === elem)
@@ -4738,6 +4745,7 @@ export default class IndicatorService {
 		return {
 			name: "product-type",
 			type: "pie",
+			hasData: metasResult.length > 0,
 			legend: [
 				{
 					value: this.shared.formatter.format(productSum),
@@ -4917,6 +4925,7 @@ export default class IndicatorService {
 			name: "subgroups",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.id === elem);
 
@@ -5052,6 +5061,7 @@ export default class IndicatorService {
 			name: "sales-per-period",
 			description: description ?? undefined,
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
@@ -5228,6 +5238,7 @@ export default class IndicatorService {
 					: "Orçamentos por Vendedor"
 				: "Orçamentos Gerais",
 			type: "table",
+			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
 				const group = result.find((r) => r.e_id === elem);
 				const units = result.filter((r) => r.e_id === elem);
@@ -5385,6 +5396,7 @@ export default class IndicatorService {
 			return {
 				name: "scheduling",
 				type: "funnel",
+				hasData: generalResult.length > 0,
 				configs: `<svg width="400" height="330" viewBox="0 0 400 330" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_485_2392)">
         <path d="M296.878 121.754L329.565 38.0934C331.089 34.1976 328.207 30 324.016 30H5.95974C1.84702 30 -1.03481 34.071 0.352378 37.9375L30.3234 121.598C31.1733 123.965 33.4202 125.543 35.9308 125.543H291.329C293.781 125.543 295.989 124.043 296.878 121.764V121.754Z" fill="${authCtx.group.colors.at(
@@ -5442,6 +5454,7 @@ export default class IndicatorService {
 		return {
 			name: "scheduling",
 			type: "funnel",
+			hasData: generalResult.length > 0,
 			configs:
 				generalResult.length === 0
 					? []
@@ -5604,6 +5617,7 @@ export default class IndicatorService {
 		return {
 			name: "scheduling",
 			type: "funnel",
+			hasData: generalResult.length > 0,
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none"><g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
 					0,
@@ -5735,6 +5749,7 @@ export default class IndicatorService {
 		return {
 			name: "opportunities",
 			type: "funnel",
+			hasData: result.length > 0,
 			configs: [
 				{
 					name: "Novas Oportunidades",
@@ -5839,6 +5854,7 @@ export default class IndicatorService {
 			name: "sales-per-user",
 			description: "Vendas por Usuário",
 			type: "table",
+			hasData: result.length > 0,
 			configs: uniqueUnits.map((elem) => {
 				const unit = result.find((r) => r.b_id === elem);
 
@@ -5950,6 +5966,7 @@ export default class IndicatorService {
 		return {
 			name: "invoicing-new-clients",
 			type: "pie",
+			hasData: result.length > 0,
 			// legend: true,
 			legend: [
 				{

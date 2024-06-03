@@ -4464,7 +4464,7 @@ export default class IndicatorService {
 				grid: {
 					left: "3%",
 					right: "4%",
-					bottom: "50%",
+					bottom: "25%",
 					containLabel: true,
 				},
 				xAxis: {

@@ -95,6 +95,13 @@ export default class ScheduleService {
 		authCtx: AuthContext,
 		data: Pick<IHomeSearch, "unit">,
 	) {
+		const hasPermissionNotConfirmed =
+			await this.sharedService.userHasPermission(authCtx, "PRI01");
+		const hasPermissionConfirmed = await this.sharedService.userHasPermission(
+			authCtx,
+			"PRI02",
+		);
+
 		const confirmedQb = Schedule.query()
 			.select(
 				"patient_id",
@@ -194,6 +201,13 @@ export default class ScheduleService {
 				query.select(["id", "description", "color", "type"]);
 			})
 			.orderBy("start_hour", "asc");
+
+		if (!hasPermissionConfirmed) {
+			confirmedQb.whereRaw("0 = 1");
+		}
+		if (!hasPermissionNotConfirmed) {
+			nonConfirmedQb.whereRaw("0 = 1");
+		}
 
 		if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
 			confirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);

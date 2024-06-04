@@ -38,7 +38,6 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1797,14 +1796,6 @@ export default class FinanceService {
 	}
 
 	async getExpiringExpenses(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI03",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const finances = await Finance.query()
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
@@ -1841,14 +1832,6 @@ export default class FinanceService {
 	}
 
 	async getExpiringPayments(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI03",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const today = DateTime.now();
 
 		const finances = await Finance.query()
@@ -1892,14 +1875,6 @@ export default class FinanceService {
 	}
 
 	async getCheckingAccountsResume(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI03",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const result = await CheckingAccount.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("active", true);
@@ -1913,14 +1888,6 @@ export default class FinanceService {
 	}
 
 	async getOpenDailyCashiers(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI04",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.A)
@@ -1944,14 +1911,6 @@ export default class FinanceService {
 	}
 
 	async getClosedDailyCashiers(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI04",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.F)
@@ -1976,14 +1935,6 @@ export default class FinanceService {
 	}
 
 	async getRevisedDailyCashiers(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI04",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.R)
@@ -2009,14 +1960,6 @@ export default class FinanceService {
 	}
 
 	async getTodayDailyCashiers(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI04",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		const today = DateTime.now();
 
 		const result = await DailyCashier.query()
@@ -2048,14 +1991,6 @@ export default class FinanceService {
 	}
 
 	async getOverallResume(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI03",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
 		// 1.8.1.1
 		const first = await Database.from("finances")
 			.where("business_unit_id", authCtx.unit.id)

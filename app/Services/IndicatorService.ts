@@ -2413,9 +2413,11 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const dt = DateTime.fromISO(data.fromDate ?? new Date().toISOString()).plus(
-			{ days: 10 },
-		);
+		const dt = DateTime.fromISO(
+			data.fromDate
+				? new Date(data.fromDate).toISOString()
+				: new Date().toISOString(),
+		).plus({ days: 10 });
 		const ym = dt.toFormat("yyyyMM");
 		const daysOfMonth = dt.daysInMonth ?? 30;
 

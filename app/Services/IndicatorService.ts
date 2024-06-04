@@ -5955,13 +5955,11 @@ export default class IndicatorService {
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.whereRaw(
-				`bill_date::date between (?::date - interval '5 months')::date and ?`,
-				[data.fromDate, data.toDate],
-			);
+			qb.whereRaw(`bill_date::date between ? and ?`, [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
-
-		console.log(qb.toQuery());
 
 		const result = await qb;
 

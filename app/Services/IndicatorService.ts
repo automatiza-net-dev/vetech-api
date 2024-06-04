@@ -5690,7 +5690,7 @@ export default class IndicatorService {
       </text>
       <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
         <tspan x="293" y="269.6">${this.shared.formatPercentage(
-					(_vendidos / _atendidos) * 100,
+					(_clientes / _atendidos) * 100,
 				)}</tspan>
 
       </text>

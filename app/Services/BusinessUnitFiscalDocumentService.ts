@@ -828,6 +828,7 @@ export default class BusinessUnitFiscalDocumentService {
 						name: responsible.name,
 						email: responsible.tutor.email,
 						phone: responsible.tutor.telephone ?? "",
+						ie: responsible.tutor.inscription ?? "",
 						address: {
 							street: responsible.tutor.street ?? "",
 							number: responsible.tutor.number ?? "",

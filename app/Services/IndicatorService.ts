@@ -3863,10 +3863,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Tendencia",
-							percentage: this.shared.formatPercentage(
+							value: this.shared.formatPercentage(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
 							),
-							value: this.shared.formatter.format(
+							percentage: this.shared.formatter.format(
 								cards
 									.at(0)
 									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,

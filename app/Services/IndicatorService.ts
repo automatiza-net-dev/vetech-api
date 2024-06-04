@@ -290,7 +290,7 @@ export default class IndicatorService {
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
-				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
+				percentage: this.shared.formatPercentage((elem.total / sum) * 100),
 				itemStyle: {
 					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
@@ -567,7 +567,9 @@ export default class IndicatorService {
 			// legend: false,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total_sales),
-				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
+				percentage: this.shared.formatPercentage(
+					(elem.total_sales / parsedTotal) * 100,
+				),
 				name: elem.description,
 				itemStyle: {
 					color: authCtx.group.colors[idx % authCtx.group.colors.length],
@@ -4155,10 +4157,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Atingimento",
-							value: `${(
+							value: this.shared.formatPercentage(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
-								0
-							).toFixed(2)}%`,
+									0,
+							),
 						},
 					],
 				},
@@ -4167,9 +4169,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Tendencia",
-							percentage: `${(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0)
-							).toFixed(2)}%`,
+							percentage: this.shared.formatPercentage(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
+							),
 							value: this.shared.formatter.format(
 								cards
 									.at(0)
@@ -4218,9 +4220,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Retorno MKT (ROI)",
-							value: `${(
-								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0
-							).toFixed(2)}%`,
+							value: this.shared.formatPercentage(
+								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
+							),
 						},
 					],
 				},

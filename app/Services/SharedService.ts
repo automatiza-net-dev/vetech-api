@@ -122,6 +122,10 @@ export default class SharedService {
 			return "0%";
 		}
 
+		if (!Number.isFinite(value)) {
+			return "0%";
+		}
+
 		return `${value.toFixed(2)}%`;
 	}
 

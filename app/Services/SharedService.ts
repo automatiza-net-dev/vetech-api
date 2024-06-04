@@ -106,7 +106,7 @@ export default class SharedService {
 				data: null,
 				status: 400,
 				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				message: e.message.split(":").at(1)?.trim() ?? "Algo deu errado",
 				validationErrors: {},
 			});
 		}

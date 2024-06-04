@@ -106,7 +106,7 @@ export default class SharedService {
 				data: null,
 				status: 400,
 				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
+				message: e.message.split(":").at(1)?.trim() ?? "Algo deu errado",
 				validationErrors: {},
 			});
 		}
@@ -119,6 +119,10 @@ export default class SharedService {
 
 	public formatPercentage(value: number) {
 		if (Number.isNaN(value)) {
+			return "0%";
+		}
+
+		if (!Number.isFinite(value)) {
 			return "0%";
 		}
 
@@ -147,16 +151,27 @@ export default class SharedService {
 		permissionControlID: string,
 	): Promise<boolean> {
 		const rows = await Database.from("users")
-			.select("users.*")
-			.join("user_unit_roles", "users.id", "user_unit_roles.user_id")
-			.join("roles", "user_unit_roles.role_id", "roles.id")
-			.join("role_permissions", "roles.id", "user_unit_roles.role_id")
-			.join("permissions", "role_permissions.permission_id", "permissions.id")
+			.select(Database.raw("distinct control_id"))
+			.joinRaw(
+				"inner join user_unit_roles on users.id = user_unit_roles.user_id",
+			)
+			.joinRaw("inner join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw(
+				"inner join role_permissions on roles.id = user_unit_roles.role_id",
+			)
+			.joinRaw(
+				"inner join permissions on role_permissions.permission_id = permissions.id",
+			)
 			.where("users.id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
+			.where("roles.system_id", authCtx.system.id)
 			.where("control_id", permissionControlID)
-			.where("user_unit_roles.active", true)
-			.where("role_permissions.status", true);
+			.whereNull("permissions.deleted_at")
+			.where("roles.active", true)
+			.where("role_permissions.active", true)
+			.where("role_permissions.status", true)
+			.whereIn("roles.type", ["controller", "both", "all", "user"])
+			.whereIn("permissions.type", ["controller", "both", "all"]);
 
 		return rows.length > 0;
 	}

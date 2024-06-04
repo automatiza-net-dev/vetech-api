@@ -17,6 +17,8 @@ import { DateTime } from "luxon";
 import { validate } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { TRoleType } from "App/Models/Role";
+import { TPermissionType } from "App/Models/Permission";
 
 export type DateSet = {
 	start: Date;
@@ -150,19 +152,37 @@ export default class SharedService {
 		authCtx: AuthContext,
 		permissionControlID: string,
 	): Promise<boolean> {
-		const rows = await Database.from("users")
-			.select("users.*")
-			.join("user_unit_roles", "users.id", "user_unit_roles.user_id")
-			.join("roles", "user_unit_roles.role_id", "roles.id")
-			.join("role_permissions", "roles.id", "user_unit_roles.role_id")
-			.join("permissions", "role_permissions.permission_id", "permissions.id")
-			.where("users.id", authCtx.user.id)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("control_id", permissionControlID)
-			.where("user_unit_roles.active", true)
-			.where("role_permissions.status", true);
+		const userRoles = await authCtx.user
+			.related("roles")
+			.query()
+			.preload("role", (query) => {
+				query.whereIn("type", ["controller", "both"] as TRoleType[]);
 
-		return rows.length > 0;
+				query.preload("permissions", (query) => {
+					query.where("status", true);
+
+					query.whereIn("type", ["controller", "both"] as TPermissionType[]);
+				});
+			})
+			.whereHas("role", (query) => {
+				query.whereIn("type", ["controller", "both"] as TRoleType[]);
+
+				query.whereHas("permissions", (query) => {
+					query.where("status", true);
+					query.whereIn("type", ["controller", "both"] as TPermissionType[]);
+					query.where("control_id", permissionControlID);
+				});
+			})
+			.whereHas("unit", (query) => {
+				query.whereHas("economicGroup", (query) => {
+					query.where("system_id", authCtx.system.id);
+				});
+
+				query.where("active", true);
+			})
+			.where("active", true);
+
+		return userRoles.length > 0;
 	}
 
 	public extractUser(auth: AuthContract): {

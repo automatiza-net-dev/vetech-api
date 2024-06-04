@@ -171,7 +171,7 @@ export default class SharedService {
 			.where("role_permissions.active", true)
 			.where("role_permissions.status", true)
 			.whereIn("roles.type", ["controller", "both", "all", "user"])
-			.whereIn("permissions.type", ["controller", "both", "all"]);
+			.whereIn("permissions.type", ["controller", "both", "all", "user"]);
 
 		return rows.length > 0;
 	}

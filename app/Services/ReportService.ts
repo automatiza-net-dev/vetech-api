@@ -575,7 +575,9 @@ export default class ReportService {
        bill_items.unitary_value                                                as valor_Unitario_Item,
        (bill_items.quantity * bill_items.unitary_value)                        as valor_Bruto_Item,
        bill_items.discount_value                                               as valor_Desconto_Item,
-       bill_items.total_value                                                  as valor_Liquido_Item
+       bill_items.total_value                                                  as valor_Liquido_Item,
+       atendimentos.ultima_avaliacao::date,
+       atendimentos.avaliador
         `),
 			)
 			.joinRaw(
@@ -610,6 +612,14 @@ ON bills.patient_id = Dep."id"`,
 				`LEFT JOIN client_origins ON CliTu.client_origin_id = client_origins."id"`,
 			)
 			.joinRaw(`join users on bills.seller_id = users.id`)
+			.joinRaw(`left join (
+			select a.business_unit_id, a.patient_id,
+			open_user_id avaliador_id, avaliador."name" avaliador, max(a.created_at) ultima_avaliacao
+			from attendances a join schedule_service_types sst on a.schedule_service_id = sst.id and sst."type" = 'A'
+			join users avaliador on a.open_user_id = avaliador.id
+			and a.deleted_at is null
+			group by a.patient_id, a.business_unit_id, open_user_id, avaliador."name"
+		) atendimentos on atendimentos.business_unit_id = business_units.id and atendimentos.patient_id = cli.id`)
 			.whereNull("bills.deleted_at")
 			.orderByRaw('Cli."name", Dep.tag, bills.bill_date');
 

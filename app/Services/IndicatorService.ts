@@ -2506,6 +2506,8 @@ export default class IndicatorService {
 			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
+		console.log(qb.toQuery());
+
 		const metasResult = await qb;
 
 		return metasResult.map((elem) => {

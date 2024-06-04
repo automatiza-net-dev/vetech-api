@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
 import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
@@ -3945,9 +3946,16 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
-		console.log("systemName =>", authCtx.system.name);
+		const hasPermission = await this.shared.userHasPermission(authCtx, "PRI05");
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver os gráficos",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (authCtx.system.name === "Sanclá") {
-			console.log("will call pvt");
 			return this.sanclaChartsIndicators(authCtx, data);
 		}
 

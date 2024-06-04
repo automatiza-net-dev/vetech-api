@@ -286,6 +286,7 @@ export default class IndicatorService {
 			name: "median-ticket-by-origin",
 			type: "pie",
 			hasData: result.length > 0,
+			title: "Faturamento X Origem Clientes",
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
@@ -299,6 +300,7 @@ export default class IndicatorService {
 					text: "Faturamento X Origem Clientes",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -911,6 +913,7 @@ export default class IndicatorService {
 			name: "invoicing-by-payment-method",
 			type: "pie",
 			hasData: result.length > 0,
+			title: "Faturamento X Forma Pagamento",
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
@@ -924,6 +927,7 @@ export default class IndicatorService {
 					text: "Faturamento X Forma Pagamento",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -4302,10 +4306,12 @@ export default class IndicatorService {
 			type: "line",
 			hasData: result.length > 0,
 			// legend: true,
+			title: "Clientes Novos x Recorrentes",
 			configs: {
 				title: {
 					text: "Clientes Novos x Recorrentes",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "axis",
@@ -4436,6 +4442,7 @@ export default class IndicatorService {
 			type: "bar",
 			hasData: result.length > 0,
 			// legend: true,
+			title: "Faturamento x Cond. Pgto",
 			legend: [
 				{
 					value: this.shared.formatter.format(
@@ -4470,6 +4477,7 @@ export default class IndicatorService {
 				title: {
 					text: "Faturamento x Cond. Pgto",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "axis",
@@ -4757,6 +4765,7 @@ export default class IndicatorService {
 			name: "product-type",
 			type: "pie",
 			hasData: metasResult.length > 0,
+			title: "Partic. de Produtos x Serviços",
 			legend: [
 				{
 					value: this.shared.formatter.format(productSum),
@@ -4780,6 +4789,7 @@ export default class IndicatorService {
 					text: "Partic. de Produtos x Serviços",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -5978,7 +5988,7 @@ export default class IndicatorService {
 			name: "invoicing-new-clients",
 			type: "pie",
 			hasData: result.length > 0,
-			// legend: true,
+			title: "Clientes Novos X Recorrentes",
 			legend: [
 				{
 					name: "Recorrentes",
@@ -6004,6 +6014,7 @@ export default class IndicatorService {
 					text: "Clientes Novos X Recorrentes",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",

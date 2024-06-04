@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
 import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
@@ -285,10 +286,11 @@ export default class IndicatorService {
 			name: "median-ticket-by-origin",
 			type: "pie",
 			hasData: result.length > 0,
+			title: "Faturamento X Origem Clientes",
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total.toFixed(2)),
 				name: elem.description,
-				percentage: `${((elem.total / sum) * 100).toFixed(2)}%`,
+				percentage: this.shared.formatPercentage((elem.total / sum) * 100),
 				itemStyle: {
 					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},
@@ -298,6 +300,7 @@ export default class IndicatorService {
 					text: "Faturamento X Origem Clientes",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -564,7 +567,9 @@ export default class IndicatorService {
 			// legend: false,
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.total_sales),
-				percentage: `${((elem.total_sales / parsedTotal) * 100).toFixed(2)}%`,
+				percentage: this.shared.formatPercentage(
+					(elem.total_sales / parsedTotal) * 100,
+				),
 				name: elem.description,
 				itemStyle: {
 					color: authCtx.group.colors[idx % authCtx.group.colors.length],
@@ -910,6 +915,7 @@ export default class IndicatorService {
 			name: "invoicing-by-payment-method",
 			type: "pie",
 			hasData: result.length > 0,
+			title: "Faturamento X Forma Pagamento",
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
@@ -923,6 +929,7 @@ export default class IndicatorService {
 					text: "Faturamento X Forma Pagamento",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -2273,6 +2280,7 @@ export default class IndicatorService {
 			name: "opportunities",
 			type: "funnel",
 			hasData: result.length > 0,
+			title: "Funil Crm",
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
@@ -2301,9 +2309,6 @@ export default class IndicatorService {
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="145" y="295">Ganho</text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${_ganhos}</tspan></text>
 
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em">
-          <tspan x="120" y="14.9">Funil Crm</tspan>
-        </text>
         </g>
         <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="353" y="109.6">${this.shared.formatPercentage(
@@ -2413,9 +2418,11 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const dt = DateTime.fromISO(data.fromDate ?? new Date().toISOString()).plus(
-			{ days: 10 },
-		);
+		const dt = DateTime.fromISO(
+			data.fromDate
+				? new Date(data.fromDate).toISOString()
+				: new Date().toISOString(),
+		).plus({ days: 10 });
 		const ym = dt.toFormat("yyyyMM");
 		const daysOfMonth = dt.daysInMonth ?? 30;
 
@@ -3864,12 +3871,13 @@ export default class IndicatorService {
 						{
 							description: "Tendencia",
 							percentage: this.shared.formatPercentage(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
-							),
-							value: this.shared.formatter.format(
 								cards
 									.at(0)
-									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
+									?.reduce((acc, curr) => acc + curr.metaProjection, 0),
+							),
+							value: this.shared.formatter.format(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0) ??
+									0,
 							),
 						},
 					],
@@ -3942,9 +3950,16 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
-		console.log("systemName =>", authCtx.system.name);
+		const hasPermission = await this.shared.userHasPermission(authCtx, "PRI05");
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver os gráficos",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (authCtx.system.name === "Sanclá") {
-			console.log("will call pvt");
 			return this.sanclaChartsIndicators(authCtx, data);
 		}
 
@@ -4140,10 +4155,10 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Atingimento",
-							value: `${(
+							value: this.shared.formatPercentage(
 								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
-								0
-							).toFixed(2)}%`,
+									0,
+							),
 						},
 					],
 				},
@@ -4152,9 +4167,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Tendencia",
-							percentage: `${(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0)
-							).toFixed(2)}%`,
+							percentage: this.shared.formatPercentage(
+								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
+							),
 							value: this.shared.formatter.format(
 								cards
 									.at(0)
@@ -4203,9 +4218,9 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Retorno MKT (ROI)",
-							value: `${(
-								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0
-							).toFixed(2)}%`,
+							value: this.shared.formatPercentage(
+								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
+							),
 						},
 					],
 				},
@@ -4291,10 +4306,12 @@ export default class IndicatorService {
 			type: "line",
 			hasData: result.length > 0,
 			// legend: true,
+			title: "Clientes Novos x Recorrentes",
 			configs: {
 				title: {
 					text: "Clientes Novos x Recorrentes",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "axis",
@@ -4425,6 +4442,7 @@ export default class IndicatorService {
 			type: "bar",
 			hasData: result.length > 0,
 			// legend: true,
+			title: "Faturamento x Cond. Pgto",
 			legend: [
 				{
 					value: this.shared.formatter.format(
@@ -4459,6 +4477,7 @@ export default class IndicatorService {
 				title: {
 					text: "Faturamento x Cond. Pgto",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "axis",
@@ -4746,6 +4765,7 @@ export default class IndicatorService {
 			name: "product-type",
 			type: "pie",
 			hasData: metasResult.length > 0,
+			title: "Partic. de Produtos x Serviços",
 			legend: [
 				{
 					value: this.shared.formatter.format(productSum),
@@ -4769,6 +4789,7 @@ export default class IndicatorService {
 					text: "Partic. de Produtos x Serviços",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",
@@ -5397,6 +5418,7 @@ export default class IndicatorService {
 				name: "scheduling",
 				type: "funnel",
 				hasData: generalResult.length > 0,
+				title: "Resumo Agendamentos",
 				configs: `<svg width="400" height="330" viewBox="0 0 400 330" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_485_2392)">
         <path d="M296.878 121.754L329.565 38.0934C331.089 34.1976 328.207 30 324.016 30H5.95974C1.84702 30 -1.03481 34.071 0.352378 37.9375L30.3234 121.598C31.1733 123.965 33.4202 125.543 35.9308 125.543H291.329C293.781 125.543 295.989 124.043 296.878 121.764V121.754Z" fill="${authCtx.group.colors.at(
@@ -5426,9 +5448,7 @@ export default class IndicatorService {
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
           <tspan x="152" y="298.9">${_clientes}</tspan>
         </text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em" >
-          <tspan x="65" y="14.9">Resumo Agendamentos </tspan>
-        </text>
+
       </g>
       <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
         <tspan x="340" y="135.6">${this.shared.formatPercentage(
@@ -5618,6 +5638,7 @@ export default class IndicatorService {
 			name: "scheduling",
 			type: "funnel",
 			hasData: generalResult.length > 0,
+			title: "Resumo Agendamentos",
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none"><g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
 					0,
@@ -5654,9 +5675,6 @@ export default class IndicatorService {
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
           <tspan x="152" y="310">${_clientes}</tspan>
-        </text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="22" font-weight="bold" letter-spacing="0em">
-          <tspan x="60" y="14.9">Resumo Agendamentos</tspan>
         </text>
       </g>
       <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282" />
@@ -5937,13 +5955,11 @@ export default class IndicatorService {
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.whereRaw(
-				`bill_date::date between (?::date - interval '5 months')::date and ?`,
-				[data.fromDate, data.toDate],
-			);
+			qb.whereRaw(`bill_date::date between ? and ?`, [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
-
-		console.log(qb.toQuery());
 
 		const result = await qb;
 
@@ -5967,7 +5983,7 @@ export default class IndicatorService {
 			name: "invoicing-new-clients",
 			type: "pie",
 			hasData: result.length > 0,
-			// legend: true,
+			title: "Clientes Novos X Recorrentes",
 			legend: [
 				{
 					name: "Recorrentes",
@@ -5993,6 +6009,7 @@ export default class IndicatorService {
 					text: "Clientes Novos X Recorrentes",
 					subtext: "",
 					left: "center",
+					show: false,
 				},
 				tooltip: {
 					trigger: "item",

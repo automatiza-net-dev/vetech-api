@@ -151,6 +151,7 @@ export default class SharedService {
 		permissionControlID: string,
 	): Promise<boolean> {
 		const rows = await Database.from("users")
+			.debug(true)
 			.select(Database.raw("distinct control_id"))
 			.joinRaw(
 				"inner join user_unit_roles on users.id = user_unit_roles.user_id",

@@ -535,7 +535,7 @@ export default class ScheduleService {
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);
 				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
+					query.select(["document", "cellphone", "telephone"]);
 				});
 			})
 			.preload("reschedules", (query) => {

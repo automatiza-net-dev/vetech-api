@@ -164,7 +164,7 @@ export default class SharedService {
 			.select(Database.raw("1"))
 			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
 			.joinRaw(
-				"join role_permissions on roles.id = user_unit_roles.role_id and role_permissions.permission_id = ?",
+				"join role_permissions on roles.id = roles.id and role_permissions.permission_id = ?",
 				[permission.id],
 			)
 			.where("user_unit_roles.user_id", authCtx.user.id)

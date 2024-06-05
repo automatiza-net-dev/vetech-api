@@ -150,22 +150,13 @@ export default class SharedService {
 		authCtx: AuthContext,
 		permissionControlID: string,
 	): Promise<boolean> {
-		const [permission] = await Database.from("permissions")
-			.select("id")
-			.where("control_id", permissionControlID)
-			.whereNull("deleted_at")
-			.whereIn("type", ["controller", "both", "all", "user"])
-			.limit(1);
-		if (!permission) {
-			return false;
-		}
-
 		const rows = await Database.from("user_unit_roles")
 			.select(Database.raw("1"))
 			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw("join role_permissions on roles.id = roles.id")
 			.joinRaw(
-				"join role_permissions on roles.id = roles.id and role_permissions.permission_id = ?",
-				[permission.id],
+				"join permissions on role_permissions.permission_id = permissions.id and permissions.control_id = ?",
+				[permissionControlID],
 			)
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)

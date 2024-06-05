@@ -528,7 +528,6 @@ export default class IndicatorsController {
 			request.qs(),
 		);
 
-		response.header("Cache-Control", "private, max-age=60");
 		return response.ok(result);
 	}
 

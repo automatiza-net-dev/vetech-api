@@ -919,7 +919,9 @@ export default class IndicatorService {
 			legend: result.map((elem, idx) => ({
 				value: this.shared.formatter.format(elem.totalpayments),
 				name: elem.description,
-				percentage: `${((elem.totalpayments / total) * 100).toFixed(2)}%`,
+				percentage: this.shared.formatPercentage(
+					(elem.totalpayments / total) * 100,
+				),
 				itemStyle: {
 					color: authCtx.group.colors[idx % authCtx.group.colors.length],
 				},

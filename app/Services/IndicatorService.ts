@@ -1826,16 +1826,18 @@ export default class IndicatorService {
 				id: key,
 				description: result.find((r) => r.s_id === key).s_description,
 				quantity: stats.get(key)?.quantity,
-				total: $total,
-				percentage: ($total / parsedTotal) * 100,
+				total: this.shared.formatter.format($total),
+				percentage: this.shared.formatPercentage(($total / parsedTotal) * 100),
 				children: result
 					.filter((r) => r.s_id === key)
 					.map((elem) => ({
 						id: elem.id,
 						description: elem.description,
 						quantity: Number.parseInt(elem.quantity, 10),
-						total: elem.total,
-						percentage: (elem.total / $total) * 100,
+						total: this.shared.formatter.format(elem.total),
+						percentage: this.shared.formatPercentage(
+							(elem.total / $total) * 100,
+						),
 					})),
 			};
 		});

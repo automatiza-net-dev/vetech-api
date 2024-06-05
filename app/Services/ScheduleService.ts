@@ -530,7 +530,7 @@ export default class ScheduleService {
 				query.select(["id", "description", "color", "type"]);
 			})
 			.preload("patient", (query) => {
-				query.select(["id", "name", "gender"]);
+				query.select(["id", "name", "gender", "tag"]);
 			})
 			.preload("holder", (query) => {
 				query.select(["id", "name"]);

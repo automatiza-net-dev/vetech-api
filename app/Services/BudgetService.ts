@@ -554,7 +554,7 @@ export default class BudgetService {
 					client_id: data.clientId,
 					patient_id: data.patientId,
 					user_id: authCtx.user.id,
-					seller_id: data.sellerId,
+					seller_id: data.sellerId ?? authCtx.user.id,
 					daily_movement_id: data.dailyMovementId,
 					attendance_id: data.attendanceId,
 					reviewer_id: data.reviewerId,

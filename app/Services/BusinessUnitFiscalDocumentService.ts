@@ -15,6 +15,7 @@ import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
 } from "App/Models/IssuedFiscalDocument";
+import PatientTutor from "App/Models/PatientTutor";
 import { PaymentMethodTef } from "App/Models/PaymentMethod";
 import { ProductType } from "App/Models/Product";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
@@ -325,6 +326,7 @@ export default class BusinessUnitFiscalDocumentService {
 					ie: responsible.tutor.inscription ?? "",
 					email: responsible.tutor.email,
 					authorized: unit.unitConfig.xmlDownloadAuthorization ?? "",
+					code: this.calcCode(issuedDocument, responsible.tutor),
 
 					location: {
 						street: responsible.tutor.street ?? "",
@@ -828,7 +830,7 @@ export default class BusinessUnitFiscalDocumentService {
 						name: responsible.name,
 						email: responsible.tutor.email,
 						phone: responsible.tutor.telephone ?? "",
-						ie: responsible.tutor.inscription ?? "",
+
 						address: {
 							street: responsible.tutor.street ?? "",
 							number: responsible.tutor.number ?? "",
@@ -1472,6 +1474,7 @@ export default class BusinessUnitFiscalDocumentService {
 		"203",
 		"500",
 	];
+
 	private async calculateCest(item: BillItem) {
 		if (
 			!BusinessUnitFiscalDocumentService.ICMS_CEST_VALUES.includes(item.icmsCst)
@@ -1497,5 +1500,32 @@ export default class BusinessUnitFiscalDocumentService {
 		}
 
 		return cestRows.at(0)?.cest?.replace(/\D/g, "") ?? "";
+	}
+
+	private calcCode(
+		issuedDocument: IssuedFiscalDocument,
+		tutor: PatientTutor,
+	): ISendNfe["buyer"]["code"] {
+		if (issuedDocument.model === "65") {
+			return "9";
+		}
+
+		const clearDoc = tutor.document?.replaceAll(/\D/g, "") ?? "";
+
+		if (clearDoc.length === 11) {
+			return "9";
+		}
+
+		// É CNPJ
+
+		if (tutor.inscription?.toUpperCase() === "NC") {
+			return "9";
+		}
+
+		if (tutor.inscription?.toUpperCase() === "ISENTO") {
+			return "2";
+		}
+
+		return "1";
 	}
 }

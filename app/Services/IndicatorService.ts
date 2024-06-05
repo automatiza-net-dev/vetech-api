@@ -3955,9 +3955,6 @@ export default class IndicatorService {
 		data: Record<string, any>,
 	) {
 		const hasPermission = await this.shared.userHasPermission(authCtx, "PRI05");
-
-		console.log({ hasPermission });
-
 		if (!hasPermission) {
 			throw new UnauthorizedException(
 				"Usuário sem permissão para ver os gráficos",

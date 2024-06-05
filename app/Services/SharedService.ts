@@ -151,10 +151,9 @@ export default class SharedService {
 		permissionControlID: string,
 	): Promise<boolean> {
 		const rows = await Database.from("user_unit_roles")
-			.debug(true)
 			.select(Database.raw("1"))
 			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
-			.joinRaw("join role_permissions on role_permissions.id = roles.id")
+			.joinRaw("join role_permissions on role_permissions.role_id = roles.id")
 			.joinRaw(
 				"join permissions on role_permissions.permission_id = permissions.id and permissions.control_id = ?",
 				[permissionControlID],

@@ -150,23 +150,17 @@ export default class SharedService {
 		authCtx: AuthContext,
 		permissionControlID: string,
 	): Promise<boolean> {
-		const rows = await Database.from("users")
-			.select(Database.raw("distinct control_id"))
+		const rows = await Database.from("user_unit_roles")
+			.select(Database.raw("1"))
+			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw("join role_permissions on role_permissions.role_id = roles.id")
 			.joinRaw(
-				"inner join user_unit_roles on users.id = user_unit_roles.user_id",
+				"join permissions on role_permissions.permission_id = permissions.id and permissions.control_id = ?",
+				[permissionControlID],
 			)
-			.joinRaw("inner join roles on roles.id = user_unit_roles.role_id")
-			.joinRaw(
-				"inner join role_permissions on roles.id = user_unit_roles.role_id",
-			)
-			.joinRaw(
-				"inner join permissions on role_permissions.permission_id = permissions.id",
-			)
-			.where("users.id", authCtx.user.id)
+			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("roles.system_id", authCtx.system.id)
-			.where("control_id", permissionControlID)
-			.whereNull("permissions.deleted_at")
 			.where("roles.active", true)
 			.where("role_permissions.active", true)
 			.where("role_permissions.status", true)

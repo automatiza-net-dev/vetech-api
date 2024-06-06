@@ -764,16 +764,18 @@ export default class PatientService {
 						telephone: tutorObj.telephone ?? null,
 						email: tutorObj.email ?? null,
 						document: tutorObj.document ?? null,
-						address: [
-							tutorObj.street,
-							tutorObj.number,
-							tutorObj.complement,
-							tutorObj.district,
-							`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
-						]
-							.filter(Boolean)
-							.join(", "),
 					},
+				});
+				Object.assign(displayData, {
+					address: [
+						tutorObj.street,
+						tutorObj.number,
+						tutorObj.complement,
+						tutorObj.district,
+						`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
+					]
+						.filter(Boolean)
+						.join(", "),
 				});
 			}
 		}
@@ -783,6 +785,15 @@ export default class PatientService {
 				cellphone: patient.tutor?.cellphone ?? null,
 				telephone: patient.tutor?.telephone ?? null,
 				email: patient.tutor?.email ?? null,
+				address: [
+					patient.tutor?.street,
+					patient.tutor?.number,
+					patient.tutor?.complement,
+					patient.tutor?.district,
+					`${patient.tutor?.city ?? "-"} - ${patient.tutor?.state ?? "-"}`,
+				]
+					.filter(Boolean)
+					.join(", "),
 			});
 		}
 

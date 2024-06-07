@@ -7,7 +7,10 @@ import Patient from "App/Models/Patient";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
-import ScheduleStatus, { VALID_CHANGES } from "App/Models/ScheduleStatus";
+import ScheduleStatus, {
+	ScheduleStatusType,
+	VALID_CHANGES,
+} from "App/Models/ScheduleStatus";
 import UnavailableDay from "App/Models/UnavailableDay";
 import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
@@ -674,68 +677,90 @@ export default class ScheduleService {
 	}
 
 	public async reschedule(
-		unitId: string,
-		user: User,
+		authCtx: AuthContext,
 		id: string,
 		data: IRescheduleData,
 	): Promise<Schedule> {
-		const schedule = await this.show(unitId, id);
+		const schedule = await this.show(authCtx.unit.id, id);
 
-		const technician = data.userId ? await User.findOrFail(data.userId) : user;
+		return Database.transaction(async (trx) => {
+			const technician = data.userId
+				? await User.findOrFail(data.userId, { client: trx })
+				: authCtx.user;
 
-		if (!technician.onDuty || !data.ignoreOverlapping) {
-			const result = await ScheduleService.checkDisponibility(
-				technician.id,
-				unitId,
+			if (!technician.onDuty || !data.ignoreOverlapping) {
+				const result = await ScheduleService.checkDisponibility(
+					technician.id,
+					authCtx.unit.id,
+					{
+						start: data.startHour.toJSDate(),
+						end: data.endHour.toJSDate(),
+					},
+				);
+
+				if (result.invalidWorkingDay) {
+					throw new BadRequestException(
+						"Pessoa não trabalha neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+
+				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+					throw new BadRequestException(
+						"Pessoa não está disponível neste horário",
+						400,
+						"E_BAD_REQUEST",
+					);
+				}
+			}
+
+			if (data.reasonId) {
+				const reason = await Reason.findOrFail(data.reasonId);
+				if (reason.requiresObservation && !data.observation) {
+					throw new BadRequestException(
+						"É preciso informar observação",
+						400,
+						"E_MISSING",
+					);
+				}
+			}
+
+			await schedule.related("reschedules").create(
 				{
-					start: data.startHour.toJSDate(),
-					end: data.endHour.toJSDate(),
+					update_user_id: authCtx.user.id,
+					user_id: schedule.user_id,
+					originalDate: schedule.startHour,
+					reason_id: data.reasonId,
+					observation: data.observation,
 				},
+				{ client: trx },
 			);
 
-			if (result.invalidWorkingDay) {
+			const status = await ScheduleStatus.query()
+				.useTransaction(trx)
+				.where("system_id", authCtx.system.id)
+				.where("type", "AN" as ScheduleStatusType)
+				.first();
+
+			if (!status) {
 				throw new BadRequestException(
-					"Pessoa não trabalha neste horário",
+					"Não foi possível encontrar um status do tipo 'Não confirmado'",
 					400,
-					"E_BAD_REQUEST",
+					"E_ERR",
 				);
 			}
 
-			if (result.invalidUnavailableDay && !data.ignoreBlocking) {
-				throw new BadRequestException(
-					"Pessoa não está disponível neste horário",
-					400,
-					"E_BAD_REQUEST",
-				);
-			}
-		}
-
-		if (data.reasonId) {
-			const reason = await Reason.findOrFail(data.reasonId);
-			if (reason.requiresObservation && !data.observation) {
-				throw new BadRequestException(
-					"É preciso informar observação",
-					400,
-					"E_MISSING",
-				);
-			}
-		}
-
-		await schedule.related("reschedules").create({
-			update_user_id: user.id,
-			user_id: schedule.user_id,
-			originalDate: schedule.startHour,
-			reason_id: data.reasonId,
-			observation: data.observation,
+			return schedule
+				.merge({
+					schedule_status_id: status.id,
+					user_id: technician.id,
+					startHour: data.startHour,
+					endHour: data.endHour,
+				})
+				.useTransaction(trx)
+				.save();
 		});
-
-		return schedule
-			.merge({
-				user_id: technician.id,
-				startHour: data.startHour,
-				endHour: data.endHour,
-			})
-			.save();
 	}
 
 	public async destroy(unitId: string, id: string): Promise<void> {

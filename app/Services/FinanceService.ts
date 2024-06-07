@@ -2926,7 +2926,7 @@ export default class FinanceService {
 				hasData: open.length > 0,
 				title: "Em aberto",
 				data: open.map((elem) => [
-					`<strong>Abertura</strong>: ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
 					elem.userWhoOpened.name,
 					elem.tag,
 				]),
@@ -2936,9 +2936,9 @@ export default class FinanceService {
 				hasData: closed.length > 0,
 				title: "Para conferência",
 				data: closed.map((elem) => [
-					`<strong>Abertura</strong>: ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
 					elem.userWhoClosed.name,
-					`<strong>Fechamento</strong>: ${elem.closingDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
+					`<strong>Fechamento:</strong> ${elem.closingDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
 					elem.tag,
 				]),
 			},
@@ -2947,9 +2947,9 @@ export default class FinanceService {
 				hasData: revised.length > 0,
 				title: "Em revisão",
 				data: revised.map((elem) => [
-					`<strong>Abertura</strong>: ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
 					elem.userWhoRevised.name,
-					`<strong>Revisão</strong>: ${elem.revisionDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
+					`<strong>Revisão:</strong> ${elem.revisionDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
 					elem.tag,
 				]),
 			},
@@ -2958,7 +2958,7 @@ export default class FinanceService {
 				hasData: today.length > 0,
 				title: "Abertos no dia atual",
 				data: today.map((elem) => [
-					`<strong>Abertura</strong>: ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
 					elem.openingUser.name,
 					elem.tag,
 				]),

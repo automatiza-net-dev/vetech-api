@@ -1989,7 +1989,9 @@ export default class FinanceService {
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.R)
-			.preload("userWhoRevised");
+			.preload("userWhoRevised")
+			.orderByRaw("opening_date desc")
+			.limit(20);
 
 		return result.map((elem) => ({
 			id: elem.id,

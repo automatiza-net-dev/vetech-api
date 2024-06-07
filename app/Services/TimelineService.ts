@@ -391,6 +391,12 @@ export default class TimelineService {
 				client: trx,
 			});
 
+			const _photos = data.photos
+				? await Promise.all(data.photos.map(this.uploadPhoto))
+				: [];
+			const baseUrl =
+				authCtx.system.systemUrls.find((f) => f.active)?.url ?? "";
+
 			const newData = {
 				timeline_id: timelineInfo.id,
 				timeline_type: {
@@ -414,9 +420,10 @@ export default class TimelineService {
 						description: scheduleServiceType.description,
 						resume: scheduleServiceType.resume,
 					},
-					photos: data.photos
-						? await Promise.all(data.photos.map(this.uploadPhoto))
-						: [],
+					photos: _photos.map((p) => ({
+						filename: p.filename,
+						url: `${baseUrl}/${p.url}`,
+					})),
 				},
 			};
 

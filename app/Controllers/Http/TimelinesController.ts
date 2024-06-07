@@ -70,8 +70,11 @@ export default class TimelinesController {
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(CreatePatientEvaluationValidator);
-			await this.timelineService.updateEvaluation(params.id, payload);
-			return response.noContent();
+			const result = await this.timelineService.updateEvaluation(
+				params.id,
+				payload,
+			);
+			return response.ok(result);
 		});
 	}
 

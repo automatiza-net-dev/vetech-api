@@ -472,6 +472,10 @@ export default class TimelineService {
 				client: trx,
 			});
 
+			const _photos = data.photos
+				? await Promise.all(data.photos.map(this.uploadPhoto))
+				: [];
+
 			return AnimalTimeline.findByIdAndUpdate(id, {
 				$set: {
 					"timeline_info.tag": data.patientId,
@@ -487,13 +491,15 @@ export default class TimelineService {
 					"timeline_info.service.id": scheduleServiceType.id,
 					"timeline_info.service.description": scheduleServiceType.description,
 					"timeline_info.service.resume": scheduleServiceType.resume,
-
 					"timeline_info.photos": data.photos
 						? [
 								// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 								// @ts-ignore does have photos
 								...(record.timeline_info?.photos ?? []),
-								...(await Promise.all(data.photos.map(this.uploadPhoto))),
+								..._photos.map((p) => ({
+									filename: p.filename,
+									url: `${Env.get("FILE_UPLOAD_PREFIX")}${p.url}`,
+								})),
 							].filter(Boolean)
 						: [],
 				},

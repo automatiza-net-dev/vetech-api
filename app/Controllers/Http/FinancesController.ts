@@ -452,4 +452,30 @@ export default class FinancesController {
 
 		return response.ok(result);
 	}
+
+	async dashboardFinanceResume({
+		auth,
+		response,
+		request,
+	}: HttpContextContract) {
+		const result = await this.service.dashboardFinanceResume(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	async dashboardCashierResume({
+		auth,
+		response,
+		request,
+	}: HttpContextContract) {
+		const result = await this.service.dashboardCashierResume(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

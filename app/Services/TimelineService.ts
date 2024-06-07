@@ -422,7 +422,7 @@ export default class TimelineService {
 					},
 					photos: _photos.map((p) => ({
 						filename: p.filename,
-						url: `${baseUrl}/${p.url}`,
+						url: `${baseUrl}${p.url}`,
 					})),
 				},
 			};

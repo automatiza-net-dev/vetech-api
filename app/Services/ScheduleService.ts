@@ -36,6 +36,7 @@ import {
 	startOfDay,
 } from "date-fns";
 import { DateTime } from "luxon";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 interface ISearch {
 	pid?: string;
@@ -763,8 +764,116 @@ export default class ScheduleService {
 		});
 	}
 
-	public async destroy(unitId: string, id: string): Promise<void> {
-		const schedule = await this.show(unitId, id);
+	public async reopenSchedule(
+		authCtx: AuthContext,
+		id: string,
+		data: { reasonId: string; statusId: string; observation: string },
+	): Promise<Schedule> {
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE14",
+		);
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário não tem permissão",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const schedule = await this.show(authCtx.unit.id, id);
+
+		if (schedule.serviceStatus.type !== "CANC") {
+			throw new BadRequestException(
+				"Apenas agendas canceladas podem ser reabertas",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			await schedule.related("statusChanges").create(
+				{
+					user_id: authCtx.user.id,
+					schedule_status_id: schedule.schedule_status_id,
+					reason_id: data.reasonId,
+					observation: data.observation,
+				},
+				{
+					client: trx,
+				},
+			);
+			return schedule
+				.merge({
+					schedule_status_id: data.statusId,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async upsertStatus(
+		authCtx: AuthContext,
+		id: string,
+		data: { reasonId: string; statusId: string; observation: string },
+	): Promise<Schedule> {
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE15",
+		);
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário não tem permissão",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const schedule = await this.show(authCtx.unit.id, id);
+
+		if (schedule.serviceStatus.type === "CANC") {
+			throw new BadRequestException(
+				"Não é possível fazer essa ação com agendas canceladas",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			await schedule.related("statusChanges").create(
+				{
+					user_id: authCtx.user.id,
+					schedule_status_id: schedule.schedule_status_id,
+					reason_id: data.reasonId,
+					observation: data.observation,
+				},
+				{
+					client: trx,
+				},
+			);
+			return schedule
+				.merge({
+					schedule_status_id: data.statusId,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"AGE13",
+		);
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário não tem permissão",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const schedule = await this.show(authCtx.unit.id, id);
 
 		await schedule.softDelete();
 	}

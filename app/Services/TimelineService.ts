@@ -36,6 +36,7 @@ import { ICreateTimelineDischarge } from "Contracts/interfaces/ICreateTimelineHo
 import { DateTime } from "luxon";
 import { ObjectId } from "mongoose";
 import { v4 } from "uuid";
+import Env from "@ioc:Adonis/Core/Env";
 
 @inject()
 export default class TimelineService {
@@ -381,7 +382,7 @@ export default class TimelineService {
 			);
 
 			const scheduleServiceType = await ScheduleServiceType.findOrFail(
-				data.scheduleServiceTypeId,
+				data.scheduleServiceId,
 				{
 					client: trx,
 				},
@@ -391,6 +392,10 @@ export default class TimelineService {
 				client: trx,
 			});
 
+			const _photos = data.photos
+				? await Promise.all(data.photos.map(this.uploadPhoto))
+				: [];
+
 			const newData = {
 				timeline_id: timelineInfo.id,
 				timeline_type: {
@@ -399,7 +404,7 @@ export default class TimelineService {
 					requires_observation: timelineInfo.requiresObservation,
 				},
 				timeline_info: {
-					tag: data.tag,
+					tag: data.patientId,
 					realizedAt: data.realizedAt.toJSDate(),
 					resume: data.resume,
 					protocol: data.protocol,
@@ -414,9 +419,10 @@ export default class TimelineService {
 						description: scheduleServiceType.description,
 						resume: scheduleServiceType.resume,
 					},
-					photos: data.photos
-						? await Promise.all(data.photos.map(this.uploadPhoto))
-						: [],
+					photos: _photos.map((p) => ({
+						filename: p.filename,
+						url: `${Env.get("FILE_UPLOAD_PREFIX")}${p.url}`,
+					})),
 				},
 			};
 
@@ -426,7 +432,7 @@ export default class TimelineService {
 						business_unit_id: authCtx.unit.id,
 						open_user_id: authCtx.user.id,
 						schedule_service_id: scheduleServiceType.id,
-						patient_id: data.tag,
+						patient_id: data.patientId,
 
 						resume: data.resume,
 						protocol: data.protocol,
@@ -437,6 +443,7 @@ export default class TimelineService {
 					},
 				);
 
+				// @ts-ignore ignore
 				newData.timeline_info.attendance = {
 					id: att.id,
 				};
@@ -455,7 +462,7 @@ export default class TimelineService {
 			}
 
 			const scheduleServiceType = await ScheduleServiceType.findOrFail(
-				data.scheduleServiceTypeId,
+				data.scheduleServiceId,
 				{
 					client: trx,
 				},
@@ -467,7 +474,7 @@ export default class TimelineService {
 
 			return AnimalTimeline.findByIdAndUpdate(id, {
 				$set: {
-					"timeline_info.tag": data.tag,
+					"timeline_info.tag": data.patientId,
 					"timeline_info.realizedAt": data.realizedAt.toJSDate(),
 					"timeline_info.resume": data.resume,
 					"timeline_info.protocol": data.protocol,
@@ -501,7 +508,7 @@ export default class TimelineService {
 			throw new ResourceNotFoundException("Recurso não encontrado");
 		}
 
-		const numericIndex = parseInt(index, 10);
+		const numericIndex = Number.parseInt(index, 10);
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-ignore does have photos

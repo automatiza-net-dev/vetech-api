@@ -4911,7 +4911,7 @@ export default class IndicatorService {
 			.join("subgroups", "subgroups.id", "products.subgroup_id")
 			.join("business_units", "business_units.id", "bills.business_unit_id")
 			.groupBy("subgroups.id", "subgroups.description", "business_units.id")
-			.orderBy("total", "desc")
+			.orderByRaw("total desc, description desc")
 			.whereNull("bills.deleted_at");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
@@ -5213,7 +5213,8 @@ export default class IndicatorService {
 				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
 			)
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
-			.whereNull("budgets.deleted_at");
+			.whereNull("budgets.deleted_at")
+			.orderByRaw("total_value desc, name");
 
 		if (!data.type || data.type === "VENDEDOR") {
 			qb.joinRaw(`left join users on budgets.seller_id = users.id`);
@@ -5841,7 +5842,8 @@ export default class IndicatorService {
 			})
 			.groupByRaw("economic_groups.id, business_units.id, users.id")
 			.whereNull("bills.deleted_at")
-			.where("business_units.environment", "P");
+			.where("business_units.environment", "P")
+			.orderByRaw("total_value desc, name desc");
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);

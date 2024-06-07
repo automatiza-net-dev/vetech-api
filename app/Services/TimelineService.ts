@@ -36,6 +36,7 @@ import { ICreateTimelineDischarge } from "Contracts/interfaces/ICreateTimelineHo
 import { DateTime } from "luxon";
 import { ObjectId } from "mongoose";
 import { v4 } from "uuid";
+import Env from "@ioc:Adonis/Core/Env";
 
 @inject()
 export default class TimelineService {
@@ -394,8 +395,6 @@ export default class TimelineService {
 			const _photos = data.photos
 				? await Promise.all(data.photos.map(this.uploadPhoto))
 				: [];
-			const baseUrl =
-				authCtx.system.systemUrls.find((f) => f.active)?.url ?? "";
 
 			const newData = {
 				timeline_id: timelineInfo.id,
@@ -422,7 +421,7 @@ export default class TimelineService {
 					},
 					photos: _photos.map((p) => ({
 						filename: p.filename,
-						url: `${baseUrl}${p.url}`,
+						url: `${Env.get("FILE_UPLOAD_PREFIX")}${p.url}`,
 					})),
 				},
 			};

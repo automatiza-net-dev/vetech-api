@@ -1,81 +1,87 @@
 import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  belongsTo,
-  BelongsTo,
-  column,
-  HasMany,
-  hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import Subgroup from 'App/Models/Subgroup';
-import VaccineProtocol from 'App/Models/VaccineProtocol';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	belongsTo,
+	BelongsTo,
+	column,
+	computed,
+	HasMany,
+	hasMany,
+} from "@ioc:Adonis/Lucid/Orm";
+import Subgroup from "App/Models/Subgroup";
+import VaccineProtocol from "App/Models/VaccineProtocol";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum VaccineType {
-  VACCINE = 'vaccine',
-  VERMIFUGE = 'vermifuge',
+	VACCINE = "vaccine",
+	VERMIFUGE = "vermifuge",
 }
 
 export default class Vaccine extends BaseModel {
-  @column({ isPrimary: true })
-  public id: string = v4();
+	@column({ isPrimary: true })
+	public id: string = v4();
 
-  @column()
-  public name: string;
+	@column()
+	public name: string;
 
-  @column()
-  public description: string;
+	@column()
+	public description: string;
 
-  @column()
-  public active: boolean;
+	@column()
+	public active: boolean;
 
-  @column()
-  public type: VaccineType;
+	@column()
+	public type: VaccineType;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@computed()
+	public get reserved_for_system() {
+		return !!this.economic_group_id;
+	}
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
 
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
 
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
 
-  @column({
-    serializeAs: null,
-  })
-  public system_id: number;
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
 
-  @column({
-    serializeAs: null,
-  })
-  public economic_group_id?: string;
+	@column({
+		serializeAs: null,
+	})
+	public system_id: number;
 
-  @column({
-    serializeAs: null,
-  })
-  public subgroup_id: string;
+	@column({
+		serializeAs: null,
+	})
+	public economic_group_id?: string;
 
-  @belongsTo(() => Subgroup, {
-    foreignKey: 'subgroup_id',
-  })
-  public subgroup: BelongsTo<typeof Subgroup>;
+	@column({
+		serializeAs: null,
+	})
+	public subgroup_id: string;
 
-  @hasMany(() => VaccineProtocol, {
-    foreignKey: 'vaccine_id',
-  })
-  public protocols: HasMany<typeof VaccineProtocol>;
+	@belongsTo(() => Subgroup, {
+		foreignKey: "subgroup_id",
+	})
+	public subgroup: BelongsTo<typeof Subgroup>;
+
+	@hasMany(() => VaccineProtocol, {
+		foreignKey: "vaccine_id",
+	})
+	public protocols: HasMany<typeof VaccineProtocol>;
 }

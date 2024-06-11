@@ -35,9 +35,9 @@ export default class AttendancesController {
 			const payload = await request.validate(OpenAttendanceValidator);
 			const authCtx = await this.sharedService.getAuthContext(auth);
 
-			await this.service.open(authCtx, payload);
+			const res = await this.service.open(authCtx, payload);
 
-			return response.created();
+			return response.ok(res);
 		} catch (e) {
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({

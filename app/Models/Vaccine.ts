@@ -38,7 +38,7 @@ export default class Vaccine extends BaseModel {
 
 	@computed()
 	public get reserved_for_system() {
-		return !!this.economic_group_id;
+		return !this.economic_group_id;
 	}
 
 	@column.dateTime({ autoCreate: true })

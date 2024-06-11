@@ -738,18 +738,6 @@ export default class ScheduleService {
 				{ client: trx },
 			);
 
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: schedule.schedule_status_id,
-					reason_id: data.reasonId,
-					observation: data.observation,
-				},
-				{
-					client: trx,
-				},
-			);
-
 			const status = await ScheduleStatus.query()
 				.useTransaction(trx)
 				.where("system_id", authCtx.system.id)
@@ -763,6 +751,18 @@ export default class ScheduleService {
 					"E_ERR",
 				);
 			}
+
+			await schedule.related("statusChanges").create(
+				{
+					user_id: authCtx.user.id,
+					schedule_status_id: status.id,
+					reason_id: data.reasonId,
+					observation: data.observation,
+				},
+				{
+					client: trx,
+				},
+			);
 
 			return schedule
 				.merge({

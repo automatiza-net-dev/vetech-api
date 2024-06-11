@@ -83,7 +83,7 @@ export default class AttendanceService {
 			startDate: DateTime.now(),
 		};
 
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const serviceType = await ScheduleServiceType.findOrFail(
 				data.scheduleServiceId,
 				{
@@ -194,7 +194,7 @@ export default class AttendanceService {
 				},
 			);
 
-			await AnimalTimeline.create({
+			return await AnimalTimeline.create({
 				timeline_id: timeline.id,
 				timeline_type: {
 					description: timeline.description,

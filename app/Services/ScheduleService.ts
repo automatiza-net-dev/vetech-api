@@ -888,7 +888,9 @@ export default class ScheduleService {
 
 		const schedule = await this.show(authCtx.unit.id, id);
 
-		await schedule.softDelete();
+		await schedule
+			.merge({ deletedAt: DateTime.now(), exclusion_user_id: authCtx.user.id })
+			.save();
 	}
 
 	public async searchDisponibility(data: IViewDisponibilityRequest) {

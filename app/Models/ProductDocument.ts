@@ -4,6 +4,7 @@ import {
 	beforeFetch,
 	beforeFind,
 	column,
+	computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 
@@ -19,6 +20,11 @@ export default class ProductDocument extends BaseModel {
 
 	@column()
 	public active: boolean;
+
+	@computed()
+	public get origin() {
+		return this.economic_group_id ? "Próprio" : "Franqueadora";
+	}
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

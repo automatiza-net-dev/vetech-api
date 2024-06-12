@@ -1763,3 +1763,9 @@ Route.get(
 	"/dashboard-cashiers-resume",
 	"FinancesController.dashboardCashierResume",
 ).middleware("auth");
+
+Route.resource("product-documents", "ProductDocumentsController")
+	.only(["index", "store", "destroy"])
+	.middleware({
+		"*": ["auth"],
+	});

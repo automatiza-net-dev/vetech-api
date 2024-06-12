@@ -16,7 +16,7 @@ export default class ProductDocumentService {
 	) {
 		if (!data.systemProduct) {
 			throw new BadRequestException(
-				"É preciso informat o Produto",
+				"É preciso informar o Produto de Sistema",
 				400,
 				"E_ERR",
 			);

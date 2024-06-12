@@ -272,7 +272,7 @@ export default class AttendanceService {
 							data.internalObservation ?? null,
 					},
 				},
-				{},
+				{ new: true },
 			);
 		});
 	}

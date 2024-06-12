@@ -147,6 +147,11 @@ export default class Product extends BaseModel {
 	@belongsTo(() => EconomicGroup)
 	public economicGroup: BelongsTo<typeof EconomicGroup>;
 
+	@column({
+		serializeAs: null,
+	})
+	public system_product_id: string;
+
 	@column()
 	public variation_group_id: string;
 

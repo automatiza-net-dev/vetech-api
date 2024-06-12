@@ -232,7 +232,7 @@ export default class AttendanceService {
 	) {
 		const model = await this.show(authCtx.unit.id, id);
 
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			await model
 				.useTransaction(trx)
 				.merge({
@@ -258,7 +258,7 @@ export default class AttendanceService {
 			//   },
 			// );
 
-			await AnimalTimeline.updateOne(
+			return await AnimalTimeline.findOneAndUpdate(
 				{
 					// timeline_id: timeline.id,
 					"timeline_info.tag": model.patient_id,

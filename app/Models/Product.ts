@@ -150,7 +150,7 @@ export default class Product extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public system_product_id: string;
+	public system_product_id: number;
 
 	@column()
 	public variation_group_id: string;

@@ -476,34 +476,40 @@ export default class TimelineService {
 				? await Promise.all(data.photos.map(this.uploadPhoto))
 				: [];
 
-			return AnimalTimeline.findByIdAndUpdate(id, {
-				$set: {
-					"timeline_info.tag": data.patientId,
-					"timeline_info.realizedAt": data.realizedAt.toJSDate(),
-					"timeline_info.resume": data.resume,
-					"timeline_info.protocol": data.protocol,
-					"timeline_info.observation": data.observation ?? null,
-					"timeline_info.internalObservation": data.internalObservation ?? null,
-					// 'timeline_info.technician.id': technician.id,
-					// 'timeline_info.technician.name': technician.name,
-					"timeline_info.update_technician.id": technician.id,
-					"timeline_info.update_technician.name": technician.name,
-					"timeline_info.service.id": scheduleServiceType.id,
-					"timeline_info.service.description": scheduleServiceType.description,
-					"timeline_info.service.resume": scheduleServiceType.resume,
-					"timeline_info.photos": data.photos
-						? [
-								// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-								// @ts-ignore does have photos
-								...(record.timeline_info?.photos ?? []),
-								..._photos.map((p) => ({
-									filename: p.filename,
-									url: `${Env.get("FILE_UPLOAD_PREFIX")}${p.url}`,
-								})),
-							].filter(Boolean)
-						: [],
+			return AnimalTimeline.findByIdAndUpdate(
+				id,
+				{
+					$set: {
+						"timeline_info.tag": data.patientId,
+						"timeline_info.realizedAt": data.realizedAt.toJSDate(),
+						"timeline_info.resume": data.resume,
+						"timeline_info.protocol": data.protocol,
+						"timeline_info.observation": data.observation ?? null,
+						"timeline_info.internalObservation":
+							data.internalObservation ?? null,
+						// 'timeline_info.technician.id': technician.id,
+						// 'timeline_info.technician.name': technician.name,
+						"timeline_info.update_technician.id": technician.id,
+						"timeline_info.update_technician.name": technician.name,
+						"timeline_info.service.id": scheduleServiceType.id,
+						"timeline_info.service.description":
+							scheduleServiceType.description,
+						"timeline_info.service.resume": scheduleServiceType.resume,
+						"timeline_info.photos": data.photos
+							? [
+									// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+									// @ts-ignore does have photos
+									...(record.timeline_info?.photos ?? []),
+									..._photos.map((p) => ({
+										filename: p.filename,
+										url: `${Env.get("FILE_UPLOAD_PREFIX")}${p.url}`,
+									})),
+								].filter(Boolean)
+							: [],
+					},
 				},
-			});
+				{ new: true },
+			);
 		});
 	}
 

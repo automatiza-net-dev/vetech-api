@@ -1509,6 +1509,7 @@ Route.group(() => {
 	Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
 	Route.get("/receipts", "ReportsController.receiptsReport");
 	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
+	Route.get("/crm-opportunities", "ReportsController.crmOpportunitiesReport");
 })
 	.prefix("reports")
 	.middleware("auth");

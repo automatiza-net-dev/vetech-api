@@ -2041,6 +2041,110 @@ ON bills.patient_id = Dep."id"`,
 		}));
 	}
 
+	public crmOpportunities(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			statuses?: string[];
+			users?: string[];
+			contact?: string;
+			clients?: string[];
+			balances?: string[];
+			fromOpening?: string;
+			toOpening?: string;
+			fromContact?: string;
+			toContact?: string;
+		},
+	) {
+		const qb = Database.from("opportunities")
+			.select(
+				Database.raw(`
+        bu.identification                as unidade,
+        opportunities.id                 as codigo_oportunidade,
+        p.name                           as nome_contato,
+        pc.contact                       as celular_contato,
+        p2.description                   as profissao,
+        co.description                   as origem_cliente,
+        opportunities.contact_date       as data_contato,
+        opportunities.opening_date       as data_abertura,
+        opportunities.created_at         as data_lancamento,
+        opportunities.value              as valor_oportunidade,
+        opportunities.description        as titulo_oportunidade,
+        cs.description                   as status_oportunidade,
+        cs2.description                  as assunto_contato,
+        ct.description                   as tipo_contato,
+        u.name                           as responsavel,
+        coalesce(balance, 'Em Aberto')   as situacao,
+        opportunities.description        as observacao,
+        r.reason                         as motivo_ganho_perda,
+        opportunities.result_observation as obse_ganho_perda,
+        opportunities.profit_value       as valor_ganho`),
+			)
+			.joinRaw(
+				"join business_units bu on opportunities.business_unit_id = bu.id",
+			)
+			.joinRaw("join users u on opportunities.user_id = u.id")
+			.joinRaw("join crm_statuses cs on opportunities.status_id = cs.id")
+			.joinRaw(`join ((patients p join (patient_tutors pt left join professions p2 on pt.profession_id = p2.id)
+                on p.id = pt.patient_id)
+    left join patient_contacts pc on p.id = pc.patient_id and pc."type" = 'celular') on opportunities.contact_id = p.id`)
+			.joinRaw("left join patients cli on opportunities.client_id = cli.id")
+			.joinRaw(
+				"left join client_origins co on opportunities.client_origin_id = co.id",
+			)
+			.joinRaw(
+				"left join contact_subjects cs2 on opportunities.contact_subject_id = cs2.id",
+			)
+			.joinRaw(
+				"left join contact_types ct on opportunities.contact_type_id = ct.id",
+			)
+			.joinRaw("left join reasons r on opportunities.reason_id = r.id")
+			.where("opportunities.economic_group_id", authCtx.group.id)
+			.whereNull("opportunities.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			qb.whereIn("opportunities.status_id", data.statuses);
+		}
+
+		if (data.users && Array.isArray(data.users)) {
+			qb.whereIn("opportunities.user_id", data.users);
+		}
+
+		if (data.contact) {
+			qb.where("opportunities.contact_id", data.contact);
+		}
+
+		if (data.clients && Array.isArray(data.clients)) {
+			qb.whereIn("opportunities.client_id", data.clients);
+		}
+
+		if (data.balances && Array.isArray(data.balances)) {
+			qb.whereIn("opportunities.balance", data.balances);
+		}
+
+		if (data.fromOpening && data.toOpening) {
+			qb.andWhereRaw("opportunities.opening_date::date between ? and ?", [
+				data.fromOpening,
+				data.toOpening,
+			]);
+		}
+
+		if (data.fromContact && data.toContact) {
+			qb.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromContact,
+				data.toContact,
+			]);
+		}
+
+		return qb;
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

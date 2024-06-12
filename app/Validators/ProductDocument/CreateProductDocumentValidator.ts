@@ -32,7 +32,7 @@ export default class CreateProductDocumentValidator {
 			rules.exists({ table: "economic_groups", column: "id" }),
 		]),
 		businessUnitId: schema.string([
-			rules.exists({ table: "business_unit_id", column: "id" }),
+			rules.exists({ table: "business_units", column: "id" }),
 		]),
 		productId: schema.string.optional([
 			rules.exists({ table: "products", column: "id" }),

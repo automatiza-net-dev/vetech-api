@@ -1175,6 +1175,7 @@ where deposit_id = ?
 		const group = await this.sharedService.getUserGroup(unitId);
 
 		const qb = Product.query()
+			.orderByRaw("description asc")
 			.where("economic_group_id", group.id)
 			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
 			.where("active", true);

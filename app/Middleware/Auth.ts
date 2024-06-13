@@ -2,6 +2,8 @@ import { GuardsList } from "@ioc:Adonis/Addons/Auth";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { AuthenticationException } from "@adonisjs/auth/build/standalone";
 import System from "App/Models/System";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import BadRequestException from "App/Exceptions/BadRequestException";
 
 /**
  * Auth middleware is meant to restrict un-authenticated access to a given route
@@ -69,7 +71,6 @@ export default class AuthMiddleware {
 		next: () => Promise<void>,
 		customGuards: (keyof GuardsList)[],
 	) {
-		console.log(request.request);
 		/**
 		 * Uses the user defined guards or the default guard mentioned in
 		 * the config file
@@ -92,10 +93,22 @@ export default class AuthMiddleware {
 			);
 		}
 
-		// const system = await System.find(auth.use("api").token?.meta.system_id)
-		// if(!system){
-		//   throw new BadRe
-		// }
+		const header = request.header("X-System");
+		if (!header) {
+			throw new BadRequestException(
+				"Requisição sem sistema original, adiciona uma X-System",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (header !== auth.use("api").token?.meta.system_name) {
+			throw new BadRequestException(
+				"Requisição feito de um sistema diferente do autenticado",
+				400,
+				"E_ERR",
+			);
+		}
 
 		await next();
 	}

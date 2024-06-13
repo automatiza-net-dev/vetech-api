@@ -102,8 +102,6 @@ export default class AuthMiddleware {
 			);
 		}
 
-		console.log({ header }, auth.use("api").token?.meta);
-
 		if (header !== auth.use("api").token?.meta.system_name) {
 			throw new BadRequestException(
 				"Requisição feito de um sistema diferente do autenticado",

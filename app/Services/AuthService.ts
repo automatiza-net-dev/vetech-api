@@ -433,12 +433,15 @@ export default class AuthService {
 					}
 				}
 
-				return auth.use("api").generate(user, {
-					expiresIn: "7d",
-					unit_id: unit.id,
-					system_id: system.id,
-					system_name: system.name,
-				});
+				return [
+					await auth.use("api").generate(user, {
+						expiresIn: "7d",
+						unit_id: unit.id,
+						system_id: system.id,
+						system_name: system.name,
+					}),
+					system.id,
+				];
 			}
 
 			const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
@@ -514,12 +517,15 @@ export default class AuthService {
 				}
 			}
 
-			return auth.use("api").generate(user, {
-				expiresIn: "7d",
-				unit_id: unit.id,
-				system_id: system.id,
-				system_name: system.name,
-			});
+			return [
+				await auth.use("api").generate(user, {
+					expiresIn: "7d",
+					unit_id: unit.id,
+					system_id: system.id,
+					system_name: system.name,
+				}),
+				system.id,
+			];
 		});
 	}
 

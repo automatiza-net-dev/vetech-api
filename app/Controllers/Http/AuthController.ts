@@ -29,6 +29,11 @@ export default class AuthController {
 			payload.ipAddress,
 		);
 
+		if (typeof result.at(1) === "number") {
+			response.cookie("sid", result.at(1));
+			return response.ok(result.at(0));
+		}
+
 		return response.ok(result);
 	}
 
@@ -37,10 +42,6 @@ export default class AuthController {
 		request,
 		response,
 	}: HttpContextContract) {
-		if (process.env.NODE_ENV === "development") {
-			console.log(request.headers());
-		}
-
 		const payload = await request.validate(LoginValidator);
 
 		const result = await this.authService.controllerLogin(

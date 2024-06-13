@@ -78,18 +78,16 @@ export default class BillsController {
 	}
 
 	public async createBill({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateBillValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateBillValidator);
 
-		const result = await this.service.createBill(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			const result = await this.service.createBill(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
-
-		return response.created(result);
+			return response.created(result);
+		});
 	}
 
 	public async createBills({ request, response, auth }: HttpContextContract) {
@@ -108,14 +106,16 @@ export default class BillsController {
 	}
 
 	public async updateBill({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(UpdateBillValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateBillValidator);
 
-		await this.service.updateBill(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			await this.service.updateBill(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.noContent();
+			return response.noContent();
+		});
 	}
 
 	public async createBillItem({

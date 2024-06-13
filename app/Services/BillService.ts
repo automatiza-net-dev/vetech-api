@@ -266,7 +266,12 @@ export default class BillService {
 				})),
 			);
 			if (invalid.length > 0) {
-				return invalid;
+				// return invalid;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
 			}
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
@@ -277,10 +282,15 @@ export default class BillService {
 				);
 
 				if (invalidRows.length > 0) {
-					return invalidRows.map((elem) => ({
-						rule: "ItemInexistente",
-						message: `O produto '${elem.description}' não existe no depósito`,
-					}));
+					// return invalidRows.map((elem) => ({
+					// 	rule: "ItemInexistente",
+					// 	message: `O produto '${elem.description}' não existe no depósito`,
+					// }));
+					throw new BadRequestException(
+						"Produto não existe no depósito",
+						400,
+						"E_ERR",
+					);
 				}
 			}
 

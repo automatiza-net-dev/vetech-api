@@ -102,7 +102,7 @@ export default class AuthMiddleware {
 			);
 		}
 
-		console.log(auth.use("api").token?.meta);
+		console.log({ header }, auth.use("api").token?.meta);
 
 		if (header !== auth.use("api").token?.meta.system_name) {
 			throw new BadRequestException(

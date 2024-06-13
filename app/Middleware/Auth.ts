@@ -102,7 +102,10 @@ export default class AuthMiddleware {
 			);
 		}
 
-		if (header !== auth.use("api").token?.meta.system_name) {
+		if (
+			header.substring(0, 2).toLowerCase() !==
+			auth.use("api").token?.meta.system_name.substring(0, 2).toLowerCase()
+		) {
 			throw new BadRequestException(
 				"Requisição feito de um sistema diferente do autenticado",
 				400,

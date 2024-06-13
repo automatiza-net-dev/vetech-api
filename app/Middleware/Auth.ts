@@ -1,6 +1,7 @@
 import { GuardsList } from "@ioc:Adonis/Addons/Auth";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { AuthenticationException } from "@adonisjs/auth/build/standalone";
+import System from "App/Models/System";
 
 /**
  * Auth middleware is meant to restrict un-authenticated access to a given route
@@ -64,10 +65,11 @@ export default class AuthMiddleware {
 	 * Handle request
 	 */
 	public async handle(
-		{ auth }: HttpContextContract,
+		{ auth, request }: HttpContextContract,
 		next: () => Promise<void>,
 		customGuards: (keyof GuardsList)[],
 	) {
+		console.log(request.request);
 		/**
 		 * Uses the user defined guards or the default guard mentioned in
 		 * the config file
@@ -76,8 +78,7 @@ export default class AuthMiddleware {
 
 		let success = false;
 		try {
-			await this.authenticate(auth, guards);
-			success = true;
+			success = await this.authenticate(auth, guards);
 		} catch (e) {
 			// console.log("failed to authenticate", e);
 		}
@@ -90,6 +91,11 @@ export default class AuthMiddleware {
 				this.redirectTo,
 			);
 		}
+
+		// const system = await System.find(auth.use("api").token?.meta.system_id)
+		// if(!system){
+		//   throw new BadRe
+		// }
 
 		await next();
 	}

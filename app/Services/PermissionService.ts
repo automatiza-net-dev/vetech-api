@@ -102,16 +102,16 @@ export default class PermissionService {
 				[authCtx.unit.id],
 			)
 			.joinRaw(
-				`join roles on roles.id = user_unit_roles.role_id and roles.deleted_at is null and roles.active = true`,
+				"join roles on roles.id = user_unit_roles.role_id and roles.deleted_at is null and roles.active = true",
 			)
 			.joinRaw(
-				`join role_permissions on role_permissions.role_id = roles.id and role_permissions.active = true`,
+				"join role_permissions on role_permissions.role_id = roles.id and role_permissions.active = true and role_permissions.status = true",
 			)
 			.joinRaw(
-				`join permissions on role_permissions.permission_id = permissions.id and permissions.deleted_at is null`,
+				"join permissions on role_permissions.permission_id = permissions.id and permissions.deleted_at is null",
 			)
-			.joinRaw(`join screens on screens.id = permissions.screen_id`)
-			.joinRaw(`join menus on screens.menu_id = menus.id`)
+			.joinRaw("join screens on screens.id = permissions.screen_id")
+			.joinRaw("join menus on screens.menu_id = menus.id")
 			.where("users.id", authCtx.user.id)
 			.whereILike("permissions.control_id", "%00")
 			.where("role_permissions.active", true)
@@ -143,16 +143,16 @@ export default class PermissionService {
 				[authCtx.unit.id],
 			)
 			.joinRaw(
-				`join roles on roles.id = user_unit_roles.role_id and roles.deleted_at is null and roles.active = true`,
+				"join roles on roles.id = user_unit_roles.role_id and roles.deleted_at is null and roles.active = true",
 			)
 			.joinRaw(
-				`join role_permissions on role_permissions.role_id = roles.id and role_permissions.active = true`,
+				"join role_permissions on role_permissions.role_id = roles.id and role_permissions.active = true and role_permissions.status = true",
 			)
 			.joinRaw(
-				`join permissions on role_permissions.permission_id = permissions.id and permissions.deleted_at is null`,
+				"join permissions on role_permissions.permission_id = permissions.id and permissions.deleted_at is null",
 			)
-			.joinRaw(`join screens on screens.id = permissions.screen_id`)
-			.joinRaw(`join menus on screens.menu_id = menus.id`)
+			.joinRaw("join screens on screens.id = permissions.screen_id")
+			.joinRaw("join menus on screens.menu_id = menus.id")
 			.where("users.id", authCtx.user.id)
 			.whereILike("permissions.control_id", "REL%")
 			.where("role_permissions.active", true)

@@ -106,18 +106,16 @@ export default class BudgetsController {
 	}
 
 	public async createBudget({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateBudgetValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateBudgetValidator);
 
-		const result = await this.service.createBudget(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			const result = await this.service.createBudget(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
-
-		return response.created(result);
+			return response.created(result);
+		});
 	}
 
 	public async updateBudget({
@@ -159,18 +157,16 @@ export default class BudgetsController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateBudgetItemValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateBudgetItemValidator);
 
-		const result = await this.service.createBudgetItem(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			const result = await this.service.createBudgetItem(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
-
-		return response.created(result);
+			return response.created(result);
+		});
 	}
 
 	public async createBudgetItems({
@@ -178,17 +174,16 @@ export default class BudgetsController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(CreateBudgetItemsValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateBudgetItemsValidator);
 
-		const result = await this.service.createBudgetItems(
-			await this.sharedService.getAuthContext(auth),
-			payload.items,
-		);
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
+			await this.service.createBudgetItems(
+				await this.sharedService.getAuthContext(auth),
+				payload.items,
+			);
 
-		return response.created();
+			return response.created();
+		});
 	}
 
 	public async updateBudgetItem({
@@ -197,19 +192,17 @@ export default class BudgetsController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdateBudgetItemValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateBudgetItemValidator);
 
-		const result = await this.service.updateBudgetItem(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+			const result = await this.service.updateBudgetItem(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				payload,
+			);
 
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
-
-		return response.ok(result);
+			return response.ok(result);
+		});
 	}
 
 	public async deleteBudgetItem({
@@ -231,19 +224,17 @@ export default class BudgetsController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const payload = await request.validate(ConfirmBudgetValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(ConfirmBudgetValidator);
 
-		const result = await this.service.confirmBudget(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+			const result = await this.service.confirmBudget(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				payload,
+			);
 
-		if (Array.isArray(result)) {
-			return response.badRequest(result);
-		}
-
-		return response.ok(result);
+			return response.ok(result);
+		});
 	}
 
 	public async cancelBudget({

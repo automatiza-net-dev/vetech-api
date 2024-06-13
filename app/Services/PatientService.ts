@@ -1021,6 +1021,17 @@ export default class PatientService {
 	): Promise<Patient> {
 		const group = await this.getEconomicGroup(unitId);
 
+		if (data.holderId) {
+			// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
+			if (!data.birthDate && !data.birthMonths && !data.birthYears) {
+				throw new BadRequestException(
+					"É preciso ou informar a data exata ou aproximada de nascimento",
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
 		const trx = await Database.transaction();
 
 		try {
@@ -1038,7 +1049,14 @@ export default class PatientService {
 					gender: data.gender,
 					tags: data.tags,
 					community: data.community,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? data.birthDate?.toJSDate()
+						: DateTime.now()
+								.minus({
+									years: data.birthYears ?? 0,
+									months: data.birthMonths ?? 0,
+								})
+								.toJSDate(),
 					type: PatientType.ANIMAL,
 					photo,
 					vaccineOrigin: data.vaccineOrigin,

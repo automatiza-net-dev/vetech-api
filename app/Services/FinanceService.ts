@@ -1955,7 +1955,9 @@ export default class FinanceService {
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.F)
-			.preload("userWhoClosed");
+			.preload("userWhoClosed")
+			.orderByRaw("opening_date desc")
+			.limit(20);
 
 		return result.map((elem) => ({
 			id: elem.id,
@@ -1987,7 +1989,9 @@ export default class FinanceService {
 		const result = await DailyCashier.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("status", DailyCashierStatus.R)
-			.preload("userWhoRevised");
+			.preload("userWhoRevised")
+			.orderByRaw("opening_date desc")
+			.limit(20);
 
 		return result.map((elem) => ({
 			id: elem.id,
@@ -2826,6 +2830,144 @@ export default class FinanceService {
 		return {
 			balance: saldo ?? 0,
 		};
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Multiple params that are untyped
+	public async dashboardFinanceResume(authCtx: AuthContext, params: any) {
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"PRI03",
+		);
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver os gráficos",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const [expenses, payments, overallResume, checkingResume] =
+			await Promise.all([
+				this.getExpiringExpenses(authCtx),
+				this.getExpiringPayments(authCtx),
+				this.getOverallResume(authCtx),
+				this.getCheckingAccountsResume(authCtx),
+			]);
+
+		return [
+			{
+				name: "expiring-expenses",
+				hasData: expenses.length > 0,
+				title: "Titulos a pagar hoje",
+				total: this.sharedService.formatter.format(
+					expenses.reduce((acc, curr) => acc + curr.value, 0),
+				),
+				data: expenses.map((elem) => ({
+					description: elem.supplier,
+					value: this.sharedService.formatter.format(elem.value),
+				})),
+			},
+			{
+				name: "expiring-payments",
+				hasData: payments.length > 0,
+				title: "Titulos a receber hoje",
+				total: this.sharedService.formatter.format(
+					payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+				),
+				data: payments.map((elem) => ({
+					description: elem.paymentMethod.description,
+					value: this.sharedService.formatter.format(elem.totalValue),
+				})),
+			},
+			{
+				name: "overall-resume",
+				hasData: overallResume.length > 0,
+				title: "Análise financeiro",
+				total: "",
+				data: overallResume.map((elem) => ({
+					description: elem.type,
+					value: this.sharedService.formatter.format(elem.total),
+				})),
+			},
+			{
+				name: "checking-accounts-resume",
+				hasData: checkingResume.length > 0,
+				title: "Saldo Contas Correntes",
+				total: this.sharedService.formatter.format(
+					checkingResume.reduce((acc, curr) => acc + curr.balance, 0),
+				),
+				data: checkingResume.map((elem) => ({
+					description: `${elem.description} (${elem.accountNumber})`,
+					value: this.sharedService.formatter.format(elem.balance),
+				})),
+			},
+		];
+	}
+
+	public async dashboardCashierResume(authCtx: AuthContext, params: any) {
+		const hasPermission = await this.sharedService.userHasPermission(
+			authCtx,
+			"PRI04",
+		);
+		if (!hasPermission) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver os gráficos",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const [open, closed, revised, today] = await Promise.all([
+			this.getOpenDailyCashiers(authCtx),
+			this.getClosedDailyCashiers(authCtx),
+			this.getRevisedDailyCashiers(authCtx),
+			this.getTodayDailyCashiers(authCtx),
+		]);
+
+		return [
+			{
+				name: "open-cashiers-resume",
+				hasData: open.length > 0,
+				title: "Em aberto",
+				data: open.map((elem) => [
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					elem.userWhoOpened.name,
+					elem.tag,
+				]),
+			},
+			{
+				name: "closed-cashiers-resume",
+				hasData: closed.length > 0,
+				title: "Para conferência",
+				data: closed.map((elem) => [
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					elem.userWhoClosed.name,
+					`<strong>Fechamento:</strong> ${elem.closingDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
+					elem.tag,
+				]),
+			},
+			{
+				name: "revised-cashiers-resume",
+				hasData: revised.length > 0,
+				title: "Em revisão",
+				data: revised.map((elem) => [
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					elem.userWhoRevised.name,
+					`<strong>Revisão:</strong> ${elem.revisionDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
+					elem.tag,
+				]),
+			},
+			{
+				name: "today-cashiers-resume",
+				hasData: today.length > 0,
+				title: "Abertos no dia atual",
+				data: today.map((elem) => [
+					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
+					elem.openingUser.name,
+					elem.tag,
+				]),
+			},
+		];
 	}
 
 	private async $registerDown(

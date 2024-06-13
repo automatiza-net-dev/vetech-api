@@ -3,10 +3,13 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PatientService from "App/Services/PatientService";
 import SharedService from "App/Services/SharedService";
 import CheckPhoneValidator from "App/Validators/Patient/CheckPhoneValidator";
+import CreateCrmPatientValidator from "App/Validators/Patient/CreateCrmPatientValidator";
 import CreatePatientValidator from "App/Validators/Patient/CreatePatientValidator";
+import CreateSchedulePatientValidator from "App/Validators/Patient/CreateSchedulePatientValidator";
 import DeclareDeathValidator from "App/Validators/Patient/DeclareDeathValidator";
 import FastCreatePatientValidator from "App/Validators/Patient/FastCreatePatientValidator";
 import UpdatePatientValidator from "App/Validators/Patient/UpdatePatientValidator";
+import IPatientData from "Contracts/interfaces/IPatientData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
 
 @inject()
@@ -138,8 +141,23 @@ export default class PatientsController {
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreatePatientValidator);
+		// const payload = await request.validate(CreatePatientValidator);
 		const { unit_id } = this.sharedService.extractUser(auth);
+
+		const origin = request.input("origin");
+		let payload: Omit<IPatientData, "active"> | null = null;
+
+		if (origin === "Agenda") {
+			payload = await request.validate(CreateSchedulePatientValidator);
+		}
+
+		if (origin === "Crm") {
+			payload = await request.validate(CreateCrmPatientValidator);
+		}
+
+		if (!payload) {
+			payload = await request.validate(CreatePatientValidator);
+		}
 
 		const patient = await this.service.store(unit_id, payload);
 

@@ -433,11 +433,15 @@ export default class AuthService {
 					}
 				}
 
-				return auth.use("api").generate(user, {
-					expiresIn: "7d",
-					unit_id: unit.id,
-					system_id: system.id,
-				});
+				return [
+					await auth.use("api").generate(user, {
+						expiresIn: "7d",
+						unit_id: unit.id,
+						system_id: system.id,
+						system_name: system.name,
+					}),
+					system.id,
+				];
 			}
 
 			const uniqueEconomicGroups = await EconomicGroup.query().whereIn(
@@ -513,7 +517,15 @@ export default class AuthService {
 				}
 			}
 
-			return AuthService.generateAuthToken(auth, user, unit.id, system.id);
+			return [
+				await auth.use("api").generate(user, {
+					expiresIn: "7d",
+					unit_id: unit.id,
+					system_id: system.id,
+					system_name: system.name,
+				}),
+				system.id,
+			];
 		});
 	}
 
@@ -579,6 +591,7 @@ export default class AuthService {
 			return auth.use("api").generate(user, {
 				expiresIn: "7d",
 				system_id: system.id,
+				system_name: system.name,
 			});
 		});
 	}
@@ -677,6 +690,7 @@ export default class AuthService {
 			const token = await auth.use("api").generate(user, {
 				expiresIn: "7d",
 				system_id: system.id,
+				system_name: system.name,
 			});
 
 			return {
@@ -685,19 +699,6 @@ export default class AuthService {
 				userType: user.type,
 				units: result,
 			};
-		});
-	}
-
-	static generateAuthToken(
-		auth: AuthContract,
-		user: User,
-		unit_id: string,
-		system: number,
-	) {
-		return auth.use("api").generate(user, {
-			expiresIn: "7d",
-			unit_id,
-			system_id: system,
 		});
 	}
 

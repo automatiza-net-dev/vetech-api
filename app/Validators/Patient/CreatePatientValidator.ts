@@ -14,6 +14,8 @@ export default class CreatePatientValidator {
 		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date.optional({}),
+		birthMonths: schema.number.optional([]),
+		birthYears: schema.number.optional([]),
 		holderId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),

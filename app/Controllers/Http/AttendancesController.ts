@@ -35,9 +35,9 @@ export default class AttendancesController {
 			const payload = await request.validate(OpenAttendanceValidator);
 			const authCtx = await this.sharedService.getAuthContext(auth);
 
-			await this.service.open(authCtx, payload);
+			const res = await this.service.open(authCtx, payload);
 
-			return response.created();
+			return response.ok(res);
 		} catch (e) {
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
@@ -85,13 +85,13 @@ export default class AttendancesController {
 		try {
 			const payload = await request.validate(UpdateAttendanceValidator);
 
-			await this.service.update(
+			const r = await this.service.update(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
 				payload,
 			);
 
-			return response.noContent();
+			return response.ok(r);
 		} catch (e) {
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({

@@ -1,90 +1,90 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import { VaccineType } from 'App/Models/Vaccine';
-import VaccineProtocol from 'App/Models/VaccineProtocol';
-import { IVaccineProtocolData } from 'Contracts/interfaces/IVaccineProtocolData';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import { VaccineType } from "App/Models/Vaccine";
+import VaccineProtocol from "App/Models/VaccineProtocol";
+import { IVaccineProtocolData } from "Contracts/interfaces/IVaccineProtocolData";
 
 interface ISearch {
-  type?: VaccineType;
-  vaccine?: string;
-  specie?: string;
-  name?: string;
+	type?: VaccineType;
+	vaccine?: string;
+	specie?: string;
+	name?: string;
 }
 
 @inject()
 export default class VaccineProtocolService {
-  public async index(data: ISearch) {
-    const qb = VaccineProtocol.query().preload('vaccine').preload('specie');
+	public async index(data: ISearch) {
+		const qb = VaccineProtocol.query().preload("vaccine").preload("specie");
 
-    if (data.name) {
-      qb.where('name', 'ilike', `%${data.name}%`);
-    }
+		if (data.name) {
+			qb.where("name", "ilike", `%${data.name}%`);
+		}
 
-    if (data.specie) {
-      qb.where('specie_id', data.specie);
-    }
+		if (data.specie) {
+			qb.whereRaw("(specie_id = ? or specie_id is null)", [data.specie]);
+		}
 
-    if (data.type || data.vaccine) {
-      qb.whereHas('vaccine', query => {
-        if (data.type) {
-          query.where('type', data.type);
-        }
+		if (data.type || data.vaccine) {
+			qb.whereHas("vaccine", (query) => {
+				if (data.type) {
+					query.where("type", data.type);
+				}
 
-        if (data.vaccine) {
-          query.where('id', data.vaccine);
-        }
-      });
-    }
+				if (data.vaccine) {
+					query.where("id", data.vaccine);
+				}
+			});
+		}
 
-    // TODO paginate
-    return qb;
-  }
+		// TODO paginate
+		return qb;
+	}
 
-  public async store(data: Omit<IVaccineProtocolData, 'active'>) {
-    return VaccineProtocol.create({
-      name: data.name,
-      doses: data.doses,
-      interval: data.interval,
-      vaccine_id: data.vaccineId,
-      specie_id: data.specieId,
-    });
-  }
+	public async store(data: Omit<IVaccineProtocolData, "active">) {
+		return VaccineProtocol.create({
+			name: data.name,
+			doses: data.doses,
+			interval: data.interval,
+			vaccine_id: data.vaccineId,
+			specie_id: data.specieId,
+		});
+	}
 
-  public async show(id: string) {
-    const model = await VaccineProtocol.find(id);
+	public async show(id: string) {
+		const model = await VaccineProtocol.find(id);
 
-    if (!model) {
-      throw new ResourceNotFoundException('Recurso não encontrado');
-    }
+		if (!model) {
+			throw new ResourceNotFoundException("Recurso não encontrado");
+		}
 
-    await model.load('vaccine');
-    await model.load('specie');
+		await model.load("vaccine");
+		await model.load("specie");
 
-    return model;
-  }
+		return model;
+	}
 
-  public async update(id: string, data: IVaccineProtocolData) {
-    const model = await VaccineProtocol.find(id);
+	public async update(id: string, data: IVaccineProtocolData) {
+		const model = await VaccineProtocol.find(id);
 
-    if (!model) {
-      throw new ResourceNotFoundException('Recurso não encontrado');
-    }
+		if (!model) {
+			throw new ResourceNotFoundException("Recurso não encontrado");
+		}
 
-    return model
-      .merge({
-        name: data.name,
-        doses: data.doses,
-        interval: data.interval,
-        vaccine_id: data.vaccineId,
-        specie_id: data.specieId,
-        active: data.active,
-      })
-      .save();
-  }
+		return model
+			.merge({
+				name: data.name,
+				doses: data.doses,
+				interval: data.interval,
+				vaccine_id: data.vaccineId,
+				specie_id: data.specieId,
+				active: data.active,
+			})
+			.save();
+	}
 
-  public async destroy(id: string) {
-    const model = await this.show(id);
+	public async destroy(id: string) {
+		const model = await this.show(id);
 
-    await model.softDelete();
-  }
+		await model.softDelete();
+	}
 }

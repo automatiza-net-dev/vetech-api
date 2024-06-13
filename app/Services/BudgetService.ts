@@ -360,6 +360,7 @@ export default class BudgetService {
 		const group = await this.sharedService.getUserGroup(unitId);
 
 		const qb = Product.query()
+			.orderByRaw("description asc")
 			.where("economic_group_id", group.id)
 			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
 			.where("active", true);
@@ -520,7 +521,12 @@ export default class BudgetService {
 				})),
 			);
 			if (result.length > 0) {
-				return result;
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
 			}
 
 			if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
@@ -745,7 +751,12 @@ export default class BudgetService {
 				},
 			]);
 			if (result.length > 0) {
-				return result;
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const productVariation = await ProductVariation.query()
@@ -833,7 +844,12 @@ export default class BudgetService {
 				})),
 			);
 			if (result.length > 0) {
-				return result;
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const variations = await ProductVariation.query()
@@ -925,7 +941,12 @@ export default class BudgetService {
 				},
 			]);
 			if (result.length > 0) {
-				return result;
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const updatedItem = await budgetItem
@@ -1129,10 +1150,15 @@ export default class BudgetService {
 				})),
 			);
 			if (invalidRows.length > 0) {
-				return invalidRows.map((elem) => ({
-					rule: "ItemInexistente",
-					message: `O produto '${elem.description}' não existe no depósito`,
-				}));
+				// return invalidRows.map((elem) => ({
+				// 	rule: "ItemInexistente",
+				// 	message: `O produto '${elem.description}' não existe no depósito`,
+				// }));
+				throw new BadRequestException(
+					"Produto não encontrado no estoque",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const totalProductValue = items

@@ -123,7 +123,6 @@ export default class UserService {
 			});
 			if (!trialPlan) {
 				Logger.error("No trial plan");
-				// should have admin role
 				throw new InternalErrorException(
 					"Erro na criação de usuário",
 					400,
@@ -404,6 +403,7 @@ export default class UserService {
 						taxation_group_id: realTaxationGroup?.id,
 						variation_group_id: realVariationGroup?.id,
 						group_id: p.group_id,
+						system_product_id: p.id,
 
 						// fractioned: p.fr,
 						serviceCode: p.serviceCode,

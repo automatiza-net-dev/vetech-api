@@ -367,6 +367,8 @@ Route.group(() => {
 	Route.post("/", "SchedulesController.store");
 	Route.get("/:id", "SchedulesController.show");
 	Route.put("/reschedule/:id", "SchedulesController.reschedule");
+	Route.put("/reopen/:id", "SchedulesController.reopenSchedule");
+	Route.put("/upsert/:id", "SchedulesController.upsertStatus");
 	Route.put("/status", "SchedulesController.updateStatus");
 	Route.put("/status-type", "SchedulesController.updateStatusType");
 	Route.put("/:id", "SchedulesController.update");
@@ -1507,6 +1509,7 @@ Route.group(() => {
 	Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
 	Route.get("/receipts", "ReportsController.receiptsReport");
 	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
+	Route.get("/crm-opportunities", "ReportsController.crmOpportunitiesReport");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1752,3 +1755,17 @@ Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
 Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
 	"auth",
 );
+Route.get(
+	"/dashboard-finances-resume",
+	"FinancesController.dashboardFinanceResume",
+).middleware("auth");
+Route.get(
+	"/dashboard-cashiers-resume",
+	"FinancesController.dashboardCashierResume",
+).middleware("auth");
+
+Route.resource("product-documents", "ProductDocumentsController")
+	.only(["index", "store", "destroy"])
+	.middleware({
+		"*": ["auth"],
+	});

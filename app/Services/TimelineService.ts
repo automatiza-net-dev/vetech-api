@@ -145,11 +145,9 @@ export default class TimelineService {
 				client: trx,
 			});
 
-			const clean = data.weight.replaceAll(".", "").replaceAll(",", ".");
-
 			await patient
 				.merge({
-					weight: parseFloat(clean),
+					weight: Number.parseFloat(data.weight),
 					weightDate: DateTime.now(),
 					weightOrigin: PatientWeightOrigin.A,
 				})

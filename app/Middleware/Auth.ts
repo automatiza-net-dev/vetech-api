@@ -67,7 +67,7 @@ export default class AuthMiddleware {
 	 * Handle request
 	 */
 	public async handle(
-		{ auth, request }: HttpContextContract,
+		{ auth }: HttpContextContract,
 		next: () => Promise<void>,
 		customGuards: (keyof GuardsList)[],
 	) {
@@ -93,25 +93,25 @@ export default class AuthMiddleware {
 			);
 		}
 
-		const header = request.header("X-System");
-		if (!header) {
-			throw new BadRequestException(
-				"Requisição sem sistema original, adiciona uma X-System",
-				400,
-				"E_ERR",
-			);
-		}
-
-		if (
-			header.substring(0, 2).toLowerCase() !==
-			auth.use("api").token?.meta.system_name.substring(0, 2).toLowerCase()
-		) {
-			throw new BadRequestException(
-				"Requisição feito de um sistema diferente do autenticado",
-				400,
-				"E_ERR",
-			);
-		}
+		// const header = request.header("X-System");
+		// if (!header) {
+		// 	throw new BadRequestException(
+		// 		"Requisição sem sistema original, adiciona uma X-System",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
+		//
+		// if (
+		// 	header.substring(0, 2).toLowerCase() !==
+		// 	auth.use("api").token?.meta.system_name.substring(0, 2).toLowerCase()
+		// ) {
+		// 	throw new BadRequestException(
+		// 		"Requisição feito de um sistema diferente do autenticado",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
 
 		await next();
 	}

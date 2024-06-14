@@ -26,11 +26,15 @@ Route.get("/", () => {
 
 Route.group(() => {
 	Route.get("me", "AuthController.whoAmI").middleware(["auth:tpApi,api"]);
-	Route.get("available-swaps", "AuthController.availableSwaps").middleware(
-		"auth",
-	);
-	Route.post("swap-unit", "AuthController.swapUnit").middleware("auth");
-	Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware("auth");
+	Route.get("available-swaps", "AuthController.availableSwaps").middleware([
+		"auth:tpApi,api",
+	]);
+	Route.post("swap-unit", "AuthController.swapUnit").middleware([
+		"auth:tpApi,api",
+	]);
+	Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware([
+		"auth:apiApi,api",
+	]);
 
 	Route.post("admin-login", "AuthController.adminLogin");
 	Route.post("controller-login", "AuthController.controllerLogin");

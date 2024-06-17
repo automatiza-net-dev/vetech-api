@@ -1,6 +1,7 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { PatientGender } from "App/Models/Patient";
+import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class CreatePatientWithTutorValidator {
@@ -46,6 +47,15 @@ export default class CreatePatientWithTutorValidator {
 		]),
 		nationality: schema.string.optional({}, []),
 		civilStatus: schema.string.optional({}, []),
+		items: schema.array().members(
+			schema.object().members({
+				main: schema.boolean(),
+				notGiven: schema.boolean(),
+				contact: schema.string.optional(),
+				observation: schema.string.optional(),
+				type: schema.enum(Object.values(PatientContactType)),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {};

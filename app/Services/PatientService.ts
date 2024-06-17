@@ -34,6 +34,7 @@ import { v4 } from "uuid";
 import { HospitalizationStatus } from "../Models/Hospitalization";
 import Attendance from "App/Models/Attendance";
 import { intervalToDuration } from "date-fns";
+import { PatientContactType } from "App/Models/PatientContact";
 
 interface ISearch {
 	name?: string;
@@ -1123,7 +1124,15 @@ export default class PatientService {
 
 	public async storeTutor(
 		authCtx: AuthContext,
-		data: Omit<IPatientTutorData, "active">,
+		data: Omit<IPatientTutorData, "active"> & {
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
 			if (data.document) {
@@ -1173,6 +1182,17 @@ export default class PatientService {
 					tag: (tutors.length + 1).toString(),
 					clientOriginItemDescription: data.clientOriginItemDescription,
 				},
+				{ client: trx },
+			);
+
+			await patient.related("contacts").createMany(
+				data.contacts?.map((inner) => ({
+					main: inner.main,
+					contact: inner.contact,
+					observation: inner.observation,
+					type: inner.type,
+					notGiven: inner.notGiven,
+				})) ?? [],
 				{ client: trx },
 			);
 
@@ -1538,7 +1558,15 @@ export default class PatientService {
 	public async updateTutor(
 		authCtx: AuthContext,
 		id: string,
-		data: IPatientTutorData,
+		data: IPatientTutorData & {
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
 			const tutor = await Patient.query()
@@ -1582,6 +1610,17 @@ export default class PatientService {
 			const photo = data.photo
 				? await this.uploadPhoto(data.photo)
 				: tutor.photo;
+
+			await tutor.related("contacts").createMany(
+				data.contacts?.map((inner) => ({
+					main: inner.main,
+					contact: inner.contact,
+					observation: inner.observation,
+					type: inner.type,
+					notGiven: inner.notGiven,
+				})) ?? [],
+				{ client: trx },
+			);
 
 			await tutor.tutor
 				.merge({

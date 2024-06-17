@@ -1126,7 +1126,7 @@ export default class PatientService {
 		data: Omit<IPatientTutorData, "active">,
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
-			if (data.document && authCtx.unit.unitConfig.requiresClientDocument) {
+			if (data.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",
@@ -1552,11 +1552,7 @@ export default class PatientService {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
 			}
 
-			if (
-				data.document &&
-				data.document !== tutor.tutor.document &&
-				authCtx.unit.unitConfig.requiresClientDocument
-			) {
+			if (data.document && data.document !== tutor.tutor.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",

@@ -230,8 +230,11 @@ export default class ScheduleService {
 				event: day,
 				name: day.user?.name ?? "-",
 				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late: isAfter(new Date(), day.startHour.toJSDate())
-					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+				late: isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate())
+					? differenceInMinutes(
+							new Date(),
+							day.startHour.plus({ hours: 3 }).toJSDate(),
+						)
 					: null,
 				type: this.getEventLabel(day),
 			})),
@@ -242,8 +245,11 @@ export default class ScheduleService {
 				event: day,
 				name: day.user?.name ?? "-",
 				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late: isAfter(new Date(), day.startHour.toJSDate())
-					? differenceInMinutes(new Date(), day.startHour.toJSDate())
+				late: isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate())
+					? differenceInMinutes(
+							new Date(),
+							day.startHour.plus({ hours: 3 }).toJSDate(),
+						)
 					: null,
 				type: this.getEventLabel(day),
 			})),

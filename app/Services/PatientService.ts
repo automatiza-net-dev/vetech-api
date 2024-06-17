@@ -737,6 +737,7 @@ export default class PatientService {
 			glycemia: patient.glycemia,
 			pressure: patient.pressure,
 			firstSale: patient.firstSale,
+			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
 			missingBills: this.sharedService.formatter.format(
 				sales.reduce(
@@ -753,7 +754,9 @@ export default class PatientService {
 				death_date: patient.patientAnimal.deathDate,
 				microchip: patient.patientAnimal.microchip,
 				castrated: patient.patientAnimal.castrated,
+				hair_id: patient.patientAnimal.hair_id ?? null,
 				hair: patient.patientAnimal.hair?.description ?? null,
+				race_id: patient.patientAnimal.race_id ?? null,
 				race: patient.patientAnimal.race?.description ?? null,
 				specie_id: patient.patientAnimal.race?.specie?.id ?? null,
 				specie: patient.patientAnimal.race?.specie?.description ?? null,

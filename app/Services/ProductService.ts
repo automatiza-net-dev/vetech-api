@@ -5,7 +5,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import Product, { ProductType } from "App/Models/Product";
+import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import VariationGroup from "App/Models/VariationGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IProductData, {
@@ -28,6 +28,61 @@ interface ISearch {
 @inject()
 export default class ProductService {
 	constructor(private readonly sharedService: SharedService) {}
+
+	public async forMovement(authCtx: AuthContext, data: { type?: string }) {
+		const qb = authCtx.group
+			.related("products")
+			.query()
+			.preload("variations", (query) => {
+				query.orderBy("created_at", "desc");
+				query.select("id", "barcode", "active");
+
+				query.preload("businessUnitProducts", (query) => {
+					query.where("businness_unit_id", authCtx.unit.id);
+				});
+				query.preload("variationOptions", (query) => {
+					query.select("id", "description", "active");
+				});
+			});
+
+		if (data.type?.toLowerCase() === "saida") {
+			qb.whereNotIn("purpose", [ProductPurpose.INTERNAL]);
+		}
+
+		if (data.type?.toLowerCase() === "entrada") {
+			qb.where("type", ProductType.PRODUCT);
+		}
+
+		if (data.type?.toLowerCase() === "estoque") {
+			qb.where("type", ProductType.PRODUCT);
+		}
+
+		const result = await qb;
+
+		return result.map((product) => ({
+			id: product.id,
+			economic_group: product.economic_group_id,
+			description: product.description,
+			type: product.type,
+			variations: product.variations.map((elem) => ({
+				id: elem.id,
+				barcode: elem.barcode,
+				variationOptions: elem.variationOptions.map((opt) => ({
+					id: opt.id,
+					variation_id: opt.variation_id,
+					description: opt.description,
+				})),
+				businessUnitProducts: elem.businessUnitProducts.map((opt) => ({
+					id: opt.id,
+					businness_unit_id: opt.businness_unit_id,
+					maximum_discount_percentage: opt.maximumDiscountPercentage,
+					maximum_discount_value: opt.maximumDiscountValue,
+					price: opt.price,
+					product_variation_id: opt.product_variation_id,
+				})),
+			})),
+		}));
+	}
 
 	public async index(unitId: string, data: ISearch) {
 		const group = await this.sharedService.getUserGroup(unitId);

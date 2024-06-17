@@ -394,6 +394,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/for-movements", "ProductsController.forMovements");
 	Route.get("/", "ProductsController.index");
 	Route.post("/", "ProductsController.store");
 	Route.get("/:id", "ProductsController.show");

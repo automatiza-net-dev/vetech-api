@@ -12,6 +12,15 @@ export default class ProductsController {
 		private readonly sharedService: SharedService,
 	) {}
 
+	public async forMovements({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.forMovement(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async index({ auth, request, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 

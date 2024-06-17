@@ -124,18 +124,19 @@ export default class PatientsController {
 	}
 
 	public async showAnimals({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
 		const qs = request.qs();
-		const patients = await this.service.animalsIndex(unit_id, {
-			name: qs.name,
-			race: qs.race,
-			specie: qs.specie,
-			tutor: qs.tutor,
-			document: qs.document,
-			phone: qs.phone,
-			tag: qs.tag,
-		});
+		const patients = await this.service.animalsIndex(
+			await this.sharedService.getAuthContext(auth),
+			{
+				name: qs.name,
+				race: qs.race,
+				specie: qs.specie,
+				tutor: qs.tutor,
+				document: qs.document,
+				phone: qs.phone,
+				tag: qs.tag,
+			},
+		);
 
 		return response.ok(patients);
 	}

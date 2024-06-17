@@ -384,10 +384,8 @@ export default class PatientService {
 		}));
 	}
 
-	public async animalsIndex(unitId: string, data: ISearchAnimals) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async animalsIndex(authCtx: AuthContext, data: ISearchAnimals) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.orderBy("name", "asc")
@@ -397,25 +395,46 @@ export default class PatientService {
 			qb.where("tag", "ilike", `%${data.tag}%`);
 		}
 
-		if (data.race) {
+		if (data.race || data.specie) {
 			qb.whereHas("patientAnimal", (query) => {
 				query.whereHas("race", (subquery) => {
-					subquery.whereILike("description", `%${data.race ?? ""}%`);
+					if (data.race) {
+						subquery.whereILike("description", `%${data.race ?? ""}%`);
+					}
+
+					if (data.specie) {
+						subquery.whereHas("specie", (query) => {
+							query.whereILike("description", `%${data.specie ?? ""}%`);
+						});
+					}
 				});
 			});
 		}
 
-		if (data.tutor) {
-			qb.whereHas("tutors", (q) => {
-				q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-					data.tutor!.replaceAll(" ", "%"),
-				]);
-			});
+		if (data.name) {
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
+			]);
 		}
+
+		// if (data.document) {
+		// 	qb.whereHas("tutors", (q) => {
+		// 		q.whereRaw("document ilike ?", [
+		// 			`%${data.document?.replace(/\D/g, "")}%`,
+		// 		]);
+		// 	});
+		// }
+
+		// if (data.tutor) {
+		// 	qb.whereHas("tutors", (q) => {
+		// 		q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+		// 			data.tutor!.replaceAll(" ", "%"),
+		// 		]);
+		// 	});
+		// }
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
-
 			qb.whereRaw(
 				`patients.id in (select holder_dependents.dependent_id
              from "patient_contacts"
@@ -460,49 +479,37 @@ export default class PatientService {
 			query.preload("hair");
 		});
 
-		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-				data.name.replaceAll(" ", "%"),
-			]);
-		}
-
 		const result = await qb;
 
-		return result
-			.filter((r) => {
-				if (data.document) {
-					const matches = r.tutors.some((t) =>
-						t.tutor.document?.includes(data.document?.replace(/\D/g, "") ?? ""),
-					);
+		const tutors =
+			data.tutor || data.document
+				? await Database.from("patients")
+						.select(Database.raw("name as tutor"))
+						.joinRaw(
+							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+							[authCtx.group.id],
+						)
+						.joinRaw(
+							"join patient_tutors on patient_tutors.patient_id = patients.id",
+							[],
+						)
+						.where("type", PatientType.TUTOR)
+						.whereRaw(
+							"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+						)
+						.whereRaw(
+							data.tutor
+								? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+								: `(? = '' or 1=1)`,
+							[data.tutor ?? ""],
+						)
+						.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
+							data.document ? `%${data.document}%` : "",
+						])
+				: [];
 
-					if (!matches) {
-						return false;
-					}
-				}
-
-				// if (data.phone) {
-				// 	const matches = r.tutors.some((t) =>
-				// 		t.tutor.cellphone?.includes(data.phone ?? ""),
-				// 	);
-				//
-				// 	if (!matches) {
-				// 		return false;
-				// 	}
-				// }
-
-				if (data.specie) {
-					const matches = r.patientAnimal?.race?.specie.description
-						.toLocaleLowerCase()
-						.includes(data.specie.toLowerCase());
-
-					if (!matches) {
-						return false;
-					}
-				}
-
-				return true;
-			})
-			.map((patient) => {
+		return {
+			patients: result.map((patient) => {
 				return {
 					id: patient.id,
 					name: patient.name,
@@ -522,7 +529,9 @@ export default class PatientService {
 						isMain: elem.$extras.pivot_is_main,
 					})),
 				};
-			});
+			}),
+			tutors,
+		};
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {

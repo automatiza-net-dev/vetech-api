@@ -66,7 +66,7 @@ export default class PatientTutorsController {
 		return this.sharedService.errorHoc(response, async () => {
 			const authCtx = await this.sharedService.getAuthContext(auth);
 
-			const origin = request.input("origin");
+			const origin = request.input("origin", "");
 			let data: Omit<IPatientTutorData, "active"> | null = null;
 
 			if (origin === "" || origin === "Cadastro") {

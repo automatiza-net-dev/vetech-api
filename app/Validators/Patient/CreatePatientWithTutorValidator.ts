@@ -5,9 +5,7 @@ import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class CreatePatientWithTutorValidator {
-	constructor(protected ctx: HttpContextContract) {
-		console.log("fallback");
-	}
+	constructor(protected ctx: HttpContextContract) {}
 
 	public schema = schema.create({
 		name: schema.string({}),

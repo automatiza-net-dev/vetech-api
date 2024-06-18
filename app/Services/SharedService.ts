@@ -65,6 +65,19 @@ export default class SharedService {
 		complaint: "Reclamação",
 		type: "Tipo",
 		scheduleStatusType: "Tipo de Status",
+		document: "Documento",
+		gender: "Genero",
+		email: "Email",
+		cellphone: "Celular",
+		professionId: "Profissão",
+		postalCode: "CEP",
+		street: "Rua",
+		number: "Numero",
+		complement: "Complemento",
+		district: "Bairro",
+		city: "Cidade",
+		state: "Estado",
+		origin: "Origem",
 	} as const;
 
 	public async errorHoc(

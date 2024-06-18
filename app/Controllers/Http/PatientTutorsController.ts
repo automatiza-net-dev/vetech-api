@@ -89,8 +89,6 @@ export default class PatientTutorsController {
 				}
 			}
 
-			console.log({ origin, name: authCtx.system.name });
-
 			if (!data) {
 				data = await request.validate(CreatePatientWithTutorValidator);
 			}

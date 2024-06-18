@@ -3926,9 +3926,7 @@ export default class IndicatorService {
 					items: [
 						{
 							description: "Retorno MKT (ROI)",
-							value: this.shared.formatPercentage(
-								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
-							),
+							value: marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
 						},
 					],
 				},

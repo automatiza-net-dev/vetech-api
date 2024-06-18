@@ -482,57 +482,79 @@ export default class PatientService {
 
 		const result = await qb;
 
-		const tutors =
-			data.tutor || data.document
-				? await Database.from("patients")
-						.select(Database.raw("name as tutor"))
-						.joinRaw(
-							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
-							[authCtx.group.id],
-						)
-						.joinRaw(
-							"join patient_tutors on patient_tutors.patient_id = patients.id",
-							[],
-						)
-						.where("type", PatientType.TUTOR)
-						.whereRaw(
-							"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
-						)
-						.whereRaw(
-							data.tutor
-								? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
-								: `(? = '' or 1=1)`,
-							[data.tutor ?? ""],
-						)
-						.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
-							data.document ? `%${data.document}%` : "",
-						])
-				: [];
+		return result.map((patient) => {
+			return {
+				id: patient.id,
+				name: patient.name,
+				tag: patient.tag,
+				gender: patient.gender,
+				community: patient.community,
+				birthDate: patient.birthDate,
+				castrated: patient.patientAnimal?.castrated,
+				weight: patient.weight,
+				race: patient.patientAnimal?.race,
+				tutors: patient.tutors.map((elem) => ({
+					id: elem.id,
+					name: elem.name,
+					email: elem.tutor?.email ?? "-",
+					tag: elem.tag,
+					cellphone: elem.tutor?.cellphone ?? "-",
+					isMain: elem.$extras.pivot_is_main,
+				})),
+			};
+		});
 
-		return {
-			patients: result.map((patient) => {
-				return {
-					id: patient.id,
-					name: patient.name,
-					tag: patient.tag,
-					gender: patient.gender,
-					community: patient.community,
-					birthDate: patient.birthDate,
-					castrated: patient.patientAnimal?.castrated,
-					weight: patient.weight,
-					race: patient.patientAnimal?.race,
-					tutors: patient.tutors.map((elem) => ({
-						id: elem.id,
-						name: elem.name,
-						email: elem.tutor?.email ?? "-",
-						tag: elem.tag,
-						cellphone: elem.tutor?.cellphone ?? "-",
-						isMain: elem.$extras.pivot_is_main,
-					})),
-				};
-			}),
-			tutors,
-		};
+		// const tutors =
+		// 	data.tutor || data.document
+		// 		? await Database.from("patients")
+		// 				.select(Database.raw("name as tutor"))
+		// 				.joinRaw(
+		// 					"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+		// 					[authCtx.group.id],
+		// 				)
+		// 				.joinRaw(
+		// 					"join patient_tutors on patient_tutors.patient_id = patients.id",
+		// 					[],
+		// 				)
+		// 				.where("type", PatientType.TUTOR)
+		// 				.whereRaw(
+		// 					"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+		// 				)
+		// 				.whereRaw(
+		// 					data.tutor
+		// 						? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+		// 						: `(? = '' or 1=1)`,
+		// 					[data.tutor ?? ""],
+		// 				)
+		// 				.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
+		// 					data.document ? `%${data.document}%` : "",
+		// 				])
+		// 		: [];
+		//
+		// return {
+		// 	patients: result.map((patient) => {
+		// 		return {
+		// 			id: patient.id,
+		// 			name: patient.name,
+		// 			tag: patient.tag,
+		// 			gender: patient.gender,
+		// 			community: patient.community,
+		// 			birthDate: patient.birthDate,
+		// 			castrated: patient.patientAnimal?.castrated,
+		// 			weight: patient.weight,
+		// 			race: patient.patientAnimal?.race,
+		// 			tutors: patient.tutors.map((elem) => ({
+		// 				id: elem.id,
+		// 				name: elem.name,
+		// 				email: elem.tutor?.email ?? "-",
+		// 				tag: elem.tag,
+		// 				cellphone: elem.tutor?.cellphone ?? "-",
+		// 				isMain: elem.$extras.pivot_is_main,
+		// 			})),
+		// 		};
+		// 	}),
+		// 	tutors,
+		// };
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {

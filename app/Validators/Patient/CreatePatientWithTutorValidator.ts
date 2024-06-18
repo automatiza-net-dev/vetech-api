@@ -50,6 +50,7 @@ export default class CreatePatientWithTutorValidator {
 				main: schema.boolean(),
 				notGiven: schema.boolean(),
 				contact: schema.string.optional({ trim: true }, [
+					rules.requiredWhen("notGiven", "=", false),
 					rules.requiredWhen("type", "=", "email"),
 				]),
 				observation: schema.string.optional(),

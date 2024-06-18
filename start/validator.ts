@@ -119,18 +119,22 @@ validator.rule("documento", (value, _, options) => {
 });
 
 validator.rule("emailContato", (value, _, options) => {
-	console.log(value, options.tip);
+	// console.log(value, options.tip);
 
-	if (options.tip.notGiven && value === "") {
-		options.errorReporter.report(
-			options.pointer,
-			"required",
-			"Campo obrigatório",
-			options.arrayExpressionPointer,
-		);
-	}
+	// if (options.tip.notGiven) {
+	// 	options.errorReporter.report(
+	// 		options.pointer,
+	// 		"required",
+	// 		"Campo obrigatório",
+	// 		options.arrayExpressionPointer,
+	// 	);
+	// }
 
-	if (options.tip.type === "email" && !isValidEmail(value)) {
+	if (
+		!options.tip.notGiven &&
+		options.tip.type === "email" &&
+		!isValidEmail(value)
+	) {
 		options.errorReporter.report(
 			options.pointer,
 			"emailContato",
@@ -140,7 +144,11 @@ validator.rule("emailContato", (value, _, options) => {
 		return;
 	}
 
-	if (options.tip.type !== "email" && !validatePhone(value)) {
+	if (
+		!options.tip.notGiven &&
+		options.tip.type !== "email" &&
+		!validatePhone(value)
+	) {
 		options.errorReporter.report(
 			options.pointer,
 			"telefoneContato",

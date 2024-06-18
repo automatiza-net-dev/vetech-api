@@ -1208,13 +1208,15 @@ export default class PatientService {
 			);
 
 			await patient.related("contacts").createMany(
-				data.contacts?.map((inner) => ({
-					main: inner.main,
-					contact: inner.contact,
-					observation: inner.observation,
-					type: inner.type,
-					notGiven: inner.notGiven,
-				})) ?? [],
+				data.contacts
+					?.filter((f) => f.contact !== "-")
+					?.map((inner) => ({
+						main: inner.main,
+						contact: inner.contact,
+						observation: inner.observation,
+						type: inner.type,
+						notGiven: inner.notGiven,
+					})) ?? [],
 				{ client: trx },
 			);
 
@@ -1634,13 +1636,15 @@ export default class PatientService {
 				: tutor.photo;
 
 			await tutor.related("contacts").createMany(
-				data.contacts?.map((inner) => ({
-					main: inner.main,
-					contact: inner.contact,
-					observation: inner.observation,
-					type: inner.type,
-					notGiven: inner.notGiven,
-				})) ?? [],
+				data.contacts
+					?.filter((f) => f.contact !== "-")
+					?.map((inner) => ({
+						main: inner.main,
+						contact: inner.contact,
+						observation: inner.observation,
+						type: inner.type,
+						notGiven: inner.notGiven,
+					})) ?? [],
 				{ client: trx },
 			);
 

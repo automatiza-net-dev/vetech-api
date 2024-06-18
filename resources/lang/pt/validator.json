@@ -36,6 +36,8 @@
 		"required_if": "Campo é obrigatório quando { argument.0 } existir.",
 		"required_when": "Campo é obrigatório quando o valor de: { argument.0 } for igual a { argument.1 }",
 		"requiredWhen": "Campo obrigatório",
+		"telefoneContato": "Telefone inválido",
+		"emailContato": "Email inválido",
 		"required_with_all": "Campo é obrigatório quando todos: ({ argument }) estiverem presentes.",
 		"required_with_any": "Campo é obrigatório quando pelo menos destes: ({ argument }) estiver presente.",
 		"required_without_all": "Campo é obrigatório quando nenhum destes: ({ argument }) estiver presente.",

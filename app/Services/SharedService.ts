@@ -89,7 +89,7 @@ export default class SharedService {
 		try {
 			await fn();
 		} catch (e) {
-			console.log("got an error", e);
+			console.log("got an error", JSON.stringify(e, null, 2));
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,

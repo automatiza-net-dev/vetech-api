@@ -53,7 +53,9 @@ export default class CreateSanclaTutorForRegisterValidator {
 			schema.object().members({
 				main: schema.boolean(),
 				notGiven: schema.boolean(),
-				contact: schema.string.optional(),
+				contact: schema.string.optional({}, [
+					rules.requiredWhen("type", "=", "email"),
+				]),
 				observation: schema.string.optional(),
 				type: schema.enum(Object.values(PatientContactType)),
 			}),

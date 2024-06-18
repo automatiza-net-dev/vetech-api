@@ -49,7 +49,9 @@ export default class CreatePatientWithTutorValidator {
 			schema.object().members({
 				main: schema.boolean(),
 				notGiven: schema.boolean(),
-				contact: schema.string.optional(),
+				contact: schema.string.optional({ trim: true }, [
+					rules.requiredWhen("type", "=", "email"),
+				]),
 				observation: schema.string.optional(),
 				type: schema.enum(Object.values(PatientContactType)),
 			}),

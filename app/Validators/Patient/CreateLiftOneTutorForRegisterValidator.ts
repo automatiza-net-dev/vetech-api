@@ -50,8 +50,10 @@ export default class CreateLiftOneTutorForRegisterValidator {
 			schema.object().members({
 				main: schema.boolean(),
 				notGiven: schema.boolean(),
-				contact: schema.string.optional(),
 				observation: schema.string.optional(),
+				contact: schema.string.optional({}, [
+					rules.requiredWhen("type", "=", "email"),
+				]),
 				type: schema.enum(Object.values(PatientContactType)),
 			}),
 		),

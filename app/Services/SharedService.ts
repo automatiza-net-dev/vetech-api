@@ -79,6 +79,7 @@ export default class SharedService {
 		state: "Estado",
 		origin: "Origem",
 		clientOriginId: "Origem do Cliente",
+		contact: "Contato",
 	} as const;
 
 	public async errorHoc(

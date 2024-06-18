@@ -78,6 +78,7 @@ export default class SharedService {
 		city: "Cidade",
 		state: "Estado",
 		origin: "Origem",
+		clientOriginId: "Origem do Cliente",
 	} as const;
 
 	public async errorHoc(
@@ -97,14 +98,15 @@ export default class SharedService {
 					// @ts-expect-error
 					validationErrors: e.messages.errors.reduce(
 						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
+							const key = curr.field.replace(/\.([0-9]+)/g, "[$1]");
+							if (!prev[key]) {
+								prev[key] = { errors: [] };
 							}
 
-							prev[curr.field].errors.push(
+							prev[key].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SharedService.intlMap[curr.field] ?? curr.field}'`,
+									`Campo '${SharedService.intlMap[key.split(".").at(-1)] ?? key.split(".").at(-1)}'`,
 								),
 							);
 

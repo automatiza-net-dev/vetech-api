@@ -119,9 +119,9 @@ validator.rule("documento", (value, _, options) => {
 });
 
 validator.rule("emailContato", (value, _, options) => {
-	// console.log(value, options.tip);
+	// console.log("chamando emailContato", value, options.tip);
 
-	// if (options.tip.notGiven) {
+	// if (options.tip.notGiven && !value) {
 	// 	options.errorReporter.report(
 	// 		options.pointer,
 	// 		"required",
@@ -152,7 +152,7 @@ validator.rule("emailContato", (value, _, options) => {
 		options.errorReporter.report(
 			options.pointer,
 			"telefoneContato",
-			"Valor inválido",
+			"Telefone inválido",
 			options.arrayExpressionPointer,
 		);
 	}

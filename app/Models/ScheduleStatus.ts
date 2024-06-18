@@ -48,8 +48,8 @@ export const VALID_CHANGES = {
 	CIR: ["FIN", "INT", "OBS"],
 	INT: ["FIN", "OBS", "CIR"],
 	OBS: ["FIN", "CIR", "INT"],
-	ATR: ["ATEND", "CIR", "INT", "OBS", "CANC", "FAL"],
-	FAL: [],
+	ATR: ["REC", "ATEND", "CIR", "INT", "OBS", "CANC", "FAL"],
+	FAL: ["CANC"],
 	CANC: [],
 	FIN: [],
 } as const;

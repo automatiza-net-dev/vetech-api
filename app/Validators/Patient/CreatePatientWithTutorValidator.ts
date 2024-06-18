@@ -47,7 +47,7 @@ export default class CreatePatientWithTutorValidator {
 		]),
 		nationality: schema.string.optional({}, []),
 		civilStatus: schema.string.optional({}, []),
-		items: schema.array().members(
+		contacts: schema.array().members(
 			schema.object().members({
 				main: schema.boolean(),
 				notGiven: schema.boolean(),

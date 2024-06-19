@@ -754,7 +754,7 @@ export default class PatientService {
 			active: patient.active,
 			tag: patient.tag,
 			weight: patient.weight,
-			weight_date: patient.weightDate,
+			weightDate: patient.weightDate,
 			hypertension: patient.hypertension,
 			diabetes: patient.diabetes,
 			glycemia: patient.glycemia,
@@ -768,20 +768,20 @@ export default class PatientService {
 					0,
 				),
 			),
-			openAttendances: attendances.length > 0,
+			open_attendances: attendances.length > 0,
 		};
 
 		if (patient.patientAnimal) {
 			Object.assign(displayData, {
 				death: patient.patientAnimal.death,
-				death_date: patient.patientAnimal.deathDate,
+				deathDate: patient.patientAnimal.deathDate,
 				microchip: patient.patientAnimal.microchip,
 				castrated: patient.patientAnimal.castrated,
-				hair_id: patient.patientAnimal.hair_id ?? null,
+				hairId: patient.patientAnimal.hair_id ?? null,
 				hair: patient.patientAnimal.hair?.description ?? null,
-				race_id: patient.patientAnimal.race_id ?? null,
+				raceId: patient.patientAnimal.race_id ?? null,
 				race: patient.patientAnimal.race?.description ?? null,
-				specie_id: patient.patientAnimal.race?.specie?.id ?? null,
+				specieId: patient.patientAnimal.race?.specie?.id ?? null,
 				specie: patient.patientAnimal.race?.specie?.description ?? null,
 			});
 		}

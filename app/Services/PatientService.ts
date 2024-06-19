@@ -1,12 +1,11 @@
 import { inject } from "@adonisjs/fold";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
-import Logger from "@ioc:Adonis/Core/Logger";
+import Env from "@ioc:Adonis/Core/Env";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
@@ -727,7 +726,7 @@ export default class PatientService {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: patient.photo,
+			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE

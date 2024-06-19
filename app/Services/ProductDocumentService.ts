@@ -108,7 +108,7 @@ export default class ProductDocumentService {
                 join products p2 on product_variations.product_id = p2.id
                 join bill_items on product_variations.id = bill_items.product_variation_id
        where bill_items.bill_id = ?
-         and bill_items.deleted_at is null);`,
+         and bill_items.deleted_at is null)`,
 					[data.billId],
 				);
 

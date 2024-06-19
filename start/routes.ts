@@ -1769,8 +1769,11 @@ Route.get(
 	"FinancesController.dashboardCashierResume",
 ).middleware("auth");
 
-Route.resource("product-documents", "ProductDocumentsController")
-	.only(["index", "store", "destroy"])
-	.middleware({
-		"*": ["auth"],
-	});
+Route.group(() => {
+	Route.get("/", "ProductDocumentsController.index");
+	Route.post("/generate", "ProductDocumentsController.generateDocuments");
+	Route.post("/", "ProductDocumentsController.store");
+	Route.delete("/:id", "ProductDocumentsController.destroy");
+})
+	.prefix("product-documents")
+	.middleware("auth");

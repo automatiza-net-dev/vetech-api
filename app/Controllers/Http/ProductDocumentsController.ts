@@ -3,6 +3,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import ProductDocumentService from "App/Services/ProductDocumentService";
 import SharedService from "App/Services/SharedService";
 import CreateProductDocumentValidator from "App/Validators/ProductDocument/CreateProductDocumentValidator";
+import GenerateDocumentValidator from "App/Validators/ProductDocument/GenerateDocumentValidator";
 
 @inject()
 export default class ProductDocumentsController {
@@ -29,6 +30,21 @@ export default class ProductDocumentsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async generateDocuments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(GenerateDocumentValidator);
+
+		await this.service.generateDocuments(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
 	}
 
 	public async destroy({ request, response, auth }: HttpContextContract) {

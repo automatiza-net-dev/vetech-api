@@ -14,7 +14,7 @@ import System from "App/Models/System";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
-import { validate } from "App/Shared";
+import { validate, validateCPF } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
@@ -258,7 +258,7 @@ export default class SharedService {
 	}
 
 	public validDocument(document: string): boolean {
-		return validate(document.replace(/\D/g, ""));
+		return validateCPF(document.replace(/\D/g, ""));
 	}
 
 	public isValidNumber(data: number | undefined) {

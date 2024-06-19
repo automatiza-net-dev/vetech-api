@@ -1,5 +1,6 @@
 import { schema, type CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { PatientGender } from "App/Models/Patient";
 
 export default class CreateCrmPatientValidator {
 	constructor(protected ctx: HttpContextContract) {}

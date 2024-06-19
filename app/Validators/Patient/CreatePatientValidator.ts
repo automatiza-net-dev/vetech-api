@@ -16,10 +16,10 @@ export default class CreatePatientValidator {
 		birthDate: schema.date.optional({}),
 		birthMonths: schema.number.optional([]),
 		birthYears: schema.number.optional([]),
-		holderId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({ table: "patients", column: "id" }),
-		]),
+		// holderId: schema.string.optional({}, [
+		// 	rules.uuid(),
+		// 	rules.exists({ table: "patients", column: "id" }),
+		// ]),
 		raceId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "races", column: "id" }),
@@ -39,6 +39,15 @@ export default class CreatePatientValidator {
 		diabetes: schema.boolean.optional(),
 		glycemia: schema.number.optional(),
 		pressure: schema.string.optional(),
+		holders: schema.array().members(
+			schema.object().members({
+				id: schema.string({}, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+				main: schema.boolean(),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {};

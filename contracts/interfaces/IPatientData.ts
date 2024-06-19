@@ -6,7 +6,7 @@ export default interface IPatientData {
 	name: string;
 	active: boolean;
 
-	holderId?: string;
+	holders?: { id: string; main: boolean }[];
 	raceId?: string;
 	castrated?: boolean;
 	photo?: MultipartFileContract;

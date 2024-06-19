@@ -1056,23 +1056,25 @@ export default class PatientService {
 	): Promise<Patient> {
 		const group = await this.getEconomicGroup(unitId);
 
-		if (data.holderId) {
-			// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
-			if (!data.birthDate && !data.birthMonths && !data.birthYears) {
-				throw new BadRequestException(
-					"É preciso ou informar a data exata ou aproximada de nascimento",
-					400,
-					"E_ERR",
-				);
-			}
+		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
+		if (
+			!data.holders &&
+			!data.birthDate &&
+			!data.birthMonths &&
+			!data.birthYears
+		) {
+			throw new BadRequestException(
+				"É preciso ou informar a data exata ou aproximada de nascimento",
+				400,
+				"E_ERR",
+			);
 		}
 
-		const trx = await Database.transaction();
-
-		try {
+		return Database.transaction(async (trx) => {
 			const patients = await group
 				.related("patients")
 				.query()
+				.useTransaction(trx)
 				.where("type", PatientType.ANIMAL)
 				.select("id");
 
@@ -1106,16 +1108,25 @@ export default class PatientService {
 				},
 			);
 
-			if (data.holderId) {
-				const holder = await Patient.findOrFail(data.holderId, {
-					client: trx,
-				});
+			const tasks =
+				data.holders?.map(async (elem) => {
+					const holder = await Patient.findOrFail(elem.id, {
+						client: trx,
+					});
 
-				if (holder.type !== PatientType.TUTOR) {
-					throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
-				}
-				await holder.related("dependents").attach([patient.id], trx);
-			}
+					if (holder.type !== PatientType.TUTOR) {
+						throw new BadRequestException(
+							"Tutor inválido",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
+
+					await holder
+						.related("dependents")
+						.attach({ [patient.id]: { is_main: elem.main } }, trx);
+				}) ?? [];
+			await Promise.all(tasks);
 
 			await group.related("patients").attach([patient.id], trx);
 
@@ -1132,16 +1143,7 @@ export default class PatientService {
 			await trx.commit();
 
 			return patient;
-		} catch (e) {
-			Logger.error(e.message);
-			await trx.rollback();
-
-			throw new InternalErrorException(
-				"Erro na execução",
-				500,
-				"E_INTERNAL_ERROR",
-			);
-		}
+		});
 	}
 
 	public async storeTutor(
@@ -1439,6 +1441,29 @@ export default class PatientService {
 					.useTransaction(trx)
 					.save();
 			}
+
+			const tasks =
+				data.holders?.map(async (elem) => {
+					const holder = await Patient.findOrFail(elem.id, {
+						client: trx,
+					});
+
+					if (holder.type !== PatientType.TUTOR) {
+						throw new BadRequestException(
+							"Tutor inválido",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
+
+					await holder
+						.related("dependents")
+						.query()
+						.useTransaction(trx)
+						.where("dependent_id", patient.id)
+						.update({ is_main: elem.main });
+				}) ?? [];
+			await Promise.all(tasks);
 
 			return patient;
 		});

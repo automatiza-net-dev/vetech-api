@@ -32,8 +32,6 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 		document: schema.string({}, []),
 		birthDate: schema.date(),
 		gender: schema.enum(Object.values(PatientGender), []),
-		email: schema.string([rules.email()]),
-		cellphone: schema.string.optional(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

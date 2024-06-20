@@ -33,8 +33,6 @@ export default class CreateSanclaTutorForRegisterValidator {
 		birthDate: schema.date(),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
-		email: schema.string([rules.email()]),
-		cellphone: schema.string(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

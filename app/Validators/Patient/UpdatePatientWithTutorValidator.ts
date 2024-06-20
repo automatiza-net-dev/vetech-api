@@ -22,8 +22,6 @@ export default class UpdatePatientWithTutorValidator {
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
 		corporate_name: schema.string.optional({}, []),
-		email: schema.string.optional({}, [rules.email()]),
-		cellphone: schema.string.optional({}, []),
 		telephone: schema.string.optional({}, []),
 		message_person_name: schema.string.optional({}, []),
 		message_person_phone: schema.string.optional({}, []),

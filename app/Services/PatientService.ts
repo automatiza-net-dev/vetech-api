@@ -697,6 +697,7 @@ export default class PatientService {
 			.preload("tutors", (query) => {
 				query.preload("tutor").pivotColumns(["is_main"]);
 			})
+			.preload("contacts")
 			.preload("tutor")
 			.first();
 
@@ -814,7 +815,7 @@ export default class PatientService {
 			}
 
 			Object.assign(displayData, {
-				tutors: patient.tutors.map((elem) => ({
+				holders: patient.tutors.map((elem) => ({
 					id: elem.id,
 					name: elem.name,
 					cellphone: elem.tutor.cellphone ?? null,
@@ -828,18 +829,34 @@ export default class PatientService {
 
 		if (patient.tutor) {
 			Object.assign(displayData, {
+				document: patient.tutor?.document ?? null,
+				rg: patient.tutor?.document ?? null,
+				nationality: patient.tutor?.nationality ?? null,
+				clientOriginId: patient.tutor?.client_origin_id ?? null,
+				tags: patient.tags ?? null,
+				civilStatus: patient.tutor.civilStatus ?? null,
+				professionId: patient.tutor.profession_id ?? null,
 				cellphone: patient.tutor?.cellphone ?? null,
 				telephone: patient.tutor?.telephone ?? null,
 				email: patient.tutor?.email ?? null,
-				address: [
-					patient.tutor?.street,
-					patient.tutor?.number,
-					patient.tutor?.complement,
-					patient.tutor?.district,
-					`${patient.tutor?.city ?? "-"} - ${patient.tutor?.state ?? "-"}`,
-				]
-					.filter(Boolean)
-					.join(", "),
+				observation: "",
+				address: {
+					cep: patient.tutor.postalCode,
+					logradouro: patient.tutor.street,
+					complemento: patient.tutor.complement ?? null,
+					bairro: patient.tutor.district,
+					localidade: patient.tutor.city,
+					uf: patient.tutor.state,
+					zipCode: patient.tutor.postalCode,
+					number: patient.tutor.number,
+				},
+				contacts: patient.contacts.map((elem) => ({
+					contact: elem.contact,
+					main: elem.main,
+					notGiven: elem.notGiven,
+					observation: elem.observation,
+					type: elem.type,
+				})),
 			});
 		}
 

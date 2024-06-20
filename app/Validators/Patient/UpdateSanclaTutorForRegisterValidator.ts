@@ -2,6 +2,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { PatientGender } from "App/Models/Patient";
 import { PatientContactType } from "App/Models/PatientContact";
+import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class UpdateSanclaTutorForRegisterValidator {
 	constructor(protected ctx: HttpContextContract) {
@@ -47,6 +48,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),
+			residence: schema.enum(TutorResidences),
 		}),
 		origin: schema.string(),
 		contacts: schema.array().members(

@@ -7,7 +7,6 @@ export default interface IPatientTutorData {
 	name: string;
 	clientOriginId: string;
 	clientOriginItemDescription?: string;
-	residence?: (typeof TutorResidences)[number];
 	photo?: MultipartFileContract;
 	gender?: PatientGender;
 	tags?: string;
@@ -27,6 +26,7 @@ export default interface IPatientTutorData {
 		bairro?: string;
 		localidade?: string;
 		uf?: string;
+		residence?: (typeof TutorResidences)[number];
 	};
 	cityCode?: string;
 	diabetes?: boolean;

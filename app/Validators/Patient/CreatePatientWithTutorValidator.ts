@@ -11,7 +11,6 @@ export default class CreatePatientWithTutorValidator {
 		name: schema.string({}),
 
 		clientOriginItemDescription: schema.string.optional({}, []),
-		residence: schema.enum(TutorResidences),
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
@@ -34,6 +33,7 @@ export default class CreatePatientWithTutorValidator {
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),
+			residence: schema.enum(TutorResidences),
 		}),
 		clientOriginId: schema.string({}, [
 			rules.uuid(),

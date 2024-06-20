@@ -1362,7 +1362,7 @@ export default class PatientService {
 
 			await patient.related("tutor").create(
 				{
-					residence: data.residence,
+					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,
@@ -1833,7 +1833,7 @@ export default class PatientService {
 
 			await tutor.tutor
 				.merge({
-					residence: data.residence,
+					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,

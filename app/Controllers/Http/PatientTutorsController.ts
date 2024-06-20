@@ -14,7 +14,6 @@ import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatien
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class PatientTutorsController {

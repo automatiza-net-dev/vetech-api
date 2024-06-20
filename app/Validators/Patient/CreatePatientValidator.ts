@@ -7,6 +7,15 @@ export default class CreatePatientValidator {
 
 	public schema = schema.create({
 		name: schema.string({}),
+		holders: schema.array().members(
+			schema.object().members({
+				id: schema.string({}, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+				main: schema.boolean(),
+			}),
+		),
 
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
@@ -39,15 +48,6 @@ export default class CreatePatientValidator {
 		diabetes: schema.boolean.optional(),
 		glycemia: schema.number.optional(),
 		pressure: schema.string.optional(),
-		holders: schema.array().members(
-			schema.object().members({
-				id: schema.string({}, [
-					rules.uuid(),
-					rules.exists({ table: "patients", column: "id" }),
-				]),
-				main: schema.boolean(),
-			}),
-		),
 	});
 
 	public messages: CustomMessages = {};

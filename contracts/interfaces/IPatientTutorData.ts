@@ -23,12 +23,12 @@ export default interface IPatientTutorData {
 	message_person_phone?: string;
 	address?: {
 		zipCode?: string;
-		street?: string;
+		logradouro?: string;
 		number?: string;
-		complement?: string;
-		district?: string;
-		city?: string;
-		state?: string;
+		complemento?: string;
+		bairro?: string;
+		localidade?: string;
+		uf?: string;
 	};
 	cityCode?: string;
 	diabetes?: boolean;

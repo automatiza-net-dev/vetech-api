@@ -28,12 +28,12 @@ export default class CreatePatientWithTutorValidator {
 		message_person_phone: schema.string.optional({}, []),
 		address: schema.object().members({
 			zipCode: schema.string(),
-			street: schema.string(),
+			logradouro: schema.string(),
 			number: schema.string(),
-			complement: schema.string(),
-			district: schema.string(),
-			city: schema.string(),
-			state: schema.string(),
+			complemento: schema.string(),
+			bairro: schema.string(),
+			localidade: schema.string(),
+			uf: schema.string(),
 		}),
 		clientOriginId: schema.string({}, [
 			rules.uuid(),

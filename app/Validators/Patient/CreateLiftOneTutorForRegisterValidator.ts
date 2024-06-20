@@ -40,12 +40,12 @@ export default class CreateLiftOneTutorForRegisterValidator {
 		]),
 		address: schema.object().members({
 			zipCode: schema.string(),
-			street: schema.string(),
+			logradouro: schema.string(),
 			number: schema.string(),
-			complement: schema.string(),
-			district: schema.string(),
-			city: schema.string(),
-			state: schema.string(),
+			complemento: schema.string(),
+			bairro: schema.string(),
+			localidade: schema.string(),
+			uf: schema.string(),
 		}),
 		origin: schema.string(),
 		contacts: schema.array().members(

@@ -864,6 +864,85 @@ export default class PatientService {
 		return displayData;
 	}
 
+	public async tutorDisplay(
+		authCtx: AuthContext,
+		patientId: string,
+	): Promise<
+		Omit<IPatientTutorData, "photo" | "birthDate"> & {
+			photo: string;
+			birthDate: DateTime | null;
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		}
+	> {
+		const patient = await authCtx.group
+			.related("patients")
+			.query()
+			.where("patient_id", patientId)
+			.where("type", PatientType.TUTOR)
+			.preload("tutors", (query) => {
+				query.preload("tutor").pivotColumns(["is_main"]);
+			})
+			.preload("contacts")
+			.preload("tutor")
+			.first();
+
+		if (!patient) {
+			throw new ResourceNotFoundException(
+				"Paciente não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
+
+		return {
+			name: patient.name,
+			clientOriginId: patient.tutor.client_origin_id,
+			clientOriginItemDescription: patient.clientOriginItemDescription,
+			residence: patient.tutor.residence,
+			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
+			gender: patient.gender,
+			tags: patient.tags,
+			birthDate: patient.birthDate
+				? DateTime.fromJSDate(patient.birthDate)
+				: null,
+			active: patient.active,
+			document: patient.tutor.document,
+			inscription: patient.tutor.inscription,
+			corporate_name: patient.tutor.corporateName,
+			telephone: patient.tutor.telephone,
+			message_person_name: patient.tutor.messagePersonName,
+			message_person_phone: patient.tutor.messagePersonPhone,
+			address: {
+				zipCode: patient.tutor.postalCode,
+				logradouro: patient.tutor.street,
+				number: patient.tutor.number,
+				complemento: patient.tutor.complement,
+				bairro: patient.tutor.district,
+				localidade: patient.tutor.city,
+				uf: patient.tutor.state,
+			},
+			cityCode: patient.tutor.cityCode,
+			diabetes: patient.diabetes,
+			hypertension: patient.hypertension,
+			professionId: patient.tutor.profession_id,
+			nationality: patient.tutor.nationality,
+			civilStatus: patient.tutor.civilStatus,
+			contacts: patient.contacts.map((elem) => ({
+				contact: elem.contact,
+				main: elem.main,
+				notGiven: elem.notGiven,
+				observation: elem.observation,
+				type: elem.type,
+			})),
+		};
+	}
+
 	public async metadata(authCtx: AuthContext, patientId: string) {
 		const key = authCtx.system.name === "LiftOne" ? "client_id" : "patient_id";
 

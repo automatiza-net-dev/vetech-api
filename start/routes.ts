@@ -261,6 +261,7 @@ Route.group(() => {
 	Route.get("/", "PatientTutorsController.index");
 	Route.post("/", "PatientTutorsController.store");
 	Route.post("/assign", "PatientTutorsController.assign");
+	Route.get("/display/:id", "PatientTutorsController.display");
 	Route.get("/:id", "PatientTutorsController.show");
 	Route.put("/:id", "PatientTutorsController.update");
 })

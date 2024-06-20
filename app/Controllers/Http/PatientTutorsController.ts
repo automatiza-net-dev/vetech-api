@@ -61,6 +61,15 @@ export default class PatientTutorsController {
 		return response.ok(patients);
 	}
 
+	public async display({ auth, params, response }: HttpContextContract) {
+		const data = await this.service.tutorDisplay(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.ok(data);
+	}
+
 	public async store({ auth, request, response }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const authCtx = await this.sharedService.getAuthContext(auth);

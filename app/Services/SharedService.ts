@@ -83,6 +83,8 @@ export default class SharedService {
 		contact: "Contato",
 		residence: "Residência",
 		address: "Endereço",
+		birthDate: "Data de Nascimento",
+		contacts: "Contatos",
 	} as const;
 
 	public async errorHoc(

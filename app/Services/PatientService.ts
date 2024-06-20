@@ -812,6 +812,18 @@ export default class PatientService {
 						.join(", "),
 				});
 			}
+
+			Object.assign(displayData, {
+				tutors: patient.tutors.map((elem) => ({
+					id: elem.id,
+					name: elem.name,
+					cellphone: elem.tutor.cellphone ?? null,
+					telephone: elem.tutor.telephone ?? null,
+					email: elem.tutor.email ?? null,
+					document: elem.tutor.document ?? null,
+					main: elem.$extras.pivot_is_main,
+				})),
+			});
 		}
 
 		if (patient.tutor) {
@@ -1252,18 +1264,6 @@ export default class PatientService {
 			);
 
 			await authCtx.group.related("patients").attach([patient.id], trx);
-
-			if (data.cellphone) {
-				await patient.related("contacts").create(
-					{
-						main: true,
-						contact: data.cellphone,
-						observation: "Contato principal",
-						type: "celular",
-					},
-					{ client: trx },
-				);
-			}
 
 			return patient;
 		});

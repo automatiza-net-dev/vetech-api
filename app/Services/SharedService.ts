@@ -71,6 +71,7 @@ export default class SharedService {
 		cellphone: "Celular",
 		professionId: "Profissão",
 		postalCode: "CEP",
+		zipCode: "CEP",
 		street: "Rua",
 		number: "Numero",
 		complement: "Complemento",
@@ -81,6 +82,7 @@ export default class SharedService {
 		clientOriginId: "Origem do Cliente",
 		contact: "Contato",
 		residence: "Residência",
+		address: "Endereço",
 	} as const;
 
 	public async errorHoc(

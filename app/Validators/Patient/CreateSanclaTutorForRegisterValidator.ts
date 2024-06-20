@@ -42,7 +42,7 @@ export default class CreateSanclaTutorForRegisterValidator {
 			rules.exists({ table: "professions", column: "id" }),
 		]),
 		address: schema.object().members({
-			postalCode: schema.string(),
+			zipCode: schema.string(),
 			street: schema.string(),
 			number: schema.string(),
 			complement: schema.string(),

@@ -35,6 +35,7 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		address: schema.object().members({
 			zipCode: schema.string(),
 			logradouro: schema.string(),

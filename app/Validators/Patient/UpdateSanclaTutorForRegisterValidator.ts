@@ -35,6 +35,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		professionId: schema.number([
 			rules.exists({ table: "professions", column: "id" }),
 		]),

@@ -31,6 +31,7 @@ export default class UpdateSanclaTutorForGenericValidator {
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		origin: schema.string(),
 	});
 

@@ -34,6 +34,7 @@ import { HospitalizationStatus } from "../Models/Hospitalization";
 import Attendance from "App/Models/Attendance";
 import { intervalToDuration } from "date-fns";
 import { PatientContactType } from "App/Models/PatientContact";
+import PatientTutor from "App/Models/PatientTutor";
 
 interface ISearch {
 	name?: string;
@@ -1237,7 +1238,7 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			await patient.related("contacts").createMany(
+			const result = await patient.related("contacts").createMany(
 				data.contacts
 					?.filter((f) => f.contact !== "-")
 					?.map((inner) => ({
@@ -1249,6 +1250,36 @@ export default class PatientService {
 					})) ?? [],
 				{ client: trx },
 			);
+
+			const updateTasks = result.flat().map((elem) => {
+				if (elem.type === "celular") {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							cellphone: elem.contact,
+						});
+				}
+
+				if (elem.type === "email") {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							email: elem.contact,
+						});
+				}
+
+				if (["residencial", "comercial", "recado"].includes(elem.type)) {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							telephone: elem.contact,
+						});
+				}
+			});
+			await Promise.all(updateTasks);
 
 			await patient.related("tutor").create(
 				{
@@ -1676,7 +1707,7 @@ export default class PatientService {
 				? await this.uploadPhoto(data.photo)
 				: tutor.photo;
 
-			await tutor.related("contacts").createMany(
+			const result = await tutor.related("contacts").createMany(
 				data.contacts
 					?.filter((f) => f.contact !== "-")
 					?.map((inner) => ({
@@ -1688,6 +1719,36 @@ export default class PatientService {
 					})) ?? [],
 				{ client: trx },
 			);
+
+			const updateTasks = result.flat().map((elem) => {
+				if (elem.type === "celular") {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							cellphone: elem.contact,
+						});
+				}
+
+				if (elem.type === "email") {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							email: elem.contact,
+						});
+				}
+
+				if (["residencial", "comercial", "recado"].includes(elem.type)) {
+					return PatientTutor.query()
+						.where("patient_id", elem.patient_id)
+						.useTransaction(trx)
+						.update({
+							telephone: elem.contact,
+						});
+				}
+			});
+			await Promise.all(updateTasks);
 
 			await tutor.tutor
 				.merge({

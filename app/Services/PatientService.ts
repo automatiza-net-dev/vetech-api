@@ -905,7 +905,7 @@ export default class PatientService {
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
 			residence: patient.tutor.residence,
-			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
+			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`,
 			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate
@@ -1785,6 +1785,8 @@ export default class PatientService {
 			const photo = data.photo
 				? await this.uploadPhoto(data.photo)
 				: tutor.photo;
+
+			await tutor.related("contacts").query().useTransaction(trx).delete();
 
 			const result = await tutor.related("contacts").createMany(
 				data.contacts

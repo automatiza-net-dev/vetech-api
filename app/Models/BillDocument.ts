@@ -19,8 +19,8 @@ export default class BillDocument extends BaseModel {
 	@column({})
 	public active: true;
 
-	@column.dateTime({})
-	public pritedAt: DateTime;
+	@column.dateTime({ columnName: "printed_at" })
+	public printedAt: DateTime;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

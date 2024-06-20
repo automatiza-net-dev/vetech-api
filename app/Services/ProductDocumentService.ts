@@ -163,6 +163,34 @@ export default class ProductDocumentService {
 		});
 	}
 
+	public async printDocument(
+		authCtx: AuthContext,
+		data: { billDocumentId: number },
+	) {
+		return Database.transaction(async (trx) => {
+			const elem = await BillDocument.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("id", data.billDocumentId)
+				.first();
+			if (!elem) {
+				throw this.shared.ResourceNotFound();
+			}
+
+			await elem
+				.merge({ printedAt: DateTime.now(), print_user_id: authCtx.user.id })
+				.useTransaction(trx)
+				.save();
+
+			await AnimalTimeline.findByIdAndUpdate(elem.timelineRef, {
+				$set: {
+					"timeline_info.print.user_id": authCtx.user.id,
+					"timeline_info.print.date": new Date(),
+				},
+			});
+		});
+	}
+
 	public async destroy(authCtx: AuthContext, id: string) {
 		const elem = await ProductDocument.query()
 			.where("system_id", authCtx.system.id)

@@ -4,6 +4,7 @@ import ProductDocumentService from "App/Services/ProductDocumentService";
 import SharedService from "App/Services/SharedService";
 import CreateProductDocumentValidator from "App/Validators/ProductDocument/CreateProductDocumentValidator";
 import GenerateDocumentValidator from "App/Validators/ProductDocument/GenerateDocumentValidator";
+import PrintDocumentValidator from "App/Validators/ProductDocument/PrintDocumentValidator";
 
 @inject()
 export default class ProductDocumentsController {
@@ -45,6 +46,17 @@ export default class ProductDocumentsController {
 		);
 
 		return response.created();
+	}
+
+	public async printDocument({ request, response, auth }: HttpContextContract) {
+		const payload = await request.validate(PrintDocumentValidator);
+
+		await this.service.printDocument(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.ok(null);
 	}
 
 	public async destroy({ request, response, auth }: HttpContextContract) {

@@ -1772,6 +1772,7 @@ Route.get(
 Route.group(() => {
 	Route.get("/", "ProductDocumentsController.index");
 	Route.post("/generate", "ProductDocumentsController.generateDocuments");
+	Route.post("/print", "ProductDocumentsController.printDocument");
 	Route.post("/", "ProductDocumentsController.store");
 	Route.delete("/:id", "ProductDocumentsController.destroy");
 })

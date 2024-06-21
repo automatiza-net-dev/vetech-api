@@ -10,6 +10,10 @@ import Receipt from "App/Models/Receipt";
 import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
+import {
+	OpportunityActivityStatus,
+	TOpportunityActivityStatus,
+} from "App/Models/OpportunityActivity";
 
 @inject()
 export default class ReportService {
@@ -2141,6 +2145,225 @@ ON bills.patient_id = Dep."id"`,
 				data.toContact,
 			]);
 		}
+
+		return qb;
+	}
+
+	public crmOpportunities_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			user?: string;
+			status?: string;
+			balance?: string[];
+
+			fromOpening?: string;
+			toOpening?: string;
+			fromContact?: string;
+			toContact?: string;
+			// fromDate?: string; // /search-kanban
+			// toDate?: string; // /search-kanban
+		},
+	) {
+		const qb = Database.from("opportunities")
+			.select(
+				Database.raw(`contato.name                                 as nome_contato,
+       patient_contacts.contact                     as celular,
+       patients.name                                as nome_cliente,
+       client_origins.description                   as origem_cliente,
+       opportunities.client_origin_item_description as campanha_midia,
+       opportunities.contact_date                   as data_contato,
+       opportunities.opening_date                   as data_abertura,
+       opportunities.created_at                     as data_lancamento,
+       opportunities.description                    as titulo_oportunidade,
+       crm_statuses.description                     as status,
+       contact_subjects.description                 as assunto_contato,
+       contact_types.description                    as tipo_contato,
+       coalesce(opportunities.balance, 'Aberta')    as situacao`),
+			)
+			.joinRaw(
+				`join (patients contato left join patient_contacts
+               on contato.id = patient_contacts.patient_id and patient_contacts."type" = 'celular')
+              on opportunities.contact_id = contato.id`,
+			)
+			.joinRaw("left join patients on opportunities.client_id = patients.id")
+			.joinRaw(
+				"left join client_origins on opportunities.client_origin_id = client_origins.id",
+			)
+			.joinRaw(
+				"left join crm_statuses on crm_statuses.id = opportunities.status_id",
+			)
+			.joinRaw(
+				"left join contact_subjects on opportunities.contact_subject_id = contact_subjects.id",
+			)
+			.joinRaw(
+				"left join contact_types on opportunities.contact_type_id = contact_types.id",
+			)
+			.where("opportunities.economic_group_id", authCtx.group.id)
+			.whereNull("opportunities.deleted_at");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.user) {
+			qb.where("opportunities.user_id", data.user);
+		}
+
+		if (data.status) {
+			qb.where("opportunities.status_id", data.status);
+		}
+
+		if (data.balance && Array.isArray(data.balance)) {
+			qb.whereRaw("opportunities.balance ~* ?", [
+				data.balance.map((d) => d.toLowerCase()).join("|"),
+			]);
+		}
+
+		if (data.fromOpening && data.toOpening) {
+			qb.andWhereRaw("opportunities.opening_date::date between ? and ?", [
+				data.fromOpening,
+				data.toOpening,
+			]);
+		}
+
+		if (data.fromContact && data.toContact) {
+			qb.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromContact,
+				data.toContact,
+			]);
+		}
+
+		// if (data.fromDate && data.toDate) {
+		// 	qb.whereRaw(
+		// 		`(
+		//   (opportunities.opening_date::date between ? and ?)
+		//       or (opportunities.id in (select distinct opportunity_id
+		//                                from schedules
+		//                                         left join (schedule_status_changes join schedule_statuses
+		//                                                    on schedule_status_changes.schedule_status_id =
+		//                                                       schedule_statuses.id and schedule_statuses.type in ('REC'))
+		//                                                   on schedules.id = schedule_status_changes.schedule_id
+		//                                where schedules.opportunity_id = opportunities.id
+		//                                  and (schedules.start_hour::date between ? and ?
+		//                                    or
+		//                                       schedule_status_changes.created_at::date between ? and ?)))
+		//                             or (opportunities.id in (select distinct opportunity_id
+		//                            from opportunity_logs ol
+		//                                     join crm_statuses cs on ol.status_id = cs.id and cs.tag = 'A'
+		//                            where ol.created_at::date between ? and ?)
+		//          )
+		//     )`,
+		// 		[
+		// 			data.fromDate,
+		// 			data.toDate,
+		// 			data.fromDate,
+		// 			data.toDate,
+		// 			data.fromDate,
+		// 			data.toDate,
+		// 			data.fromDate,
+		// 			data.toDate,
+		// 		],
+		// 	);
+		// }
+
+		return qb;
+	}
+
+	public crmActivies(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			activity?: string;
+			user?: string;
+			status?: string;
+
+			fromIssue?: string;
+			toIssue?: string;
+			fromExecution?: string;
+			toExecution?: string;
+		},
+	) {
+		const qb = Database.from("opportunities")
+			.select(
+				Database.raw(`contato.name                         as nome_contato,
+       pc.contact                           as celular,
+       patients.name                        as nome_cliente,
+       opportunities.contact_date           as data_contato,
+       opportunities.opening_date           as data_abertura,
+       opportunities.description            as titulo_pportunidade,
+       activities.description               as atividade,
+       ou."name"                            as usuario_abertura,
+       opportunity_activities.issue_date    as data_lancamento,
+       execution_date                       as data_agendamento,
+       eu.name                              as usuario_execucao,
+       opportunity_activities.executed_date as data_execucao,
+       opportunity_activities.status,
+       opportunity_activities.observation   as anotacoes,
+       result_observation                   as observacoes_execucao`),
+			)
+			.joinRaw(`join (patients contato left join patient_contacts pc on contato.id = pc.patient_id and pc."type" = 'celular')
+              on opportunities.contact_id = contato.id`)
+			.joinRaw("left join patients on opportunities.client_id = patients.id")
+
+			.joinRaw(
+				"left join opportunity_activities on opportunities.id = opportunity_activities.opportunity_id",
+			)
+			.joinRaw(
+				"join activities on opportunity_activities.activity_id = activities.id",
+			)
+			.joinRaw(
+				"join users ou on opportunity_activities.opening_user_id = ou.id",
+			)
+			.joinRaw(
+				"left join users eu on opportunity_activities.execution_user_id = eu.id",
+			)
+			.orderByRaw(
+				"opportunity_activities.created_at, opportunity_activities.execution_date, opportunity_activities.executed_date",
+			)
+			.where("opportunities.economic_group_id", authCtx.group.id)
+			.whereNull("opportunities.deleted_at")
+			.whereNull("opportunity_activities.deleted_at")
+			.whereNot(
+				"opportunity_activities.status",
+				"Excluida" as TOpportunityActivityStatus,
+			);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.user) {
+			qb.where("opportunity_activities.user_id", data.user);
+		}
+
+		if (data.activity) {
+			qb.where("opportunity_activities.activity_id", data.activity);
+		}
+
+		if (data.status) {
+			qb.where("opportunity_activities.status", data.status);
+		}
+
+		if (data.fromIssue && data.toIssue) {
+			qb.andWhereRaw(
+				"opportunity_activities.issue_date::date between ? and ?",
+				[data.fromIssue, data.toIssue],
+			);
+		}
+
+		if (data.fromExecution && data.toExecution) {
+			qb.andWhereRaw(
+				"opportunity_activities.execution_date::date between ? and ?",
+				[data.fromExecution, data.toExecution],
+			);
+		}
+
+		console.log(qb.toQuery());
 
 		return qb;
 	}

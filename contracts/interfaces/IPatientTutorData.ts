@@ -27,8 +27,8 @@ export default interface IPatientTutorData {
 		localidade?: string;
 		uf?: string;
 		residence?: (typeof TutorResidences)[number];
+		ibge?: string;
 	};
-	cityCode?: string;
 	diabetes?: boolean;
 	hypertension?: boolean;
 	professionId?: number;

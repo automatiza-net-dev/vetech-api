@@ -34,12 +34,12 @@ export default class CreatePatientWithTutorValidator {
 			localidade: schema.string(),
 			uf: schema.string(),
 			residence: schema.enum(TutorResidences),
+			ibge: schema.string.optional({}),
 		}),
 		clientOriginId: schema.string({}, [
 			rules.uuid(),
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
-		cityCode: schema.string.optional({}),
 		hypertension: schema.boolean.optional(),
 		diabetes: schema.boolean.optional(),
 		professionId: schema.number.optional([

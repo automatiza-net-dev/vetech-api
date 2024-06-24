@@ -46,6 +46,7 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 			localidade: schema.string(),
 			uf: schema.string(),
 			residence: schema.enum(TutorResidences),
+			ibge: schema.string.optional(),
 		}),
 		origin: schema.string(),
 		contacts: schema.array().members(

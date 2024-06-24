@@ -1319,7 +1319,7 @@ export default class PatientService {
 
 			const result = await patient.related("contacts").createMany(
 				data.contacts
-					?.filter((f) => f.contact !== "-")
+					?.filter((f) => !!f.contact)
 					?.map((inner) => ({
 						main: inner.main,
 						contact: inner.contact,
@@ -1801,34 +1801,37 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			const updateTasks = result.flat().map((elem) => {
-				if (elem.type === "celular") {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							cellphone: elem.contact,
-						});
-				}
+			const updateTasks = result
+				.flat()
+				.filter((e) => !!e.contact)
+				.map((elem) => {
+					if (elem.type === "celular") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								cellphone: elem.contact,
+							});
+					}
 
-				if (elem.type === "email") {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							email: elem.contact,
-						});
-				}
+					if (elem.type === "email") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								email: elem.contact,
+							});
+					}
 
-				if (["residencial", "comercial", "recado"].includes(elem.type)) {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							telephone: elem.contact,
-						});
-				}
-			});
+					if (["residencial", "comercial", "recado"].includes(elem.type)) {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								telephone: elem.contact,
+							});
+					}
+				});
 			await Promise.all(updateTasks);
 
 			await tutor.tutor

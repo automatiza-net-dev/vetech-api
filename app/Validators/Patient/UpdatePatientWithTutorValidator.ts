@@ -16,7 +16,15 @@ export default class UpdatePatientWithTutorValidator {
 		}),
 		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
-		birthDate: schema.date({}),
+		birthDate: schema.date.optional(),
+		birthMonths:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
+		birthYears:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
 		active: schema.boolean([]),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),

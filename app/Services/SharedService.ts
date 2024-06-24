@@ -14,7 +14,7 @@ import System from "App/Models/System";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
-import { validate, validateCPF } from "App/Shared";
+import { validateCPF } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
@@ -85,6 +85,8 @@ export default class SharedService {
 		address: "Endereço",
 		birthDate: "Data de Nascimento",
 		contacts: "Contatos",
+		birthMonths: "Meses",
+		birthYears: "Anos",
 	} as const;
 
 	public async errorHoc(
@@ -94,7 +96,8 @@ export default class SharedService {
 		try {
 			await fn();
 		} catch (e) {
-			console.log("got an error", JSON.stringify(e, null, 2));
+			// console.log("got an error", e);
+			// console.log("got an error", JSON.stringify(e, null, 2));
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,

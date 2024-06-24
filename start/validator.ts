@@ -119,7 +119,7 @@ validator.rule("documento", (value, _, options) => {
 });
 
 validator.rule("emailContato", (value, _, options) => {
-	console.log("chamando emailContato", value, options.tip);
+	// console.log("chamando emailContato", value, options.tip);
 
 	if (
 		!options.tip.notGiven &&

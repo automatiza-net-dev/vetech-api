@@ -128,8 +128,6 @@ export default class PatientTutorsController {
 				data = await ctx.request.validate(CreatePatientWithTutorValidator);
 			}
 
-			console.log(data);
-
 			const patient = await this.service.storeTutor(
 				await this.sharedService.getAuthContext(ctx.auth),
 				data,

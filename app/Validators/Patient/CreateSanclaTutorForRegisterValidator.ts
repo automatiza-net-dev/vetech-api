@@ -5,9 +5,7 @@ import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class CreateSanclaTutorForRegisterValidator {
-	constructor(protected ctx: HttpContextContract) {
-		console.log("sancla for register");
-	}
+	constructor(protected ctx: HttpContextContract) {}
 
 	/*
 	 * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
@@ -31,7 +29,15 @@ export default class CreateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
-		birthDate: schema.date(),
+		birthDate: schema.date.optional({}),
+		birthMonths:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
+		birthYears:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([

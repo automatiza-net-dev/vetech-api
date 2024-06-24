@@ -31,7 +31,15 @@ export default class UpdateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
-		birthDate: schema.date(),
+		birthDate: schema.date.optional(),
+		birthMonths:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
+		birthYears:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),

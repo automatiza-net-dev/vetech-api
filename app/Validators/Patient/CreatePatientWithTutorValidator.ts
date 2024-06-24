@@ -17,6 +17,14 @@ export default class CreatePatientWithTutorValidator {
 		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date.optional({}),
+		birthMonths:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
+		birthYears:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
 		document: schema.string.optional({}, []),
 		inscription: schema.string.optional({}, []),
 		corporate_name: schema.string.optional({}, []),

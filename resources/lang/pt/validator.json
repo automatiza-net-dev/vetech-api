@@ -13,6 +13,7 @@
 		"confirmed": "Campo não foi confirmado corretamente.",
 		"date": "Campo deve ser uma data válida",
 		"date_format": "Campo deve ser uma data válida conforme o formato  { argument.0 }.",
+		"date.format": "Campo deve ser uma data válida",
 		"different": "Campo e { argument.0 } devem ser diferentes.",
 		"email": "Campo deve ser um e-mail válido.",
 		"ends_with": "Campo deve terminar com ({ argument }).",

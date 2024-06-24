@@ -66,7 +66,6 @@ export default class HospitalizationsController {
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		console.log("here");
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(CreateHospitalizationValidator);
 			const authCtx = await this.sharedService.getAuthContext(auth);

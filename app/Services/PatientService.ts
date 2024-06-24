@@ -1322,7 +1322,7 @@ export default class PatientService {
 					?.filter((f) => !!f.contact)
 					?.map((inner) => ({
 						main: inner.main,
-						contact: inner.contact,
+						contact: inner.contact === "-" ? undefined : inner.contact,
 						observation: inner.observation,
 						type: inner.type,
 						notGiven: inner.notGiven,
@@ -1330,34 +1330,37 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			const updateTasks = result.flat().map((elem) => {
-				if (elem.type === "celular") {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							cellphone: elem.contact,
-						});
-				}
+			const updateTasks = result
+				.flat()
+				.filter((f) => typeof f.contact !== "undefined")
+				.map((elem) => {
+					if (elem.type === "celular") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								cellphone: elem.contact,
+							});
+					}
 
-				if (elem.type === "email") {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							email: elem.contact,
-						});
-				}
+					if (elem.type === "email") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								email: elem.contact,
+							});
+					}
 
-				if (["residencial", "comercial", "recado"].includes(elem.type)) {
-					return PatientTutor.query()
-						.where("patient_id", elem.patient_id)
-						.useTransaction(trx)
-						.update({
-							telephone: elem.contact,
-						});
-				}
-			});
+					if (["residencial", "comercial", "recado"].includes(elem.type)) {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								telephone: elem.contact,
+							});
+					}
+				});
 			await Promise.all(updateTasks);
 
 			await patient.related("tutor").create(
@@ -1785,15 +1788,14 @@ export default class PatientService {
 			const photo = data.photo
 				? await this.uploadPhoto(data.photo)
 				: tutor.photo;
-
 			await tutor.related("contacts").query().useTransaction(trx).delete();
 
 			const result = await tutor.related("contacts").createMany(
 				data.contacts
-					?.filter((f) => f.contact !== "-")
+					?.filter((f) => typeof f.contact !== "undefined")
 					?.map((inner) => ({
 						main: inner.main,
-						contact: inner.contact,
+						contact: inner.contact === "-" ? undefined : inner.contact,
 						observation: inner.observation,
 						type: inner.type,
 						notGiven: inner.notGiven,

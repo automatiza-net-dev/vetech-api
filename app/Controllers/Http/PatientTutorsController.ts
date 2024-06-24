@@ -1,7 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PatientService from "App/Services/PatientService";
-import SharedService from "App/Services/SharedService";
+import SharedService, {} from "App/Services/SharedService";
 import AssignPatientTutorValidator from "App/Validators/Patient/AssignPatientTutorValidator";
 import CreateLiftOneTutorForGenericValidator from "App/Validators/Patient/CreateLiftOneTutorForGenericValidator";
 import CreateLiftOneTutorForRegisterValidator from "App/Validators/Patient/CreateLiftOneTutorForRegisterValidator";
@@ -70,43 +70,72 @@ export default class PatientTutorsController {
 		return response.ok(data);
 	}
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const authCtx = await this.sharedService.getAuthContext(auth);
+	public async store(ctx: HttpContextContract) {
+		return this.sharedService.errorHoc(ctx.response, async () => {
+			const authCtx = await this.sharedService.getAuthContext(ctx.auth);
 
-			const origin = request.input("origin", "");
+			const syncedBody = Object.assign({}, ctx.request.body(), {
+				contacts: ctx.request
+					.body()
+					?.contacts?.map((c: Record<string, unknown>) => {
+						c.main = typeof c.main === "string" ? c.main === "true" : c.main;
+						c.notGiven =
+							typeof c.notGiven === "string"
+								? c.notGiven === "true"
+								: c.notGiven;
+
+						if (!c.contact) {
+							c.contact = "-";
+						}
+
+						return c;
+					}),
+			});
+			ctx.request.updateBody(syncedBody);
+
+			const origin = ctx.request.input("origin", "");
 			let data: Omit<IPatientTutorData, "active"> | null = null;
 
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await request.validate(CreateSanclaTutorForRegisterValidator);
+					data = await ctx.request.validate(
+						CreateSanclaTutorForRegisterValidator,
+					);
 				}
 
 				if (authCtx.system.name === "LiftOne") {
-					data = await request.validate(CreateLiftOneTutorForRegisterValidator);
+					data = await ctx.request.validate(
+						CreateLiftOneTutorForRegisterValidator,
+					);
 				}
 			}
 
 			if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await request.validate(CreateSanclaTutorForGenericValidator);
+					data = await ctx.request.validate(
+						CreateSanclaTutorForGenericValidator,
+					);
 				}
 
 				if (authCtx.system.name === "LiftOne") {
-					data = await request.validate(CreateLiftOneTutorForGenericValidator);
+					data = await ctx.request.validate(
+						CreateLiftOneTutorForGenericValidator,
+					);
 				}
 			}
 
 			if (!data) {
-				data = await request.validate(CreatePatientWithTutorValidator);
+				data = await ctx.request.validate(CreatePatientWithTutorValidator);
 			}
 
+			console.log(data);
+
 			const patient = await this.service.storeTutor(
-				await this.sharedService.getAuthContext(auth),
+				await this.sharedService.getAuthContext(ctx.auth),
 				data,
 			);
 
-			return response.created(patient);
+			return ctx.response.created(patient);
 		});
 	}
 
@@ -129,6 +158,21 @@ export default class PatientTutorsController {
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const authCtx = await this.sharedService.getAuthContext(auth);
+
+			const syncedBody = Object.assign({}, request.body(), {
+				contacts: request.body()?.["contacts"]?.map((c) => {
+					c.main = typeof c.main === "string" ? c.main === "true" : c.main;
+					c.notGiven =
+						typeof c.notGiven === "string" ? c.notGiven === "true" : c.notGiven;
+
+					if (!c.contact) {
+						c.contact = "-";
+					}
+
+					return c;
+				}),
+			});
+			request.updateBody(syncedBody);
 
 			const origin = request.input("origin");
 

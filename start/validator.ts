@@ -119,21 +119,12 @@ validator.rule("documento", (value, _, options) => {
 });
 
 validator.rule("emailContato", (value, _, options) => {
-	// console.log("chamando emailContato", value, options.tip);
-
-	// if (options.tip.notGiven && !value) {
-	// 	options.errorReporter.report(
-	// 		options.pointer,
-	// 		"required",
-	// 		"Campo obrigatório",
-	// 		options.arrayExpressionPointer,
-	// 	);
-	// }
+	console.log("chamando emailContato", value, options.tip);
 
 	if (
 		!options.tip.notGiven &&
 		options.tip.type === "email" &&
-		!isValidEmail(value)
+		(value === "-" || !isValidEmail(value))
 	) {
 		options.errorReporter.report(
 			options.pointer,

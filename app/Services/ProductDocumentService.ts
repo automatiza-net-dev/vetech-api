@@ -211,30 +211,42 @@ export default class ProductDocumentService {
 
 	public async printDocument(
 		authCtx: AuthContext,
-		data: { billDocumentId: number },
+		data: { billDocumentId?: number; timelineId?: string },
 	) {
 		return Database.transaction(async (trx) => {
-			const elem = await BillDocument.query()
-				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
-				.where("id", data.billDocumentId)
-				.first();
-			if (!elem) {
-				throw this.shared.ResourceNotFound();
+			if (data.timelineId) {
+				await AnimalTimeline.findByIdAndUpdate(data.timelineId, {
+					$set: {
+						"timeline_info.print.user_id": authCtx.user.id,
+						"timeline_info.print.user_name": authCtx.user.name,
+						"timeline_info.print.date": new Date(),
+					},
+				});
 			}
 
-			await elem
-				.merge({ printedAt: DateTime.now(), print_user_id: authCtx.user.id })
-				.useTransaction(trx)
-				.save();
+			if (data.billDocumentId) {
+				const elem = await BillDocument.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("id", data.billDocumentId)
+					.first();
+				if (!elem) {
+					throw this.shared.ResourceNotFound();
+				}
 
-			await AnimalTimeline.findByIdAndUpdate(elem.timelineRef, {
-				$set: {
-					"timeline_info.print.user_id": authCtx.user.id,
-					"timeline_info.print.user_name": authCtx.user.name,
-					"timeline_info.print.date": new Date(),
-				},
-			});
+				await elem
+					.merge({ printedAt: DateTime.now(), print_user_id: authCtx.user.id })
+					.useTransaction(trx)
+					.save();
+
+				await AnimalTimeline.findByIdAndUpdate(elem.timelineRef, {
+					$set: {
+						"timeline_info.print.user_id": authCtx.user.id,
+						"timeline_info.print.user_name": authCtx.user.name,
+						"timeline_info.print.date": new Date(),
+					},
+				});
+			}
 		});
 	}
 

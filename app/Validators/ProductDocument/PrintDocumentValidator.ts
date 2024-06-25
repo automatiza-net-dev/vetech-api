@@ -24,9 +24,10 @@ export default class PrintDocumentValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		billDocumentId: schema.number([
+		billDocumentId: schema.number.optional([
 			rules.exists({ table: "bill_documents", column: "id" }),
 		]),
+		timelineId: schema.string.optional([]),
 	});
 
 	/**

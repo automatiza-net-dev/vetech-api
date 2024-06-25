@@ -1776,6 +1776,7 @@ Route.get(
 ).middleware("auth");
 
 Route.group(() => {
+	Route.get("/documents/:bill", "ProductDocumentsController.documentsFromBill");
 	Route.get("/", "ProductDocumentsController.index");
 	Route.post("/generate", "ProductDocumentsController.generateDocuments");
 	Route.post("/print", "ProductDocumentsController.printDocument");

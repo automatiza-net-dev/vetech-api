@@ -9,6 +9,7 @@ import ProductDocument, {
 import TimelineType from "App/Models/TimelineType";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
+import { validate } from "uuid";
 
 @inject()
 export default class ProductDocumentService {
@@ -55,6 +56,36 @@ export default class ProductDocumentService {
 			type: elem.type,
 			active: elem.active,
 			origin: elem.origin,
+		}));
+	}
+
+	public async documentsFromBill(authCtx: AuthContext, billId: string) {
+		if (!validate(billId)) {
+			throw new BadRequestException("ID da venda inválido");
+		}
+
+		const qb = BillDocument.query()
+			.preload("generationUser")
+			.preload("printUser")
+			.preload("documentTemplate")
+			.where("economic_group_id", authCtx.group.id)
+			.where("bill_id", billId)
+			.whereHas("generationUser", (qb) => {
+				qb.whereNull("deleted_at");
+			})
+			.whereHas("documentTemplate", (qb) => {
+				qb.whereNull("deleted_at");
+			});
+
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			description: elem.documentTemplate.description,
+			generationUser: elem.generationUser.name,
+			printUser: elem.printUser?.name ?? null,
+			printedAt: elem.printedAt,
+			createdAt: elem.createdAt,
 		}));
 	}
 

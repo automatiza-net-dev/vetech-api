@@ -22,6 +22,19 @@ export default class ProductDocumentsController {
 		return response.ok(result);
 	}
 
+	public async documentsFromBill({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const result = await this.service.documentsFromBill(
+			await this.sharedService.getAuthContext(auth),
+			request.param("bill", "invalid"),
+		);
+
+		return response.ok(result);
+	}
+
 	public async store({ request, response, auth }: HttpContextContract) {
 		const payload = await request.validate(CreateProductDocumentValidator);
 

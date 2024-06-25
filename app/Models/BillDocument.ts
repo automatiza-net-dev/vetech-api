@@ -3,9 +3,13 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
+	BelongsTo,
+	belongsTo,
 	column,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import User from "App/Models/User";
+import DocumentTemplate from "App/Models/DocumentTemplate";
 
 export default class BillDocument extends BaseModel {
 	@column({ isPrimary: true })
@@ -63,18 +67,38 @@ export default class BillDocument extends BaseModel {
 	})
 	public document_template_id: string;
 
+	@belongsTo(() => DocumentTemplate, {
+		foreignKey: "document_template_id",
+	})
+	public documentTemplate: BelongsTo<typeof DocumentTemplate>;
+
 	@column({
 		serializeAs: null,
 	})
 	public generation_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "generation_user_id",
+	})
+	public generationUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,
 	})
 	public print_user_id: string;
 
+	@belongsTo(() => User, {
+		foreignKey: "print_user_id",
+	})
+	public printUser: BelongsTo<typeof User>;
+
 	@column({
 		serializeAs: null,
 	})
 	public exclusion_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "exclusion_user_id",
+	})
+	public exclusionUser: BelongsTo<typeof User>;
 }

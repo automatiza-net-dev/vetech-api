@@ -97,7 +97,7 @@ export default class ProductDocumentService {
 					"join document_templates on document_templates.id = product_documents.document_template_id",
 				)
 				.joinRaw("join products on products.id = product_documents.product_id")
-				.where("system_id", authCtx.system.id)
+				.where("product_documents.system_id", authCtx.system.id)
 				.whereRaw(
 					`(product_documents.economic_group_id is null or
        product_documents.economic_group_id = ?)`,

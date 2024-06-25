@@ -139,8 +139,17 @@ export default class DreService {
 
 		const fileKey = `${v4()}.xlsx`;
 		const fullPath = `${Application.tmpPath()}/${fileKey}`;
-
 		await XLSX.writeFile(workbook, fullPath, { compression: true });
+		// const stream = fs.createReadStream(fullPath, {});
+
+		// esperar 10 segundos e tentar deletar
+		setTimeout(() => {
+			try {
+				fs.unlinkSync(fullPath);
+			} catch (_e) {
+				//
+			}
+		}, 10_000);
 
 		return fullPath;
 	}

@@ -120,7 +120,7 @@ export default class ProductDocumentService {
 			const elems = await Database.from("product_documents")
 				.select(
 					Database.raw(
-						"product_documents.document_template_id, document_templates.description, document_templates.template",
+						"distinct product_documents.document_template_id, document_templates.description, document_templates.template",
 					),
 				)
 				.useTransaction(trx)

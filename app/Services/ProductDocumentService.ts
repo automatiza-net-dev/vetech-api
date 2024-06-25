@@ -231,6 +231,7 @@ export default class ProductDocumentService {
 			await AnimalTimeline.findByIdAndUpdate(elem.timelineRef, {
 				$set: {
 					"timeline_info.print.user_id": authCtx.user.id,
+					"timeline_info.print.user_name": authCtx.user.name,
 					"timeline_info.print.date": new Date(),
 				},
 			});

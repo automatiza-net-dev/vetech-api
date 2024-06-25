@@ -15,6 +15,6 @@ export default class DreController {
 			await this.sharedService.getAuthContext(auth),
 		);
 
-		return response.ok(result);
+		return response.download(result);
 	}
 }

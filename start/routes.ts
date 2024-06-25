@@ -1785,3 +1785,9 @@ Route.group(() => {
 })
 	.prefix("product-documents")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/spreadsheet", "DreController.generateDreSpreadsheet");
+})
+	.prefix("dre")
+	.middleware("auth");

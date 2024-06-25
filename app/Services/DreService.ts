@@ -4,7 +4,7 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import * as XLSX from "xlsx";
 import * as fs from "node:fs";
 import { v4 } from "uuid";
-import Drive from "@ioc:Adonis/Core/Drive";
+import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
 
 type DreRow = {
@@ -138,7 +138,11 @@ export default class DreService {
 		XLSX.utils.book_append_sheet(workbook, worksheet, "DRE 2024");
 
 		const fileKey = `${v4()}.xlsx`;
-		const fullPath = `${Application.tmpPath()}/${fileKey}`;
+		// const fullPath = `${Application.tmpPath()}/${fileKey}`;
+		const fullPath = `${Env.get(
+			"LOCAL_DISK_ROOT",
+			Application.tmpPath(),
+		)}/${fileKey}`;
 		await XLSX.writeFile(workbook, fullPath, { compression: true });
 		// const stream = fs.createReadStream(fullPath, {});
 

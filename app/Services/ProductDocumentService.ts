@@ -214,6 +214,14 @@ export default class ProductDocumentService {
 		data: { billDocumentId?: number; timelineId?: string },
 	) {
 		return Database.transaction(async (trx) => {
+			if (!data.billDocumentId && !data.timelineId) {
+				throw new BadRequestException(
+					"Um dos dois valores precisa ser informado",
+					400,
+					"E_ERR",
+				);
+			}
+
 			if (data.timelineId) {
 				await AnimalTimeline.findByIdAndUpdate(data.timelineId, {
 					$set: {

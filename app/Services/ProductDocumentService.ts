@@ -181,10 +181,14 @@ export default class ProductDocumentService {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
 						},
+						$meta: {
+							bill_id: data.billId,
+							bill_document_id: null,
+						},
 					},
 				});
 
-				return BillDocument.create(
+				const doc = await BillDocument.create(
 					{
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -196,6 +200,10 @@ export default class ProductDocumentService {
 					},
 					{ client: trx },
 				);
+
+				await AnimalTimeline.findByIdAndUpdate(refDoc._id, {
+					"timeline_info.$meta.bill_document_id": doc.id,
+				});
 			});
 			await Promise.all(tasks);
 		});

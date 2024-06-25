@@ -86,10 +86,17 @@ export default class ProductDocumentService {
 		data: { billId: string; patientId: string },
 	) {
 		return Database.transaction(async (trx) => {
-			const elems = await ProductDocument.query()
+			const elems = await Database.from("product_documents")
+				.select(
+					Database.raw(
+						"product_documents.document_template_id, document_templates.description, document_templates.template",
+					),
+				)
 				.useTransaction(trx)
-				.preload("product")
-				.preload("documentTemplate")
+				.joinRaw(
+					"join document_templates on document_templates.id = product_documents.document_template_id",
+				)
+				.joinRaw("join products on products.id = product_documents.product_id")
 				.where("system_id", authCtx.system.id)
 				.whereRaw(
 					`(product_documents.economic_group_id is null or
@@ -136,8 +143,8 @@ export default class ProductDocumentService {
 					},
 					timeline_info: {
 						tag: data.patientId,
-						type: elem.documentTemplate.description,
-						value: elem.documentTemplate.template,
+						type: elem.description,
+						value: elem.template,
 						realizedAt: new Date(),
 						technician: {
 							id: authCtx.user.id,

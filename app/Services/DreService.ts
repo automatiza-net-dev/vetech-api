@@ -7,6 +7,7 @@ import { v4 } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import { PDFEngine } from "chromiumly";
 
 type DreRow = {
 	mes: string;
@@ -127,22 +128,38 @@ export default class DreService {
 		);
 		workbook.Sheets[worksheetKey] = worksheet;
 
-		const fileKey = `${v4()}.xlsx`;
+		const key = v4();
+		const fileKey = `${key}.xlsx`;
+		const compiledFileKey = `${key}.pdf`;
+
 		const fullPath = `${Env.get(
 			"LOCAL_DISK_ROOT",
 			Application.tmpPath(),
 		)}/${fileKey}`;
 		await XLSX.writeFile(workbook, fullPath, { compression: true });
 
+		const responseBuffer = await PDFEngine.convert({
+			files: [fullPath],
+			properties: {
+				nativePageRanges: { from: 5, to: 5 },
+			},
+		});
+		const fullCompiledPath = `${Env.get(
+			"LOCAL_DISK_ROOT",
+			Application.tmpPath(),
+		)}/${compiledFileKey}`;
+		fs.writeFileSync(fullCompiledPath, responseBuffer, {});
+
 		// esperar 10 segundos e tentar deletar
 		setTimeout(() => {
 			try {
 				fs.unlinkSync(fullPath);
+				fs.unlinkSync(fullCompiledPath);
 			} catch (_e) {
 				//
 			}
 		}, 10_000);
 
-		return fullPath;
+		return fullCompiledPath;
 	}
 }

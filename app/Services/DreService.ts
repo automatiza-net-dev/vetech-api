@@ -6,30 +6,11 @@ import * as fs from "node:fs";
 import { v4 } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
-
-type DreRow = {
-	mes: string;
-	ano: string;
-	data: string;
-	plano_contas_grupo: string;
-	historico: string | null;
-	pessoa: string;
-	col_g: string;
-	col_h: string;
-	col_i: string;
-	col_j: string;
-	col_k: string;
-	valor_pago: string;
-	valor_recebido: string;
-	total: string;
-	plano_contas: string;
-};
+import InternalErrorException from "App/Exceptions/InternalErrorException";
 
 @inject()
 export default class DreService {
-	constructor(private shared: SharedService) {
-		// XLSX.set_fs(fs);
-	}
+	constructor(private _shared: SharedService) {}
 
 	public async generateDreSpreadsheet(authCtx: AuthContext) {
 		const data = await Database.from("finances")
@@ -68,28 +49,39 @@ export default class DreService {
 			.orderByRaw(
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);
-		const workbook = XLSX.utils.book_new();
-		const worksheet = XLSX.utils.json_to_sheet([]);
 
-		const headers = [
-			"Mês",
-			"Ano",
-			"data",
-			"cob - CATEGORIA",
-			"DESCRIÇÃO",
-			"FORNECEDOR",
-			"",
-			"ITEM",
-			"CENTRO CUSTO",
-			"",
-			"l",
-			"DEBITO",
-			"CREDITO",
-			"D-C",
-			"Grupo de conta",
-		];
-		XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
+		const sheetBuffer = fs.readFileSync(Env.get("DRE_PATH"));
+		const worksheetKey = "Dados Mov Financeira";
 
+		const workbook = XLSX.read(sheetBuffer);
+		const worksheet = workbook.Sheets[worksheetKey];
+		if (!worksheet) {
+			throw new InternalErrorException(
+				`Folha '${worksheetKey}' não encontrada`,
+				500,
+				"E_ERR",
+			);
+		}
+
+		// const headers = [
+		// 	"Mês",
+		// 	"Ano",
+		// 	"data",
+		// 	"cob - CATEGORIA",
+		// 	"DESCRIÇÃO",
+		// 	"FORNECEDOR",
+		// 	"",
+		// 	"ITEM",
+		// 	"CENTRO CUSTO",
+		// 	"",
+		// 	"l",
+		// 	"DEBITO",
+		// 	"CREDITO",
+		// 	"D-C",
+		// 	"Grupo de conta",
+		// ];
+		// XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
+		//
 		XLSX.utils.sheet_add_aoa(
 			worksheet,
 			data.map((d) => Object.values(d)),
@@ -97,7 +89,8 @@ export default class DreService {
 				origin: -1,
 			},
 		);
-		XLSX.utils.book_append_sheet(workbook, worksheet, "DRE 2024");
+		// XLSX.utils.book_append_sheet(workbook, worksheet, "Dados Mov Financeira");
+		workbook.Sheets[worksheetKey] = worksheet;
 
 		const fileKey = `${v4()}.xlsx`;
 		// const fullPath = `${Application.tmpPath()}/${fileKey}`;

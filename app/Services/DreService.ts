@@ -8,6 +8,24 @@ import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 
+type DreRow = {
+	mes: string;
+	ano: string;
+	data: string;
+	plano_contas_grupo: string;
+	historico: string | null;
+	pessoa: string;
+	col_g: string;
+	col_h: string;
+	col_i: string;
+	col_j: string;
+	col_k: string;
+	valor_pago: string;
+	valor_recebido: string;
+	total: string;
+	plano_contas: string;
+};
+
 @inject()
 export default class DreService {
 	constructor(private _shared: SharedService) {}
@@ -50,6 +68,43 @@ export default class DreService {
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);
 
+		const _data: DreRow[] = [
+			{
+				mes: "04",
+				ano: "2024",
+				data: "01/04/2024",
+				plano_contas_grupo: "Receitas Financeiras",
+				historico: null,
+				pessoa: "clark kent",
+				col_g: "",
+				col_h: "",
+				col_i: "",
+				col_j: "",
+				col_k: "",
+				valor_pago: "0",
+				valor_recebido: "     250,00",
+				total: "     250,00",
+				plano_contas: "Receitas Financeiras",
+			},
+			{
+				mes: "04",
+				ano: "2024",
+				data: "01/04/2024",
+				plano_contas_grupo: "Receitas Produtos",
+				historico: null,
+				pessoa: "alberto luciano",
+				col_g: "",
+				col_h: "",
+				col_i: "",
+				col_j: "",
+				col_k: "",
+				valor_pago: "0",
+				valor_recebido: "     150,00",
+				total: "     150,00",
+				plano_contas: "Receitas Produtos",
+			},
+		];
+
 		const sheetBuffer = fs.readFileSync(Env.get("DRE_PATH"));
 		const worksheetKey = "Dados Mov Financeira";
 
@@ -63,43 +118,21 @@ export default class DreService {
 			);
 		}
 
-		// const headers = [
-		// 	"Mês",
-		// 	"Ano",
-		// 	"data",
-		// 	"cob - CATEGORIA",
-		// 	"DESCRIÇÃO",
-		// 	"FORNECEDOR",
-		// 	"",
-		// 	"ITEM",
-		// 	"CENTRO CUSTO",
-		// 	"",
-		// 	"l",
-		// 	"DEBITO",
-		// 	"CREDITO",
-		// 	"D-C",
-		// 	"Grupo de conta",
-		// ];
-		// XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
-		//
 		XLSX.utils.sheet_add_aoa(
 			worksheet,
 			data.map((d) => Object.values(d)),
 			{
-				origin: -1,
+				origin: 1,
 			},
 		);
-		// XLSX.utils.book_append_sheet(workbook, worksheet, "Dados Mov Financeira");
 		workbook.Sheets[worksheetKey] = worksheet;
 
 		const fileKey = `${v4()}.xlsx`;
-		// const fullPath = `${Application.tmpPath()}/${fileKey}`;
 		const fullPath = `${Env.get(
 			"LOCAL_DISK_ROOT",
 			Application.tmpPath(),
 		)}/${fileKey}`;
 		await XLSX.writeFile(workbook, fullPath, { compression: true });
-		// const stream = fs.createReadStream(fullPath, {});
 
 		// esperar 10 segundos e tentar deletar
 		setTimeout(() => {

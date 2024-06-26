@@ -128,6 +128,11 @@ export default class DreService {
 		);
 		workbook.Sheets[worksheetKey] = worksheet;
 
+		for (const $key of workbook.SheetNames) {
+			// workbook.Sheets[$key]
+			XLSX.utils.book_set_sheet_visibility(workbook, $key, 1);
+		}
+
 		const key = v4();
 		const fileKey = `${key}.xlsx`;
 		const compiledFileKey = `${key}.pdf`;
@@ -140,10 +145,8 @@ export default class DreService {
 
 		const responseBuffer = await PDFEngine.convert({
 			files: [fullPath],
-			properties: {
-				nativePageRanges: { from: 5, to: 5 },
-			},
 		});
+
 		const fullCompiledPath = `${Env.get(
 			"LOCAL_DISK_ROOT",
 			Application.tmpPath(),
@@ -161,5 +164,6 @@ export default class DreService {
 		}, 10_000);
 
 		return fullCompiledPath;
+		// return fullPath;
 	}
 }

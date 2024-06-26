@@ -130,7 +130,7 @@ export default class DreService {
 
 		for (const $key of workbook.SheetNames) {
 			// workbook.Sheets[$key]
-			XLSX.utils.book_set_sheet_visibility(workbook, $key, 1);
+			XLSX.utils.book_set_sheet_visibility(workbook, $key, 2);
 		}
 
 		const key = v4();

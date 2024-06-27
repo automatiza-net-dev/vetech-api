@@ -1,7 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PatientService from "App/Services/PatientService";
-import SharedService from "App/Services/SharedService";
+import SharedService, {} from "App/Services/SharedService";
 import AssignPatientTutorValidator from "App/Validators/Patient/AssignPatientTutorValidator";
 import CreateLiftOneTutorForGenericValidator from "App/Validators/Patient/CreateLiftOneTutorForGenericValidator";
 import CreateLiftOneTutorForRegisterValidator from "App/Validators/Patient/CreateLiftOneTutorForRegisterValidator";
@@ -14,7 +14,6 @@ import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatien
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class PatientTutorsController {
@@ -62,88 +61,91 @@ export default class PatientTutorsController {
 		return response.ok(patients);
 	}
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const origin = request.input("origin");
-		let data: Omit<IPatientTutorData, "active"> | null = null;
-
-		if (origin === "" || origin === "Cadastro") {
-			if (authCtx.system.name === "Sanclá") {
-				data = await request.validate(CreateSanclaTutorForRegisterValidator);
-			}
-
-			if (authCtx.system.name === "LiftOne") {
-				data = await request.validate(CreateLiftOneTutorForRegisterValidator);
-			}
-		}
-
-		if (origin === "Crm" || origin === "Agenda") {
-			if (authCtx.system.name === "Sanclá") {
-				data = await request.validate(CreateSanclaTutorForGenericValidator);
-			}
-
-			if (authCtx.system.name === "LiftOne") {
-				data = await request.validate(CreateLiftOneTutorForGenericValidator);
-			}
-		}
-
-		if (!data) {
-			data = await request.validate(CreatePatientWithTutorValidator);
-		}
-
-		const patient = await this.service.storeTutor(
+	public async display({ auth, params, response }: HttpContextContract) {
+		const data = await this.service.tutorDisplay(
 			await this.sharedService.getAuthContext(auth),
-			data,
+			params.id,
 		);
 
-		return response.created(patient);
+		return response.ok(data);
+	}
+
+	public async store(ctx: HttpContextContract) {
+		return this.sharedService.errorHoc(ctx.response, async () => {
+			const authCtx = await this.sharedService.getAuthContext(ctx.auth);
+
+			const syncedBody = Object.assign({}, ctx.request.body(), {
+				contacts: ctx.request
+					.body()
+					?.contacts?.map((c: Record<string, unknown>) => {
+						c.main = typeof c.main === "string" ? c.main === "true" : c.main;
+						c.notGiven =
+							typeof c.notGiven === "string"
+								? c.notGiven === "true"
+								: c.notGiven;
+
+						if (!c.contact) {
+							c.contact = "-";
+						}
+
+						return c;
+					}),
+			});
+			ctx.request.updateBody(syncedBody);
+
+			const origin = ctx.request.input("origin", "");
+			let data: Omit<IPatientTutorData, "active"> | null = null;
+
+			if (origin === "" || origin === "Cadastro") {
+				if (authCtx.system.name === "Sanclá") {
+					data = await ctx.request.validate(
+						CreateSanclaTutorForRegisterValidator,
+					);
+				}
+
+				if (authCtx.system.name === "LiftOne") {
+					data = await ctx.request.validate(
+						CreateLiftOneTutorForRegisterValidator,
+					);
+				}
+			}
+
+			if (origin === "Crm" || origin === "Agenda") {
+				if (authCtx.system.name === "Sanclá") {
+					data = await ctx.request.validate(
+						CreateSanclaTutorForGenericValidator,
+					);
+				}
+
+				if (authCtx.system.name === "LiftOne") {
+					data = await ctx.request.validate(
+						CreateLiftOneTutorForGenericValidator,
+					);
+				}
+			}
+
+			if (!data) {
+				data = await ctx.request.validate(CreatePatientWithTutorValidator);
+			}
+
+			const patient = await this.service.storeTutor(
+				await this.sharedService.getAuthContext(ctx.auth),
+				data,
+			);
+
+			return ctx.response.created(patient);
+		});
 	}
 
 	public async assign({ auth, request, response }: HttpContextContract) {
-		try {
+		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(AssignPatientTutorValidator);
 			const { unit_id } = this.sharedService.extractUser(auth);
 
 			await this.service.assignPatientTutor(unit_id, payload);
 
 			return response.created();
-		} catch (e) {
-			if (e instanceof ValidationException) {
-				return response.unprocessableEntity({
-					data: null,
-					status: 422,
-					title: "Entidade não processável",
-					message: null,
-					// @ts-expect-error
-					validationErrors: e.messages.errors.reduce(
-						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
-							}
-
-							prev[curr.field].errors.push(
-								curr.message.replace(
-									"Campo",
-									`Campo '${curr.field === "patient" ? "Paciente" : "Tutor"}'`,
-								),
-							);
-
-							return prev;
-						},
-						{} as Record<string, Record<string, string[]>>,
-					),
-				});
-			}
-
-			return response.badRequest({
-				data: null,
-				status: 400,
-				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
-				validationErrors: {},
-			});
-		}
+		});
 	}
 
 	public async update({
@@ -152,42 +154,59 @@ export default class PatientTutorsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		return this.sharedService.errorHoc(response, async () => {
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const origin = request.input("origin");
+			const syncedBody = Object.assign({}, request.body(), {
+				contacts: request.body()?.["contacts"]?.map((c) => {
+					c.main = typeof c.main === "string" ? c.main === "true" : c.main;
+					c.notGiven =
+						typeof c.notGiven === "string" ? c.notGiven === "true" : c.notGiven;
 
-		let data: IPatientTutorData | null = null;
+					if (!c.contact) {
+						c.contact = "-";
+					}
 
-		if (origin === "" || origin === "Cadastro") {
-			if (authCtx.system.name === "Sanclá") {
-				data = await request.validate(UpdateSanclaTutorForRegisterValidator);
+					return c;
+				}),
+			});
+			request.updateBody(syncedBody);
+
+			const origin = request.input("origin");
+
+			let data: IPatientTutorData | null = null;
+
+			if (origin === "" || origin === "Cadastro") {
+				if (authCtx.system.name === "Sanclá") {
+					data = await request.validate(UpdateSanclaTutorForRegisterValidator);
+				}
+
+				if (authCtx.system.name === "LiftOne") {
+					data = await request.validate(UpdateLiftOneTutorForRegisterValidator);
+				}
 			}
 
-			if (authCtx.system.name === "LiftOne") {
-				data = await request.validate(UpdateLiftOneTutorForRegisterValidator);
+			if (origin === "Crm" || origin === "Agenda") {
+				if (authCtx.system.name === "Sanclá") {
+					data = await request.validate(UpdateSanclaTutorForGenericValidator);
+				}
+
+				if (authCtx.system.name === "LiftOne") {
+					data = await request.validate(UpdateLiftOneTutorForGenericValidator);
+				}
 			}
-		}
 
-		if (origin === "Crm" || origin === "Agenda") {
-			if (authCtx.system.name === "Sanclá") {
-				data = await request.validate(UpdateSanclaTutorForGenericValidator);
+			if (!data) {
+				data = await request.validate(UpdatePatientWithTutorValidator);
 			}
 
-			if (authCtx.system.name === "LiftOne") {
-				data = await request.validate(UpdateLiftOneTutorForGenericValidator);
-			}
-		}
+			const patient = await this.service.updateTutor(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				data,
+			);
 
-		if (!data) {
-			data = await request.validate(UpdatePatientWithTutorValidator);
-		}
-
-		const patient = await this.service.updateTutor(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			data,
-		);
-
-		return response.ok(patient);
+			return response.ok(patient);
+		});
 	}
 }

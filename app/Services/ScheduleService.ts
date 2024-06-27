@@ -817,7 +817,8 @@ export default class ScheduleService {
 			await schedule.related("statusChanges").create(
 				{
 					user_id: authCtx.user.id,
-					schedule_status_id: schedule.schedule_status_id,
+					// schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
+					schedule_status_id: data.statusId, // novo status
 					reason_id: data.reasonId,
 					observation: data.observation,
 				},
@@ -866,7 +867,8 @@ export default class ScheduleService {
 			await schedule.related("statusChanges").create(
 				{
 					user_id: authCtx.user.id,
-					schedule_status_id: schedule.schedule_status_id,
+					// schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
+					schedule_status_id: data.statusId, // status novo da agenda
 					reason_id: data.reasonId,
 					observation: data.observation,
 				},

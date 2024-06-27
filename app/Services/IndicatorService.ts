@@ -5537,7 +5537,7 @@ export default class IndicatorService {
 		const opportunityLogsQb = Database.from("opportunity_logs")
 			.select(
 				Database.raw(
-					"business_units.id, business_units.identification, count(*) as novas_oportunidades",
+					"business_units.id, business_units.identification, count(distinct opportunity_logs.opportunity_id) as novas_oportunidades",
 				),
 			)
 			.joinRaw(
@@ -5563,8 +5563,8 @@ export default class IndicatorService {
 					`
             business_units.id,
             business_units.identification,
-            count(schedules.id)          as agendados,
-            count(schedules.started_at)  as atendidos
+            count(distinct schedules.id)          as agendados,
+            count(distinct schedules.started_at)  as atendidos
           `,
 				),
 			)

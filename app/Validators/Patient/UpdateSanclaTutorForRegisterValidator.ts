@@ -1,6 +1,8 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { PatientGender } from "App/Models/Patient";
+import { PatientContactType } from "App/Models/PatientContact";
+import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class UpdateSanclaTutorForRegisterValidator {
 	constructor(protected ctx: HttpContextContract) {
@@ -29,24 +31,44 @@ export default class UpdateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
-		birthDate: schema.date(),
+		birthDate: schema.date.optional(),
+		birthMonths:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
+		birthYears:
+			this.ctx.request.input("birthDate", "") !== ""
+				? schema.number.optional([])
+				: schema.number(),
 		gender: schema.enum(Object.values(PatientGender), []),
-		email: schema.string([rules.email()]),
-		cellphone: schema.string.optional(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
+		clientOriginItemDescription: schema.string.optional({}, []),
 		professionId: schema.number([
 			rules.exists({ table: "professions", column: "id" }),
 		]),
-		postalCode: schema.string(),
-		street: schema.string(),
-		number: schema.string(),
-		complement: schema.string(),
-		district: schema.string(),
-		city: schema.string(),
-		state: schema.string(),
+		address: schema.object().members({
+			zipCode: schema.string(),
+			logradouro: schema.string(),
+			number: schema.string(),
+			complemento: schema.string(),
+			bairro: schema.string(),
+			localidade: schema.string(),
+			uf: schema.string(),
+			residence: schema.enum(TutorResidences),
+			ibge: schema.string.optional(),
+		}),
 		origin: schema.string(),
+		contacts: schema.array().members(
+			schema.object().members({
+				main: schema.boolean(),
+				notGiven: schema.boolean(),
+				contact: schema.string.optional({ trim: true }, [rules.emailContato()]),
+				observation: schema.string.optional(),
+				type: schema.enum(Object.values(PatientContactType)),
+			}),
+		),
 	});
 
 	/**

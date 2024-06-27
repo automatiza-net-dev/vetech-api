@@ -46,6 +46,15 @@ export default class UpdatePatientValidator {
 			rules.exists({ table: "users", column: "id" }),
 		]),
 		deathObservation: schema.string.optional(),
+		holders: schema.array().members(
+			schema.object().members({
+				id: schema.string({}, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+				main: schema.boolean(),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {};

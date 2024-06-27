@@ -6,29 +6,25 @@ import {
 	BelongsTo,
 	belongsTo,
 	column,
-	computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import User from "App/Models/User";
 import DocumentTemplate from "App/Models/DocumentTemplate";
-import Product from "App/Models/Product";
 
-export const ProductDocumentType = ["geral", "item"] as const;
-export type TProductDocumentType = (typeof ProductDocumentType)[number];
-
-export default class ProductDocument extends BaseModel {
+export default class BillDocument extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 
-	@column()
-	public type: TProductDocumentType;
+	@column({
+		columnName: "timeline_ref",
+	})
+	public timelineRef: string;
 
-	@column()
-	public active: boolean;
+	@column({})
+	public active: true;
 
-	@computed()
-	public get origin() {
-		return this.economic_group_id ? "Próprio" : "Franqueadora";
-	}
+	@column.dateTime({ columnName: "printed_at" })
+	public printedAt: DateTime;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
@@ -54,16 +50,6 @@ export default class ProductDocument extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public system_id: number;
-
-	@column({
-		serializeAs: null,
-	})
-	public system_product_id: number;
-
-	@column({
-		serializeAs: null,
-	})
 	public economic_group_id: string;
 
 	@column({
@@ -74,12 +60,7 @@ export default class ProductDocument extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public product_id: string;
-
-	@belongsTo(() => Product, {
-		foreignKey: "product_id",
-	})
-	public product: BelongsTo<typeof Product>;
+	public bill_id: string;
 
 	@column({
 		serializeAs: null,
@@ -94,5 +75,30 @@ export default class ProductDocument extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public generation_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "generation_user_id",
+	})
+	public generationUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public print_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "print_user_id",
+	})
+	public printUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
 	public exclusion_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "exclusion_user_id",
+	})
+	public exclusionUser: BelongsTo<typeof User>;
 }

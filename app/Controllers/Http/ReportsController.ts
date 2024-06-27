@@ -236,4 +236,26 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async crmOpportunitiesReport_2({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.crmOpportunities_2(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
+
+	public async crmActivities({ request, response, auth }: HttpContextContract) {
+		response.ok(
+			await this.service.crmActivies(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

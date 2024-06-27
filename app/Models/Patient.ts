@@ -3,6 +3,7 @@ import {
 	beforeFetch,
 	beforeFind,
 	column,
+	computed,
 	HasMany,
 	hasMany,
 	HasOne,
@@ -77,8 +78,14 @@ export default class Patient extends BaseModel {
 
 	@column({
 		columnName: "birth_date",
+		serializeAs: "birthDate",
 	})
 	public birthDate?: Date;
+
+	@computed()
+	public get birth_date() {
+		return this.birthDate;
+	}
 
 	@column.dateTime({
 		columnName: "first_sale",

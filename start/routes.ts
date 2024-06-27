@@ -261,6 +261,7 @@ Route.group(() => {
 	Route.get("/", "PatientTutorsController.index");
 	Route.post("/", "PatientTutorsController.store");
 	Route.post("/assign", "PatientTutorsController.assign");
+	Route.get("/display/:id", "PatientTutorsController.display");
 	Route.get("/:id", "PatientTutorsController.show");
 	Route.put("/:id", "PatientTutorsController.update");
 })
@@ -394,6 +395,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/for-movements", "ProductsController.forMovements");
 	Route.get("/", "ProductsController.index");
 	Route.post("/", "ProductsController.store");
 	Route.get("/:id", "ProductsController.show");
@@ -1514,6 +1516,11 @@ Route.group(() => {
 	Route.get("/receipts", "ReportsController.receiptsReport");
 	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
 	Route.get("/crm-opportunities", "ReportsController.crmOpportunitiesReport");
+	Route.get(
+		"/crm-opportunities-2",
+		"ReportsController.crmOpportunitiesReport_2",
+	);
+	Route.get("/crm-activities", "ReportsController.crmActivities");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1768,8 +1775,19 @@ Route.get(
 	"FinancesController.dashboardCashierResume",
 ).middleware("auth");
 
-Route.resource("product-documents", "ProductDocumentsController")
-	.only(["index", "store", "destroy"])
-	.middleware({
-		"*": ["auth"],
-	});
+Route.group(() => {
+	Route.get("/documents/:bill", "ProductDocumentsController.documentsFromBill");
+	Route.get("/", "ProductDocumentsController.index");
+	Route.post("/generate", "ProductDocumentsController.generateDocuments");
+	Route.post("/print", "ProductDocumentsController.printDocument");
+	Route.post("/", "ProductDocumentsController.store");
+	Route.delete("/:id", "ProductDocumentsController.destroy");
+})
+	.prefix("product-documents")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/spreadsheet", "DreController.generateDreSpreadsheet");
+})
+	.prefix("dre")
+	.middleware("auth");

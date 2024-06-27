@@ -54,22 +54,14 @@ export default class PatientsController {
 	}
 
 	public async display({ auth, params, response }: HttpContextContract) {
-		try {
+		return this.sharedService.errorHoc(response, async () => {
 			const patients = await this.service.display(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
 			);
 
 			return response.ok(patients);
-		} catch (e) {
-			return response.badRequest({
-				data: null,
-				status: 400,
-				title: "Requisição inválida",
-				message: e.message.split(":").at(1)?.trim() ?? "Algo deu errado",
-				validationErrors: {},
-			});
-		}
+		});
 	}
 
 	public async checkDocument({ params, response, auth }: HttpContextContract) {
@@ -124,44 +116,47 @@ export default class PatientsController {
 	}
 
 	public async showAnimals({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
 		const qs = request.qs();
-		const patients = await this.service.animalsIndex(unit_id, {
-			name: qs.name,
-			race: qs.race,
-			specie: qs.specie,
-			tutor: qs.tutor,
-			document: qs.document,
-			phone: qs.phone,
-			tag: qs.tag,
-		});
+		const patients = await this.service.animalsIndex(
+			await this.sharedService.getAuthContext(auth),
+			{
+				name: qs.name,
+				race: qs.race,
+				specie: qs.specie,
+				tutor: qs.tutor,
+				document: qs.document,
+				phone: qs.phone,
+				tag: qs.tag,
+			},
+		);
 
 		return response.ok(patients);
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		// const payload = await request.validate(CreatePatientValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+		return this.sharedService.errorHoc(response, async () => {
+			// const payload = await request.validate(CreatePatientValidator);
+			const { unit_id } = this.sharedService.extractUser(auth);
 
-		const origin = request.input("origin");
-		let payload: Omit<IPatientData, "active"> | null = null;
+			const origin = request.input("origin");
+			let payload: Omit<IPatientData, "active"> | null = null;
 
-		if (origin === "Agenda") {
-			payload = await request.validate(CreateSchedulePatientValidator);
-		}
+			if (origin === "Agenda") {
+				payload = await request.validate(CreateSchedulePatientValidator);
+			}
 
-		if (origin === "Crm") {
-			payload = await request.validate(CreateCrmPatientValidator);
-		}
+			if (origin === "Crm") {
+				payload = await request.validate(CreateCrmPatientValidator);
+			}
 
-		if (!payload) {
-			payload = await request.validate(CreatePatientValidator);
-		}
+			if (!payload) {
+				payload = await request.validate(CreatePatientValidator);
+			}
 
-		const patient = await this.service.store(unit_id, payload);
+			const patient = await this.service.store(unit_id, payload);
 
-		return response.created(patient);
+			return response.created(patient);
+		});
 	}
 
 	public async update({
@@ -170,15 +165,17 @@ export default class PatientsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdatePatientValidator);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdatePatientValidator);
 
-		const patient = await this.service.update(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+			const patient = await this.service.update(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				payload,
+			);
 
-		return response.ok(patient);
+			return response.ok(patient);
+		});
 	}
 
 	public async declareDeath({

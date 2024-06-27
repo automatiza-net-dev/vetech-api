@@ -15,6 +15,7 @@ export default class ClientOriginService {
 
 	public async index(authCtx: AuthContext, search: ISearch) {
 		const query = ClientOrigin.query()
+			.orderBy("description", "asc")
 			.where("system_id", authCtx.system.id)
 			.whereRaw(
 				"(economic_group_id = ? or economic_group_id is null) and deleted_at is null",

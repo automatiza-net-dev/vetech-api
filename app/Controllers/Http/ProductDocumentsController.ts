@@ -3,6 +3,8 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import ProductDocumentService from "App/Services/ProductDocumentService";
 import SharedService from "App/Services/SharedService";
 import CreateProductDocumentValidator from "App/Validators/ProductDocument/CreateProductDocumentValidator";
+import GenerateDocumentValidator from "App/Validators/ProductDocument/GenerateDocumentValidator";
+import PrintDocumentValidator from "App/Validators/ProductDocument/PrintDocumentValidator";
 
 @inject()
 export default class ProductDocumentsController {
@@ -20,6 +22,19 @@ export default class ProductDocumentsController {
 		return response.ok(result);
 	}
 
+	public async documentsFromBill({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const result = await this.service.documentsFromBill(
+			await this.sharedService.getAuthContext(auth),
+			request.param("bill", "invalid"),
+		);
+
+		return response.ok(result);
+	}
+
 	public async store({ request, response, auth }: HttpContextContract) {
 		const payload = await request.validate(CreateProductDocumentValidator);
 
@@ -29,6 +44,32 @@ export default class ProductDocumentsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async generateDocuments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(GenerateDocumentValidator);
+
+		await this.service.generateDocuments(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.created();
+	}
+
+	public async printDocument({ request, response, auth }: HttpContextContract) {
+		const payload = await request.validate(PrintDocumentValidator);
+
+		await this.service.printDocument(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.ok(null);
 	}
 
 	public async destroy({ request, response, auth }: HttpContextContract) {

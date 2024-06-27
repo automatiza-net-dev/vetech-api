@@ -1,12 +1,11 @@
 import { inject } from "@adonisjs/fold";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
-import Logger from "@ioc:Adonis/Core/Logger";
+import Env from "@ioc:Adonis/Core/Env";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
@@ -34,6 +33,8 @@ import { v4 } from "uuid";
 import { HospitalizationStatus } from "../Models/Hospitalization";
 import Attendance from "App/Models/Attendance";
 import { intervalToDuration } from "date-fns";
+import { PatientContactType } from "App/Models/PatientContact";
+import PatientTutor from "App/Models/PatientTutor";
 
 interface ISearch {
 	name?: string;
@@ -384,10 +385,8 @@ export default class PatientService {
 		}));
 	}
 
-	public async animalsIndex(unitId: string, data: ISearchAnimals) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async animalsIndex(authCtx: AuthContext, data: ISearchAnimals) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.orderBy("name", "asc")
@@ -397,25 +396,46 @@ export default class PatientService {
 			qb.where("tag", "ilike", `%${data.tag}%`);
 		}
 
-		if (data.race) {
+		if (data.race || data.specie) {
 			qb.whereHas("patientAnimal", (query) => {
 				query.whereHas("race", (subquery) => {
-					subquery.whereILike("description", `%${data.race ?? ""}%`);
+					if (data.race) {
+						subquery.whereILike("description", `%${data.race ?? ""}%`);
+					}
+
+					if (data.specie) {
+						subquery.whereHas("specie", (query) => {
+							query.whereILike("description", `%${data.specie ?? ""}%`);
+						});
+					}
 				});
 			});
 		}
 
-		if (data.tutor) {
-			qb.whereHas("tutors", (q) => {
-				q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-					data.tutor!.replaceAll(" ", "%"),
-				]);
-			});
+		if (data.name) {
+			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
+			]);
 		}
+
+		// if (data.document) {
+		// 	qb.whereHas("tutors", (q) => {
+		// 		q.whereRaw("document ilike ?", [
+		// 			`%${data.document?.replace(/\D/g, "")}%`,
+		// 		]);
+		// 	});
+		// }
+
+		// if (data.tutor) {
+		// 	qb.whereHas("tutors", (q) => {
+		// 		q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+		// 			data.tutor!.replaceAll(" ", "%"),
+		// 		]);
+		// 	});
+		// }
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
-
 			qb.whereRaw(
 				`patients.id in (select holder_dependents.dependent_id
              from "patient_contacts"
@@ -460,69 +480,81 @@ export default class PatientService {
 			query.preload("hair");
 		});
 
-		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-				data.name.replaceAll(" ", "%"),
-			]);
-		}
-
 		const result = await qb;
 
-		return result
-			.filter((r) => {
-				if (data.document) {
-					const matches = r.tutors.some((t) =>
-						t.tutor.document?.includes(data.document?.replace(/\D/g, "") ?? ""),
-					);
+		return result.map((patient) => {
+			return {
+				id: patient.id,
+				name: patient.name,
+				tag: patient.tag,
+				gender: patient.gender,
+				community: patient.community,
+				birthDate: patient.birthDate,
+				castrated: patient.patientAnimal?.castrated,
+				weight: patient.weight,
+				race: patient.patientAnimal?.race,
+				tutors: patient.tutors.map((elem) => ({
+					id: elem.id,
+					name: elem.name,
+					email: elem.tutor?.email ?? "-",
+					tag: elem.tag,
+					cellphone: elem.tutor?.cellphone ?? "-",
+					isMain: elem.$extras.pivot_is_main,
+				})),
+			};
+		});
 
-					if (!matches) {
-						return false;
-					}
-				}
-
-				// if (data.phone) {
-				// 	const matches = r.tutors.some((t) =>
-				// 		t.tutor.cellphone?.includes(data.phone ?? ""),
-				// 	);
-				//
-				// 	if (!matches) {
-				// 		return false;
-				// 	}
-				// }
-
-				if (data.specie) {
-					const matches = r.patientAnimal?.race?.specie.description
-						.toLocaleLowerCase()
-						.includes(data.specie.toLowerCase());
-
-					if (!matches) {
-						return false;
-					}
-				}
-
-				return true;
-			})
-			.map((patient) => {
-				return {
-					id: patient.id,
-					name: patient.name,
-					tag: patient.tag,
-					gender: patient.gender,
-					community: patient.community,
-					birthDate: patient.birthDate,
-					castrated: patient.patientAnimal?.castrated,
-					weight: patient.weight,
-					race: patient.patientAnimal?.race,
-					tutors: patient.tutors.map((elem) => ({
-						id: elem.id,
-						name: elem.name,
-						email: elem.tutor?.email ?? "-",
-						tag: elem.tag,
-						cellphone: elem.tutor?.cellphone ?? "-",
-						isMain: elem.$extras.pivot_is_main,
-					})),
-				};
-			});
+		// const tutors =
+		// 	data.tutor || data.document
+		// 		? await Database.from("patients")
+		// 				.select(Database.raw("name as tutor"))
+		// 				.joinRaw(
+		// 					"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+		// 					[authCtx.group.id],
+		// 				)
+		// 				.joinRaw(
+		// 					"join patient_tutors on patient_tutors.patient_id = patients.id",
+		// 					[],
+		// 				)
+		// 				.where("type", PatientType.TUTOR)
+		// 				.whereRaw(
+		// 					"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+		// 				)
+		// 				.whereRaw(
+		// 					data.tutor
+		// 						? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+		// 						: `(? = '' or 1=1)`,
+		// 					[data.tutor ?? ""],
+		// 				)
+		// 				.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
+		// 					data.document ? `%${data.document}%` : "",
+		// 				])
+		// 		: [];
+		//
+		// return {
+		// 	patients: result.map((patient) => {
+		// 		return {
+		// 			id: patient.id,
+		// 			name: patient.name,
+		// 			tag: patient.tag,
+		// 			gender: patient.gender,
+		// 			community: patient.community,
+		// 			birthDate: patient.birthDate,
+		// 			castrated: patient.patientAnimal?.castrated,
+		// 			weight: patient.weight,
+		// 			race: patient.patientAnimal?.race,
+		// 			tutors: patient.tutors.map((elem) => ({
+		// 				id: elem.id,
+		// 				name: elem.name,
+		// 				email: elem.tutor?.email ?? "-",
+		// 				tag: elem.tag,
+		// 				cellphone: elem.tutor?.cellphone ?? "-",
+		// 				isMain: elem.$extras.pivot_is_main,
+		// 			})),
+		// 		};
+		// 	}),
+		// 	tutors,
+		// };
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {
@@ -666,6 +698,7 @@ export default class PatientService {
 			.preload("tutors", (query) => {
 				query.preload("tutor").pivotColumns(["is_main"]);
 			})
+			.preload("contacts")
 			.preload("tutor")
 			.first();
 
@@ -695,7 +728,7 @@ export default class PatientService {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: patient.photo,
+			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE
@@ -722,12 +755,13 @@ export default class PatientService {
 			active: patient.active,
 			tag: patient.tag,
 			weight: patient.weight,
-			weight_date: patient.weightDate,
+			weightDate: patient.weightDate,
 			hypertension: patient.hypertension,
 			diabetes: patient.diabetes,
 			glycemia: patient.glycemia,
 			pressure: patient.pressure,
 			firstSale: patient.firstSale,
+			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
 			missingBills: this.sharedService.formatter.format(
 				sales.reduce(
@@ -735,18 +769,20 @@ export default class PatientService {
 					0,
 				),
 			),
-			openAttendances: attendances.length > 0,
+			open_attendances: attendances.length > 0,
 		};
 
 		if (patient.patientAnimal) {
 			Object.assign(displayData, {
 				death: patient.patientAnimal.death,
-				death_date: patient.patientAnimal.deathDate,
+				deathDate: patient.patientAnimal.deathDate,
 				microchip: patient.patientAnimal.microchip,
 				castrated: patient.patientAnimal.castrated,
+				hairId: patient.patientAnimal.hair_id ?? null,
 				hair: patient.patientAnimal.hair?.description ?? null,
+				raceId: patient.patientAnimal.race_id ?? null,
 				race: patient.patientAnimal.race?.description ?? null,
-				specie_id: patient.patientAnimal.race?.specie?.id ?? null,
+				specieId: patient.patientAnimal.race?.specie?.id ?? null,
 				specie: patient.patientAnimal.race?.specie?.description ?? null,
 			});
 		}
@@ -778,26 +814,133 @@ export default class PatientService {
 						.join(", "),
 				});
 			}
+
+			Object.assign(displayData, {
+				holders: patient.tutors.map((elem) => ({
+					id: elem.id,
+					name: elem.name,
+					cellphone: elem.tutor.cellphone ?? null,
+					telephone: elem.tutor.telephone ?? null,
+					email: elem.tutor.email ?? null,
+					document: elem.tutor.document ?? null,
+					main: elem.$extras.pivot_is_main,
+				})),
+			});
 		}
 
 		if (patient.tutor) {
 			Object.assign(displayData, {
+				document: patient.tutor?.document ?? null,
+				rg: patient.tutor?.document ?? null,
+				nationality: patient.tutor?.nationality ?? null,
+				clientOriginId: patient.tutor?.client_origin_id ?? null,
+				tags: patient.tags ?? null,
+				civilStatus: patient.tutor.civilStatus ?? null,
+				professionId: patient.tutor.profession_id ?? null,
 				cellphone: patient.tutor?.cellphone ?? null,
 				telephone: patient.tutor?.telephone ?? null,
 				email: patient.tutor?.email ?? null,
-				address: [
-					patient.tutor?.street,
-					patient.tutor?.number,
-					patient.tutor?.complement,
-					patient.tutor?.district,
-					`${patient.tutor?.city ?? "-"} - ${patient.tutor?.state ?? "-"}`,
-				]
-					.filter(Boolean)
-					.join(", "),
+				observation: "",
+				address: {
+					cep: patient.tutor.postalCode,
+					logradouro: patient.tutor.street,
+					complemento: patient.tutor.complement ?? null,
+					bairro: patient.tutor.district,
+					localidade: patient.tutor.city,
+					uf: patient.tutor.state,
+					zipCode: patient.tutor.postalCode,
+					number: patient.tutor.number,
+				},
+				contacts: patient.contacts.map((elem) => ({
+					contact: elem.contact,
+					main: elem.main,
+					notGiven: elem.notGiven,
+					observation: elem.observation,
+					type: elem.type,
+				})),
 			});
 		}
 
 		return displayData;
+	}
+
+	public async tutorDisplay(
+		authCtx: AuthContext,
+		patientId: string,
+	): Promise<
+		Omit<IPatientTutorData, "photo" | "birthDate"> & {
+			photo: string;
+			birthDate: DateTime | null;
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		}
+	> {
+		const patient = await authCtx.group
+			.related("patients")
+			.query()
+			.where("patient_id", patientId)
+			.where("type", PatientType.TUTOR)
+			.preload("tutors", (query) => {
+				query.preload("tutor").pivotColumns(["is_main"]);
+			})
+			.preload("contacts")
+			.preload("tutor")
+			.first();
+
+		if (!patient) {
+			throw new ResourceNotFoundException(
+				"Paciente não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
+
+		return {
+			name: patient.name,
+			clientOriginId: patient.tutor.client_origin_id,
+			clientOriginItemDescription: patient.clientOriginItemDescription,
+			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`,
+			gender: patient.gender,
+			tags: patient.tags,
+			birthDate: patient.birthDate
+				? DateTime.fromJSDate(patient.birthDate)
+				: null,
+			active: patient.active,
+			document: patient.tutor.document,
+			inscription: patient.tutor.inscription,
+			corporate_name: patient.tutor.corporateName,
+			telephone: patient.tutor.telephone,
+			message_person_name: patient.tutor.messagePersonName,
+			message_person_phone: patient.tutor.messagePersonPhone,
+			address: {
+				residence: patient.tutor.residence,
+				zipCode: patient.tutor.postalCode,
+				logradouro: patient.tutor.street,
+				number: patient.tutor.number,
+				complemento: patient.tutor.complement,
+				bairro: patient.tutor.district,
+				localidade: patient.tutor.city,
+				uf: patient.tutor.state,
+				ibge: patient.tutor.cityCode,
+			},
+			diabetes: patient.diabetes,
+			hypertension: patient.hypertension,
+			professionId: patient.tutor.profession_id,
+			nationality: patient.tutor.nationality,
+			civilStatus: patient.tutor.civilStatus,
+			contacts: patient.contacts.map((elem) => ({
+				contact: elem.contact,
+				main: elem.main,
+				notGiven: elem.notGiven,
+				observation: elem.observation,
+				type: elem.type,
+			})),
+		};
 	}
 
 	public async metadata(authCtx: AuthContext, patientId: string) {
@@ -1021,23 +1164,25 @@ export default class PatientService {
 	): Promise<Patient> {
 		const group = await this.getEconomicGroup(unitId);
 
-		if (data.holderId) {
-			// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
-			if (!data.birthDate && !data.birthMonths && !data.birthYears) {
-				throw new BadRequestException(
-					"É preciso ou informar a data exata ou aproximada de nascimento",
-					400,
-					"E_ERR",
-				);
-			}
+		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
+		if (
+			!data.holders &&
+			!data.birthDate &&
+			!data.birthMonths &&
+			!data.birthYears
+		) {
+			throw new BadRequestException(
+				"É preciso ou informar a data exata ou aproximada de nascimento",
+				400,
+				"E_ERR",
+			);
 		}
 
-		const trx = await Database.transaction();
-
-		try {
+		return Database.transaction(async (trx) => {
 			const patients = await group
 				.related("patients")
 				.query()
+				.useTransaction(trx)
 				.where("type", PatientType.ANIMAL)
 				.select("id");
 
@@ -1071,16 +1216,25 @@ export default class PatientService {
 				},
 			);
 
-			if (data.holderId) {
-				const holder = await Patient.findOrFail(data.holderId, {
-					client: trx,
-				});
+			const tasks =
+				data.holders?.map(async (elem) => {
+					const holder = await Patient.findOrFail(elem.id, {
+						client: trx,
+					});
 
-				if (holder.type !== PatientType.TUTOR) {
-					throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
-				}
-				await holder.related("dependents").attach([patient.id], trx);
-			}
+					if (holder.type !== PatientType.TUTOR) {
+						throw new BadRequestException(
+							"Tutor inválido",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
+
+					await holder
+						.related("dependents")
+						.attach({ [patient.id]: { is_main: elem.main } }, trx);
+				}) ?? [];
+			await Promise.all(tasks);
 
 			await group.related("patients").attach([patient.id], trx);
 
@@ -1097,24 +1251,23 @@ export default class PatientService {
 			await trx.commit();
 
 			return patient;
-		} catch (e) {
-			Logger.error(e.message);
-			await trx.rollback();
-
-			throw new InternalErrorException(
-				"Erro na execução",
-				500,
-				"E_INTERNAL_ERROR",
-			);
-		}
+		});
 	}
 
 	public async storeTutor(
 		authCtx: AuthContext,
-		data: Omit<IPatientTutorData, "active">,
+		data: Omit<IPatientTutorData, "active"> & {
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
-			if (data.document && authCtx.unit.unitConfig.requiresClientDocument) {
+			if (data.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",
@@ -1164,26 +1317,72 @@ export default class PatientService {
 				{ client: trx },
 			);
 
+			const result = await patient.related("contacts").createMany(
+				data.contacts
+					?.filter((f) => !!f.contact)
+					?.map((inner) => ({
+						main: inner.main,
+						contact: inner.contact === "-" ? undefined : inner.contact,
+						observation: inner.observation,
+						type: inner.type,
+						notGiven: inner.notGiven,
+					})) ?? [],
+				{ client: trx },
+			);
+
+			const updateTasks = result
+				.flat()
+				.filter((f) => typeof f.contact !== "undefined")
+				.map((elem) => {
+					if (elem.type === "celular") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								cellphone: elem.contact,
+							});
+					}
+
+					if (elem.type === "email") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								email: elem.contact,
+							});
+					}
+
+					if (["residencial", "comercial", "recado"].includes(elem.type)) {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								telephone: elem.contact,
+							});
+					}
+				});
+			await Promise.all(updateTasks);
+
 			await patient.related("tutor").create(
 				{
-					residence: data.residence,
+					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,
-					email: data.email,
-					cellphone: data.cellphone,
+					// email: data.email,
+					// cellphone: data.cellphone,
 					telephone: data.telephone,
 					messagePersonName: data.message_person_name,
 					messagePersonPhone: data.message_person_phone,
-					postalCode: data.postalCode,
-					street: data.street,
-					number: data.number,
-					complement: data.complement,
-					district: data.district,
-					city: data.city,
-					state: data.state,
+					postalCode: data.address?.zipCode,
+					street: data.address?.logradouro,
+					number: data.address?.number,
+					complement: data.address?.complemento,
+					district: data.address?.bairro,
+					city: data.address?.localidade,
+					state: data.address?.uf,
 					client_origin_id: data.clientOriginId,
-					cityCode: data.cityCode,
+					cityCode: data.address?.ibge,
 
 					civilStatus: data.civilStatus,
 					nationality: data.nationality,
@@ -1195,18 +1394,6 @@ export default class PatientService {
 			);
 
 			await authCtx.group.related("patients").attach([patient.id], trx);
-
-			if (data.cellphone) {
-				await patient.related("contacts").create(
-					{
-						main: true,
-						contact: data.cellphone,
-						observation: "Contato principal",
-						type: "celular",
-					},
-					{ client: trx },
-				);
-			}
 
 			return patient;
 		});
@@ -1384,6 +1571,29 @@ export default class PatientService {
 					.save();
 			}
 
+			const tasks =
+				data.holders?.map(async (elem) => {
+					const holder = await Patient.findOrFail(elem.id, {
+						client: trx,
+					});
+
+					if (holder.type !== PatientType.TUTOR) {
+						throw new BadRequestException(
+							"Tutor inválido",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
+
+					await holder
+						.related("dependents")
+						.query()
+						.useTransaction(trx)
+						.where("dependent_id", patient.id)
+						.update({ is_main: elem.main });
+				}) ?? [];
+			await Promise.all(tasks);
+
 			return patient;
 		});
 	}
@@ -1526,7 +1736,15 @@ export default class PatientService {
 	public async updateTutor(
 		authCtx: AuthContext,
 		id: string,
-		data: IPatientTutorData,
+		data: IPatientTutorData & {
+			contacts?: {
+				main: boolean;
+				notGiven: boolean;
+				contact?: string;
+				observation?: string;
+				type: (typeof PatientContactType)[number];
+			}[];
+		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
 			const tutor = await Patient.query()
@@ -1540,11 +1758,7 @@ export default class PatientService {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
 			}
 
-			if (
-				data.document &&
-				data.document !== tutor.tutor.document &&
-				authCtx.unit.unitConfig.requiresClientDocument
-			) {
+			if (data.document && data.document !== tutor.tutor.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",
@@ -1574,27 +1788,74 @@ export default class PatientService {
 			const photo = data.photo
 				? await this.uploadPhoto(data.photo)
 				: tutor.photo;
+			await tutor.related("contacts").query().useTransaction(trx).delete();
+
+			const result = await tutor.related("contacts").createMany(
+				data.contacts
+					?.filter((f) => typeof f.contact !== "undefined")
+					?.map((inner) => ({
+						main: inner.main,
+						contact: inner.contact === "-" ? undefined : inner.contact,
+						observation: inner.observation,
+						type: inner.type,
+						notGiven: inner.notGiven,
+					})) ?? [],
+				{ client: trx },
+			);
+
+			const updateTasks = result
+				.flat()
+				.filter((e) => !!e.contact)
+				.map((elem) => {
+					if (elem.type === "celular") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								cellphone: elem.contact,
+							});
+					}
+
+					if (elem.type === "email") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								email: elem.contact,
+							});
+					}
+
+					if (["residencial", "comercial", "recado"].includes(elem.type)) {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								telephone: elem.contact,
+							});
+					}
+				});
+			await Promise.all(updateTasks);
 
 			await tutor.tutor
 				.merge({
-					residence: data.residence,
+					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
 					corporateName: data.corporate_name,
-					email: data.email,
-					cellphone: data.cellphone,
+					// email: data.email,
+					// cellphone: data.cellphone,
 					telephone: data.telephone,
 					messagePersonName: data.message_person_name,
 					messagePersonPhone: data.message_person_phone,
-					postalCode: data.postalCode,
-					street: data.street,
-					number: data.number,
-					complement: data.complement,
-					district: data.district,
-					city: data.city,
-					state: data.state,
+					postalCode: data.address?.zipCode,
+					street: data.address?.logradouro,
+					number: data.address?.number,
+					complement: data.address?.complemento,
+					district: data.address?.bairro,
+					city: data.address?.localidade,
+					state: data.address?.uf,
 					client_origin_id: data.clientOriginId,
-					cityCode: data.cityCode,
+					cityCode: data.address?.ibge,
 					civilStatus: data.civilStatus,
 					nationality: data.nationality,
 					profession_id: data.professionId,

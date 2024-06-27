@@ -530,7 +530,13 @@ export default class OpportunityService {
 			.where("economic_group_id", authCtx.group.id)
 			.whereNull("closing_date")
 			.preload("client", (query) => {
-				query.select("id", "name", "weight", "gender");
+				query.select(
+					"id",
+					"name",
+					"weight",
+					"gender",
+					"client_origin_item_description",
+				);
 
 				query.preload("tutor");
 
@@ -813,7 +819,13 @@ export default class OpportunityService {
 			.whereNull("closing_date")
 			.orderByRaw("opening_date desc")
 			.preload("client", (query) => {
-				query.select("id", "name", "weight", "gender");
+				query.select(
+					"id",
+					"name",
+					"weight",
+					"gender",
+					"client_origin_item_description",
+				);
 
 				query.preload("tutor");
 
@@ -979,6 +991,7 @@ export default class OpportunityService {
 				client: this.sharedService.captureGroup(op.client, (v) => ({
 					id: v.id,
 					name: v.name,
+					clientOriginItemDescription: v.clientOriginItemDescription ?? null,
 				})),
 				clientOrigin: op.clientOrigin,
 				user: this.sharedService.captureGroup(op?.user, (v) => ({

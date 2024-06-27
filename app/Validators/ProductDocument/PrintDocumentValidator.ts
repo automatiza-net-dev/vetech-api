@@ -1,8 +1,7 @@
-import { schema, type CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import { PatientGender } from "App/Models/Patient";
 
-export default class CreateCrmPatientValidator {
+export default class PrintDocumentValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -25,12 +24,10 @@ export default class CreateCrmPatientValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		name: schema.string({}),
-		raceId: schema.string({}, [
-			rules.uuid(),
-			rules.exists({ table: "races", column: "id" }),
+		billDocumentId: schema.number.optional([
+			rules.exists({ table: "bill_documents", column: "id" }),
 		]),
-		gender: schema.enum(Object.values(PatientGender), []),
+		timelineId: schema.string.optional([]),
 	});
 
 	/**

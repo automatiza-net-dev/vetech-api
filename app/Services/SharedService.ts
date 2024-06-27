@@ -14,7 +14,7 @@ import System from "App/Models/System";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
-import { validate } from "App/Shared";
+import { validateCPF } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
@@ -65,6 +65,28 @@ export default class SharedService {
 		complaint: "Reclamação",
 		type: "Tipo",
 		scheduleStatusType: "Tipo de Status",
+		document: "Documento",
+		gender: "Genero",
+		email: "Email",
+		cellphone: "Celular",
+		professionId: "Profissão",
+		postalCode: "CEP",
+		zipCode: "CEP",
+		street: "Rua",
+		number: "Numero",
+		complement: "Complemento",
+		district: "Bairro",
+		city: "Cidade",
+		state: "Estado",
+		origin: "Origem",
+		clientOriginId: "Origem do Cliente",
+		contact: "Contato",
+		residence: "Residência",
+		address: "Endereço",
+		birthDate: "Data de Nascimento",
+		contacts: "Contatos",
+		birthMonths: "Meses",
+		birthYears: "Anos",
 	} as const;
 
 	public async errorHoc(
@@ -74,7 +96,8 @@ export default class SharedService {
 		try {
 			await fn();
 		} catch (e) {
-			console.log("got an error", e);
+			// console.log("got an error", e);
+			// console.log("got an error", JSON.stringify(e, null, 2));
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,
@@ -84,14 +107,15 @@ export default class SharedService {
 					// @ts-expect-error
 					validationErrors: e.messages.errors.reduce(
 						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
+							const key = curr.field.replace(/\.([0-9]+)/g, "[$1]");
+							if (!prev[key]) {
+								prev[key] = { errors: [] };
 							}
 
-							prev[curr.field].errors.push(
+							prev[key].errors.push(
 								curr.message.replace(
 									"Campo",
-									`Campo '${SharedService.intlMap[curr.field] ?? curr.field}'`,
+									`Campo '${SharedService.intlMap[key.split(".").at(-1)] ?? key.split(".").at(-1)}'`,
 								),
 							);
 
@@ -241,7 +265,7 @@ export default class SharedService {
 	}
 
 	public validDocument(document: string): boolean {
-		return validate(document.replace(/\D/g, ""));
+		return validateCPF(document.replace(/\D/g, ""));
 	}
 
 	public isValidNumber(data: number | undefined) {

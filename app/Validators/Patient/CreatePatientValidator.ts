@@ -22,15 +22,18 @@ export default class CreatePatientValidator {
 		}),
 		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
-		birthDate: schema.date.optional({}),
+		birthDate:
+			this.ctx.request.input("birthDate_change", "false") === "false"
+				? schema.date()
+				: schema.date.optional(),
 		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
 		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
 		// holderId: schema.string.optional({}, [
 		// 	rules.uuid(),
 		// 	rules.exists({ table: "patients", column: "id" }),

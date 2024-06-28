@@ -35,15 +35,7 @@ export default class CreateLiftOneTutorForRegisterValidator {
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		birthDate: schema.date.optional({}),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+		birthDate: schema.date({}),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([

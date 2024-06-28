@@ -30,18 +30,10 @@ export default class CreateSanclaTutorForRegisterValidator {
 		name: schema.string({}),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
-		birthDate: schema.date.optional({}),
+		birthDate: schema.date({}),
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([

@@ -35,15 +35,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		birthDate: schema.date.optional(),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+		birthDate: schema.date(),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),

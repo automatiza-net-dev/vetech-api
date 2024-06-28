@@ -662,6 +662,9 @@ export default class ReceiptService {
 			})
 			.preload("supplier", (query) => {
 				query.select("id", "name");
+				query.preload("tutor", (query) => {
+					query.select("id", "account_plan_id");
+				});
 			})
 			.preload("businessUnit", (query) => {
 				query.select("id", "identification");

@@ -1855,6 +1855,7 @@ where deposit_id = ?
 				deliveryValue: 0,
 				additionalInformation: data.additionalInformation,
 				status: BillStatus.A,
+				documentStatus: "Não Gerados",
 
 				otherValue: 0,
 				tag: GenerateTag(
@@ -2143,6 +2144,11 @@ where deposit_id = ?
 				query.preload("tutor");
 			})
 			.firstOrFail();
+		await bill
+			.merge({ documentStatus: "Novos Itens" })
+			.useTransaction(trx)
+			.save();
+
 		const items = await bill
 			.related("items")
 			.query()

@@ -1187,6 +1187,7 @@ export default class BudgetService {
 					deliveryValue: 0,
 					additionalInformation: "[Concluído a partir de um orçamento]",
 					status: BillStatus.A,
+					documentStatus: "Não Gerados",
 
 					otherValue: 0,
 					tag: GenerateTag(

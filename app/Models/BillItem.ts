@@ -304,6 +304,11 @@ export default class BillItem extends BaseModel {
 	public status: BillItemStatus;
 
 	@column.dateTime({
+		columnName: "data_document",
+	})
+	public dataDocument: DateTime;
+
+	@column.dateTime({
 		columnName: "disabled_at",
 	})
 	public disabledAt: DateTime;

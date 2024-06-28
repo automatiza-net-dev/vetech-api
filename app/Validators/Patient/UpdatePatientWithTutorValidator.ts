@@ -36,7 +36,7 @@ export default class UpdatePatientWithTutorValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

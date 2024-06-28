@@ -31,6 +31,7 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
+		inscription: schema.string.optional({}, []),
 		birthDate: schema.date(),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([
@@ -41,7 +42,7 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

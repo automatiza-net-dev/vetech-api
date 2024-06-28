@@ -31,6 +31,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
+		inscription: schema.date.optional(),
 		birthDate: schema.date.optional(),
 		birthMonths:
 			this.ctx.request.input("birthDate", "") !== ""
@@ -52,7 +53,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

@@ -510,6 +510,7 @@ export default class ReceiptService {
 			supplier?: string;
 			seller?: string;
 			status?: string;
+			receipt_id?: string;
 		},
 	) {
 		const qb = Receipt.query()
@@ -524,6 +525,10 @@ export default class ReceiptService {
 			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id);
+
+		if (data.receipt_id) {
+			qb.where("id", data.receipt_id);
+		}
 
 		if (data.from) {
 			qb.whereRaw("receipt_date::date >= ?", [data.from]);
@@ -950,7 +955,7 @@ export default class ReceiptService {
 					? existingProduct
 					: products.find((p) =>
 							p.variations.find((pv) => pv.barcode === barcode),
-					  );
+						);
 
 				const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
 				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
@@ -993,24 +998,24 @@ export default class ReceiptService {
 						"vBCSTRet" in icms
 							? icms.vBCSTRet
 							: "vBCST" in icms
-							  ? icms.vBCST
-							  : undefined,
+								? icms.vBCST
+								: undefined,
 					icmsStPercentageRedBase:
 						"pRedBCST" in icms ? icms.pRedBCST : undefined,
 					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
 					icmsStPercentageUfDestination:
 						"pICMSSTRet" in icms
 							? // @ts-ignore check if things will work
-							  icms.pICMSSTRet
+								icms.pICMSSTRet
 							: "pICMSST" in icms
-							  ? icms.pICMSST
-							  : undefined,
+								? icms.pICMSST
+								: undefined,
 					icmsStValue:
 						"vICMSSTRet" in icms
 							? icms.vICMSSTRet
 							: "vICMSST" in icms
-							  ? icms.vICMSST
-							  : undefined, // vICMSSTRet ?
+								? icms.vICMSST
+								: undefined, // vICMSSTRet ?
 					// icmsPartitionValue: 0,
 					// icmsFcpPercentage: 0,
 					// icmsFcpValue: 0,

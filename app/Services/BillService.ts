@@ -58,6 +58,7 @@ interface ISearch {
 	patientTag?: string;
 	patient?: string;
 	tag?: string;
+	bill_id?: string;
 }
 
 interface ISearchProduct {
@@ -121,6 +122,10 @@ export default class BillService {
 
 		if (data.patient) {
 			qb.where("patient_id", data.patient);
+		}
+
+		if (data.bill_id) {
+			qb.where("id", data.bill_id);
 		}
 
 		if (data.patientTag) {

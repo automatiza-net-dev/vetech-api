@@ -28,16 +28,7 @@ export default class BillsController {
 	public async index({ request, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
-		const result = await this.service.index(unit_id, {
-			client: qs.client,
-			status: qs.status,
-			fromBill: qs.fromBill,
-			toBill: qs.toBill,
-			patient: qs.patient,
-			tag: qs.tag,
-			patientTag: qs.patientTag,
-		});
+		const result = await this.service.index(unit_id, request.qs());
 
 		return response.ok(result);
 	}

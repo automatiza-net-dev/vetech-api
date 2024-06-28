@@ -660,6 +660,17 @@ export default class BusinessUnitFiscalDocumentService {
 			throw new BadRequestException("Não existe documento para ser emitido");
 		}
 
+		const productsWithoutServiceCode = items.filter(
+			(i) => !i.productVariation.product.serviceCode,
+		);
+		if (productsWithoutServiceCode.length > 0) {
+			throw new BadRequestException(
+				`Produtos sem código de serviço: ${productsWithoutServiceCode.map((p) => p.productVariation.product.description).join(", ")}`,
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (!authCtx.unit.unitConfig.groupNfseDocuments) {
 			const results = await Promise.all(
 				items.map(async (item) => {

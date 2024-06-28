@@ -31,15 +31,11 @@ export default class CreateLiftOneTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
-		birthDate: schema.date.optional({}),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+		inscription: schema.string.optional({}, []),
+		photo: schema.file.optional({
+			extnames: ["jpg", "gif", "png", "jpeg"],
+		}),
+		birthDate: schema.date({}),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([
@@ -49,7 +45,7 @@ export default class CreateLiftOneTutorForRegisterValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

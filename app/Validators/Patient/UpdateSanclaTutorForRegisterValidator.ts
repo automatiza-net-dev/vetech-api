@@ -31,15 +31,11 @@ export default class UpdateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		document: schema.string({}, []),
-		birthDate: schema.date.optional(),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+		inscription: schema.date.optional(),
+		photo: schema.file.optional({
+			extnames: ["jpg", "gif", "png", "jpeg"],
+		}),
+		birthDate: schema.date(),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
@@ -52,7 +48,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

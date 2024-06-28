@@ -16,15 +16,7 @@ export default class CreatePatientWithTutorValidator {
 		}),
 		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
-		birthDate: schema.date.optional({}),
-		birthMonths:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
-		birthYears:
-			this.ctx.request.input("birthDate", "") !== ""
-				? schema.number.optional([])
-				: schema.number(),
+		birthDate: schema.date({}),
 		document: schema.string.optional({}, []),
 		inscription: schema.string.optional({}, []),
 		corporate_name: schema.string.optional({}, []),
@@ -37,7 +29,7 @@ export default class CreatePatientWithTutorValidator {
 			zipCode: schema.string(),
 			logradouro: schema.string(),
 			number: schema.string(),
-			complemento: schema.string(),
+			complemento: schema.string.optional(),
 			bairro: schema.string(),
 			localidade: schema.string(),
 			uf: schema.string(),

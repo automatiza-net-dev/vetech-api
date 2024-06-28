@@ -1,7 +1,9 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import Bill, { TBillDocumentStatus } from "App/Models/Bill";
 import BillDocument from "App/Models/BillDocument";
+import BillItem from "App/Models/BillItem";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import ProductDocument, {
 	type TProductDocumentType,
@@ -146,6 +148,7 @@ export default class ProductDocumentService {
                 join products p2 on product_variations.product_id = p2.id
                 join bill_items on product_variations.id = bill_items.product_variation_id
        where bill_items.bill_id = ?
+         and bill_items.data_document is null
          and bill_items.deleted_at is null)`,
 					[data.billId],
 				);
@@ -188,6 +191,22 @@ export default class ProductDocumentService {
 					},
 				});
 
+				await Bill.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("id", data.billId)
+					.update({
+						documentStatus: "Gerados" as TBillDocumentStatus,
+					});
+
+				await BillItem.query()
+					.useTransaction(trx)
+					.where("bill_id", data.billId)
+					.whereNull("deleted_at")
+					.update({
+						data_document: DateTime.now(),
+					});
+
 				const doc = await BillDocument.create(
 					{
 						economic_group_id: authCtx.group.id,
@@ -222,14 +241,27 @@ export default class ProductDocumentService {
 				);
 			}
 
+			const billIds: string[] = [];
+
 			if (data.timelineId) {
-				await AnimalTimeline.findByIdAndUpdate(data.timelineId, {
-					$set: {
-						"timeline_info.print.user_id": authCtx.user.id,
-						"timeline_info.print.user_name": authCtx.user.name,
-						"timeline_info.print.date": new Date(),
+				const val = await AnimalTimeline.findByIdAndUpdate(
+					data.timelineId,
+					{
+						$set: {
+							"timeline_info.print.user_id": authCtx.user.id,
+							"timeline_info.print.user_name": authCtx.user.name,
+							"timeline_info.print.date": new Date(),
+						},
 					},
-				});
+					{ new: true },
+				);
+
+				// @ts-ignore: mongodb
+				const key = val?.timeline_info?.$meta?.bill_id;
+
+				if (!!key && typeof key === "string") {
+					billIds.push(key);
+				}
 			}
 
 			if (data.billDocumentId) {
@@ -254,7 +286,34 @@ export default class ProductDocumentService {
 						"timeline_info.print.date": new Date(),
 					},
 				});
+
+				billIds.push(elem.bill_id);
 			}
+
+			if (billIds.length === 0) {
+				return;
+			}
+
+			const bills = await Bill.query()
+				.useTransaction(trx)
+				.whereIn("id", billIds);
+			const billDocuments = await BillDocument.query()
+				.useTransaction(trx)
+				.whereIn("bill_id", billIds);
+
+			const tasks = bills.map(async (elem) => {
+				return elem
+					.merge({
+						documentStatus: billDocuments
+							.filter((f) => f.bill_id === elem.id)
+							.every((f) => !!f.printedAt)
+							? "Impressos"
+							: "Imp. Pendentes",
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
 		});
 	}
 

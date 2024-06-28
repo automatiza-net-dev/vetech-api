@@ -32,6 +32,9 @@ export default class UpdateLiftOneTutorForRegisterValidator {
 		name: schema.string({}),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
+		photo: schema.file.optional({
+			extnames: ["jpg", "gif", "png", "jpeg"],
+		}),
 		birthDate: schema.date(),
 		gender: schema.enum(Object.values(PatientGender), []),
 		clientOriginId: schema.string([

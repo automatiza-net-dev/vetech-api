@@ -197,7 +197,12 @@ export default class BillService {
 				query.preload("flag", (query) => {
 					query.select("id", "description", "code", "type");
 				});
+
 				query.preload("paymentMethod");
+
+				query.preload("finance", (q) => {
+					q.select(["id", "payment)date"]);
+				});
 			})
 			.preload("items", (query) => {
 				query.where("status", BillItemStatus.A);
@@ -216,8 +221,6 @@ export default class BillService {
 		if (!bill) {
 			throw this.sharedService.ResourceNotFound();
 		}
-
-		await Promise.all([]);
 
 		return bill;
 	}

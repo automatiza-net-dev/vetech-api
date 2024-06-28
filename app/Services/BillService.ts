@@ -201,7 +201,7 @@ export default class BillService {
 				query.preload("paymentMethod");
 
 				query.preload("finance", (q) => {
-					q.select(["id", "payment)date"]);
+					q.select(["id", "payment_date"]);
 				});
 			})
 			.preload("items", (query) => {

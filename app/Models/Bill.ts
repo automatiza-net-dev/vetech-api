@@ -202,7 +202,7 @@ export default class Bill extends BaseModel {
 	public status: BillStatus;
 
 	@column({
-		columnName: "document_status",
+		columnName: "documents_status",
 	})
 	public documentStatus: TBillDocumentStatus;
 

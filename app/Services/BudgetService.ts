@@ -47,6 +47,7 @@ interface ISearchPartial {
 	client?: string;
 	reviewer?: string;
 	tag?: string;
+	budget_id?: string;
 }
 
 interface ISearchComplete {
@@ -230,7 +231,9 @@ export default class BudgetService {
 			.preload("cancelationReason")
 			.orderBy("created_at", "desc");
 
-		// TODO preload payments
+		if (data.budget_id) {
+			qb.where("id", data.budget_id);
+		}
 
 		if (data.fromCreation) {
 			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);

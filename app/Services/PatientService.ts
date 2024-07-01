@@ -1168,6 +1168,7 @@ export default class PatientService {
 		if (
 			!data.holders &&
 			!data.birthDate &&
+			!data.birthDays &&
 			!data.birthMonths &&
 			!data.birthYears
 		) {
@@ -1200,6 +1201,7 @@ export default class PatientService {
 								.minus({
 									years: data.birthYears ?? 0,
 									months: data.birthMonths ?? 0,
+									days: data.birthDays ?? 0,
 								})
 								.toJSDate(),
 					type: PatientType.ANIMAL,

@@ -110,6 +110,7 @@ export default class BusinessUnitMetaService {
 			businessUnitId: string;
 			value: number;
 			period: string;
+			unitMetaId?: number;
 		}[],
 	) {
 		return await Database.transaction(async (trx) => {
@@ -120,8 +121,20 @@ export default class BusinessUnitMetaService {
 					.where("meta_id", d.metaId)
 					.where("period", d.period);
 
-				if (existing.length > 0) {
+				if (d.unitMetaId && existing.length > 0) {
 					throw new BadRequestException("Meta já cadastrada", 400, "E_ERR");
+				}
+
+				if (d.unitMetaId) {
+					return BusinessUnitMeta.query()
+						.where("id", d.unitMetaId)
+						.useTransaction(trx)
+						.update({
+							business_unit_id: d.businessUnitId,
+							meta_id: d.metaId,
+							value: d.value,
+							period: d.period,
+						});
 				}
 
 				return BusinessUnitMeta.create(

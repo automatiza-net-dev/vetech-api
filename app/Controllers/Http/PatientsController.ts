@@ -9,7 +9,6 @@ import CreateSchedulePatientValidator from "App/Validators/Patient/CreateSchedul
 import DeclareDeathValidator from "App/Validators/Patient/DeclareDeathValidator";
 import FastCreatePatientValidator from "App/Validators/Patient/FastCreatePatientValidator";
 import UpdatePatientValidator from "App/Validators/Patient/UpdatePatientValidator";
-import IPatientData from "Contracts/interfaces/IPatientData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
 
 @inject()
@@ -21,12 +20,8 @@ export default class PatientsController {
 
 	public async index({ auth, request, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
-		const qs = request.qs();
-		const patients = await this.service.index(unit_id, {
-			name: qs.name,
-			gender: qs.gender,
-			type: qs.type,
-		});
+
+		const patients = await this.service.index(unit_id, request.qs());
 
 		return response.ok(patients);
 	}
@@ -139,7 +134,7 @@ export default class PatientsController {
 			const { unit_id } = this.sharedService.extractUser(auth);
 
 			const origin = request.input("origin");
-			let payload: Omit<IPatientData, "active"> | null = null;
+			let payload: any | null = request.body();
 
 			if (origin === "Agenda") {
 				payload = await request.validate(CreateSchedulePatientValidator);

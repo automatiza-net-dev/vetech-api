@@ -485,7 +485,7 @@ export default class PatientService {
 		const tutors =
 			data.tutor || data.document
 				? await Database.from("patients")
-						.select(Database.raw("name as tutor"))
+						.select(Database.raw("patients.id, name as tutor"))
 						.joinRaw(
 							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
 							[authCtx.group.id],
@@ -507,32 +507,37 @@ export default class PatientService {
 						.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
 							data.document ? `%${data.document}%` : "",
 						])
+						.orderByRaw("name asc")
 				: [];
 
-		return {
-			patients: result.map((patient) => {
-				return {
-					id: patient.id,
-					name: patient.name,
-					tag: patient.tag,
-					gender: patient.gender,
-					community: patient.community,
-					birthDate: patient.birthDate,
-					castrated: patient.patientAnimal?.castrated,
-					weight: patient.weight,
-					race: patient.patientAnimal?.race,
-					tutors: patient.tutors.map((elem) => ({
-						id: elem.id,
-						name: elem.name,
-						email: elem.tutor?.email ?? "-",
-						tag: elem.tag,
-						cellphone: elem.tutor?.cellphone ?? "-",
-						isMain: elem.$extras.pivot_is_main,
-					})),
-				};
-			}),
-			tutors,
-		};
+		const patients = result.map((patient) => {
+			return {
+				id: patient.id,
+				name: patient.name,
+				tag: patient.tag,
+				gender: patient.gender,
+				community: patient.community,
+				birthDate: patient.birthDate,
+				castrated: patient.patientAnimal?.castrated,
+				weight: patient.weight,
+				race: patient.patientAnimal?.race,
+				tutors: patient.tutors.map((elem) => ({
+					id: elem.id,
+					name: elem.name,
+					email: elem.tutor?.email ?? "-",
+					tag: elem.tag,
+					cellphone: elem.tutor?.cellphone ?? "-",
+					isMain: elem.$extras.pivot_is_main,
+				})),
+			};
+		});
+
+		const $tutors = tutors.map((elem) => ({
+			id: "-",
+			tutors: [{ id: elem.id, name: elem.tutor }],
+		}));
+
+		return [...$tutors, ...patients];
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {

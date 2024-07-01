@@ -1435,7 +1435,7 @@ export default class ReceiptService {
 			}>;
 		},
 	) {
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const counter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -1490,6 +1490,8 @@ export default class ReceiptService {
 			await Promise.all(tasks);
 
 			await this.syncReceipt(trx, receipt);
+
+			return receipt;
 		});
 	}
 

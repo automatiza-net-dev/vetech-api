@@ -1174,7 +1174,7 @@ export default class PatientService {
 					tags: data.tags,
 					community: data.community,
 					birthDate: data.birthDate
-						? data.birthDate?.toJSDate()
+						? DateTime.fromISO(data.birthDate).toJSDate()
 						: DateTime.now()
 								.minus({
 									years: data.birthYears ?? 0,

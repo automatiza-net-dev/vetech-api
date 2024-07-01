@@ -1284,7 +1284,9 @@ export default class PatientService {
 			const patient = await Patient.create(
 				{
 					name: data.name,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? DateTime.fromISO(data.birthDate).toJSDate()
+						: undefined,
 					gender: data.gender,
 					tags: data.tags,
 					photo,
@@ -1849,7 +1851,9 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? DateTime.fromISO(data.birthDate).toJSDate()
+						: undefined,
 					active: data.active,
 					diabetes: data.diabetes,
 					hypertension: data.hypertension,

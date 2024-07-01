@@ -121,7 +121,7 @@ export default class BusinessUnitMetaService {
 					.where("meta_id", d.metaId)
 					.where("period", d.period);
 
-				if (d.unitMetaId && existing.length > 0) {
+				if (!d.unitMetaId && existing.length > 0) {
 					throw new BadRequestException("Meta já cadastrada", 400, "E_ERR");
 				}
 
@@ -130,10 +130,7 @@ export default class BusinessUnitMetaService {
 						.where("id", d.unitMetaId)
 						.useTransaction(trx)
 						.update({
-							business_unit_id: d.businessUnitId,
-							meta_id: d.metaId,
 							value: d.value,
-							period: d.period,
 						});
 				}
 

@@ -418,13 +418,13 @@ export default class PatientService {
 			]);
 		}
 
-		// if (data.document) {
-		// 	qb.whereHas("tutors", (q) => {
-		// 		q.whereRaw("document ilike ?", [
-		// 			`%${data.document?.replace(/\D/g, "")}%`,
-		// 		]);
-		// 	});
-		// }
+		if (data.document) {
+			qb.whereHas("tutors", (q) => {
+				q.whereRaw("document ilike ?", [
+					`%${data.document?.replace(/\D/g, "")}%`,
+				]);
+			});
+		}
 
 		if (data.tutor) {
 			qb.whereHas("tutors", (q) => {

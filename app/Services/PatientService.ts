@@ -1166,7 +1166,7 @@ export default class PatientService {
 
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
-			!data.holders &&
+			data.holders &&
 			!data.birthDate &&
 			!data.birthDays &&
 			!data.birthMonths &&

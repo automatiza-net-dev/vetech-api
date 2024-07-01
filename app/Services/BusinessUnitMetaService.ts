@@ -26,20 +26,21 @@ export default class BusinessUnitMetaService {
           business_units.identification,
           metas.id                               as m_id,
           metas.description,
+          metas.type,
           business_unit_metas.id                 as bum_id,
           coalesce(business_unit_metas.value, 0) as valor_meta,
           business_unit_metas.period
           `),
 			)
 			.joinRaw(
-				`join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null) and metas.deleted_at is null`,
+				"join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null) and metas.deleted_at is null",
 			)
 			.joinRaw(
 				`left join business_unit_metas on metas.id = business_unit_metas.meta_id and
                                           business_units.id = business_unit_metas.business_unit_id and business_unit_metas.period = ? and business_unit_metas.active = true`,
 				[data.period],
 			)
-			.orderByRaw(`business_units.id, metas.id, business_unit_metas.id`);
+			.orderByRaw("business_units.id, metas.id, business_unit_metas.id");
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
 			qb.whereIn("business_units.id", data.units);
@@ -94,6 +95,7 @@ export default class BusinessUnitMetaService {
 				metas: unitRows.map((r) => ({
 					id: r.m_id,
 					description: r.description,
+					type: r.type,
 					unitMetaId: r.bum_id,
 					value: r.valor_meta,
 				})),

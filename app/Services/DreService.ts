@@ -4,27 +4,8 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import * as fs from "node:fs";
 import { v4 } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
-import Application from "@ioc:Adonis/Core/Application";
 import { exec } from "node:child_process";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
-
-type DreRow = {
-	mes: number;
-	ano: string;
-	data: string;
-	plano_contas_grupo: string;
-	historico: string | null;
-	pessoa: string;
-	col_g: string;
-	col_h: string;
-	col_i: string;
-	col_j: string;
-	col_k: string;
-	valor_pago: number;
-	valor_recebido: number;
-	total: number;
-	plano_contas: string;
-};
 
 @inject()
 export default class DreService {
@@ -44,11 +25,11 @@ export default class DreService {
 		     ''                                                                                    col_i,
 		     ''                                                                                    col_j,
 		     ''                                                                                    col_k,
-		     case when finances."type" = 'DEBITO' then TO_CHAR(finances.total_value, '9999990D99') else '0' end  valor_pago,
-		     case when finances."type" = 'CREDITO' then TO_CHAR(finances.total_value, '9999990D99') else '0' end valor_recebido,
-		     case
-		         when finances."type" = 'DEBITO' then TO_CHAR(finances.total_value * (-1), '9999990D99')
-		         else TO_CHAR(finances.total_value, '9999990D99') end                                     total,
+         case when f."type" = 'DEBITO' then f.total_value else 0 end                   valor_pago,
+         case when f."type" = 'CREDITO' then f.total_value else 0 end                  valor_recebido,
+         case
+            when f."type" = 'DEBITO' then f.total_value * (-1)
+             else f.total_value end                                                    total,
 		     pc.description                                                                        plano_contas`),
 			)
 			.joinRaw(`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id
@@ -72,7 +53,19 @@ export default class DreService {
 		const baseDreExcel = Env.get("DRE_PATH");
 		const genKey = v4();
 
-		fs.writeFileSync(`/tmp/${genKey}.json`, JSON.stringify(data));
+		fs.writeFileSync(
+			`/tmp/${genKey}.json`,
+			JSON.stringify(
+				data.map((d) => ({
+					...d,
+					ano: Number.parseInt(d.ano),
+					mes: Number.parseInt(d.mes),
+					valor_pago: Number.parseFloat(d.valor_pago),
+					valor_recebido: Number.parseInt(d.valor_recebido),
+					total: Number.parseFloat(d.total),
+				})),
+			),
+		);
 
 		const result = await new Promise<
 			{ success: true; path: string } | { success: false; err: string }

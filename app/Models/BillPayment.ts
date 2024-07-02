@@ -140,7 +140,7 @@ export default class BillPayment extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public payment_method_id: string;
+	public payment_method_id: string | null;
 
 	@belongsTo(() => PaymentMethod, {
 		foreignKey: "payment_method_id",

@@ -1031,6 +1031,10 @@ Route.group(() => {
 	Route.get("/products", "BillsController.searchProducts");
 	Route.get("/taxes", "BillsController.searchTax");
 	Route.get("/show/:id", "BillsController.show");
+	Route.get(
+		"/print-payment-receipts/:bill",
+		"BillsController.printPaymentReceipt",
+	);
 
 	Route.put("/update-conference", "BillsController.updateCashierConference");
 	Route.put("/recalculate/:id", "BillsController.recalculate");

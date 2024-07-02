@@ -380,4 +380,20 @@ export default class BillsController {
 
 		return response.noContent();
 	}
+
+	public async printPaymentReceipt({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.printPaymentReceipt(
+			authCtx,
+			request.param("bill"),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

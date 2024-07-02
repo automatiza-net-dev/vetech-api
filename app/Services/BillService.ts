@@ -49,6 +49,7 @@ import type {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
+import { validate } from "uuid";
 
 interface ISearch {
 	fromBill?: string;
@@ -3031,5 +3032,75 @@ where deposit_id = ?
 				.save();
 		});
 		await Promise.all(tasks);
+	}
+	async printPaymentReceipt(
+		authCtx: AuthContext,
+		billID: string,
+		data: { billPayment?: string; block?: string },
+	) {
+		if (!validate(billID)) {
+			throw new BadRequestException("ID de Venda inválido", 400, "E_ERR");
+		}
+
+		return Database.transaction(async (trx) => {
+			const updateQb = Database.from("bill_payments")
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bill_id", billID);
+
+			if (data.billPayment) {
+				updateQb.where("id", data.billPayment);
+			}
+
+			if (data.block) {
+				updateQb.where("block", data.block);
+			}
+
+			await updateQb.update({
+				printed_at: DateTime.now(),
+				print_user_id: authCtx.user.id,
+			});
+
+			return Bill.query()
+				.useTransaction(trx)
+				.where("id", billID)
+				.select("id", "tag", "bill_date", "business_unit_id", "client_id")
+				.preload("businessUnit", (query) => {
+					query.select(
+						"id",
+						"company_name",
+						"document",
+						"phone",
+						"postal_code",
+						"address",
+						"number",
+						"complement",
+						"district",
+						"city",
+						"state",
+					);
+				})
+				.preload("client", (query) => {
+					query.select("id", "name", "document");
+				})
+				.preload("payments", (query) => {
+					if (data.billPayment) {
+						query.where("id", data.billPayment);
+					}
+					if (data.block) {
+						query.where("block", data.block);
+					}
+
+					query.select("id", "payment_value", "printed_at");
+
+					query.preload("paymentMethod", (query) => {
+						query.select("id", "description");
+					});
+
+					query.preload("printUser", (query) => {
+						query.select("id", "name");
+					});
+				});
+		});
 	}
 }

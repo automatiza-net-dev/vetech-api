@@ -15,7 +15,7 @@ export default class DreService {
 		const data = await Database.from("finances")
 			.select(
 				Database.raw(`substring(competence_date, 1, 2)::int                                                      mes,
-		     substring(competence_date, 4, 4)::int                                                      ano,
+		     substring(competence_date, 4, 4) ano,
 		     ('01' || '/' || competence_date) as                                                   data,
 		     case when pc.parent_id is null then pc.description else pcPai.description end         plano_contas_grupo,
 		     finances.historic                                                                            historico,

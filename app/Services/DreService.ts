@@ -119,14 +119,14 @@ export default class DreService {
 			);
 		}
 
-		XLSX.utils.sheet_add_aoa(
-			worksheet,
-			data.map((d) => Object.values(d)),
-			{
-				origin: 1,
-			},
-		);
-		workbook.Sheets[worksheetKey] = worksheet;
+		// XLSX.utils.sheet_add_aoa(
+		// 	worksheet,
+		// 	data.map((d) => Object.values(d)),
+		// 	{
+		// 		origin: 1,
+		// 	},
+		// );
+		// workbook.Sheets[worksheetKey] = worksheet;
 
 		// for (const $key of workbook.SheetNames) {
 		// 	// workbook.Sheets[$key]
@@ -141,7 +141,7 @@ export default class DreService {
 			"LOCAL_DISK_ROOT",
 			Application.tmpPath(),
 		)}/${fileKey}`;
-		await XLSX.writeFile(workbook, fullPath, { compression: true });
+		await XLSX.writeFile(workbook, fullPath, {});
 
 		// const responseBuffer = await PDFEngine.convert({
 		// 	files: [fullPath],

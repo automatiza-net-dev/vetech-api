@@ -1,16 +1,15 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import * as XLSX from "xlsx";
 import * as fs from "node:fs";
 import { v4 } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import Application from "@ioc:Adonis/Core/Application";
+import { exec } from "node:child_process";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
-import { PDFEngine } from "chromiumly";
 
 type DreRow = {
-	mes: string;
+	mes: number;
 	ano: string;
 	data: string;
 	plano_contas_grupo: string;
@@ -21,9 +20,9 @@ type DreRow = {
 	col_i: string;
 	col_j: string;
 	col_k: string;
-	valor_pago: string;
-	valor_recebido: string;
-	total: string;
+	valor_pago: number;
+	valor_recebido: number;
+	total: number;
 	plano_contas: string;
 };
 
@@ -34,8 +33,8 @@ export default class DreService {
 	public async generateDreSpreadsheet(authCtx: AuthContext) {
 		const data = await Database.from("finances")
 			.select(
-				Database.raw(`substring(competence_date, 1, 2)                                                      mes,
-		     substring(competence_date, 4, 4)                                                      ano,
+				Database.raw(`substring(competence_date, 1, 2)::int                                                      mes,
+		     substring(competence_date, 4, 4)::int                                                      ano,
 		     ('01' || '/' || competence_date) as                                                   data,
 		     case when pc.parent_id is null then pc.description else pcPai.description end         plano_contas_grupo,
 		     finances.historic                                                                            historico,
@@ -69,101 +68,49 @@ export default class DreService {
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);
 
-		const _data: DreRow[] = [
-			{
-				mes: "04",
-				ano: "2024",
-				data: "01/04/2024",
-				plano_contas_grupo: "Receitas Financeiras",
-				historico: null,
-				pessoa: "clark kent",
-				col_g: "",
-				col_h: "",
-				col_i: "",
-				col_j: "",
-				col_k: "",
-				valor_pago: "0",
-				valor_recebido: "     250,00",
-				total: "     250,00",
-				plano_contas: "Receitas Financeiras",
-			},
-			{
-				mes: "04",
-				ano: "2024",
-				data: "01/04/2024",
-				plano_contas_grupo: "Receitas Produtos",
-				historico: null,
-				pessoa: "alberto luciano",
-				col_g: "",
-				col_h: "",
-				col_i: "",
-				col_j: "",
-				col_k: "",
-				valor_pago: "0",
-				valor_recebido: "     150,00",
-				total: "     150,00",
-				plano_contas: "Receitas Produtos",
-			},
-		];
+		const excelCompiler = Env.get("DRE_PATH").replace("dre.xlsx", "excel");
+		const baseDreExcel = Env.get("DRE_PATH");
+		const genKey = v4();
 
-		const sheetBuffer = fs.readFileSync(Env.get("DRE_PATH"));
-		const worksheetKey = "Dados Mov Financeira";
+		fs.writeFileSync(`/tmp/${genKey}.json`, JSON.stringify(data));
 
-		const workbook = XLSX.read(sheetBuffer);
-		const worksheet = workbook.Sheets[worksheetKey];
-		if (!worksheet) {
+		const result = await new Promise<
+			{ success: true; path: string } | { success: false; err: string }
+		>((res) => {
+			exec(
+				`${excelCompiler} ${baseDreExcel} /tmp/${genKey}.json`,
+				(error, _stdout, _stderr) => {
+					if (error) {
+						console.error(error);
+						return res({ success: false, err: error.message });
+					}
+
+					if (_stderr.length > 0) {
+						console.log({ _stdout, _stderr });
+						return res({ success: false, err: _stderr });
+					}
+
+					return res({ success: true, path: _stdout });
+				},
+			);
+		});
+
+		if (!result.success) {
 			throw new InternalErrorException(
-				`Folha '${worksheetKey}' não encontrada`,
+				`Erro gerando pdf -> ${result.err}`,
 				500,
 				"E_ERR",
 			);
 		}
 
-		// XLSX.utils.sheet_add_aoa(
-		// 	worksheet,
-		// 	data.map((d) => Object.values(d)),
-		// 	{
-		// 		origin: 1,
-		// 	},
-		// );
-		// workbook.Sheets[worksheetKey] = worksheet;
-
-		// for (const $key of workbook.SheetNames) {
-		// 	// workbook.Sheets[$key]
-		// 	XLSX.utils.book_set_sheet_visibility(workbook, $key, 2);
-		// }
-
-		const key = v4();
-		const fileKey = `${key}.xlsx`;
-		// const compiledFileKey = `${key}.pdf`;
-
-		const fullPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}/${fileKey}`;
-		await XLSX.writeFile(workbook, fullPath, {});
-
-		// const responseBuffer = await PDFEngine.convert({
-		// 	files: [fullPath],
-		// });
-
-		// const fullCompiledPath = `${Env.get(
-		// 	"LOCAL_DISK_ROOT",
-		// 	Application.tmpPath(),
-		// )}/${compiledFileKey}`;
-		// fs.writeFileSync(fullCompiledPath, responseBuffer, {});
-
-		// esperar 10 segundos e tentar deletar
 		setTimeout(() => {
 			try {
-				fs.unlinkSync(fullPath);
-				// fs.unlinkSync(fullCompiledPath);
-			} catch (_e) {
-				//
+				fs.unlinkSync(result.path);
+			} catch (err) {
+				console.error("Erro limpando arquivo", err);
 			}
 		}, 10_000);
 
-		// return fullCompiledPath;
-		return fullPath;
+		return result.path;
 	}
 }

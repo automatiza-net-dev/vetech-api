@@ -25,11 +25,11 @@ export default class DreService {
 		     ''                                                                                    col_i,
 		     ''                                                                                    col_j,
 		     ''                                                                                    col_k,
-         case when f."type" = 'DEBITO' then f.total_value else 0 end                   valor_pago,
-         case when f."type" = 'CREDITO' then f.total_value else 0 end                  valor_recebido,
+         case when finances."type" = 'DEBITO' then finances.total_value else 0 end                   valor_pago,
+         case when finances."type" = 'CREDITO' then finances.total_value else 0 end                  valor_recebido,
          case
-            when f."type" = 'DEBITO' then f.total_value * (-1)
-             else f.total_value end                                                    total,
+            when finances."type" = 'DEBITO' then finances.total_value * (-1)
+             else finances.total_value end                                                    total,
 		     pc.description                                                                        plano_contas`),
 			)
 			.joinRaw(`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id

@@ -92,14 +92,12 @@ export default class RoleService {
 			);
 
 			await RoleProfileAccess.createMany(
-				data.profileAccessIdList.map(
-					(elem) => ({
-						role_id: newRole.id,
-						profile_access_id: elem,
-						active: true,
-					}),
-					{ client: trx },
-				),
+				data.profileAccessIdList.map((elem) => ({
+					role_id: newRole.id,
+					profile_access_id: elem,
+					active: true,
+				})),
+				{ client: trx },
 			);
 
 			return newRole;

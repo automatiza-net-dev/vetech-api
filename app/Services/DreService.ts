@@ -135,7 +135,7 @@ export default class DreService {
 
 		const key = v4();
 		const fileKey = `${key}.xlsx`;
-		const compiledFileKey = `${key}.pdf`;
+		// const compiledFileKey = `${key}.pdf`;
 
 		const fullPath = `${Env.get(
 			"LOCAL_DISK_ROOT",
@@ -143,27 +143,27 @@ export default class DreService {
 		)}/${fileKey}`;
 		await XLSX.writeFile(workbook, fullPath, { compression: true });
 
-		const responseBuffer = await PDFEngine.convert({
-			files: [fullPath],
-		});
+		// const responseBuffer = await PDFEngine.convert({
+		// 	files: [fullPath],
+		// });
 
-		const fullCompiledPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}/${compiledFileKey}`;
-		fs.writeFileSync(fullCompiledPath, responseBuffer, {});
+		// const fullCompiledPath = `${Env.get(
+		// 	"LOCAL_DISK_ROOT",
+		// 	Application.tmpPath(),
+		// )}/${compiledFileKey}`;
+		// fs.writeFileSync(fullCompiledPath, responseBuffer, {});
 
 		// esperar 10 segundos e tentar deletar
 		setTimeout(() => {
 			try {
 				fs.unlinkSync(fullPath);
-				fs.unlinkSync(fullCompiledPath);
+				// fs.unlinkSync(fullCompiledPath);
 			} catch (_e) {
 				//
 			}
 		}, 10_000);
 
-		return fullCompiledPath;
-		// return fullPath;
+		// return fullCompiledPath;
+		return fullPath;
 	}
 }

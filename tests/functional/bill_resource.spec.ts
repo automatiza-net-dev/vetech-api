@@ -1899,6 +1899,22 @@ test.group("Bill resource", (group) => {
 		assert.equal(1, item.quantity);
 	});
 
+	test("should handle print", async ({ assert, client }) => {
+		const { user, bill } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const response = await client
+			.get(`/bills/print-payment-receipts/${bill.id}`)
+			.bearerToken(token);
+
+		console.log(JSON.stringify(response.body(), null, 2));
+
+		assert.equal(200, response.status());
+	});
+
 	// test('should recalculate item taxes', async ({ assert, client }) => {
 	//   const { user, bill, business, variation } = await createData();
 	//   const token = await generateJwtToken(client, {

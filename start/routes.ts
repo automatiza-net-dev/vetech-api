@@ -1791,7 +1791,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.get("/spreadsheet", "DreController.generateDreSpreadsheet");
+	Route.get("/spreadsheet/:unit", "DreController.generateDreSpreadsheet");
 })
 	.prefix("dre")
 	.middleware("auth");

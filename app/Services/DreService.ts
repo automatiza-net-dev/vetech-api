@@ -2,16 +2,29 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import * as fs from "node:fs";
-import { v4 } from "uuid";
+import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import { exec } from "node:child_process";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import BadRequestException from "App/Exceptions/BadRequestException";
 
 @inject()
 export default class DreService {
 	constructor(private _shared: SharedService) {}
 
-	public async generateDreSpreadsheet(authCtx: AuthContext) {
+	public async generateDreSpreadsheet(
+		authCtx: AuthContext,
+		unitID: string,
+		$data: { competence?: string },
+	) {
+		if (!validate(unitID)) {
+			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
+		}
+
+		if (!$data.competence) {
+			throw new BadRequestException("Competência obrigatória", 400, "E_ERR");
+		}
+
 		const data = await Database.from("finances")
 			.select(
 				Database.raw(`substring(competence_date, 1, 2)::int                                                      mes,
@@ -42,9 +55,10 @@ export default class DreService {
 			.joinRaw(
 				"join business_units on finances.business_unit_id = business_units.id",
 			)
-			.whereIn("finances.business_unit_id", [authCtx.unit.id])
+			.where("finances.economic_group_id", authCtx.group.id)
+			.where("finances.business_unit_id", unitID)
 			.whereNull("finances.deleted_at")
-			.where("finances.competence_date", `0${4}/2024`)
+			.where("finances.competence_date", $data.competence ?? "")
 			.orderByRaw(
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);

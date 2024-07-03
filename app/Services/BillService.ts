@@ -3081,7 +3081,11 @@ where deposit_id = ?
 					);
 				})
 				.preload("client", (query) => {
-					query.select("id", "name", "document");
+					query.select("id", "name");
+
+					query.preload("tutor", (query) => {
+						query.select("id", "document");
+					});
 				})
 				.preload("payments", (query) => {
 					if (data.billPayment) {

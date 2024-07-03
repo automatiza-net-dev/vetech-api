@@ -3088,12 +3088,13 @@ where deposit_id = ?
 					});
 				})
 				.preload("payments", (query) => {
-					// if (data.billPayment) {
-					// 	query.where("id", data.billPayment);
-					// }
-					// if (data.block) {
-					// 	query.where("block", data.block);
-					// }
+					if (data.billPayment) {
+						query.where("id", data.billPayment);
+					}
+
+					if (data.block) {
+						query.where("block", data.block);
+					}
 
 					query.select(
 						"id",

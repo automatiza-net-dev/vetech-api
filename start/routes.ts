@@ -1798,6 +1798,4 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "DictionariesController.index");
-})
-	.prefix("dictionary")
-	.middleware("auth");
+}).prefix("dictionary");

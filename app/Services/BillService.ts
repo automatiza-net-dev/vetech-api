@@ -3091,7 +3091,13 @@ where deposit_id = ?
 						query.where("block", data.block);
 					}
 
-					query.select("id", "total_value", "printed_at");
+					query.select(
+						"id",
+						"total_value",
+						"printed_at",
+						"payment_method_id",
+						"print_user_id",
+					);
 
 					query.preload("paymentMethod", (query) => {
 						query.select("id", "description");

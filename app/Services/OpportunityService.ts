@@ -246,6 +246,7 @@ export default class OpportunityService {
 				}
 
 				if (data.contactPhone) {
+					const clearPhone = data.contactPhone.replace(/\D/g, "");
 					query.whereHas("contacts", (query) => {
 						query.whereRaw(
 							`patient_contacts.type <> 'email'
@@ -263,12 +264,12 @@ export default class OpportunityService {
         else patient_contacts.contact ilike ? end
     )`,
 							[
-								data.contactPhone ?? "",
-								`%${data.contactPhone ?? ""}%`,
-								data.contactPhone ?? "",
-								data.contactPhone ?? "",
-								data.contactPhone ?? "",
-								`%${data.contactPhone ?? ""}%`,
+								clearPhone,
+								`%${clearPhone}%`,
+								clearPhone,
+								clearPhone,
+								clearPhone,
+								`%${clearPhone}%`,
 							],
 						);
 					});

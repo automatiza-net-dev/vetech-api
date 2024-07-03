@@ -37,6 +37,7 @@ import {
 } from "date-fns";
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import Opportunity from "App/Models/Opportunity";
 
 interface ISearch {
 	pid?: string;
@@ -886,23 +887,34 @@ export default class ScheduleService {
 	}
 
 	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE13",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException(
-				"Usuário não tem permissão",
-				400,
-				"E_ERR",
+		return Database.transaction(async (trx) => {
+			const hasPermission = await this.sharedService.userHasPermission(
+				authCtx,
+				"AGE13",
 			);
-		}
+			if (!hasPermission) {
+				throw new UnauthorizedException(
+					"Usuário não tem permissão",
+					400,
+					"E_ERR",
+				);
+			}
 
-		const schedule = await this.show(authCtx.unit.id, id);
+			const schedule = await this.show(authCtx.unit.id, id);
 
-		await schedule
-			.merge({ deletedAt: DateTime.now(), exclusion_user_id: authCtx.user.id })
-			.save();
+			await schedule
+				.merge({
+					deletedAt: DateTime.now(),
+					exclusion_user_id: authCtx.user.id,
+				})
+				.useTransaction(trx)
+				.save();
+
+			await Opportunity.query()
+				.useTransaction(trx)
+				.where("schedule_id", schedule.id)
+				.update({ schedule_id: null });
+		});
 	}
 
 	public async searchDisponibility(data: IViewDisponibilityRequest) {

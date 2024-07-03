@@ -3812,6 +3812,7 @@ export default class IndicatorService {
 			}),
 			this.marketingIndicators(authCtx, data),
 			this.costOfAcquisitionIndicators(authCtx, data),
+			this.installmentAvgIndicators(authCtx, data),
 		]);
 
 		const medianTicket = cards.at(1) as Awaited<
@@ -3828,6 +3829,9 @@ export default class IndicatorService {
 		>;
 		const cac = cards.at(5) as Awaited<
 			ReturnType<typeof this.costOfAcquisitionIndicators>
+		>;
+		const installmentAvg = cards.at(6) as Awaited<
+			ReturnType<typeof this.installmentAvgIndicators>
 		>;
 
 		return {
@@ -3896,6 +3900,19 @@ export default class IndicatorService {
 									? medianTicket.salesTotal / medianTicket.qtyClients
 									: 0,
 							),
+						},
+					],
+				},
+				{
+					name: "ParcelamentoMedio",
+					items: [
+						{
+							description: "Parcelamento Medio",
+							value: `${
+								installmentAvg.at(0)?.avgInstallment
+									? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
+									: 0
+							}x de Parcelamento Médio`,
 						},
 					],
 				},

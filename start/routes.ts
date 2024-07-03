@@ -1795,3 +1795,9 @@ Route.group(() => {
 })
 	.prefix("dre")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "DictionariesController.index");
+})
+	.prefix("dictionary")
+	.middleware("auth");

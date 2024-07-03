@@ -723,6 +723,7 @@ export default class OpportunityService {
 				activities: op.activities.map((elem) => ({
 					id: elem.id,
 					description: elem.description,
+					observation: elem.observation,
 					executionDate: elem.executionDate,
 					duration: elem.duration,
 					status: elem.status,
@@ -1011,6 +1012,7 @@ export default class OpportunityService {
 				activities: op.activities.map((elem) => ({
 					id: elem.id,
 					description: elem.description,
+					observation: elem.observation,
 					executionDate: elem.executionDate,
 					duration: elem.duration,
 					activity: {

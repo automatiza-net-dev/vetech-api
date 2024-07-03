@@ -3042,7 +3042,7 @@ where deposit_id = ?
 			throw new BadRequestException("ID de Venda inválido", 400, "E_ERR");
 		}
 
-		return Database.transaction(async (trx) => {
+		await Database.transaction(async (trx) => {
 			const updateQb = Database.from("bill_payments")
 				.useTransaction(trx)
 				.where("business_unit_id", authCtx.unit.id)
@@ -3060,57 +3060,56 @@ where deposit_id = ?
 				printed_at: DateTime.now(),
 				print_user_id: authCtx.user.id,
 			});
-
-			return Bill.query()
-				.useTransaction(trx)
-				.where("id", billID)
-				.select("id", "tag", "bill_date", "business_unit_id", "client_id")
-				.preload("businessUnit", (query) => {
-					query.select(
-						"id",
-						"company_name",
-						"document",
-						"phone",
-						"postal_code",
-						"address",
-						"number",
-						"complement",
-						"district",
-						"city",
-						"state",
-					);
-				})
-				.preload("client", (query) => {
-					query.select("id", "name");
-
-					query.preload("tutor", (query) => {
-						query.select("id", "document");
-					});
-				})
-				.preload("payments", (query) => {
-					// if (data.billPayment) {
-					// 	query.where("id", data.billPayment);
-					// }
-					// if (data.block) {
-					// 	query.where("block", data.block);
-					// }
-
-					query.select(
-						"id",
-						"total_value",
-						"printed_at",
-						"payment_method_id",
-						"print_user_id",
-					);
-
-					query.preload("paymentMethod", (query) => {
-						query.select("id", "description");
-					});
-
-					query.preload("printUser", (query) => {
-						query.select("id", "name");
-					});
-				});
 		});
+
+		return Bill.query()
+			.where("id", billID)
+			.select("id", "tag", "bill_date", "business_unit_id", "client_id")
+			.preload("businessUnit", (query) => {
+				query.select(
+					"id",
+					"company_name",
+					"document",
+					"phone",
+					"postal_code",
+					"address",
+					"number",
+					"complement",
+					"district",
+					"city",
+					"state",
+				);
+			})
+			.preload("client", (query) => {
+				query.select("id", "name");
+
+				query.preload("tutor", (query) => {
+					query.select("id", "document");
+				});
+			})
+			.preload("payments", (query) => {
+				// if (data.billPayment) {
+				// 	query.where("id", data.billPayment);
+				// }
+				// if (data.block) {
+				// 	query.where("block", data.block);
+				// }
+
+				query.select(
+					"id",
+					"total_value",
+					"printed_at",
+					"payment_method_id",
+					"print_user_id",
+				);
+
+				query.preload("paymentMethod", (query) => {
+					query.select("id", "description");
+				});
+
+				query.preload("printUser", (query) => {
+					query.select("id", "name");
+				});
+			});
 	}
 }

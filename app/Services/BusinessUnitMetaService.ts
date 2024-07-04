@@ -33,18 +33,17 @@ export default class BusinessUnitMetaService {
           `),
 			)
 			.joinRaw(
-				"join economic_groups on (business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?)",
+				"join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null)",
+			)
+			.joinRaw(
+				"join economic_groups on (business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ? and economic_groups.system_id = metas.system_id)",
 				[authCtx.system.id],
 			)
 			.joinRaw(
-				"join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null) and metas.deleted_at is null",
+				"left join business_unit_metas on metas.id = business_unit_metas.meta_id and business_unit_metas.active is true and business_unit_metas.business_unit_id = business_units.id",
 			)
-			.joinRaw(
-				`left join business_unit_metas on metas.id = business_unit_metas.meta_id and
-                                          business_units.id = business_unit_metas.business_unit_id and business_unit_metas.period = ? and business_unit_metas.active = true`,
-				[data.period],
-			)
-			.orderByRaw("business_units.id, metas.id, business_unit_metas.id");
+			.orderByRaw("business_units.id, metas.id, business_unit_metas.id")
+			.where("business_unit_metas.period", data.period);
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
 			qb.whereIn("business_units.id", data.units);

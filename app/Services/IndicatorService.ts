@@ -4051,8 +4051,9 @@ export default class IndicatorService {
 							{
 								description: "Vendas a vista",
 								value: `${this.shared.formatPercentage(
-									billPaymentCashSum /
-										(billPaymentCashSum + billPaymentInstallmentSum),
+									(billPaymentCashSum /
+										(billPaymentCashSum + billPaymentInstallmentSum)) *
+										100,
 								)} de Vendas a Vista`,
 							},
 							{

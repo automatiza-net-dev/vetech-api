@@ -9,7 +9,7 @@ export default class UpdateRoleValidator {
 		externalAccess: schema.boolean(),
 		active: schema.boolean(),
 		profileAccessIdList: schema
-			.array()
+			.array([rules.minLength(1)])
 			.members(
 				schema.number([
 					rules.exists({ table: "profile_accesses", column: "id" }),

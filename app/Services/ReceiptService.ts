@@ -1667,6 +1667,7 @@ export default class ReceiptService {
 				paymentMethodId: string;
 				tefAcquirerId?: string;
 				tefFlagId?: string;
+				accountPlanId?: string;
 
 				installments: number;
 				installmentValue: number;
@@ -1752,7 +1753,7 @@ export default class ReceiptService {
 			const payments = await Promise.all(tasks);
 
 			if (!authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
-				const paymentsTasks = payments.flat().map((elem) => {
+				const paymentsTasks = payments.flat().map((elem, idx) => {
 					if (elem.installment !== 1) {
 						return Promise.resolve(-1);
 					}
@@ -1764,6 +1765,7 @@ export default class ReceiptService {
 						paymentMethodId: elem.payment_method_id,
 						tefAcquirerId: elem.tef_acquirer_id,
 						tefFlagId: elem.tef_flag_id,
+						accountPlanId: data.items.at(idx)?.accountPlanId,
 
 						tag: receipt.tag,
 						item: elem,
@@ -2688,6 +2690,7 @@ and product_variation_id in (
 			tefAcquirerId?: string;
 			supplierId: string;
 			paymentMethodId: string;
+			accountPlanId?: string;
 
 			tag: string;
 			item: ReceiptPayment;
@@ -2723,6 +2726,7 @@ and product_variation_id in (
 				daily_cashier_id: data.dailyCashierId,
 				daily_movement_id: data.dailyMovementId,
 				account_plan_id:
+					data.accountPlanId ??
 					supplier?.tutor?.account_plan_id ??
 					authCtx.unit?.unitConfig?.order_entry_account_plan_id,
 				payment_method_id: data.paymentMethodId,

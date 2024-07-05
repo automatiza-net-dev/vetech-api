@@ -42,6 +42,10 @@ export default class CreateReceiptPaymentValidator {
 					rules.uuid(),
 					rules.exists({ table: "tef_flags", column: "id" }),
 				]),
+				accountPlanId: schema.string.optional({ trim: true }, [
+					rules.uuid(),
+					rules.exists({ table: "account_plans", column: "id" }),
+				]),
 
 				installments: schema.number(),
 				installmentValue: schema.number([]),

@@ -13,12 +13,12 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
-
-import BillPayment from "./BillPayment";
-import Budget from "./Budget";
-import EconomicGroup from "./EconomicGroup";
-import Patient from "./Patient";
-import User from "./User";
+import BillDocument from "App/Models/BillDocument";
+import BillPayment from "App/Models/BillPayment";
+import Budget from "App/Models/Budget";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Patient from "App/Models/Patient";
+import User from "App/Models/User";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -354,4 +354,9 @@ export default class Bill extends BaseModel {
 		serializeAs: null,
 	})
 	public treatment_id: number;
+
+	@hasMany(() => BillDocument, {
+		foreignKey: "bill_id",
+	})
+	public documents: HasMany<typeof BillDocument>;
 }

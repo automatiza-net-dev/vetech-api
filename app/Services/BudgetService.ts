@@ -132,7 +132,7 @@ export default class BudgetService {
 					"conclusion_user_id",
 					"cancelation_reason_id",
 				);
-				query.where("status", BudgetStatus.A);
+				// query.where("status", BudgetStatus.A);
 				query.whereNull("deleted_at");
 
 				query.preload("client", (query) => {
@@ -161,6 +161,23 @@ export default class BudgetService {
 
 				query.preload("cancelationReason", (query) => {
 					query.select("id", "reason");
+				});
+
+				query.preload("bill", (query) => {
+					query.select("id", "tag", "printed_at", "created_at");
+
+					query.preload("documents", (query) => {
+						query
+							.preload("generationUser", (query) => {
+								query.select("id", "name");
+							})
+							.preload("printUser", (query) => {
+								query.select("id", "name");
+							})
+							.preload("documentTemplate", (query) => {
+								query.select("id", "description");
+							});
+					});
 				});
 
 				query.preload("items", (query) => {

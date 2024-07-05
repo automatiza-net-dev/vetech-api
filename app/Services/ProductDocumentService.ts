@@ -70,6 +70,7 @@ export default class ProductDocumentService {
 			.preload("generationUser")
 			.preload("printUser")
 			.preload("documentTemplate")
+			.preload("bill")
 			.where("economic_group_id", authCtx.group.id)
 			.where("bill_id", billId)
 			.whereHas("generationUser", (qb) => {
@@ -83,6 +84,8 @@ export default class ProductDocumentService {
 
 		return result.map((elem) => ({
 			id: elem.id,
+			bill_id: elem.bill_id,
+			bill_tag: elem.bill.tag,
 			description: elem.documentTemplate.description,
 			generationUser: elem.generationUser.name,
 			printUser: elem.printUser?.name ?? null,

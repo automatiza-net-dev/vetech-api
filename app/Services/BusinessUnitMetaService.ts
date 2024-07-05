@@ -26,20 +26,24 @@ export default class BusinessUnitMetaService {
           business_units.identification,
           metas.id                               as m_id,
           metas.description,
+          metas.type,
           business_unit_metas.id                 as bum_id,
           coalesce(business_unit_metas.value, 0) as valor_meta,
           business_unit_metas.period
           `),
 			)
 			.joinRaw(
-				`join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null) and metas.deleted_at is null`,
+				"join metas on (business_units.economic_group_id = metas.economic_group_id or metas.economic_group_id is null)",
 			)
 			.joinRaw(
-				`left join business_unit_metas on metas.id = business_unit_metas.meta_id and
-                                          business_units.id = business_unit_metas.business_unit_id and business_unit_metas.period = ? and business_unit_metas.active = true`,
-				[data.period],
+				"join economic_groups on (business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ? and economic_groups.system_id = metas.system_id)",
+				[authCtx.system.id],
 			)
-			.orderByRaw(`business_units.id, metas.id, business_unit_metas.id`);
+			.joinRaw(
+				"left join business_unit_metas on metas.id = business_unit_metas.meta_id and business_unit_metas.active is true and business_unit_metas.business_unit_id = business_units.id",
+			)
+			.orderByRaw("business_units.id, metas.id, business_unit_metas.id")
+			.where("business_unit_metas.period", data.period);
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
 			qb.whereIn("business_units.id", data.units);
@@ -94,6 +98,7 @@ export default class BusinessUnitMetaService {
 				metas: unitRows.map((r) => ({
 					id: r.m_id,
 					description: r.description,
+					type: r.type,
 					unitMetaId: r.bum_id,
 					value: r.valor_meta,
 				})),
@@ -108,6 +113,7 @@ export default class BusinessUnitMetaService {
 			businessUnitId: string;
 			value: number;
 			period: string;
+			unitMetaId?: number;
 		}[],
 	) {
 		return await Database.transaction(async (trx) => {
@@ -118,8 +124,17 @@ export default class BusinessUnitMetaService {
 					.where("meta_id", d.metaId)
 					.where("period", d.period);
 
-				if (existing.length > 0) {
+				if (!d.unitMetaId && existing.length > 0) {
 					throw new BadRequestException("Meta já cadastrada", 400, "E_ERR");
+				}
+
+				if (d.unitMetaId) {
+					return BusinessUnitMeta.query()
+						.where("id", d.unitMetaId)
+						.useTransaction(trx)
+						.update({
+							value: d.value,
+						});
 				}
 
 				return BusinessUnitMeta.create(

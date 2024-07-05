@@ -5,6 +5,7 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import Permission, { TPermissionType } from "App/Models/Permission";
 import { TProfileAccessType } from "App/Models/ProfileAccess";
 import Role, { TRoleType } from "App/Models/Role";
+import RoleProfileAccess from "App/Models/RoleProfileAccess";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
 import IRoleData from "Contracts/interfaces/IRoleData";
@@ -90,6 +91,15 @@ export default class RoleService {
 				trx,
 			);
 
+			await RoleProfileAccess.createMany(
+				data.profileAccessIdList.map((elem) => ({
+					role_id: newRole.id,
+					profile_access_id: elem,
+					active: true,
+				})),
+				{ client: trx },
+			);
+
 			return newRole;
 		});
 	}
@@ -156,27 +166,47 @@ export default class RoleService {
 		id: number,
 		data: IRoleData,
 	): Promise<Role> {
-		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
-			.where("id", id)
-			.first();
+		return Database.transaction(async (trx) => {
+			const role = await Role.query()
+				.useTransaction(trx)
+				.where("system_id", authCtx.system.id)
+				.where("economic_group_id", authCtx.group.id)
+				.where("id", id)
+				.first();
 
-		if (!role) {
-			throw new ResourceNotFoundException(
-				"Cargo não foi encontrado",
-				404,
-				"E_NOT_FOUND",
+			if (!role) {
+				throw new ResourceNotFoundException(
+					"Cargo não foi encontrado",
+					404,
+					"E_NOT_FOUND",
+				);
+			}
+
+			await RoleProfileAccess.query()
+				.useTransaction(trx)
+				.where("role_id", role.id)
+				.delete();
+
+			await RoleProfileAccess.createMany(
+				data.profileAccessIdList.map(
+					(elem) => ({
+						role_id: role.id,
+						profile_access_id: elem,
+						active: true,
+					}),
+					{ client: trx },
+				),
 			);
-		}
 
-		return role
-			.merge({
-				name: data.name,
-				externalAccess: data.externalAccess,
-				active: data.active,
-			})
-			.save();
+			return role
+				.merge({
+					name: data.name,
+					externalAccess: data.externalAccess,
+					active: data.active,
+				})
+				.useTransaction(trx)
+				.save();
+		});
 	}
 
 	public async updateController(

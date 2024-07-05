@@ -246,29 +246,30 @@ export default class OpportunityService {
 				}
 
 				if (data.contactPhone) {
+					const clearPhone = data.contactPhone.replace(/\D/g, "");
 					query.whereHas("contacts", (query) => {
 						query.whereRaw(
 							`patient_contacts.type <> 'email'
   and (
     case
-        when length(patient_contacts.contact) = 10 and length(?) = 11 then
-            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
             ? -- add o 9
-        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
                                                                            '%' ||
                                                                            SUBSTRING(?, 1, 2) ||
                                                                            '9' ||
                                                                            SUBSTRING(?, 3, 8) ||
                                                                            '%' -- add o 9
-        else patient_contacts.contact ilike ? end
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
     )`,
 							[
-								data.contactPhone ?? "",
-								`%${data.contactPhone ?? ""}%`,
-								data.contactPhone ?? "",
-								data.contactPhone ?? "",
-								data.contactPhone ?? "",
-								`%${data.contactPhone ?? ""}%`,
+								clearPhone,
+								`%${clearPhone}%`,
+								clearPhone,
+								clearPhone,
+								clearPhone,
+								`%${clearPhone}%`,
 							],
 						);
 					});
@@ -723,6 +724,7 @@ export default class OpportunityService {
 				activities: op.activities.map((elem) => ({
 					id: elem.id,
 					description: elem.description,
+					observation: elem.observation,
 					executionDate: elem.executionDate,
 					duration: elem.duration,
 					status: elem.status,
@@ -1011,6 +1013,7 @@ export default class OpportunityService {
 				activities: op.activities.map((elem) => ({
 					id: elem.id,
 					description: elem.description,
+					observation: elem.observation,
 					executionDate: elem.executionDate,
 					duration: elem.duration,
 					activity: {
@@ -1655,6 +1658,7 @@ export default class OpportunityService {
 			executionDate: DateTime;
 			duration: number;
 			description?: string;
+			execObservation?: string;
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -1679,6 +1683,7 @@ export default class OpportunityService {
 					executionDate: data.executionDate,
 					duration: data.duration,
 					description: data.description,
+					observation: data.execObservation,
 				})
 				.useTransaction(trx)
 				.save();

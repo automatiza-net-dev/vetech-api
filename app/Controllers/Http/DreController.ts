@@ -10,9 +10,15 @@ export default class DreController {
 		private service: DreService,
 	) {}
 
-	public async generateDreSpreadsheet({ response, auth }: HttpContextContract) {
+	public async generateDreSpreadsheet({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
 		const result = await this.service.generateDreSpreadsheet(
 			await this.sharedService.getAuthContext(auth),
+			request.param("unit", ""),
+			request.qs(),
 		);
 
 		return response.download(result);

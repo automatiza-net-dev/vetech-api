@@ -47,6 +47,7 @@ interface ISearchPartial {
 	client?: string;
 	reviewer?: string;
 	tag?: string;
+	budget_id?: string;
 }
 
 interface ISearchComplete {
@@ -130,8 +131,9 @@ export default class BudgetService {
 					"reviewer_id",
 					"conclusion_user_id",
 					"cancelation_reason_id",
+					"bill_id",
 				);
-				query.where("status", BudgetStatus.A);
+				// query.where("status", BudgetStatus.A);
 				query.whereNull("deleted_at");
 
 				query.preload("client", (query) => {
@@ -160,6 +162,23 @@ export default class BudgetService {
 
 				query.preload("cancelationReason", (query) => {
 					query.select("id", "reason");
+				});
+
+				query.preload("bill", (query) => {
+					query.select("id", "tag", "created_at");
+
+					query.preload("documents", (query) => {
+						query
+							.preload("generationUser", (query) => {
+								query.select("id", "name");
+							})
+							.preload("printUser", (query) => {
+								query.select("id", "name");
+							})
+							.preload("documentTemplate", (query) => {
+								query.select("id", "description");
+							});
+					});
 				});
 
 				query.preload("items", (query) => {
@@ -230,7 +249,9 @@ export default class BudgetService {
 			.preload("cancelationReason")
 			.orderBy("created_at", "desc");
 
-		// TODO preload payments
+		if (data.budget_id) {
+			qb.where("id", data.budget_id);
+		}
 
 		if (data.fromCreation) {
 			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);

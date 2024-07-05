@@ -45,19 +45,7 @@ export default class BudgetsController {
 	public async partialIndex({ request, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
-		const result = await this.service.partialIndex(unit_id, {
-			fromCreation: qs.fromCreation,
-			toCreation: qs.toCreation,
-			fromExpiration: qs.fromExpiration,
-			toExpiration: qs.toExpiration,
-			seller: qs.seller,
-			status: qs.status,
-			patient: qs.patient,
-			tag: qs.tag,
-			client: qs.client,
-			reviewer: qs.reviewer,
-		});
+		const result = await this.service.partialIndex(unit_id, request.qs());
 
 		return response.ok(result);
 	}

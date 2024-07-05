@@ -13,6 +13,7 @@ export default interface IPatientData {
 	gender?: PatientGender;
 	tags?: string;
 	birthDate?: DateTime;
+	birthDays?: number;
 	birthMonths?: number;
 	birthYears?: number;
 	microchip?: string;

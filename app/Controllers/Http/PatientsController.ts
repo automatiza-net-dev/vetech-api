@@ -9,7 +9,6 @@ import CreateSchedulePatientValidator from "App/Validators/Patient/CreateSchedul
 import DeclareDeathValidator from "App/Validators/Patient/DeclareDeathValidator";
 import FastCreatePatientValidator from "App/Validators/Patient/FastCreatePatientValidator";
 import UpdatePatientValidator from "App/Validators/Patient/UpdatePatientValidator";
-import IPatientData from "Contracts/interfaces/IPatientData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
 
 @inject()
@@ -21,12 +20,8 @@ export default class PatientsController {
 
 	public async index({ auth, request, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
-		const qs = request.qs();
-		const patients = await this.service.index(unit_id, {
-			name: qs.name,
-			gender: qs.gender,
-			type: qs.type,
-		});
+
+		const patients = await this.service.index(unit_id, request.qs());
 
 		return response.ok(patients);
 	}
@@ -138,22 +133,17 @@ export default class PatientsController {
 			// const payload = await request.validate(CreatePatientValidator);
 			const { unit_id } = this.sharedService.extractUser(auth);
 
-			const origin = request.input("origin");
-			let payload: Omit<IPatientData, "active"> | null = null;
+			const origin = request.input("origin", "");
 
 			if (origin === "Agenda") {
-				payload = await request.validate(CreateSchedulePatientValidator);
+				await request.validate(CreateSchedulePatientValidator);
+			} else if (origin === "Crm") {
+				await request.validate(CreateCrmPatientValidator);
+			} else {
+				await request.validate(CreatePatientValidator);
 			}
 
-			if (origin === "Crm") {
-				payload = await request.validate(CreateCrmPatientValidator);
-			}
-
-			if (!payload) {
-				payload = await request.validate(CreatePatientValidator);
-			}
-
-			const patient = await this.service.store(unit_id, payload);
+			const patient = await this.service.store(unit_id, request.body());
 
 			return response.created(patient);
 		});

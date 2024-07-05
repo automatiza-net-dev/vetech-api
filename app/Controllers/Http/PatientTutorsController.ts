@@ -94,43 +94,28 @@ export default class PatientTutorsController {
 			ctx.request.updateBody(syncedBody);
 
 			const origin = ctx.request.input("origin", "");
-			let data: Omit<IPatientTutorData, "active"> | null = null;
 
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await ctx.request.validate(
-						CreateSanclaTutorForRegisterValidator,
-					);
+					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
+				} else if (authCtx.system.name === "LiftOne") {
+					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
 				}
-
-				if (authCtx.system.name === "LiftOne") {
-					data = await ctx.request.validate(
-						CreateLiftOneTutorForRegisterValidator,
-					);
-				}
-			}
-
-			if (origin === "Crm" || origin === "Agenda") {
+			} else if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await ctx.request.validate(
-						CreateSanclaTutorForGenericValidator,
-					);
+					await ctx.request.validate(CreateSanclaTutorForGenericValidator);
 				}
 
 				if (authCtx.system.name === "LiftOne") {
-					data = await ctx.request.validate(
-						CreateLiftOneTutorForGenericValidator,
-					);
+					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
-			}
-
-			if (!data) {
-				data = await ctx.request.validate(CreatePatientWithTutorValidator);
+			} else {
+				await ctx.request.validate(CreatePatientWithTutorValidator);
 			}
 
 			const patient = await this.service.storeTutor(
 				await this.sharedService.getAuthContext(ctx.auth),
-				data,
+				ctx.request.body(),
 			);
 
 			return ctx.response.created(patient);
@@ -174,36 +159,30 @@ export default class PatientTutorsController {
 
 			const origin = request.input("origin");
 
-			let data: IPatientTutorData | null = null;
-
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await request.validate(UpdateSanclaTutorForRegisterValidator);
+					await request.validate(UpdateSanclaTutorForRegisterValidator);
 				}
 
 				if (authCtx.system.name === "LiftOne") {
-					data = await request.validate(UpdateLiftOneTutorForRegisterValidator);
+					await request.validate(UpdateLiftOneTutorForRegisterValidator);
 				}
-			}
-
-			if (origin === "Crm" || origin === "Agenda") {
+			} else if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.name === "Sanclá") {
-					data = await request.validate(UpdateSanclaTutorForGenericValidator);
+					await request.validate(UpdateSanclaTutorForGenericValidator);
 				}
 
 				if (authCtx.system.name === "LiftOne") {
-					data = await request.validate(UpdateLiftOneTutorForGenericValidator);
+					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}
-			}
-
-			if (!data) {
-				data = await request.validate(UpdatePatientWithTutorValidator);
+			} else {
+				await request.validate(UpdatePatientWithTutorValidator);
 			}
 
 			const patient = await this.service.updateTutor(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
-				data,
+				request.body(),
 			);
 
 			return response.ok(patient);

@@ -1,157 +1,155 @@
 import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import ClientOrigin from 'App/Models/ClientOrigin';
-import Patient from 'App/Models/Patient';
-import Profession from 'App/Models/Profession';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
-import AccountPlan from './AccountPlan';
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	BelongsTo,
+	belongsTo,
+	column,
+} from "@ioc:Adonis/Lucid/Orm";
+import ClientOrigin from "App/Models/ClientOrigin";
+import Patient from "App/Models/Patient";
+import Profession from "App/Models/Profession";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+import AccountPlan from "./AccountPlan";
 
 export const TutorResidences = [
-  'CASA',
-  'APARTAMENTO',
-  'CONDOMINIO',
-  'SITIO',
-  'COMERCIAL',
+	"CASA",
+	"APARTAMENTO",
+	"CONDOMINIO",
+	"SITIO",
+	"COMERCIAL",
 ] as const;
 export default class PatientTutor extends BaseModel {
-  @column({ isPrimary: true })
-  public id: string = v4();
+	@column({ isPrimary: true })
+	public id: string = v4();
 
-  @column()
-  public residence: typeof TutorResidences[number];
+	@column()
+	public residence: (typeof TutorResidences)[number];
 
-  @column()
-  public document?: string;
+	@column()
+	public document?: string;
 
-  @column()
-  public inscription?: string; // ie/rg
+	@column()
+	public inscription?: string; // ie/rg
 
-  @column()
-  public nationality?: string; // ie/rg
+	@column()
+	public nationality?: string; // ie/rg
 
-  @column({
-    columnName: 'civil_status',
-  })
-  public civilStatus?: string;
+	@column({
+		columnName: "civil_status",
+	})
+	public civilStatus?: string;
 
-  @column({
-    columnName: 'corporate_name',
-  })
-  public corporateName?: string;
+	@column({
+		columnName: "corporate_name",
+	})
+	public corporateName?: string;
 
-  @column({
-    columnName: 'city_code',
-  })
-  public cityCode: string;
+	@column({
+		columnName: "city_code",
+	})
+	public cityCode: string;
 
-  @column()
-  public email: string;
+	@column()
+	public email: string;
 
-  @column()
-  public cellphone: string;
+	@column()
+	public cellphone: string;
 
-  @column()
-  public telephone?: string;
+	@column()
+	public telephone?: string;
 
-  @column({
-    columnName: 'message_person_name',
-  })
-  public messagePersonName?: string;
+	@column({
+		columnName: "message_person_name",
+	})
+	public messagePersonName?: string;
 
-  @column({
-    columnName: 'message_person_phone',
-  })
-  public messagePersonPhone?: string;
+	@column({
+		columnName: "message_person_phone",
+	})
+	public messagePersonPhone?: string;
 
-  @column()
-  public postalCode?: string;
+	@column()
+	public postalCode?: string;
 
-  @column()
-  public patient_id: string;
+	@column()
+	public patient_id: string;
 
-  @column()
-  public street?: string;
+	@column()
+	public street?: string;
 
-  @column()
-  public number?: string;
+	@column()
+	public number?: string;
 
-  @column()
-  public complement?: string;
+	@column()
+	public complement?: string;
 
-  @column()
-  public district?: string;
+	@column()
+	public district?: string;
 
-  @column()
-  public city?: string;
+	@column()
+	public city?: string;
 
-  @column()
-  public state?: string;
+	@column()
+	public state?: string;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
 
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
 
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
 
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
 
-  @belongsTo(() => Patient, {
-    localKey: 'id',
-    foreignKey: 'patient_id',
-  })
-  public tutor: BelongsTo<typeof Patient>;
+	@belongsTo(() => Patient, {
+		localKey: "id",
+		foreignKey: "patient_id",
+	})
+	public tutor: BelongsTo<typeof Patient>;
 
-  @column({
-    columnName: 'client_origin_id',
-    serializeAs: null,
-  })
-  public client_origin_id: string;
+	@column({
+		columnName: "client_origin_id",
+		serializeAs: null,
+	})
+	public client_origin_id: string;
 
-  @belongsTo(() => ClientOrigin, {
-    localKey: 'id',
-    foreignKey: 'client_origin_id',
-  })
-  public clientOrigin: BelongsTo<typeof ClientOrigin>;
+	@belongsTo(() => ClientOrigin, {
+		localKey: "id",
+		foreignKey: "client_origin_id",
+	})
+	public clientOrigin: BelongsTo<typeof ClientOrigin>;
 
-  @column({
-    columnName: 'profession_id',
-    serializeAs: null,
-  })
-  public profession_id: number;
+	@column({
+		columnName: "profession_id",
+		serializeAs: null,
+	})
+	public profession_id: number;
 
-  @belongsTo(() => Profession, {
-    localKey: 'id',
-    foreignKey: 'profession_id',
-  })
-  public profession: BelongsTo<typeof Profession>;
+	@belongsTo(() => Profession, {
+		localKey: "id",
+		foreignKey: "profession_id",
+	})
+	public profession: BelongsTo<typeof Profession>;
 
-  @column({
-    serializeAs: null,
-  })
-  public account_plan_id: string;
+	@column({})
+	public account_plan_id: string;
 
-  @belongsTo(() => AccountPlan, {
-    localKey: 'id',
-    foreignKey: 'account_plan_id',
-  })
-  public accountPlan: BelongsTo<typeof AccountPlan>;
+	@belongsTo(() => AccountPlan, {
+		localKey: "id",
+		foreignKey: "account_plan_id",
+	})
+	public accountPlan: BelongsTo<typeof AccountPlan>;
 }

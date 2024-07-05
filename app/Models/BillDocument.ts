@@ -10,6 +10,7 @@ import {
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import User from "App/Models/User";
 import DocumentTemplate from "App/Models/DocumentTemplate";
+import Bill from "App/Models/Bill";
 
 export default class BillDocument extends BaseModel {
 	@column({ isPrimary: true })
@@ -61,6 +62,11 @@ export default class BillDocument extends BaseModel {
 		serializeAs: null,
 	})
 	public bill_id: string;
+
+	@belongsTo(() => Bill, {
+		foreignKey: "bill_id",
+	})
+	public bill: BelongsTo<typeof Bill>;
 
 	@column({
 		serializeAs: null,

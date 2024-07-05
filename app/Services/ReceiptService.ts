@@ -510,6 +510,7 @@ export default class ReceiptService {
 			supplier?: string;
 			seller?: string;
 			status?: string;
+			receipt_id?: string;
 		},
 	) {
 		const qb = Receipt.query()
@@ -524,6 +525,10 @@ export default class ReceiptService {
 			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id);
+
+		if (data.receipt_id) {
+			qb.where("id", data.receipt_id);
+		}
 
 		if (data.from) {
 			qb.whereRaw("receipt_date::date >= ?", [data.from]);
@@ -657,6 +662,9 @@ export default class ReceiptService {
 			})
 			.preload("supplier", (query) => {
 				query.select("id", "name");
+				query.preload("tutor", (query) => {
+					query.select("id", "account_plan_id");
+				});
 			})
 			.preload("businessUnit", (query) => {
 				query.select("id", "identification");
@@ -950,7 +958,7 @@ export default class ReceiptService {
 					? existingProduct
 					: products.find((p) =>
 							p.variations.find((pv) => pv.barcode === barcode),
-					  );
+						);
 
 				const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
 				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
@@ -993,24 +1001,24 @@ export default class ReceiptService {
 						"vBCSTRet" in icms
 							? icms.vBCSTRet
 							: "vBCST" in icms
-							  ? icms.vBCST
-							  : undefined,
+								? icms.vBCST
+								: undefined,
 					icmsStPercentageRedBase:
 						"pRedBCST" in icms ? icms.pRedBCST : undefined,
 					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
 					icmsStPercentageUfDestination:
 						"pICMSSTRet" in icms
 							? // @ts-ignore check if things will work
-							  icms.pICMSSTRet
+								icms.pICMSSTRet
 							: "pICMSST" in icms
-							  ? icms.pICMSST
-							  : undefined,
+								? icms.pICMSST
+								: undefined,
 					icmsStValue:
 						"vICMSSTRet" in icms
 							? icms.vICMSSTRet
 							: "vICMSST" in icms
-							  ? icms.vICMSST
-							  : undefined, // vICMSSTRet ?
+								? icms.vICMSST
+								: undefined, // vICMSSTRet ?
 					// icmsPartitionValue: 0,
 					// icmsFcpPercentage: 0,
 					// icmsFcpValue: 0,
@@ -1427,7 +1435,7 @@ export default class ReceiptService {
 			}>;
 		},
 	) {
-		await Database.transaction(async (trx) => {
+		return await Database.transaction(async (trx) => {
 			const counter = await Receipt.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
@@ -1482,6 +1490,8 @@ export default class ReceiptService {
 			await Promise.all(tasks);
 
 			await this.syncReceipt(trx, receipt);
+
+			return receipt;
 		});
 	}
 
@@ -1657,6 +1667,7 @@ export default class ReceiptService {
 				paymentMethodId: string;
 				tefAcquirerId?: string;
 				tefFlagId?: string;
+				accountPlanId?: string;
 
 				installments: number;
 				installmentValue: number;
@@ -1742,7 +1753,7 @@ export default class ReceiptService {
 			const payments = await Promise.all(tasks);
 
 			if (!authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
-				const paymentsTasks = payments.flat().map((elem) => {
+				const paymentsTasks = payments.flat().map((elem, idx) => {
 					if (elem.installment !== 1) {
 						return Promise.resolve(-1);
 					}
@@ -1754,6 +1765,7 @@ export default class ReceiptService {
 						paymentMethodId: elem.payment_method_id,
 						tefAcquirerId: elem.tef_acquirer_id,
 						tefFlagId: elem.tef_flag_id,
+						accountPlanId: data.items.at(idx)?.accountPlanId,
 
 						tag: receipt.tag,
 						item: elem,
@@ -2678,6 +2690,7 @@ and product_variation_id in (
 			tefAcquirerId?: string;
 			supplierId: string;
 			paymentMethodId: string;
+			accountPlanId?: string;
 
 			tag: string;
 			item: ReceiptPayment;
@@ -2713,6 +2726,7 @@ and product_variation_id in (
 				daily_cashier_id: data.dailyCashierId,
 				daily_movement_id: data.dailyMovementId,
 				account_plan_id:
+					data.accountPlanId ??
 					supplier?.tutor?.account_plan_id ??
 					authCtx.unit?.unitConfig?.order_entry_account_plan_id,
 				payment_method_id: data.paymentMethodId,

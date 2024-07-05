@@ -26,6 +26,10 @@ export default class CreatePatientValidator {
 			this.ctx.request.input("birthDate_change", "false") === "false"
 				? schema.date()
 				: schema.date.optional(),
+		birthDays:
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
 		birthMonths:
 			this.ctx.request.input("birthDate_change", "false") === "true"
 				? schema.number([])

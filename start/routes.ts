@@ -1031,6 +1031,10 @@ Route.group(() => {
 	Route.get("/products", "BillsController.searchProducts");
 	Route.get("/taxes", "BillsController.searchTax");
 	Route.get("/show/:id", "BillsController.show");
+	Route.get(
+		"/print-payment-receipts/:bill",
+		"BillsController.printPaymentReceipt",
+	);
 
 	Route.put("/update-conference", "BillsController.updateCashierConference");
 	Route.put("/recalculate/:id", "BillsController.recalculate");
@@ -1787,7 +1791,11 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.get("/spreadsheet", "DreController.generateDreSpreadsheet");
+	Route.get("/spreadsheet/:unit", "DreController.generateDreSpreadsheet");
 })
 	.prefix("dre")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "DictionariesController.index");
+}).prefix("dictionary");

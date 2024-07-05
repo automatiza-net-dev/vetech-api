@@ -1,41 +1,34 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import * as XLSX from "xlsx";
 import * as fs from "node:fs";
-import { v4 } from "uuid";
+import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
-import Application from "@ioc:Adonis/Core/Application";
+import { exec } from "node:child_process";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
-import { PDFEngine } from "chromiumly";
-
-type DreRow = {
-	mes: string;
-	ano: string;
-	data: string;
-	plano_contas_grupo: string;
-	historico: string | null;
-	pessoa: string;
-	col_g: string;
-	col_h: string;
-	col_i: string;
-	col_j: string;
-	col_k: string;
-	valor_pago: string;
-	valor_recebido: string;
-	total: string;
-	plano_contas: string;
-};
+import BadRequestException from "App/Exceptions/BadRequestException";
 
 @inject()
 export default class DreService {
 	constructor(private _shared: SharedService) {}
 
-	public async generateDreSpreadsheet(authCtx: AuthContext) {
+	public async generateDreSpreadsheet(
+		authCtx: AuthContext,
+		unitID: string,
+		$data: { competence?: string },
+	) {
+		if (!validate(unitID)) {
+			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
+		}
+
+		if (!$data.competence) {
+			throw new BadRequestException("Competência obrigatória", 400, "E_ERR");
+		}
+
 		const data = await Database.from("finances")
 			.select(
-				Database.raw(`substring(competence_date, 1, 2)                                                      mes,
-		     substring(competence_date, 4, 4)                                                      ano,
+				Database.raw(`substring(competence_date, 1, 2)::int                                                      mes,
+		     substring(competence_date, 4, 4) ano,
 		     ('01' || '/' || competence_date) as                                                   data,
 		     case when pc.parent_id is null then pc.description else pcPai.description end         plano_contas_grupo,
 		     finances.historic                                                                            historico,
@@ -45,11 +38,11 @@ export default class DreService {
 		     ''                                                                                    col_i,
 		     ''                                                                                    col_j,
 		     ''                                                                                    col_k,
-		     case when finances."type" = 'DEBITO' then TO_CHAR(finances.total_value, '9999990D99') else '0' end  valor_pago,
-		     case when finances."type" = 'CREDITO' then TO_CHAR(finances.total_value, '9999990D99') else '0' end valor_recebido,
-		     case
-		         when finances."type" = 'DEBITO' then TO_CHAR(finances.total_value * (-1), '9999990D99')
-		         else TO_CHAR(finances.total_value, '9999990D99') end                                     total,
+         case when finances."type" = 'DEBITO' then finances.total_value else 0 end                   valor_pago,
+         case when finances."type" = 'CREDITO' then finances.total_value else 0 end                  valor_recebido,
+         case
+            when finances."type" = 'DEBITO' then finances.total_value * (-1)
+             else finances.total_value end                                                    total,
 		     pc.description                                                                        plano_contas`),
 			)
 			.joinRaw(`left join (account_plans pc left join account_plan_groups gpc on pc.account_plan_group_id = gpc.id
@@ -62,108 +55,68 @@ export default class DreService {
 			.joinRaw(
 				"join business_units on finances.business_unit_id = business_units.id",
 			)
-			.whereIn("finances.business_unit_id", [authCtx.unit.id])
+			.where("finances.economic_group_id", authCtx.group.id)
+			.where("finances.business_unit_id", unitID)
 			.whereNull("finances.deleted_at")
-			.where("finances.competence_date", `0${4}/2024`)
+			.where("finances.competence_date", $data.competence ?? "")
 			.orderByRaw(
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);
 
-		const _data: DreRow[] = [
-			{
-				mes: "04",
-				ano: "2024",
-				data: "01/04/2024",
-				plano_contas_grupo: "Receitas Financeiras",
-				historico: null,
-				pessoa: "clark kent",
-				col_g: "",
-				col_h: "",
-				col_i: "",
-				col_j: "",
-				col_k: "",
-				valor_pago: "0",
-				valor_recebido: "     250,00",
-				total: "     250,00",
-				plano_contas: "Receitas Financeiras",
-			},
-			{
-				mes: "04",
-				ano: "2024",
-				data: "01/04/2024",
-				plano_contas_grupo: "Receitas Produtos",
-				historico: null,
-				pessoa: "alberto luciano",
-				col_g: "",
-				col_h: "",
-				col_i: "",
-				col_j: "",
-				col_k: "",
-				valor_pago: "0",
-				valor_recebido: "     150,00",
-				total: "     150,00",
-				plano_contas: "Receitas Produtos",
-			},
-		];
+		const excelCompiler = Env.get("DRE_PATH").replace("dre.xlsx", "excel");
+		const baseDreExcel = Env.get("DRE_PATH");
+		const genKey = v4();
 
-		const sheetBuffer = fs.readFileSync(Env.get("DRE_PATH"));
-		const worksheetKey = "Dados Mov Financeira";
+		fs.writeFileSync(
+			`/tmp/${genKey}.json`,
+			JSON.stringify(
+				data.map((d) => ({
+					...d,
+					mes: Number.parseInt(d.mes),
+					valor_pago: Number.parseFloat(d.valor_pago),
+					valor_recebido: Number.parseInt(d.valor_recebido),
+					total: Number.parseFloat(d.total),
+				})),
+			),
+		);
 
-		const workbook = XLSX.read(sheetBuffer);
-		const worksheet = workbook.Sheets[worksheetKey];
-		if (!worksheet) {
+		const result = await new Promise<
+			{ success: true; path: string } | { success: false; err: string }
+		>((res) => {
+			exec(
+				`${excelCompiler} ${baseDreExcel} /tmp/${genKey}.json`,
+				(error, _stdout, _stderr) => {
+					if (error) {
+						console.error(error);
+						return res({ success: false, err: error.message });
+					}
+
+					if (_stderr.length > 0) {
+						console.log({ _stdout, _stderr });
+						return res({ success: false, err: _stderr });
+					}
+
+					return res({ success: true, path: _stdout });
+				},
+			);
+		});
+
+		if (!result.success) {
 			throw new InternalErrorException(
-				`Folha '${worksheetKey}' não encontrada`,
+				`Erro gerando pdf -> ${result.err}`,
 				500,
 				"E_ERR",
 			);
 		}
 
-		XLSX.utils.sheet_add_aoa(
-			worksheet,
-			data.map((d) => Object.values(d)),
-			{
-				origin: 1,
-			},
-		);
-		workbook.Sheets[worksheetKey] = worksheet;
-
-		for (const $key of workbook.SheetNames) {
-			// workbook.Sheets[$key]
-			XLSX.utils.book_set_sheet_visibility(workbook, $key, 2);
-		}
-
-		const key = v4();
-		const fileKey = `${key}.xlsx`;
-		const compiledFileKey = `${key}.pdf`;
-
-		const fullPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}/${fileKey}`;
-		await XLSX.writeFile(workbook, fullPath, { compression: true });
-
-		const responseBuffer = await PDFEngine.convert({
-			files: [fullPath],
-		});
-
-		const fullCompiledPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}/${compiledFileKey}`;
-		fs.writeFileSync(fullCompiledPath, responseBuffer, {});
-
-		// esperar 10 segundos e tentar deletar
 		setTimeout(() => {
 			try {
-				fs.unlinkSync(fullPath);
-				fs.unlinkSync(fullCompiledPath);
-			} catch (_e) {
-				//
+				fs.unlinkSync(result.path);
+			} catch (err) {
+				console.error("Erro limpando arquivo", err);
 			}
 		}, 10_000);
 
-		return fullCompiledPath;
-		// return fullPath;
+		return result.path;
 	}
 }

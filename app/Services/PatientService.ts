@@ -231,16 +231,16 @@ export default class PatientService {
 					`patient_contacts.type <> 'email'
   and (
     case
-        when length(patient_contacts.contact) = 10 and length(?) = 11 then
-            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
             ? -- add o 9
-        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
                                                                            '%' ||
                                                                            SUBSTRING(?, 1, 2) ||
                                                                            '9' ||
                                                                            SUBSTRING(?, 3, 8) ||
                                                                            '%' -- add o 9
-        else patient_contacts.contact ilike ? end
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
     )`,
 					[
 						clearPhone,
@@ -418,21 +418,21 @@ export default class PatientService {
 			]);
 		}
 
-		// if (data.document) {
-		// 	qb.whereHas("tutors", (q) => {
-		// 		q.whereRaw("document ilike ?", [
-		// 			`%${data.document?.replace(/\D/g, "")}%`,
-		// 		]);
-		// 	});
-		// }
+		if (data.document) {
+			qb.whereHas("tutors", (q) => {
+				q.whereRaw("document ilike ?", [
+					`%${data.document?.replace(/\D/g, "")}%`,
+				]);
+			});
+		}
 
-		// if (data.tutor) {
-		// 	qb.whereHas("tutors", (q) => {
-		// 		q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-		// 			data.tutor!.replaceAll(" ", "%"),
-		// 		]);
-		// 	});
-		// }
+		if (data.tutor) {
+			qb.whereHas("tutors", (q) => {
+				q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+					data.tutor!.replaceAll(" ", "%"),
+				]);
+			});
+		}
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
@@ -445,14 +445,14 @@ export default class PatientService {
              where (patient_contacts.type <> 'email'
                  and (
                         case
-                            when length(patient_contacts.contact) = 10 and length(?) = 11 then
-                                regexp_replace(SUBSTRING(patient_contacts.contact, 1, 2) || '9' ||
-                                               SUBSTRING(patient_contacts.contact, 3, 8), 'D', '', 'g') ilike
+                            when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+                                regexp_replace(SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' ||
+                                               SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8), 'D', '', 'g') ilike
                                 ? -- add o 9
-                            when length(patient_contacts.contact) = 11 and length(?) = 10 then
-                                regexp_replace(patient_contacts.contact, 'D', '', 'g') ilike
+                            when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then
+                                regexp_replace(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 'D', '', 'g') ilike
                                 '%' || SUBSTRING(?, 1, 2) || '9' || SUBSTRING(?, 3, 8) || '%' -- add o 9
-                            else regexp_replace(patient_contacts.contact, 'D', '', 'g') ilike ? end
+                            else regexp_replace(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 'D', '', 'g') ilike ? end
                         )))`,
 				[
 					clearPhone,
@@ -482,7 +482,35 @@ export default class PatientService {
 
 		const result = await qb;
 
-		return result.map((patient) => {
+		const tutors =
+			data.tutor || data.document
+				? await Database.from("patients")
+						.select(Database.raw("patients.id, name as tutor"))
+						.joinRaw(
+							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+							[authCtx.group.id],
+						)
+						.joinRaw(
+							"join patient_tutors on patient_tutors.patient_id = patients.id",
+							[],
+						)
+						.where("type", PatientType.TUTOR)
+						.whereRaw(
+							"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+						)
+						.whereRaw(
+							data.tutor
+								? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+								: `(? = '' or 1=1)`,
+							[data.tutor ?? ""],
+						)
+						.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
+							data.document ? `%${data.document}%` : "",
+						])
+						.orderByRaw("name asc")
+				: [];
+
+		const patients = result.map((patient) => {
 			return {
 				id: patient.id,
 				name: patient.name,
@@ -504,57 +532,12 @@ export default class PatientService {
 			};
 		});
 
-		// const tutors =
-		// 	data.tutor || data.document
-		// 		? await Database.from("patients")
-		// 				.select(Database.raw("name as tutor"))
-		// 				.joinRaw(
-		// 					"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
-		// 					[authCtx.group.id],
-		// 				)
-		// 				.joinRaw(
-		// 					"join patient_tutors on patient_tutors.patient_id = patients.id",
-		// 					[],
-		// 				)
-		// 				.where("type", PatientType.TUTOR)
-		// 				.whereRaw(
-		// 					"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
-		// 				)
-		// 				.whereRaw(
-		// 					data.tutor
-		// 						? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
-		// 						: `(? = '' or 1=1)`,
-		// 					[data.tutor ?? ""],
-		// 				)
-		// 				.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
-		// 					data.document ? `%${data.document}%` : "",
-		// 				])
-		// 		: [];
-		//
-		// return {
-		// 	patients: result.map((patient) => {
-		// 		return {
-		// 			id: patient.id,
-		// 			name: patient.name,
-		// 			tag: patient.tag,
-		// 			gender: patient.gender,
-		// 			community: patient.community,
-		// 			birthDate: patient.birthDate,
-		// 			castrated: patient.patientAnimal?.castrated,
-		// 			weight: patient.weight,
-		// 			race: patient.patientAnimal?.race,
-		// 			tutors: patient.tutors.map((elem) => ({
-		// 				id: elem.id,
-		// 				name: elem.name,
-		// 				email: elem.tutor?.email ?? "-",
-		// 				tag: elem.tag,
-		// 				cellphone: elem.tutor?.cellphone ?? "-",
-		// 				isMain: elem.$extras.pivot_is_main,
-		// 			})),
-		// 		};
-		// 	}),
-		// 	tutors,
-		// };
+		const $tutors = tutors.map((elem) => ({
+			id: "-",
+			tutors: [{ id: elem.id, name: elem.tutor }],
+		}));
+
+		return [...$tutors, ...patients];
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {
@@ -769,7 +752,7 @@ export default class PatientService {
 					0,
 				),
 			),
-			open_attendances: attendances.length > 0,
+			openAttendances: attendances.length > 0,
 		};
 
 		if (patient.patientAnimal) {
@@ -1166,8 +1149,9 @@ export default class PatientService {
 
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
-			!data.holders &&
+			data.holders &&
 			!data.birthDate &&
+			!data.birthDays &&
 			!data.birthMonths &&
 			!data.birthYears
 		) {
@@ -1195,11 +1179,12 @@ export default class PatientService {
 					tags: data.tags,
 					community: data.community,
 					birthDate: data.birthDate
-						? data.birthDate?.toJSDate()
+						? DateTime.fromISO(data.birthDate).toJSDate()
 						: DateTime.now()
 								.minus({
 									years: data.birthYears ?? 0,
 									months: data.birthMonths ?? 0,
+									days: data.birthDays ?? 0,
 								})
 								.toJSDate(),
 					type: PatientType.ANIMAL,
@@ -1304,7 +1289,9 @@ export default class PatientService {
 			const patient = await Patient.create(
 				{
 					name: data.name,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? DateTime.fromISO(data.birthDate).toJSDate()
+						: undefined,
 					gender: data.gender,
 					tags: data.tags,
 					photo,
@@ -1869,7 +1856,9 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? DateTime.fromISO(data.birthDate).toJSDate()
+						: undefined,
 					active: data.active,
 					diabetes: data.diabetes,
 					hypertension: data.hypertension,
@@ -2181,16 +2170,16 @@ export default class PatientService {
 					`patient_contacts.type <> 'email'
   and (
     case
-        when length(patient_contacts.contact) = 10 and length(?) = 11 then
-            SUBSTRING(patient_contacts.contact, 1, 2) || '9' || SUBSTRING(patient_contacts.contact, 3, 8) ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
             ? -- add o 9
-        when length(patient_contacts.contact) = 11 and length(?) = 10 then patient_contacts.contact ilike
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
                                                                            '%' ||
                                                                            SUBSTRING(?, 1, 2) ||
                                                                            '9' ||
                                                                            SUBSTRING(?, 3, 8) ||
                                                                            '%' -- add o 9
-        else patient_contacts.contact ilike ? end
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
     )`,
 					[
 						sanitizedValue,

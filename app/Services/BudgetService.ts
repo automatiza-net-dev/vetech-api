@@ -165,7 +165,7 @@ export default class BudgetService {
 				});
 
 				query.preload("bill", (query) => {
-					query.select("id", "tag", "printed_at", "created_at");
+					query.select("id", "tag", "created_at");
 
 					query.preload("documents", (query) => {
 						query

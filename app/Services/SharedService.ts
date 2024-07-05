@@ -87,6 +87,7 @@ export default class SharedService {
 		contacts: "Contatos",
 		birthMonths: "Meses",
 		birthYears: "Anos",
+		birthDays: "Dias",
 		inscription: "Documento",
 	} as const;
 

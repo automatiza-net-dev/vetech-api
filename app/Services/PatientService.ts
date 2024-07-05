@@ -752,7 +752,7 @@ export default class PatientService {
 					0,
 				),
 			),
-			open_attendances: attendances.length > 0,
+			openAttendances: attendances.length > 0,
 		};
 
 		if (patient.patientAnimal) {

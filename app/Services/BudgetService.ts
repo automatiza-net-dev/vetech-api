@@ -131,6 +131,7 @@ export default class BudgetService {
 					"reviewer_id",
 					"conclusion_user_id",
 					"cancelation_reason_id",
+					"bill_id",
 				);
 				// query.where("status", BudgetStatus.A);
 				query.whereNull("deleted_at");

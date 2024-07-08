@@ -3099,6 +3099,7 @@ where deposit_id = ?
 					query.select(
 						"id",
 						"total_value",
+						"expiration_date",
 						"printed_at",
 						"payment_method_id",
 						"print_user_id",
@@ -3110,6 +3111,10 @@ where deposit_id = ?
 
 					query.preload("printUser", (query) => {
 						query.select("id", "name");
+					});
+
+					query.preload("finance", (query) => {
+						query.select("id", "payment_date");
 					});
 				});
 		});

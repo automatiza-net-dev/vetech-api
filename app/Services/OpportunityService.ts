@@ -1658,7 +1658,7 @@ export default class OpportunityService {
 			executionDate: DateTime;
 			duration: number;
 			description?: string;
-			execObservation?: string;
+			observation?: string;
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -1683,7 +1683,7 @@ export default class OpportunityService {
 					executionDate: data.executionDate,
 					duration: data.duration,
 					description: data.description,
-					observation: data.execObservation,
+					observation: data.observation,
 				})
 				.useTransaction(trx)
 				.save();

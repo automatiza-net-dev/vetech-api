@@ -36,7 +36,7 @@ export default class UpdateOpportunityActivityValidator {
 		executionDate: schema.date(),
 		duration: schema.number(),
 		description: schema.string.optional({ trim: true }),
-		execObservation: schema.string.optional({ trim: true }),
+		observation: schema.string.optional({ trim: true }),
 	});
 
 	/**

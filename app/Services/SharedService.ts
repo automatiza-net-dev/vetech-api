@@ -29,6 +29,9 @@ export type AuthContext = {
 	system: System;
 	unit: BusinessUnit;
 	$roleMetas: UserUnitRole[];
+	permissions: string[];
+	hasPermission: (controlID: string) => boolean;
+	hasPermissions: (controlIDs: string[]) => boolean;
 };
 
 @inject()
@@ -224,12 +227,37 @@ export default class SharedService {
 			.where("user_id", user.id)
 			.where("unit_id", unit.id);
 
+		const rows = await Database.from("user_unit_roles")
+			.select(Database.raw("permissions.control_id"))
+			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw("join role_permissions on role_permissions.role_id = roles.id")
+			.joinRaw(
+				"join permissions on role_permissions.permission_id = permissions.id",
+			)
+			.where("user_unit_roles.user_id", user.id)
+			.where("user_unit_roles.unit_id", unit_id)
+			.where("roles.system_id", unit.economicGroup.system_id)
+			.where("roles.active", true)
+			.where("role_permissions.active", true)
+			.where("role_permissions.status", true)
+			.whereIn("roles.type", ["controller", "both", "all", "user"])
+			.whereIn("permissions.type", ["controller", "both", "all", "user"]);
+
+		const flatPermissions = rows.map((r) => r.control_id);
+
 		return {
 			user,
 			group: unit.economicGroup,
 			system: unit.economicGroup.system,
 			unit,
 			$roleMetas: userRoles,
+			permissions: flatPermissions,
+			hasPermission: (controlID) => {
+				return !!flatPermissions.find((r) => r === controlID);
+			},
+			hasPermissions: (controlIDs) => {
+				return controlIDs.every((r) => flatPermissions.includes(r));
+			},
 		};
 	}
 
@@ -387,6 +415,17 @@ export default class SharedService {
 				message: elem.descricao,
 			};
 		});
+	}
+
+	public static NoopPromise<T>(
+		predicate: () => boolean,
+		promiseGen: () => Promise<T>,
+	): Promise<T | undefined> {
+		if (!predicate()) {
+			return Promise.resolve(undefined);
+		}
+
+		return promiseGen();
 	}
 
 	public static GetAttendanceLabel(_: AuthContext) {

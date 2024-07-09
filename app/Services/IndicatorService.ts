@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
@@ -3783,36 +3784,93 @@ export default class IndicatorService {
 		data: Record<string, any>,
 	) {
 		const charts = await Promise.all([
-			this.invoicingByPaymentMethod_2(authCtx, data),
-			this.medianTicketByOrigin_2(authCtx, data),
-			this.invoicingNewClientsPeriod_2(authCtx, data),
-			this.productTypeIndicators_2(authCtx, data),
-			this.schedulingIndicators_2(authCtx, data),
-			this.crmIndicators_2(authCtx, data),
-			this.billPaymentFormatIndicators_2(authCtx, data),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND01"),
+				() => this.invoicingByPaymentMethod_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND02"),
+				() => this.medianTicketByOrigin_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND03"),
+				() => this.invoicingNewClientsPeriod_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND05"),
+				() => this.productTypeIndicators_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND06"),
+				() => this.schedulingIndicators_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND08"),
+				() => this.crmIndicators_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND09"),
+				() => this.billPaymentFormatIndicators_2(authCtx, data),
+			),
 		]);
 
 		const tables = await Promise.all([
-			this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
-			this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
-			this.salesPerUserIndicators_2(authCtx, data),
-			this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND22"),
+				() => this.subgroupIndicators_2(authCtx, data, "Vendas por Subgrupo"),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND23"),
+				() =>
+					this.salesPerPeriodIndicators_2(authCtx, data, "Vendas por Periodo"),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND24"),
+				() => this.salesPerUserIndicators_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND25"),
+				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+			),
 		]);
 
 		const cards = await Promise.all([
-			this.billingIndicators(authCtx, data),
-			this.medianTicket(authCtx, data),
-			this.budgetsByStatusIndicators(authCtx, {
-				...data,
-				status: BudgetStatus.A,
-			}),
-			this.budgetsByStatusIndicators(authCtx, {
-				...data,
-				status: BudgetStatus.N,
-			}),
-			this.marketingIndicators(authCtx, data),
-			this.costOfAcquisitionIndicators(authCtx, data),
-			this.installmentAvgIndicators(authCtx, data),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermissions(["IND14", "IND15"]),
+				() => this.billingIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND16"),
+				() => this.medianTicket(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND18"),
+				() =>
+					this.budgetsByStatusIndicators(authCtx, {
+						...data,
+						status: BudgetStatus.A,
+					}),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND19"),
+				() =>
+					this.budgetsByStatusIndicators(authCtx, {
+						...data,
+						status: BudgetStatus.N,
+					}),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND20"),
+				() => this.marketingIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND21"),
+				() => this.costOfAcquisitionIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND17"),
+				() => this.installmentAvgIndicators(authCtx, data),
+			),
 		]);
 
 		const medianTicket = cards.at(1) as Awaited<
@@ -3835,135 +3893,325 @@ export default class IndicatorService {
 		>;
 
 		return {
-			charts,
-			tables,
+			charts: charts.filter(Boolean),
+			tables: tables.filter(Boolean),
 			cards: [
-				{
-					name: "Faturamento",
-					items: [
-						{
-							description: "Faturamento Realizado",
-							value: this.shared.formatter.format(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "Meta",
-					items: [
-						{
-							description: "Meta Faturamento",
-							value: this.shared.formatter.format(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.meta.value, 0) ??
-									0,
-							),
-						},
-					],
-				},
-				{
-					name: "MetaAtingimento",
-					items: [
-						{
-							description: "Atingimento",
-							value: this.shared.formatPercentage(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
-									0,
-							),
-						},
-					],
-				},
-				{
-					name: "MetaTendencia",
-					items: [
-						{
-							description: "Tendencia",
-							percentage: this.shared.formatPercentage(
-								cards
-									.at(0)
-									?.reduce((acc, curr) => acc + curr.metaProjection, 0),
-							),
-							value: this.shared.formatter.format(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0) ??
-									0,
-							),
-						},
-					],
-				},
-				{
-					name: "TicketMedio",
-					items: [
-						{
-							description: "Ticket Medio Pacientes",
-							value: this.shared.formatter.format(
-								medianTicket
-									? medianTicket.salesTotal / medianTicket.qtyClients
-									: 0,
-							),
-						},
-					],
-				},
-				{
-					name: "ParcelamentoMedio",
-					items: [
-						{
-							description: "Parcelamento Medio",
-							value: `${
-								installmentAvg.at(0)?.avgInstallment
-									? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
-									: 0
-							}x de Parcelamento Médio`,
-						},
-					],
-				},
-				{
-					name: "OrçamentosAbertos",
-					items: [
-						{
-							description: "Orçamentos em Aberto",
-							value: this.shared.formatter.format(
-								openBudgets.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "OrçamentosCancelados",
-					items: [
-						{
-							description: "Orçamentos Cancelados",
-							value: this.shared.formatter.format(
-								cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "ROI",
-					items: [
-						{
-							description: "Retorno MKT (ROI)",
-							value: (
-								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0
-							).toFixed(2),
-						},
-					],
-				},
-				{
-					name: "CAC",
-					items: [
-						{
-							description: "Custo Aquisição Cliente",
-							value: this.shared.formatter.format(
-								cac.length === 0
-									? 0
-									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
-											cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
-							),
-						},
-					],
-				},
-			],
+				authCtx.hasPermission("IND14")
+					? {
+							name: "Faturamento",
+							items: [
+								{
+									description: "Faturamento Realizado",
+									value: this.shared.formatter.format(
+										cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND15")
+					? {
+							name: "Meta",
+							items: [
+								{
+									description: "Meta Faturamento",
+									value: this.shared.formatter.format(
+										cards
+											.at(0)
+											?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND15")
+					? {
+							name: "MetaAtingimento",
+							items: [
+								{
+									description: "Atingimento",
+									value: this.shared.formatPercentage(
+										cards
+											.at(0)
+											?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND15")
+					? {
+							name: "MetaTendencia",
+							items: [
+								{
+									description: "Tendencia",
+									percentage: this.shared.formatPercentage(
+										cards
+											.at(0)
+											?.reduce((acc, curr) => acc + curr.metaProjection, 0),
+									),
+									value: this.shared.formatter.format(
+										cards
+											.at(0)
+											?.reduce((acc, curr) => acc + curr.projection, 0) ?? 0,
+									),
+								},
+							],
+						}
+					: null,
+
+				authCtx.hasPermission("IND16")
+					? {
+							name: "TicketMedio",
+							items: [
+								{
+									description: "Ticket Medio Pacientes",
+									value: this.shared.formatter.format(
+										medianTicket
+											? medianTicket.salesTotal / medianTicket.qtyClients
+											: 0,
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND17")
+					? {
+							name: "ParcelamentoMedio",
+							items: [
+								{
+									description: "Parcelamento Medio",
+									value: `${
+										installmentAvg.at(0)?.avgInstallment
+											? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
+											: 0
+									}x de Parcelamento Médio`,
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND18")
+					? {
+							name: "OrçamentosAbertos",
+							items: [
+								{
+									description: "Orçamentos em Aberto",
+									value: this.shared.formatter.format(
+										openBudgets.reduce((acc, curr) => acc + curr.total, 0),
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND19")
+					? {
+							name: "OrçamentosCancelados",
+							items: [
+								{
+									description: "Orçamentos Cancelados",
+									value: this.shared.formatter.format(
+										cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
+									),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND20")
+					? {
+							name: "ROI",
+							items: [
+								{
+									description: "Retorno MKT (ROI)",
+									value: (
+										marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0
+									).toFixed(2),
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND21")
+					? {
+							name: "CAC",
+							items: [
+								{
+									description: "Custo Aquisição Cliente",
+									value: this.shared.formatter.format(
+										cac.length === 0
+											? 0
+											: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
+													cac.reduce(
+														(acc, curr) => acc + curr.uniqueClients,
+														0,
+													),
+									),
+								},
+							],
+						}
+					: null,
+			].filter(Boolean),
+		};
+	}
+
+	public async liftOneChartsIndicators(
+		authCtx: AuthContext,
+		data: Record<string, any>,
+	) {
+		const charts = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND01"),
+				() => this.invoicingByPaymentMethod_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND02"),
+				() => this.medianTicketByOrigin_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND04"),
+				() => this.invoicingNewClients_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND07"),
+				() => this.schedulingOpportunitiesIndicators_2(authCtx, data),
+			),
+		]);
+
+		const tables = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND26"),
+				() => this.budgetsIndicators_2(authCtx, { ...data, type: "AVALIADOR" }),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND25"),
+				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+			),
+		]);
+
+		const cards = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND10"),
+				() => this.medianTicket(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND10"),
+				() => this.billPaymentFormatIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND10"),
+				() => this.installmentAvgIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND10"),
+				() => this.subgroupIndicators(authCtx, data),
+			),
+
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND11"),
+				() => this.subgroupTreeIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND13"),
+				() => this.unconfirmedBudgetsIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND12"),
+				() => this.clientGroupTreeIndicators(authCtx, data),
+			),
+		]);
+
+		const medianTicket = cards.at(0) as Awaited<
+			ReturnType<typeof this.medianTicket>
+		>;
+		const billPaymentFormat = cards.at(1) as Awaited<
+			ReturnType<typeof this.billPaymentFormatIndicators>
+		>;
+		const installmentAvg = cards.at(2) as Awaited<
+			ReturnType<typeof this.installmentAvgIndicators>
+		>;
+		const treeIndicators = cards.at(6) as Awaited<
+			ReturnType<typeof this.clientGroupTreeIndicators>
+		>;
+		const subgroupTree = cards.at(4) as Awaited<
+			ReturnType<typeof this.subgroupTreeIndicators>
+		>;
+		const unconfirmedBudgets = cards.at(5) as Awaited<
+			ReturnType<typeof this.unconfirmedBudgetsIndicators>
+		>;
+
+		const billPaymentCashSum = billPaymentFormat?.reduce(
+			(acc, curr) => acc + Number.parseFloat(curr.cash),
+			0,
+		);
+		const billPaymentInstallmentSum = billPaymentFormat?.reduce(
+			(acc, curr) => acc + Number.parseFloat(curr.installment),
+			0,
+		);
+
+		return {
+			charts: charts.filter(Boolean),
+			tables: tables.filter(Boolean),
+			cards: [
+				authCtx.hasPermission("IND10")
+					? {
+							name: "FaturamentoAgrupado",
+							faturamento_realizado: {
+								description: "Faturamento Realizado",
+								value: this.shared.formatter.format(
+									medianTicket?.salesTotal ?? 0,
+								),
+							},
+							items: [
+								{
+									description: "Vendas a vista",
+									value: `${this.shared.formatPercentage(
+										(billPaymentCashSum /
+											(billPaymentCashSum + billPaymentInstallmentSum)) *
+											100,
+									)} de Vendas a Vista`,
+								},
+								{
+									description: "Parcelamento Medio",
+									value: `${
+										installmentAvg.at(0)?.avgInstallment
+											? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
+											: 0
+									}x de Parcelamento Médio`,
+								},
+								{
+									description: "Ticket Médio",
+									value: `${this.shared.formatter.format(
+										(medianTicket?.salesTotal ?? 0) /
+											(medianTicket?.qtyClients ?? 1),
+									)} (${medianTicket?.qtyClients}) tkt médio clientes`,
+								},
+							],
+						}
+					: null,
+				authCtx.hasPermission("IND11")
+					? {
+							name: "SubgruposDetalhado",
+							items: subgroupTree,
+						}
+					: null,
+				authCtx.hasPermission("IND12")
+					? {
+							name: "OrigemClientesporCategoria",
+							items: treeIndicators,
+						}
+					: null,
+				authCtx.hasPermission("IND13")
+					? {
+							name: "OrçamentosNaoConfirmados",
+							items: [
+								{
+									description: "Orçamentos não confirmados",
+									value: `${this.shared.formatter.format(
+										Number.parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
+									)} (${unconfirmedBudgets.at(0)?.unique ?? 0})`,
+								},
+							],
+						}
+					: null,
+			].filter(Boolean),
 		};
 	}
 
@@ -3971,7 +4219,7 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: Record<string, any>,
 	) {
-		const hasPermission = await this.shared.userHasPermission(authCtx, "PRI05");
+		const hasPermission = authCtx.hasPermission("PRI05");
 		if (!hasPermission) {
 			throw new UnauthorizedException(
 				"Usuário sem permissão para ver os gráficos",
@@ -3985,283 +4233,14 @@ export default class IndicatorService {
 		}
 
 		if (authCtx.system.name === "LiftOne") {
-			const charts = await Promise.all([
-				this.invoicingByPaymentMethod_2(authCtx, data),
-				this.medianTicketByOrigin_2(authCtx, data),
-				this.invoicingNewClients_2(authCtx, data),
-				this.schedulingOpportunitiesIndicators_2(authCtx, data),
-			]);
-
-			const tables = await Promise.all([
-				this.budgetsIndicators_2(authCtx, { ...data, type: "AVALIADOR" }),
-				this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
-			]);
-
-			const cards = await Promise.all([
-				this.medianTicket(authCtx, data),
-				this.billPaymentFormatIndicators(authCtx, data),
-				this.installmentAvgIndicators(authCtx, data),
-				this.subgroupIndicators(authCtx, data),
-				this.subgroupTreeIndicators(authCtx, data),
-				this.unconfirmedBudgetsIndicators(authCtx, data),
-				this.clientGroupTreeIndicators(authCtx, data),
-			]);
-
-			const medianTicket = cards.at(0) as Awaited<
-				ReturnType<typeof this.medianTicket>
-			>;
-			const billPaymentFormat = cards.at(1) as Awaited<
-				ReturnType<typeof this.billPaymentFormatIndicators>
-			>;
-			const installmentAvg = cards.at(2) as Awaited<
-				ReturnType<typeof this.installmentAvgIndicators>
-			>;
-			const treeIndicators = cards.at(6) as Awaited<
-				ReturnType<typeof this.clientGroupTreeIndicators>
-			>;
-			const subgroupTree = cards.at(4) as Awaited<
-				ReturnType<typeof this.subgroupTreeIndicators>
-			>;
-			const unconfirmedBudgets = cards.at(5) as Awaited<
-				ReturnType<typeof this.unconfirmedBudgetsIndicators>
-			>;
-
-			const billPaymentCashSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + Number.parseFloat(curr.cash),
-				0,
-			);
-			const billPaymentInstallmentSum = billPaymentFormat.reduce(
-				(acc, curr) => acc + Number.parseFloat(curr.installment),
-				0,
-			);
-
-			return {
-				charts,
-				tables,
-				cards: [
-					{
-						name: "FaturamentoAgrupado",
-						faturamento_realizado: {
-							description: "Faturamento Realizado",
-							value: this.shared.formatter.format(
-								medianTicket?.salesTotal ?? 0,
-							),
-						},
-						items: [
-							{
-								description: "Vendas a vista",
-								value: `${this.shared.formatPercentage(
-									(billPaymentCashSum /
-										(billPaymentCashSum + billPaymentInstallmentSum)) *
-										100,
-								)} de Vendas a Vista`,
-							},
-							{
-								description: "Parcelamento Medio",
-								value: `${
-									installmentAvg.at(0)?.avgInstallment
-										? Math.trunc(installmentAvg.at(0)?.avgInstallment ?? 0)
-										: 0
-								}x de Parcelamento Médio`,
-							},
-							{
-								description: "Ticket Médio",
-								value: `${this.shared.formatter.format(
-									(medianTicket?.salesTotal ?? 0) /
-										(medianTicket?.qtyClients ?? 1),
-								)} (${medianTicket?.qtyClients}) tkt médio clientes`,
-							},
-						],
-					},
-					{
-						name: "SubgruposDetalhado",
-						items: subgroupTree,
-					},
-					{
-						name: "OrigemClientesporCategoria",
-						items: treeIndicators,
-					},
-					{
-						name: "OrçamentosNaoConfirmados",
-						items: [
-							{
-								description: "Orçamentos não confirmados",
-								value: `${this.shared.formatter.format(
-									Number.parseFloat(unconfirmedBudgets.at(0)?.total ?? "0"),
-								)} (${unconfirmedBudgets.at(0)?.unique ?? 0})`,
-							},
-						],
-					},
-				],
-			};
+			return this.liftOneChartsIndicators(authCtx, data);
 		}
 
-		const charts = await Promise.all([
-			this.medianTicketByOrigin_2(authCtx, data),
-			// this.invoicingByProductType_2(authCtx, data),
-			this.invoicingByPaymentMethod_2(authCtx, data),
-			this.invoicingNewClientsPeriod_2(authCtx, data),
-			this.billPaymentFormatIndicators_2(authCtx, data),
-			this.productTypeIndicators_2(authCtx, data),
-			this.schedulingIndicators_2(authCtx, data),
-			this.opportunitiesIndicators_2(authCtx, data),
-		]);
-
-		const tables = await Promise.all([
-			this.billForUserPeriod_2(authCtx, data),
-			this.subgroupIndicators_2(authCtx, data),
-			this.salesPerPeriodIndicators_2(authCtx, data),
-			this.budgetsIndicators_2(authCtx, data),
-		]);
-
-		const cards = await Promise.all([
-			this.billingIndicators(authCtx, data),
-			this.medianTicket(authCtx, data),
-			this.budgetsByStatusIndicators(authCtx, {
-				...data,
-				status: BudgetStatus.A,
-			}),
-			this.budgetsByStatusIndicators(authCtx, {
-				...data,
-				status: BudgetStatus.N,
-			}),
-			this.marketingIndicators(authCtx, data),
-			this.costOfAcquisitionIndicators(authCtx, data),
-		]);
-
-		const medianTicket = cards.at(1) as Awaited<
-			ReturnType<typeof this.medianTicket>
-		>;
-		const openBudgets = cards.at(2) as Awaited<
-			ReturnType<typeof this.budgetsByStatusIndicators>
-		>;
-		const cancelledBudgets = cards.at(3) as Awaited<
-			ReturnType<typeof this.budgetsByStatusIndicators>
-		>;
-		const marketing = cards.at(4) as Awaited<
-			ReturnType<typeof this.marketingIndicators>
-		>;
-		const cac = cards.at(5) as Awaited<
-			ReturnType<typeof this.costOfAcquisitionIndicators>
-		>;
-
-		return {
-			charts,
-			tables,
-			cards: [
-				{
-					name: "Faturamento",
-					items: [
-						{
-							description: "Faturamento Realizado",
-							value: this.shared.formatter.format(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "Meta",
-					items: [
-						{
-							description: "Meta Faturamento",
-							value: this.shared.formatter.format(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.meta.value, 0) ??
-									0,
-							),
-						},
-					],
-				},
-				{
-					name: "MetaAtingimento",
-					items: [
-						{
-							description: "Atingimento",
-							value: this.shared.formatPercentage(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.percentage, 0) ??
-									0,
-							),
-						},
-					],
-				},
-				{
-					name: "MetaTendencia",
-					items: [
-						{
-							description: "Tendencia",
-							percentage: this.shared.formatPercentage(
-								cards.at(0)?.reduce((acc, curr) => acc + curr.projection, 0),
-							),
-							value: this.shared.formatter.format(
-								cards
-									.at(0)
-									?.reduce((acc, curr) => acc + curr.metaProjection, 0) ?? 0,
-							),
-						},
-					],
-				},
-				{
-					name: "TicketMedio",
-					items: [
-						{
-							description: "Ticket Medio Pacientes",
-							value: this.shared.formatter.format(
-								medianTicket
-									? medianTicket.salesTotal / medianTicket.qtyClients
-									: 0,
-							),
-						},
-					],
-				},
-				{
-					name: "OrçamentosAbertos",
-					items: [
-						{
-							description: "Orçamentos em Aberto",
-							value: this.shared.formatter.format(
-								openBudgets.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "OrçamentosCancelados",
-					items: [
-						{
-							description: "Orçamentos Cancelados",
-							value: this.shared.formatter.format(
-								cancelledBudgets.reduce((acc, curr) => acc + curr.total, 0),
-							),
-						},
-					],
-				},
-				{
-					name: "ROI",
-					items: [
-						{
-							description: "Retorno MKT (ROI)",
-							value: this.shared.formatPercentage(
-								marketing.reduce((acc, curr) => acc + curr.roi, 0) ?? 0,
-							),
-						},
-					],
-				},
-				{
-					name: "CAC",
-					items: [
-						{
-							description: "Custo Aquisição Cliente",
-							value: this.shared.formatter.format(
-								cac.length === 0
-									? 0
-									: cac.reduce((acc, curr) => acc + curr.totalFinances, 0) /
-											cac.reduce((acc, curr) => acc + curr.uniqueClients, 0),
-							),
-						},
-					],
-				},
-			],
-		};
+		throw new InternalErrorException(
+			`Sistema '${authCtx.system.name}' não tem gráficos definidos`,
+			400,
+			"E_ERR",
+		);
 	}
 
 	public async invoicingNewClientsPeriod_2(

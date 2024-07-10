@@ -21,6 +21,6 @@ export default class DreController {
 			request.qs(),
 		);
 
-		return response.download(result);
+		return response.ok(result);
 	}
 }

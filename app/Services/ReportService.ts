@@ -2081,8 +2081,14 @@ ON bills.patient_id = Dep."id"`,
         coalesce(balance, 'Em Aberto')   as situacao,
         opportunities.description        as observacao,
         r.reason                         as motivo_ganho_perda,
-        opportunities.result_observation as obse_ganho_perda,
-        opportunities.profit_value       as valor_ganho`),
+        opportunities.result_observation as obs_ganho_perda,
+        opportunities.profit_value       as valor_ganho,
+        userlancamento.name as usuarioLancamento,
+        cli.name as nome_paciente,
+        races.description as raca_paciente,
+        opportunities.gender as genero_paciente,
+        opportunities.weight as peso_paciente,
+        opportunities.castrated as castrado_paciente`),
 			)
 			.joinRaw(
 				"join business_units bu on opportunities.business_unit_id = bu.id",
@@ -2097,11 +2103,15 @@ ON bills.patient_id = Dep."id"`,
 				"left join client_origins co on opportunities.client_origin_id = co.id",
 			)
 			.joinRaw(
+				"join users userLancamento on opportunities.opening_user_id = userlancamento.id",
+			)
+			.joinRaw(
 				"left join contact_subjects cs2 on opportunities.contact_subject_id = cs2.id",
 			)
 			.joinRaw(
 				"left join contact_types ct on opportunities.contact_type_id = ct.id",
 			)
+			.joinRaw("left join races on opportunities.race_id = races.id")
 			.joinRaw("left join reasons r on opportunities.reason_id = r.id")
 			.where("opportunities.economic_group_id", authCtx.group.id)
 			.whereNull("opportunities.deleted_at");

@@ -1,16 +1,29 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import { AuthContext } from "App/Services/SharedService";
 import * as fs from "node:fs";
 import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import { exec } from "node:child_process";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import axios, { Axios } from "axios";
+import FormData from "form-data";
 
 @inject()
 export default class DreService {
-	constructor(private _shared: SharedService) {}
+	private axios: Axios;
+
+	constructor() {
+		this.axios = axios.create({
+			baseURL: "https://api.freeconvert.com/v1",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+				Authorization: `Bearer ${"api_production_7e976d1c469bb556be2fc2b99476d2e97ba492e6a559793ac44785c661cfe3cd.668d9779b82b25606c74e67c.668d97b9b82b25606c74e711"}`,
+			},
+		});
+	}
 
 	public async generateDreSpreadsheet(
 		authCtx: AuthContext,
@@ -63,7 +76,7 @@ export default class DreService {
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);
 
-		const excelCompiler = Env.get("DRE_PATH").replace("dre.xlsx", "excel");
+		const excelCompiler = Env.get("EXCEL_COMPILER_PATH");
 		const baseDreExcel = Env.get("DRE_PATH");
 		const genKey = v4();
 
@@ -84,7 +97,7 @@ export default class DreService {
 			{ success: true; path: string } | { success: false; err: string }
 		>((res) => {
 			exec(
-				`${excelCompiler} ${baseDreExcel} /tmp/${genKey}.json`,
+				`${excelCompiler} ${$data.competence ?? ""} ${baseDreExcel} /tmp/${genKey}.json`,
 				(error, _stdout, _stderr) => {
 					if (error) {
 						console.error(error);
@@ -109,14 +122,84 @@ export default class DreService {
 			);
 		}
 
-		setTimeout(() => {
-			try {
-				fs.unlinkSync(result.path);
-			} catch (err) {
-				console.error("Erro limpando arquivo", err);
-			}
-		}, 10_000);
+		const jobResponse = await this.axios.post("/process/jobs", {
+			tasks: {
+				"import-1": {
+					operation: "import/upload",
+				},
+				"convert-1": {
+					operation: "convert",
+					input: "import-1",
+					input_format: "xlsx",
+					output_format: "pdf",
+					options: {
+						optimize_for: "print",
+					},
+				},
+				"export-1": {
+					operation: "export/url",
+					input: ["convert-1"],
+				},
+			},
+		});
 
-		return result.path;
+		const job = jobResponse.data;
+
+		// console.log("Job created", job.id, JSON.stringify(job));
+		const uploadTask = job.tasks.find((t) => t.name === "import-1");
+
+		const formData = new FormData();
+		for (const parameter in uploadTask.result.form.parameters) {
+			formData.append(parameter, uploadTask.result.form.parameters[parameter]);
+		}
+
+		formData.append("file", fs.createReadStream(result.path));
+
+		await this.axios.post(uploadTask.result.form.url, formData, {
+			headers: {
+				"Content-Type": "multipart/form-data",
+			},
+		});
+
+		let pdfUrl = "";
+		for (let i = 0; i < 10; i++) {
+			await this.waitForSeconds(2);
+			const jobGetResponse = await this.axios.get(`/process/jobs/${job.id}`);
+
+			const responseJobData = jobGetResponse.data;
+
+			if (responseJobData.status === "completed") {
+				const exportTask = responseJobData.tasks.find(
+					(t) => t.name === "export-1",
+				);
+				if (exportTask) {
+					pdfUrl = exportTask.result.url;
+				}
+				break;
+			}
+
+			if (responseJobData.status === "failed") {
+				console.log({ responseJobData });
+				throw new InternalErrorException("Erro gerando pdf", 500, "E_ERR");
+			}
+		}
+
+		if (pdfUrl === "") {
+			throw new InternalErrorException("Erro gerando pdf", 500, "E_ERR");
+		}
+
+		try {
+			fs.unlinkSync(result.path);
+		} catch (err) {
+			console.error("Erro limpando arquivo", err);
+		}
+
+		return {
+			result: pdfUrl,
+		};
+	}
+
+	private async waitForSeconds(seconds: number) {
+		await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 	}
 }

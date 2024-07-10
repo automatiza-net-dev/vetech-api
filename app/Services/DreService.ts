@@ -38,6 +38,14 @@ export default class DreService {
 			throw new BadRequestException("Competência obrigatória", 400, "E_ERR");
 		}
 
+		if (!authCtx.unit.unitConfig.dreReportFile) {
+			throw new BadRequestException(
+				"Unidade sem arquivo DRE configurado",
+				400,
+				"E_RR",
+			);
+		}
+
 		const data = await Database.from("finances")
 			.select(
 				Database.raw(`substring(competence_date, 1, 2)::int                                                      mes,
@@ -77,7 +85,7 @@ export default class DreService {
 			);
 
 		const excelCompiler = Env.get("EXCEL_COMPILER_PATH");
-		const baseDreExcel = Env.get("DRE_PATH");
+		const baseDreExcel = authCtx.unit.unitConfig.dreReportFile;
 		const genKey = v4();
 
 		fs.writeFileSync(

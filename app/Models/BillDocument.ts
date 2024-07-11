@@ -58,9 +58,7 @@ export default class BillDocument extends BaseModel {
 	})
 	public business_unit_id: string;
 
-	@column({
-		serializeAs: null,
-	})
+	@column({})
 	public bill_id: string;
 
 	@belongsTo(() => Bill, {

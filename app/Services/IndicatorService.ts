@@ -3836,7 +3836,7 @@ export default class IndicatorService {
 
 		const cards = await Promise.all([
 			SharedService.NoopPromise(
-				() => authCtx.hasPermissions(["IND14", "IND15"]),
+				() => authCtx.hasPermission("IND14"),
 				() => this.billingIndicators(authCtx, data),
 			),
 			SharedService.NoopPromise(

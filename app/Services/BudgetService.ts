@@ -4,6 +4,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
+import BillDocument from "App/Models/BillDocument";
 import { BillItemStatus } from "App/Models/BillItem";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
@@ -88,7 +89,7 @@ export default class BudgetService {
 	}
 
 	public async listOpenNegotiations(authCtx: AuthContext, patientId: string) {
-		return Attendance.query()
+		const attendances = await Attendance.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
@@ -164,23 +165,6 @@ export default class BudgetService {
 					query.select("id", "reason");
 				});
 
-				query.preload("bill", (query) => {
-					query.select("id", "tag", "created_at");
-
-					query.preload("documents", (query) => {
-						query
-							.preload("generationUser", (query) => {
-								query.select("id", "name");
-							})
-							.preload("printUser", (query) => {
-								query.select("id", "name");
-							})
-							.preload("documentTemplate", (query) => {
-								query.select("id", "description");
-							});
-					});
-				});
-
 				query.preload("items", (query) => {
 					query.select(
 						"id",
@@ -226,6 +210,44 @@ export default class BudgetService {
 					});
 				});
 			});
+
+		return Promise.all(
+			attendances.map(async (elem) => {
+				const jsonObj = elem.toJSON();
+
+				const bills = await Bill.query()
+					.whereIn(
+						"id",
+						elem.budgets.map((b) => b.bill_id),
+					)
+					.select("id", "tag", "documents_status", "created_at", "budget_id");
+				Object.assign(jsonObj, {
+					bills: bills.map((b) => {
+						return { ...b.toJSON(), budget_id: b.budget_id };
+					}),
+				});
+
+				const billDocuments = await BillDocument.query()
+					.whereIn(
+						"bill_id",
+						bills.map((b) => b.id),
+					)
+					.preload("generationUser", (query) => {
+						query.select("id", "name");
+					})
+					.preload("printUser", (query) => {
+						query.select("id", "name");
+					})
+					.preload("documentTemplate", (query) => {
+						query.select("id", "description");
+					});
+				Object.assign(jsonObj, {
+					documents: billDocuments,
+				});
+
+				return jsonObj;
+			}),
+		);
 	}
 
 	public async partialIndex(unitId: string, data: ISearchPartial) {

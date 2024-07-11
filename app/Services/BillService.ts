@@ -974,7 +974,7 @@ where deposit_id = ?
 						business_unit_id: authCtx.unit.id,
 						daily_movement_id: bill.daily_movement_id,
 						daily_cashier_id: bill.daily_cashier_id,
-						client_id: bill.client_id,
+						client_id: bill.financial_responsible_id ?? bill.client_id,
 						payment_method_id: paymentMethod.id,
 						origin_id: payments.at(v)?.id,
 						account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,

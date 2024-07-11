@@ -196,6 +196,9 @@ export default class BillService {
 			.preload("seller")
 			.preload("user")
 			.preload("businessUnit")
+			.preload("documents", (query) => {
+				query.preload("documentTemplate");
+			})
 			.preload("payments", (query) => {
 				query.preload("acquirer", (query) => {
 					query.select("id", "description");

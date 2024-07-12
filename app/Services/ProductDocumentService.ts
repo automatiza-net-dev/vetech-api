@@ -91,6 +91,8 @@ export default class ProductDocumentService {
 			bill_id: elem.bill_id,
 			bill_tag: elem.bill.tag,
 			description: elem.documentTemplate.description,
+			type: elem.documentTemplate.type,
+			template: elem.documentTemplate.template,
 			generationUser: elem.generationUser.name,
 			printUser: elem.printUser?.name ?? null,
 			printedAt: elem.printedAt,

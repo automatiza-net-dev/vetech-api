@@ -2233,6 +2233,14 @@ where deposit_id = ?
 			);
 		}
 
+		if (data.courtesy && !productVariation.product.courtesy) {
+			throw new BadRequestException(
+				`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+				400,
+				"E_ERR",
+			);
+		}
+
 		const rule = await TaxationGroupRule.query()
 			.useTransaction(trx)
 			.whereHas("taxationGroup", (query) => {

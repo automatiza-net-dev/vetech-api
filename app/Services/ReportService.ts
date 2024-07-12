@@ -10,10 +10,7 @@ import Receipt from "App/Models/Receipt";
 import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
-import {
-	OpportunityActivityStatus,
-	TOpportunityActivityStatus,
-} from "App/Models/OpportunityActivity";
+import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 
 @inject()
 export default class ReportService {
@@ -2088,7 +2085,9 @@ ON bills.patient_id = Dep."id"`,
         races.description as raca_paciente,
         opportunities.gender as genero_paciente,
         opportunities.weight as peso_paciente,
-        opportunities.castrated as castrado_paciente`),
+        opportunities.castrated as castrado_paciente,
+        opportunities.client_origin_item_description as campanha_midia
+        `),
 			)
 			.joinRaw(
 				"join business_units bu on opportunities.business_unit_id = bu.id",

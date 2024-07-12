@@ -20,4 +20,5 @@ export default interface IUpdateProduct {
 	fractioned?: boolean;
 	fractionUnitId?: string;
 	fractionValue?: number;
+	courtesy?: boolean;
 }

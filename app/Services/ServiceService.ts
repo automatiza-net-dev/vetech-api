@@ -78,6 +78,7 @@ export default class ServiceService {
 			serviceCode: service.serviceCode,
 			active: service.active,
 			created_at: service.createdAt,
+			courtesy: service.courtesy,
 			subgroup: {
 				id: service.subgroup?.id ?? null,
 				description: service.subgroup?.description ?? null,
@@ -89,7 +90,7 @@ export default class ServiceService {
 			price: {
 				id: service.variations[0]?.id ?? null,
 				value:
-					parseFloat(
+					Number.parseFloat(
 						service.variations[0]?.businessUnitProducts[0]
 							?.price as unknown as string,
 					) ?? null,
@@ -166,6 +167,7 @@ export default class ServiceService {
 					variation_group_id: someUnitConfig?.service_variation_group_id,
 					serviceCode: data.serviceCode,
 					serviceType: data.serviceType,
+					courtesy: data.courtesy,
 				},
 				{
 					client: trx,
@@ -265,6 +267,7 @@ export default class ServiceService {
 					taxation_group_id: data.taxationGroupId,
 					serviceCode: data.serviceCode,
 					serviceType: data.serviceType,
+					courtesy: data.courtesy,
 				})
 				.useTransaction(trx)
 				.save();

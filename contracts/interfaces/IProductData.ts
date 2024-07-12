@@ -27,6 +27,9 @@ export interface IProductDataVariation {
 
 export default interface IProductData {
 	description: string;
+
+	courtesy?: boolean;
+
 	referenceCode?: string;
 	collectionYear?: number;
 	subgroupId: string;

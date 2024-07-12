@@ -23,6 +23,7 @@ export default class CreateProductValidator {
 	public schema = schema.create({
 		description: schema.string({}, []),
 
+		courtesy: schema.boolean.optional([]),
 		referenceCode: schema.string.optional({}, []),
 		collectionYear: schema.number.optional([rules.unsigned()]),
 

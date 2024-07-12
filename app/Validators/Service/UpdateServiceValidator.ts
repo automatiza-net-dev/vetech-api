@@ -8,6 +8,7 @@ export default class UpdateServiceValidator {
 	public schema = schema.create({
 		description: schema.string({}, []),
 		referenceCode: schema.string.optional({}, []),
+		courtesy: schema.boolean.optional([]),
 		subgroupId: schema.string({}, [
 			rules.uuid(),
 			rules.exists({

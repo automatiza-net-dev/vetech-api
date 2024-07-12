@@ -12,10 +12,14 @@ import TimelineType from "App/Models/TimelineType";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
+import TemplateReplacementService from "App/Services/TemplateReplacementService";
 
 @inject()
 export default class ProductDocumentService {
-	constructor(private shared: SharedService) {}
+	constructor(
+		private shared: SharedService,
+		private templateService: TemplateReplacementService,
+	) {}
 
 	public async index(
 		authCtx: AuthContext,
@@ -171,6 +175,12 @@ export default class ProductDocumentService {
 			);
 
 			const tasks = elems.map(async (elem) => {
+				const renderThing = await this.templateService.renderText(authCtx, {
+					documentId: elem.document_template_id,
+					userId: authCtx.user.id,
+					businessUnitId: authCtx.unit.id,
+				});
+
 				const refDoc = await AnimalTimeline.create({
 					timeline_id: timelineInfo.id,
 					timeline_type: {
@@ -181,7 +191,7 @@ export default class ProductDocumentService {
 					timeline_info: {
 						tag: data.patientId,
 						type: elem.description,
-						value: elem.template,
+						value: "key" in renderThing ? renderThing.key : renderThing.text,
 						realizedAt: new Date(),
 						technician: {
 							id: authCtx.user.id,

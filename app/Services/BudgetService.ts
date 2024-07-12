@@ -239,7 +239,7 @@ export default class BudgetService {
 						query.select("id", "name");
 					})
 					.preload("documentTemplate", (query) => {
-						query.select("id", "description");
+						query.select("id", "description", "type", "value");
 					});
 				Object.assign(jsonObj, {
 					documents: billDocuments,

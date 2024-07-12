@@ -1,43 +1,45 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 export interface ICreateBillData {
-  clientId: string;
-  financialResponsibleId?: string;
-  patientId?: string;
-  dailyMovementId?: string;
-  billDate: DateTime;
+	clientId: string;
+	financialResponsibleId?: string;
+	patientId?: string;
+	dailyMovementId?: string;
+	billDate: DateTime;
 
-  items: Array<{
-    productVariationId: string;
-    quantity: number;
-    unitaryValue: number;
-    discountValue: number;
-  }>;
+	items: Array<{
+		productVariationId: string;
+		quantity: number;
+		unitaryValue: number;
+		discountValue: number;
+		courtesy?: boolean;
+	}>;
 
-  additionalInformation?: string;
-  budgetId?: string;
+	additionalInformation?: string;
+	budgetId?: string;
 }
 
 export interface ICreateBillItemData {
-  billId: string;
-  productVariationId: string;
-  quantity: number;
-  unitaryValue: number;
-  discountValue: number;
+	billId: string;
+	productVariationId: string;
+	quantity: number;
+	unitaryValue: number;
+	discountValue: number;
+	courtesy?: boolean;
 }
 
 export interface ICreateBillPaymentData {
-  billId: string;
-  flagId?: string;
-  acquirerId?: string;
-  paymentMethodId: string;
-  paymentMethodFlagInstallmentId?: number;
-  expirationDate: DateTime;
-  installmentsValue: number;
-  nsuDocument?: string;
-  installments?: number;
+	billId: string;
+	flagId?: string;
+	acquirerId?: string;
+	paymentMethodId: string;
+	paymentMethodFlagInstallmentId?: number;
+	expirationDate: DateTime;
+	installmentsValue: number;
+	nsuDocument?: string;
+	installments?: number;
 }
 
 export interface IUpdateBillItemData {
-  items: Array<{ billItemId: string; discountValue: number }>;
+	items: Array<{ billItemId: string; discountValue: number }>;
 }

@@ -224,6 +224,13 @@ export default class BillService {
 					query.preload("variationOptions");
 					query.preload("product");
 				});
+
+				query.preload("courtesyIssuedUser", (query) => {
+					query.select(["id", "name"]);
+				});
+				query.preload("courtesyApprovedUser", (query) => {
+					query.select(["id", "name"]);
+				});
 			})
 			.first();
 
@@ -270,12 +277,14 @@ export default class BillService {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-				})),
+				data.items
+					.filter((e) => !e.courtesy)
+					.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+					})),
 			);
 			if (invalid.length > 0) {
 				// return invalid;
@@ -383,16 +392,18 @@ export default class BillService {
 
 	async createBillItem(authCtx: AuthContext, data: ICreateBillItemData) {
 		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(trx, authCtx, [
-				{
-					variationId: data.productVariationId,
-					unitaryValue: data.unitaryValue,
-					discountValue: data.discountValue,
-					quantity: data.quantity,
-				},
-			]);
-			if (invalid.length > 0) {
-				return invalid;
+			if (!data.courtesy) {
+				const invalid = await this.sharedService.checkDiscount(trx, authCtx, [
+					{
+						variationId: data.productVariationId,
+						unitaryValue: data.unitaryValue,
+						discountValue: data.discountValue,
+						quantity: data.quantity,
+					},
+				]);
+				if (invalid.length > 0) {
+					return invalid;
+				}
 			}
 
 			const invalidRows = await this.depositService.validateDepositOperation(
@@ -1258,6 +1269,7 @@ where deposit_id = ?
 			});
 		});
 		qb.preload("unit");
+
 		const products = await qb;
 
 		const kits = await Kit.query()
@@ -1364,6 +1376,7 @@ where deposit_id = ?
 			.where("economic_group_id", group.id)
 			.where("id", id)
 			.preload("payments")
+			.preload("items")
 			.first();
 
 		if (!bill) {
@@ -1383,6 +1396,14 @@ where deposit_id = ?
 				"Valor de pagamentos é menor que o valor da nota",
 				400,
 				"E_NOT_OPEN",
+			);
+		}
+
+		if (bill.items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+			throw new BadRequestException(
+				"Venda não pode ser finalizada pois possui cortesias não aprovadas",
+				400,
+				"E_ERR",
 			);
 		}
 
@@ -1811,6 +1832,28 @@ where deposit_id = ?
 				query.where("businness_unit_id", authCtx.unit.id);
 			});
 
+		for (const item of data.items.filter((i) => i.courtesy)) {
+			const variation = productVariations.find(
+				(v) => v.id === item.productVariationId,
+			);
+
+			if (!variation) {
+				throw new InternalErrorException(
+					"Produto enviado não foi encontrado",
+					500,
+					"E_ERR",
+				);
+			}
+
+			if (item.courtesy && !variation.product.courtesy) {
+				throw new BadRequestException(
+					`Produto '${variation.product.description}' não pode ser usado com cortesia`,
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
 		const taxRules = await TaxationGroupRule.query()
 			.useTransaction(trx)
 			.whereHas("taxationGroup", (query) => {
@@ -1888,7 +1931,7 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		const depositThing = await Database.from("user_unit_roles")
+		await Database.from("user_unit_roles")
 			.useTransaction(trx)
 			.select(
 				Database.raw(
@@ -1942,12 +1985,13 @@ where deposit_id = ?
 					tax_rule_id: rule?.id,
 					deposit_id: undefined,
 
+					courtesy: item.courtesy,
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
 					saleValue: price?.price,
-					unitaryValue: item.unitaryValue,
-					discountValue: item.discountValue,
-					totalValue,
+					unitaryValue: item.courtesy ? 0 : item.unitaryValue,
+					discountValue: item.courtesy ? 0 : item.discountValue,
+					totalValue: item.courtesy ? 0 : totalValue,
 					status: BillItemStatus.A,
 					// createdAt: bill.createdAt,
 
@@ -2270,6 +2314,7 @@ where deposit_id = ?
 			kit_id: data.kitId,
 			deposit_id,
 
+			courtesy: data.courtesy,
 			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,
 			saleValue: price.price,

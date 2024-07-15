@@ -1,14 +1,14 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
-import { AuthContext } from "App/Services/SharedService";
-import * as fs from "node:fs";
-import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
-import { exec } from "node:child_process";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
+import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import { AuthContext } from "App/Services/SharedService";
 import axios, { Axios } from "axios";
 import FormData from "form-data";
+import { exec } from "node:child_process";
+import * as fs from "node:fs";
+import { v4, validate } from "uuid";
 
 @inject()
 export default class DreService {
@@ -36,14 +36,6 @@ export default class DreService {
 
 		if (!$data.competence) {
 			throw new BadRequestException("Competência obrigatória", 400, "E_ERR");
-		}
-
-		if (!authCtx.unit.unitConfig.dreReportFile) {
-			throw new BadRequestException(
-				"Unidade sem arquivo DRE configurado",
-				400,
-				"E_RR",
-			);
 		}
 
 		const data = await Database.from("finances")
@@ -85,7 +77,7 @@ export default class DreService {
 			);
 
 		const excelCompiler = Env.get("EXCEL_COMPILER_PATH");
-		const baseDreExcel = authCtx.unit.unitConfig.dreReportFile;
+		const baseDreExcel = Env.get("DRE_PATH");
 		const genKey = v4();
 
 		fs.writeFileSync(

@@ -2074,6 +2074,8 @@ ON bills.patient_id = Dep."id"`,
         cs.description                   as status_oportunidade,
         cs2.description                  as assunto_contato,
         ct.description                   as tipo_contato,
+        coc.description origem_categoria,
+        cog.description origem_grupo,
         u.name                           as responsavel,
         coalesce(balance, 'Em Aberto')   as situacao,
         opportunities.description        as observacao,
@@ -2099,10 +2101,13 @@ ON bills.patient_id = Dep."id"`,
     left join patient_contacts pc on p.id = pc.patient_id and pc."type" = 'celular') on opportunities.contact_id = p.id`)
 			.joinRaw("left join patients cli on opportunities.client_id = cli.id")
 			.joinRaw(
-				"left join client_origins co on opportunities.client_origin_id = co.id",
+				"join users userLancamento on opportunities.opening_user_id = userlancamento.id",
 			)
 			.joinRaw(
-				"join users userLancamento on opportunities.opening_user_id = userlancamento.id",
+				`left join (client_origins co
+                    left join client_origin_groups cog on co.client_origin_group_id = cog.id
+                    left join client_origin_categories coc on cog.client_origin_category_id = coc.id
+                   ) on opportunities.client_origin_id = co.id`,
 			)
 			.joinRaw(
 				"left join contact_subjects cs2 on opportunities.contact_subject_id = cs2.id",
@@ -2154,6 +2159,8 @@ ON bills.patient_id = Dep."id"`,
 				data.toContact,
 			]);
 		}
+
+		console.log(qb.toQuery());
 
 		return qb;
 	}

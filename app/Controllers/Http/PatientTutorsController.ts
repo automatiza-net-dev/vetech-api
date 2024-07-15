@@ -13,7 +13,6 @@ import UpdateLiftOneTutorForRegisterValidator from "App/Validators/Patient/Updat
 import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatientWithTutorValidator";
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
-import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 
 @inject()
 export default class PatientTutorsController {

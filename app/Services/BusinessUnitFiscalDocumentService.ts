@@ -488,7 +488,7 @@ export default class BusinessUnitFiscalDocumentService {
 					items.map((i) => i.id),
 				)
 				.update({
-					nfe_issued: true,
+					nfe_issued: result.success,
 				});
 
 			if (result.chave || result.numero) {

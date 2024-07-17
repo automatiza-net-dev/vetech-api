@@ -3,7 +3,6 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Permission, { TPermissionType } from "App/Models/Permission";
-import { TProfileAccessType } from "App/Models/ProfileAccess";
 import Role, { TRoleType } from "App/Models/Role";
 import RoleProfileAccess from "App/Models/RoleProfileAccess";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -12,6 +11,7 @@ import IRoleData from "Contracts/interfaces/IRoleData";
 
 interface ISearch {
 	name?: string;
+	new?: string;
 }
 
 @inject()
@@ -41,6 +41,16 @@ export default class RoleService {
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
+
+		// if (data.new === "true") {
+		// 	qb.whereHas("permissions", (q) => {
+		// 		q.whereNull("status");
+		// 	});
+		// } else {
+		// 	qb.whereHas("permissions", (q) => {
+		// 		q.whereNotNull("status");
+		// 	});
+		// }
 
 		return qb;
 	}

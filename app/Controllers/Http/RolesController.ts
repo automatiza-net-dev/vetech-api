@@ -25,6 +25,7 @@ export default class RolesController {
 				await this.sharedService.getAuthContext(auth),
 				{
 					name: qs.name,
+					new: qs.new,
 				},
 			),
 		);

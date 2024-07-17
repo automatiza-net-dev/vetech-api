@@ -7,6 +7,7 @@ import {
 	column,
 	hasMany,
 	manyToMany,
+	computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import Permission from "App/Models/Permission";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
@@ -41,6 +42,12 @@ export default class Role extends BaseModel {
 
 	@column()
 	public active: boolean;
+
+	@computed()
+	public get newItems() {
+		console.log(this);
+		return true;
+	}
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

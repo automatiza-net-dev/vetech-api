@@ -1,3 +1,4 @@
+import Database from "@ioc:Adonis/Lucid/Database";
 import {
 	BaseModel,
 	HasMany,
@@ -42,12 +43,6 @@ export default class Role extends BaseModel {
 
 	@column()
 	public active: boolean;
-
-	@computed()
-	public get newItems() {
-		console.log(this);
-		return true;
-	}
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

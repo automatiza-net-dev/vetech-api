@@ -18,10 +18,7 @@ interface ISearch {
 export default class RoleService {
 	constructor(private sharedService: SharedService) {}
 
-	public async index(
-		authCtx: AuthContext,
-		data: ISearch,
-	): Promise<Array<Role>> {
+	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Role.query()
 			.where("system_id", authCtx.system.id)
 			.where("economic_group_id", authCtx.group.id);
@@ -52,7 +49,20 @@ export default class RoleService {
 		// 	});
 		// }
 
-		return qb;
+		const result = await qb;
+		const permissions = await Database.from("role_permissions")
+			.whereIn(
+				"role_id",
+				result.map((r) => r.id),
+			)
+			.whereNull("status");
+
+		return result.map((r) => {
+			return {
+				...r.toJSON(),
+				newItems: permissions.filter((p) => p.role_id === r.id).length > 0,
+			};
+		});
 	}
 
 	public async controllerIndex(

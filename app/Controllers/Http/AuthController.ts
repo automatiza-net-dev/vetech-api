@@ -214,6 +214,7 @@ export default class AuthController {
 				"schedule_late_minutes",
 				"schedule_missed_minutes",
 				"integrates_to_crm_schedules",
+				"generates_finances_on_receipts_finish",
 			]);
 		});
 

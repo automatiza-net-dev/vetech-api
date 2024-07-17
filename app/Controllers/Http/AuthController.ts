@@ -147,7 +147,9 @@ export default class AuthController {
 		return response.created(token);
 	}
 
-	public async whoAmI({ auth, response }: HttpContextContract) {
+	public async whoAmI({ auth, response, request }: HttpContextContract) {
+		console.log({ headers: request.headers() });
+
 		const $user = auth.user;
 		if ($user instanceof ThirdPartyUserPermission) {
 			await $user.load("user");

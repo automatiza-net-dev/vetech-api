@@ -3170,7 +3170,11 @@ where deposit_id = ?
 					});
 
 					query.preload("finance", (query) => {
-						query.select("id", "payment_date");
+						query.select("id", "payment_date", "payment_method_id");
+
+						query.preload("paymentMethod", (query) => {
+							query.select("id", "description");
+						});
 					});
 				});
 		});

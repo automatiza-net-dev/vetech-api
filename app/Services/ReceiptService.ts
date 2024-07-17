@@ -1357,18 +1357,27 @@ export default class ReceiptService {
 
 		// vendedor não existe
 		if (!existingTutor) {
-			const suppliers = await authCtx.group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.SUPPLIER)
-				.select("id");
+			// const suppliers = await authCtx.group
+			// 	.related("patients")
+			// 	.query()
+			// 	.useTransaction(trx)
+			// 	.where("type", PatientType.SUPPLIER)
+			// 	.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", authCtx.group.id);
 
 			const newSupplier = await Patient.create(
 				{
 					name: data.nfeProc.NFe.infNFe.emit.xFant,
 					type: PatientType.SUPPLIER,
-					tag: (suppliers.length + 1).toString(),
+					tag: next_id.toString(),
 				},
 				{ client: trx },
 			);

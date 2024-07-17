@@ -1069,18 +1069,21 @@ export default class PatientService {
 				.where("type", PatientType.TUTOR)
 				.select("id");
 
-			const patients = await group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.ANIMAL)
-				.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", group.id);
 
 			const tutor = await Patient.create(
 				{
 					name: data.tutorName ?? `Não informado - ${data.tutorPhone}`,
 					type: PatientType.TUTOR,
-					tag: (tutors.length + 1).toString(),
+					tag: next_id.toString(),
 				},
 				{ client: trx },
 			);
@@ -1110,7 +1113,7 @@ export default class PatientService {
 						name: data.patientName,
 						gender: data.patientGender,
 						type: PatientType.ANIMAL,
-						tag: (patients.length + 1).toString(),
+						tag: next_id.toString(),
 					},
 					{
 						client: trx,
@@ -1163,12 +1166,16 @@ export default class PatientService {
 		}
 
 		return Database.transaction(async (trx) => {
-			const patients = await group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.ANIMAL)
-				.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", group.id)
+				.limit(1);
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
@@ -1190,7 +1197,7 @@ export default class PatientService {
 					type: PatientType.ANIMAL,
 					photo,
 					vaccineOrigin: data.vaccineOrigin,
-					tag: (patients.length + 1).toString(),
+					tag: next_id.toString(),
 					hypertension: data.hypertension,
 					diabetes: data.diabetes,
 					glycemia: data.glycemia,
@@ -1280,11 +1287,15 @@ export default class PatientService {
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const tutors = await authCtx.group
-				.related("patients")
-				.query()
-				.where("type", PatientType.TUTOR)
-				.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", authCtx.group.id);
 
 			const patient = await Patient.create(
 				{
@@ -1298,7 +1309,7 @@ export default class PatientService {
 					type: PatientType.TUTOR,
 					diabetes: data.diabetes,
 					hypertension: data.hypertension,
-					tag: (tutors.length + 1).toString(),
+					tag: next_id.toString(),
 					clientOriginItemDescription: data.clientOriginItemDescription,
 				},
 				{ client: trx },
@@ -1440,12 +1451,15 @@ export default class PatientService {
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const supplier = await group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.SUPPLIER)
-				.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", group.id);
 
 			const patient = await Patient.create(
 				{
@@ -1453,7 +1467,7 @@ export default class PatientService {
 					tags: data.tags,
 					photo,
 					type: PatientType.SUPPLIER,
-					tag: (supplier.length + 1).toString(),
+					tag: next_id.toString(),
 					birthDate: data.birthDate?.toJSDate(),
 				},
 				{ client: trx },

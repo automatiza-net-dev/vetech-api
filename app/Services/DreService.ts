@@ -1,14 +1,14 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
-import { AuthContext } from "App/Services/SharedService";
-import * as fs from "node:fs";
-import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
-import { exec } from "node:child_process";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
+import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import { AuthContext } from "App/Services/SharedService";
 import axios, { Axios } from "axios";
 import FormData from "form-data";
+import { exec } from "node:child_process";
+import * as fs from "node:fs";
+import { v4, validate } from "uuid";
 
 @inject()
 export default class DreService {

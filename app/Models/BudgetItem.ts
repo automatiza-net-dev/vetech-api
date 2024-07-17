@@ -12,6 +12,7 @@ import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
+import User from "App/Models/User";
 
 export default class BudgetItem extends BaseModel {
 	@column({ isPrimary: true })
@@ -50,6 +51,14 @@ export default class BudgetItem extends BaseModel {
 	@column()
 	public status: string;
 
+	@column({})
+	public courtesy: boolean;
+
+	@column.dateTime({
+		columnName: "courtesy_approved_at",
+	})
+	public courtesyApprovedAt: DateTime | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -83,6 +92,26 @@ export default class BudgetItem extends BaseModel {
 		serializeAs: null,
 	})
 	public exclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public courtesy_issued_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "courtesy_issued_user_id",
+	})
+	public courtesyIssuedUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public courtesy_approved_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "courtesy_approved_user_id",
+	})
+	public courtesyApprovedUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,

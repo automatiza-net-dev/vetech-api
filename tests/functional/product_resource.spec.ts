@@ -159,6 +159,8 @@ test.group("Product resource", (group) => {
 				fractionUnitId: unit.id,
 				fractionValue: 10,
 
+				courtesy: true,
+
 				referenceCode: "00001",
 				collectionYear: 2022,
 				ncm: "some ncm",
@@ -412,6 +414,7 @@ test.group("Product resource", (group) => {
 				features: "some features",
 				unitId: unit.id,
 				active: true,
+				courtesy: true,
 				groupId: groupEntity.id,
 				taxationGroupId: taxationGroup.id,
 				subgroupId: subgroupEntity.id,

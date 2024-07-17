@@ -166,6 +166,7 @@ export default class ProductService {
 			referenceCode: product.referenceCode,
 			purpose: product.purpose,
 			active: product.active,
+			courtesy: product.courtesy,
 			created_at: product.createdAt,
 			subgroup: {
 				id: product.subgroup?.id ?? null,
@@ -179,7 +180,7 @@ export default class ProductService {
 				id: product.variations[0]?.id ?? null,
 				ref: product.variations[0]?.businessUnitProducts[0]?.id ?? null,
 				value:
-					parseFloat(
+					Number.parseFloat(
 						product.variations[0]?.businessUnitProducts[0]
 							?.price as unknown as string,
 					) ?? null,
@@ -263,6 +264,7 @@ export default class ProductService {
 					brand_id: data.brandId,
 					taxation_group_id: data.taxationGroupId,
 
+					courtesy: data.courtesy,
 					fractioned: data.fractioned ?? false,
 					fractionValue: new Decimal(data.fractionValue ?? 1),
 					description: data.description,
@@ -357,6 +359,7 @@ export default class ProductService {
 				taxation_group_id: data.taxationGroupId,
 				brand_id: data.brandId,
 
+				courtesy: data.courtesy,
 				fractioned: data.fractioned ?? false,
 				fractionValue: new Decimal(data.fractionValue ?? 1),
 				description: data.description,

@@ -135,6 +135,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public defaultNfseDescription: string | null;
 
 	@column({
+		columnName: "dre_report_file",
+	})
+	public dreReportFile: string | null;
+
+	@column({
 		columnName: "group_nfse_documents",
 	})
 	public groupNfseDocuments: boolean;

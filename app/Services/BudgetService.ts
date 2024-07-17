@@ -4,6 +4,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
+import BillDocument from "App/Models/BillDocument";
 import { BillItemStatus } from "App/Models/BillItem";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
@@ -88,7 +89,8 @@ export default class BudgetService {
 	}
 
 	public async listOpenNegotiations(authCtx: AuthContext, patientId: string) {
-		return Attendance.query()
+		const attendances = await Attendance.query()
+			.orderByRaw("attendances.start_date desc")
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
@@ -164,23 +166,6 @@ export default class BudgetService {
 					query.select("id", "reason");
 				});
 
-				query.preload("bill", (query) => {
-					query.select("id", "tag", "created_at");
-
-					query.preload("documents", (query) => {
-						query
-							.preload("generationUser", (query) => {
-								query.select("id", "name");
-							})
-							.preload("printUser", (query) => {
-								query.select("id", "name");
-							})
-							.preload("documentTemplate", (query) => {
-								query.select("id", "description");
-							});
-					});
-				});
-
 				query.preload("items", (query) => {
 					query.select(
 						"id",
@@ -226,6 +211,44 @@ export default class BudgetService {
 					});
 				});
 			});
+
+		return Promise.all(
+			attendances.map(async (elem) => {
+				const jsonObj = elem.toJSON();
+
+				const bills = await Bill.query()
+					.whereIn(
+						"id",
+						elem.budgets.map((b) => b.bill_id),
+					)
+					.select("id", "tag", "documents_status", "created_at", "budget_id");
+				Object.assign(jsonObj, {
+					bills: bills.map((b) => {
+						return { ...b.toJSON(), budget_id: b.budget_id };
+					}),
+				});
+
+				const billDocuments = await BillDocument.query()
+					.whereIn(
+						"bill_id",
+						bills.map((b) => b.id),
+					)
+					.preload("generationUser", (query) => {
+						query.select("id", "name");
+					})
+					.preload("printUser", (query) => {
+						query.select("id", "name");
+					})
+					.preload("documentTemplate", (query) => {
+						query.select("id", "description", "type", "template");
+					});
+				Object.assign(jsonObj, {
+					documents: billDocuments,
+				});
+
+				return jsonObj;
+			}),
+		);
 	}
 
 	public async partialIndex(unitId: string, data: ISearchPartial) {
@@ -364,6 +387,14 @@ export default class BudgetService {
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
 					query.preload("product");
+				});
+
+				query.preload("courtesyIssuedUser", (query) => {
+					query.select(["id", "name"]);
+				});
+
+				query.preload("courtesyApprovedUser", (query) => {
+					query.select(["id", "name"]);
 				});
 			});
 
@@ -534,12 +565,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-				})),
+				data.items
+					.filter((f) => !f.courtesy)
+					.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+					})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -574,6 +607,26 @@ export default class BudgetService {
 					data.items.map(({ productVariationId }) => productVariationId),
 				);
 
+			for (const item of data.items.filter((i) => i.courtesy)) {
+				const variation = items.find((v) => v.id === item.productVariationId);
+
+				if (!variation) {
+					throw new InternalErrorException(
+						"Produto enviado não foi encontrado",
+						500,
+						"E_ERR",
+					);
+				}
+
+				if (item.courtesy && !variation.product.courtesy) {
+					throw new BadRequestException(
+						`Produto '${variation.product.description}' não pode ser usado com cortesia`,
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			const budget = await Budget.create(
 				{
 					economic_group_id: authCtx.group.id,
@@ -597,7 +650,7 @@ export default class BudgetService {
 					clientName: data.clientName,
 					status: BudgetStatus.A,
 					tag: GenerateTag(
-						parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
+						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
 					),
 				},
 				{
@@ -607,7 +660,7 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					budgetCounter: (
-						parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1
+						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1
 					).toString(),
 				})
 				.useTransaction(trx)
@@ -630,11 +683,14 @@ export default class BudgetService {
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: variation.id,
 
+						courtesy: item.courtesy,
 						saleValue: new Decimal(item.saleValue),
-						unitaryValue: item.unitaryValue,
-						discountValue: item.discountValue,
+						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
+						discountValue: item.courtesy ? 0 : item.discountValue,
 						quantity: new Decimal(item.quantity),
-						totalValue: item.quantity * item.unitaryValue - item.discountValue,
+						totalValue: item.courtesy
+							? 0
+							: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
 					{
@@ -643,30 +699,32 @@ export default class BudgetService {
 				);
 			});
 
-			const [productSum, serviceSum, discountSum] = data.items.reduce(
-				(acc, curr) => {
-					const item = items.find((i) => i.id === curr.productVariationId);
-					if (!item) {
-						throw new InternalErrorException(
-							"Não deveria acontecer, mas um item não foi encontrado",
-							400,
-							"E_ERR",
-						);
-					}
+			const [productSum, serviceSum, discountSum] = data.items
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						const item = items.find((i) => i.id === curr.productVariationId);
+						if (!item) {
+							throw new InternalErrorException(
+								"Não deveria acontecer, mas um item não foi encontrado",
+								400,
+								"E_ERR",
+							);
+						}
 
-					if (item.product.type === ProductType.PRODUCT) {
-						acc[0] += curr.unitaryValue * curr.quantity - curr.discountValue;
-					}
-					if (item.product.type === ProductType.SERVICE) {
-						acc[1] += curr.unitaryValue * curr.quantity - curr.discountValue;
-					}
+						if (item.product.type === ProductType.PRODUCT) {
+							acc[0] += curr.unitaryValue * curr.quantity - curr.discountValue;
+						}
+						if (item.product.type === ProductType.SERVICE) {
+							acc[1] += curr.unitaryValue * curr.quantity - curr.discountValue;
+						}
 
-					acc[2] += curr.discountValue;
+						acc[2] += curr.discountValue;
 
-					return acc;
-				},
-				[0, 0, 0],
-			);
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await budget
 				.merge({
@@ -763,21 +821,23 @@ export default class BudgetService {
 				client: trx,
 			});
 
-			const result = await this.sharedService.checkDiscount(trx, authCtx, [
-				{
-					variationId: data.productVariationId,
-					unitaryValue: data.unitaryValue,
-					discountValue: data.discountValue,
-					quantity: data.quantity,
-				},
-			]);
-			if (result.length > 0) {
-				// return result;
-				throw new BadRequestException(
-					"Desconto máximo foi excedido",
-					400,
-					"E_ERR",
-				);
+			if (!data.courtesy) {
+				const result = await this.sharedService.checkDiscount(trx, authCtx, [
+					{
+						variationId: data.productVariationId,
+						unitaryValue: data.unitaryValue,
+						discountValue: data.discountValue,
+						quantity: data.quantity,
+					},
+				]);
+				if (result.length > 0) {
+					// return result;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			const productVariation = await ProductVariation.query()
@@ -799,6 +859,14 @@ export default class BudgetService {
 				);
 			}
 
+			if (data.courtesy && !productVariation.product.courtesy) {
+				throw new BadRequestException(
+					`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+					400,
+					"E_ERR",
+				);
+			}
+
 			if (
 				productVariation.businessUnitProducts.some(
 					(p) => p.maximumDiscountValue < data.discountValue,
@@ -817,11 +885,14 @@ export default class BudgetService {
 					business_unit_id: authCtx.unit.id,
 					product_variation_id: data.productVariationId,
 
+					courtesy: data.courtesy,
 					saleValue: new Decimal(data.saleValue),
-					unitaryValue: data.unitaryValue,
-					discountValue: data.discountValue,
+					unitaryValue: data.courtesy ? 0 : data.unitaryValue,
+					discountValue: data.courtesy ? 0 : data.discountValue,
 					quantity: new Decimal(data.quantity),
-					totalValue: data.quantity * data.unitaryValue - data.discountValue,
+					totalValue: data.courtesy
+						? 0
+						: data.quantity * data.unitaryValue - data.discountValue,
 					status: BudgetStatus.A,
 				},
 				{
@@ -857,12 +928,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-				})),
+				data
+					.filter((f) => !f.courtesy)
+					.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+					})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -889,11 +962,14 @@ export default class BudgetService {
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: item.productVariationId,
 
+						courtesy: item.courtesy,
 						saleValue: new Decimal(item.saleValue),
-						unitaryValue: item.unitaryValue,
-						discountValue: item.discountValue,
+						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
+						discountValue: item.courtesy ? 0 : item.discountValue,
 						quantity: new Decimal(item.quantity),
-						totalValue: item.quantity * item.unitaryValue - item.discountValue,
+						totalValue: item.courtesy
+							? 0
+							: item.quantity * item.unitaryValue - item.discountValue,
 						status: BudgetStatus.A,
 					},
 					{
@@ -1143,6 +1219,14 @@ export default class BudgetService {
 				query.preload("product");
 			});
 
+		if (items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+			throw new BadRequestException(
+				"Orçamento não pode ser confirmado pois possui cortesias não aprovadas",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const rules = await TaxationGroupRule.query()
 			.whereHas("taxationGroup", (query) => {
 				query.whereIn(
@@ -1212,7 +1296,7 @@ export default class BudgetService {
 
 					otherValue: 0,
 					tag: GenerateTag(
-						parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
+						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
 					),
 				},
 				{ client: trx },
@@ -1220,7 +1304,7 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					billCounter: (
-						parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
+						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
 					).toString(),
 				})
 				.useTransaction(trx)
@@ -1258,6 +1342,11 @@ export default class BudgetService {
 							bill_id: bill.id,
 							product_variation_id: item.product_variation_id,
 							tax_rule_id: rule?.id,
+
+							courtesy: item.courtesy,
+							courtesy_approved_user_id: item.courtesy_approved_user_id,
+							courtesy_issued_user_id: item.courtesy_issued_user_id,
+							courtesyApprovedAt: item.courtesyApprovedAt,
 
 							quantity: item.quantity,
 							costValue: 0,

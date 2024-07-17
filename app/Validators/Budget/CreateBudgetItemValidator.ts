@@ -17,6 +17,7 @@ export default class CreateBudgetItemValidator {
 		saleValue: schema.number(),
 		unitaryValue: schema.number(),
 		discountValue: schema.number(),
+		courtesy: schema.boolean.optional(),
 	});
 
 	public messages: CustomMessages = {};

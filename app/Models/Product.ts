@@ -115,6 +115,9 @@ export default class Product extends BaseModel {
 	public fractioned: boolean;
 
 	@column()
+	public courtesy: boolean;
+
+	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

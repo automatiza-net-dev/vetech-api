@@ -1,10 +1,9 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { PatientContactType } from "App/Models/PatientContact";
 
 export default class CreateSanclaTutorForGenericValidator {
-	constructor(protected ctx: HttpContextContract) {
-		console.log("create sancla for generic");
-	}
+	constructor(protected ctx: HttpContextContract) {}
 
 	/*
 	 * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
@@ -33,6 +32,15 @@ export default class CreateSanclaTutorForGenericValidator {
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),
 		origin: schema.string(),
+		contacts: schema.array().members(
+			schema.object().members({
+				main: schema.boolean(),
+				notGiven: schema.boolean(),
+				contact: schema.string.optional({ trim: true }, [rules.emailContato()]),
+				observation: schema.string.optional(),
+				type: schema.enum(Object.values(PatientContactType)),
+			}),
+		),
 	});
 
 	/**

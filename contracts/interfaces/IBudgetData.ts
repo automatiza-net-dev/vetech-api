@@ -8,6 +8,7 @@ export interface ICreateBudgetItemData {
 	saleValue: number;
 	unitaryValue: number;
 	discountValue: number;
+	courtesy?: boolean;
 }
 
 export interface ICreateBudgetData {

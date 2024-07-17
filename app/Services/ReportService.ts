@@ -10,10 +10,7 @@ import Receipt from "App/Models/Receipt";
 import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
-import {
-	OpportunityActivityStatus,
-	TOpportunityActivityStatus,
-} from "App/Models/OpportunityActivity";
+import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 
 @inject()
 export default class ReportService {
@@ -2077,12 +2074,22 @@ ON bills.patient_id = Dep."id"`,
         cs.description                   as status_oportunidade,
         cs2.description                  as assunto_contato,
         ct.description                   as tipo_contato,
+        coc.description origem_categoria,
+        cog.description origem_grupo,
         u.name                           as responsavel,
         coalesce(balance, 'Em Aberto')   as situacao,
         opportunities.description        as observacao,
         r.reason                         as motivo_ganho_perda,
-        opportunities.result_observation as obse_ganho_perda,
-        opportunities.profit_value       as valor_ganho`),
+        opportunities.result_observation as obs_ganho_perda,
+        opportunities.profit_value       as valor_ganho,
+        userlancamento.name as usuarioLancamento,
+        cli.name as nome_paciente,
+        races.description as raca_paciente,
+        opportunities.gender as genero_paciente,
+        opportunities.weight as peso_paciente,
+        opportunities.castrated as castrado_paciente,
+        opportunities.client_origin_item_description as campanha_midia
+        `),
 			)
 			.joinRaw(
 				"join business_units bu on opportunities.business_unit_id = bu.id",
@@ -2094,7 +2101,13 @@ ON bills.patient_id = Dep."id"`,
     left join patient_contacts pc on p.id = pc.patient_id and pc."type" = 'celular') on opportunities.contact_id = p.id`)
 			.joinRaw("left join patients cli on opportunities.client_id = cli.id")
 			.joinRaw(
-				"left join client_origins co on opportunities.client_origin_id = co.id",
+				"join users userLancamento on opportunities.opening_user_id = userlancamento.id",
+			)
+			.joinRaw(
+				`left join (client_origins co
+                    left join client_origin_groups cog on co.client_origin_group_id = cog.id
+                    left join client_origin_categories coc on cog.client_origin_category_id = coc.id
+                   ) on opportunities.client_origin_id = co.id`,
 			)
 			.joinRaw(
 				"left join contact_subjects cs2 on opportunities.contact_subject_id = cs2.id",
@@ -2102,6 +2115,7 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw(
 				"left join contact_types ct on opportunities.contact_type_id = ct.id",
 			)
+			.joinRaw("left join races on opportunities.race_id = races.id")
 			.joinRaw("left join reasons r on opportunities.reason_id = r.id")
 			.where("opportunities.economic_group_id", authCtx.group.id)
 			.whereNull("opportunities.deleted_at");
@@ -2145,6 +2159,8 @@ ON bills.patient_id = Dep."id"`,
 				data.toContact,
 			]);
 		}
+
+		console.log(qb.toQuery());
 
 		return qb;
 	}

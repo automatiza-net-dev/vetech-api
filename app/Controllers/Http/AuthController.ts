@@ -148,7 +148,7 @@ export default class AuthController {
 	}
 
 	public async whoAmI({ auth, response, request }: HttpContextContract) {
-		console.log({ headers: request.headers() });
+		// console.log({ headers: request.headers() });
 
 		const $user = auth.user;
 		if ($user instanceof ThirdPartyUserPermission) {

@@ -3644,8 +3644,8 @@ export default class IndicatorService {
 				Database.raw(
 					`business_units.id,
        business_units.identification,
-       client_origin_categories.description as categoria,
-       client_origin_groups.description     as grupo,
+       coalesce(client_origin_categories.description, 'Outros') as categoria,
+       coalesce(client_origin_groups.description, 'Outros')     as grupo,
        client_origins.description,
        sum(bills.total_value)               as total`,
 				),
@@ -3746,7 +3746,9 @@ export default class IndicatorService {
 				grupos: categoryGroups.map((elem) => {
 					const groupTotal =
 						elem === "-"
-							? -1
+							? result
+									.filter((r) => !r.categoria && !r.grupo)
+									.reduce((acc, curr) => acc + Number.parseFloat(curr.total), 0)
 							: result
 									.filter((r) => r.categoria === curr && r.grupo === elem)
 									.reduce(
@@ -3755,12 +3757,12 @@ export default class IndicatorService {
 									);
 
 					return {
-						grupo: elem === "-" ? "Não identicado" : elem,
+						grupo: elem === "-" ? "Outros" : elem,
 						total: groupTotal,
 						porcentagem: (groupTotal / categorySum) * 100,
 						origem_clientes: result
 							.filter((r) => r.categoria === curr)
-							.filter((r) => r.grupo === elem ?? "-")
+							.filter((r) => r.grupo === elem)
 							.map((ori) => ({
 								origem: ori.description,
 								total: Number.parseFloat(ori.total),

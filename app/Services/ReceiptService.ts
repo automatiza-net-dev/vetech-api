@@ -1921,7 +1921,6 @@ export default class ReceiptService {
 	) {
 		await Database.transaction(async (trx) => {
 			const receipt = await Receipt.query()
-				.debug(true)
 				.useTransaction(trx)
 				.preload("items")
 				.preload("payments")

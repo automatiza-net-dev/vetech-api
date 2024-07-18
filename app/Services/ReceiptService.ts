@@ -1782,9 +1782,9 @@ export default class ReceiptService {
 
 			if (!authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
 				const paymentsTasks = payments.flat().map((elem, idx) => {
-					if (elem.installment !== 1) {
-						return Promise.resolve(-1);
-					}
+					// if (elem.installment !== 1) {
+					// 	return Promise.resolve(-1);
+					// }
 
 					return this.createFinanceEntry(trx, authCtx, {
 						dailyCashierId: receipt.daily_cashier_id,
@@ -1989,7 +1989,7 @@ export default class ReceiptService {
 						item: elem,
 					});
 				});
-				const r = await Promise.all(paymentsTasks);
+				await Promise.all(paymentsTasks);
 			}
 
 			await receipt

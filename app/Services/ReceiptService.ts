@@ -1934,13 +1934,13 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			// if (receipt.status === "Baixada") {
-			// 	throw new BadRequestException(
-			// 		"Esta Nota já está baixada",
-			// 		400,
-			// 		"E_NOTA_FINALIZADA",
-			// 	);
-			// }
+			if (receipt.status === "Baixada") {
+				throw new BadRequestException(
+					"Esta Nota já está baixada",
+					400,
+					"E_NOTA_FINALIZADA",
+				);
+			}
 
 			if (receipt.status === "PendenteXml") {
 				if (receipt.items.some((i) => !i.product_variation_id)) {
@@ -1991,7 +1991,6 @@ export default class ReceiptService {
 					});
 				});
 				const r = await Promise.all(paymentsTasks);
-				console.log({ createdFinances: r.map((e) => e.id) });
 			}
 
 			await receipt

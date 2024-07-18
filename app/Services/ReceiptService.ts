@@ -1921,6 +1921,7 @@ export default class ReceiptService {
 	) {
 		await Database.transaction(async (trx) => {
 			const receipt = await Receipt.query()
+				.debug(true)
 				.useTransaction(trx)
 				.preload("items")
 				.preload("payments")
@@ -1933,13 +1934,13 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (receipt.status === "Baixada") {
-				throw new BadRequestException(
-					"Esta Nota já está baixada",
-					400,
-					"E_NOTA_FINALIZADA",
-				);
-			}
+			// if (receipt.status === "Baixada") {
+			// 	throw new BadRequestException(
+			// 		"Esta Nota já está baixada",
+			// 		400,
+			// 		"E_NOTA_FINALIZADA",
+			// 	);
+			// }
 
 			if (receipt.status === "PendenteXml") {
 				if (receipt.items.some((i) => !i.product_variation_id)) {
@@ -1989,22 +1990,8 @@ export default class ReceiptService {
 						item: elem,
 					});
 				});
-				await Promise.all(paymentsTasks);
-				// } else {
-				// 	const tasks = receipt.payments.map((elem) => {
-				// 		return this.createFinanceEntry(trx, authCtx, {
-				// 			dailyCashierId: receipt.daily_cashier_id,
-				// 			dailyMovementId: receipt.daily_movement_id,
-				// 			supplierId: receipt.supplier_id,
-				// 			paymentMethodId: elem.payment_method_id,
-				// 			tefAcquirerId: elem.tef_acquirer_id,
-				// 			tefFlagId: elem.tef_flag_id,
-				//
-				// 			tag: receipt.tag,
-				// 			item: elem,
-				// 		});
-				// 	});
-				// 	await Promise.all(tasks);
+				const r = await Promise.all(paymentsTasks);
+				console.log({ createdFinances: r.map((e) => e.id) });
 			}
 
 			await receipt
@@ -2745,7 +2732,7 @@ and product_variation_id in (
 				.where("payment_method_id", data.paymentMethodId)
 				.first();
 
-		await Finance.create(
+		return await Finance.create(
 			{
 				economic_group_id: authCtx.group.id,
 				business_unit_id: authCtx.unit.id,
@@ -2766,6 +2753,7 @@ and product_variation_id in (
 				type: FinanceType.D,
 				block: data.item.block,
 				installment: data.item.installment,
+				qtyInstallments: data.item.blockInstallments,
 				originFlag: FinanceOriginFlag.E,
 				document: `NFE-${data.tag}`,
 				historic: `NFE-${data.tag}`,
@@ -2773,7 +2761,7 @@ and product_variation_id in (
 				expirationDate: data.item.expirationDate,
 				originalValue: data.item.installmentValue,
 				value: data.item.installmentValue,
-				totalValue: data.item.installmentValue * data.item.blockInstallments,
+				totalValue: data.item.installmentValue,
 				feeValue: 0,
 				feePercentage: 0,
 				accept: FinanceAccept.N,

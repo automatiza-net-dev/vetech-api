@@ -1959,8 +1959,8 @@ export default class BudgetService {
 				"payment_methods.id",
 				"budget_payments.payment_method_id",
 			)
-			.join("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
-			.join(
+			.leftJoin("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
+			.leftJoin(
 				"tef_acquirers",
 				"tef_acquirers.id",
 				"budget_payments.tef_acquirer_id",

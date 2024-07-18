@@ -2143,9 +2143,17 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		if (data.balances && Array.isArray(data.balances)) {
-			qb.whereRaw("opportunities.balance ~* ?", [
-				data.balances?.join(" ").replace(" ", "|"),
-			]);
+			const hasEmAberto = data.balances.some((r) => r === "Em Aberto");
+			const completeRow = data.balances?.join(" ").replace(" ", "|");
+
+			if (hasEmAberto) {
+				qb.whereRaw(
+					"(opportunities.balance is null or opportunities.balance ~* ?)",
+					[completeRow],
+				);
+			} else {
+				qb.whereRaw("opportunities.balance ~* ?", [completeRow]);
+			}
 		}
 
 		if (data.fromOpening && data.toOpening) {

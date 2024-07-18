@@ -2143,7 +2143,9 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		if (data.balances && Array.isArray(data.balances)) {
-			qb.whereIn("opportunities.balance", data.balances);
+			qb.whereRaw("opportunities.balance ~* ?", [
+				data.balances?.join(" ").replace(" ", "|"),
+			]);
 		}
 
 		if (data.fromOpening && data.toOpening) {
@@ -2159,8 +2161,6 @@ ON bills.patient_id = Dep."id"`,
 				data.toContact,
 			]);
 		}
-
-		console.log(qb.toQuery());
 
 		return qb;
 	}

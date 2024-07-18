@@ -650,8 +650,7 @@ export default class BudgetService {
 					clientName: data.clientName,
 					status: BudgetStatus.A,
 					tag: GenerateTag(
-						Number.Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) +
-							1,
+						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
 					),
 				},
 				{
@@ -661,8 +660,7 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					budgetCounter: (
-						Number.Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) +
-						1
+						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1
 					).toString(),
 				})
 				.useTransaction(trx)
@@ -1298,7 +1296,7 @@ export default class BudgetService {
 
 					otherValue: 0,
 					tag: GenerateTag(
-						Number.Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
+						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
 					),
 				},
 				{ client: trx },
@@ -1306,7 +1304,7 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					billCounter: (
-						Number.Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
+						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
 					).toString(),
 				})
 				.useTransaction(trx)

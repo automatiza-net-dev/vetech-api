@@ -448,11 +448,11 @@ export default class BudgetService {
 						}
 
 						if (data.minPrice) {
-							query.where("price", ">=", parseFloat(data.minPrice));
+							query.where("price", ">=", Number.parseFloat(data.minPrice));
 						}
 
 						if (data.maxPrice) {
-							query.where("price", "<=", parseFloat(data.maxPrice));
+							query.where("price", "<=", Number.parseFloat(data.maxPrice));
 						}
 
 						if (data.maxDiscountPercentage) {
@@ -508,15 +508,15 @@ export default class BudgetService {
 				query.where("businness_unit_id", unitId);
 
 				if (data.quantity) {
-					query.where("stock", ">=", parseFloat(data.quantity));
+					query.where("stock", ">=", Number.parseFloat(data.quantity));
 				}
 
 				if (data.minPrice) {
-					query.where("price", ">=", parseFloat(data.minPrice));
+					query.where("price", ">=", Number.parseFloat(data.minPrice));
 				}
 
 				if (data.maxPrice) {
-					query.where("price", "<=", parseFloat(data.maxPrice));
+					query.where("price", "<=", Number.parseFloat(data.maxPrice));
 				}
 
 				if (data.maxDiscountPercentage) {
@@ -650,7 +650,8 @@ export default class BudgetService {
 					clientName: data.clientName,
 					status: BudgetStatus.A,
 					tag: GenerateTag(
-						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
+						Number.Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) +
+							1,
 					),
 				},
 				{
@@ -660,7 +661,8 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					budgetCounter: (
-						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1
+						Number.Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) +
+						1
 					).toString(),
 				})
 				.useTransaction(trx)
@@ -1296,7 +1298,7 @@ export default class BudgetService {
 
 					otherValue: 0,
 					tag: GenerateTag(
-						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
+						Number.Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1,
 					),
 				},
 				{ client: trx },
@@ -1304,7 +1306,7 @@ export default class BudgetService {
 			await authCtx.unit.unitConfig
 				.merge({
 					billCounter: (
-						Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
+						Number.Number.parseInt(authCtx.unit.unitConfig.billCounter, 10) + 1
 					).toString(),
 				})
 				.useTransaction(trx)
@@ -1648,8 +1650,8 @@ export default class BudgetService {
 			budgetId: string;
 			items: {
 				paymentMethodId: string;
-				tefFlagId: string;
-				tefAcquirerId: string;
+				tefFlagId?: string;
+				tefAcquirerId?: string;
 
 				totalValue: number;
 				installments: number;
@@ -1698,7 +1700,7 @@ export default class BudgetService {
 						tef_flag_id: elem.tefFlagId,
 						tef_acquirer_id: elem.tefAcquirerId,
 
-						block: parseInt(count) + index + 1,
+						block: Number.parseInt(count) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
 						status: "Aberto",

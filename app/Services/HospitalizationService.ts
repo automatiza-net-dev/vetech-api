@@ -223,7 +223,6 @@ export default class HospitalizationService {
 				query.preload("tutor", (query) => {
 					query.select([
 						"cellphone",
-						"name",
 						"document",
 						"postal_code",
 						"street",

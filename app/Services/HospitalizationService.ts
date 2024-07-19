@@ -221,7 +221,18 @@ export default class HospitalizationService {
 			})
 			.preload("tutor", (query) => {
 				query.preload("tutor", (query) => {
-					query.select(["cellphone"]);
+					query.select([
+						"cellphone",
+						"name",
+						"document",
+						"postal_code",
+						"street",
+						"number",
+						"complement",
+						"district",
+						"city",
+						"state",
+					]);
 				});
 			})
 			.preload("technician")

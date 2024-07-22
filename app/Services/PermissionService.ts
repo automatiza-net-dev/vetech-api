@@ -365,7 +365,7 @@ export default class PermissionService {
 						.filter((p) => p.$systems.includes(role.system_id))
 						.reduce(
 							(acc, curr) => {
-								acc[curr.id] = { status: false };
+								acc[curr.id] = { status: null };
 
 								return acc;
 							},

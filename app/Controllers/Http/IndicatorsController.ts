@@ -622,12 +622,25 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
-	public async complexFunnelIndicators({
+	public async monthlyIdealFunnelIndicators({
 		auth,
 		request,
 		response,
 	}: HttpContextContract) {
-		const result = await this.service.complexFunnelIndicators(
+		const result = await this.service.monthlyIdealFunnelIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async monthlyPartialFunnelIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.monthlyPartialFunnelIndicators(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

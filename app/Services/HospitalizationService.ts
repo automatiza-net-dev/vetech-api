@@ -284,7 +284,7 @@ export default class HospitalizationService {
 
 			Object.assign(original, {
 				tutor: {
-					...r.tutor,
+					...r.tutor.toJSON(),
 					tutor: {
 						id: r.tutor.tutor.id,
 						cellphone: r.tutor.tutor.cellphone,

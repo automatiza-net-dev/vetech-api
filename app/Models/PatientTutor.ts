@@ -5,6 +5,7 @@ import {
 	BelongsTo,
 	belongsTo,
 	column,
+	computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import ClientOrigin from "App/Models/ClientOrigin";
 import Patient from "App/Models/Patient";
@@ -94,6 +95,21 @@ export default class PatientTutor extends BaseModel {
 
 	@column()
 	public state?: string;
+
+	@computed({})
+	public get fullAddress() {
+		return [
+			this.street,
+			this.number,
+			this.complement,
+			this.city,
+			this.district,
+			[this.city, this.state].filter(Boolean).join(" - "),
+			this.postalCode,
+		]
+			.filter(Boolean)
+			.join(", ");
+	}
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

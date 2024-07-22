@@ -1109,11 +1109,7 @@ export default class ScheduleService {
 			usersQb.where("users.id", data.user);
 		}
 
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE10",
-		);
-		if (!hasPermission) {
+		if (!authCtx.hasPermission("AGE10")) {
 			usersQb.where("users.id", authCtx.user.id);
 		}
 
@@ -1223,7 +1219,12 @@ export default class ScheduleService {
 				"id",
 				resultData[0].map((s) => s.patient_id).filter(Boolean) as string[],
 			)
-			.preload("tutor");
+			.preload("tutor")
+			.preload("patientAnimal", (query) => {
+				query.preload("race", (query) => {
+					query.preload("specie");
+				});
+			});
 
 		const mappedSchedules = resultData[0].map((schedule) => {
 			const jsonKinda = schedule.toJSON();
@@ -1244,6 +1245,21 @@ export default class ScheduleService {
 			jsonKinda.end = undefined;
 			jsonKinda.created_at = undefined;
 			jsonKinda.updated_at = undefined;
+
+			jsonKinda.race = patient?.patientAnimal?.race
+				? {
+						id: patient?.patientAnimal?.race?.id,
+						description: patient?.patientAnimal?.race?.description,
+					}
+				: null;
+			jsonKinda.specie = patient?.patientAnimal?.race?.specie
+				? {
+						id: patient?.patientAnimal?.race?.specie?.id,
+						description: patient?.patientAnimal?.race?.specie?.description,
+					}
+				: null;
+
+			jsonKinda.patientAnimal = undefined;
 
 			jsonKinda.patient = {
 				id: patient?.id,

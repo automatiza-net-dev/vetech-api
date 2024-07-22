@@ -4076,6 +4076,7 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND07"),
 				() => this.schedulingOpportunitiesIndicators_2(authCtx, data),
 			),
+			this.complexFunnelIndicators(authCtx, data),
 		]);
 
 		const tables = await Promise.all([

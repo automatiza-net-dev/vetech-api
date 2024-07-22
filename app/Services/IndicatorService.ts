@@ -4076,18 +4076,6 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND07"),
 				() => this.schedulingOpportunitiesIndicators_2(authCtx, data),
 			),
-			SharedService.NoopPromise(
-				() => authCtx.hasPermission("CRD01"),
-				() => this.monthlyIdealFunnelIndicators(authCtx, data),
-			),
-			SharedService.NoopPromise(
-				() => authCtx.hasPermission("CRD01"),
-				() => this.monthlyPartialFunnelIndicators(authCtx, data),
-			),
-			SharedService.NoopPromise(
-				() => authCtx.hasPermission("CRD01"),
-				() => this.monthlyRealizedFunnelIndicators(authCtx, data),
-			),
 		]);
 
 		const tables = await Promise.all([
@@ -4259,6 +4247,14 @@ export default class IndicatorService {
 	}
 
 	public async crmDashboard(authCtx: AuthContext, data: Record<string, any>) {
+		if (!authCtx.hasPermission("CRD00")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver os gráficos",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const charts = await Promise.all([
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("CRD01"),

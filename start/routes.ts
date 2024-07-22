@@ -1596,6 +1596,7 @@ Route.group(() => {
 		"IndicatorsController.generalOpportunitiesIndicators",
 	);
 	Route.get("/crm", "IndicatorsController.crmIndicators");
+	Route.get("/complex-funnel", "IndicatorsController.complexFunnelIndicators");
 
 	Route.get(
 		"/unconfirmed-budgets",

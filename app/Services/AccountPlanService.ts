@@ -142,7 +142,7 @@ export default class AccountPlanService {
 		if (authCtx.user.type !== "controller") {
 			if (!model.economic_group_id) {
 				throw new BadRequestException(
-					"É preciso ser usuário do tipo controlado para mudar este recurso",
+					"Plano base do sistema, Usuário não autorizado",
 					400,
 					"E_ERR",
 				);

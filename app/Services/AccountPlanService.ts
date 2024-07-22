@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import AccountPlan from "App/Models/AccountPlan";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IAccountPlanData from "Contracts/interfaces/IAccountPlanData";
@@ -140,7 +141,11 @@ export default class AccountPlanService {
 
 		if (authCtx.user.type !== "controller") {
 			if (!model.economic_group_id) {
-				throw this.sharedService.SystemResource();
+				throw new BadRequestException(
+					"É preciso ser usuário do tipo controlado para mudar este recurso",
+					400,
+					"E_ERR",
+				);
 			}
 		}
 

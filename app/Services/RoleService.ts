@@ -316,7 +316,7 @@ export default class RoleService {
 	public async rolePermissionMetadata(
 		systemID: number,
 		id: number,
-		type?: string,
+		data: { type?: string; newItems?: string },
 	) {
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
@@ -339,7 +339,13 @@ export default class RoleService {
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		if (type === "user") {
+		if (data.newItems === "true") {
+			qb.whereRaw("role_permissions.status is null");
+		} else if (data.newItems === "false") {
+			qb.whereRaw("role_permissions.status is not null");
+		}
+
+		if (data.type === "user") {
 			qb.whereIn("permissions.type", [
 				"user",
 				"both",
@@ -347,7 +353,7 @@ export default class RoleService {
 			] as TPermissionType[]);
 		}
 
-		if (type === "controller") {
+		if (data.type === "controller") {
 			qb.whereIn("permissions.type", [
 				"controller",
 				"both",
@@ -355,7 +361,7 @@ export default class RoleService {
 			] as TPermissionType[]);
 		}
 
-		if (type === "system") {
+		if (data.type === "system") {
 			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
 		}
 

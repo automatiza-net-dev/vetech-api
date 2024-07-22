@@ -1778,6 +1778,9 @@ Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
 Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
 	"auth",
 );
+Route.get("/dashboard-crm", "IndicatorsController.crmDashboard").middleware(
+	"auth",
+);
 Route.get(
 	"/dashboard-finances-resume",
 	"FinancesController.dashboardFinanceResume",

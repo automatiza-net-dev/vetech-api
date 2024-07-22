@@ -4258,6 +4258,27 @@ export default class IndicatorService {
 		);
 	}
 
+	public async crmDashboard(authCtx: AuthContext, data: Record<string, any>) {
+		const charts = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD01"),
+				() => this.monthlyIdealFunnelIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD01"),
+				() => this.monthlyPartialFunnelIndicators(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD01"),
+				() => this.monthlyRealizedFunnelIndicators(authCtx, data),
+			),
+		]);
+
+		return {
+			charts: charts.filter(Boolean),
+		};
+	}
+
 	public async invoicingNewClientsPeriod_2(
 		authCtx: AuthContext,
 		data: {

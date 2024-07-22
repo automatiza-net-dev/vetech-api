@@ -531,6 +531,15 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async crmDashboard({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.crmDashboard(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async salesPerPeriodIndicators_2({
 		auth,
 		request,

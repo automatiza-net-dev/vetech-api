@@ -3814,7 +3814,6 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND09"),
 				() => this.billPaymentFormatIndicators_2(authCtx, data),
 			),
-			this.complexFunnelIndicators(authCtx, data),
 		]);
 
 		const tables = await Promise.all([

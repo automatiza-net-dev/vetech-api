@@ -277,7 +277,26 @@ export default class HospitalizationService {
 			qb.where("bed_id", data.bed);
 		}
 
-		return qb;
+		return (await qb).map((r) => {
+			const original = r.toJSON();
+
+			const fullAddress = r.tutor?.tutor.fullAddress;
+
+			Object.assign(original, {
+				tutor: {
+					...r.tutor,
+					tutor: {
+						id: r.tutor.tutor.id,
+						cellphone: r.tutor.tutor.cellphone,
+						document: r.tutor.tutor.document,
+						patient_id: r.tutor.tutor.patient_id,
+						fullAddress,
+					},
+				},
+			});
+
+			return original;
+		});
 	}
 
 	public async completedIndex(unitId: string, data: ISearch) {

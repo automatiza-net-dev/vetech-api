@@ -5401,7 +5401,7 @@ export default class IndicatorService {
 			)
 			.joinRaw("left join users on users.id = total.reviewer_id")
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
-			.whereNull("budgets.deleted_at")
+			.whereNull("total.deleted_at")
 			.orderByRaw("total_confirmados desc, name");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
@@ -5415,7 +5415,7 @@ export default class IndicatorService {
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.whereRaw("budget_date::date between ? and ?", [
+			qb.whereRaw("total.budget_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);

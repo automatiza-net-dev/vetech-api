@@ -289,6 +289,7 @@ export default class HospitalizationService {
 					document: r.tutor.tutor.document,
 					patient_id: r.tutor.tutor.patient_id,
 					fullAddress,
+					tutor: undefined,
 				},
 			});
 

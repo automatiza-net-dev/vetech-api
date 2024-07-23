@@ -1810,3 +1810,10 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/", "DictionariesController.index");
 }).prefix("dictionary");
+
+Route.group(() => {
+	Route.get("/roles", "NotificationsController.rolesNotifications");
+})
+	.prefix("notifications")
+	.middleware("auth");
+

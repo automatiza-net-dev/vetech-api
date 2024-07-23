@@ -5371,7 +5371,7 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const qb = Database.from("budgets")
+		const qb = Database.from("business_units")
 			.select(
 				Database.raw(
 					`

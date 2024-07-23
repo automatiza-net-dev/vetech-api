@@ -5363,6 +5363,131 @@ export default class IndicatorService {
 		};
 	}
 
+	public async consolidatedReviewerBudgets(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("budgets")
+			.select(
+				Database.raw(
+					`
+        economic_groups.id                        as e_id,
+        economic_groups.company_name,
+        business_units.id                         as b_id,
+        business_units.identification,
+        users.id                                  as u_id,
+        coalesce(users.name, 'Não identificado')  as name,
+        count(total.id)                           as qtd_total,
+        sum(coalesce(total.total_value, 0))       as total_orcamentos,
+        count(confirmados.id)                     as qtd_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) as total_confirmados
+          `,
+				),
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join budgets as total on total.business_unit_id = business_units.id and total.deleted_at is null",
+			)
+			.joinRaw(
+				`left join budgets as confirmados
+                   on confirmados.id = total.id and confirmados.business_unit_id = business_units.id
+                       and confirmados.deleted_at is null and confirmados.status in ('CONFIRMADO', 'CONFIRMADO_PARCIAL')`,
+			)
+			.joinRaw("left join users on users.id = total.reviewer_id")
+			.groupBy("economic_groups.id", "business_units.id", "users.id")
+			.whereNull("budgets.deleted_at")
+			.orderByRaw("total_confirmados desc, name");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("budget_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result = await qb;
+
+		const uniqueGroups = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.e_id)) {
+				acc.push(curr.e_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "budgetsAvaliadorConsolidado",
+			description: "Orçamentos por Avaliador",
+			type: "table",
+			hasData: result.length > 0,
+			data: uniqueGroups.map((elem) => {
+				const group = result.find((r) => r.e_id === elem);
+
+				const rows = result.filter((r) => r.e_id === elem);
+
+				const confirmedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_confirmados),
+					0,
+				);
+				const budgetedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_orcamentos),
+					0,
+				);
+
+				const uniqueUsers = rows.reduce((acc, curr) => {
+					if (!acc.includes(curr.u_id)) {
+						acc.push(curr.u_id);
+					}
+
+					return acc;
+				}, [] as string[]) as string[];
+
+				return {
+					id: group.e_id,
+					identification: group.identification,
+					totalConfirmados: confirmedSum,
+					totalOrcamentos: budgetedSum,
+					users: uniqueUsers.map((user) => {
+						const userRow = result.find((r) => r.u_id === user);
+
+						return {
+							userId: user,
+							userName: userRow.name,
+							qtdClientes: userRow.qtd_confirmados,
+							valorRealizado: userRow.total_confirmados,
+							tikcetMedioRealizado:
+								userRow.total_confirmados / userRow.qtd_confirmados,
+							participacaoRealizado:
+								(userRow.total_confirmados / confirmedSum) * 100,
+							conversaoAvaliacoes:
+								(userRow.total_confirmados / budgetedSum) * 100,
+							qtdAvaliacoes: userRow.qtd_orcamentos,
+							totalAvaliado: userRow.total_orcamentos,
+							tikcetMedioAvaliacoes:
+								userRow.total_orcamentos / userRow.qtd_orcamentos,
+						};
+					}),
+				};
+			}),
+		};
+	}
+
 	public async schedulingIndicators_2(
 		authCtx: AuthContext,
 		data: {

@@ -1698,6 +1698,10 @@ Route.group(() => {
 		"/scheduling-opportunities-2",
 		"IndicatorsController.schedulingOpportunitiesIndicators_2",
 	);
+	Route.get(
+		"/consolidated-reviewers-2",
+		"IndicatorsController.consolidatedReviewerIndicators",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

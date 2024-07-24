@@ -133,7 +133,7 @@ export default class InviteService {
 							url.url,
 							url.url.endsWith("/") ? "" : "/",
 							`invites?token=${invite.id}`,
-						].join("/"),
+						].join(""),
 
 						id: invite.id,
 					});

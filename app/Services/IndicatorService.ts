@@ -6366,7 +6366,10 @@ export default class IndicatorService {
 			hasData: true,
 			title: "Funil Ideal Parcial",
 			message:
-				level4 === 0
+				Number.isNaN(faturamento) ||
+				!Number.isFinite(faturamento) ||
+				Number.isNaN(tkt_medio) ||
+				!Number.isFinite(tkt_medio)
 					? "Não existe meta definida para o período selecionado"
 					: null,
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">

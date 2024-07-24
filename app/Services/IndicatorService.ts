@@ -5481,10 +5481,10 @@ export default class IndicatorService {
 								(userRow.total_confirmados / confirmedSum) * 100,
 							conversaoAvaliacoes:
 								(userRow.total_confirmados / budgetedSum) * 100,
-							qtdAvaliacoes: userRow.qtd_orcamentos,
+							qtdAvaliacoes: userRow.qtd_total,
 							totalAvaliado: userRow.total_orcamentos,
 							tikcetMedioAvaliacoes:
-								userRow.total_orcamentos / userRow.qtd_orcamentos,
+								userRow.total_orcamentos / userRow.qtd_total,
 						};
 					}),
 				};

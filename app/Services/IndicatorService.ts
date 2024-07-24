@@ -9,7 +9,7 @@ import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import { endOfMonth, format } from "date-fns";
+import { addDays, endOfMonth, format } from "date-fns";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -6238,7 +6238,10 @@ export default class IndicatorService {
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
 			authCtx.unit.id,
-			format(data.fromDate ? new Date(data.fromDate) : new Date(), "MM/yyyy"),
+			format(
+				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
+				"MM/yyyy",
+			),
 		);
 
 		const level4 = faturamento / tkt_medio;
@@ -6316,7 +6319,10 @@ export default class IndicatorService {
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
 			authCtx.unit.id,
-			format(data.fromDate ? new Date(data.fromDate) : new Date(), "MM/yyyy"),
+			format(
+				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
+				"MM/yyyy",
+			),
 		);
 
 		const level4 = (faturamento / tkt_medio / daysOnMonth) * day;

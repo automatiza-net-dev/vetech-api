@@ -5474,17 +5474,25 @@ export default class IndicatorService {
 							userId: user,
 							userName: userRow.name,
 							qtdClientes: userRow.qtd_confirmados,
-							valorRealizado: userRow.total_confirmados,
-							ticketMedioRealizado:
+							valorRealizado: this.shared.formatter.format(
+								userRow.total_confirmados,
+							),
+							ticketMedioRealizado: this.shared.formatter.format(
 								userRow.total_confirmados / userRow.qtd_confirmados,
-							participacaoRealizado:
+							),
+							participacaoRealizado: this.shared.formatPercentage(
 								(userRow.total_confirmados / confirmedSum) * 100,
-							conversaoAvaliacoes:
+							),
+							conversaoAvaliacoes: this.shared.formatPercentage(
 								(userRow.total_confirmados / budgetedSum) * 100,
+							),
 							qtdAvaliacoes: userRow.qtd_total,
-							totalAvaliado: userRow.total_orcamentos,
-							ticketMedioAvaliacoes:
+							totalAvaliado: this.shared.formatter.format(
+								userRow.total_orcamentos,
+							),
+							ticketMedioAvaliacoes: this.shared.formatter.format(
 								userRow.total_orcamentos / userRow.qtd_total,
+							),
 						};
 					}),
 				};

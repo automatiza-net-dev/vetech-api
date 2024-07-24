@@ -2215,7 +2215,7 @@ export default class ScheduleService {
 			)
 			.whereNull("schedules.deleted_at")
 			.whereRaw(
-				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
 			.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
@@ -2258,7 +2258,7 @@ export default class ScheduleService {
 			)
 			.whereNull("schedules.deleted_at")
 			.whereRaw(
-				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
 			.whereRaw("business_unit_configs.schedule_late_minutes > 0")

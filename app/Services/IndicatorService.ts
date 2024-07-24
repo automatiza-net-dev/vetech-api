@@ -6326,9 +6326,9 @@ export default class IndicatorService {
 		);
 
 		const level4 = (faturamento / tkt_medio / daysOnMonth) * day;
-		const level3 = ((level4 * 100) / conv_vendas / daysOnMonth) * day;
-		const level2 = ((level3 * 100) / conv_comparecimentos / daysOnMonth) * day;
-		const level1 = ((level2 * 100) / conv_agendamentos / daysOnMonth) * day;
+		const level3 = (level4 * 100) / conv_vendas;
+		const level2 = (level3 * 100) / conv_comparecimentos;
+		const level1 = (level2 * 100) / conv_agendamentos;
 
 		const arrow_1_2 = conv_agendamentos;
 		const arrow_2_3 = conv_comparecimentos;

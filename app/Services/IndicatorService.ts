@@ -6360,19 +6360,6 @@ export default class IndicatorService {
 		const arrow_2_3 = conv_comparecimentos;
 		const arrow_3_4 = conv_vendas;
 
-		console.log({
-			faturamento,
-			tkt_medio,
-			conv_vendas,
-			conv_comparecimentos,
-			conv_agendamentos,
-
-			level4,
-			level3,
-			level2,
-			level1,
-		});
-
 		return {
 			name: "opportunities",
 			type: "funnel",

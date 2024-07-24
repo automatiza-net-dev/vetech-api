@@ -10,6 +10,14 @@ export default class NotificationsController {
 		private notificationService: NotificationsService,
 	) {}
 
+	public async fullNotifications({ response, auth }: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.fullNotifications(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
 	public async rolesNotifications({ response, auth }: HttpContextContract) {
 		return response.ok(
 			await this.notificationService.undefinedRoles(

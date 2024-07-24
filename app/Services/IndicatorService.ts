@@ -6244,7 +6244,13 @@ export default class IndicatorService {
 			),
 		);
 
-		const level4 = faturamento / tkt_medio;
+		const level4 =
+			Number.isNaN(faturamento) ||
+			!Number.isFinite(faturamento) ||
+			Number.isNaN(tkt_medio) ||
+			!Number.isFinite(tkt_medio)
+				? 0
+				: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
 		const level1 = (level2 * 100) / conv_agendamentos;
@@ -6258,6 +6264,10 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Mensal",
+			message:
+				level4 === 0
+					? "Não existe meta definida para o período selecionado"
+					: null,
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
@@ -6331,9 +6341,15 @@ export default class IndicatorService {
 			),
 		);
 
-		const level4 = isSameMonth
-			? (faturamento / tkt_medio / daysOnMonth) * day
-			: faturamento / tkt_medio;
+		const level4 =
+			Number.isNaN(faturamento) ||
+			!Number.isFinite(faturamento) ||
+			Number.isNaN(tkt_medio) ||
+			!Number.isFinite(tkt_medio)
+				? 0
+				: isSameMonth
+					? (faturamento / tkt_medio / daysOnMonth) * day
+					: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
 		const level1 = (level2 * 100) / conv_agendamentos;
@@ -6347,6 +6363,10 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Parcial",
+			message:
+				level4 === 0
+					? "Não existe meta definida para o período selecionado"
+					: null,
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(

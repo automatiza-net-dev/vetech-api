@@ -4087,6 +4087,10 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND25"),
 				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND27"),
+				() => this.consolidatedReviewerBudgets(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([

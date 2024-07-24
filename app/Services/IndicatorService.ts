@@ -6285,16 +6285,16 @@ export default class IndicatorService {
 
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="105" y="60.9">Novas Oportunidades</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) ? 0 : level1.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) || !Number.isFinite(level1) ? 0 : level1.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="135" y="137.9">Agendamentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) ? 0 : level2.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) || !Number.isFinite(level2) ? 0 : level2.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="125" y="214.9">Comparecimentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) ? 0 : level3.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) || !Number.isFinite(level3) ? 0 : level3.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="145" y="295">Vendas</text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(level4) ? 0 : level4.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(level4) || !Number.isFinite(level4) ? 0 : level4.toFixed(0)}</tspan></text>
 
         </g>
         <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>
@@ -6386,16 +6386,16 @@ export default class IndicatorService {
 
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="105" y="60.9">Novas Oportunidades</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) ? 0 : level1.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) || !Number.isFinite(level1) ? 0 : level1.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="135" y="137.9">Agendamentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) ? 0 : level2.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) || !Number.isNaN(level2) ? 0 : level2.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="125" y="214.9">Comparecimentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) ? 0 : level3.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) || !Number.isFinite(level3) ? 0 : level3.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="145" y="295">Vendas</text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(level4) ? 0 : level4.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(level4) || !Number.isFinite(level4) ? 0 : level4.toFixed(0)}</tspan></text>
 
         </g>
         <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>

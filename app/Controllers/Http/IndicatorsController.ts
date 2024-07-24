@@ -531,6 +531,15 @@ export default class IndicatorsController {
 		return response.ok(result);
 	}
 
+	public async crmDashboard({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.crmDashboard(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async salesPerPeriodIndicators_2({
 		auth,
 		request,
@@ -615,6 +624,45 @@ export default class IndicatorsController {
 		response,
 	}: HttpContextContract) {
 		const result = await this.service.salesPerUserIndicators_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async monthlyIdealFunnelIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.monthlyIdealFunnelIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async monthlyPartialFunnelIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.monthlyPartialFunnelIndicators(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
+	public async consolidatedReviewerIndicators({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.consolidatedReviewerBudgets(
 			await this.sharedService.getAuthContext(auth),
 			request.qs(),
 		);

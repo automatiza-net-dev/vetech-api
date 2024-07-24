@@ -2143,7 +2143,17 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		if (data.balances && Array.isArray(data.balances)) {
-			qb.whereIn("opportunities.balance", data.balances);
+			const hasEmAberto = data.balances.some((r) => r === "Em Aberto");
+			const completeRow = data.balances?.join(" ").replace(" ", "|");
+
+			if (hasEmAberto) {
+				qb.whereRaw(
+					"(opportunities.balance is null or opportunities.balance ~* ?)",
+					[completeRow],
+				);
+			} else {
+				qb.whereRaw("opportunities.balance ~* ?", [completeRow]);
+			}
 		}
 
 		if (data.fromOpening && data.toOpening) {
@@ -2159,8 +2169,6 @@ ON bills.patient_id = Dep."id"`,
 				data.toContact,
 			]);
 		}
-
-		console.log(qb.toQuery());
 
 		return qb;
 	}

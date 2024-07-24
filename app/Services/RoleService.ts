@@ -3,7 +3,6 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Permission, { TPermissionType } from "App/Models/Permission";
-import { TProfileAccessType } from "App/Models/ProfileAccess";
 import Role, { TRoleType } from "App/Models/Role";
 import RoleProfileAccess from "App/Models/RoleProfileAccess";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -12,16 +11,14 @@ import IRoleData from "Contracts/interfaces/IRoleData";
 
 interface ISearch {
 	name?: string;
+	new?: string;
 }
 
 @inject()
 export default class RoleService {
 	constructor(private sharedService: SharedService) {}
 
-	public async index(
-		authCtx: AuthContext,
-		data: ISearch,
-	): Promise<Array<Role>> {
+	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Role.query()
 			.where("system_id", authCtx.system.id)
 			.where("economic_group_id", authCtx.group.id);
@@ -42,7 +39,30 @@ export default class RoleService {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
 
-		return qb;
+		// if (data.new === "true") {
+		// 	qb.whereHas("permissions", (q) => {
+		// 		q.whereNull("status");
+		// 	});
+		// } else {
+		// 	qb.whereHas("permissions", (q) => {
+		// 		q.whereNotNull("status");
+		// 	});
+		// }
+
+		const result = await qb;
+		const permissions = await Database.from("role_permissions")
+			.whereIn(
+				"role_id",
+				result.map((r) => r.id),
+			)
+			.whereNull("status");
+
+		return result.map((r) => {
+			return {
+				...r.toJSON(),
+				newItems: permissions.filter((p) => p.role_id === r.id).length > 0,
+			};
+		});
 	}
 
 	public async controllerIndex(
@@ -296,7 +316,7 @@ export default class RoleService {
 	public async rolePermissionMetadata(
 		systemID: number,
 		id: number,
-		type?: string,
+		data: { type?: string; newItems?: string },
 	) {
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
@@ -319,7 +339,13 @@ export default class RoleService {
 			.preload("screen")
 			.pivotColumns(["active", "status"]);
 
-		if (type === "user") {
+		if (data.newItems === "true") {
+			qb.whereRaw("role_permissions.status is null");
+		} else if (data.newItems === "false") {
+			qb.whereRaw("role_permissions.status is not null");
+		}
+
+		if (data.type === "user") {
 			qb.whereIn("permissions.type", [
 				"user",
 				"both",
@@ -327,7 +353,7 @@ export default class RoleService {
 			] as TPermissionType[]);
 		}
 
-		if (type === "controller") {
+		if (data.type === "controller") {
 			qb.whereIn("permissions.type", [
 				"controller",
 				"both",
@@ -335,7 +361,7 @@ export default class RoleService {
 			] as TPermissionType[]);
 		}
 
-		if (type === "system") {
+		if (data.type === "system") {
 			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
 		}
 
@@ -414,7 +440,7 @@ export default class RoleService {
 							.from("role_permissions")
 							.where("role_id", role.id)
 							.where("permission_id", permission.id)
-							.update({ status: permission.active });
+							.update({ status: Boolean(permission.active) });
 					});
 
 					await Promise.all(promises);

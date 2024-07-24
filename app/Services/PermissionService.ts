@@ -363,7 +363,14 @@ export default class PermissionService {
 				return role.related("permissions").sync(
 					permissions
 						.filter((p) => p.$systems.includes(role.system_id))
-						.map((p) => p.id),
+						.reduce(
+							(acc, curr) => {
+								acc[curr.id] = { status: null };
+
+								return acc;
+							},
+							{} as Record<number, Record<string, unknown>>,
+						),
 					false,
 					trx,
 				);

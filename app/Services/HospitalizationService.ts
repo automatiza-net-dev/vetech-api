@@ -221,7 +221,17 @@ export default class HospitalizationService {
 			})
 			.preload("tutor", (query) => {
 				query.preload("tutor", (query) => {
-					query.select(["cellphone"]);
+					query.select([
+						"cellphone",
+						"document",
+						"postal_code",
+						"street",
+						"number",
+						"complement",
+						"district",
+						"city",
+						"state",
+					]);
 				});
 			})
 			.preload("technician")
@@ -267,7 +277,24 @@ export default class HospitalizationService {
 			qb.where("bed_id", data.bed);
 		}
 
-		return qb;
+		return (await qb).map((r) => {
+			const original = r.toJSON();
+
+			const fullAddress = r.tutor?.tutor.fullAddress;
+
+			Object.assign(original, {
+				tutor: {
+					...r.tutor.toJSON(),
+					cellphone: r.tutor.tutor.cellphone,
+					document: r.tutor.tutor.document,
+					patient_id: r.tutor.tutor.patient_id,
+					fullAddress,
+					tutor: undefined,
+				},
+			});
+
+			return original;
+		});
 	}
 
 	public async completedIndex(unitId: string, data: ISearch) {

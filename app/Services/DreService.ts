@@ -72,6 +72,7 @@ export default class DreService {
 			.where("finances.business_unit_id", unitID)
 			.whereNull("finances.deleted_at")
 			.where("finances.competence_date", $data.competence ?? "")
+			.where("pc.dre", true)
 			.orderByRaw(
 				'finances."type", finances.issue_date, finances."document", finances.installment',
 			);

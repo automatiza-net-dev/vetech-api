@@ -264,9 +264,15 @@ const detSchema = z.object({
 					PISNT: z.optional(
 						z.object({
 							CST: z.string(),
-							vBC: z.optional(z.string().refine((val) => parseFloat(val))),
-							pPIS: z.optional(z.string().refine((val) => parseFloat(val))),
-							vPIS: z.optional(z.string().refine((val) => parseFloat(val))),
+							vBC: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
+							pPIS: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
+							vPIS: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
 						}),
 					),
 					PISOutr: z.optional(
@@ -300,9 +306,15 @@ const detSchema = z.object({
 					COFINSNT: z.optional(
 						z.object({
 							CST: z.string(),
-							vBC: z.optional(z.string().refine((val) => parseFloat(val))),
-							pCOFINS: z.optional(z.string().refine((val) => parseFloat(val))),
-							vCOFINS: z.optional(z.string().refine((val) => parseFloat(val))),
+							vBC: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
+							pCOFINS: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
+							vCOFINS: z.optional(
+								z.string().refine((val) => Number.parseFloat(val)),
+							),
 						}),
 					),
 					COFINSOutr: z.optional(
@@ -960,9 +972,12 @@ export default class ReceiptService {
 							p.variations.find((pv) => pv.barcode === barcode),
 						);
 
-				const cofins = this.getCofins(parsed.data, parseInt(itemIdx, 10));
-				const pis = this.getPis(parsed.data, parseInt(itemIdx, 10));
-				const icms = this.getIcms(parsed.data, parseInt(itemIdx, 10));
+				const cofins = this.getCofins(
+					parsed.data,
+					Number.parseInt(itemIdx, 10),
+				);
+				const pis = this.getPis(parsed.data, Number.parseInt(itemIdx, 10));
+				const icms = this.getIcms(parsed.data, Number.parseInt(itemIdx, 10));
 
 				itemData.push({
 					economic_group_id: authCtx.group.id,
@@ -1038,20 +1053,24 @@ export default class ReceiptService {
 					// issValue: (icmsBase * (rule?.icmsPerc ?? 1)) / 100,
 
 					pisCst: pis.CST,
-					pisBase: pis.vBC ? parseFloat(pis.vBC.toString()) : undefined,
-					pisPercentage: pis.pPIS ? parseFloat(pis.pPIS.toString()) : undefined,
-					pisValue: pis.vPIS ? parseFloat(pis.vPIS.toString()) : undefined,
+					pisBase: pis.vBC ? Number.parseFloat(pis.vBC.toString()) : undefined,
+					pisPercentage: pis.pPIS
+						? Number.parseFloat(pis.pPIS.toString())
+						: undefined,
+					pisValue: pis.vPIS
+						? Number.parseFloat(pis.vPIS.toString())
+						: undefined,
 					pisRetentionValue: 0,
 
 					cofinsCst: cofins.CST,
 					cofinsBase: cofins.vBC
-						? parseFloat(cofins.vBC.toString())
+						? Number.parseFloat(cofins.vBC.toString())
 						: undefined,
 					cofinsPercentage: cofins.pCOFINS
-						? parseFloat(cofins.pCOFINS.toString())
+						? Number.parseFloat(cofins.pCOFINS.toString())
 						: undefined,
 					cofinsValue: cofins.vCOFINS
-						? parseFloat(cofins.vCOFINS.toString())
+						? Number.parseFloat(cofins.vCOFINS.toString())
 						: undefined,
 					cofinsRetentionValue: 0,
 
@@ -1357,18 +1376,27 @@ export default class ReceiptService {
 
 		// vendedor não existe
 		if (!existingTutor) {
-			const suppliers = await authCtx.group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.SUPPLIER)
-				.select("id");
+			// const suppliers = await authCtx.group
+			// 	.related("patients")
+			// 	.query()
+			// 	.useTransaction(trx)
+			// 	.where("type", PatientType.SUPPLIER)
+			// 	.select("id");
+			const [{ next_id = 1 }] = await Database.from("economic_groups")
+				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+				.joinRaw(
+					"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+				)
+				.joinRaw(
+					"left join patients on patient_economic_groups.patient_id = patients.id",
+				)
+				.where("economic_groups.id", authCtx.group.id);
 
 			const newSupplier = await Patient.create(
 				{
 					name: data.nfeProc.NFe.infNFe.emit.xFant,
 					type: PatientType.SUPPLIER,
-					tag: (suppliers.length + 1).toString(),
+					tag: next_id.toString(),
 				},
 				{ client: trx },
 			);
@@ -1754,9 +1782,9 @@ export default class ReceiptService {
 
 			if (!authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish) {
 				const paymentsTasks = payments.flat().map((elem, idx) => {
-					if (elem.installment !== 1) {
-						return Promise.resolve(-1);
-					}
+					// if (elem.installment !== 1) {
+					// 	return Promise.resolve(-1);
+					// }
 
 					return this.createFinanceEntry(trx, authCtx, {
 						dailyCashierId: receipt.daily_cashier_id,
@@ -1979,21 +2007,6 @@ export default class ReceiptService {
 					status: "Ativo" as TReceiptItemStatus,
 				});
 
-			const tasks = receipt.payments.map((elem) => {
-				return this.createFinanceEntry(trx, authCtx, {
-					dailyCashierId: receipt.daily_cashier_id,
-					dailyMovementId: receipt.daily_movement_id,
-					supplierId: receipt.supplier_id,
-					paymentMethodId: elem.payment_method_id,
-					tefAcquirerId: elem.tef_acquirer_id,
-					tefFlagId: elem.tef_flag_id,
-
-					tag: receipt.tag,
-					item: elem,
-				});
-			});
-			await Promise.all(tasks);
-
 			await Database.rawQuery(
 				`
         insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at, updated_at)
@@ -2131,7 +2144,7 @@ where
 from
 	finances
 where
-	f.origin_id in (
+	finances.origin_id in (
 	select
 		id
 	from
@@ -2717,7 +2730,7 @@ and product_variation_id in (
 				.where("payment_method_id", data.paymentMethodId)
 				.first();
 
-		await Finance.create(
+		return await Finance.create(
 			{
 				economic_group_id: authCtx.group.id,
 				business_unit_id: authCtx.unit.id,
@@ -2738,6 +2751,7 @@ and product_variation_id in (
 				type: FinanceType.D,
 				block: data.item.block,
 				installment: data.item.installment,
+				qtyInstallments: data.item.blockInstallments,
 				originFlag: FinanceOriginFlag.E,
 				document: `NFE-${data.tag}`,
 				historic: `NFE-${data.tag}`,
@@ -2745,7 +2759,7 @@ and product_variation_id in (
 				expirationDate: data.item.expirationDate,
 				originalValue: data.item.installmentValue,
 				value: data.item.installmentValue,
-				totalValue: data.item.installmentValue * data.item.blockInstallments,
+				totalValue: data.item.installmentValue,
 				feeValue: 0,
 				feePercentage: 0,
 				accept: FinanceAccept.N,

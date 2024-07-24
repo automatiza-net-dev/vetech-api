@@ -25,6 +25,7 @@ export default class RolesController {
 				await this.sharedService.getAuthContext(auth),
 				{
 					name: qs.name,
+					new: qs.new,
 				},
 			),
 		);
@@ -55,6 +56,7 @@ export default class RolesController {
 
 	public async permissionMetadata({
 		params,
+		request,
 		response,
 		auth,
 	}: HttpContextContract) {
@@ -67,7 +69,7 @@ export default class RolesController {
 				await this.roleService.rolePermissionMetadata(
 					auth.user.system_id,
 					params.id,
-					auth.user.type,
+					{ type: auth.user.type, newItems: request.qs().newItems },
 				),
 			);
 		}
@@ -76,6 +78,7 @@ export default class RolesController {
 			await this.roleService.rolePermissionMetadata(
 				auth.user.system_id,
 				params.id,
+				{ newItems: request.qs().newItems },
 			),
 		);
 	}

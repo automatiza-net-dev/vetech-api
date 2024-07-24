@@ -1596,6 +1596,14 @@ Route.group(() => {
 		"IndicatorsController.generalOpportunitiesIndicators",
 	);
 	Route.get("/crm", "IndicatorsController.crmIndicators");
+	Route.get(
+		"/monthly-ideal-funnel",
+		"IndicatorsController.monthlyIdealFunnelIndicators",
+	);
+	Route.get(
+		"/monthly-partial-funnel",
+		"IndicatorsController.monthlyPartialFunnelIndicators",
+	);
 
 	Route.get(
 		"/unconfirmed-budgets",
@@ -1690,6 +1698,10 @@ Route.group(() => {
 		"/scheduling-opportunities-2",
 		"IndicatorsController.schedulingOpportunitiesIndicators_2",
 	);
+	Route.get(
+		"/consolidated-reviewers-2",
+		"IndicatorsController.consolidatedReviewerIndicators",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");
@@ -1766,8 +1778,11 @@ Route.resource("client-origin-groups", "ClientOriginGroupsController")
 		"*": ["auth"],
 	});
 
-Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
+Route.get("/Menu", "PermissionsController.fetchMenu").middleware("auth");
 Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
+	"auth",
+);
+Route.get("/dashboard-crm", "IndicatorsController.crmDashboard").middleware(
 	"auth",
 );
 Route.get(
@@ -1799,3 +1814,10 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/", "DictionariesController.index");
 }).prefix("dictionary");
+
+Route.group(() => {
+	Route.get("/roles", "NotificationsController.rolesNotifications");
+})
+	.prefix("notifications")
+	.middleware("auth");
+

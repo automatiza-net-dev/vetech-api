@@ -15,6 +15,7 @@ import BudgetPayment, {
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
+import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import TaxationGroupRule, {
@@ -448,11 +449,11 @@ export default class BudgetService {
 						}
 
 						if (data.minPrice) {
-							query.where("price", ">=", parseFloat(data.minPrice));
+							query.where("price", ">=", Number.parseFloat(data.minPrice));
 						}
 
 						if (data.maxPrice) {
-							query.where("price", "<=", parseFloat(data.maxPrice));
+							query.where("price", "<=", Number.parseFloat(data.maxPrice));
 						}
 
 						if (data.maxDiscountPercentage) {
@@ -508,15 +509,15 @@ export default class BudgetService {
 				query.where("businness_unit_id", unitId);
 
 				if (data.quantity) {
-					query.where("stock", ">=", parseFloat(data.quantity));
+					query.where("stock", ">=", Number.parseFloat(data.quantity));
 				}
 
 				if (data.minPrice) {
-					query.where("price", ">=", parseFloat(data.minPrice));
+					query.where("price", ">=", Number.parseFloat(data.minPrice));
 				}
 
 				if (data.maxPrice) {
-					query.where("price", "<=", parseFloat(data.maxPrice));
+					query.where("price", "<=", Number.parseFloat(data.maxPrice));
 				}
 
 				if (data.maxDiscountPercentage) {
@@ -1648,8 +1649,8 @@ export default class BudgetService {
 			budgetId: string;
 			items: {
 				paymentMethodId: string;
-				tefFlagId: string;
-				tefAcquirerId: string;
+				tefFlagId?: string;
+				tefAcquirerId?: string;
 
 				totalValue: number;
 				installments: number;
@@ -1698,7 +1699,7 @@ export default class BudgetService {
 						tef_flag_id: elem.tefFlagId,
 						tef_acquirer_id: elem.tefAcquirerId,
 
-						block: parseInt(count) + index + 1,
+						block: Number.parseInt(count) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
 						status: "Aberto",
@@ -1950,18 +1951,29 @@ export default class BudgetService {
        budget_payments.deleted_at        as data_exclusao,
        exclusion_user.id                 as id_Usuario_exclusao,
        exclusion_user.name               as nome_Usuario_exclusao,
-       budget_payments.exclusion_origin  as origem_exclusao`),
+       budget_payments.exclusion_origin  as origem_exclusao,
+
+       payment_methods.requires_document as exige_documento,
+       payment_methods.type              as tipo_operacao,
+       payment_method_flags.id                                                           as to_remove,
+       coalesce(payment_method_flags.max_installments, payment_methods.max_installments) as max_marcelas
+       `),
 			)
 			.join(
 				"payment_methods",
 				"payment_methods.id",
 				"budget_payments.payment_method_id",
 			)
-			.join("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
-			.join(
+			.leftJoin("tef_flags", "tef_flags.id", "budget_payments.tef_flag_id")
+			.leftJoin(
 				"tef_acquirers",
 				"tef_acquirers.id",
 				"budget_payments.tef_acquirer_id",
+			)
+			.joinRaw(
+				`left join payment_method_flags on (payment_methods.id = payment_method_flags.payment_method_id and
+                                            tef_flags.id = payment_method_flags.tef_flag_id and
+                                            tef_acquirers.id = payment_method_flags.tef_acquirer_id)`,
 			)
 			.join("users", "users.id", "budget_payments.user_id")
 			.joinRaw(
@@ -1991,6 +2003,29 @@ export default class BudgetService {
 			).whereNull("budget_payments.deleted_at");
 		}
 
-		return qb.exec();
+		const payments = await qb.exec();
+
+		const installments = await PaymentMethodFlagInstallment.query()
+			.whereIn(
+				"payment_method_flag_id",
+				payments.map((r) => r.to_remove),
+			)
+			.orderBy("installment");
+
+		return payments.map((p) => {
+			const paymentInstallments = installments.filter(
+				(i) => i.payment_method_flag_id === p.to_remove,
+			);
+
+			Object.assign(p, {
+				to_remove: undefined,
+				installments: paymentInstallments.map((pi) => ({
+					installment: pi.installment,
+					fee: pi.fee,
+				})),
+			});
+
+			return p;
+		});
 	}
 }

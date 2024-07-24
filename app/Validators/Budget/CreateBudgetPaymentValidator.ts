@@ -34,11 +34,11 @@ export default class CreateBudgetPaymentValidator {
 					rules.uuid(),
 					rules.exists({ table: "payment_methods", column: "id" }),
 				]),
-				tefFlagId: schema.string([
+				tefFlagId: schema.string.optional([
 					rules.uuid(),
 					rules.exists({ table: "tef_flags", column: "id" }),
 				]),
-				tefAcquirerId: schema.string([
+				tefAcquirerId: schema.string.optional([
 					rules.uuid(),
 					rules.exists({ table: "tef_acquirers", column: "id" }),
 				]),

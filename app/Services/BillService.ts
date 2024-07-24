@@ -196,6 +196,9 @@ export default class BillService {
 			.preload("seller")
 			.preload("user")
 			.preload("businessUnit")
+			.preload("budget", (query) => {
+				query.select("id");
+			})
 			.preload("documents", (query) => {
 				query.preload("documentTemplate");
 			})
@@ -210,7 +213,11 @@ export default class BillService {
 				query.preload("paymentMethod");
 
 				query.preload("finance", (q) => {
-					q.select(["id", "payment_date"]);
+					q.select(["id", "payment_date", "payment_method_id"]);
+
+					q.preload("paymentMethod", (q) => {
+						q.select("id", "description");
+					});
 				});
 			})
 			.preload("items", (query) => {
@@ -3170,7 +3177,13 @@ where deposit_id = ?
 					});
 
 					query.preload("finance", (query) => {
-						query.select("id", "payment_date");
+						query.whereNotNull("payment_date");
+
+						query.select("id", "payment_date", "payment_method_id");
+
+						query.preload("paymentMethod", (query) => {
+							query.select("id", "description");
+						});
 					});
 				});
 		});

@@ -6227,7 +6227,7 @@ export default class IndicatorService {
 
 	public async monthlyIdealFunnelIndicators(
 		authCtx: AuthContext,
-		data: { dateFrom?: string; dateTo?: string },
+		data: { fromDate?: string; toDate?: string },
 	) {
 		const {
 			faturamento,
@@ -6238,7 +6238,7 @@ export default class IndicatorService {
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
 			authCtx.unit.id,
-			format(data.dateFrom ? new Date(data.dateFrom) : new Date(), "MM/yyyy"),
+			format(data.fromDate ? new Date(data.fromDate) : new Date(), "MM/yyyy"),
 		);
 
 		const level4 = faturamento / tkt_medio;
@@ -6301,7 +6301,7 @@ export default class IndicatorService {
 
 	public async monthlyPartialFunnelIndicators(
 		authCtx: AuthContext,
-		data: { dateFrom?: string; dateTo?: string },
+		data: { fromDate?: string; toDate?: string },
 	) {
 		const today = new Date();
 		const day = today.getDate();
@@ -6316,7 +6316,7 @@ export default class IndicatorService {
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
 			authCtx.unit.id,
-			format(data.dateFrom ? new Date(data.dateFrom) : new Date(), "MM/yyyy"),
+			format(data.fromDate ? new Date(data.fromDate) : new Date(), "MM/yyyy"),
 		);
 
 		const level4 = (faturamento / tkt_medio / daysOnMonth) * day;

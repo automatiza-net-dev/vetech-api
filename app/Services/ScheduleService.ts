@@ -2196,6 +2196,9 @@ export default class ScheduleService {
 	static async RunSyncLateOrMissingSchedules() {
 		const scheduleStatuses = await ScheduleStatus.query();
 
+		const missed: string[] = [];
+		const late: string[] = [];
+
 		const toBeMissedSchedules = (await Database.from("schedules")
 			.select(
 				"schedules.id",
@@ -2231,6 +2234,7 @@ export default class ScheduleService {
 					return Promise.resolve(null);
 				}
 
+				missed.push(elem.id);
 				return Schedule.query().where("id", elem.id).update({
 					schedule_status_id: newStatus.id,
 				});
@@ -2274,6 +2278,7 @@ export default class ScheduleService {
 					return Promise.resolve(null);
 				}
 
+				late.push(elem.id);
 				return Schedule.query().where("id", elem.id).update({
 					schedule_status_id: newStatus.id,
 				});
@@ -2283,8 +2288,8 @@ export default class ScheduleService {
 		}
 
 		return {
-			toBeMissed: toBeMissedSchedules.filter(Boolean).length,
-			late: lateSchedules.filter(Boolean).length,
+			missed,
+			late,
 		};
 	}
 }

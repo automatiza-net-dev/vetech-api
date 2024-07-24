@@ -18,6 +18,14 @@ export default class NotificationsController {
 		);
 	}
 
+	public async unreadNotifications({ response, auth }: HttpContextContract) {
+		const all = await this.notificationService.fullNotifications(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.ok({ data: { number: all.data.length } });
+	}
+
 	public async rolesNotifications({ response, auth }: HttpContextContract) {
 		return response.ok(
 			await this.notificationService.undefinedRoles(

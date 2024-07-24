@@ -1817,6 +1817,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "NotificationsController.fullNotifications");
+	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");
 })
 	.prefix("Notifications")

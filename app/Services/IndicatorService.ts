@@ -6341,6 +6341,22 @@ export default class IndicatorService {
 			),
 		);
 
+		console.log({
+			period: format(
+				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
+				"MM/yyyy",
+			),
+
+			isSameMonth,
+			day,
+			daysOnMonth,
+			faturamento,
+			tkt_medio,
+			conv_vendas,
+			conv_comparecimentos,
+			conv_agendamentos,
+		});
+
 		const level4 =
 			Number.isNaN(faturamento) ||
 			!Number.isFinite(faturamento) ||

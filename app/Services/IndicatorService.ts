@@ -9,7 +9,7 @@ import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import { addDays, endOfMonth, format } from "date-fns";
+import { addDays, addHours, endOfMonth, format } from "date-fns";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -6306,7 +6306,13 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: { fromDate?: string; toDate?: string },
 	) {
-		const today = new Date();
+		const _today = new Date();
+		const today = data.fromDate
+			? addHours(new Date(data.fromDate), 12)
+			: new Date();
+
+		const isSameMonth = _today.getMonth() === today.getMonth();
+
 		const day = today.getDate();
 		const daysOnMonth = endOfMonth(today).getDate();
 
@@ -6325,7 +6331,9 @@ export default class IndicatorService {
 			),
 		);
 
-		const level4 = (faturamento / tkt_medio / daysOnMonth) * day;
+		const level4 = isSameMonth
+			? (faturamento / tkt_medio / daysOnMonth) * day
+			: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
 		const level1 = (level2 * 100) / conv_agendamentos;

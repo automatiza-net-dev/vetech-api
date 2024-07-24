@@ -440,7 +440,7 @@ export default class RoleService {
 							.from("role_permissions")
 							.where("role_id", role.id)
 							.where("permission_id", permission.id)
-							.update({ status: permission.active });
+							.update({ status: Boolean(permission.active) });
 					});
 
 					await Promise.all(promises);

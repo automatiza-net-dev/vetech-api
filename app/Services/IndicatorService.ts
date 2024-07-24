@@ -6405,7 +6405,7 @@ export default class IndicatorService {
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) || !Number.isFinite(level1) ? 0 : level1.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="135" y="137.9">Agendamentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) || !Number.isNaN(level2) ? 0 : level2.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) || !Number.isFinite(level2) ? 0 : level2.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="125" y="214.9">Comparecimentos</tspan></text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) || !Number.isFinite(level3) ? 0 : level3.toFixed(0)}</tspan></text>

@@ -6316,15 +6316,17 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: { fromDate?: string; toDate?: string },
 	) {
-		const _today = new Date();
-		const today = data.fromDate
+		const today = new Date();
+		const firstFromInput = data.fromDate
 			? addHours(new Date(data.fromDate), 12)
 			: new Date();
 
-		const isSameMonth = _today.getMonth() === today.getMonth();
+		const isSameMonth = today.getMonth() === firstFromInput.getMonth();
 
 		const day = today.getDate();
-		const daysOnMonth = endOfMonth(today).getDate();
+		const daysOnMonth = isSameMonth
+			? endOfMonth(today).getDate()
+			: endOfMonth(firstFromInput).getDate();
 
 		const {
 			faturamento,

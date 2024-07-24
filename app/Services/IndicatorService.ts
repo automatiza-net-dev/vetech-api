@@ -5475,7 +5475,7 @@ export default class IndicatorService {
 							userName: userRow.name,
 							qtdClientes: userRow.qtd_confirmados,
 							valorRealizado: userRow.total_confirmados,
-							tikcetMedioRealizado:
+							ticketMedioRealizado:
 								userRow.total_confirmados / userRow.qtd_confirmados,
 							participacaoRealizado:
 								(userRow.total_confirmados / confirmedSum) * 100,
@@ -5483,7 +5483,7 @@ export default class IndicatorService {
 								(userRow.total_confirmados / budgetedSum) * 100,
 							qtdAvaliacoes: userRow.qtd_total,
 							totalAvaliado: userRow.total_orcamentos,
-							tikcetMedioAvaliacoes:
+							ticketMedioAvaliacoes:
 								userRow.total_orcamentos / userRow.qtd_total,
 						};
 					}),

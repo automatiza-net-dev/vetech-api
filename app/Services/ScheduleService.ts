@@ -2283,8 +2283,8 @@ export default class ScheduleService {
 		}
 
 		return {
-			toBeMissed: toBeMissedSchedules.length,
-			late: lateSchedules.length,
+			toBeMissed: toBeMissedSchedules.filter(Boolean).length,
+			late: lateSchedules.filter(Boolean).length,
 		};
 	}
 }

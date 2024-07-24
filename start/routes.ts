@@ -1778,7 +1778,7 @@ Route.resource("client-origin-groups", "ClientOriginGroupsController")
 		"*": ["auth"],
 	});
 
-Route.get("/menu", "PermissionsController.fetchMenu").middleware("auth");
+Route.get("/Menu", "PermissionsController.fetchMenu").middleware("auth");
 Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
 	"auth",
 );

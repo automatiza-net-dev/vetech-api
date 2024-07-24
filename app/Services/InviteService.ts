@@ -367,7 +367,7 @@ export default class InviteService {
 
 		try {
 			await user
-				.merge({ name: data.name, password: data.password })
+				.merge({ name: data.name, password: data.password, phone: data.phone })
 				.useTransaction(trx)
 				.save();
 			await role.merge({ active: true }).useTransaction(trx).save();

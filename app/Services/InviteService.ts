@@ -38,7 +38,7 @@ export default class InviteService {
 
 	public async store(authCtx: AuthContext, data: IInviteData): Promise<Invite> {
 		return Database.transaction(async (trx) => {
-			const role = await Role.findOrFail(data.role_id, { client: trx });
+			const role = await Role.findOrFail(data.roleId, { client: trx });
 			const existingUser = await User.firstOrCreate(
 				{
 					email: data.email,
@@ -56,7 +56,7 @@ export default class InviteService {
 				.related("roles")
 				.query()
 				.useTransaction(trx)
-				.where("role_id", role.id)
+				.where("roleId", role.id)
 				.where("unit_id", authCtx.unit.id)
 				.first();
 
@@ -70,7 +70,7 @@ export default class InviteService {
 
 			const existingInvite = await Invite.query()
 				.useTransaction(trx)
-				.where("role_id", role.id)
+				.where("roleId", role.id)
 				.whereILike("email", `%${data.email}%`)
 				.andWhere("user_id", existingUser.id)
 				.andWhere("active", true)
@@ -249,18 +249,18 @@ export default class InviteService {
 			);
 		}
 
-		const role = await Role.findOrFail(data.role_id);
+		const role = await Role.findOrFail(data.roleId);
 		const existingUser = await User.findBy("email", data.email);
 
 		if (!existingUser) {
 			throw new BadRequestException("Usuário não existe", 400, "E_BAD_REQUEST");
 		}
 
-		if (invite.role_id !== data.role_id) {
+		if (invite.role_id !== data.roleId) {
 			const existingRole = await existingUser
 				.related("roles")
 				.query()
-				.where("role_id", data.role_id)
+				.where("roleId", data.roleId)
 				.first();
 
 			if (existingRole) {
@@ -342,7 +342,7 @@ export default class InviteService {
 		const role = await user
 			.related("roles")
 			.query()
-			.where("role_id", invite.role_id)
+			.where("roleId", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
 			.preload("unit")
@@ -395,7 +395,7 @@ export default class InviteService {
 		const role = await user
 			.related("roles")
 			.query()
-			.where("role_id", invite.role_id)
+			.where("roleId", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
 			.preload("unit")

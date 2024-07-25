@@ -783,18 +783,16 @@ export default class PatientService {
 						telephone: tutorObj.telephone ?? null,
 						email: tutorObj.email ?? null,
 						document: tutorObj.document ?? null,
+						address: [
+							tutorObj.street,
+							tutorObj.number,
+							tutorObj.complement,
+							tutorObj.district,
+							`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
+						]
+							.filter(Boolean)
+							.join(", "),
 					},
-				});
-				Object.assign(displayData, {
-					address: [
-						tutorObj.street,
-						tutorObj.number,
-						tutorObj.complement,
-						tutorObj.district,
-						`${tutorObj.city ?? "-"} - ${tutorObj.state ?? "-"}`,
-					]
-						.filter(Boolean)
-						.join(", "),
 				});
 			}
 
@@ -824,16 +822,34 @@ export default class PatientService {
 				telephone: patient.tutor?.telephone ?? null,
 				email: patient.tutor?.email ?? null,
 				observation: "",
-				address: {
-					cep: patient.tutor.postalCode,
-					logradouro: patient.tutor.street,
-					complemento: patient.tutor.complement ?? null,
-					bairro: patient.tutor.district,
-					localidade: patient.tutor.city,
-					uf: patient.tutor.state,
-					zipCode: patient.tutor.postalCode,
-					number: patient.tutor.number,
-				},
+				fullAddress: [
+					patient?.tutor.street,
+					patient?.tutor.number,
+					patient?.tutor.complement,
+					patient?.tutor.district,
+					`${patient?.tutor.city ?? "-"} - ${patient?.tutor.state ?? "-"}`,
+				]
+					.filter(Boolean)
+					.join(", "),
+				// address: {
+				// 	cep: patient.tutor.postalCode,
+				// 	logradouro: patient.tutor.street,
+				// 	complemento: patient.tutor.complement ?? null,
+				// 	bairro: patient.tutor.district,
+				// 	localidade: patient.tutor.city,
+				// 	uf: patient.tutor.state,
+				// 	zipCode: patient.tutor.postalCode,
+				// 	number: patient.tutor.number,
+				// 	fullAddress: [
+				// 		patient.tutor.street,
+				// 		patient.tutor.number,
+				// 		patient.tutor.complement,
+				// 		patient.tutor.district,
+				// 		`${patient.tutor.city ?? "-"} - ${patient.tutor.state ?? "-"}`,
+				// 	]
+				// 		.filter(Boolean)
+				// 		.join(", "),
+				// },
 				contacts: patient.contacts.map((elem) => ({
 					contact: elem.contact,
 					main: elem.main,

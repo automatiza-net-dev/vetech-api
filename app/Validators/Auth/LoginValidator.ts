@@ -22,7 +22,7 @@ export default class LoginValidator {
 				column: "name",
 			}),
 		]),
-		ip: schema.string({}),
+		ip: schema.string.optional({}),
 	});
 
 	public messages: CustomMessages = {};

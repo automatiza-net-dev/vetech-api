@@ -3,5 +3,5 @@ export default interface ILoginData {
 	password: string;
 	business_unit_id?: string;
 	system: string;
-	ip: string;
+	ip?: string;
 }

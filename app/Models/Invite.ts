@@ -33,7 +33,7 @@ export default class Invite extends BaseModel {
 	public economic_group_id: string;
 
 	@column({
-		serializeAs: null,
+		serializeAs: "roleId",
 	})
 	public role_id: number;
 

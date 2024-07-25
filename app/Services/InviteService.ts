@@ -127,7 +127,7 @@ export default class InviteService {
 				message
 					.from("sysvetech@gmail.com")
 					.to(data.email)
-					.subject("Convite - Vetech")
+					.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
 					.htmlView("emails/invite", {
 						url: [
 							url.url,
@@ -136,6 +136,7 @@ export default class InviteService {
 						].join(""),
 
 						id: invite.id,
+						name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
 					});
 			});
 
@@ -176,10 +177,10 @@ export default class InviteService {
 		};
 	}
 
-	public async resendInvite(unitId: string, id: string) {
+	public async resendInvite(authCtx: AuthContext, id: string) {
 		const invite = await Invite.query()
 			.where("id", id)
-			.andWhere("business_unit_id", unitId)
+			.andWhere("business_unit_id", authCtx.unit.id)
 			.first();
 
 		if (!invite) {
@@ -198,18 +199,45 @@ export default class InviteService {
 			);
 		}
 
+		// await Mail.send((message) => {
+		// 	message
+		// 		.from("sysvetech@gmail.com")
+		// 		.to(invite.email)
+		// 		.subject("Convite - Vetech")
+		// 		.htmlView("emails/invite", { id: invite.id });
+		// });
+		const url = await SystemUrl.query()
+			.where("system_id", authCtx.system.id)
+			.first();
+		if (!url) {
+			throw new BadRequestException(
+				"Sistema sem url configurada",
+				400,
+				"E_ERR",
+			);
+		}
+
 		await Mail.send((message) => {
 			message
 				.from("sysvetech@gmail.com")
 				.to(invite.email)
-				.subject("Convite - Vetech")
-				.htmlView("emails/invite", { id: invite.id });
+				.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+				.htmlView("emails/invite", {
+					url: [
+						url.url,
+						url.url.endsWith("/") ? "" : "/",
+						`invites?token=${invite.id}`,
+					].join(""),
+
+					id: invite.id,
+					name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				});
 		});
 	}
 
 	public async update(
+		authCtx: AuthContext,
 		id: string,
-		user: User,
 		data: IInviteData,
 	): Promise<Invite> {
 		const invite = await this.show(id);
@@ -220,8 +248,6 @@ export default class InviteService {
 				"E_NOT_AUTHORIZED",
 			);
 		}
-
-		const businessUnit = await this.getUserValidBusinessUnit(user, data);
 
 		const role = await Role.findOrFail(data.role_id);
 		const existingUser = await User.findBy("email", data.email);
@@ -246,17 +272,37 @@ export default class InviteService {
 			}
 		}
 
+		const url = await SystemUrl.query()
+			.where("system_id", authCtx.system.id)
+			.first();
+		if (!url) {
+			throw new BadRequestException(
+				"Sistema sem url configurada",
+				400,
+				"E_ERR",
+			);
+		}
+
 		await Mail.send((message) => {
 			message
 				.from("sysvetech@gmail.com")
 				.to(data.email)
-				.subject("Convite - Vetech")
-				.htmlView("emails/invite", { id });
+				.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+				.htmlView("emails/invite", {
+					url: [
+						url.url,
+						url.url.endsWith("/") ? "" : "/",
+						`invites?token=${invite.id}`,
+					].join(""),
+
+					id: invite.id,
+					name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				});
 		});
 
 		return invite
 			.merge({
-				business_unit_id: businessUnit.id,
+				business_unit_id: authCtx.unit.id,
 				email: data.email,
 				role_id: role.id,
 				user_id: existingUser?.id,
@@ -402,15 +448,6 @@ export default class InviteService {
 		await invite.softDelete();
 	}
 
-	private async getUserValidBusinessUnit(user: User, data: IInviteData) {
-		const userBusinessUnits = await this.userBusinessUnits(user);
-		const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
-
-		this.userIsRelatedToBusinessUnit(userBusinessUnits, businessUnit);
-
-		return businessUnit;
-	}
-
 	private userIsRelatedToBusinessUnit(
 		userBusinessUnits: Array<BusinessUnit>,
 		businessUnit: BusinessUnit,
@@ -435,6 +472,6 @@ export default class InviteService {
 			.query()
 			.preload("businessUnits");
 
-		return entities.map((ent) => ent.businessUnits).flat();
+		return entities.flatMap((ent) => ent.businessUnits);
 	}
 }

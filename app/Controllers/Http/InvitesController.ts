@@ -34,8 +34,10 @@ export default class InvitesController {
 	}
 
 	public async resendInvite({ params, response, auth }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-		await this.service.resendInvite(unit_id, params.id);
+		await this.service.resendInvite(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.noContent();
 	}
@@ -59,9 +61,12 @@ export default class InvitesController {
 		response,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateInviteValidator);
-		const { user } = this.sharedService.extractUser(auth);
 
-		const invite = await this.service.update(params.id, user, payload);
+		const invite = await this.service.update(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			payload,
+		);
 
 		return response.ok(invite);
 	}

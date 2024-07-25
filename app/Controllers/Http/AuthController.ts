@@ -1,6 +1,8 @@
-import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import { inject } from "@adonisjs/fold";
 import EconomicGroup from "App/Models/EconomicGroup";
+import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 import AuthService from "App/Services/AuthService";
 import SharedService from "App/Services/SharedService";
 import UserService from "App/Services/UserService";
@@ -9,8 +11,6 @@ import SwapUnitValidator from "App/Validators/Auth/SwapUnitValidator";
 import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
-import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 
 @inject()
 export default class AuthController {
@@ -23,11 +23,7 @@ export default class AuthController {
 	public async login({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(LoginValidator);
 
-		const result = await this.authService.login(
-			payload,
-			auth,
-			payload.ipAddress,
-		);
+		const result = await this.authService.login(payload, auth);
 
 		if (typeof result.at(1) === "number") {
 			response.cookie("sid", result.at(1));
@@ -44,11 +40,7 @@ export default class AuthController {
 	}: HttpContextContract) {
 		const payload = await request.validate(LoginValidator);
 
-		const result = await this.authService.controllerLogin(
-			payload,
-			auth,
-			payload.ipAddress,
-		);
+		const result = await this.authService.controllerLogin(payload, auth);
 
 		return response.ok(result);
 	}
@@ -62,48 +54,13 @@ export default class AuthController {
 	} as Record<string, string>;
 
 	public async adminLogin({ auth, request, response }: HttpContextContract) {
-		try {
+		return this.sharedService.errorHoc(Response, async () => {
 			const payload = await request.validate(LoginValidator);
 
 			const result = await this.authService.adminLogin(payload, auth);
 
 			return response.ok(result);
-		} catch (e) {
-			if (e instanceof ValidationException) {
-				return response.unprocessableEntity({
-					data: null,
-					status: 422,
-					title: "Entidade não processável",
-					message: null,
-					// @ts-expect-error
-					validationErrors: e.messages.errors.reduce(
-						(prev, curr) => {
-							if (!prev[curr.field]) {
-								prev[curr.field] = { errors: [] };
-							}
-
-							prev[curr.field].errors.push(
-								curr.message.replace(
-									"Campo",
-									`Campo '${AuthController.intlMap[curr.field]}'`,
-								),
-							);
-
-							return prev;
-						},
-						{} as Record<string, Record<string, string[]>>,
-					),
-				});
-			}
-
-			return response.badRequest({
-				data: null,
-				status: 400,
-				title: "Requisição inválida",
-				message: e.message.split(":").at(1).trim() ?? "Algo deu errado",
-				validationErrors: {},
-			});
-		}
+		});
 	}
 
 	public async availableSwaps({ auth, response }: HttpContextContract) {
@@ -167,7 +124,23 @@ export default class AuthController {
 			});
 		}
 
-		const { user, unit_id, system_id } = this.sharedService.extractUser(auth);
+		const { user, unit_id, system_id, ip } =
+			this.sharedService.extractUser(auth);
+		if (ip) {
+			const reqIp = request.qs().ip;
+			// TODO flip
+			if (reqIp) {
+				if (reqIp !== ip) {
+					return {
+						errors: [
+							{
+								message: "E_UNAUTHORIZED_ACCESS: Unauthorized access",
+							},
+						],
+					};
+				}
+			}
+		}
 
 		if (user.type === "controller") {
 			if (!unit_id) {
@@ -192,6 +165,8 @@ export default class AuthController {
 		}
 
 		const { unit } = await this.sharedService.getAuthContext(auth);
+		if (ip) {
+		}
 
 		const economicGroup = await EconomicGroup.query()
 			.where("id", unit.economicGroupId)

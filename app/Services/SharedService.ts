@@ -30,6 +30,7 @@ export type AuthContext = {
 	unit: BusinessUnit;
 	$roleMetas: UserUnitRole[];
 	permissions: string[];
+	ip: string | null;
 	hasPermission: (controlID: string) => boolean;
 	hasPermissions: (controlIDs: string[]) => boolean;
 };
@@ -203,6 +204,7 @@ export default class SharedService {
 		user: User;
 		unit_id: string;
 		system_id: number;
+		ip: string | null;
 	} {
 		const user = auth.use("api").user!;
 		const meta = auth.use("api").token!.meta;
@@ -211,7 +213,7 @@ export default class SharedService {
 	}
 
 	public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
-		const { user, unit_id } = this.extractUser(auth);
+		const { user, unit_id, ip } = this.extractUser(auth);
 
 		const unit = await BusinessUnit.query()
 			.where("id", unit_id)
@@ -252,6 +254,7 @@ export default class SharedService {
 			unit,
 			$roleMetas: userRoles,
 			permissions: flatPermissions,
+			ip,
 			hasPermission: (controlID) => {
 				return !!flatPermissions.find((r) => r === controlID);
 			},

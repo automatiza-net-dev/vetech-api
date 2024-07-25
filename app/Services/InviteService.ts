@@ -56,7 +56,7 @@ export default class InviteService {
 				.related("roles")
 				.query()
 				.useTransaction(trx)
-				.where("roleId", role.id)
+				.where("role_id", role.id)
 				.where("unit_id", authCtx.unit.id)
 				.first();
 
@@ -70,7 +70,7 @@ export default class InviteService {
 
 			const existingInvite = await Invite.query()
 				.useTransaction(trx)
-				.where("roleId", role.id)
+				.where("role_id", role.id)
 				.whereILike("email", `%${data.email}%`)
 				.andWhere("user_id", existingUser.id)
 				.andWhere("active", true)
@@ -260,7 +260,7 @@ export default class InviteService {
 			const existingRole = await existingUser
 				.related("roles")
 				.query()
-				.where("roleId", data.roleId)
+				.where("role_id", data.roleId)
 				.first();
 
 			if (existingRole) {
@@ -342,7 +342,7 @@ export default class InviteService {
 		const role = await user
 			.related("roles")
 			.query()
-			.where("roleId", invite.role_id)
+			.where("role_id", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
 			.preload("unit")
@@ -395,7 +395,7 @@ export default class InviteService {
 		const role = await user
 			.related("roles")
 			.query()
-			.where("roleId", invite.role_id)
+			.where("role_id", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
 			.preload("unit")

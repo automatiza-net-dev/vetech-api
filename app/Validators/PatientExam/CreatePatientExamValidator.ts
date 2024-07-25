@@ -8,7 +8,7 @@ export default class CreatePatientExamValidator {
 		realizedAt: schema.date.optional(),
 		laboratory: schema.string.optional(),
 		report: schema.string(),
-		status: schema.string(),
+		status: schema.string.optional(),
 		examId: schema.string({}, [rules.exists({ table: "exams", column: "id" })]),
 		patientId: schema.string({}, [
 			rules.exists({ table: "patients", column: "id" }),

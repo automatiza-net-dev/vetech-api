@@ -171,4 +171,9 @@ export default class BillPayment extends BaseModel {
 		foreignKey: "origin_id",
 	})
 	public finance: HasOne<typeof Finance>;
+
+	@column({
+		serializeAs: null,
+	})
+	public budget_payment_id: number | null;
 }

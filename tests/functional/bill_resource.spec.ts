@@ -36,6 +36,8 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 import { generateJwtToken, userBootstrap } from "../utils";
+import Budget, { BudgetStatus } from "App/Models/Budget";
+import BudgetPayment from "App/Models/BudgetPayment";
 
 test.group("Bill resource", (group) => {
 	group.each.setup(async () => {
@@ -851,7 +853,7 @@ test.group("Bill resource", (group) => {
 		await flagInstallment.merge({ installment: 3 }).save();
 
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
@@ -862,6 +864,58 @@ test.group("Bill resource", (group) => {
 				flagId: tefFlag.id,
 				nsuDocument: "some document",
 			})
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create bill payment with budget payment id", async ({
+		assert,
+		client,
+	}) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
+
+		await ctx.flagInstallment.merge({ installment: 3 }).save();
+
+		const budget = await Budget.create({
+			business_unit_id: ctx.business.id,
+			client_id: ctx.client.id,
+			bill_id: ctx.bill.id,
+
+			status: BudgetStatus.A,
+		});
+
+		const budgetPayment = await BudgetPayment.create({
+			economic_group_id: ctx.group.id,
+			business_unit_id: ctx.business.id,
+			budget_id: budget.id,
+			payment_method_id: ctx.paymentMethod.id,
+			tef_acquirer_id: ctx.tefAcq.id,
+			tef_flag_id: ctx.tefFlag.id,
+			user_id: ctx.user.id,
+
+			status: "Aberto",
+			totalValue: 0,
+		});
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: ctx.bill.id,
+				paymentMethodId: ctx.paymentMethod.id,
+				paymentMethodFlagInstallmentId: ctx.flagInstallment.id,
+				budgetPaymentId: budgetPayment.id,
+				acquirerId: ctx.tefAcq.id,
+				flagId: ctx.tefFlag.id,
+
+				nsuDocument: "some document",
+				installmentsValue: 200,
+				expirationDate: DateTime.now(),
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -1909,8 +1963,6 @@ test.group("Bill resource", (group) => {
 		const response = await client
 			.get(`/bills/print-payment-receipts/${bill.id}`)
 			.bearerToken(token);
-
-		console.log(JSON.stringify(response.body(), null, 2));
 
 		assert.equal(200, response.status());
 	});

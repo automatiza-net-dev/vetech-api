@@ -43,6 +43,9 @@ export default class IssuedFiscalDocument extends BaseModel {
 	@column()
 	purpose: string;
 
+	@column()
+	finality: 1 | 2 | 3 | 4;
+
 	@column({
 		columnName: "access_key",
 	})

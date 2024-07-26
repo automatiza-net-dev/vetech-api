@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
+import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 
@@ -12,6 +13,7 @@ export interface ISendNfe {
 	issuedAt: string;
 	authorizedAt: string;
 	purpose: string;
+	finality: IssuedFiscalDocument["finality"];
 
 	seller: {
 		name: string | undefined;
@@ -362,7 +364,7 @@ export default class FocusNfeService {
 			data_entrada_saida: data.authorizedAt,
 			tipo_documento: "1",
 			local_destino: "1", // doc
-			finalidade_emissao: "1",
+			finalidade_emissao: data.finality.toString(),
 			consumidor_final: "1",
 			presenca_comprador: "1",
 			indicador_intermediario: "0",

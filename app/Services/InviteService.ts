@@ -1,416 +1,477 @@
-import { inject } from '@adonisjs/fold';
-import Mail from '@ioc:Adonis/Addons/Mail';
-import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
-import BadRequestException from 'App/Exceptions/BadRequestException';
-import InternalErrorException from 'App/Exceptions/InternalErrorException';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import UnauthorizedException from 'App/Exceptions/UnauthorizedException';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import Invite from 'App/Models/Invite';
-import Role from 'App/Models/Role';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
-import IAcceptInvite from 'Contracts/interfaces/IAcceptInvite';
-import IAcceptInviteNewUser from 'Contracts/interfaces/IAcceptInviteNewUser';
-import IInviteData from 'Contracts/interfaces/IInviteData';
-import { v4 } from 'uuid';
+import { inject } from "@adonisjs/fold";
+import Mail from "@ioc:Adonis/Addons/Mail";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import Invite from "App/Models/Invite";
+import Role from "App/Models/Role";
+import SystemUrl from "App/Models/SystemUrl";
+import User from "App/Models/User";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import IAcceptInvite from "Contracts/interfaces/IAcceptInvite";
+import IAcceptInviteNewUser from "Contracts/interfaces/IAcceptInviteNewUser";
+import IInviteData from "Contracts/interfaces/IInviteData";
+import { v4 } from "uuid";
 
-export const DEFAULT_USER_NAME = '[NOT REGISTERED]';
+export const DEFAULT_USER_NAME = "[NOT REGISTERED]";
 
 @inject()
 export default class InviteService {
-  constructor(private readonly sharedService: SharedService) {}
+	constructor(private readonly sharedService: SharedService) {}
 
-  public async index(user: User, unitId: string): Promise<Array<Invite>> {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
+	public async index(user: User, unitId: string): Promise<Array<Invite>> {
+		const group = await this.sharedService.getUserGroup(unitId);
+		const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
-    const qb = Invite.query().where('active', true);
+		const qb = Invite.query().where("active", true);
 
-    if (isSuperAdmin) {
-      return qb;
-    }
+		if (isSuperAdmin) {
+			return qb;
+		}
 
-    return qb.where('economic_group_id', group.id);
-  }
+		return qb.where("economic_group_id", group.id);
+	}
 
-  public async store(user: User, data: IInviteData): Promise<Invite> {
-    const businessUnit = await this.getUserValidBusinessUnit(user, data);
+	public async store(authCtx: AuthContext, data: IInviteData): Promise<Invite> {
+		return Database.transaction(async (trx) => {
+			const role = await Role.findOrFail(data.roleId, { client: trx });
+			const existingUser = await User.firstOrCreate(
+				{
+					email: data.email,
+				},
+				{
+					name: DEFAULT_USER_NAME,
+					password: v4(),
+				},
+				{
+					client: trx,
+				},
+			);
 
-    const role = await Role.findOrFail(data.role_id);
-    const existingUser = await User.firstOrCreate(
-      {
-        email: data.email,
-      },
-      {
-        name: DEFAULT_USER_NAME,
-        password: v4(),
-      },
-    );
+			const existingRole = await existingUser
+				.related("roles")
+				.query()
+				.useTransaction(trx)
+				.where("role_id", role.id)
+				.where("unit_id", authCtx.unit.id)
+				.first();
 
-    const existingRole = await existingUser
-      .related('roles')
-      .query()
-      .where('role_id', role.id)
-      .where('unit_id', businessUnit.id)
-      .first();
+			if (existingRole) {
+				throw new BadRequestException(
+					"Convite já existe para o usuário/cargo/unidade",
+					400,
+					"E_BAD_REQUEST",
+				);
+			}
 
-    if (existingRole) {
-      throw new BadRequestException(
-        'Convite já existe para o usuário/cargo/unidade',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+			const existingInvite = await Invite.query()
+				.useTransaction(trx)
+				.where("role_id", role.id)
+				.whereILike("email", `%${data.email}%`)
+				.andWhere("user_id", existingUser.id)
+				.andWhere("active", true)
+				.first();
+			if (existingInvite) {
+				throw new BadRequestException(
+					"Convite ativo já existe",
+					400,
+					"E_BAD_INVITE",
+				);
+			}
 
-    const existingInvite = await Invite.query()
-      .where('role_id', role.id)
-      .whereILike('email', `%${data.email}%`)
-      .andWhere('user_id', existingUser.id)
-      .andWhere('active', true)
-      .first();
-    if (existingInvite) {
-      throw new BadRequestException(
-        'Convite ativo já existe',
-        400,
-        'E_BAD_INVITE',
-      );
-    }
+			const url = await SystemUrl.query()
+				.useTransaction(trx)
+				.where("system_id", authCtx.system.id)
+				.first();
+			if (!url) {
+				throw new BadRequestException(
+					"Sistema sem url configurada",
+					400,
+					"E_ERR",
+				);
+			}
 
-    return Database.transaction(async trx => {
-      await existingUser.related('roles').create(
-        {
-          role_id: role.id,
-          unit_id: businessUnit.id,
-          active: false,
-        },
-        {
-          client: trx,
-        },
-      );
+			await existingUser.related("roles").create(
+				{
+					role_id: role.id,
+					unit_id: authCtx.unit.id,
+					active: false,
+				},
+				{
+					client: trx,
+				},
+			);
 
-      await existingUser
-        .related('economicGroups')
-        .sync([businessUnit.economicGroupId], false, trx);
+			await existingUser
+				.related("economicGroups")
+				.sync([authCtx.unit.economicGroupId], false, trx);
 
-      const invite = await businessUnit.related('invites').create(
-        {
-          economic_group_id: businessUnit.economicGroupId,
-          role_id: role.id,
-          email: data.email,
-          active: true,
-          user_id: existingUser.id,
-        },
-        {
-          client: trx,
-        },
-      );
+			const invite = await authCtx.unit.related("invites").create(
+				{
+					economic_group_id: authCtx.unit.economicGroupId,
+					role_id: role.id,
+					email: data.email,
+					active: true,
+					user_id: existingUser.id,
+				},
+				{
+					client: trx,
+				},
+			);
 
-      await Mail.send(message => {
-        message
-          .from('sysvetech@gmail.com')
-          .to(data.email)
-          .subject('Convite - Vetech')
-          .htmlView('emails/invite', { id: invite.id });
-      });
+			await Mail.send((message) => {
+				message
+					.from("sysvetech@gmail.com")
+					.to(data.email)
+					.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+					.htmlView("emails/invite", {
+						url: [
+							url.url,
+							url.url.endsWith("/") ? "" : "/",
+							`invites?token=${invite.id}`,
+						].join(""),
 
-      return invite;
-    });
-  }
+						id: invite.id,
+						name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					});
+			});
 
-  public async show(id: string): Promise<Invite> {
-    const invite = await Invite.find(id);
+			return invite;
+		});
+	}
 
-    if (!invite) {
-      throw new ResourceNotFoundException(
-        'Convite não existe',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+	public async show(id: string): Promise<Invite> {
+		const invite = await Invite.find(id);
 
-    return invite;
-  }
+		if (!invite) {
+			throw new ResourceNotFoundException(
+				"Convite não existe",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-  public async check(id: string) {
-    const invite = await this.show(id);
+		return invite;
+	}
 
-    const user = await User.findBy('email', invite.email);
+	public async check(id: string) {
+		const invite = await this.show(id);
 
-    if (!user) {
-      throw new BadRequestException(
-        'Convite sem usuário',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+		const user = await User.findBy("email", invite.email);
 
-    return {
-      active: invite.active,
-      user: user.name !== DEFAULT_USER_NAME,
-    };
-  }
+		if (!user) {
+			throw new BadRequestException(
+				"Convite sem usuário",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-  public async resendInvite(unitId: string, id: string) {
-    const invite = await Invite.query()
-      .where('id', id)
-      .andWhere('business_unit_id', unitId)
-      .first();
+		return {
+			active: invite.active,
+			user: user.name !== DEFAULT_USER_NAME,
+		};
+	}
 
-    if (!invite) {
-      throw new ResourceNotFoundException(
-        'Convite não existe',
-        404,
-        'E_NO_INVITE',
-      );
-    }
+	public async resendInvite(authCtx: AuthContext, id: string) {
+		const invite = await Invite.query()
+			.where("id", id)
+			.andWhere("business_unit_id", authCtx.unit.id)
+			.first();
 
-    if (!invite.active) {
-      throw new BadRequestException(
-        'Convite não está ativo',
-        400,
-        'E_INVITE_NOT_ACTIVE',
-      );
-    }
+		if (!invite) {
+			throw new ResourceNotFoundException(
+				"Convite não existe",
+				404,
+				"E_NO_INVITE",
+			);
+		}
 
-    await Mail.send(message => {
-      message
-        .from('sysvetech@gmail.com')
-        .to(invite.email)
-        .subject('Convite - Vetech')
-        .htmlView('emails/invite', { id: invite.id });
-    });
-  }
+		if (!invite.active) {
+			throw new BadRequestException(
+				"Convite não está ativo",
+				400,
+				"E_INVITE_NOT_ACTIVE",
+			);
+		}
 
-  public async update(
-    id: string,
-    user: User,
-    data: IInviteData,
-  ): Promise<Invite> {
-    const invite = await this.show(id);
-    if (!invite.active) {
-      throw new UnauthorizedException(
-        'Convite não está mais ativo',
-        401,
-        'E_NOT_AUTHORIZED',
-      );
-    }
+		// await Mail.send((message) => {
+		// 	message
+		// 		.from("sysvetech@gmail.com")
+		// 		.to(invite.email)
+		// 		.subject("Convite - Vetech")
+		// 		.htmlView("emails/invite", { id: invite.id });
+		// });
+		const url = await SystemUrl.query()
+			.where("system_id", authCtx.system.id)
+			.first();
+		if (!url) {
+			throw new BadRequestException(
+				"Sistema sem url configurada",
+				400,
+				"E_ERR",
+			);
+		}
 
-    const businessUnit = await this.getUserValidBusinessUnit(user, data);
+		await Mail.send((message) => {
+			message
+				.from("sysvetech@gmail.com")
+				.to(invite.email)
+				.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+				.htmlView("emails/invite", {
+					url: [
+						url.url,
+						url.url.endsWith("/") ? "" : "/",
+						`invites?token=${invite.id}`,
+					].join(""),
 
-    const role = await Role.findOrFail(data.role_id);
-    const existingUser = await User.findBy('email', data.email);
+					id: invite.id,
+					name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				});
+		});
+	}
 
-    if (!existingUser) {
-      throw new BadRequestException('Usuário não existe', 400, 'E_BAD_REQUEST');
-    }
+	public async update(
+		authCtx: AuthContext,
+		id: string,
+		data: IInviteData,
+	): Promise<Invite> {
+		const invite = await this.show(id);
+		if (!invite.active) {
+			throw new UnauthorizedException(
+				"Convite não está mais ativo",
+				401,
+				"E_NOT_AUTHORIZED",
+			);
+		}
 
-    if (invite.role_id !== data.role_id) {
-      const existingRole = await existingUser
-        .related('roles')
-        .query()
-        .where('role_id', data.role_id)
-        .first();
+		const role = await Role.findOrFail(data.roleId);
+		const existingUser = await User.findBy("email", data.email);
 
-      if (existingRole) {
-        throw new BadRequestException(
-          'Convite já existe para o usuário/cargo',
-          400,
-          'E_BAD_REQUEST',
-        );
-      }
-    }
+		if (!existingUser) {
+			throw new BadRequestException("Usuário não existe", 400, "E_BAD_REQUEST");
+		}
 
-    await Mail.send(message => {
-      message
-        .from('sysvetech@gmail.com')
-        .to(data.email)
-        .subject('Convite - Vetech')
-        .htmlView('emails/invite', { id });
-    });
+		if (invite.role_id !== data.roleId) {
+			const existingRole = await existingUser
+				.related("roles")
+				.query()
+				.where("role_id", data.roleId)
+				.first();
 
-    return invite
-      .merge({
-        business_unit_id: businessUnit.id,
-        email: data.email,
-        role_id: role.id,
-        user_id: existingUser?.id,
-      })
-      .save();
-  }
+			if (existingRole) {
+				throw new BadRequestException(
+					"Convite já existe para o usuário/cargo",
+					400,
+					"E_BAD_REQUEST",
+				);
+			}
+		}
 
-  public async acceptInvite(data: IAcceptInvite): Promise<void> {
-    const invite = await this.show(data.id);
+		const url = await SystemUrl.query()
+			.where("system_id", authCtx.system.id)
+			.first();
+		if (!url) {
+			throw new BadRequestException(
+				"Sistema sem url configurada",
+				400,
+				"E_ERR",
+			);
+		}
 
-    if (!invite.active) {
-      throw new BadRequestException(
-        'Convite não está mais ativo',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+		await Mail.send((message) => {
+			message
+				.from("sysvetech@gmail.com")
+				.to(data.email)
+				.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+				.htmlView("emails/invite", {
+					url: [
+						url.url,
+						url.url.endsWith("/") ? "" : "/",
+						`invites?token=${invite.id}`,
+					].join(""),
 
-    const user = await User.findBy('email', invite.email);
+					id: invite.id,
+					name: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				});
+		});
 
-    if (!user) {
-      throw new BadRequestException(
-        'Usuário não encontrado',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+		return invite
+			.merge({
+				business_unit_id: authCtx.unit.id,
+				email: data.email,
+				role_id: role.id,
+				user_id: existingUser?.id,
+			})
+			.save();
+	}
 
-    if (user.name === DEFAULT_USER_NAME) {
-      throw new BadRequestException(
-        'Pedido inválido. Usuário não tem um cadastro válido',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+	public async acceptInvite(data: IAcceptInvite): Promise<void> {
+		const invite = await this.show(data.id);
 
-    const role = await user
-      .related('roles')
-      .query()
-      .where('role_id', invite.role_id)
-      .where('unit_id', invite.business_unit_id)
-      .where('active', false)
-      .preload('unit')
-      .first();
+		if (!invite.active) {
+			throw new BadRequestException(
+				"Convite não está mais ativo",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-    if (!role) {
-      throw new BadRequestException(
-        'Cargo não encontrado',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+		const user = await User.findBy("email", invite.email);
 
-    const trx = await Database.transaction();
+		if (!user) {
+			throw new BadRequestException(
+				"Usuário não encontrado",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-    try {
-      await role.merge({ active: true }).useTransaction(trx).save();
-      await invite.merge({ active: false }).useTransaction(trx).save();
-      await user
-        .related('economicGroups')
-        .attach([role.unit.economicGroupId], trx);
+		if (user.name === DEFAULT_USER_NAME) {
+			throw new BadRequestException(
+				"Pedido inválido. Usuário não tem um cadastro válido",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-      await trx.commit();
-    } catch (e) {
-      await trx.rollback();
-      Logger.error(e.message);
+		const role = await user
+			.related("roles")
+			.query()
+			.where("role_id", invite.role_id)
+			.where("unit_id", invite.business_unit_id)
+			.where("active", false)
+			.preload("unit")
+			.first();
 
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
-  }
+		if (!role) {
+			throw new BadRequestException(
+				"Cargo não encontrado",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-  public async acceptInviteForNewUser(
-    data: IAcceptInviteNewUser,
-  ): Promise<void> {
-    const invite = await this.show(data.id);
+		const trx = await Database.transaction();
 
-    if (!invite.active) {
-      throw new BadRequestException(
-        'Convite não está mais ativo',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+		try {
+			await role.merge({ active: true }).useTransaction(trx).save();
+			await invite.merge({ active: false }).useTransaction(trx).save();
+			await user
+				.related("economicGroups")
+				.attach([role.unit.economicGroupId], trx);
 
-    const user = await User.findByOrFail('email', invite.email);
-    const role = await user
-      .related('roles')
-      .query()
-      .where('role_id', invite.role_id)
-      .where('unit_id', invite.business_unit_id)
-      .where('active', false)
-      .preload('unit')
-      .first();
+			await trx.commit();
+		} catch (e) {
+			await trx.rollback();
+			Logger.error(e.message);
 
-    if (!role) {
-      throw new BadRequestException(
-        'Cargo não encontrado',
-        400,
-        'E_BAD_REQUEST',
-      );
-    }
+			throw new InternalErrorException(
+				"Erro na execução",
+				500,
+				"E_INTERNAL_ERROR",
+			);
+		}
+	}
 
-    const trx = await Database.transaction();
+	public async acceptInviteForNewUser(
+		data: IAcceptInviteNewUser,
+	): Promise<void> {
+		const invite = await this.show(data.id);
 
-    try {
-      await user
-        .merge({ name: data.name, password: data.password })
-        .useTransaction(trx)
-        .save();
-      await role.merge({ active: true }).useTransaction(trx).save();
-      await invite.merge({ active: false }).useTransaction(trx).save();
-      await user
-        .related('economicGroups')
-        .attach([role.unit.economicGroupId], trx);
+		if (!invite.active) {
+			throw new BadRequestException(
+				"Convite não está mais ativo",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-      await trx.commit();
-    } catch (e) {
-      await trx.rollback();
-      Logger.error(e.message);
+		const user = await User.findByOrFail("email", invite.email);
+		const role = await user
+			.related("roles")
+			.query()
+			.where("role_id", invite.role_id)
+			.where("unit_id", invite.business_unit_id)
+			.where("active", false)
+			.preload("unit")
+			.first();
 
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
-    }
-  }
+		if (!role) {
+			throw new BadRequestException(
+				"Cargo não encontrado",
+				400,
+				"E_BAD_REQUEST",
+			);
+		}
 
-  public async destroy(id: string, user: User): Promise<void> {
-    const invite = await this.show(id);
-    const inviteBusinessUnit = await invite
-      .related('businessUnit')
-      .query()
-      .firstOrFail();
-    const userBusinessUnits = await this.userBusinessUnits(user);
+		const trx = await Database.transaction();
 
-    this.userIsRelatedToBusinessUnit(userBusinessUnits, inviteBusinessUnit);
+		try {
+			await user
+				.merge({ name: data.name, password: data.password, phone: data.phone })
+				.useTransaction(trx)
+				.save();
+			await role.merge({ active: true }).useTransaction(trx).save();
+			await invite.merge({ active: false }).useTransaction(trx).save();
+			await user
+				.related("economicGroups")
+				.attach([role.unit.economicGroupId], trx);
 
-    await invite.softDelete();
-  }
+			await trx.commit();
+		} catch (e) {
+			await trx.rollback();
+			Logger.error(e.message);
 
-  private async getUserValidBusinessUnit(user: User, data: IInviteData) {
-    const userBusinessUnits = await this.userBusinessUnits(user);
-    const businessUnit = await BusinessUnit.findOrFail(data.business_unit_id);
+			throw new InternalErrorException(
+				"Erro na execução",
+				500,
+				"E_INTERNAL_ERROR",
+			);
+		}
+	}
 
-    this.userIsRelatedToBusinessUnit(userBusinessUnits, businessUnit);
+	public async destroy(id: string, user: User): Promise<void> {
+		const invite = await this.show(id);
+		const inviteBusinessUnit = await invite
+			.related("businessUnit")
+			.query()
+			.firstOrFail();
+		const userBusinessUnits = await this.userBusinessUnits(user);
 
-    return businessUnit;
-  }
+		this.userIsRelatedToBusinessUnit(userBusinessUnits, inviteBusinessUnit);
 
-  private userIsRelatedToBusinessUnit(
-    userBusinessUnits: Array<BusinessUnit>,
-    businessUnit: BusinessUnit,
-  ): void {
-    const relatedBusinessUnit = userBusinessUnits.find(
-      u => u.id === businessUnit.id,
-    );
+		await invite.softDelete();
+	}
 
-    if (!relatedBusinessUnit) {
-      Logger.warn('Usuário não pode enviar convite');
-      throw new UnauthorizedException(
-        'Ação não permitida',
-        401,
-        'E_NOT_AUTHORIZED',
-      );
-    }
-  }
+	private userIsRelatedToBusinessUnit(
+		userBusinessUnits: Array<BusinessUnit>,
+		businessUnit: BusinessUnit,
+	): void {
+		const relatedBusinessUnit = userBusinessUnits.find(
+			(u) => u.id === businessUnit.id,
+		);
 
-  private async userBusinessUnits(user: User): Promise<Array<BusinessUnit>> {
-    const entities = await user
-      .related('economicGroups')
-      .query()
-      .preload('businessUnits');
+		if (!relatedBusinessUnit) {
+			Logger.warn("Usuário não pode enviar convite");
+			throw new UnauthorizedException(
+				"Ação não permitida",
+				401,
+				"E_NOT_AUTHORIZED",
+			);
+		}
+	}
 
-    return entities.map(ent => ent.businessUnits).flat();
-  }
+	private async userBusinessUnits(user: User): Promise<Array<BusinessUnit>> {
+		const entities = await user
+			.related("economicGroups")
+			.query()
+			.preload("businessUnits");
+
+		return entities.flatMap((ent) => ent.businessUnits);
+	}
 }

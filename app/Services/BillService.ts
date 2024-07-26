@@ -50,6 +50,7 @@ import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
 import { validate } from "uuid";
+import BudgetPayment from "App/Models/BudgetPayment";
 
 interface ISearch {
 	fromBill?: string;
@@ -942,6 +943,7 @@ where deposit_id = ?
 							tef_acquirer_id: data.acquirerId,
 							tef_flag_id: data.flagId,
 							daily_cashier_id: dailyCashier.id,
+							budget_payment_id: data.budgetPaymentId,
 
 							block: max + 1,
 							expirationDate: data.expirationDate.plus({
@@ -977,6 +979,21 @@ where deposit_id = ?
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.budgetPaymentId) {
+				await BudgetPayment.query()
+					.useTransaction(trx)
+					.where("id", data.budgetPaymentId)
+					.whereHas("budget", (query) => {
+						query.where("bill_id", data.billId);
+					})
+					.update({
+						conclusion_user_id: authCtx.user.id,
+						confirmationDate: DateTime.now(),
+						block_ref: max + 1,
+						status: "Baixado",
+					} as Partial<BudgetPayment>);
+			}
 
 			const $checkingAccountMeta =
 				await BusinessUnitCheckingAccountPaymentMethod.query()
@@ -3158,6 +3175,10 @@ where deposit_id = ?
 					if (data.block) {
 						query.where("block", data.block);
 					}
+
+					query.whereHas("finance", (query) => {
+						query.whereNotNull("payment_date");
+					});
 
 					query.select(
 						"id",

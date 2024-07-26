@@ -2196,6 +2196,9 @@ export default class ScheduleService {
 	static async RunSyncLateOrMissingSchedules() {
 		const scheduleStatuses = await ScheduleStatus.query();
 
+		const missed: string[] = [];
+		const late: string[] = [];
+
 		const toBeMissedSchedules = (await Database.from("schedules")
 			.select(
 				"schedules.id",
@@ -2215,7 +2218,7 @@ export default class ScheduleService {
 			)
 			.whereNull("schedules.deleted_at")
 			.whereRaw(
-				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
 			.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
@@ -2231,6 +2234,7 @@ export default class ScheduleService {
 					return Promise.resolve(null);
 				}
 
+				missed.push(elem.id);
 				return Schedule.query().where("id", elem.id).update({
 					schedule_status_id: newStatus.id,
 				});
@@ -2258,7 +2262,7 @@ export default class ScheduleService {
 			)
 			.whereNull("schedules.deleted_at")
 			.whereRaw(
-				"extract(epoch from now() - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
 			)
 			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
 			.whereRaw("business_unit_configs.schedule_late_minutes > 0")
@@ -2274,6 +2278,7 @@ export default class ScheduleService {
 					return Promise.resolve(null);
 				}
 
+				late.push(elem.id);
 				return Schedule.query().where("id", elem.id).update({
 					schedule_status_id: newStatus.id,
 				});
@@ -2283,8 +2288,8 @@ export default class ScheduleService {
 		}
 
 		return {
-			toBeMissed: toBeMissedSchedules.length,
-			late: lateSchedules.length,
+			missed,
+			late,
 		};
 	}
 }

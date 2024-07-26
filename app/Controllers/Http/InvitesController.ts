@@ -1,90 +1,97 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import InviteService from 'App/Services/InviteService';
-import SharedService from 'App/Services/SharedService';
-import AcceptInviteNewUserValidator from 'App/Validators/Invite/AcceptInviteNewUserValidator';
-import AcceptInviteValidator from 'App/Validators/Invite/AcceptInviteValidator';
-import CreateInviteValidator from 'App/Validators/Invite/CreateInviteValidator';
-import UpdateInviteValidator from 'App/Validators/Invite/UpdateInviteValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import InviteService from "App/Services/InviteService";
+import SharedService from "App/Services/SharedService";
+import AcceptInviteNewUserValidator from "App/Validators/Invite/AcceptInviteNewUserValidator";
+import AcceptInviteValidator from "App/Validators/Invite/AcceptInviteValidator";
+import CreateInviteValidator from "App/Validators/Invite/CreateInviteValidator";
+import UpdateInviteValidator from "App/Validators/Invite/UpdateInviteValidator";
 
 @inject()
 export default class InvitesController {
-  constructor(
-    private readonly service: InviteService,
-    private readonly sharedService: SharedService,
-  ) {}
+	constructor(
+		private readonly service: InviteService,
+		private readonly sharedService: SharedService,
+	) {}
 
-  public async index({ auth, response }: HttpContextContract) {
-    const { user, unit_id } = this.sharedService.extractUser(auth);
+	public async index({ auth, response }: HttpContextContract) {
+		const { user, unit_id } = this.sharedService.extractUser(auth);
 
-    const invite = await this.service.index(user, unit_id);
+		const invite = await this.service.index(user, unit_id);
 
-    return response.ok(invite);
-  }
+		return response.ok(invite);
+	}
 
-  public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(CreateInviteValidator);
-    const { user } = this.sharedService.extractUser(auth);
+	public async store({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(CreateInviteValidator);
 
-    const invite = await this.service.store(user, payload);
+		const invite = await this.service.store(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
-    return response.created(invite);
-  }
+		return response.created(invite);
+	}
 
-  public async resendInvite({ params, response, auth }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-    await this.service.resendInvite(unit_id, params.id);
+	public async resendInvite({ params, response, auth }: HttpContextContract) {
+		await this.service.resendInvite(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
-    return response.noContent();
-  }
+		return response.noContent();
+	}
 
-  public async show({ params, response }: HttpContextContract) {
-    const invite = await this.service.show(params.id);
+	public async show({ params, response }: HttpContextContract) {
+		const invite = await this.service.show(params.id);
 
-    return response.ok(invite);
-  }
+		return response.ok(invite);
+	}
 
-  public async check({ params, response }: HttpContextContract) {
-    const data = await this.service.check(params.id);
+	public async check({ params, response }: HttpContextContract) {
+		const data = await this.service.check(params.id);
 
-    return response.ok(data);
-  }
+		return response.ok(data);
+	}
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(UpdateInviteValidator);
-    const { user } = this.sharedService.extractUser(auth);
+	public async update({
+		auth,
+		params,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateInviteValidator);
 
-    const invite = await this.service.update(params.id, user, payload);
+		const invite = await this.service.update(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			payload,
+		);
 
-    return response.ok(invite);
-  }
+		return response.ok(invite);
+	}
 
-  public async acceptInvite({ request, response }: HttpContextContract) {
-    const payload = await request.validate(AcceptInviteValidator);
+	public async acceptInvite({ request, response }: HttpContextContract) {
+		const payload = await request.validate(AcceptInviteValidator);
 
-    await this.service.acceptInvite(payload);
+		await this.service.acceptInvite(payload);
 
-    return response.noContent();
-  }
+		return response.noContent();
+	}
 
-  public async acceptInviteNewUser({ request, response }: HttpContextContract) {
-    const payload = await request.validate(AcceptInviteNewUserValidator);
+	public async acceptInviteNewUser({ request, response }: HttpContextContract) {
+		const payload = await request.validate(AcceptInviteNewUserValidator);
 
-    await this.service.acceptInviteForNewUser(payload);
+		await this.service.acceptInviteForNewUser(payload);
 
-    return response.noContent();
-  }
+		return response.noContent();
+	}
 
-  public async destroy({ auth, params, response }: HttpContextContract) {
-    const { user } = this.sharedService.extractUser(auth);
+	public async destroy({ auth, params, response }: HttpContextContract) {
+		const { user } = this.sharedService.extractUser(auth);
 
-    await this.service.destroy(params.id, user);
+		await this.service.destroy(params.id, user);
 
-    return response.noContent();
-  }
+		return response.noContent();
+	}
 }

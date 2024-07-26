@@ -369,7 +369,7 @@ export default class AuthService {
 			}
 		});
 	}
-	public async login(data: ILoginData, auth: AuthContract, reqIp?: string) {
+	public async login(data: ILoginData, auth: AuthContract) {
 		return Database.transaction(async (trx) => {
 			const system = await System.query()
 				.useTransaction(trx)
@@ -415,14 +415,14 @@ export default class AuthService {
 
 			if (validUnits.length === 1) {
 				const [unit] = validUnits;
-				if (reqIp) {
+				if (data.ip) {
 					const canAccess = await this.ipService.checkAccess(
 						{
 							role: contextRole,
 							unit: unit.id,
 							user: user.id,
 						},
-						reqIp,
+						data.ip,
 					);
 					if (!canAccess) {
 						throw new BadRequestException(
@@ -439,6 +439,7 @@ export default class AuthService {
 						unit_id: unit.id,
 						system_id: system.id,
 						system_name: system.name,
+						ip: data.ip,
 					}),
 					system.id,
 				];
@@ -499,14 +500,14 @@ export default class AuthService {
 				);
 			}
 
-			if (reqIp) {
+			if (data.ip) {
 				const canAccess = await this.ipService.checkAccess(
 					{
 						role: contextRole,
 						unit: unit.id,
 						user: user.id,
 					},
-					reqIp,
+					data.ip,
 				);
 				if (!canAccess) {
 					throw new BadRequestException(
@@ -523,6 +524,7 @@ export default class AuthService {
 					unit_id: unit.id,
 					system_id: system.id,
 					system_name: system.name,
+					ip: data.ip,
 				}),
 				system.id,
 			];
@@ -592,6 +594,7 @@ export default class AuthService {
 				expiresIn: "7d",
 				system_id: system.id,
 				system_name: system.name,
+				ip: data.ip,
 			});
 		});
 	}
@@ -691,6 +694,7 @@ export default class AuthService {
 				expiresIn: "7d",
 				system_id: system.id,
 				system_name: system.name,
+				ip: null,
 			});
 
 			return {

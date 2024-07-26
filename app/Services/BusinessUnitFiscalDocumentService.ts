@@ -19,6 +19,7 @@ import PatientTutor from "App/Models/PatientTutor";
 import { PaymentMethodTef } from "App/Models/PaymentMethod";
 import { ProductType } from "App/Models/Product";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
+import { MovementCategory } from "App/Models/TaxationGroupRule";
 import User from "App/Models/User";
 import FocusNfeService, {
 	ISendNfe,
@@ -214,6 +215,9 @@ export default class BusinessUnitFiscalDocumentService {
 					query.preload("product", (query) => {
 						query.preload("unit");
 					});
+				})
+				.preload("taxRule", (query) => {
+					query.preload("taxOperation");
 				});
 
 			if (items.length === 0) {
@@ -274,6 +278,17 @@ export default class BusinessUnitFiscalDocumentService {
 					contingency: IssuedFiscalDocumentContingency.N,
 					active: true,
 					purpose: "Emissão", // TODO check
+
+					finality: items.some(
+						(c) => c.taxRule.movementCategory === MovementCategory.DS,
+					)
+						? 4
+						: 1,
+					accessKeyRef: items.some(
+						(c) => c.taxRule.movementCategory === MovementCategory.DS,
+					)
+						? "35240702897843000168550010002305071282195227"
+						: null,
 				},
 				{
 					client: trx,
@@ -295,6 +310,8 @@ export default class BusinessUnitFiscalDocumentService {
 				authorizedAt:
 					issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? "",
 				purpose: issuedDocument.purpose,
+				finality: issuedDocument.finality,
+				accessKeyRef: issuedDocument.accessKeyRef,
 
 				seller: {
 					cnpj: unit.document?.replace(/\D/g, "") ?? "",

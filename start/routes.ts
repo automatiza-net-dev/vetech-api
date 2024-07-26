@@ -1816,8 +1816,10 @@ Route.group(() => {
 }).prefix("dictionary");
 
 Route.group(() => {
+	Route.get("/", "NotificationsController.fullNotifications");
+	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");
 })
-	.prefix("notifications")
+	.prefix("Notifications")
 	.middleware("auth");
 

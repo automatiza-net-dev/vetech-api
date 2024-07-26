@@ -4087,6 +4087,10 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND25"),
 				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND27"),
+				() => this.consolidatedReviewerBudgets(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([
@@ -5470,17 +5474,25 @@ export default class IndicatorService {
 							userId: user,
 							userName: userRow.name,
 							qtdClientes: userRow.qtd_confirmados,
-							valorRealizado: userRow.total_confirmados,
-							tikcetMedioRealizado:
+							valorRealizado: this.shared.formatter.format(
+								userRow.total_confirmados,
+							),
+							ticketMedioRealizado: this.shared.formatter.format(
 								userRow.total_confirmados / userRow.qtd_confirmados,
-							participacaoRealizado:
+							),
+							participacaoRealizado: this.shared.formatPercentage(
 								(userRow.total_confirmados / confirmedSum) * 100,
-							conversaoAvaliacoes:
+							),
+							conversaoAvaliacoes: this.shared.formatPercentage(
 								(userRow.total_confirmados / budgetedSum) * 100,
-							qtdAvaliacoes: userRow.qtd_orcamentos,
-							totalAvaliado: userRow.total_orcamentos,
-							tikcetMedioAvaliacoes:
-								userRow.total_orcamentos / userRow.qtd_orcamentos,
+							),
+							qtdAvaliacoes: userRow.qtd_total,
+							totalAvaliado: this.shared.formatter.format(
+								userRow.total_orcamentos,
+							),
+							ticketMedioAvaliacoes: this.shared.formatter.format(
+								userRow.total_orcamentos / userRow.qtd_total,
+							),
 						};
 					}),
 				};

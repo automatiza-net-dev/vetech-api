@@ -3176,6 +3176,10 @@ where deposit_id = ?
 						query.where("block", data.block);
 					}
 
+					query.whereHas("finance", (query) => {
+						query.whereNotNull("payment_date");
+					});
+
 					query.select(
 						"id",
 						"total_value",

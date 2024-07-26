@@ -311,6 +311,7 @@ export default class BusinessUnitFiscalDocumentService {
 					issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? "",
 				purpose: issuedDocument.purpose,
 				finality: issuedDocument.finality,
+				accessKeyRef: issuedDocument.accessKeyRef,
 
 				seller: {
 					cnpj: unit.document?.replace(/\D/g, "") ?? "",

@@ -45,16 +45,8 @@ export default class AuthController {
 		return response.ok(result);
 	}
 
-	private static intlMap = {
-		email: "Email",
-		password: "Senha",
-		business_unit_id: "Unidade",
-		system: "Sistema",
-		ipAddress: "Endereço",
-	} as Record<string, string>;
-
 	public async adminLogin({ auth, request, response }: HttpContextContract) {
-		return this.sharedService.errorHoc(Response, async () => {
+		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(LoginValidator);
 
 			const result = await this.authService.adminLogin(payload, auth);

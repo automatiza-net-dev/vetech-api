@@ -54,7 +54,7 @@ export default class IssuedFiscalDocument extends BaseModel {
 	@column({
 		columnName: "access_key_ref",
 	})
-	accessKeyRef: string;
+	accessKeyRef: string | null;
 
 	@column.dateTime({
 		columnName: "authorization_date",

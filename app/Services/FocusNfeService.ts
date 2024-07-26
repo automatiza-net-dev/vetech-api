@@ -14,6 +14,7 @@ export interface ISendNfe {
 	authorizedAt: string;
 	purpose: string;
 	finality: IssuedFiscalDocument["finality"];
+	accessKeyRef: string | null;
 
 	seller: {
 		name: string | undefined;
@@ -368,6 +369,10 @@ export default class FocusNfeService {
 			consumidor_final: "1",
 			presenca_comprador: "1",
 			indicador_intermediario: "0",
+
+			notas_referenciadas: data.accessKeyRef
+				? [{ chave_nfe: data.accessKeyRef }]
+				: undefined,
 
 			cnpj_emitente: data.seller.cnpj,
 			nome_emitente: data.seller.name,

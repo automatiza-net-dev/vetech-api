@@ -20,12 +20,9 @@ export default class NotificationsService {
 	): Promise<{ data: Notification[] }> {
 		const grid = await Promise.all([this.undefinedRoles(authCtx)]);
 
-		const grouped = grid.reduce(
-			(acc, curr) => {
-				return acc.concat(...curr.data);
-			},
-			[] as Notification[],
-		);
+		const grouped = grid.reduce((acc, curr) => {
+			return acc.concat(...curr.data);
+		}, [] as Notification[]);
 
 		return { data: grouped };
 	}
@@ -38,7 +35,8 @@ export default class NotificationsService {
 			.whereIn(
 				"role_id",
 				authCtx.$roleMetas.map((r) => r.role_id),
-			);
+			)
+			.whereNull("status");
 
 		if (undefinedRoles.count === 0) {
 			return {

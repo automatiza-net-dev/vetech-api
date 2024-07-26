@@ -31,7 +31,7 @@ export default class NotificationsService {
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
 		const [undefinedRoles] = await Database.from("role_permissions")
-			.select(Database.raw("count(id) as count"))
+			.select(Database.raw("count(id)::int as count"))
 			.whereIn(
 				"role_id",
 				authCtx.$roleMetas.map((r) => r.role_id),

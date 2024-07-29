@@ -1272,6 +1272,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients?: { id: string }[];
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1408,6 +1409,14 @@ export default class PatientService {
 			);
 
 			await authCtx.group.related("patients").attach([patient.id], trx);
+
+			if (data.patients) {
+				await patient.related("dependents").sync(
+					data.patients.map((p) => p.id),
+					false,
+					trx,
+				);
+			}
 
 			return patient;
 		});

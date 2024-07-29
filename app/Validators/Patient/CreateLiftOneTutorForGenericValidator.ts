@@ -33,6 +33,15 @@ export default class CreateLiftOneTutorForGenericValidator {
 		]),
 		origin: schema.string(),
 		clientOriginItemDescription: schema.string.optional({}, []),
+
+		patients: schema.array.optional().members(
+			schema.object().members({
+				id: schema.string({ trim: true }, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+			}),
+		),
 	});
 
 	/**

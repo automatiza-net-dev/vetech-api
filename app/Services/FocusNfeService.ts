@@ -698,7 +698,7 @@ export default class FocusNfeService {
 	public async disable(ref: string, disableData: IDisableNfe, token: string) {
 		try {
 			const { data } = await this.ax.post(
-				`/v2/nfe/inutilizacao/${ref}`,
+				`/v2/nfe/inutilizacao`,
 				{
 					cnpj: disableData.cnpj,
 					serie: disableData.series,

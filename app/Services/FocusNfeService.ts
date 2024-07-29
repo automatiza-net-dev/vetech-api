@@ -463,15 +463,18 @@ export default class FocusNfeService {
 				cofins_valor: item.cofins_value,
 			})),
 
-			formas_pagamento: data.payments.map((payment) => ({
-				forma_pagamento: payment.nfe_code,
-				descricao_pagamento: payment.description,
-				valor_pagamento: payment.installment,
-				tipo_integracao: payment.integration_type,
-				cnpj_credenciadora: payment.acquirer,
-				bandeira_operadora: payment.flag,
-				numero_autorizacao: payment.nsu,
-			})),
+			formas_pagamento:
+				data.finality === 1
+					? data.payments.map((payment) => ({
+							forma_pagamento: payment.nfe_code,
+							descricao_pagamento: payment.description,
+							valor_pagamento: payment.installment,
+							tipo_integracao: payment.integration_type,
+							cnpj_credenciadora: payment.acquirer,
+							bandeira_operadora: payment.flag,
+							numero_autorizacao: payment.nsu,
+						}))
+					: [{ forma_pagamento: "90" }],
 
 			// icms_base_calculo: data.totalizers.icms_base,
 			// icms_valor_total: data.totalizers.icms_total,

@@ -3141,7 +3141,7 @@ where deposit_id = ?
 				print_user_id: authCtx.user.id,
 			});
 
-			return Bill.query()
+			const toPrint = await Bill.query()
 				.useTransaction(trx)
 				.where("id", billID)
 				.select("id", "tag", "bill_date", "business_unit_id", "client_id")
@@ -3206,7 +3206,22 @@ where deposit_id = ?
 							query.select("id", "description");
 						});
 					});
-				});
+				})
+				.first();
+
+			if (!toPrint) {
+				throw new BadRequestException("Nota não encontrada", 400, "E_RR");
+			}
+
+			if (toPrint.payments.length === 0) {
+				throw new BadRequestException(
+					"Não existem titulos baixados para a impressão de recibo",
+					400,
+					"E_RR",
+				);
+			}
+
+			return toPrint;
 		});
 	}
 }

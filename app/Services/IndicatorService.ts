@@ -9,7 +9,14 @@ import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import { addDays, addHours, endOfMonth, format } from "date-fns";
+import {
+	addDays,
+	addHours,
+	differenceInBusinessDays,
+	endOfMonth,
+	format,
+	startOfMonth,
+} from "date-fns";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -2429,51 +2436,71 @@ export default class IndicatorService {
 				? new Date(data.fromDate).toISOString()
 				: new Date().toISOString(),
 		).plus({ days: 10 });
+
 		const ym = dt.toFormat("yyyyMM");
-		const daysOfMonth = dt.daysInMonth ?? 30;
+
+		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(
+					endOfMonth(dt.toJSDate()),
+					startOfMonth(dt.toJSDate()),
+				)
+			: dt.daysInMonth ?? 30;
+
+		const usefulDaysUntilNow = differenceInBusinessDays(
+			new Date(),
+			startOfMonth(dt.toJSDate()),
+		);
 
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(
 					`
-            economic_groups.id as e_id,
-            economic_groups.company_name as e_name,
-            business_units.id as b_id,
-            business_units.identification,
-            case
+          economic_groups.id                                       as e_id,
+          economic_groups.company_name                             as e_name,
+          business_units.id                                        as b_id,
+          business_units.identification,
+          case
               when business_unit_metas.value is not null then metas.description
               else 'SemMetaDefinida' end                           as meta_description,
-            case
+          case
               when business_unit_metas.value is not null then metas.type
               else 'SemMetaDefinida' end                           as meta_type,
-            coalesce(business_unit_metas.value, 0)                   as meta_value,
-            sum(bills.total_value)                                   as total,
-            sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
-            case
+          coalesce(business_unit_metas.value, 0)                   as meta_value,
+          sum(bills.total_value)                                   as total,
+          sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
+          case
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
                 then sum(bills.total_value)
-              else sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) *
+              else sum(bills.total_value) / ? *
                 ? end                                           as projection,
-            case
+          case
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
                 then sum(bills.total_value) / business_unit_metas.value * 100
-              else (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * ?) /
+              else (sum(bills.total_value) / ? * ?) /
                 business_unit_metas.value *
                 100 end                                         as meta_projection
-
           `,
-					[ym, ym, daysOfMonth, ym, ym, daysOfMonth],
+					[
+						ym,
+						ym,
+						usefulDaysUntilNow,
+						usefulDays,
+						ym,
+						ym,
+						usefulDaysUntilNow,
+						usefulDays,
+					],
 				),
 			)
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
-			.joinRaw(`join systems on economic_groups.system_id = systems.id`)
+			.joinRaw("join systems on economic_groups.system_id = systems.id")
 			.joinRaw(
 				`left join metas on (metas.system_id = systems.id or metas.economic_group_id = economic_groups.id) and metas.description = 'Faturamento'`,
 			)
@@ -2511,12 +2538,11 @@ export default class IndicatorService {
 			qb.whereIn("business_units.economic_group_id", data.groups);
 		}
 
-		if (data.fromDate) {
-			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-		}
-
-		if (data.toDate) {
-			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const metasResult = await qb;

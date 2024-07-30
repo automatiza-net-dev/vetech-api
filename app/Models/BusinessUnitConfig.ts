@@ -92,6 +92,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public returnInterval: number;
 
 	@column({
+		columnName: "crm_useful_days",
+	})
+	public crmUsefulDays: boolean;
+
+	@column({
 		columnName: "schedule_late_minutes",
 	})
 	public scheduleLateMinutes: number;

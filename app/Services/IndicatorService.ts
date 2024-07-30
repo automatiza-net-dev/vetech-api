@@ -5439,8 +5439,10 @@ export default class IndicatorService {
 			name: "budgetsAvaliadorConsolidado",
 			description: "Orçamentos por Avaliador",
 			type: "table",
-			hasData: result.length > 0,
-			data: uniqueGroups.map((elem) => {
+			_hasData: result.length > 0,
+			hasData: false,
+			data: [],
+			_data: uniqueGroups.map((elem) => {
 				const group = result.find((r) => r.e_id === elem);
 
 				const rows = result.filter((r) => r.e_id === elem);

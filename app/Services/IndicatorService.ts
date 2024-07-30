@@ -5605,8 +5605,8 @@ export default class IndicatorService {
 				return {
 					id: group.e_id,
 					identification: group.identification,
-					totalConfirmados: confirmedSum,
-					totalOrcamentos: budgetedSum,
+					totalConfirmados: this.shared.formatter.format(confirmedSum),
+					totalOrcamentos: this.shared.formatter.format(budgetedSum),
 					users: uniqueUsers.map((user) => {
 						const userRow = result.find((r) => r.u_id === user);
 

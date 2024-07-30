@@ -210,7 +210,8 @@ export default class IndicatorService {
             business_units.id,
             business_units.identification,
             'Recorrentes'          as description,
-            sum(bills.total_value) as total
+            sum(bills.total_value) as total,
+            count(distinct bills.client_id) as qty_clients
           `,
 				),
 			)
@@ -240,7 +241,8 @@ export default class IndicatorService {
           business_units.id,
           business_units.identification,
           client_origins.description,
-          sum(bills.total_value) as total
+          sum(bills.total_value) as total,
+          count( distinct bills.client_id ) as qty_clients
           `,
 				),
 			)
@@ -296,14 +298,38 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: result.length > 0,
 			title: "Faturamento X Origem Clientes",
-			legend: result.map((elem, idx) => ({
-				value: this.shared.formatter.format(elem.total.toFixed(2)),
-				name: elem.description,
-				percentage: this.shared.formatPercentage((elem.total / sum) * 100),
-				itemStyle: {
-					color: authCtx.group.colors[idx % authCtx.group.colors.length],
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
 				},
-			})),
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.total / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.total.toFixed(2)),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: elem.qty_clients,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: this.shared.formatter.format(
+						elem.total / Number.parseInt(elem.qty_clients),
+					),
+					itemStyle: { color: "" },
+				},
+			]),
+
 			configs: {
 				title: {
 					text: "Faturamento X Origem Clientes",
@@ -925,16 +951,37 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: result.length > 0,
 			title: "Faturamento X Forma Pagamento",
-			legend: result.map((elem, idx) => ({
-				value: this.shared.formatter.format(elem.totalpayments),
-				name: elem.description,
-				percentage: this.shared.formatPercentage(
-					(elem.totalpayments / total) * 100,
-				),
-				itemStyle: {
-					color: authCtx.group.colors[idx % authCtx.group.colors.length],
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
 				},
-			})),
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage(
+						(elem.totalpayments / total) * 100,
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.totalpayments),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
 			configs: {
 				title: {
 					text: "Faturamento X Forma Pagamento",
@@ -4504,37 +4551,78 @@ export default class IndicatorService {
 			name: "bill-payment-format",
 			type: "bar",
 			hasData: result.length > 0,
-			// legend: true,
 			title: "Faturamento x Cond. Pgto",
 			legend: [
-				{
-					value: this.shared.formatter.format(
-						result.map((r) => r.a_vista).at(0) ?? 0,
-					),
-					name: "A Vista",
-					percentage: this.shared.formatPercentage(
-						result
-							.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
-							.at(0) ?? 0,
-					),
-					itemStyle: {
-						color: "#4BC0C0",
+				[
+					{
+						title: "Descrição",
+						value: "A vista",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 					},
-				},
-				{
-					value: this.shared.formatter.format(
-						result.map((r) => r.a_prazo).at(0) ?? 0,
-					),
-					name: "A Prazo",
-					percentage: this.shared.formatPercentage(
-						result
-							.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
-							.at(0) ?? 0,
-					),
-					itemStyle: {
-						color: "#FFCD56",
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
 					},
-				},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_vista).at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
+				[
+					{
+						title: "Descrição",
+						value: "A prazo",
+						itemStyle: {
+							color: authCtx.group.colors.at(1),
+						},
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_prazo).at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
 			],
 			configs: {
 				title: {
@@ -4829,23 +4917,49 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: metasResult.length > 0,
 			title: "Partic. de Produtos x Serviços",
-			legend: [
-				{
-					value: this.shared.formatter.format(productSum),
-					name: "Produtos",
-					percentage: this.shared.formatPercentage(
-						(productSum / (productSum + serviceSum)) * 100,
-					),
-					itemStyle: { color: authCtx.group.colors.at(0) },
-				},
-				{
-					value: this.shared.formatter.format(serviceSum),
-					name: "Serviços",
-					percentage: this.shared.formatPercentage(
-						(serviceSum / (productSum + serviceSum)) * 100,
-					),
-					itemStyle: { color: authCtx.group.colors.at(1) },
-				},
+			legends: [
+				[
+					{
+						title: "Descrição",
+						value: "Produtos",
+						itemStyle: { color: authCtx.group.colors.at(0) },
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(productSum / (productSum + serviceSum)) * 100,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(productSum),
+						itemStyle: { color: "" },
+					},
+					{ title: "Qtd Cli", value: "0", itemStyle: { color: "" } },
+					{ title: "Tkt Medio R$", value: "0", itemStyle: { color: "" } },
+				],
+				[
+					{
+						title: "Descrição",
+						value: "Serviços",
+						itemStyle: { color: authCtx.group.colors.at(1) },
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(serviceSum / (productSum + serviceSum)) * 100,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(serviceSum),
+						itemStyle: { color: "" },
+					},
+					{ title: "Qtd Cli", value: "0", itemStyle: { color: "" } },
+					{ title: "Tkt Medio R$", value: "0", itemStyle: { color: "" } },
+				],
 			],
 			configs: {
 				title: {
@@ -6183,25 +6297,68 @@ export default class IndicatorService {
 			hasData: result.length > 0,
 			title: "Clientes Novos X Recorrentes",
 			legend: [
-				{
-					name: "Recorrentes",
-					value: this.shared.formatter.format(recurringSum),
-					percentage: this.shared.formatPercentage(
-						(recurringSum / totalSum) * 100,
-					),
-					itemStyle: {
-						color: authCtx.group.colors[0 % authCtx.group.colors.length],
+				[
+					{
+						title: "Descrição",
+						value: "Recorrentes",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 					},
-				},
-				{
-					name: "Novos",
-					value: this.shared.formatter.format(newSum),
-					percentage: this.shared.formatPercentage((newSum / totalSum) * 100),
-					itemStyle: {
-						color: authCtx.group.colors[1 % authCtx.group.colors.length],
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(recurringSum / totalSum) * 100,
+						),
+						itemStyle: { color: "" },
 					},
-				},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(recurringSum),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
+				[
+					{
+						title: "Descrição",
+						value: "Novos",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage((newSum / totalSum) * 100),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(newSum),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
 			],
+
 			configs: {
 				title: {
 					text: "Clientes Novos X Recorrentes",

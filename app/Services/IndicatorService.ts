@@ -5375,6 +5375,8 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
+		return null;
+
 		const qb = Database.from("business_units")
 			.select(
 				Database.raw(
@@ -5439,10 +5441,8 @@ export default class IndicatorService {
 			name: "budgetsAvaliadorConsolidado",
 			description: "Orçamentos por Avaliador",
 			type: "table",
-			_hasData: result.length > 0,
-			hasData: false,
-			data: [],
-			_data: uniqueGroups.map((elem) => {
+			hasData: result.length > 0,
+			data: uniqueGroups.map((elem) => {
 				const group = result.find((r) => r.e_id === elem);
 
 				const rows = result.filter((r) => r.e_id === elem);

@@ -40,10 +40,10 @@ export default class BusinessUnitMetaService {
 				[authCtx.system.id],
 			)
 			.joinRaw(
-				"left join business_unit_metas on metas.id = business_unit_metas.meta_id and business_unit_metas.active is true and business_unit_metas.business_unit_id = business_units.id",
+				"left join business_unit_metas on metas.id = business_unit_metas.meta_id and business_unit_metas.active is true and business_unit_metas.business_unit_id = business_units.id and business_unit_metas.period = ?",
+				[data.period],
 			)
-			.orderByRaw("business_units.id, metas.id, business_unit_metas.id")
-			.where("business_unit_metas.period", data.period);
+			.orderByRaw("business_units.id, metas.id, business_unit_metas.id");
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
 			qb.whereIn("business_units.id", data.units);

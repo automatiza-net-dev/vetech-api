@@ -1704,6 +1704,7 @@ export default class PatientService {
 					realizedAt: DateTime.now(),
 					observation: "-",
 					issuedAt: DateTime.now(),
+					deathObservation: data.deathObservation,
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -1750,6 +1751,7 @@ export default class PatientService {
 					realized: DateTime.now(),
 					resume: "Óbito",
 					description: "-",
+					deathObservation: data.deathObservation,
 					technician: {
 						id: technician.id,
 						name: technician.name,

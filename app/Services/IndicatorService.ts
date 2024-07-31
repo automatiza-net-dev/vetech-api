@@ -6812,4 +6812,112 @@ export default class IndicatorService {
 			conv_agendamentos,
 		};
 	}
+
+	public async activityIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+        count(opportunity_activities.id)                                                  as criadas_total,
+        sum(case when opportunity_activities.executed_date is not null then 1 else 0 end) as executadas_total,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date > now()
+                   then 1
+               else 0 end)                                                               as agendadas_total,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date <= now()
+                   then 1
+               else 0 end)                                                               as vencidas_total
+          `,
+				),
+			)
+			.joinRaw(`join opportunity_activities
+              on opportunities.id = opportunity_activities.opportunity_id and opportunities.deleted_at is null and
+                 opportunity_activities.deleted_at is null`);
+
+		const qb2 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+        activities.description,
+        count(opportunity_activities.id)                                                  as criadas,
+        sum(case when opportunity_activities.executed_date is not null then 1 else 0 end) as executadas,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date > now()
+                   then 1
+               else 0 end)                                                               as agendadas,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date <= now()
+                   then 1
+               else 0 end)                                                               as vencidas
+          `,
+				),
+			)
+			.joinRaw(`join opportunity_activities
+              on opportunities.id = opportunity_activities.opportunity_id and opportunities.deleted_at is null and
+                 opportunity_activities.deleted_at is null`)
+			.joinRaw(
+				"join activities on opportunity_activities.activity_id = activities.id",
+			)
+			.groupByRaw("activities.description")
+			.orderByRaw("criadas desc");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("opportunities.business_unit_id", data.units);
+			qb2.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
+			qb2.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.whereRaw("opportunity_activities.issue_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+
+			qb1.whereRaw("opportunity_activities.issue_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const [result1, result2] = await Promise.all([qb1, qb2]);
+
+		return {
+			name: "activities",
+			description: "Atividades",
+			type: "table",
+			hasData: true,
+			data: [
+				{
+					type: "total",
+					items: {
+						name: "total",
+						atividadesTotal: result1.at(0).criadas_totais ?? "0",
+						atividadesExecutadas: result1.at(0).executadas_totais ?? "0",
+						atividadesAgendadas: result1.at(0).agendadas_totais ?? "0",
+						atividadesVencidas: result1.at(0).vencidas_totais ?? "0",
+					},
+				},
+				{
+					type: "atividade",
+					items: result2.map((e) => ({
+						name: e.description,
+						atividadesTotal: e.criadas,
+						atividadesExecutadas: e.executadas,
+						atividadesAgendadas: e.agendadas,
+						atividadesVencidas: e.vencidas,
+					})),
+				},
+			],
+		};
+	}
 }

@@ -1702,6 +1702,7 @@ Route.group(() => {
 		"/consolidated-reviewers-2",
 		"IndicatorsController.consolidatedReviewerIndicators",
 	);
+	Route.get("/activity-2", "IndicatorsController.acitivityIndicators");
 })
 	.prefix("indicators")
 	.middleware("auth");
@@ -1822,4 +1823,3 @@ Route.group(() => {
 })
 	.prefix("Notifications")
 	.middleware("auth");
-

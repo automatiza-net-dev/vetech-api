@@ -1676,7 +1676,7 @@ export default class PatientService {
 		await patient.patientAnimal
 			.merge({
 				death: true,
-				deathDate: DateTime.now(),
+				deathDate: data.deathDate,
 			})
 			.useTransaction(trx)
 			.save();

@@ -21,6 +21,7 @@ export default interface IServiceData {
 	features?: string;
 	serviceCode?: string;
 	courtesy?: boolean;
+	productivityItem?: boolean;
 
 	taxationGroupId: string;
 	unitId?: string;
@@ -36,6 +37,7 @@ export interface IUpdateService {
 	serviceCode?: string;
 	active: boolean;
 
+	productivityItem?: boolean;
 	courtesy?: boolean;
 
 	features?: string;

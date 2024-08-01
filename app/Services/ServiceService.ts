@@ -79,6 +79,7 @@ export default class ServiceService {
 			active: service.active,
 			created_at: service.createdAt,
 			courtesy: service.courtesy,
+			productivityItem: service.productivityItem,
 			subgroup: {
 				id: service.subgroup?.id ?? null,
 				description: service.subgroup?.description ?? null,
@@ -153,21 +154,23 @@ export default class ServiceService {
 
 			const service = await Product.create(
 				{
+					variation_group_id: someUnitConfig?.service_variation_group_id,
+					economic_group_id: authCtx.group.id,
+					taxation_group_id: data.taxationGroupId,
+					unit_id: data.unitId,
+					subgroup_id: data.subgroupId,
+
 					purpose: ProductPurpose.BOTH,
 					description: data.description,
 					type: ProductType.SERVICE,
 					referenceCode: data.referenceCode,
 					features: data.features,
-					unit_id: data.unitId,
-					economic_group_id: authCtx.group.id,
-					taxation_group_id: data.taxationGroupId,
-					subgroup_id: data.subgroupId,
 					icmsOrigin: "0",
 					ncm: "00",
-					variation_group_id: someUnitConfig?.service_variation_group_id,
 					serviceCode: data.serviceCode,
 					serviceType: data.serviceType,
 					courtesy: data.courtesy,
+					productivityItem: data.productivityItem ?? false,
 				},
 				{
 					client: trx,
@@ -258,16 +261,18 @@ export default class ServiceService {
 
 			return service
 				.merge({
+					subgroup_id: data.subgroupId,
+					taxation_group_id: data.taxationGroupId,
+					unit_id: data.unitId,
+
 					description: data.description,
 					referenceCode: data.referenceCode,
 					features: data.features,
-					unit_id: data.unitId,
 					active: data.active,
-					subgroup_id: data.subgroupId,
-					taxation_group_id: data.taxationGroupId,
 					serviceCode: data.serviceCode,
 					serviceType: data.serviceType,
 					courtesy: data.courtesy,
+					productivityItem: data.productivityItem,
 				})
 				.useTransaction(trx)
 				.save();

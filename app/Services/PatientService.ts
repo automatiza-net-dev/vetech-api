@@ -1701,7 +1701,7 @@ export default class PatientService {
 				data: {
 					type: HospitalizationType[hospitalization.type],
 					hospitalizedAt: hospitalization.createdAt,
-					realizedAt: DateTime.now(),
+					realizedAt: data.deathDate,
 					observation: "-",
 					issuedAt: DateTime.now(),
 					deathObservation: data.deathObservation,
@@ -1720,7 +1720,7 @@ export default class PatientService {
 				},
 				{
 					$set: {
-						"data.deathAt": DateTime.now(),
+						"data.deathAt": data.deathDate,
 					},
 				},
 			);
@@ -1748,7 +1748,7 @@ export default class PatientService {
 				timeline_info: {
 					tag: patient.id,
 					event: "OBITO",
-					realized: DateTime.now(),
+					realized: data.deathDate,
 					resume: "Óbito",
 					description: "-",
 					deathObservation: data.deathObservation,

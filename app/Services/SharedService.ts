@@ -93,6 +93,8 @@ export default class SharedService {
 		birthYears: "Anos",
 		birthDays: "Dias",
 		inscription: "Documento",
+		name: "Nome",
+		holders: "Tutores",
 	} as const;
 
 	public async errorHoc(

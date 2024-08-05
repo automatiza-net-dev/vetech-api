@@ -249,6 +249,7 @@ Route.group(() => {
 
 	Route.put("/main/:patient/:tutor", "PatientsController.setMainTutor");
 	Route.put("/declare-death/:id", "PatientsController.declareDeath");
+	Route.put("/unlink", "PatientsController.unlinkHolderDependent");
 	Route.put("/:id", "PatientsController.update");
 	Route.delete("/:id", "PatientsController.destroy");
 })

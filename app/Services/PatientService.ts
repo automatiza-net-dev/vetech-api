@@ -35,6 +35,8 @@ import Attendance from "App/Models/Attendance";
 import { intervalToDuration } from "date-fns";
 import { PatientContactType } from "App/Models/PatientContact";
 import PatientTutor from "App/Models/PatientTutor";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import HolderDependentLog from "App/Models/HolderDependentLog";
 
 interface ISearch {
 	name?: string;
@@ -2171,6 +2173,74 @@ export default class PatientService {
 					},
 				},
 			});
+		});
+	}
+
+	public async unlinkHolderDependent(
+		authCtx: AuthContext,
+		data: {
+			tutorId: string;
+			patientId: string;
+		},
+	) {
+		if (!authCtx.hasPermission("PET04")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para fazer a atividade",
+				400,
+				"E_ERR",
+			);
+		}
+
+		await Database.transaction(async (trx) => {
+			const db_patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.where("type", PatientType.ANIMAL)
+				.first();
+
+			if (!db_patient) {
+				throw new BadRequestException(
+					"Paciente inválido",
+					400,
+					"E_BAD_REQUEST",
+				);
+			}
+
+			const db_tutor = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.tutorId)
+				.where("type", PatientType.TUTOR)
+				.first();
+
+			if (!db_tutor) {
+				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+			}
+
+			const rows = await Database.from("holder_dependents")
+				.select("id")
+				.whereRaw("holder_id = ? and dependent_id = ?", [
+					data.tutorId,
+					data.patientId,
+				]);
+			if (rows.length === 0) {
+				throw new BadRequestException(
+					"Não existe relação entre tutor e paciente",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await db_tutor.related("dependents").detach([db_patient.id], trx);
+
+			await HolderDependentLog.create(
+				{
+					holder_id: data.tutorId,
+					dependent_id: data.patientId,
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				},
+				{ client: trx },
+			);
 		});
 	}
 

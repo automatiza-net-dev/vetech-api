@@ -8,6 +8,7 @@ import CreatePatientValidator from "App/Validators/Patient/CreatePatientValidato
 import CreateSchedulePatientValidator from "App/Validators/Patient/CreateSchedulePatientValidator";
 import DeclareDeathValidator from "App/Validators/Patient/DeclareDeathValidator";
 import FastCreatePatientValidator from "App/Validators/Patient/FastCreatePatientValidator";
+import UnlinkTutorPatientValidator from "App/Validators/Patient/UnlinkTutorPatientValidator";
 import UpdatePatientValidator from "App/Validators/Patient/UpdatePatientValidator";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
 
@@ -211,5 +212,20 @@ export default class PatientsController {
 		const result = await this.service.fastStore(unit_id, payload);
 
 		return response.created(result);
+	}
+
+	public async unlinkHolderDependent({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(UnlinkTutorPatientValidator);
+
+		await this.service.unlinkHolderDependent(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 }

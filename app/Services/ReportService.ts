@@ -11,6 +11,7 @@ import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 
 @inject()
 export default class ReportService {
@@ -2575,7 +2576,50 @@ ON bills.patient_id = Dep."id"`,
 			qb.where("business_units.id", authCtx.unit.id);
 		}
 
-		return qb;
+		const result = await qb;
+
+		const tasks = result.map(async (r) => {
+			const lastCreatedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": null,
+			})
+				.sort({ createdAt: -1 })
+				.limit(1);
+
+			const lastUpdatedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": null,
+			})
+				.sort({ updatedAt: -1 })
+				.limit(1);
+
+			const lastExcludedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": { $ne: null },
+			})
+				.sort({ updatedAt: -1 })
+				.limit(1);
+
+			Object.assign(r, {
+				patient_last_created_timeline_type:
+					lastCreatedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_created_timeline_timestamp:
+					lastCreatedTimeline?.at(0)?.createdAt ?? null,
+
+				patient_last_updated_timeline_type:
+					lastUpdatedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_updated_timeline_timestamp:
+					lastUpdatedTimeline?.at(0)?.createdAt ?? null,
+
+				patient_last_excluded_timeline_type:
+					lastExcludedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_excluded_timeline_timestamp:
+					lastExcludedTimeline?.at(0)?.createdAt ?? null,
+			});
+
+			return r;
+		});
+		return await Promise.all(tasks);
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

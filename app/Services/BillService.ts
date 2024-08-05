@@ -946,11 +946,23 @@ where deposit_id = ?
 							budget_payment_id: data.budgetPaymentId,
 
 							block: max + 1,
-							expirationDate: data.expirationDate.plus({
-								days:
-									paymentMethod.daysFirstInstallment +
-									paymentMethod.daysBetweenInstallments * v,
-							}),
+							expirationDate:
+								v === 0
+									? data.expirationDate.plus({
+											days: paymentMethod.daysFirstInstallment === 30 ? 0 : 1,
+											month: paymentMethod.daysFirstInstallment === 30 ? 1 : 0,
+										})
+									: data.expirationDate.plus({
+											// days: paymentMethod.daysBetweenInstallments * (v + 1),
+											days:
+												paymentMethod.daysBetweenInstallments === 30
+													? 0
+													: v + 1,
+											month:
+												paymentMethod.daysBetweenInstallments === 30
+													? v + 1
+													: 0,
+										}),
 							feeType:
 								paymentMethod.fee > 0
 									? BillPaymentFeeType.S

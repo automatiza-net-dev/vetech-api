@@ -1774,6 +1774,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients?: { id: string }[];
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1909,6 +1910,14 @@ export default class PatientService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.patients) {
+				await tutor.related("dependents").sync(
+					data.patients.map((p) => p.id),
+					false,
+					trx,
+				);
+			}
 
 			return tutor;
 		});

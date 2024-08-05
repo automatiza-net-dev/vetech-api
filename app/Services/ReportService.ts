@@ -2392,6 +2392,192 @@ ON bills.patient_id = Dep."id"`,
 		return qb;
 	}
 
+	async clientLogReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			units?: string[];
+		},
+	) {
+		if (!data.fromDate || !data.toDate) {
+			throw new BadRequestException(
+				"Faltam as datas de início e fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const fromDate: string = data.fromDate ?? "";
+		const toDate: string = data.toDate ?? "";
+
+		const qb = Database.from("patients")
+			.with("_bills", (qb) => {
+				qb.from("bills").whereRaw("bill_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_schedules", (qb) => {
+				qb.from("schedules").whereRaw("created_at::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_payments", (qb) => {
+				qb.from("bill_payments")
+					.whereRaw("bill_id in (select id from _bills)")
+					.whereRaw("created_at::date between ? and ?", [fromDate, toDate]);
+			})
+			.with("_finances", (qb) => {
+				qb.from("finances").whereRaw("payment_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_budgets", (qb) => {
+				qb.from("budgets").whereRaw("budget_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_attendances", (qb) => {
+				qb.from("attendances").whereRaw("created_at::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.select(
+				Database.raw(`
+        patients.id                                 as patient_id,
+        patients.name                               as patient_name,
+        patient_contacts.contact                    as patient_main_contact,
+        patients.created_at                         as patient_created,
+        patients.updated_at                         as patient_updated,
+        patients.deleted_at                         as patient_excluded,
+
+        (select max(_schedules.created_at)
+          from _schedules
+          where _schedules.patient_id = patients.id
+            and _schedules.deleted_at is null)       as patient_last_new_schedule_timestamp,
+
+        (select max(_schedules.updated_at)
+          from _schedules
+          where _schedules.patient_id = patients.id
+            and _schedules.deleted_at is null)       as patient_last_updated_schedule_timestamp,
+
+        (select max(schedules.deleted_at)
+          from schedules
+          where schedules.patient_id = patients.id
+            and schedules.deleted_at is not null)    as patient_last_excluded_schedule_timestamp,
+
+        (select max(_bills.created_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is null)           as patient_last_new_sale_timestamp,
+        (select max(_bills.updated_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is null)           as patient_last_updated_sale_timestamp,
+        (select max(_bills.deleted_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is not null)       as patient_last_excluded_sale_timestamp,
+
+        (select max(_payments.created_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is null
+                                   order by patients.created_at
+                                   limit 1)
+            and _payments.deleted_at is null)        as patient_last_new_sale_payment_timestamp,
+        (select max(_payments.updated_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is null
+                                   order by patients.updated_at
+                                   limit 1)
+            and _payments.deleted_at is null)        as patient_last_updated_sale_payment_timestamp,
+        (select max(_payments.deleted_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is not null
+                                   order by patients.deleted_at
+                                   limit 1)
+            and _payments.deleted_at is not null)    as patient_last_excluded_sale_payment_timestamp,
+
+        (select max(_finances.created_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is null)        as patient_last_new_finance_timestamp,
+        (select max(_finances.updated_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is null)        as patient_last_updated_finance_timestamp,
+        (select max(_finances.deleted_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is not null)    as patient_last_excluded_finance_timestamp,
+
+        (select max(_budgets.created_at)
+          from _budgets
+            where _budgets.client_id = patients.id
+            and _budgets.deleted_at is null)         as patient_last_new_budget_timestamp,
+        (select max(_budgets.updated_at)
+          from _budgets
+            where _budgets.client_id = patients.id
+            and _budgets.deleted_at is null)         as patient_last_updated_budget_timestamp,
+        (select max(_budgets.deleted_at)
+          from _budgets
+          where _budgets.client_id = patients.id
+            and _budgets.deleted_at is not null)     as patient_last_budget_finance_timestamp,
+
+        (select max(_attendances.created_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is null)     as patient_last_new_attendance_timestamp,
+        (select max(_attendances.updated_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is null)     as patient_last_updated_attendance_timestamp,
+        (select max(_attendances.deleted_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is not null) as patient_last_budget_attendance_timestamp`),
+			)
+			.joinRaw(`left join patient_contacts
+                   on patients.id = patient_contacts.patient_id and patient_contacts.main and
+                      patient_contacts.type = 'celular' and
+                      patient_contacts.created_at = (select max(pc.created_at)
+                                                     from patient_contacts pc
+                                                     where pc.patient_id = patients.id)`)
+			.joinRaw(
+				"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+			)
+			.joinRaw(
+				`join economic_groups on patient_economic_groups.economic_group_id = economic_groups.id and
+                                 economic_groups.id = ?`,
+				[authCtx.group.id],
+			)
+			.joinRaw(
+				"join business_units on economic_groups.id = business_units.economic_group_id",
+			);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		return qb;
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

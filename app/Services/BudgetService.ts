@@ -1917,7 +1917,7 @@ export default class BudgetService {
 	public async listBudgetPayments(
 		authCtx: AuthContext,
 		id: string,
-		data: {
+		_data: {
 			type?: string;
 		},
 	) {
@@ -1989,19 +1989,19 @@ export default class BudgetService {
 			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
 			.where("budget_payments.budget_id", id);
 
-		if (!data.type) {
-			qb.whereNot(
-				"budget_payments.status",
-				"Excluido" as TBudgetPaymentStatus,
-			).whereNull("budget_payments.deleted_at");
-		}
-
-		if (data.type === "Venda") {
-			qb.where(
-				"budget_payments.status",
-				"Aberto" as TBudgetPaymentStatus,
-			).whereNull("budget_payments.deleted_at");
-		}
+		// if (!data.type) {
+		// 	qb.whereNot(
+		// 		"budget_payments.status",
+		// 		"Excluido" as TBudgetPaymentStatus,
+		// 	).whereNull("budget_payments.deleted_at");
+		// }
+		//
+		// if (data.type === "Venda") {
+		// 	qb.where(
+		// 		"budget_payments.status",
+		// 		"Aberto" as TBudgetPaymentStatus,
+		// 	).whereNull("budget_payments.deleted_at");
+		// }
 
 		const payments = await qb.exec();
 

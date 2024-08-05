@@ -1164,7 +1164,7 @@ export default class PatientService {
 
 	public async store(
 		unitId: string,
-		data: Omit<IPatientData, "active">,
+		data: Omit<IPatientData, "active"> & { holders?: [{ id: string }] },
 	): Promise<Patient> {
 		const group = await this.getEconomicGroup(unitId);
 
@@ -1257,6 +1257,21 @@ export default class PatientService {
 				},
 				trx,
 			);
+
+			if (data.holders) {
+				await patient.related("tutors").sync(
+					data.holders.reduce(
+						(acc, curr) => {
+							acc[curr.id] = { is_main: curr.main };
+
+							return acc;
+						},
+						{} as Record<number, Record<string, unknown>>,
+					),
+					false,
+					trx,
+				);
+			}
 
 			await trx.commit();
 
@@ -1536,6 +1551,8 @@ export default class PatientService {
 			deathDate?: DateTime;
 			technicianId?: string;
 			deathObservation?: string;
+
+			holders?: { id: string }[];
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1621,6 +1638,21 @@ export default class PatientService {
 						.update({ is_main: elem.main });
 				}) ?? [];
 			await Promise.all(tasks);
+
+			if (data.holders) {
+				await patient.related("tutors").sync(
+					data.holders.reduce(
+						(acc, curr) => {
+							acc[curr.id] = { is_main: curr.main };
+
+							return acc;
+						},
+						{} as Record<number, Record<string, unknown>>,
+					),
+					false,
+					trx,
+				);
+			}
 
 			return patient;
 		});

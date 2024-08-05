@@ -31,6 +31,15 @@ export default class CreateSchedulePatientValidator {
 			rules.exists({ table: "races", column: "id" }),
 		]),
 		gender: schema.enum(Object.values(PatientGender), []),
+
+		holders: schema.array.optional().members(
+			schema.object().members({
+				id: schema.string({ trim: true }, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+			}),
+		),
 	});
 
 	/**

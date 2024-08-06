@@ -142,6 +142,7 @@ export default class TemplateReplacementService {
 				}),
 			},
 			CONTRACTS: null,
+			CONTRACTOR: null,
 		};
 
 		if (data.businessUnitId) {
@@ -167,6 +168,7 @@ export default class TemplateReplacementService {
 
 		if (data.billId) {
 			textData.CONTRACTS = await this.fetchBillContracts(data.billId);
+			textData.CONTRACTOR = await this.fetchContractor(data.billId);
 		}
 
 		const templates = await TemplateReplacement.query()
@@ -310,7 +312,7 @@ export default class TemplateReplacementService {
 	}
 
 	$getValue(key: string, obj: ModelObject) {
-		if (key.startsWith("[") && key.endsWith("]")) {
+		if (Array.isArray(obj)) {
 			return obj;
 		}
 
@@ -522,6 +524,15 @@ export default class TemplateReplacementService {
 			companyName: model.companyName,
 			postalCode: model.postalCode,
 		};
+	}
+
+	async fetchContractor(billID: string) {
+		const model = await Bill.query().where("id", billID).firstOrFail();
+		if (!model.financial_responsible_id) {
+			return {};
+		}
+
+		return this.fetchTutor(model.financial_responsible_id);
 	}
 
 	async fetchUser(id: string, unitId: string | undefined) {

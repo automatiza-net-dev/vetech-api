@@ -26,6 +26,8 @@ import { exec } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { PDFEngine } from "chromiumly";
 import { DateTime } from "luxon";
+import Bill from "App/Models/Bill";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 interface ISearch {
 	origin?: string;
@@ -139,6 +141,7 @@ export default class TemplateReplacementService {
 					locale: Locales.ptBR,
 				}),
 			},
+			CONTRACTS: null,
 		};
 
 		if (data.businessUnitId) {
@@ -160,6 +163,10 @@ export default class TemplateReplacementService {
 
 		if (data.dependentId) {
 			textData.PATIENT = await this.fetchPatient(data.dependentId);
+		}
+
+		if (data.billId) {
+			textData.CONTRACTS = await this.fetchBillContracts(data.billId);
 		}
 
 		const templates = await TemplateReplacement.query()
@@ -303,6 +310,10 @@ export default class TemplateReplacementService {
 	}
 
 	$getValue(key: string, obj: ModelObject) {
+		if (key.startsWith("[") && key.endsWith("]")) {
+			return obj;
+		}
+
 		if (obj[key]) {
 			return obj[key];
 		}
@@ -316,6 +327,14 @@ export default class TemplateReplacementService {
 	}
 
 	$toString(data: unknown) {
+		if (Array.isArray(data)) {
+			return `\n${data
+				.map((d) => this.$toString(d))
+				.filter(Boolean)
+				.map((d) => ` - ${d}`)
+				.join("\n")}`;
+		}
+
 		if (typeof data === "string") {
 			return data;
 		}
@@ -414,6 +433,84 @@ export default class TemplateReplacementService {
 			castrated: patient.patientAnimal?.castrated ? "Esterelizado" : "Fértil",
 			microchip: patient.patientAnimal?.microchip,
 		};
+	}
+
+	async fetchBillContracts(id: string): Promise<string[]> {
+		const bill = await Bill.findOrFail(id);
+
+		const rows = await Database.from("bill_payments")
+			.select(
+				Database.raw(`'0-bill' as ref,
+              case
+           when bill_payments.qty_installments = 1 and payment_methods.tef = 'NAO' then format('R$ \%s em \%s x em \%s - \%s',
+                                                                                  bill_payments.total_value,
+                                                                                  bill_payments.qty_installments,
+                                                                                  payment_methods.description,
+                                                                                  bill_payments.expiration_date::date)
+           when bill_payments.qty_installments > 1 and payment_methods.tef <> 'NAO' then format('R$ \%s em \%s x em \%s - \%s',
+                                                                                   bill_payments.total_value *
+                                                                                   bill_payments.qty_installments,
+                                                                                   bill_payments.qty_installments,
+                                                                                   payment_methods.description,
+                                                                                   bill_payments.created_at::date)
+           else format('R$ \%s em \%s x em \%s - \%s', bill_payments.total_value, bill_payments.qty_installments,
+                       payment_methods.description,
+                       bill_payments.created_at::date) end as pgto
+              `),
+			)
+			.joinRaw(
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
+			)
+			.where("bill_payments.bill_id", id)
+			.whereNull("bill_payments.deleted_at")
+			.groupBy("pgto")
+			.union((qb) => {
+				qb.from("bills")
+					.select(
+						Database.raw(`
+			       '1-bill_pend'  as ref,
+			       format('R$ %s - Pendente de definição da forma de pagamento ', bills.total_value - bills.paid_value) as pgto
+			    `),
+					)
+					.whereRaw(
+						"bills.id = ? and bills.paid_value < bills.total_value and bills.budget_id is null",
+						[id],
+					);
+			})
+			.union((qb) => {
+				qb.from("budget_payments")
+					.select(
+						Database.raw(`
+			           '2-bud_prom'                        as ref,
+			           format('R$ %s em %s x em %s - Pendende de pagamento', budget_payments.total_value, budget_payments.installments,
+			           payment_methods.description) as pgto
+			    `),
+					)
+					.joinRaw(
+						"join payment_methods on budget_payments.payment_method_id = payment_methods.id",
+					)
+					.whereRaw(
+						"budget_payments.budget_id = ? and budget_payments.deleted_at is null and confirmation_date is null",
+						[bill.budget_id ?? v4()],
+					);
+			})
+
+			.union((qb) => {
+				qb.from("budgets")
+					.select(
+						Database.raw(`
+			           '3-bud_pend'                                                                                             as ref,
+			           format('R$ %s - Pendente de definição da forma de pagamento ', budgets.total_value - budgets.paid_value) as pgto
+			           `),
+					)
+					.whereRaw(
+						"budgets.id = ? and budgets.paid_value < budgets.total_value",
+						[bill.budget_id ?? v4()],
+					);
+			})
+			.orderByRaw("1, 2");
+
+		return rows.map((r) => r.pgto);
 	}
 
 	async fetchUnit(id: string) {

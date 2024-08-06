@@ -15,4 +15,5 @@ export interface ITemplateReplacementParser {
 	scheduleId?: string;
 	tutorId?: string;
 	dependentId?: string;
+	billId?: string;
 }

@@ -879,6 +879,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients: { id: string; name: string }[];
 		}
 	> {
 		const patient = await authCtx.group
@@ -891,6 +892,7 @@ export default class PatientService {
 			})
 			.preload("contacts")
 			.preload("tutor")
+			.preload("dependents")
 			.first();
 
 		if (!patient) {
@@ -940,6 +942,10 @@ export default class PatientService {
 				notGiven: elem.notGiven,
 				observation: elem.observation,
 				type: elem.type,
+			})),
+			patients: patient.dependents.map((elem) => ({
+				id: elem.id,
+				name: elem.name,
 			})),
 		};
 	}
@@ -1164,7 +1170,7 @@ export default class PatientService {
 
 	public async store(
 		unitId: string,
-		data: Omit<IPatientData, "active"> & { holders?: [{ id: string }] },
+		data: Omit<IPatientData, "active">,
 	): Promise<Patient> {
 		const group = await this.getEconomicGroup(unitId);
 

@@ -143,6 +143,7 @@ export default class TemplateReplacementService {
 			},
 			CONTRACTS: null,
 			CONTRACTOR: null,
+			BILL_ITEMS: null,
 		};
 
 		if (data.businessUnitId) {
@@ -169,6 +170,7 @@ export default class TemplateReplacementService {
 		if (data.billId) {
 			textData.CONTRACTS = await this.fetchBillContracts(data.billId);
 			textData.CONTRACTOR = await this.fetchContractor(data.billId);
+			textData.BILL_ITEMS = await this.fetchBillItems(data.billId);
 		}
 
 		const templates = await TemplateReplacement.query()
@@ -532,7 +534,31 @@ export default class TemplateReplacementService {
 			return this.fetchTutor(model.financial_responsible_id);
 		}
 
+		if (model.client_id) {
+			return this.fetchTutor(model.client_id);
+		}
+
 		return {};
+	}
+
+	async fetchBillItems(billID: string) {
+		const rows = await Database.from("bills")
+			.select(
+				Database.raw(
+					"format('%sx - %s', bill_items.quantity, products.description) as description",
+				),
+			)
+			.joinRaw("join bill_items on bills.id = bill_items.bill_id")
+			.joinRaw(
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.whereRaw(
+				"bills.id = ? and bills.deleted_at is null and public.bill_items.deleted_at is null",
+				[billID],
+			);
+
+		return rows.map((r) => r.description);
 	}
 
 	async fetchUser(id: string, unitId: string | undefined) {

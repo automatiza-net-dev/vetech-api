@@ -11,6 +11,7 @@ export enum TemplateReplacementOrigin {
 	SYSTEM = "SYSTEM",
 	CONTRACTS = "CONTRACTS",
 	CONTRACTOR = "CONTRACTOR",
+	BILL_ITEMS = "BILL_ITEMS",
 }
 
 export default class TemplateReplacement extends BaseModel {

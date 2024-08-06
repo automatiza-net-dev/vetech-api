@@ -528,11 +528,11 @@ export default class TemplateReplacementService {
 
 	async fetchContractor(billID: string) {
 		const model = await Bill.query().where("id", billID).firstOrFail();
-		if (!model.financial_responsible_id) {
-			return {};
+		if (model.financial_responsible_id) {
+			return this.fetchTutor(model.financial_responsible_id);
 		}
 
-		return this.fetchTutor(model.financial_responsible_id);
+		return {};
 	}
 
 	async fetchUser(id: string, unitId: string | undefined) {

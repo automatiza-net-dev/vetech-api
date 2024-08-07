@@ -28,6 +28,7 @@ import { PDFEngine } from "chromiumly";
 import { DateTime } from "luxon";
 import Bill from "App/Models/Bill";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { parse } from "node-html-parser";
 
 interface ISearch {
 	origin?: string;
@@ -306,11 +307,49 @@ export default class TemplateReplacementService {
 		}
 
 		const value = this.$getValue(head.attribute, elem);
+		if (!value) {
+			return this.parseTextTemplate(raw, data, tail);
+		}
+
+		if (Array.isArray(value)) {
+			const updated = this.parseHtmlTemplate(raw, head, value);
+			return this.parseTextTemplate(updated, data, tail);
+		}
+
 		const value$ = value ? this.$toString(value) ?? head.attribute : "";
 
 		const updated = raw.replaceAll(head.replacer, value$);
 
 		return this.parseTextTemplate(updated, data, tail);
+	}
+
+	parseHtmlTemplate(
+		raw: string,
+		template: TemplateReplacement,
+		values: string[],
+	) {
+		const root = parse(raw, {});
+
+		const listItems = root.getElementsByTagName("li");
+		for (const listItem of listItems) {
+			if (listItem.innerText === template.replacer) {
+				const parent = listItem.parentNode;
+
+				const updatedChildren = values.map((v) => {
+					const clone = parse(
+						listItem.toString().replace(template.replacer, v),
+					);
+					console.log(listItem.toString().replace(template.replacer, v));
+
+					return clone;
+				});
+				parent.set_content(updatedChildren, {});
+
+				break;
+			}
+		}
+
+		return root.toString();
 	}
 
 	$getValue(key: string, obj: ModelObject) {
@@ -331,14 +370,6 @@ export default class TemplateReplacementService {
 	}
 
 	$toString(data: unknown) {
-		if (Array.isArray(data)) {
-			return `\n${data
-				.map((d) => this.$toString(d))
-				.filter(Boolean)
-				.map((d) => ` - ${d}`)
-				.join("\n")}`;
-		}
-
 		if (typeof data === "string") {
 			return data;
 		}
@@ -541,7 +572,7 @@ export default class TemplateReplacementService {
 		return {};
 	}
 
-	async fetchBillItems(billID: string) {
+	async fetchBillItems(billID: string): Promise<string[]> {
 		const rows = await Database.from("bills")
 			.select(
 				Database.raw(

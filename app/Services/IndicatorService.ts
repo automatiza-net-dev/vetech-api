@@ -3855,6 +3855,140 @@ export default class IndicatorService {
 		};
 	}
 
+	public async clientOriginTreeIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`business_units.id,
+       business_units.identification,
+       coalesce(client_origin_categories.description, 'Outros') as categoria,
+       coalesce(client_origin_groups.description, 'Outros')     as grupo,
+       client_origins.description,
+       count(bills.id)::int as count`,
+				),
+			)
+			.joinRaw(`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id)
+    join client_origins
+        left join client_origin_groups
+            left join client_origin_categories on client_origin_categories.id =
+                                                  client_origin_groups.client_origin_category_id
+        on client_origin_groups.id = client_origins.client_origin_group_id
+               on patient_tutors.client_origin_id = client_origins.id
+    )
+              on bills.client_id = patient_tutors.patient_id`)
+			.joinRaw(
+				`inner join business_units on business_units.id = bills.business_unit_id`,
+			)
+			.groupByRaw(`business_units.id, client_origin_categories.description, client_origin_groups.description,
+         client_origins.description`)
+			.whereNull("bills.deleted_at")
+			.whereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+			)
+			.whereRaw(`business_units.environment = 'P'`);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id: string;
+			identification: string;
+			categoria: string;
+			grupo: string;
+			description: string | null;
+			count: number;
+		}[] = await qb;
+
+		const totalCount = result.reduce((acc, curr) => acc + curr.count, 0);
+
+		const keys = result.reduce((acc, curr) => {
+			const innerKey = curr.categoria ?? "-";
+
+			if (!acc.includes(innerKey)) {
+				acc.push(innerKey);
+			}
+
+			return acc;
+		}, [] as string[]);
+
+		const categories = keys.reduce((acc, curr) => {
+			const categoryRows =
+				curr === "-"
+					? result.filter((r) => !r.categoria)
+					: result.filter((r) => r.categoria === curr);
+
+			const categorySum = categoryRows.reduce(
+				(sumAcc, sumCurr) => sumAcc + sumCurr.count,
+				0,
+			);
+
+			const categoryGroups = categoryRows.reduce((acc, curr) => {
+				const key = curr.grupo ?? "-";
+
+				if (!acc.includes(key)) {
+					acc.push(key);
+				}
+
+				return acc;
+			}, [] as string[]);
+
+			acc.push({
+				categoria: curr,
+				faturamento: categorySum,
+				porcentagem: (categorySum / totalCount) * 100,
+				grupos: categoryGroups.map((elem) => {
+					const groupTotal =
+						elem === "-"
+							? result
+									.filter((r) => !r.categoria && !r.grupo)
+									.reduce((acc, curr) => acc + curr.count, 0)
+							: result
+									.filter((r) => r.categoria === curr && r.grupo === elem)
+									.reduce((acc, curr) => acc + curr.count, 0);
+
+					return {
+						grupo: elem === "-" ? "Outros" : elem,
+						total: groupTotal,
+						porcentagem: (groupTotal / categorySum) * 100,
+						origem_clientes: result
+							.filter((r) => r.categoria === curr)
+							.filter((r) => r.grupo === elem)
+							.map((ori) => ({
+								origem: ori.description,
+								total: ori.count,
+								porcentagem: (ori.count / groupTotal) * 100,
+							})),
+					};
+				}),
+			});
+
+			return acc;
+		}, [] as unknown[]);
+
+		return {
+			name: "OrigemClientesOportunidades",
+			hasData: result.length > 0,
+			data: categories,
+		};
+	}
+
 	public async sanclaChartsIndicators(
 		authCtx: AuthContext,
 		data: Record<string, any>,
@@ -4347,7 +4481,16 @@ export default class IndicatorService {
 			),
 		]);
 
+		const cards = await Promise.all([
+			SharedService.NoopPromise(
+				// () => authCtx.hasPermission("CRD01"),
+				() => true,
+				() => this.clientOriginTreeIndicators(authCtx, data),
+			),
+		]);
+
 		return {
+			cards: cards.filter(Boolean),
 			charts: charts.filter(Boolean),
 		};
 	}

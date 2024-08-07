@@ -339,7 +339,6 @@ export default class TemplateReplacementService {
 					const clone = parse(
 						listItem.toString().replace(template.replacer, v),
 					);
-					console.log(listItem.toString().replace(template.replacer, v));
 
 					return clone;
 				});

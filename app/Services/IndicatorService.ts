@@ -3951,7 +3951,7 @@ export default class IndicatorService {
 
 			acc.push({
 				categoria: curr,
-				faturamento: categorySum,
+				total: categorySum,
 				porcentagem: (categorySum / totalCount) * 100,
 				grupos: categoryGroups.map((elem) => {
 					const groupTotal =
@@ -3985,7 +3985,7 @@ export default class IndicatorService {
 		return {
 			name: "OrigemClientesOportunidades",
 			hasData: result.length > 0,
-			data: categories,
+			items: categories,
 		};
 	}
 
@@ -4483,8 +4483,8 @@ export default class IndicatorService {
 
 		const cards = await Promise.all([
 			SharedService.NoopPromise(
-				// () => authCtx.hasPermission("CRD01"),
-				() => true,
+				() => authCtx.hasPermission("CRD01"),
+				// () => true,
 				() => this.clientOriginTreeIndicators(authCtx, data),
 			),
 		]);

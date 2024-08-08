@@ -949,7 +949,10 @@ where deposit_id = ?
 							expirationDate:
 								v === 0
 									? data.expirationDate.plus({
-											days: paymentMethod.daysFirstInstallment === 30 ? 0 : 1,
+											days:
+												paymentMethod.daysFirstInstallment === 30
+													? 0
+													: paymentMethod.daysFirstInstallment,
 											month: paymentMethod.daysFirstInstallment === 30 ? 1 : 0,
 										})
 									: data.expirationDate.plus({
@@ -957,11 +960,10 @@ where deposit_id = ?
 											days:
 												paymentMethod.daysBetweenInstallments === 30
 													? 0
-													: v + 1,
+													: paymentMethod.daysFirstInstallment +
+														v * paymentMethod.daysBetweenInstallments,
 											month:
-												paymentMethod.daysBetweenInstallments === 30
-													? v + 1
-													: 0,
+												paymentMethod.daysBetweenInstallments === 30 ? 1 : 0,
 										}),
 							feeType:
 								paymentMethod.fee > 0

@@ -1763,11 +1763,11 @@ export default class ReceiptService {
 								blockInstallments: elem.installments,
 								installmentValue: elem.installmentValue / elem.installments,
 								issueDate: elem.issueDate,
-								expirationDate: elem.expirationDate.plus({
-									days:
-										paymentMethod.daysFirstInstallment +
-										paymentMethod.daysBetweenInstallments * idx,
-								}),
+								expirationDate: SharedService.CalculateDateOffset(
+									idx,
+									elem.expirationDate,
+									paymentMethod,
+								),
 								nsuDocument: elem.nsuDocument,
 								status: "Ativo",
 							};

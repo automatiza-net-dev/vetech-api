@@ -17,6 +17,7 @@ import { DateTime } from "luxon";
 import { validateCPF } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PaymentMethod from "App/Models/PaymentMethod";
 
 export type DateSet = {
 	start: Date;
@@ -397,7 +398,7 @@ export default class SharedService {
 		}[],
 	) {
 		const rows = await Database.rawQuery(
-			`select * from check_max_discount(?, ?, ?)`,
+			"select * from check_max_discount(?, ?, ?)",
 			[
 				authCtx.user.id,
 				authCtx.unit.id,
@@ -414,7 +415,7 @@ export default class SharedService {
 			.useTransaction(trx)
 			.exec();
 
-		return rows.rows.map((elem) => {
+		return rows.rows.map((elem: { descricao: string }) => {
 			return {
 				rule: "DescontoMaximo",
 				message: elem.descricao,
@@ -453,9 +454,36 @@ export default class SharedService {
 
 	static ParseDecimal(value: string | number) {
 		if (typeof value === "string") {
-			return parseFloat(value.replace(",", "."));
+			return Number.parseFloat(value.replace(",", "."));
 		}
 
 		return value;
+	}
+
+	static CalculateDateOffset(
+		idx: number,
+		date: DateTime,
+		paymentMethod: PaymentMethod,
+	): DateTime {
+		// 1a parcela
+		if (idx === 0) {
+			// pular exatamente 1 mês
+			if (paymentMethod.daysFirstInstallment === 30) {
+				return date.plus({ months: 1 });
+			}
+
+			// pular quantos dias forem necessários
+			return date.plus({ days: paymentMethod.daysFirstInstallment });
+		}
+
+		// 2a parcela em diante
+		const lastDate = this.calculateDateOffset(idx - 1, date, paymentMethod);
+		// pular exatamente 1 mês depois da ultima parcela
+		if (paymentMethod.daysBetweenInstallments === 30) {
+			return lastDate.plus({ months: 1 });
+		}
+
+		// pular dias necessários desde a ultima parcela
+		return lastDate.plus({ days: paymentMethod.daysBetweenInstallments });
 	}
 }

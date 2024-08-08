@@ -935,13 +935,6 @@ where deposit_id = ?
 						const installmentValue =
 							v === installment.installment - 1 ? withOffset : singleValue;
 
-						const correctDays =
-							paymentMethod.daysFirstInstallment === 30
-								? 0
-								: paymentMethod.daysFirstInstallment;
-						const correctMonths =
-							paymentMethod.daysFirstInstallment === 30 ? 1 : 0;
-
 						return {
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
@@ -953,7 +946,7 @@ where deposit_id = ?
 							budget_payment_id: data.budgetPaymentId,
 
 							block: max + 1,
-							expirationDate: this.calculateDateOffset(
+							expirationDate: SharedService.CalculateDateOffset(
 								v,
 								data.expirationDate,
 								paymentMethod,
@@ -3218,32 +3211,5 @@ where deposit_id = ?
 
 			return toPrint;
 		});
-	}
-
-	private calculateDateOffset(
-		idx: number,
-		date: DateTime,
-		paymentMethod: PaymentMethod,
-	): DateTime {
-		// 1a parcela
-		if (idx === 0) {
-			// pular exatamente 1 mês
-			if (paymentMethod.daysFirstInstallment === 30) {
-				return date.plus({ months: 1 });
-			}
-
-			// pular quantos dias forem necessários
-			return date.plus({ days: paymentMethod.daysFirstInstallment });
-		}
-
-		// 2a parcela em diante
-		const lastDate = this.calculateDateOffset(idx - 1, date, paymentMethod);
-		// pular exatamente 1 mês depois da ultima parcela
-		if (paymentMethod.daysBetweenInstallments === 30) {
-			return lastDate.plus({ months: 1 });
-		}
-
-		// pular dias necessários desde a ultima parcela
-		return lastDate.plus({ days: paymentMethod.daysBetweenInstallments });
 	}
 }

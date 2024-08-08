@@ -3952,7 +3952,9 @@ export default class IndicatorService {
 			acc.push({
 				categoria: curr,
 				total: categorySum,
-				porcentagem: (categorySum / totalCount) * 100,
+				porcentagem: this.shared.formatPercentage(
+					(categorySum / totalCount) * 100,
+				),
 				grupos: categoryGroups.map((elem) => {
 					const groupTotal =
 						elem === "-"
@@ -3966,14 +3968,18 @@ export default class IndicatorService {
 					return {
 						grupo: elem === "-" ? "Outros" : elem,
 						total: groupTotal,
-						porcentagem: (groupTotal / categorySum) * 100,
+						porcentagem: this.shared.formatPercentage(
+							(groupTotal / categorySum) * 100,
+						),
 						origem_clientes: result
 							.filter((r) => r.categoria === curr)
 							.filter((r) => r.grupo === elem)
 							.map((ori) => ({
 								origem: ori.description,
 								total: ori.count,
-								porcentagem: (ori.count / groupTotal) * 100,
+								porcentagem: this.shared.formatPercentage(
+									(ori.count / groupTotal) * 100,
+								),
 							})),
 					};
 				}),

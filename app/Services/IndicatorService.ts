@@ -3863,45 +3863,45 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const qb = Database.from("bills")
+		const qb = Database.from("opportunities")
 			.select(
 				Database.raw(
-					`business_units.id,
+					`
+       business_units.id,
        business_units.identification,
        coalesce(client_origin_categories.description, 'Outros') as categoria,
        coalesce(client_origin_groups.description, 'Outros')     as grupo,
-       client_origins.description,
-       count(bills.id)::int as count`,
+       coalesce(client_origins.description, 'Outros')           as origem,
+       count(opportunities.id)::int                             as count
+          `,
 				),
 			)
-			.joinRaw(`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id)
-    join client_origins
-        left join client_origin_groups
-            left join client_origin_categories on client_origin_categories.id =
-                                                  client_origin_groups.client_origin_category_id
-        on client_origin_groups.id = client_origins.client_origin_group_id
-               on patient_tutors.client_origin_id = client_origins.id
-    )
-              on bills.client_id = patient_tutors.patient_id`)
 			.joinRaw(
-				`inner join business_units on business_units.id = bills.business_unit_id`,
+				"left join client_origins on client_origins.id = opportunities.client_origin_id",
 			)
-			.groupByRaw(`business_units.id, client_origin_categories.description, client_origin_groups.description,
-         client_origins.description`)
-			.whereNull("bills.deleted_at")
-			.whereRaw(
-				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+			.joinRaw(
+				"left join client_origin_groups on client_origins.client_origin_group_id = client_origin_groups.id",
 			)
+			.joinRaw(
+				"left join client_origin_categories on client_origin_categories.id = client_origin_groups.client_origin_category_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.groupByRaw(
+				"business_units.id, client_origin_categories.description, client_origin_groups.description, client_origins.description",
+			)
+			.whereNull("opportunities.deleted_at")
 			.whereRaw(`business_units.environment = 'P'`);
 
 		if (data.units && Array.isArray(data.units)) {
-			qb.whereIn("bills.business_unit_id", data.units);
+			qb.whereIn("opportunities.business_unit_id", data.units);
 		} else {
-			qb.where("bills.business_unit_id", authCtx.unit.id);
+			qb.where("opportunities.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.andWhereRaw("bill_date::date between ? and ?", [
+			qb.andWhereRaw("opportunities.contact_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);
@@ -3912,7 +3912,7 @@ export default class IndicatorService {
 			identification: string;
 			categoria: string;
 			grupo: string;
-			description: string | null;
+			origem: string;
 			count: number;
 		}[] = await qb;
 
@@ -3975,7 +3975,7 @@ export default class IndicatorService {
 							.filter((r) => r.categoria === curr)
 							.filter((r) => r.grupo === elem)
 							.map((ori) => ({
-								origem: ori.description,
+								origem: ori.origem,
 								total: ori.count,
 								porcentagem: this.shared.formatPercentage(
 									(ori.count / groupTotal) * 100,

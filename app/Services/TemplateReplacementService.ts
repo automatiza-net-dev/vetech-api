@@ -1,9 +1,15 @@
-import { inject } from "@adonisjs/fold";
+import { exec } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
+import Application from "@ioc:Adonis/Core/Application";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Env from "@ioc:Adonis/Core/Env";
+import Database from "@ioc:Adonis/Lucid/Database";
 import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import Bill from "App/Models/Bill";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DocumentTemplate from "App/Models/DocumentTemplate";
-import Drive from "@ioc:Adonis/Core/Drive";
 import Patient, {
 	PatientGender,
 	PatientVaccineOrigin,
@@ -17,18 +23,13 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import ITemplateReplacementData, {
 	ITemplateReplacementParser,
 } from "Contracts/interfaces/ITemplateReplacementData";
+import { PDFEngine } from "chromiumly";
 import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
-import Env from "@ioc:Adonis/Core/Env";
-import Application from "@ioc:Adonis/Core/Application";
-import { v4 } from "uuid";
-import { exec } from "node:child_process";
-import { writeFile } from "node:fs/promises";
-import { PDFEngine } from "chromiumly";
+import createReport from "docx-templates";
 import { DateTime } from "luxon";
-import Bill from "App/Models/Bill";
-import Database from "@ioc:Adonis/Lucid/Database";
 import { parse } from "node-html-parser";
+import { v4 } from "uuid";
 
 interface ISearch {
 	origin?: string;
@@ -209,67 +210,22 @@ export default class TemplateReplacementService {
 			}
 
 			const key = v4();
-			const dataPath = `tmp/${key}_data.json`;
-			const templatesPath = `tmp/${key}_templates.json`;
-			const inputPath = `tmp/${key}.docx`;
+
 			const outputPath = `tmp/${key}_output.docx`;
 			const pdfKey = `documents/compiled/${key}.pdf`;
-
-			const fullDataPath = `${Env.get(
-				"LOCAL_DISK_ROOT",
-				Application.tmpPath(),
-			)}/uploads/${dataPath}`;
-
-			const fullTemplatesPath = `${Env.get(
-				"LOCAL_DISK_ROOT",
-				Application.tmpPath(),
-			)}/uploads/${templatesPath}`;
-
-			const fullInputPath = `${Env.get(
-				"LOCAL_DISK_ROOT",
-				Application.tmpPath(),
-			)}/uploads/${inputPath}`;
 
 			const fullOutputPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
-			await Promise.all([
-				await writeFile(fullInputPath, fileBuffer),
-				await writeFile(fullDataPath, JSON.stringify(textData)),
-				await writeFile(
-					fullTemplatesPath,
-					JSON.stringify(
-						templates.map((t) => ({
-							origin: t.origin,
-							attribute: t.attribute,
-							replacer: t.replacer,
-						})),
-					),
-				),
-			]);
-
-			const success = await new Promise<boolean>((res) => {
-				exec(
-					`${Env.get(
-						"TRANSPILER_PATH",
-					)} ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
-					(error, _stdout, _stderr) => {
-						if (error) {
-							console.error(error);
-							// return rej(false);
-							return res(false);
-						}
-
-						return res(true);
-					},
-				);
+			// const _template = await readFile(fullInputPath);
+			const buffer = await createReport({
+				template: fileBuffer,
+				data: this.reverseTextTemplateData(textData, templates),
+				cmdDelimiter: ["[", "]"],
 			});
-
-			if (!success) {
-				throw new BadRequestException("Erro processando arquivo", 400, "");
-			}
+			await writeFile(fullOutputPath, buffer);
 
 			const responseBuffer = await PDFEngine.convert({
 				files: [fullOutputPath],
@@ -288,6 +244,40 @@ export default class TemplateReplacementService {
 		return {
 			text: this.parseTextTemplate(template.template, textData, templates),
 		};
+	}
+
+	reverseTextTemplateData(
+		data: RenderTextData,
+		templates: TemplateReplacement[],
+	) {
+		return templates.reduce(
+			(map, templ) => {
+				const elem = data[templ.origin];
+				if (!elem) {
+					return map;
+				}
+
+				const value = this.$getValue(templ.attribute, elem);
+				if (!value) {
+					return map;
+				}
+
+				const parsedKey = templ.replacer.substring(
+					1,
+					templ.replacer.length - 1,
+				);
+
+				if (Array.isArray(value)) {
+					map[parsedKey] = value;
+					return map;
+				}
+
+				const value$ = value ? this.$toString(value) ?? templ.attribute : "";
+				map[parsedKey] = value$;
+				return map;
+			},
+			{} as Record<string, string | string[]>,
+		);
 	}
 
 	parseTextTemplate(

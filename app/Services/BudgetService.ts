@@ -23,6 +23,7 @@ import TaxationGroupRule, {
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
+import Treatment from "App/Models/Treatment";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -246,6 +247,71 @@ export default class BudgetService {
 				Object.assign(jsonObj, {
 					documents: billDocuments,
 				});
+
+				if (elem.budgets.some((b) => b.status === BudgetStatus.C)) {
+					const treatments = await Treatment.query()
+						.where("economic_group_id", authCtx.group.id)
+						.where("business_unit_id", authCtx.unit.id)
+						.whereIn(
+							"bill_id",
+							elem.budgets.map((b) => b.bill_id).filter(Boolean),
+						)
+						.preload("items", (query) => {
+							// query.whereNull('deleted_at')
+							query.preload("productVariation", (query) => {
+								query.preload("product");
+							});
+						})
+						.preload("executions", (query) => {
+							query.preload("executionUser");
+							query.preload("productivityItem");
+							// query.whereNull('deleted_at')
+						});
+
+					Object.assign(jsonObj, {
+						treatments: treatments.map((elem) => ({
+							id: elem.id,
+							emission_date: elem.emissionDate,
+							observations: elem.observations,
+							status: elem.status,
+							cancellation_date: elem.cancellationDate,
+							cancellation_observations: elem.cancellationObservations,
+
+							items: elem.items.map((exec) => ({
+								description: exec.productVariation.product.description,
+								quantity: exec.quantity,
+								quantity_executed: exec.quantityExecuted,
+								scheduled_quantity: exec.scheduledQuantity,
+								observations: exec.observations,
+								status: exec.status,
+							})),
+
+							executions: elem.executions.map((exec) => ({
+								schedule_id: exec.schedule_id,
+								schedule_date: exec.scheduleDate,
+								scheduled_quantity: exec.scheduledQuantity,
+								quantity_executed: exec.quantityExecuted,
+								execution_date: exec.executionDate,
+								observations: exec.observations,
+								status: exec.status,
+								user: this.sharedService.captureGroup(
+									exec.executionUser,
+									(v) => ({
+										id: v.id,
+										name: v.name,
+									}),
+								),
+								productivitItem: this.sharedService.captureGroup(
+									exec.productivityItem,
+									(v) => ({
+										id: v.id,
+										description: v.description,
+									}),
+								),
+							})),
+						})),
+					});
+				}
 
 				return jsonObj;
 			}),

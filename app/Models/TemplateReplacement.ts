@@ -25,6 +25,9 @@ export default class TemplateReplacement extends BaseModel {
 	public attribute: string;
 
 	@column()
+	public complex: boolean;
+
+	@column()
 	public replacer: string;
 
 	@column.dateTime({ autoCreate: true })

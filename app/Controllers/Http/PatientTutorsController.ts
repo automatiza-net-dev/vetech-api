@@ -89,6 +89,8 @@ export default class PatientTutorsController {
 
 						return c;
 					}),
+
+				photo: ctx.request.file("photo"),
 			});
 			ctx.request.updateBody(syncedBody);
 
@@ -153,6 +155,8 @@ export default class PatientTutorsController {
 
 					return c;
 				}),
+
+				photo: request.file("photo"),
 			});
 			request.updateBody(syncedBody);
 

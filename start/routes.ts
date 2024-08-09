@@ -1704,7 +1704,11 @@ Route.group(() => {
 		"/consolidated-reviewers-2",
 		"IndicatorsController.consolidatedReviewerIndicators",
 	);
-	Route.get("/activity-2", "IndicatorsController.acitivityIndicators");
+	Route.get("/activity-2", "IndicatorsController.activityIndicators");
+	Route.get(
+		"/sales-per-reviewer-2",
+		"IndicatorsController.salesPerReviwerIndicators",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

@@ -7072,4 +7072,111 @@ export default class IndicatorService {
 			],
 		};
 	}
+
+	public async salesPerReviewerIndicator_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          coalesce(users.name, 'Não Identificado')                                                               as avaliador,
+          count(distinct bills.client_id)::int                                                                   as qtd_clientes,
+          sum(bills.total_value)::float                                                                          as total_vendas,
+          (sum(bills.total_value) /
+            case
+              when count(distinct bills.client_id) = 0 then 1
+              else count(distinct bills.client_id) end)::float                                                  as tkt_medio
+          `,
+				),
+			)
+			.joinRaw(
+				"join business_units on bills.business_unit_id = business_units.id",
+			)
+			.joinRaw(
+				"join economic_groups on bills.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				`left join budgets on bills.business_unit_id = budgets.business_unit_id and bills.budget_id = budgets.id and
+                              budgets.deleted_at is null`,
+			)
+			.joinRaw("left join users on budgets.reviewer_id = users.id")
+			.groupByRaw("business_units.id, coalesce(users.name, 'Não Identificado')")
+			.orderByRaw("3")
+			.whereNull("bills.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id: string;
+			identification: string;
+			avaliador: string;
+			qtd_clientes: number;
+			total_vendas: number;
+			tkt_medio: number;
+		}[] = await qb;
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.id)) {
+				acc.push(curr.id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "billsReviewer",
+			description: "Vendas por Avaliador",
+			type: "table",
+			hasData: result.length > 0,
+			data: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.id === elem);
+
+				if (!unit) {
+					return undefined;
+				}
+
+				const unitUsers = result.filter((r) => r.id === elem);
+
+				const sum = unitUsers.reduce((sum, curr) => sum + curr.total_vendas, 0);
+
+				return {
+					id: unit.id,
+					identification: unit.identification,
+					users: unitUsers.map((usr) => ({
+						userId: usr.id,
+						userName: usr.avaliador,
+						qtdClientes: usr.qtd_clientes,
+						vendasAvaliador: this.shared.formatter.format(usr.total_vendas),
+						ticketMedio: this.shared.formatter.format(usr.tkt_medio),
+						participacao: this.shared.formatPercentage(
+							(usr.total_vendas / sum) * 100,
+						),
+					})),
+				};
+			}),
+		};
+	}
 }

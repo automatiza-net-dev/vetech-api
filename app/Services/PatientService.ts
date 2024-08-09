@@ -187,6 +187,10 @@ export default class PatientService {
 				tag: elem.tag,
 				cellphone: elem.tutor.cellphone,
 				createdAt: elem.createdAt,
+				active: elem.active,
+				type: elem.type,
+				raceId: elem.patientAnimal?.race_id ?? null,
+				death: elem.patientAnimal?.death ?? null,
 				dependents: elem.dependents.map((patient) => ({
 					id: patient.id,
 					name: patient.name,
@@ -1562,7 +1566,7 @@ export default class PatientService {
 
 			holders?: { id: string }[];
 		},
-	): Promise<Patient> {
+	) {
 		return Database.transaction(async (trx) => {
 			const patient = await authCtx.group
 				.related("patients")

@@ -150,7 +150,11 @@ export default class SharedService {
 		currency: "BRL",
 	});
 
-	public formatPercentage(value: number) {
+	public formatPercentage(value: number | string) {
+		if (typeof value === "string") {
+			return this.formatPercentage(Number.parseFloat(value));
+		}
+
 		if (Number.isNaN(value)) {
 			return "0%";
 		}

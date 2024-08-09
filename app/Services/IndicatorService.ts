@@ -5677,7 +5677,8 @@ export default class IndicatorService {
         count(total.id)                           as qtd_total,
         sum(coalesce(total.total_value, 0))       as total_orcamentos,
         count(confirmados.id)                     as qtd_confirmados,
-        sum(coalesce(confirmados.total_value, 0)) as total_confirmados
+        sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
           `,
 				),
 			)
@@ -5764,16 +5765,18 @@ export default class IndicatorService {
 							userName: userRow.name,
 							qtdClientes: userRow.qtd_confirmados,
 							valorRealizado: this.shared.formatter.format(
-								userRow.total_confirmados,
+								Number.parseFloat(userRow.total_confirmados),
 							),
 							ticketMedioRealizado: this.shared.formatter.format(
-								userRow.total_confirmados / userRow.qtd_confirmados,
+								Number.parseFloat(userRow.total_confirmados) /
+									Number.parseFloat(userRow.qtd_confirmados),
 							),
 							participacaoRealizado: this.shared.formatPercentage(
-								(userRow.total_confirmados / confirmedSum) * 100,
+								(Number.parseFloat(userRow.total_confirmados) / confirmedSum) *
+									100,
 							),
 							conversaoAvaliacoes: this.shared.formatPercentage(
-								(userRow.total_confirmados / budgetedSum) * 100,
+								Number.parseFloat(userRow.conv_vendas),
 							),
 							qtdAvaliacoes: userRow.qtd_total,
 							totalAvaliado: this.shared.formatter.format(

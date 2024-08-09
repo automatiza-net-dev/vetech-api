@@ -5776,7 +5776,7 @@ export default class IndicatorService {
 									100,
 							),
 							conversaoAvaliacoes: this.shared.formatPercentage(
-								Number.parseFloat(userRow.conv_vendas),
+								Number.parseFloat(userRow.conv_venda),
 							),
 							qtdAvaliacoes: userRow.qtd_total,
 							totalAvaliado: this.shared.formatter.format(

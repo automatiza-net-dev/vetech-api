@@ -870,6 +870,7 @@ export default class PatientService {
 		patientId: string,
 	): Promise<
 		Omit<IPatientTutorData, "photo" | "birthDate"> & {
+			id: string;
 			photo: string;
 			birthDate: DateTime | null;
 			contacts?: {
@@ -904,6 +905,7 @@ export default class PatientService {
 		}
 
 		return {
+			id: patient.id,
 			name: patient.name,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,

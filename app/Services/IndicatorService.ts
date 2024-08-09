@@ -7177,6 +7177,7 @@ export default class IndicatorService {
 				return {
 					id: unit.id,
 					identification: unit.identification,
+					totalVendas: this.shared.formatter.format(sum),
 					users: unitUsers.map((usr) => ({
 						userId: usr.id,
 						userName: usr.avaliador,

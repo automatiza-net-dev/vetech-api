@@ -4304,6 +4304,10 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND27"),
 				() => this.consolidatedReviewerBudgets(authCtx, data),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND28"),
+				() => this.salesPerReviewerIndicator_2(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([
@@ -7081,6 +7085,14 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
+		if (!authCtx.hasPermission("IND28")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(

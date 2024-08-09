@@ -88,10 +88,10 @@ export default class PatientService {
 		"Dezembro",
 	];
 
-	public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
+	public async index(unitId: string, data: ISearch) {
 		const group = await this.getEconomicGroup(unitId);
 
-		const qb = group.related("patients").query();
+		const qb = group.related("patients").query().preload("patientAnimal");
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -107,7 +107,35 @@ export default class PatientService {
 			qb.where("type", data.type);
 		}
 
-		return qb;
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			type: elem.type,
+			photo: elem.photo ?? null,
+			gender: elem.gender ?? null,
+			tags: elem.tags ?? "",
+			birthDate: elem.birthDate,
+			active: elem.active,
+			created_at: elem.createdAt,
+			updated_at: elem.updatedAt,
+			vaccine_origin: elem.vaccineOrigin,
+			tag: elem.tag,
+			weight: elem.weight,
+			weight_date: elem.weightDate,
+			weight_origin: elem.weightOrigin,
+			hypertension: elem.hypertension,
+			diabetes: elem.diabetes,
+			glycemia: elem.glycemia,
+			pressure: elem.pressure,
+			first_sale: elem.firstSale,
+			client_origin_item_description: elem.clientOriginItemDescription,
+			community: elem.community,
+			birth_date: elem.birth_date,
+			death: elem.patientAnimal?.death ?? null,
+			raceId: elem.patientAnimal?.race_id ?? null,
+		}));
 	}
 
 	public async nonPets(unitId: string) {

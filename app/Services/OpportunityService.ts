@@ -2162,9 +2162,19 @@ export default class OpportunityService {
 				);
 			}
 
+			const patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.preload("patientAnimal")
+				.firstOrFail();
+
 			await model
 				.merge({
 					client_id: data.patientId,
+					race_id: patient.patientAnimal?.race_id,
+					gender: patient.gender,
+					weight: patient.weight,
+					castrated: patient.patientAnimal?.castrated,
 				})
 				.useTransaction(trx)
 				.save();

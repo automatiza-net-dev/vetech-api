@@ -211,21 +211,67 @@ export default class TemplateReplacementService {
 
 			const key = v4();
 
+			const dataPath = `tmp/${key}_data.json`;
+			const templatesPath = `tmp/${key}_templates.json`;
+			const inputPath = `tmp/${key}.docx`;
 			const outputPath = `tmp/${key}_output.docx`;
 			const pdfKey = `documents/compiled/${key}.pdf`;
+
+			const fullDataPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${dataPath}`;
+
+			const fullTemplatesPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${templatesPath}`;
+
+			const fullInputPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${inputPath}`;
 
 			const fullOutputPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
 			)}/uploads/${outputPath}`;
 
-			// const _template = await readFile(fullInputPath);
-			const buffer = await createReport({
-				template: fileBuffer,
-				data: this.reverseTextTemplateData(textData, templates),
-				cmdDelimiter: ["[", "]"],
+			await Promise.all([
+				await writeFile(fullInputPath, fileBuffer),
+				await writeFile(fullDataPath, JSON.stringify(textData)),
+				await writeFile(
+					fullTemplatesPath,
+					JSON.stringify(
+						templates.map((t) => ({
+							origin: t.origin,
+							attribute: t.attribute,
+							replacer: t.replacer,
+						})),
+					),
+				),
+			]);
+
+			const success = await new Promise<boolean>((res) => {
+				exec(
+					`${Env.get(
+						"TRANSPILER_PATH",
+					)} ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+					(error, _stdout, _stderr) => {
+						if (error) {
+							console.error(error);
+							// return rej(false);
+							return res(false);
+						}
+
+						return res(true);
+					},
+				);
 			});
-			await writeFile(fullOutputPath, buffer);
+
+			if (!success) {
+				throw new BadRequestException("Erro processando arquivo", 400, "");
+			}
 
 			const responseBuffer = await PDFEngine.convert({
 				files: [fullOutputPath],
@@ -239,6 +285,35 @@ export default class TemplateReplacementService {
 				filename: `${key}.pdf`,
 				key: pdfKey,
 			};
+
+			// const outputPath = `tmp/${key}_output.docx`;
+			// const pdfKey = `documents/compiled/${key}.pdf`;
+			//
+			// const fullOutputPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${outputPath}`;
+			//
+			// // const _template = await readFile(fullInputPath);
+			// const buffer = await createReport({
+			// 	template: fileBuffer,
+			// 	data: this.reverseTextTemplateData(textData, templates),
+			// 	cmdDelimiter: ["[", "]"],
+			// });
+			// await writeFile(fullOutputPath, buffer);
+			//
+			// const responseBuffer = await PDFEngine.convert({
+			// 	files: [fullOutputPath],
+			// });
+			//
+			// await Drive.use("s3").put(pdfKey, responseBuffer, {
+			// 	contentType: "application/pdf",
+			// });
+			//
+			// return {
+			// 	filename: `${key}.pdf`,
+			// 	key: pdfKey,
+			// };
 		}
 
 		return {

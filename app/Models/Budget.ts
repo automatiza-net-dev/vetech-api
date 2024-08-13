@@ -97,6 +97,9 @@ export default class Budget extends BaseModel {
 	@column()
 	public status: BudgetStatus;
 
+	@column()
+	public pending: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

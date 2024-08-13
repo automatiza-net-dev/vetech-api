@@ -286,7 +286,7 @@ export default class BillService {
 				trx,
 				authCtx,
 				data.items
-					.filter((e) => !e.courtesy)
+					.filter((f) => !f.courtesy && !f.maxDiscount)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,
@@ -441,12 +441,14 @@ export default class BillService {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-				})),
+				data
+					.filter((f) => !f.courtesy || !f.maxDiscount)
+					.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+					})),
 			);
 
 			if (invalid.length > 0) {
@@ -1926,6 +1928,7 @@ where deposit_id = ?
 				client_id: data.clientId,
 				patient_id: data.patientId,
 
+				pending: data.items.some((i) => i.courtesy),
 				billDate: data.billDate,
 				productValue: 0,
 				serviceValue: 0,
@@ -2008,8 +2011,10 @@ where deposit_id = ?
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
 					deposit_id: undefined,
+					courtesy_issued_user_id: item.courtesy ? authCtx.user.id : undefined,
 
 					courtesy: item.courtesy,
+					maxDiscount: item.maxDiscount,
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
 					saleValue: price?.price,
@@ -2345,8 +2350,10 @@ where deposit_id = ?
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
 			deposit_id,
+			courtesy_issued_user_id: data.courtesy ? authCtx.user.id : undefined,
 
 			courtesy: data.courtesy,
+			maxDiscount: data.maxDiscount,
 			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,
 			saleValue: price.price,

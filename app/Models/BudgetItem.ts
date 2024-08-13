@@ -59,6 +59,9 @@ export default class BudgetItem extends BaseModel {
 	})
 	public courtesyApprovedAt: DateTime | null;
 
+	@column({ columnName: "max_discount" })
+	public maxDiscount: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

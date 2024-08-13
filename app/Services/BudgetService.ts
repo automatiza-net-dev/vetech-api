@@ -633,7 +633,7 @@ export default class BudgetService {
 				trx,
 				authCtx,
 				data.items
-					.filter((f) => !f.courtesy)
+					.filter((f) => !f.courtesy && !f.maxDiscount)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,
@@ -716,6 +716,7 @@ export default class BudgetService {
 					internalObservation: data.internalObservation,
 					clientName: data.clientName,
 					status: BudgetStatus.A,
+					pending: data.items.some((i) => i.courtesy),
 					tag: GenerateTag(
 						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
 					),
@@ -733,7 +734,7 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			data.items.forEach(async (item) => {
+			for (const item of data.items) {
 				const variation = items.find(
 					(variation) => variation.id === item.productVariationId,
 				);
@@ -749,9 +750,13 @@ export default class BudgetService {
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: variation.id,
+						courtesy_issued_user_id: item.courtesy
+							? authCtx.user.id
+							: undefined,
 
 						courtesy: item.courtesy,
 						saleValue: new Decimal(item.saleValue),
+						maxDiscount: item.maxDiscount ?? false,
 						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
 						discountValue: item.courtesy ? 0 : item.discountValue,
 						quantity: new Decimal(item.quantity),
@@ -764,7 +769,7 @@ export default class BudgetService {
 						client: trx,
 					},
 				);
-			});
+			}
 
 			const [productSum, serviceSum, discountSum] = data.items
 				.filter((f) => !f.courtesy)
@@ -888,7 +893,7 @@ export default class BudgetService {
 				client: trx,
 			});
 
-			if (!data.courtesy) {
+			if (!data.courtesy || !data.maxDiscount) {
 				const result = await this.sharedService.checkDiscount(trx, authCtx, [
 					{
 						variationId: data.productVariationId,
@@ -951,6 +956,7 @@ export default class BudgetService {
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					product_variation_id: data.productVariationId,
+					courtesy_issued_user_id: authCtx.user.id,
 
 					courtesy: data.courtesy,
 					saleValue: new Decimal(data.saleValue),

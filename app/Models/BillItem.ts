@@ -95,7 +95,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		columnName: "icms_percentage",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentage: number;
 
@@ -107,14 +107,14 @@ export default class BillItem extends BaseModel {
 	@column({
 		columnName: "icms_percentage_red_aliquot",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentageRedAliquot: number;
 
 	@column({
 		columnName: "icms_percentage_red_base",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentageRedBase: number;
 
@@ -316,6 +316,9 @@ export default class BillItem extends BaseModel {
 		columnName: "courtesy_approved_at",
 	})
 	public courtesyApprovedAt: DateTime | null;
+
+	@column({ columnName: "max_discount" })
+	public maxDiscount: boolean;
 
 	@column.dateTime({
 		columnName: "disabled_at",

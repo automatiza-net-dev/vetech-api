@@ -1831,6 +1831,14 @@ Route.group(() => {
 	Route.get("/", "NotificationsController.fullNotifications");
 	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");
+	Route.get(
+		"/pendingBills",
+		"NotificationsController.pendingBillsNotifications",
+	);
+	Route.get(
+		"/pendingBudgets",
+		"NotificationsController.pendingBudgetsNotifications",
+	);
 })
 	.prefix("Notifications")
 	.middleware("auth");

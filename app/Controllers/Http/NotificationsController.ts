@@ -33,4 +33,26 @@ export default class NotificationsController {
 			),
 		);
 	}
+
+	public async pendingBillsNotifications({
+		response,
+		auth,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.pendingBills(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
+	public async pendingBudgetsNotifications({
+		response,
+		auth,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.pendingBudgets(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
 }

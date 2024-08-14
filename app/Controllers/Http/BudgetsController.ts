@@ -54,11 +54,7 @@ export default class BudgetsController {
 	public async completeIndex({ request, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
-		const result = await this.service.completeIndex(unit_id, {
-			budget: qs.budget,
-			patient: qs.patient,
-		});
+		const result = await this.service.completeIndex(unit_id, request.qs());
 
 		return response.ok(result);
 	}

@@ -53,12 +53,14 @@ interface ISearchPartial {
 	reviewer?: string;
 	tag?: string;
 	budget_id?: string;
+	pending?: string;
 }
 
 interface ISearchComplete {
 	budget?: string;
 	patient?: string;
 	tag?: string;
+	pending?: string;
 }
 
 interface ISearchProduct {
@@ -385,6 +387,12 @@ export default class BudgetService {
 			qb.where("tag", "ilike", `%${data.tag}%`);
 		}
 
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
+		}
+
 		return qb;
 	}
 
@@ -426,6 +434,12 @@ export default class BudgetService {
 
 		if (data.tag) {
 			qb.where("tag", "ilike", `%${data.tag}%`);
+		}
+
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
 		}
 
 		return qb;

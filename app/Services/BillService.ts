@@ -484,7 +484,7 @@ export default class BillService {
 		});
 	}
 
-	async updateBillItem(_: string, data: IUpdateBillItemData) {
+	async updateBillItem(authCtx: AuthContext, data: IUpdateBillItemData) {
 		return Database.transaction(async (trx) => {
 			const billItems = await BillItem.query()
 				.whereIn(
@@ -539,6 +539,10 @@ export default class BillService {
 
 				return billItem
 					.merge({
+						courtesy_issued_user_id: dataItem?.courtesy
+							? authCtx.user.id
+							: null,
+						courtesy: dataItem?.courtesy,
 						discountValue: dataItem?.discountValue ?? 0,
 						totalValue,
 						icmsOriginProduct: billItem.productVariation.product.icmsOrigin,

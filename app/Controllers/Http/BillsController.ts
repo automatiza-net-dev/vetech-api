@@ -153,9 +153,11 @@ export default class BillsController {
 		auth,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateBillItemValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.updateBillItem(unit_id, payload);
+		const result = await this.service.updateBillItem(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
 		return response.ok(result);
 	}

@@ -405,7 +405,7 @@ export default class FocusNfeService {
 			cep_destinatario: data.buyer.location.code,
 			telefone_destinatario: data.buyer.phone,
 			inscricao_estadual_destinatario:
-				data.buyer.code === "1" ? data.buyer.ie : null,
+				data.buyer.code === "1" ? data.buyer.ie : undefined,
 			indicador_inscricao_estadual_destinatario: data.buyer.code,
 			email_destinatario: data.buyer.email,
 			pessoas_autorizadas: [], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS

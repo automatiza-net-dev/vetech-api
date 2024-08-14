@@ -1435,6 +1435,14 @@ where deposit_id = ?
 			);
 		}
 
+		if (bill.pending) {
+			throw new BadRequestException(
+				"Esta Venda possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser finalizada",
+				400,
+				"E_ERR",
+			);
+		}
+
 		// const dailyCashier = await DailyCashier.query()
 		//   .where('business_unit_id', unitId)
 		//   .where('user_who_opened_id', user.id)

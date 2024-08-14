@@ -63,6 +63,7 @@ interface ISearch {
 	patient?: string;
 	tag?: string;
 	bill_id?: string;
+	pending?: string;
 }
 
 interface ISearchProduct {
@@ -142,6 +143,12 @@ export default class BillService {
 
 		if (data.tag) {
 			qb.where("tag", "ilike", `%${data.tag}%`);
+		}
+
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
 		}
 
 		qb.preload("client");

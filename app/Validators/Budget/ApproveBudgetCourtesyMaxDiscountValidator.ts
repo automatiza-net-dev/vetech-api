@@ -25,7 +25,11 @@ export default class ApproveBudgetCourtesyMaxDiscountValidator {
 	 */
 	public schema = schema.create({
 		budgetId: schema.string([rules.exists({ table: "budgets", column: "id" })]),
-		itemsIdList: schema.array().members(schema.string()),
+		itemsIdList: schema
+			.array()
+			.members(
+				schema.string([rules.exists({ table: "budget_items", column: "id" })]),
+			),
 		email: schema.string([rules.email()]),
 		password: schema.string(),
 		reason: schema.string(),

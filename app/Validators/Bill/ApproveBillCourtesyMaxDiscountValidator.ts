@@ -25,7 +25,11 @@ export default class ApproveBillCourtesyMaxDiscountValidator {
 	 */
 	public schema = schema.create({
 		billId: schema.string([rules.exists({ table: "bills", column: "id" })]),
-		itemsIdList: schema.array().members(schema.string()),
+		itemsIdList: schema
+			.array()
+			.members(
+				schema.string([rules.exists({ table: "bill_items", column: "id" })]),
+			),
 		email: schema.string([rules.email()]),
 		password: schema.string(),
 		reason: schema.string(),

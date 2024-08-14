@@ -47,7 +47,8 @@ export interface ICreateBillPaymentData {
 export interface IUpdateBillItemData {
 	items: Array<{
 		billItemId: string;
+		unitaryValue: number;
 		discountValue: number;
-		courtesy?: boolean;
+		courtesy: boolean;
 	}>;
 }

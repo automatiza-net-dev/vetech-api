@@ -517,11 +517,19 @@ export default class BillService {
 
 			const promises = billItems.map(async (billItem) => {
 				const dataItem = data.items.find((i) => i.billItemId === billItem.id);
+				if (!dataItem) {
+					throw new InternalErrorException(
+						"Erro procurando item da nota",
+						400,
+						"E_RR",
+					);
+				}
 
 				const totalValue = billItem.quantity
-					.times(billItem.unitaryValue)
-					.minus(dataItem?.discountValue ?? 0)
+					.times(dataItem.unitaryValue)
+					.minus(dataItem.discountValue ?? 0)
 					.toNumber();
+
 				const icmsBase =
 					totalValue *
 					((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
@@ -539,9 +547,9 @@ export default class BillService {
 
 				return billItem
 					.merge({
-						courtesy_issued_user_id: dataItem?.courtesy
+						courtesy_issued_user_id: dataItem.courtesy
 							? authCtx.user.id
-							: null,
+							: undefined,
 						courtesy: dataItem?.courtesy,
 						discountValue: dataItem?.discountValue ?? 0,
 						totalValue,

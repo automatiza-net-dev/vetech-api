@@ -11,8 +11,9 @@ export default class UpdateBillItemValidator {
 					rules.uuid(),
 					rules.exists({ table: "bill_items", column: "id" }),
 				]),
+				unitaryValue: schema.number(),
 				discountValue: schema.number(),
-				courtesy: schema.boolean.optional(),
+				courtesy: schema.boolean(),
 			}),
 		),
 	});

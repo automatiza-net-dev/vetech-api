@@ -1123,11 +1123,15 @@ export default class BudgetService {
 
 			const updatedItem = await budgetItem
 				.merge({
+					courtesy_issued_user_id: data.courtesy
+						? authCtx.user.id
+						: budgetItem.courtesy_issued_user_id,
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
 					quantity: new Decimal(data.quantity),
 					totalValue: data.quantity * data.unitaryValue - data.discountValue,
 					status: data.status,
+					courtesy: data.courtesy,
 				})
 				.useTransaction(trx)
 				.save();

@@ -31,6 +31,7 @@ export interface IUpdateBudgetItemData {
 	quantity: number;
 	unitaryValue: number;
 	discountValue: number;
+	courtesy: boolean;
 	status: BudgetStatus;
 }
 

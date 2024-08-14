@@ -62,6 +62,14 @@ export default class BudgetItem extends BaseModel {
 	@column({ columnName: "max_discount" })
 	public maxDiscount: boolean;
 
+	@column({
+		columnName: "pending_observation",
+	})
+	public pendingObservation: string | null;
+
+	@column({})
+	public approved: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

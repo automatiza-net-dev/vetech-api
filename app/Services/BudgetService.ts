@@ -1,5 +1,6 @@
-import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
@@ -38,6 +39,7 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -2098,6 +2100,91 @@ export default class BudgetService {
 			});
 
 			return p;
+		});
+	}
+	async approveCourtesyOrMaxDiscount(
+		authCtx: AuthContext,
+		data: {
+			budgetId: string;
+			itemsIdList: string[];
+			email: string;
+			password: string;
+			reason: string;
+			approved: boolean;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const budget = await Budget.query()
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.budgetId)
+				.first();
+			if (!budget) {
+				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
+			}
+
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.email)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.password))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"ORC11",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					401,
+					"E_ERR",
+				);
+			}
+
+			await budget.merge({ pending: false }).useTransaction(trx).save();
+
+			if (data.approved) {
+				await BudgetItem.query()
+					.useTransaction(trx)
+					.where("bill_id", budget.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservation: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: true,
+					} as Partial<BudgetItem>);
+			} else {
+				await BudgetItem.query()
+					.useTransaction(trx)
+					.where("bill_id", budget.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservation: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: false,
+					} as Partial<BudgetItem>);
+			}
+
+			return null;
 		});
 	}
 }

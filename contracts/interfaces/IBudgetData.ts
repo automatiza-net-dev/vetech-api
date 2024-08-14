@@ -40,6 +40,7 @@ export interface IConfirmBudgetData {
 	finishedAt: DateTime;
 	reasonId?: string;
 	clientId?: string;
+	observation?: string;
 	canceledObservation?: string;
 	internalObservation?: string;
 }

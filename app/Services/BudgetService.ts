@@ -1269,6 +1269,14 @@ export default class BudgetService {
 			);
 		}
 
+		if (model.pending) {
+			throw new BadRequestException(
+				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const client = await Patient.query()
 			.where("id", model.client_id)
 			.preload("tutor")
@@ -1532,6 +1540,7 @@ export default class BudgetService {
 					client_id: data.clientId,
 					finishedAt: data.finishedAt,
 					status: data.type === "PARCIAL" ? BudgetStatus.P : BudgetStatus.C,
+					observation: data.observation,
 					cancelation_reason_id:
 						data.type === "PARCIAL" ? data.reasonId : undefined,
 					canceledObservation:

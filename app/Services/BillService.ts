@@ -1,12 +1,14 @@
-import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database, {
 	type TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
+import BudgetPayment from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
@@ -36,7 +38,7 @@ import Treatment from "App/Models/Treatment";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
-import type User from "App/Models/User";
+import User from "App/Models/User";
 import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
@@ -48,9 +50,9 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import DepositService from "./DepositService";
 import { validate } from "uuid";
-import BudgetPayment from "App/Models/BudgetPayment";
+import DepositService from "./DepositService";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 interface ISearch {
 	fromBill?: string;
@@ -3217,6 +3219,95 @@ where deposit_id = ?
 			}
 
 			return toPrint;
+		});
+	}
+
+	async approveCourtesyOrDiscount(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+			itemsIdList: string[];
+			email: string;
+			password: string;
+			reason: string;
+			approved: boolean;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.first();
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.email)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.password))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"VEN16",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					401,
+					"E_ERR",
+				);
+			}
+
+			await bill.merge({ pending: false }).useTransaction(trx).save();
+			if (data.approved) {
+				await BillItem.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservation: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: true,
+					} as Partial<BillItem>);
+			} else {
+				await BillItem.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservation: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: false,
+					} as Partial<BillItem>);
+			}
+
+			return null;
 		});
 	}
 }

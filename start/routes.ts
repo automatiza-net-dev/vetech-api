@@ -1027,6 +1027,8 @@ Route.group(() => {
 	Route.put("/delete-item/:id", "BillsController.deleteBillItem");
 	Route.post("/create-payment", "BillsController.createBillPayment");
 
+	Route.post("/approve", "BillsController.approveBillCourtesyMaxDiscounts");
+
 	Route.get("/", "BillsController.index");
 	Route.get("/conference/:id", "BillsController.fetchConferenceCashier");
 	Route.get("/products", "BillsController.searchProducts");

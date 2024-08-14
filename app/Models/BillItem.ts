@@ -320,6 +320,14 @@ export default class BillItem extends BaseModel {
 	@column({ columnName: "max_discount" })
 	public maxDiscount: boolean;
 
+	@column({
+		columnName: "pending_observation",
+	})
+	public pendingObservation: string | null;
+
+	@column({})
+	public approved: boolean;
+
 	@column.dateTime({
 		columnName: "disabled_at",
 	})

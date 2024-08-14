@@ -3222,7 +3222,7 @@ where deposit_id = ?
 		});
 	}
 
-	async approveCourtesyOrDiscount(
+	async approveCourtesyOrMaxDiscount(
 		authCtx: AuthContext,
 		data: {
 			billId: string;
@@ -3289,7 +3289,7 @@ where deposit_id = ?
 					.update({
 						courtesy_approved_user_id: user.id,
 
-						pendingObservation: data.reason,
+						pendingObservations: data.reason,
 						courtesyApprovedAt: DateTime.now(),
 						approved: true,
 					} as Partial<BillItem>);
@@ -3301,7 +3301,7 @@ where deposit_id = ?
 					.update({
 						courtesy_approved_user_id: user.id,
 
-						pendingObservation: data.reason,
+						pendingObservations: data.reason,
 						courtesyApprovedAt: DateTime.now(),
 						approved: false,
 					} as Partial<BillItem>);

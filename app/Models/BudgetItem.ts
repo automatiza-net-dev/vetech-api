@@ -63,9 +63,9 @@ export default class BudgetItem extends BaseModel {
 	public maxDiscount: boolean;
 
 	@column({
-		columnName: "pending_observation",
+		columnName: "pending_observations",
 	})
-	public pendingObservation: string | null;
+	public pendingObservations: string | null;
 
 	@column({})
 	public approved: boolean;

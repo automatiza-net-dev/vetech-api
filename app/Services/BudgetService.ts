@@ -2161,24 +2161,24 @@ export default class BudgetService {
 			if (data.approved) {
 				await BudgetItem.query()
 					.useTransaction(trx)
-					.where("bill_id", budget.id)
+					.where("budget_id", budget.id)
 					.whereIn("id", data.itemsIdList)
 					.update({
 						courtesy_approved_user_id: user.id,
 
-						pendingObservation: data.reason,
+						pendingObservations: data.reason,
 						courtesyApprovedAt: DateTime.now(),
 						approved: true,
 					} as Partial<BudgetItem>);
 			} else {
 				await BudgetItem.query()
 					.useTransaction(trx)
-					.where("bill_id", budget.id)
+					.where("budget_id", budget.id)
 					.whereIn("id", data.itemsIdList)
 					.update({
 						courtesy_approved_user_id: user.id,
 
-						pendingObservation: data.reason,
+						pendingObservations: data.reason,
 						courtesyApprovedAt: DateTime.now(),
 						approved: false,
 					} as Partial<BudgetItem>);

@@ -1052,6 +1052,7 @@ export default class BudgetService {
 						product_variation_id: item.productVariationId,
 
 						courtesy: item.courtesy,
+						maxDiscount: item.maxDiscount,
 						saleValue: new Decimal(item.saleValue),
 						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
 						discountValue: item.courtesy ? 0 : item.discountValue,

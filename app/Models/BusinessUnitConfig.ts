@@ -115,6 +115,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public allowedReturnQty: number;
 
 	@column({
+		columnName: "show_treatment_executions_schedule",
+	})
+	public showTreatmentExecutionsSchedule: boolean;
+
+	@column({
 		columnName: "bill_counter",
 	})
 	public billCounter: string;

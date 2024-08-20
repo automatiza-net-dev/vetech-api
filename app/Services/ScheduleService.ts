@@ -38,6 +38,7 @@ import {
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
+import { v4 } from "uuid";
 
 interface ISearch {
 	pid?: string;
@@ -1081,6 +1082,7 @@ export default class ScheduleService {
 			status?: string[];
 			working?: string;
 			unavailable?: string;
+			patient?: string;
 		},
 	) {
 		// if (!data.from || !data.to) {
@@ -1090,9 +1092,9 @@ export default class ScheduleService {
 		const refEnd = data.to ? new Date(data.to) : new Date();
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -1100,13 +1102,13 @@ export default class ScheduleService {
 				[refStart.getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[refStart, refEnd],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			);
 
 		if (data.user) {
@@ -1230,6 +1232,47 @@ export default class ScheduleService {
 				});
 			});
 
+		const executions: {
+			tipo_registro: string;
+			description: string;
+			label: string;
+			reserved_minutes: number;
+			treatment_id: number;
+			treatment_item_id: number;
+			treatment_execution_id: number;
+			schedule_id: string;
+		}[] = await Database.from("treatment_executions")
+			.select(
+				Database.raw(
+					`
+                'Tratamento'                                             as tipo_registro,
+       'Tratamentos - Execuções'                                as description,
+       products.description || ' - ' || productivity_items.description as label,
+       productivity_items.reserved_minutes,
+       treatment_executions.treatment_id                        as treatment_id,
+       treatment_executions.treatment_item_id                   as treatment_item_id,
+       treatment_executions.id                                  as treatment_execution_id,
+       treatment_executions.schedule_id
+       `,
+					[],
+				),
+			)
+			.joinRaw(
+				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+			)
+			.joinRaw(
+				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
+               on product_variations.product_id = products.id)
+              on treatment_executions.treatment_item_id = treatment_items.id and
+                 treatment_executions.treatment_id = treatment_items.treatment_id`,
+			)
+			.joinRaw(
+				"join treatments on treatment_executions.treatment_id = treatments.id",
+			)
+			.where("treatments.client_id", data.patient ?? v4())
+			.whereNotNull("treatment_executions.schedule_id")
+			.orderByRaw("1, 4, 3, 7");
+
 		const mappedSchedules = resultData[0].map((schedule) => {
 			const jsonKinda = schedule.toJSON();
 			const patient = patients.find((p) => p.id === schedule.patient_id);
@@ -1272,6 +1315,10 @@ export default class ScheduleService {
 				tag: patient?.tag,
 				cellphone: patient?.tutor?.cellphone ?? null,
 			};
+
+			jsonKinda.treatmentExecutions = executions.filter(
+				(ex) => ex.schedule_id === schedule.id,
+			);
 
 			return jsonKinda;
 		});
@@ -1632,11 +1679,19 @@ export default class ScheduleService {
 	private getEventLabel(
 		data: WorkingDay | UnavailableDay | Schedule | unknown,
 	) {
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		if (data instanceof WorkingDay) {
+			return "working";
+		}
+
+		if (data instanceof UnavailableDay) {
+			return "unavailable";
+		}
+
 		// @ts-ignore
-		const { table } = data.constructor;
-		if (table === "working_days") return "working";
-		if (table === "unavailable_days") return "unavailable";
+		if ("tipo_registro" in data) {
+			return "treatment";
+		}
+
 		return "schedule";
 	}
 

@@ -242,7 +242,7 @@ export default class BillService {
 					query.preload("product");
 
 					query.preload("businessUnitProducts", (query) => {
-						query.where("busineness_unit_id", unitId);
+						query.where("businness_unit_id", unitId);
 						query.select("id", "maximum_discount_percentage");
 					});
 				});

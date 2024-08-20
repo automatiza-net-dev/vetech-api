@@ -240,6 +240,11 @@ export default class BillService {
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
 					query.preload("product");
+
+					query.preload("businessUnitProducts", (query) => {
+						query.where("busineness_unit_id", unitId);
+						query.select("id", "maximum_discount_percentage");
+					});
 				});
 
 				query.preload("courtesyIssuedUser", (query) => {

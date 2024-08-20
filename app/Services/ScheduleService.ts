@@ -1270,6 +1270,8 @@ export default class ScheduleService {
 				"join treatments on treatment_executions.treatment_id = treatments.id",
 			)
 			.where("treatments.client_id", data.patient ?? v4())
+			.where("treatments.economic_group_id", authCtx.group.id)
+			.where("treatments.business_unit_id", authCtx.unit.id)
 			.whereNotNull("treatment_executions.schedule_id")
 			.orderByRaw("1, 4, 3, 7");
 

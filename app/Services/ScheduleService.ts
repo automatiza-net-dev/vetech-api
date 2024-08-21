@@ -225,40 +225,98 @@ export default class ScheduleService {
 			nonConfirmedQb,
 		]);
 
-		return {
-			confirmed: confirmedSchedules.map((day) => ({
-				start: day.startHour.toString(),
-				end: day.endHour.toString(),
-				event: day,
-				name: day.user?.name ?? "-",
-				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late:
-					isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-					["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-						? differenceInMinutes(
-								new Date(),
-								day.startHour.plus({ hours: 3 }).toJSDate(),
-							)
-						: null,
-				type: this.getEventLabel(day),
-			})),
+		const executions: {
+			tipo_registro: string;
+			description: string;
+			label: string;
+			reserved_minutes: number;
+			treatment_id: number;
+			treatment_item_id: number;
+			treatment_execution_id: number;
+			schedule_id: string;
+		}[] = await Database.from("treatment_executions")
+			.select(
+				Database.raw(
+					`
+                'Tratamento'                                             as tipo_registro,
+       'Tratamentos - Execuções'                                as description,
+       products.description || ' - ' || productivity_items.description as label,
+       productivity_items.reserved_minutes,
+       treatment_executions.treatment_id                        as treatment_id,
+       treatment_executions.treatment_item_id                   as treatment_item_id,
+       treatment_executions.id                                  as treatment_execution_id,
+       treatment_executions.schedule_id
+       `,
+					[],
+				),
+			)
+			.joinRaw(
+				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+			)
+			.joinRaw(
+				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
+               on product_variations.product_id = products.id)
+              on treatment_executions.treatment_item_id = treatment_items.id and
+                 treatment_executions.treatment_id = treatment_items.treatment_id`,
+			)
+			.joinRaw(
+				"join treatments on treatment_executions.treatment_id = treatments.id",
+			)
+			.where("treatments.economic_group_id", authCtx.group.id)
+			.where("treatments.business_unit_id", authCtx.unit.id)
+			.whereNotNull("treatment_executions.schedule_id")
+			.orderByRaw("1, 4, 3, 7");
 
-			nonConfirmed: nonConfirmedSchedules.map((day) => ({
-				start: day.startHour.toString(),
-				end: day.endHour.toString(),
-				event: day,
-				name: day.user?.name ?? "-",
-				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late:
-					isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-					["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-						? differenceInMinutes(
-								new Date(),
-								day.startHour.plus({ hours: 3 }).toJSDate(),
-							)
-						: null,
-				type: this.getEventLabel(day),
-			})),
+		return {
+			confirmed: confirmedSchedules
+				.map((day) => {
+					Object.assign(day, {
+						executions: executions.filter((ex) => ex.schedule_id === day.id),
+					});
+
+					return day;
+				})
+				.map((day) => ({
+					start: day.startHour.toString(),
+					end: day.endHour.toString(),
+					event: day,
+					name: day.user?.name ?? "-",
+					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					late:
+						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
+						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+							? differenceInMinutes(
+									new Date(),
+									day.startHour.plus({ hours: 3 }).toJSDate(),
+								)
+							: null,
+					type: this.getEventLabel(day),
+				})),
+
+			nonConfirmed: nonConfirmedSchedules
+				.map((day) => {
+					Object.assign(day, {
+						executions: executions.filter((ex) => ex.schedule_id === day.id),
+					});
+
+					return day;
+				})
+				.map((day) => ({
+					start: day.startHour.toString(),
+					end: day.endHour.toString(),
+					event: day,
+					name: day.user?.name ?? "-",
+					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					late:
+						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
+						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+							? differenceInMinutes(
+									new Date(),
+									day.startHour.plus({ hours: 3 }).toJSDate(),
+								)
+							: null,
+					type: this.getEventLabel(day),
+				})),
 		};
 	}
 

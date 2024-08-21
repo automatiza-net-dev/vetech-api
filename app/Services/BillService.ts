@@ -564,6 +564,7 @@ export default class BillService {
 							: undefined,
 						courtesy: dataItem?.courtesy,
 						discountValue: dataItem?.discountValue ?? 0,
+						unitaryValue: dataItem.unitaryValue,
 						totalValue,
 						icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
 						icmsCst: billItem.taxRule?.icmsCst,

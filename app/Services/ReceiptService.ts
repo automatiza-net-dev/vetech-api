@@ -536,7 +536,8 @@ export default class ReceiptService {
 				query.select("id", "name");
 			})
 			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id);
+			.where("business_unit_id", authCtx.unit.id)
+			.orderByRaw("receipt_date desc");
 
 		if (data.receipt_id) {
 			qb.where("id", data.receipt_id);
@@ -879,7 +880,7 @@ export default class ReceiptService {
 
 				if (unit.economicGroupId !== authCtx.group.id) {
 					throw new BadRequestException(
-						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						`O CNPJ do destinatário desta nota fiscal é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
 						400,
 						"E_INVALID_DOC",
 					);

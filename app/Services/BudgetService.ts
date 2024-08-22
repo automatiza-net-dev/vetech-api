@@ -821,6 +821,7 @@ export default class BudgetService {
 
 			await budget
 				.merge({
+					pending: data.items.some((f) => f.courtesy),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
@@ -977,7 +978,7 @@ export default class BudgetService {
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					product_variation_id: data.productVariationId,
-					courtesy_issued_user_id: authCtx.user.id,
+					courtesy_issued_user_id: data.courtesy ? authCtx.user.id : null,
 
 					courtesy: data.courtesy,
 					saleValue: new Decimal(data.saleValue),
@@ -996,12 +997,16 @@ export default class BudgetService {
 
 			await budget
 				.merge({
+					pending: data.courtesy ? true : budget.pending,
+
 					productValue:
-						productVariation.product.type === ProductType.PRODUCT
+						productVariation.product.type === ProductType.PRODUCT &&
+						!data.courtesy
 							? budget.productValue + item.totalValue
 							: budget.productValue,
 					serviceValue:
-						productVariation.product.type === ProductType.SERVICE
+						productVariation.product.type === ProductType.SERVICE &&
+						!data.courtesy
 							? budget.serviceValue + item.totalValue
 							: budget.serviceValue,
 					discountValue: budget.discountValue + item.discountValue,
@@ -1055,6 +1060,7 @@ export default class BudgetService {
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: item.productVariationId,
+						courtesy_issued_user_id: item.courtesy ? authCtx.user.id : null,
 
 						courtesy: item.courtesy,
 						maxDiscount: item.maxDiscount,
@@ -1086,11 +1092,11 @@ export default class BudgetService {
 				await budget
 					.merge({
 						productValue:
-							variation.product.type === ProductType.PRODUCT
+							variation.product.type === ProductType.PRODUCT && !item.courtesy
 								? budget.productValue + dbItem.totalValue
 								: budget.productValue,
 						serviceValue:
-							variation.product.type === ProductType.SERVICE
+							variation.product.type === ProductType.SERVICE && !item.courtesy
 								? budget.serviceValue + dbItem.totalValue
 								: budget.serviceValue,
 						discountValue: budget.discountValue + dbItem.discountValue,
@@ -1144,8 +1150,8 @@ export default class BudgetService {
 			const updatedItem = await budgetItem
 				.merge({
 					courtesy_issued_user_id: data.courtesy
-						? authCtx.user.id
-						: budgetItem.courtesy_issued_user_id,
+						? budgetItem.courtesy_approved_user_id || authCtx.user.id
+						: null,
 					unitaryValue: data.unitaryValue,
 					discountValue: data.discountValue,
 					quantity: new Decimal(data.quantity),
@@ -1230,11 +1236,6 @@ export default class BudgetService {
 				);
 			}
 
-			const existingItems = await BudgetItem.query()
-				.where("budget_id", budgetItem.budget_id)
-				.whereNot("id", id)
-				.where("status", BudgetStatus.A);
-
 			const updatedItem = await budgetItem
 				.merge({
 					exclusion_user_id: authCtx.user.id,
@@ -1243,6 +1244,11 @@ export default class BudgetService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			const existingItems = await BudgetItem.query()
+				.where("budget_id", budgetItem.budget_id)
+				.whereNot("id", id)
+				.where("status", BudgetStatus.A);
 
 			const [productSum, serviceSum, discountSum] = existingItems
 				.filter((f) => !f.courtesy)

@@ -162,7 +162,7 @@ export default class BillService {
 			});
 		});
 
-		qb.orderByRaw(`bill_date desc, tag desc`);
+		qb.orderByRaw("bill_date desc, tag desc");
 
 		const result = await qb;
 

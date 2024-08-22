@@ -300,7 +300,7 @@ export default class BillService {
 				trx,
 				authCtx,
 				data.items
-					.filter((f) => !f.courtesy && !f.maxDiscount)
+					.filter((f) => !f.courtesy || f.maxDiscount)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,
@@ -525,7 +525,7 @@ export default class BillService {
 				authCtx,
 				data.items
 					.filter((f) => f.shouldValidateDiscount)
-					.filter((f) => !f.courtesy || !f.maxDiscount)
+					.filter((f) => !f.courtesy || f.maxDiscount)
 					.map((elem) => {
 						const item = billItems.find((bi) => bi.id === elem.billItemId);
 						if (!item) {

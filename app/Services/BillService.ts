@@ -2318,15 +2318,6 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		const items = await bill
-			.related("items")
-			.query()
-			.useTransaction(trx)
-			.where("status", BillItemStatus.A)
-			.preload("productVariation", (query) => {
-				query.preload("product");
-			});
-
 		const productVariation = await ProductVariation.query()
 			.useTransaction(trx)
 			.where("id", data.productVariationId)
@@ -2556,11 +2547,18 @@ where deposit_id = ?
 		// icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
 		// icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
 
-		const billItem = await BillItem.create(toCreate, {
+		await BillItem.create(toCreate, {
 			client: trx,
 		});
 
-		const validItems = [billItem, ...items];
+		const validItems = await bill
+			.related("items")
+			.query()
+			.useTransaction(trx)
+			.where("status", BillItemStatus.A)
+			.preload("productVariation", (query) => {
+				query.preload("product");
+			});
 
 		const [productSum, serviceSum, discountSum] = validItems
 			.filter((f) => !f.courtesy)

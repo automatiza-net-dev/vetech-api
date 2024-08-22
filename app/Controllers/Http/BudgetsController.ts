@@ -171,22 +171,20 @@ export default class BudgetsController {
 		});
 	}
 
-	public async updateBudgetItem({
+	public async updateBudgetItems({
 		request,
-		params,
 		response,
 		auth,
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(UpdateBudgetItemValidator);
 
-			const result = await this.service.updateBudgetItem(
+			await this.service.updateBudgetItem(
 				await this.sharedService.getAuthContext(auth),
-				params.id,
-				payload,
+				payload.items,
 			);
 
-			return response.ok(result);
+			return response.ok(null);
 		});
 	}
 

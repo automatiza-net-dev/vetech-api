@@ -28,10 +28,12 @@ export interface ICreateBudgetData {
 }
 
 export interface IUpdateBudgetItemData {
+	budgetItemId: string;
 	quantity: number;
 	unitaryValue: number;
 	discountValue: number;
-	courtesy: boolean;
+	courtesy?: boolean;
+	maxDiscount?: boolean;
 	status: BudgetStatus;
 }
 

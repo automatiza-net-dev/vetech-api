@@ -1028,7 +1028,7 @@ export default class BudgetService {
 				trx,
 				authCtx,
 				data
-					.filter((f) => !f.courtesy || f.maxDiscount)
+					.filter((f) => !f.courtesy)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,
@@ -1165,31 +1165,28 @@ export default class BudgetService {
 			const existingItems = await BudgetItem.query()
 				.where("budget_id", budgetItem.budget_id)
 				.where("status", BudgetStatus.A)
+				.where("courtesy", false)
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});
 
-			const [productSum, serviceSum, discountSum] = existingItems
-				.filter((f) => !f.courtesy)
-				.reduce(
-					(acc, curr) => {
-						if (curr.productVariation.product.type === ProductType.PRODUCT) {
-							acc[0] +=
-								curr.unitaryValue * curr.quantity.toNumber() -
-								curr.discountValue;
-						}
-						if (curr.productVariation.product.type === ProductType.SERVICE) {
-							acc[1] +=
-								curr.unitaryValue * curr.quantity.toNumber() -
-								curr.discountValue;
-						}
+			const [productSum, serviceSum, discountSum] = existingItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
 
-						acc[2] += curr.discountValue;
+					acc[2] += curr.discountValue;
 
-						return acc;
-					},
-					[0, 0, 0],
-				);
+					return acc;
+				},
+				[0, 0, 0],
+			);
 
 			await budgetItem.budget
 				.merge({

@@ -360,7 +360,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_issued_user_id: string;
+	public courtesy_issued_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_issued_user_id",
@@ -370,7 +370,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_approved_user_id: string;
+	public courtesy_approved_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_approved_user_id",

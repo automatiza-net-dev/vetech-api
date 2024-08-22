@@ -520,6 +520,34 @@ export default class BillService {
 				);
 			}
 
+			const invalid = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.items
+					.filter((f) => f.shouldValidateDiscount)
+					.filter((f) => !f.courtesy || !f.maxDiscount)
+					.map((elem) => {
+						const item = billItems.find((bi) => bi.id === elem.billItemId);
+						if (!item) {
+							throw new InternalErrorException(
+								"Atualização de item não encontrado?",
+								500,
+								"E_ERR",
+							);
+						}
+
+						return {
+							variationId: item.product_variation_id,
+							quantity: item.quantity.toNumber(),
+							unitaryValue: elem.unitaryValue,
+							discountValue: elem.discountValue,
+						};
+					}),
+			);
+			if (invalid.length > 0) {
+				return invalid;
+			}
+
 			const ufList = billItems.map((i) => i.taxRule?.toUf).filter(Boolean);
 			const ufIcms = await UfIcms.query()
 				.useTransaction(trx)
@@ -560,9 +588,9 @@ export default class BillService {
 				return billItem
 					.merge({
 						courtesy_issued_user_id: dataItem.courtesy
-							? authCtx.user.id
-							: undefined,
-						courtesy: dataItem?.courtesy,
+							? billItem.courtesy_approved_user_id || authCtx.user.id
+							: null,
+						courtesy: dataItem?.courtesy ?? false,
 						discountValue: dataItem?.discountValue ?? 0,
 						unitaryValue: dataItem.unitaryValue,
 						totalValue,
@@ -2143,106 +2171,116 @@ where deposit_id = ?
 			);
 		});
 
-		const validItems = await Promise.all(items);
+		await Promise.all(items);
 
-		let totalProductValue = 0;
-		let totalServiceValue = 0;
-		validItems.forEach((item) => {
-			const variation = productVariations.find(
-				(p) => p.id === item.product_variation_id,
+		const existingItems = await BillItem.query()
+			.where("bill_id", bill.id)
+			.preload("productVariation", (query) => {
+				query.preload("product");
+			});
+
+		const [productSum, serviceSum, discountSum] = existingItems
+			.filter((f) => !f.courtesy)
+			.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
 			);
-
-			if (variation?.product.type === ProductType.PRODUCT) {
-				totalProductValue += item.totalValue;
-			}
-			if (variation?.product.type === ProductType.SERVICE) {
-				totalServiceValue += item.totalValue;
-			}
-		});
-
-		// const totalProductValue = validItems.reduce(
-		//   (acc, item) => acc + (item.totalValue ?? 0),
-		//   0,
-		// );
-
-		const totalDiscountValue = validItems.reduce(
-			(acc, item) => acc + (item.discountValue ?? 0),
-			0,
-		);
 
 		await bill
 			.merge({
-				pending: validItems.some(
+				pending: existingItems.some(
 					(it) =>
 						(it.courtesy && !it.courtesy_approved_user_id) ||
 						(it.maxDiscount && !it.courtesy_approved_user_id),
 				),
-				productValue: totalProductValue,
-				serviceValue: totalServiceValue,
-				discountValue: totalDiscountValue,
-				totalValue: totalProductValue + totalServiceValue,
-				icmsBase: validItems
+				productValue: productSum,
+				serviceValue: serviceSum,
+				discountValue: discountSum,
+				totalValue: productSum + serviceSum,
+				icmsBase: existingItems
 					.filter((i) => Boolean(i.icmsBase))
 					.reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
-				icmsValue: validItems
+				icmsValue: existingItems
 					.filter((i) => Boolean(i.icmsValue))
 					.reduce((acc, item) => acc + item.icmsValue, 0),
-				icmsStBase: validItems
+				icmsStBase: existingItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
 					.reduce((acc, item) => acc + item.icmsStBase, 0),
-				icmsStValue: validItems
+				icmsStValue: existingItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
 					.reduce((acc, item) => acc + (item.icmsStValue ?? 0), 0),
-				issBase: validItems.reduce((acc, item) => acc + (item.issBase ?? 0), 0),
-				issValue: validItems.reduce(
+				issBase: existingItems.reduce(
+					(acc, item) => acc + (item.issBase ?? 0),
+					0,
+				),
+				issValue: existingItems.reduce(
 					(acc, item) => acc + (item.issValue ?? 0),
 					0,
 				),
-				pisBase: validItems.reduce((acc, item) => acc + (item.pisBase ?? 0), 0),
-				pisValue: validItems.reduce(
+				pisBase: existingItems.reduce(
+					(acc, item) => acc + (item.pisBase ?? 0),
+					0,
+				),
+				pisValue: existingItems.reduce(
 					(acc, item) => acc + (item.pisValue ?? 0),
 					0,
 				),
-				pisRetentionValue: validItems.reduce(
+				pisRetentionValue: existingItems.reduce(
 					(acc, item) => acc + (item.pisRetentionValue ?? 0),
 					0,
 				),
-				cofinsBase: validItems.reduce(
+				cofinsBase: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsBase ?? 0),
 					0,
 				),
-				cofinsValue: validItems.reduce(
+				cofinsValue: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsValue ?? 0),
 					0,
 				),
-				cofinsRetentionValue: validItems.reduce(
+				cofinsRetentionValue: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsRetentionValue ?? 0),
 					0,
 				),
-				ipiBase: validItems.reduce((acc, item) => acc + (item.ipiBase ?? 0), 0),
-				ipiValue: validItems.reduce(
+				ipiBase: existingItems.reduce(
+					(acc, item) => acc + (item.ipiBase ?? 0),
+					0,
+				),
+				ipiValue: existingItems.reduce(
 					(acc, item) => acc + (item.ipiValue ?? 0),
 					0,
 				),
-				icmsDeferredValue: validItems.reduce(
+				icmsDeferredValue: existingItems.reduce(
 					(acc, item) => acc + (item.icmsDeferredValue ?? 0),
 					0,
 				),
-				icmsFcpValue: validItems.reduce(
+				icmsFcpValue: existingItems.reduce(
 					(acc, item) => acc + (item.icmsFcpValue ?? 0),
 					0,
 				),
-				icmsUfDestinationValue: validItems.reduce(
+				icmsUfDestinationValue: existingItems.reduce(
 					(acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
 					0,
 				),
-				icmsUfOriginValue: validItems.reduce(
+				icmsUfOriginValue: existingItems.reduce(
 					(acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
 					0,
 				),
@@ -2524,31 +2562,25 @@ where deposit_id = ?
 
 		const validItems = [billItem, ...items];
 
-		let totalProductValue = 0;
-		let totalServiceValue = 0;
-		items.forEach((item) => {
-			if (item.productVariation.product.type === ProductType.PRODUCT) {
-				totalProductValue += item.totalValue;
-			}
-			if (item.productVariation.product.type === ProductType.SERVICE) {
-				totalServiceValue += item.totalValue;
-			}
-		});
-		if (productVariation.product.type === ProductType.PRODUCT) {
-			totalProductValue += billItem.totalValue;
-		} else {
-			totalServiceValue += billItem.totalValue;
-		}
+		const [productSum, serviceSum, discountSum] = validItems
+			.filter((f) => !f.courtesy)
+			.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
 
-		// const totalProductValue = validItems.reduce(
-		//   (acc, item) => acc + (item.totalValue ?? 0),
-		//   0,
-		// );
+					acc[2] += curr.discountValue;
 
-		const totalDiscountValue = validItems.reduce(
-			(acc, item) => acc + (item.discountValue ?? 0),
-			0,
-		);
+					return acc;
+				},
+				[0, 0, 0],
+			);
 
 		await bill
 			.merge({
@@ -2557,10 +2589,10 @@ where deposit_id = ?
 						(it.courtesy && !it.courtesy_approved_user_id) ||
 						(it.maxDiscount && !it.courtesy_approved_user_id),
 				),
-				productValue: totalProductValue,
-				serviceValue: totalServiceValue,
-				discountValue: totalDiscountValue,
-				totalValue: totalProductValue + totalServiceValue,
+				productValue: productSum,
+				serviceValue: serviceSum,
+				discountValue: discountSum,
+				totalValue: productSum + serviceSum,
 				icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 				icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 				icmsStBase: validItems

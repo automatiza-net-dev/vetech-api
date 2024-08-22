@@ -50,5 +50,7 @@ export interface IUpdateBillItemData {
 		unitaryValue: number;
 		discountValue: number;
 		courtesy: boolean;
+		maxDiscount?: boolean;
+		shouldValidateDiscount?: boolean;
 	}>;
 }

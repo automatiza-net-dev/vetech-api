@@ -14,6 +14,8 @@ export default class UpdateBillItemValidator {
 				unitaryValue: schema.number(),
 				discountValue: schema.number(),
 				courtesy: schema.boolean(),
+				shouldValidateDiscount: schema.boolean(),
+				maxDiscount: schema.boolean.optional(),
 			}),
 		),
 	});

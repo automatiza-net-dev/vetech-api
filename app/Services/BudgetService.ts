@@ -1163,23 +1163,27 @@ export default class BudgetService {
 					query.preload("product");
 				});
 
-			const [productSum, serviceSum, discountSum] = existingItems.reduce(
-				(acc, curr) => {
-					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
-					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
+			const [productSum, serviceSum, discountSum] = existingItems
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						if (curr.productVariation.product.type === ProductType.PRODUCT) {
+							acc[0] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
+						if (curr.productVariation.product.type === ProductType.SERVICE) {
+							acc[1] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
 
-					acc[2] += curr.discountValue;
+						acc[2] += curr.discountValue;
 
-					return acc;
-				},
-				[0, 0, 0],
-			);
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await budgetItem.budget
 				.merge({
@@ -1240,21 +1244,34 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			const unitarySum = existingItems.reduce(
-				(total, item) => total + item.totalValue,
-				0,
-			);
+			const [productSum, serviceSum, discountSum] = existingItems
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						if (curr.productVariation.product.type === ProductType.PRODUCT) {
+							acc[0] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
+						if (curr.productVariation.product.type === ProductType.SERVICE) {
+							acc[1] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
 
-			const discountSum = existingItems.reduce(
-				(total, item) => total + item.discountValue,
-				0,
-			);
+						acc[2] += curr.discountValue;
+
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await budgetItem.budget
 				.merge({
-					productValue: unitarySum,
+					productValue: productSum,
+					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: unitarySum - discountSum,
+					totalValue: productSum + serviceSum - discountSum,
 				})
 				.useTransaction(trx)
 				.save();

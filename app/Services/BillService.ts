@@ -456,7 +456,7 @@ export default class BillService {
 				trx,
 				authCtx,
 				data
-					.filter((f) => !f.courtesy || !f.maxDiscount)
+					.filter((f) => !f.courtesy || f.maxDiscount)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,

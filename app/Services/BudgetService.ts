@@ -1165,7 +1165,9 @@ export default class BudgetService {
 			const existingItems = await BudgetItem.query()
 				.where("budget_id", budgetItem.budget_id)
 				.where("status", BudgetStatus.A)
-				.where("courtesy", false)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				)
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});
@@ -1190,6 +1192,7 @@ export default class BudgetService {
 
 			await budgetItem.budget
 				.merge({
+					pending: existingItems.length > 0,
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,

@@ -808,6 +808,11 @@ export default class BillService {
 
 			await bill
 				.merge({
+					pending: validItems.some(
+						(it) =>
+							(it.courtesy && !it.courtesy_approved_user_id) ||
+							(it.maxDiscount && !it.courtesy_approved_user_id),
+					),
 					productValue: totalProductValue,
 					serviceValue: totalServiceValue,
 					discountValue: totalDiscountValue,
@@ -2167,6 +2172,11 @@ where deposit_id = ?
 
 		await bill
 			.merge({
+				pending: validItems.some(
+					(it) =>
+						(it.courtesy && !it.courtesy_approved_user_id) ||
+						(it.maxDiscount && !it.courtesy_approved_user_id),
+				),
 				productValue: totalProductValue,
 				serviceValue: totalServiceValue,
 				discountValue: totalDiscountValue,
@@ -2386,7 +2396,8 @@ where deposit_id = ?
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
 			deposit_id,
-			courtesy_issued_user_id: data.courtesy ? authCtx.user.id : undefined,
+			courtesy_issued_user_id:
+				data.courtesy ?? data.maxDiscount ? authCtx.user.id : undefined,
 
 			courtesy: data.courtesy,
 			maxDiscount: data.maxDiscount,
@@ -2541,6 +2552,11 @@ where deposit_id = ?
 
 		await bill
 			.merge({
+				pending: validItems.some(
+					(it) =>
+						(it.courtesy && !it.courtesy_approved_user_id) ||
+						(it.maxDiscount && !it.courtesy_approved_user_id),
+				),
 				productValue: totalProductValue,
 				serviceValue: totalServiceValue,
 				discountValue: totalDiscountValue,

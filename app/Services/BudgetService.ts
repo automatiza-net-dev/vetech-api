@@ -654,7 +654,7 @@ export default class BudgetService {
 				trx,
 				authCtx,
 				data.items
-					.filter((f) => !f.courtesy || f.maxDiscount)
+					.filter((f) => !f.courtesy || !f.maxDiscount)
 					.map((elem) => ({
 						variationId: elem.productVariationId,
 						unitaryValue: elem.unitaryValue,

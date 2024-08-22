@@ -2046,7 +2046,8 @@ where deposit_id = ?
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
 					deposit_id: undefined,
-					courtesy_issued_user_id: item.courtesy ? authCtx.user.id : undefined,
+					courtesy_issued_user_id:
+						item.courtesy || item.maxDiscount ? authCtx.user.id : undefined,
 
 					courtesy: item.courtesy,
 					maxDiscount: item.maxDiscount,

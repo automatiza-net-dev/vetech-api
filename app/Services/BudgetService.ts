@@ -1225,7 +1225,7 @@ export default class BudgetService {
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: productSum + serviceSum - discountSum,
+					totalValue: productSum + serviceSum,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1304,7 +1304,7 @@ export default class BudgetService {
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: productSum + serviceSum - discountSum,
+					totalValue: productSum + serviceSum,
 				})
 				.useTransaction(trx)
 				.save();

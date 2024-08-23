@@ -735,7 +735,7 @@ export default class BillService {
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: productSum + serviceSum - discountSum,
+					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems

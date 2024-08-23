@@ -1509,7 +1509,13 @@ where deposit_id = ?
 			);
 		}
 
-		if (bill.items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+		if (
+			bill.items.some(
+				(i) =>
+					(i.courtesy || i.maxDiscount) &&
+					(!i.approved || !i.courtesy_approved_user_id),
+			)
+		) {
 			throw new BadRequestException(
 				"Venda não pode ser finalizada pois possui cortesias não aprovadas",
 				400,

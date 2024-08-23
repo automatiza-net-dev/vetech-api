@@ -159,6 +159,10 @@ export default class BillsController {
 			payload,
 		);
 
+		if (Array.isArray(result)) {
+			return response.badRequest(result);
+		}
+
 		return response.ok(result);
 	}
 

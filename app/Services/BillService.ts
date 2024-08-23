@@ -526,31 +526,32 @@ export default class BillService {
 				);
 			}
 
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx,
-				data.items
-					.filter((f) => f.shouldValidateDiscount)
-					.map((elem) => {
-						const item = billItems.find((bi) => bi.id === elem.billItemId);
-						if (!item) {
-							throw new InternalErrorException(
-								"Atualização de item não encontrado?",
-								500,
-								"E_ERR",
-							);
-						}
+			const invalid: { rule: string; message: string }[] =
+				await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items
+						.filter((f) => f.shouldValidateDiscount)
+						.map((elem) => {
+							const item = billItems.find((bi) => bi.id === elem.billItemId);
+							if (!item) {
+								throw new InternalErrorException(
+									"Atualização de item não encontrado?",
+									500,
+									"E_ERR",
+								);
+							}
 
-						return {
-							variationId: item.product_variation_id,
-							quantity: item.quantity.toNumber(),
-							unitaryValue: elem.unitaryValue,
-							discountValue: elem.discountValue,
-							courtesy: elem.courtesy,
-							maxDiscount: elem.maxDiscount,
-						};
-					}),
-			);
+							return {
+								variationId: item.product_variation_id,
+								quantity: item.quantity.toNumber(),
+								unitaryValue: elem.unitaryValue,
+								discountValue: elem.discountValue,
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+							};
+						}),
+				);
 			if (invalid.length > 0) {
 				return invalid;
 			}

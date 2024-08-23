@@ -1378,18 +1378,15 @@ export default class BudgetService {
 		const items = await model
 			.related("items")
 			.query()
+			.whereNotIn("id", data.notConfirmedItems)
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
 
 		if (
-			items
-				.filter((f) => !data.notConfirmedItems.includes(f.id))
-				.some(
-					(i) =>
-						(i.courtesy || i.maxDiscount) &&
-						(!i.approved || !i.courtesy_approved_user_id),
-				)
+			items.some(
+				(i) => (i.courtesy || i.maxDiscount) && !i.courtesy_approved_user_id,
+			)
 		) {
 			throw new BadRequestException(
 				"Orçamento não pode ser confirmado pois possui cortesias não aprovadas",
@@ -1605,16 +1602,19 @@ export default class BudgetService {
 				},
 			);
 
-			items.forEach(async (item) => {
-				await item
+			// TODO FIX
+			const itemsToUpdate = await model.related("items").query();
+			const tasks = itemsToUpdate.map((elem) => {
+				return elem
 					.merge({
-						status: data.notConfirmedItems.includes(item.id)
+						status: data.notConfirmedItems.includes(elem.id)
 							? BudgetStatus.N
 							: BudgetStatus.C,
 					})
 					.useTransaction(trx)
 					.save();
 			});
+			await Promise.all(tasks);
 
 			await bill
 				.merge({

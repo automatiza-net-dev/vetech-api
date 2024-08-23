@@ -738,7 +738,7 @@ export default class BudgetService {
 					internalObservation: data.internalObservation,
 					clientName: data.clientName,
 					status: BudgetStatus.A,
-					pending: data.items.some((i) => i.courtesy),
+					pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 					tag: GenerateTag(
 						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
 					),
@@ -1133,20 +1133,16 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data
-					.filter(
-						(f) =>
-							(typeof f.courtesy === "boolean" ? !f.courtesy : false) ||
-							!f.maxDiscount,
-					)
-					.map((elem) => ({
-						variationId:
-							budgetItems.find((f) => f.id === elem.budgetItemId)
-								?.product_variation_id ?? v4(),
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.map((elem) => ({
+					variationId:
+						budgetItems.find((f) => f.id === elem.budgetItemId)
+							?.product_variation_id ?? v4(),
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (result.length > 0) {
 				// return result;

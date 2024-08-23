@@ -11,6 +11,7 @@ import CheckingAccount, {
 import { LicenceType } from "App/Models/Licence";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { validCNPJ } from "App/Shared";
 import { IBusinessUnitAcquirerData } from "Contracts/interfaces/IBusinessUnitAcquirerData";
 import { ICreateBusinessUnit } from "Contracts/interfaces/ICreateBusinessUnit";
 import { IUpdateUnitUser } from "Contracts/interfaces/IUpdateUnitUser";
@@ -75,7 +76,7 @@ export default class BusinessUnitService {
 					throw new BadRequestException("Grupo econômico inválido");
 				}
 
-				if (!this.sharedService.validDocument(data.document)) {
+				if (!validCNPJ(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",
 						400,
@@ -345,7 +346,7 @@ export default class BusinessUnitService {
 			}
 
 			if (data.document && data.document !== unit.document) {
-				if (!this.sharedService.validDocument(data.document)) {
+				if (!validCNPJ(data.document)) {
 					throw new BadRequestException(
 						"Documento inválido",
 						400,

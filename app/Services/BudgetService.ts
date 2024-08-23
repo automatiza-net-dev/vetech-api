@@ -1383,11 +1383,7 @@ export default class BudgetService {
 				query.preload("product");
 			});
 
-		if (
-			items.some(
-				(i) => (i.courtesy || i.maxDiscount) && !i.courtesy_approved_user_id,
-			)
-		) {
+		if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
 			throw new BadRequestException(
 				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
 				400,

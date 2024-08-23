@@ -694,23 +694,28 @@ export default class BillService {
 				.useTransaction(trx)
 				.where("bill_id", billId)
 				.where("status", BillItemStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				)
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			let totalProductValue = 0;
-			let totalServiceValue = 0;
-			validItems.forEach((item) => {
-				if (item.productVariation.product.type === ProductType.PRODUCT) {
-					totalProductValue += item.totalValue;
-				}
-				if (item.productVariation.product.type === ProductType.SERVICE) {
-					totalServiceValue += item.totalValue;
-				}
-			});
+			const [productSum, serviceSum, discountSum] = validItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
 
-			const totalDiscountValue = validItems.reduce(
-				(acc, item) => acc + (item.discountValue ?? 0),
-				0,
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
 			);
 
 			await bill
@@ -720,10 +725,10 @@ export default class BillService {
 							(f.courtesy && !f.courtesy_approved_user_id) ||
 							(f.maxDiscount && !f.courtesy_approved_user_id),
 					),
-					productValue: totalProductValue,
-					serviceValue: totalServiceValue,
-					discountValue: totalDiscountValue,
-					totalValue: totalProductValue + totalServiceValue,
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum - discountSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems

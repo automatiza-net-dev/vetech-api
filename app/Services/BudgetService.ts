@@ -1187,9 +1187,7 @@ export default class BudgetService {
 			const existingItems = await BudgetItem.query()
 				.where("budget_id", budget.id)
 				.where("status", BudgetStatus.A)
-				.whereRaw(
-					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
-				)
+				.where("courtesy", false)
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});
@@ -1197,12 +1195,14 @@ export default class BudgetService {
 			const [productSum, serviceSum, discountSum] = existingItems.reduce(
 				(acc, curr) => {
 					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						// acc[0] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[0] += curr.totalValue;
 					}
 					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						// acc[1] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[1] += curr.totalValue;
 					}
 
 					acc[2] += curr.discountValue;
@@ -1212,9 +1212,16 @@ export default class BudgetService {
 				[0, 0, 0],
 			);
 
+			const pendingItems = await BudgetItem.query()
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				);
+
 			await budget
 				.merge({
-					pending: existingItems.length > 0,
+					pending: pendingItems.length > 0,
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,

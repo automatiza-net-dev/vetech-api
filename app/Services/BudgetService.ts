@@ -1376,7 +1376,15 @@ export default class BudgetService {
 				query.preload("product");
 			});
 
-		if (items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+		if (
+			items
+				.filter((f) => !data.notConfirmedItems.includes(f.id))
+				.some(
+					(i) =>
+						(i.courtesy || i.maxDiscount) &&
+						(!i.approved || !i.courtesy_approved_user_id),
+				)
+		) {
 			throw new BadRequestException(
 				"Orçamento não pode ser confirmado pois possui cortesias não aprovadas",
 				400,
@@ -1406,10 +1414,12 @@ export default class BudgetService {
 			const invalidRows = await this.depositService.validateDepositOperation(
 				trx,
 				authCtx,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
+				items
+					.filter((f) => !data.notConfirmedItems.includes(f.id))
+					.map((elem) => ({
+						productVariationId: elem.product_variation_id,
+						quantity: elem.quantity.toNumber(),
+					})),
 			);
 			if (invalidRows.length > 0) {
 				// return invalidRows.map((elem) => ({

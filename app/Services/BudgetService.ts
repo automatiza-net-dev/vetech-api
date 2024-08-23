@@ -772,9 +772,8 @@ export default class BudgetService {
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: variation.id,
-						courtesy_issued_user_id: item.courtesy
-							? authCtx.user.id
-							: undefined,
+						courtesy_issued_user_id:
+							item.courtesy || item.maxDiscount ? authCtx.user.id : undefined,
 
 						courtesy: item.courtesy,
 						saleValue: new Decimal(item.saleValue),

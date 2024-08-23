@@ -2046,7 +2046,7 @@ where deposit_id = ?
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
 
-		const items = data.items.map((item) => {
+		const tasks = data.items.map((item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
 			) as ProductVariation;
@@ -2178,32 +2178,31 @@ where deposit_id = ?
 			);
 		});
 
-		await Promise.all(items);
+		await Promise.all(tasks);
 
 		const existingItems = await BillItem.query()
+			.useTransaction(trx)
 			.where("bill_id", bill.id)
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
 
-		const [productSum, serviceSum, discountSum] = existingItems
-			.filter((f) => !f.courtesy)
-			.reduce(
-				(acc, curr) => {
-					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] += curr.totalValue;
-					}
+		const [productSum, serviceSum, discountSum] = existingItems.reduce(
+			(acc, curr) => {
+				if (curr.productVariation.product.type === ProductType.PRODUCT) {
+					acc[0] += curr.totalValue;
+				}
 
-					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] += curr.totalValue;
-					}
+				if (curr.productVariation.product.type === ProductType.SERVICE) {
+					acc[1] += curr.totalValue;
+				}
 
-					acc[2] += curr.discountValue;
+				acc[2] += curr.discountValue;
 
-					return acc;
-				},
-				[0, 0, 0],
-			);
+				return acc;
+			},
+			[0, 0, 0],
+		);
 
 		await bill
 			.merge({

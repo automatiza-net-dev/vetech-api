@@ -1389,7 +1389,7 @@ export default class BudgetService {
 			)
 		) {
 			throw new BadRequestException(
-				"Orçamento não pode ser confirmado pois possui cortesias não aprovadas",
+				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
 				400,
 				"E_ERR",
 			);

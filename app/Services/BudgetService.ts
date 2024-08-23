@@ -821,7 +821,7 @@ export default class BudgetService {
 
 			await budget
 				.merge({
-					pending: data.items.some((f) => f.courtesy),
+					pending: data.items.some((f) => f.courtesy || f.maxDiscount),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,

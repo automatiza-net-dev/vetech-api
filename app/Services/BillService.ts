@@ -715,6 +715,11 @@ export default class BillService {
 
 			await bill
 				.merge({
+					pending: validItems.some(
+						(f) =>
+							(f.courtesy && !f.courtesy_approved_user_id) ||
+							(f.maxDiscount && !f.courtesy_approved_user_id),
+					),
 					productValue: totalProductValue,
 					serviceValue: totalServiceValue,
 					discountValue: totalDiscountValue,

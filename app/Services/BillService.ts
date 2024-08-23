@@ -2208,11 +2208,7 @@ where deposit_id = ?
 
 		await bill
 			.merge({
-				pending: existingItems.some(
-					(it) =>
-						(it.courtesy && !it.courtesy_approved_user_id) ||
-						(it.maxDiscount && !it.courtesy_approved_user_id),
-				),
+				pending: data.items.some((it) => it.courtesy || it.maxDiscount),
 				productValue: productSum,
 				serviceValue: serviceSum,
 				discountValue: discountSum,

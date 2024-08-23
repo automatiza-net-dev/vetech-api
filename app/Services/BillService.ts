@@ -842,21 +842,24 @@ export default class BillService {
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			let totalProductValue = 0;
-			let totalServiceValue = 0;
-			validItems.forEach((item) => {
-				if (item.productVariation.product.type === ProductType.PRODUCT) {
-					totalProductValue += item.totalValue;
-				}
-				if (item.productVariation.product.type === ProductType.SERVICE) {
-					totalServiceValue += item.totalValue;
-				}
-			});
+			const [productSum, serviceSum, discountSum] = validItems
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						if (curr.productVariation.product.type === ProductType.PRODUCT) {
+							acc[0] += curr.totalValue;
+						}
 
-			const totalDiscountValue = validItems.reduce(
-				(acc, item) => acc + (item.discountValue ?? 0),
-				0,
-			);
+						if (curr.productVariation.product.type === ProductType.SERVICE) {
+							acc[1] += curr.totalValue;
+						}
+
+						acc[2] += curr.discountValue;
+
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await bill
 				.merge({
@@ -865,10 +868,10 @@ export default class BillService {
 							(it.courtesy && !it.courtesy_approved_user_id) ||
 							(it.maxDiscount && !it.courtesy_approved_user_id),
 					),
-					productValue: totalProductValue,
-					serviceValue: totalServiceValue,
-					discountValue: totalDiscountValue,
-					totalValue: totalProductValue + totalServiceValue,
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems

@@ -694,9 +694,6 @@ export default class BillService {
 				.useTransaction(trx)
 				.where("bill_id", billId)
 				.where("status", BillItemStatus.A)
-				.whereRaw(
-					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
-				)
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
@@ -718,9 +715,19 @@ export default class BillService {
 				[0, 0, 0],
 			);
 
+			const pendingItems = await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", billId)
+				.where("status", BillItemStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				)
+				.preload("taxRule")
+				.preload("productVariation", (query) => query.preload("product"));
+
 			await bill
 				.merge({
-					pending: validItems.some(
+					pending: pendingItems.some(
 						(f) =>
 							(f.courtesy && !f.courtesy_approved_user_id) ||
 							(f.maxDiscount && !f.courtesy_approved_user_id),

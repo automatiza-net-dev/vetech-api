@@ -2191,12 +2191,11 @@ where deposit_id = ?
 			.reduce(
 				(acc, curr) => {
 					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[0] += curr.totalValue;
 					}
+
 					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[1] += curr.totalValue;
 					}
 
 					acc[2] += curr.discountValue;

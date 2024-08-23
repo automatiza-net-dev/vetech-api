@@ -2003,7 +2003,7 @@ where deposit_id = ?
 				client_id: data.clientId,
 				patient_id: data.patientId,
 
-				pending: data.items.some((i) => i.courtesy),
+				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,
 				serviceValue: 0,
@@ -2433,7 +2433,7 @@ where deposit_id = ?
 			kit_id: data.kitId,
 			deposit_id,
 			courtesy_issued_user_id:
-				data.courtesy ?? data.maxDiscount ? authCtx.user.id : undefined,
+				data.courtesy || data.maxDiscount ? authCtx.user.id : undefined,
 
 			courtesy: data.courtesy,
 			maxDiscount: data.maxDiscount,
@@ -2650,9 +2650,8 @@ where deposit_id = ?
 			})
 			.useTransaction(trx)
 			.save();
-
-		return billItem;
 	}
+
 	public async addFromKit(
 		authCtx: AuthContext,
 		data: {

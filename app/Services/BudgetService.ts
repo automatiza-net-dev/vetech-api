@@ -1275,7 +1275,10 @@ export default class BudgetService {
 			const existingItems = await BudgetItem.query()
 				.where("budget_id", budgetItem.budget_id)
 				.whereNot("id", id)
-				.where("status", BudgetStatus.A);
+				.where("status", BudgetStatus.A)
+				.preload("productVariation", (q) => {
+					q.preload("product");
+				});
 
 			const [productSum, serviceSum, discountSum] = existingItems
 				.filter((f) => !f.courtesy)

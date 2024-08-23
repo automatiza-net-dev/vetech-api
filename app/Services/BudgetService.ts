@@ -999,7 +999,7 @@ export default class BudgetService {
 
 			await budget
 				.merge({
-					pending: data.courtesy ? true : budget.pending,
+					pending: data.courtesy || data.maxDiscount ? true : budget.pending,
 
 					productValue:
 						productVariation.product.type === ProductType.PRODUCT &&
@@ -1093,6 +1093,9 @@ export default class BudgetService {
 
 				await budget
 					.merge({
+						pending: data.some((f) => f.courtesy || f.maxDiscount)
+							? true
+							: budget.pending,
 						productValue:
 							variation.product.type === ProductType.PRODUCT && !item.courtesy
 								? budget.productValue + dbItem.totalValue

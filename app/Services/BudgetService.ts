@@ -654,18 +654,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items
-					.filter(
-						(f) =>
-							(typeof f.courtesy === "boolean" ? !f.courtesy : false) ||
-							!f.maxDiscount,
-					)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -927,6 +923,8 @@ export default class BudgetService {
 						unitaryValue: data.unitaryValue,
 						discountValue: data.discountValue,
 						quantity: data.quantity,
+						courtesy: data.courtesy,
+						maxDiscount: data.maxDiscount,
 					},
 				]);
 				if (result.length > 0) {
@@ -1032,14 +1030,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data
-					.filter((f) => !f.courtesy)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -1136,7 +1134,11 @@ export default class BudgetService {
 				trx,
 				authCtx,
 				data
-					.filter((f) => !f.courtesy)
+					.filter(
+						(f) =>
+							(typeof f.courtesy === "boolean" ? !f.courtesy : false) ||
+							!f.maxDiscount,
+					)
 					.map((elem) => ({
 						variationId:
 							budgetItems.find((f) => f.id === elem.budgetItemId)

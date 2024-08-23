@@ -276,6 +276,8 @@ export default class BillService {
 					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
 				})),
 			);
 			if (invalid.length > 0) {
@@ -299,14 +301,14 @@ export default class BillService {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items
-					.filter((f) => !f.courtesy || f.maxDiscount)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (invalid.length > 0) {
 				// return invalid;
@@ -361,6 +363,8 @@ export default class BillService {
 						unitaryValue: elem.unitaryValue,
 						discountValue: elem.discountValue,
 						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
 					})),
 			);
 			if (invalid.length > 0) {
@@ -421,6 +425,8 @@ export default class BillService {
 						unitaryValue: data.unitaryValue,
 						discountValue: data.discountValue,
 						quantity: data.quantity,
+						courtesy: data.courtesy,
+						maxDiscount: data.maxDiscount,
 					},
 				]);
 				if (invalid.length > 0) {
@@ -455,14 +461,14 @@ export default class BillService {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data
-					.filter((f) => !f.courtesy || f.maxDiscount)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 
 			if (invalid.length > 0) {
@@ -525,7 +531,6 @@ export default class BillService {
 				authCtx,
 				data.items
 					.filter((f) => f.shouldValidateDiscount)
-					.filter((f) => !f.courtesy || f.maxDiscount)
 					.map((elem) => {
 						const item = billItems.find((bi) => bi.id === elem.billItemId);
 						if (!item) {
@@ -541,6 +546,8 @@ export default class BillService {
 							quantity: item.quantity.toNumber(),
 							unitaryValue: elem.unitaryValue,
 							discountValue: elem.discountValue,
+							courtesy: elem.courtesy,
+							maxDiscount: elem.maxDiscount,
 						};
 					}),
 			);

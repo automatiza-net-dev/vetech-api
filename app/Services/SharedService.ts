@@ -36,6 +36,13 @@ export type AuthContext = {
 	hasPermissions: (controlIDs: string[]) => boolean;
 };
 
+type ItemToCheckDiscount = {
+	variacao: string;
+	quantidade: number;
+	preco: number;
+	vlrdesc: number;
+};
+
 @inject()
 export default class SharedService {
 	public static intlMap = {
@@ -399,22 +406,37 @@ export default class SharedService {
 			unitaryValue: number;
 			discountValue: number;
 			quantity: number;
+			courtesy?: boolean;
+			maxDiscount?: boolean;
 		}[],
 	) {
+		// [cortesia, maxdiscount]
+		// não, não -> precisa verificar o desconto máximo
+		// sim, não -> não precisa verificar
+		// não, sim -> não precisa verificar
+		// sim, sim -> não precisa verificar
+
+		const items: ItemToCheckDiscount[] = [];
+		for (const entry of data) {
+			const shouldIgnoreForCourtesy =
+				typeof entry.courtesy === "boolean" ? entry.courtesy : false;
+
+			const shouldIgnoreForMxDisc =
+				typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
+
+			if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
+				items.push({
+					variacao: entry.variationId,
+					quantidade: entry.quantity,
+					preco: entry.unitaryValue,
+					vlrdesc: entry.discountValue,
+				});
+			}
+		}
+
 		const rows = await Database.rawQuery(
 			"select * from check_max_discount(?, ?, ?)",
-			[
-				authCtx.user.id,
-				authCtx.unit.id,
-				JSON.stringify(
-					data.map((d) => ({
-						variacao: d.variationId,
-						quantidade: d.quantity,
-						preco: d.unitaryValue,
-						vlrdesc: d.discountValue,
-					})),
-				),
-			],
+			[authCtx.user.id, authCtx.unit.id, JSON.stringify(items)],
 		)
 			.useTransaction(trx)
 			.exec();

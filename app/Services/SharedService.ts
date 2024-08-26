@@ -441,9 +441,9 @@ export default class SharedService {
 			.useTransaction(trx)
 			.exec();
 
-		return rows.rows.map((elem: { descricao: string }) => {
+		return rows.rows.map((elem: { descricao: string, tipoerro: string }) => {
 			return {
-				rule: "DescontoMaximo",
+				rule: elem.tipoerro ?? 'DescontoMaximo',
 				message: elem.descricao,
 			};
 		});

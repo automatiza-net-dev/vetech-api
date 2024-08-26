@@ -350,6 +350,7 @@ export default class OpportunityService {
 			toDate?: string;
 			description?: string;
 			contactName?: string;
+			contactPhone?: string;
 			patientName?: string;
 			technicianName?: string;
 			status?: string;
@@ -411,7 +412,7 @@ export default class OpportunityService {
 			});
 		}
 
-		if (data.patientName || data.contactName) {
+		if (data.patientName || data.contactName || data.contactPhone) {
 			qb.whereHas("opportunity", (query) => {
 				if (data.patientName) {
 					query.whereHas("client", (query) => {
@@ -419,9 +420,41 @@ export default class OpportunityService {
 					});
 				}
 
-				if (data.contactName) {
+				if (data.contactName || data.contactPhone) {
 					query.whereHas("contact", (query) => {
-						query.whereILike("name", `%${data.contactName!}%`);
+						if (data.contactName) {
+							query.whereILike("name", `%${data.contactName!}%`);
+						}
+
+						if (data.contactPhone) {
+							const clearPhone = data.contactPhone.replace(/\D/g, "");
+							query.whereHas("contacts", (query) => {
+								query.whereRaw(
+									`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
+            ? -- add o 9
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
+    )`,
+									[
+										clearPhone,
+										`%${clearPhone}%`,
+										clearPhone,
+										clearPhone,
+										clearPhone,
+										`%${clearPhone}%`,
+									],
+								);
+							});
+						}
 					});
 				}
 			});

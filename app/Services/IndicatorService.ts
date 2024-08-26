@@ -7204,7 +7204,7 @@ export default class IndicatorService {
 					users: unitUsers.map((usr) => ({
 						userId: usr.id_avaliador,
 						userName: usr.nome_avaliador,
-						qtdClientes: this.shared.formatter.format(usr.qtd_clientes),
+						qtdClientes: usr.qtd_clientes,
 						valorRealizado: this.shared.formatter.format(usr.total_realizado),
 						ticketMedioRealizado: this.shared.formatter.format(
 							usr.tkt_medio_realizado,
@@ -7212,7 +7212,7 @@ export default class IndicatorService {
 						participacaoRealizado: this.shared.formatPercentage(
 							(usr.total_realizado / reviewedSum) * 100,
 						),
-						qtdAvaliacoes: this.shared.formatter.format(usr.qtd_avaliacoes),
+						qtdAvaliacoes: usr.qtd_avaliacoes,
 						totalAvaliado: this.shared.formatter.format(usr.total_avaliacoes),
 						ticketMedioAvaliacoes: this.shared.formatter.format(
 							usr.tkt_medio_avaliacoes,

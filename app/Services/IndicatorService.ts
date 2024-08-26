@@ -7210,7 +7210,7 @@ export default class IndicatorService {
 							usr.tkt_medio_realizado,
 						),
 						participacaoRealizado: this.shared.formatPercentage(
-							(usr.total_realizado / reviewedSum) * 100,
+							(usr.total_realizado / realizedSum) * 100,
 						),
 						qtdAvaliacoes: usr.qtd_avaliacoes,
 						totalAvaliado: this.shared.formatter.format(usr.total_avaliacoes),

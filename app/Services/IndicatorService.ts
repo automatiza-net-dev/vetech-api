@@ -5737,7 +5737,7 @@ export default class IndicatorService {
 
 		return {
 			name: "budgetsAvaliadorConsolidado",
-			description: "Orçamentos por Avaliador",
+			description: "Orçamentos por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
@@ -7175,7 +7175,7 @@ export default class IndicatorService {
 
 		return {
 			name: "billsReviewer",
-			description: "Orçamentos por Período",
+			description: "Vendas por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {

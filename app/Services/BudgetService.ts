@@ -1307,6 +1307,7 @@ export default class BudgetService {
 
 			await budgetItem.budget
 				.merge({
+					pending: existingItems.some((i) => i.courtesy || i.maxDiscount),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,

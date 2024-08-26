@@ -7103,41 +7103,46 @@ export default class IndicatorService {
 			.select(
 				Database.raw(
 					`
-          business_units.id,
-          business_units.identification,
-          coalesce(users.name, 'Não Identificado')                                                               as avaliador,
-          count(distinct bills.client_id)::int                                                                   as qtd_clientes,
-          sum(bills.total_value)::float                                                                          as total_vendas,
-          (sum(bills.total_value) /
-            case
-              when count(distinct bills.client_id) = 0 then 1
-              else count(distinct bills.client_id) end)::float                                                  as tkt_medio
+          business_units.id                                         as id_unidade_negocios,
+        coalesce(business_units.identification, 'Não informado')  as identificacao_unidade,
+       avaliador.id                                              as id_avaliador,
+       case
+           when bills.budget_id is null then 'Venda Direta (' || vendedor.name || ')'
+           else coalesce(avaliador.name, 'Não Identificado') end as nome_avaliador,
+       count(distinct bills.client_id)::int                      as qtd_clientes,
+       sum(bills.total_value)::float                             as total_realizado,
+       (sum(bills.total_value) /
+        coalesce(count(distinct bills.client_id), 1))::float     as tkt_medio_realizado,
+       count(budgets.id)::int                                    as qtd_avaliacoes,
+       coalesce(sum(budgets.total_value), 0)::float              as total_avaliacoes,
+       (sum(coalesce(budgets.total_value, 0)) /
+        case
+            when coalesce(count(budgets.id), 1) = 0 then 1
+            else coalesce(count(budgets.id), 1) end)::float      as tkt_medio_avaliacoes
           `,
 				),
 			)
+			.joinRaw(`left join (budgets left join users avaliador on budgets.reviewer_id = avaliador.id)
+                   on bills.budget_id = budgets.id and budgets.deleted_at is null`)
+			.joinRaw("join users vendedor on bills.seller_id = vendedor.id")
 			.joinRaw(
 				"join business_units on bills.business_unit_id = business_units.id",
 			)
-			.joinRaw(
-				"join economic_groups on bills.economic_group_id = economic_groups.id",
-			)
-			.joinRaw(
-				`left join budgets on bills.business_unit_id = budgets.business_unit_id and bills.budget_id = budgets.id and
-                              budgets.deleted_at is null`,
-			)
-			.joinRaw("left join users on budgets.reviewer_id = users.id")
-			.groupByRaw("business_units.id, coalesce(users.name, 'Não Identificado')")
-			.orderByRaw("3")
-			.whereNull("bills.deleted_at");
+			.groupByRaw(`business_units.id, business_units.identification, avaliador.id,
+         case
+             when bills.budget_id is null then 'Venda Direta (' || vendedor.name || ')'
+             else coalesce(avaliador.name, 'Não Identificado') end`)
+			.whereNull("bills.deleted_at")
+			.where("bills.economic_group_id", authCtx.group.id);
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
 			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
 		}
 
 		if (data.units && Array.isArray(data.units)) {
-			qb.whereIn("business_units.id", data.units);
+			qb.whereIn("bills.business_unit_id", data.units);
 		} else {
-			qb.where("business_units.id", authCtx.unit.id);
+			qb.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.fromDate && data.toDate) {
@@ -7148,17 +7153,21 @@ export default class IndicatorService {
 		}
 
 		const result: {
-			id: string;
-			identification: string;
-			avaliador: string;
+			id_unidade_negocios: string;
+			identificacao_unidade: string;
+			id_avaliador: string;
+			nome_avaliador: string;
 			qtd_clientes: number;
-			total_vendas: number;
-			tkt_medio: number;
+			total_realizado: number;
+			tkt_medio_realizado: number;
+			qtd_avaliacoes: number;
+			total_avaliacoes: number;
+			tkt_medio_avaliacoes: number;
 		}[] = await qb;
 
 		const uniqueUnits = result.reduce((acc, curr) => {
-			if (!acc.includes(curr.id)) {
-				acc.push(curr.id);
+			if (!acc.includes(curr.id_unidade_negocios)) {
+				acc.push(curr.id_unidade_negocios);
 			}
 
 			return acc;
@@ -7166,33 +7175,42 @@ export default class IndicatorService {
 
 		return {
 			name: "billsReviewer",
-			description: "Vendas por Avaliador",
+			description: "Orçamentos por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {
-				const unit = result.find((r) => r.id === elem);
+				const unit = result.find((r) => r.id_unidade_negocios === elem);
 
 				if (!unit) {
 					return undefined;
 				}
 
-				const unitUsers = result.filter((r) => r.id === elem);
+				const unitUsers = result.filter((r) => r.id_unidade_negocios === elem);
 
-				const sum = unitUsers.reduce((sum, curr) => sum + curr.total_vendas, 0);
+				const realizedSum = unitUsers.reduce(
+					(sum, curr) => sum + curr.total_realizado,
+					0,
+				);
+				const reviewedSum = unitUsers.reduce(
+					(sum, curr) => sum + curr.total_avaliacoes,
+					0,
+				);
 
 				return {
-					id: unit.id,
-					identification: unit.identification,
-					totalVendas: this.shared.formatter.format(sum),
+					id: unit.identificacao_unidade,
+					identification: unit.identificacao_unidade,
+					totalConfirmados: this.shared.formatter.format(realizedSum),
+					totalOrcamentos: this.shared.formatter.format(reviewedSum),
 					users: unitUsers.map((usr) => ({
-						userId: usr.id,
-						userName: usr.avaliador,
+						userId: usr.id_avaliador,
+						userName: usr.nome_avaliador,
 						qtdClientes: usr.qtd_clientes,
-						vendasAvaliador: this.shared.formatter.format(usr.total_vendas),
-						ticketMedio: this.shared.formatter.format(usr.tkt_medio),
-						participacao: this.shared.formatPercentage(
-							(usr.total_vendas / sum) * 100,
-						),
+						valorRealizado: usr.total_realizado,
+						ticketMedioRealizado: usr.tkt_medio_realizado,
+						participacaoRealizado: (usr.total_realizado / reviewedSum) * 100,
+						qtdAvaliacoes: usr.qtd_avaliacoes,
+						totalAvaliado: usr.total_avaliacoes,
+						ticketMedioAvaliacoes: usr.tkt_medio_avaliacoes,
 					})),
 				};
 			}),

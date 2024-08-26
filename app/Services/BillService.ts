@@ -600,7 +600,7 @@ export default class BillService {
 								? billItem.courtesy_approved_user_id || authCtx.user.id
 								: null,
 						courtesy: dataItem?.courtesy ?? false,
-						maxDiscount: dataItem?.maxDiscount,
+						maxDiscount: dataItem?.maxDiscount ?? false,
 						discountValue: dataItem?.discountValue ?? 0,
 						unitaryValue: dataItem.unitaryValue,
 						totalValue,

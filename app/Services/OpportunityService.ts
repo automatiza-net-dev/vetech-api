@@ -109,6 +109,7 @@ export default class OpportunityService {
 			})),
 			unit: {
 				id: result.unit.id,
+				identification: result.unit.identification,
 				companyName: result.unit.companyName,
 				fantasyName: result.unit.fantasyName,
 			},
@@ -327,6 +328,7 @@ export default class OpportunityService {
 			})),
 			unit: {
 				id: elem.unit.id,
+				identification: elem.unit.identification,
 				companyName: elem.unit.companyName,
 				fantasyName: elem.unit.fantasyName,
 			},
@@ -486,6 +488,7 @@ export default class OpportunityService {
 
 			unit: this.sharedService.captureGroup(elem.opportunity.unit, (v) => ({
 				id: v.id,
+				identification: v.identification,
 				companyName: v.companyName,
 				fantasyName: v.fantasyName,
 			})),
@@ -761,6 +764,7 @@ export default class OpportunityService {
 				},
 				unit: {
 					id: op.unit.id,
+					identification: op.unit.identification,
 					companyName: op.unit.companyName,
 					fantasyName: op.unit.fantasyName,
 				},
@@ -1053,6 +1057,7 @@ export default class OpportunityService {
 				})),
 				unit: {
 					id: op.unit.id,
+					identification: op.unit.identification,
 					companyName: op.unit.companyName,
 					fantasyName: op.unit.fantasyName,
 				},

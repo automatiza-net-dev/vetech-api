@@ -595,10 +595,12 @@ export default class BillService {
 
 				return billItem
 					.merge({
-						courtesy_issued_user_id: dataItem.courtesy
-							? billItem.courtesy_approved_user_id || authCtx.user.id
-							: null,
+						courtesy_issued_user_id:
+							dataItem.courtesy || dataItem.maxDiscount
+								? billItem.courtesy_approved_user_id || authCtx.user.id
+								: null,
 						courtesy: dataItem?.courtesy ?? false,
+						maxDiscount: dataItem?.maxDiscount,
 						discountValue: dataItem?.discountValue ?? 0,
 						unitaryValue: dataItem.unitaryValue,
 						totalValue,

@@ -355,12 +355,14 @@ export default class OpportunityService {
 			technicianName?: string;
 			status?: string;
 			clientName?: string;
+			units?: string[];
 		},
 	) {
 		const qb = OpportunityActivity.query()
 			.preload("activity")
 			.preload("opportunity", (query) => {
 				query
+					.preload("unit")
 					.preload("client")
 					.preload("contact", (query) => {
 						query.preload("tutor");
@@ -375,6 +377,16 @@ export default class OpportunityService {
 			.whereHas("opportunity", (query) => {
 				query.where("economic_group_id", authCtx.group.id);
 			});
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereIn("business_unit_id", data.units ?? []);
+			});
+		} else {
+			qb.whereHas("opportunity", (query) => {
+				query.where("business_unit_id", authCtx.unit.id);
+			});
+		}
 
 		if (data.fromDate) {
 			qb.whereRaw("execution_date::date >= ?", [data.fromDate]);
@@ -472,6 +484,11 @@ export default class OpportunityService {
 			observation: elem.observation,
 			status: elem.status,
 
+			unit: this.sharedService.captureGroup(elem.opportunity.unit, (v) => ({
+				id: v.id,
+				companyName: v.companyName,
+				fantasyName: v.fantasyName,
+			})),
 			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
 				id: v.id,
 				description: v.description,
@@ -482,14 +499,15 @@ export default class OpportunityService {
 				id: elem.activity.id,
 				description: elem.activity.description,
 			},
-			client: elem.opportunity?.client
-				? {
-						id: elem.opportunity?.client.id,
-						name: elem.opportunity?.client.name,
-						cellphone: elem.opportunity?.client?.tutor?.cellphone ?? null,
-						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
-					}
-				: null,
+			client: this.sharedService.captureGroup(
+				elem.opportunity?.client,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+				}),
+			),
 			contact: this.sharedService.captureGroup(
 				elem.opportunity?.contact,
 				(v) => ({

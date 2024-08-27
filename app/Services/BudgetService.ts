@@ -911,7 +911,7 @@ export default class BudgetService {
 					)
 				) {
 					throw new BadRequestException(
-						`Desconto lançado é superior ao permitido - ${productVariation.product.description}`,
+						"Desconto máximo foi excedido",
 						400,
 						"E_MAX_DISCOUNT",
 					);
@@ -942,7 +942,7 @@ export default class BudgetService {
 								business_unit_id: authCtx.unit.id,
 								product_variation_id: elem.productVariationId,
 								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
-                budget_id: budget.id,
+								budget_id: budget.id,
 
 								courtesy: elem.courtesy,
 								saleValue: new Decimal(elem.saleValue ?? 0),
@@ -1109,7 +1109,7 @@ export default class BudgetService {
 				)
 			) {
 				throw new BadRequestException(
-					`Desconto lançado é superior ao permitido - ${productVariation.product.description}`,
+					"Desconto máximo foi excedido",
 					400,
 					"E_MAX_DISCOUNT",
 				);

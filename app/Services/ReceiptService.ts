@@ -404,7 +404,7 @@ const schema = z.object({
 						}),
 						indIEDest: z.string(),
 						IE: z.optional(z.string()),
-						email: z.string(),
+						email: z.optional(z.string()),
 					}),
 				),
 				det: z.union([z.array(detSchema), detSchema]),
@@ -449,13 +449,13 @@ const schema = z.object({
 						dup: z.union([z.array(dupSchema), z.optional(dupSchema)]),
 					}),
 				),
-				pag: z.object({
-					detPag: z.object({
-						tPag: z.string(),
-						xPag: z.optional(z.string()),
-						vPag: z.string(),
-					}),
-				}),
+				// pag: z.object({
+				// 	detPag: z.object({
+				// 		tPag: z.string(),
+				// 		xPag: z.optional(z.string()),
+				// 		vPag: z.string(),
+				// 	}),
+				// }),
 				infAdic: z.object({ infCpl: z.string() }),
 				infRespTec: z.object({
 					CNPJ: z.string(),

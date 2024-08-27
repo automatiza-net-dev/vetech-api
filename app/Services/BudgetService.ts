@@ -842,8 +842,8 @@ export default class BudgetService {
 			expirationDate: DateTime;
 			sellerId: string;
 			reviewerId: string;
-			observation: string;
-			internalObservation: string;
+			observation?: string;
+			internalObservation?: string;
 			items: {
 				budgetItemId?: string;
 				maxDiscount: boolean;

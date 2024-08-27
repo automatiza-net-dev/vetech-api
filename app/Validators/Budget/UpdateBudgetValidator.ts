@@ -22,7 +22,7 @@ export default class UpdateBudgetValidator {
 	 *       rules.unique({ table: 'users', column: 'email' }),
 	 *     ])
 	 *    ```
-   *
+	 *
 	 */
 	public schema = schema.create({
 		id: schema.string({}, [
@@ -49,6 +49,7 @@ export default class UpdateBudgetValidator {
 		internalObservation: schema.string.optional(),
 		budgetDate: schema.date(),
 		expirationDate: schema.date(),
+		maxDiscount: schema.boolean(),
 		items: schema.array().members(
 			schema.object().members({
 				budgetItemId: schema.string.optional(),

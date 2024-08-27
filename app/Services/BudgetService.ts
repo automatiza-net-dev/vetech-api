@@ -844,6 +844,7 @@ export default class BudgetService {
 			reviewerId?: string;
 			observation?: string;
 			internalObservation?: string;
+			maxDiscount: boolean;
 			items: {
 				budgetItemId?: string;
 				maxDiscount: boolean;
@@ -907,7 +908,8 @@ export default class BudgetService {
 
 				if (
 					productVariation.businessUnitProducts.some(
-						(p) => p.maximumDiscountValue < elem.discountValue,
+						(p) =>
+							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
 					)
 				) {
 					throw new BadRequestException(

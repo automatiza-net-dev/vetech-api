@@ -457,12 +457,12 @@ const schema = z.object({
 				// 	}),
 				// }),
 				infAdic: z.object({ infCpl: z.string() }),
-				infRespTec: z.object({
-					CNPJ: z.string(),
-					xContato: z.string(),
-					email: z.string(),
-					fone: z.string(),
-				}),
+				// infRespTec: z.object({
+				// 	CNPJ: z.string(),
+				// 	xContato: z.string(),
+				// 	email: z.string(),
+				// 	fone: z.string(),
+				// }),
 				_versao: z.optional(z.string()),
 				_Id: z.optional(z.string()),
 			}),

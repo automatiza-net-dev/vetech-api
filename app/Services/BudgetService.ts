@@ -948,6 +948,7 @@ export default class BudgetService {
 								budget_id: budget.id,
 
 								courtesy: elem.courtesy,
+                maxDiscount: elem.maxDiscount,
 								saleValue: new Decimal(elem.saleValue ?? 0),
 								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
 								discountValue: elem.courtesy ? 0 : elem.discountValue,

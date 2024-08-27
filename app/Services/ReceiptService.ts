@@ -1129,7 +1129,7 @@ export default class ReceiptService {
 	}
 
 	private async $syncItems(trx: TransactionClientContract, receipt: Receipt) {
-				await Database.rawQuery(
+		await Database.rawQuery(
 			`update receipt_items set product_variation_id = sp.product_variation_id
       from receipt_items ri
         join receipts r on ri.receipt_id = r.id
@@ -2628,7 +2628,7 @@ and product_variation_id in (
 					product_variation_id: newProductVariations.find(
 						(p) => p.barcode === elem.barcodeXml,
 					)?.id,
-					product_supplier_id: elem.barcodeXml,
+					product_supplier_id: elem.productSupplierXml,
 				})),
 				{ client: trx },
 			);

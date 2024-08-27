@@ -1129,9 +1129,11 @@ export default class ReceiptService {
 	}
 
 	private async $syncItems(trx: TransactionClientContract, receipt: Receipt) {
-		await Database.rawQuery(
+				await Database.rawQuery(
 			`update receipt_items set product_variation_id = sp.product_variation_id
-      from receipt_items ri join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id
+      from receipt_items ri
+        join receipts r on ri.receipt_id = r.id
+          join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id and r.supplier_id = sp.supplier_id
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,
@@ -1140,7 +1142,7 @@ export default class ReceiptService {
 
 		await Database.rawQuery(
 			`update receipt_items set product_variation_id = pv.id
-      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode
+      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode and ( coalesce(pv.barcode,'') <> '' and pv.barcode <> 'SEM GTIN')
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,

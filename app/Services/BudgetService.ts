@@ -930,6 +930,7 @@ export default class BudgetService {
 									: undefined, // mantém valor anterior
 
 								courtesy: elem.courtesy,
+								max_discount: elem.maxDiscount,
 								saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
 								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
 								discountValue: elem.courtesy ? 0 : elem.discountValue,

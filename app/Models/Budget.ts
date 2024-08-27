@@ -5,6 +5,7 @@ import {
 	BelongsTo,
 	belongsTo,
 	column,
+	computed,
 	HasMany,
 	hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
@@ -93,6 +94,13 @@ export default class Budget extends BaseModel {
 		columnName: "internal_observation",
 	})
 	public internalObservation: string;
+
+	@computed({
+		serializeAs: "internalObservation",
+	})
+	public get internal_observation() {
+		return this.internalObservation;
+	}
 
 	@column()
 	public status: BudgetStatus;

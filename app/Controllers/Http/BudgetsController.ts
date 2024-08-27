@@ -103,19 +103,17 @@ export default class BudgetsController {
 		});
 	}
 
-	public async updateBudget({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdateBudgetValidator);
+	public async updateBudget({ request, response, auth }: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateBudgetValidator);
 
-		await this.service.updateBudget(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+			await this.service.updateBudget(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.noContent();
+			return response.noContent();
+		});
 	}
 
 	public async updateBudgetObservation({

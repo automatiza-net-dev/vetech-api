@@ -890,6 +890,7 @@ export default class BudgetService {
 						query.where("businness_unit_id", authCtx.unit.id);
 					})
 					.first();
+
 				if (!productVariation) {
 					throw new BadRequestException(
 						"Não foi possível encontrar um preço para esse produto",
@@ -948,7 +949,7 @@ export default class BudgetService {
 								budget_id: budget.id,
 
 								courtesy: elem.courtesy,
-                maxDiscount: elem.maxDiscount,
+								maxDiscount: elem.maxDiscount,
 								saleValue: new Decimal(elem.saleValue ?? 0),
 								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
 								discountValue: elem.courtesy ? 0 : elem.discountValue,
@@ -964,6 +965,7 @@ export default class BudgetService {
 			await Promise.all(tasks);
 
 			const existingItems = await BudgetItem.query()
+				.useTransaction(trx)
 				.where("budget_id", budget.id)
 				.where("status", BudgetStatus.A)
 				.where("courtesy", false)
@@ -992,6 +994,7 @@ export default class BudgetService {
 			);
 
 			const pendingItems = await BudgetItem.query()
+				.useTransaction(trx)
 				.where("budget_id", budget.id)
 				.where("status", BudgetStatus.A)
 				.whereRaw(

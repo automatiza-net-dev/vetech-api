@@ -917,6 +917,8 @@ export default class BudgetService {
 					);
 				}
 
+				console.log({ elem });
+
 				return elem.budgetItemId
 					? BudgetItem.query()
 							.useTransaction(trx)

@@ -907,6 +907,9 @@ export default class ReceiptService {
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("supplier_id", supplierId)
+				.whereHas("productVariation", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
+				})
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});

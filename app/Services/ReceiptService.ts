@@ -901,9 +901,10 @@ export default class ReceiptService {
 			const products = await Product.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
-				.preload("variations", (query) => {
+				.whereHas("variations", (query) => {
 					query.whereNot("barcode", "SEM GTIN");
-				});
+				})
+				.preload("variations");
 
 			const supplierProducts = await SupplierProduct.query()
 				.useTransaction(trx)

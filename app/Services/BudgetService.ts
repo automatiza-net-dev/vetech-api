@@ -917,8 +917,6 @@ export default class BudgetService {
 					);
 				}
 
-				console.log({ elem });
-
 				return elem.budgetItemId
 					? BudgetItem.query()
 							.useTransaction(trx)
@@ -944,6 +942,7 @@ export default class BudgetService {
 								business_unit_id: authCtx.unit.id,
 								product_variation_id: elem.productVariationId,
 								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+                budget_id: budget.id,
 
 								courtesy: elem.courtesy,
 								saleValue: new Decimal(elem.saleValue ?? 0),

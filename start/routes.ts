@@ -988,7 +988,7 @@ Route.group(() => {
 
 	Route.post("/approve", "BudgetsController.approveBudgetCourtesyMaxDiscounts");
 
-	Route.put("/update/:id", "BudgetsController.updateBudget");
+	Route.put("/update", "BudgetsController.updateBudget");
 	Route.put(
 		"/update-observation/:id",
 		"BudgetsController.updateBudgetObservation",

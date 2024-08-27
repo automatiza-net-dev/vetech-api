@@ -106,14 +106,12 @@ export default class BudgetsController {
 	public async updateBudget({
 		request,
 		response,
-		params,
 		auth,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateBudgetValidator);
 
 		await this.service.updateBudget(
 			await this.sharedService.getAuthContext(auth),
-			params.id,
 			payload,
 		);
 

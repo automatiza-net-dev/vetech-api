@@ -836,19 +836,32 @@ export default class BudgetService {
 
 	public async updateBudget(
 		authCtx: AuthContext,
-		id: string,
 		data: {
-			sellerId?: string;
-			clientId?: string;
-			reviewerId?: string;
-			patientId?: string;
-			clientName?: string;
+			id: string;
+			clientId: string;
+			expirationDate: DateTime;
+			sellerId: string;
+			reviewerId: string;
+			observation: string;
+			internalObservation: string;
+			items: {
+				budgetItemId?: string;
+				maxDiscount: boolean;
+				courtesy?: boolean;
+				discountValue: number;
+				productVariationId: string;
+				quantity: number;
+				unitaryValue: number;
+				saleValue?: number;
+			}[];
+			budgetDate: DateTime;
+			dailyMovementId: string;
 		},
 	) {
 		return Database.transaction(async (trx) => {
 			const budget = await Budget.query()
 				.useTransaction(trx)
-				.where("id", id)
+				.where("id", data.id)
 				.andWhere("business_unit_id", authCtx.unit.id)
 				.first();
 
@@ -864,13 +877,139 @@ export default class BudgetService {
 				);
 			}
 
+			const tasks = data.items.map(async (elem) => {
+				const productVariation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("id", elem.productVariationId)
+					.whereHas("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.preload("product")
+					.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.first();
+				if (!productVariation) {
+					throw new BadRequestException(
+						"Não foi possível encontrar um preço para esse produto",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+
+				if (elem.courtesy && !productVariation.product.courtesy) {
+					throw new BadRequestException(
+						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					productVariation.businessUnitProducts.some(
+						(p) => p.maximumDiscountValue < elem.discountValue,
+					)
+				) {
+					throw new BadRequestException(
+						`Desconto lançado é superior ao permitido - ${productVariation.product.description}`,
+						400,
+						"E_MAX_DISCOUNT",
+					);
+				}
+
+				return elem.budgetItemId
+					? BudgetItem.query()
+							.useTransaction(trx)
+							.where("budget_id", budget.id)
+							.where("id", elem.budgetItemId)
+							.update({
+								courtesy_issued_user_id: elem.courtesy
+									? authCtx.user.id
+									: undefined, // mantém valor anterior
+
+								courtesy: elem.courtesy,
+								saleValue: new Decimal(elem.saleValue ?? 0),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+							} as Partial<BudgetItem>)
+					: BudgetItem.create(
+							{
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								product_variation_id: elem.productVariationId,
+								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+
+								courtesy: elem.courtesy,
+								saleValue: new Decimal(elem.saleValue ?? 0),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+								status: BudgetStatus.A,
+							},
+							{ client: trx },
+						);
+			});
+			await Promise.all(tasks);
+
+			const existingItems = await BudgetItem.query()
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.where("courtesy", false)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
+
+			const [productSum, serviceSum, discountSum] = existingItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						// acc[0] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[0] += curr.totalValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						// acc[1] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[1] += curr.totalValue;
+					}
+
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
+			);
+
+			const pendingItems = await BudgetItem.query()
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				);
+
 			return budget
 				.merge({
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					reviewer_id: data.reviewerId,
-					patient_id: data.patientId,
-					clientName: data.clientName,
+					daily_movement_id: data.dailyMovementId,
+
+					pending: pendingItems.length > 0,
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum,
+
+					expirationDate: data.expirationDate,
+					budgetDate: data.budgetDate,
+					observation: data.observation,
+					internalObservation: data.internalObservation,
 				})
 				.useTransaction(trx)
 				.save();

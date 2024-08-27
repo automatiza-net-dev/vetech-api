@@ -928,14 +928,14 @@ export default class BudgetService {
 									: undefined, // mantém valor anterior
 
 								courtesy: elem.courtesy,
-								saleValue: new Decimal(elem.saleValue ?? 0),
+								saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
 								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
 								discountValue: elem.courtesy ? 0 : elem.discountValue,
-								quantity: new Decimal(elem.quantity),
+								quantity: new Decimal(elem.quantity).toNumber(),
 								totalValue: elem.courtesy
 									? 0
 									: elem.quantity * elem.unitaryValue - elem.discountValue,
-							} as Partial<BudgetItem>)
+							})
 					: BudgetItem.create(
 							{
 								economic_group_id: authCtx.group.id,

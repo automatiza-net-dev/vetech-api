@@ -427,7 +427,7 @@ export default class PatientService {
 			.where("type", PatientType.ANIMAL);
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.race || data.specie) {

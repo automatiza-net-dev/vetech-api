@@ -136,13 +136,13 @@ export default class BillService {
 		if (data.patientTag) {
 			qb.whereHas("patient", (query) => {
 				query.whereHas("patientAnimal", (query) => {
-					query.where("tag", "ilike", `%${data.patientTag}%`);
+					qb.where("tag", data.patientTag ?? "");
 				});
 			});
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.pending === "true") {

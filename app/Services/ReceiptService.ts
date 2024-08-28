@@ -552,7 +552,7 @@ export default class ReceiptService {
 		}
 
 		if (data.tag) {
-			qb.whereILike("tag", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.supplier) {

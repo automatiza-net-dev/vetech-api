@@ -385,7 +385,7 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.pending === "true") {
@@ -434,7 +434,7 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.pending === "true") {

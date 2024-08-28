@@ -9,8 +9,8 @@ type Notification = {
 	title: string;
 	status: string;
 	message: string;
-	createdAt: string;
-	createdAtText: string;
+	createdAt: string | null;
+	createdAtText: string | null;
 	isRead: boolean;
 	link: string;
 };
@@ -58,8 +58,8 @@ export default class NotificationsService {
 					status: "",
 					message:
 						"Existem acessos que ainda não definidos para os Perfis de Acesso desta Unidade. Clique Aqui para ir para a tela de Controles de Acessos.",
-					createdAt: new Date().toISOString(),
-					createdAtText: new Date().toISOString(),
+					createdAt: null,
+					createdAtText: null,
 					isRead: false,
 					link: "/dashboard/controle-acesso",
 				},
@@ -88,8 +88,8 @@ export default class NotificationsService {
 					status: "",
 					message:
 						"Existem vendas que estão pendentes de liberação de Cortesia / Desconto Máximo. Clique Aqui para ir para a tela de Vendas.",
-					createdAt: new Date().toISOString(),
-					createdAtText: new Date().toISOString(),
+					createdAt: null,
+					createdAtText: null,
 					isRead: false,
 					link: "/dashboard/vendas?pending=true",
 				},
@@ -119,8 +119,8 @@ export default class NotificationsService {
 					status: "",
 					message:
 						"Existem orçamentos que estão pendentes de liberação de Cortesia / Desconto Máximo. Clique Aqui para ir para a tela de Orçamentos",
-					createdAt: new Date().toISOString(),
-					createdAtText: new Date().toISOString(),
+					createdAt: null,
+					createdAtText: null,
 					isRead: false,
 					link: "/dashboard/budgets/partial?pending=true",
 				},

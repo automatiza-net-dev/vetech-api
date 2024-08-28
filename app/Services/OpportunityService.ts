@@ -109,6 +109,7 @@ export default class OpportunityService {
 			})),
 			unit: {
 				id: result.unit.id,
+				identification: result.unit.identification,
 				companyName: result.unit.companyName,
 				fantasyName: result.unit.fantasyName,
 			},
@@ -327,6 +328,7 @@ export default class OpportunityService {
 			})),
 			unit: {
 				id: elem.unit.id,
+				identification: elem.unit.identification,
 				companyName: elem.unit.companyName,
 				fantasyName: elem.unit.fantasyName,
 			},
@@ -350,16 +352,19 @@ export default class OpportunityService {
 			toDate?: string;
 			description?: string;
 			contactName?: string;
+			contactPhone?: string;
 			patientName?: string;
 			technicianName?: string;
 			status?: string;
 			clientName?: string;
+			units?: string[];
 		},
 	) {
 		const qb = OpportunityActivity.query()
 			.preload("activity")
 			.preload("opportunity", (query) => {
 				query
+					.preload("unit")
 					.preload("client")
 					.preload("contact", (query) => {
 						query.preload("tutor");
@@ -374,6 +379,16 @@ export default class OpportunityService {
 			.whereHas("opportunity", (query) => {
 				query.where("economic_group_id", authCtx.group.id);
 			});
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereIn("business_unit_id", data.units ?? []);
+			});
+		} else {
+			qb.whereHas("opportunity", (query) => {
+				query.where("business_unit_id", authCtx.unit.id);
+			});
+		}
 
 		if (data.fromDate) {
 			qb.whereRaw("execution_date::date >= ?", [data.fromDate]);
@@ -411,7 +426,7 @@ export default class OpportunityService {
 			});
 		}
 
-		if (data.patientName || data.contactName) {
+		if (data.patientName || data.contactName || data.contactPhone) {
 			qb.whereHas("opportunity", (query) => {
 				if (data.patientName) {
 					query.whereHas("client", (query) => {
@@ -419,9 +434,41 @@ export default class OpportunityService {
 					});
 				}
 
-				if (data.contactName) {
+				if (data.contactName || data.contactPhone) {
 					query.whereHas("contact", (query) => {
-						query.whereILike("name", `%${data.contactName!}%`);
+						if (data.contactName) {
+							query.whereILike("name", `%${data.contactName!}%`);
+						}
+
+						if (data.contactPhone) {
+							const clearPhone = data.contactPhone.replace(/\D/g, "");
+							query.whereHas("contacts", (query) => {
+								query.whereRaw(
+									`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
+            ? -- add o 9
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
+    )`,
+									[
+										clearPhone,
+										`%${clearPhone}%`,
+										clearPhone,
+										clearPhone,
+										clearPhone,
+										`%${clearPhone}%`,
+									],
+								);
+							});
+						}
 					});
 				}
 			});
@@ -439,6 +486,12 @@ export default class OpportunityService {
 			observation: elem.observation,
 			status: elem.status,
 
+			unit: this.sharedService.captureGroup(elem.opportunity.unit, (v) => ({
+				id: v.id,
+				identification: v.identification,
+				companyName: v.companyName,
+				fantasyName: v.fantasyName,
+			})),
 			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
 				id: v.id,
 				description: v.description,
@@ -449,14 +502,15 @@ export default class OpportunityService {
 				id: elem.activity.id,
 				description: elem.activity.description,
 			},
-			client: elem.opportunity?.client
-				? {
-						id: elem.opportunity?.client.id,
-						name: elem.opportunity?.client.name,
-						cellphone: elem.opportunity?.client?.tutor?.cellphone ?? null,
-						telephone: elem.opportunity?.client?.tutor?.telephone ?? null,
-					}
-				: null,
+			client: this.sharedService.captureGroup(
+				elem.opportunity?.client,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+				}),
+			),
 			contact: this.sharedService.captureGroup(
 				elem.opportunity?.contact,
 				(v) => ({
@@ -710,6 +764,7 @@ export default class OpportunityService {
 				},
 				unit: {
 					id: op.unit.id,
+					identification: op.unit.identification,
 					companyName: op.unit.companyName,
 					fantasyName: op.unit.fantasyName,
 				},
@@ -1002,6 +1057,7 @@ export default class OpportunityService {
 				})),
 				unit: {
 					id: op.unit.id,
+					identification: op.unit.identification,
 					companyName: op.unit.companyName,
 					fantasyName: op.unit.fantasyName,
 				},
@@ -2162,9 +2218,19 @@ export default class OpportunityService {
 				);
 			}
 
+			const patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.preload("patientAnimal")
+				.firstOrFail();
+
 			await model
 				.merge({
 					client_id: data.patientId,
+					race_id: patient.patientAnimal?.race_id,
+					gender: patient.gender,
+					weight: patient.weight,
+					castrated: patient.patientAnimal?.castrated,
 				})
 				.useTransaction(trx)
 				.save();

@@ -404,7 +404,7 @@ const schema = z.object({
 						}),
 						indIEDest: z.string(),
 						IE: z.optional(z.string()),
-						email: z.string(),
+						email: z.optional(z.string()),
 					}),
 				),
 				det: z.union([z.array(detSchema), detSchema]),
@@ -449,20 +449,20 @@ const schema = z.object({
 						dup: z.union([z.array(dupSchema), z.optional(dupSchema)]),
 					}),
 				),
-				pag: z.object({
-					detPag: z.object({
-						tPag: z.string(),
-						xPag: z.optional(z.string()),
-						vPag: z.string(),
-					}),
-				}),
+				// pag: z.object({
+				// 	detPag: z.object({
+				// 		tPag: z.string(),
+				// 		xPag: z.optional(z.string()),
+				// 		vPag: z.string(),
+				// 	}),
+				// }),
 				infAdic: z.object({ infCpl: z.string() }),
-				infRespTec: z.object({
-					CNPJ: z.string(),
-					xContato: z.string(),
-					email: z.string(),
-					fone: z.string(),
-				}),
+				// infRespTec: z.object({
+				// 	CNPJ: z.string(),
+				// 	xContato: z.string(),
+				// 	email: z.string(),
+				// 	fone: z.string(),
+				// }),
 				_versao: z.optional(z.string()),
 				_Id: z.optional(z.string()),
 			}),
@@ -536,7 +536,8 @@ export default class ReceiptService {
 				query.select("id", "name");
 			})
 			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id);
+			.where("business_unit_id", authCtx.unit.id)
+			.orderByRaw("receipt_date desc");
 
 		if (data.receipt_id) {
 			qb.where("id", data.receipt_id);
@@ -551,7 +552,7 @@ export default class ReceiptService {
 		}
 
 		if (data.tag) {
-			qb.whereILike("tag", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.supplier) {
@@ -879,7 +880,7 @@ export default class ReceiptService {
 
 				if (unit.economicGroupId !== authCtx.group.id) {
 					throw new BadRequestException(
-						`O CNPJ do destinatário desta nota fical é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						`O CNPJ do destinatário desta nota fiscal é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
 						400,
 						"E_INVALID_DOC",
 					);
@@ -900,12 +901,18 @@ export default class ReceiptService {
 			const products = await Product.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
+				.whereHas("variations", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
+				})
 				.preload("variations");
 
 			const supplierProducts = await SupplierProduct.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.where("supplier_id", supplierId)
+				.whereHas("productVariation", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
+				})
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});
@@ -966,6 +973,7 @@ export default class ReceiptService {
 				const existingProduct = supplierProducts.find(
 					(sp) => sp.productVariation.barcode === barcode,
 				)?.productVariation.product;
+
 				const anotherExistingProduct = existingProduct
 					? existingProduct
 					: products.find((p) =>
@@ -1123,7 +1131,9 @@ export default class ReceiptService {
 	private async $syncItems(trx: TransactionClientContract, receipt: Receipt) {
 		await Database.rawQuery(
 			`update receipt_items set product_variation_id = sp.product_variation_id
-      from receipt_items ri join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id
+      from receipt_items ri
+        join receipts r on ri.receipt_id = r.id
+          join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id and r.supplier_id = sp.supplier_id
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,
@@ -1132,7 +1142,7 @@ export default class ReceiptService {
 
 		await Database.rawQuery(
 			`update receipt_items set product_variation_id = pv.id
-      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode
+      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode and ( coalesce(pv.barcode,'') <> '' and pv.barcode <> 'SEM GTIN')
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,
@@ -1763,11 +1773,11 @@ export default class ReceiptService {
 								blockInstallments: elem.installments,
 								installmentValue: elem.installmentValue / elem.installments,
 								issueDate: elem.issueDate,
-								expirationDate: elem.expirationDate.plus({
-									days:
-										paymentMethod.daysFirstInstallment +
-										paymentMethod.daysBetweenInstallments * idx,
-								}),
+								expirationDate: SharedService.CalculateDateOffset(
+									idx,
+									elem.expirationDate,
+									paymentMethod,
+								),
 								nsuDocument: elem.nsuDocument,
 								status: "Ativo",
 							};
@@ -2618,7 +2628,7 @@ and product_variation_id in (
 					product_variation_id: newProductVariations.find(
 						(p) => p.barcode === elem.barcodeXml,
 					)?.id,
-					product_supplier_id: elem.barcodeXml,
+					product_supplier_id: elem.productSupplierXml,
 				})),
 				{ client: trx },
 			);

@@ -254,4 +254,19 @@ export default class Schedule extends BaseModel {
 
 	@column()
 	public opportunity_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public treatment_id: number | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public treatment_item_id: number | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public treatment_execution_id: number | null;
 }

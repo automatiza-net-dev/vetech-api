@@ -27,6 +27,7 @@ export default class ConfirmBudgetValidator {
 				]),
 			),
 		finishedAt: schema.date(),
+		observation: schema.string.optional({}, []),
 		reasonId:
 			this.type === "PARCIAL"
 				? schema.string({}, this.reasonRules)

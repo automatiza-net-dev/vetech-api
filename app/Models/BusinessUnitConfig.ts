@@ -11,6 +11,9 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public balanceControl: "realizado" | "previsto";
 
+	@column({})
+	public treatment: boolean;
+
 	@column({
 		columnName: "integrates_to_crm_schedules",
 	})
@@ -92,6 +95,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	public returnInterval: number;
 
 	@column({
+		columnName: "crm_useful_days",
+	})
+	public crmUsefulDays: boolean;
+
+	@column({
 		columnName: "schedule_late_minutes",
 	})
 	public scheduleLateMinutes: number;
@@ -105,6 +113,11 @@ export default class BusinessUnitConfig extends BaseModel {
 		columnName: "allowed_return_qty",
 	})
 	public allowedReturnQty: number;
+
+	@column({
+		columnName: "show_treatment_executions_schedule",
+	})
+	public showTreatmentExecutionsSchedule: boolean;
 
 	@column({
 		columnName: "bill_counter",

@@ -9,7 +9,14 @@ import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import { addDays, addHours, endOfMonth, format } from "date-fns";
+import {
+	addDays,
+	addHours,
+	differenceInBusinessDays,
+	endOfMonth,
+	format,
+	startOfMonth,
+} from "date-fns";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -203,7 +210,8 @@ export default class IndicatorService {
             business_units.id,
             business_units.identification,
             'Recorrentes'          as description,
-            sum(bills.total_value) as total
+            sum(bills.total_value) as total,
+            count(distinct bills.client_id) as qty_clients
           `,
 				),
 			)
@@ -233,7 +241,8 @@ export default class IndicatorService {
           business_units.id,
           business_units.identification,
           client_origins.description,
-          sum(bills.total_value) as total
+          sum(bills.total_value) as total,
+          count( distinct bills.client_id ) as qty_clients
           `,
 				),
 			)
@@ -289,14 +298,38 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: result.length > 0,
 			title: "Faturamento X Origem Clientes",
-			legend: result.map((elem, idx) => ({
-				value: this.shared.formatter.format(elem.total.toFixed(2)),
-				name: elem.description,
-				percentage: this.shared.formatPercentage((elem.total / sum) * 100),
-				itemStyle: {
-					color: authCtx.group.colors[idx % authCtx.group.colors.length],
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
 				},
-			})),
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.total / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.total.toFixed(2)),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: elem.qty_clients,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: this.shared.formatter.format(
+						elem.total / Number.parseInt(elem.qty_clients),
+					),
+					itemStyle: { color: "" },
+				},
+			]),
+
 			configs: {
 				title: {
 					text: "Faturamento X Origem Clientes",
@@ -918,16 +951,37 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: result.length > 0,
 			title: "Faturamento X Forma Pagamento",
-			legend: result.map((elem, idx) => ({
-				value: this.shared.formatter.format(elem.totalpayments),
-				name: elem.description,
-				percentage: this.shared.formatPercentage(
-					(elem.totalpayments / total) * 100,
-				),
-				itemStyle: {
-					color: authCtx.group.colors[idx % authCtx.group.colors.length],
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
 				},
-			})),
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage(
+						(elem.totalpayments / total) * 100,
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.totalpayments),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
 			configs: {
 				title: {
 					text: "Faturamento X Forma Pagamento",
@@ -2429,51 +2483,71 @@ export default class IndicatorService {
 				? new Date(data.fromDate).toISOString()
 				: new Date().toISOString(),
 		).plus({ days: 10 });
+
 		const ym = dt.toFormat("yyyyMM");
-		const daysOfMonth = dt.daysInMonth ?? 30;
+
+		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(
+					endOfMonth(dt.toJSDate()),
+					startOfMonth(dt.toJSDate()),
+				)
+			: dt.daysInMonth ?? 30;
+
+		const usefulDaysUntilNow = differenceInBusinessDays(
+			new Date(),
+			startOfMonth(dt.toJSDate()),
+		);
 
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(
 					`
-            economic_groups.id as e_id,
-            economic_groups.company_name as e_name,
-            business_units.id as b_id,
-            business_units.identification,
-            case
+          economic_groups.id                                       as e_id,
+          economic_groups.company_name                             as e_name,
+          business_units.id                                        as b_id,
+          business_units.identification,
+          case
               when business_unit_metas.value is not null then metas.description
               else 'SemMetaDefinida' end                           as meta_description,
-            case
+          case
               when business_unit_metas.value is not null then metas.type
               else 'SemMetaDefinida' end                           as meta_type,
-            coalesce(business_unit_metas.value, 0)                   as meta_value,
-            sum(bills.total_value)                                   as total,
-            sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
-            case
+          coalesce(business_unit_metas.value, 0)                   as meta_value,
+          sum(bills.total_value)                                   as total,
+          sum(bills.total_value) / business_unit_metas.value * 100 as percentage,
+          case
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
                 then sum(bills.total_value)
-              else sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) *
+              else sum(bills.total_value) / ? *
                 ? end                                           as projection,
-            case
+          case
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') < ?) then 0
               when (to_char(now(), 'YYYY') || to_char(now(), 'MM') > ?)
                 then sum(bills.total_value) / business_unit_metas.value * 100
-              else (sum(bills.total_value) / cast(to_char(now(), 'DD') as integer) * ?) /
+              else (sum(bills.total_value) / ? * ?) /
                 business_unit_metas.value *
                 100 end                                         as meta_projection
-
           `,
-					[ym, ym, daysOfMonth, ym, ym, daysOfMonth],
+					[
+						ym,
+						ym,
+						usefulDaysUntilNow,
+						usefulDays,
+						ym,
+						ym,
+						usefulDaysUntilNow,
+						usefulDays,
+					],
 				),
 			)
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
-			.joinRaw(`join systems on economic_groups.system_id = systems.id`)
+			.joinRaw("join systems on economic_groups.system_id = systems.id")
 			.joinRaw(
 				`left join metas on (metas.system_id = systems.id or metas.economic_group_id = economic_groups.id) and metas.description = 'Faturamento'`,
 			)
@@ -2511,12 +2585,11 @@ export default class IndicatorService {
 			qb.whereIn("business_units.economic_group_id", data.groups);
 		}
 
-		if (data.fromDate) {
-			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-		}
-
-		if (data.toDate) {
-			qb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const metasResult = await qb;
@@ -3742,8 +3815,8 @@ export default class IndicatorService {
 
 			acc.push({
 				categoria: curr,
-				faturamento: categorySum,
-				porcentagem: (categorySum / total) * 100,
+				faturamento: this.shared.formatter.format(categorySum),
+				porcentagem: this.shared.formatPercentage((categorySum / total) * 100),
 				grupos: categoryGroups.map((elem) => {
 					const groupTotal =
 						elem === "-"
@@ -3759,15 +3832,21 @@ export default class IndicatorService {
 
 					return {
 						grupo: elem === "-" ? "Outros" : elem,
-						total: groupTotal,
-						porcentagem: (groupTotal / categorySum) * 100,
+						total: this.shared.formatter.format(groupTotal),
+						porcentagem: this.shared.formatPercentage(
+							(groupTotal / categorySum) * 100,
+						),
 						origem_clientes: result
 							.filter((r) => r.categoria === curr)
 							.filter((r) => r.grupo === elem)
 							.map((ori) => ({
 								origem: ori.description,
-								total: Number.parseFloat(ori.total),
-								porcentagem: (Number.parseFloat(ori.total) / groupTotal) * 100,
+								total: this.shared.formatter.format(
+									Number.parseFloat(ori.total),
+								),
+								porcentagem: this.shared.formatPercentage(
+									(Number.parseFloat(ori.total) / groupTotal) * 100,
+								),
 							})),
 					};
 				}),
@@ -3779,6 +3858,146 @@ export default class IndicatorService {
 		return {
 			total,
 			categories,
+		};
+	}
+
+	public async clientOriginTreeIndicators(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+       business_units.id,
+       business_units.identification,
+       coalesce(client_origin_categories.description, 'Outros') as categoria,
+       coalesce(client_origin_groups.description, 'Outros')     as grupo,
+       coalesce(client_origins.description, 'Outros')           as origem,
+       count(opportunities.id)::int                             as count
+          `,
+				),
+			)
+			.joinRaw(
+				"left join client_origins on client_origins.id = opportunities.client_origin_id",
+			)
+			.joinRaw(
+				"left join client_origin_groups on client_origins.client_origin_group_id = client_origin_groups.id",
+			)
+			.joinRaw(
+				"left join client_origin_categories on client_origin_categories.id = client_origin_groups.client_origin_category_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.groupByRaw(
+				"business_units.id, client_origin_categories.description, client_origin_groups.description, client_origins.description",
+			)
+			.whereNull("opportunities.deleted_at")
+			.whereRaw(`business_units.environment = 'P'`);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id: string;
+			identification: string;
+			categoria: string;
+			grupo: string;
+			origem: string;
+			count: number;
+		}[] = await qb;
+
+		const totalCount = result.reduce((acc, curr) => acc + curr.count, 0);
+
+		const keys = result.reduce((acc, curr) => {
+			const innerKey = curr.categoria ?? "-";
+
+			if (!acc.includes(innerKey)) {
+				acc.push(innerKey);
+			}
+
+			return acc;
+		}, [] as string[]);
+
+		const categories = keys.reduce((acc, curr) => {
+			const categoryRows =
+				curr === "-"
+					? result.filter((r) => !r.categoria)
+					: result.filter((r) => r.categoria === curr);
+
+			const categorySum = categoryRows.reduce(
+				(sumAcc, sumCurr) => sumAcc + sumCurr.count,
+				0,
+			);
+
+			const categoryGroups = categoryRows.reduce((acc, curr) => {
+				const key = curr.grupo ?? "-";
+
+				if (!acc.includes(key)) {
+					acc.push(key);
+				}
+
+				return acc;
+			}, [] as string[]);
+
+			acc.push({
+				categoria: curr,
+				total: categorySum,
+				porcentagem: this.shared.formatPercentage(
+					(categorySum / totalCount) * 100,
+				),
+				grupos: categoryGroups.map((elem) => {
+					const groupTotal =
+						elem === "-"
+							? result
+									.filter((r) => !r.categoria && !r.grupo)
+									.reduce((acc, curr) => acc + curr.count, 0)
+							: result
+									.filter((r) => r.categoria === curr && r.grupo === elem)
+									.reduce((acc, curr) => acc + curr.count, 0);
+
+					return {
+						grupo: elem === "-" ? "Outros" : elem,
+						total: groupTotal,
+						porcentagem: this.shared.formatPercentage(
+							(groupTotal / categorySum) * 100,
+						),
+						origem_clientes: result
+							.filter((r) => r.categoria === curr)
+							.filter((r) => r.grupo === elem)
+							.map((ori) => ({
+								origem: ori.origem,
+								total: ori.count,
+								porcentagem: this.shared.formatPercentage(
+									(ori.count / groupTotal) * 100,
+								),
+							})),
+					};
+				}),
+			});
+
+			return acc;
+		}, [] as unknown[]);
+
+		return {
+			name: "OrigemClientesOportunidades",
+			hasData: result.length > 0,
+			items: categories,
 		};
 	}
 
@@ -4091,6 +4310,10 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND27"),
 				() => this.consolidatedReviewerBudgets(authCtx, data),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND28"),
+				() => this.salesPerReviewerIndicator_2(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([
@@ -4274,7 +4497,16 @@ export default class IndicatorService {
 			),
 		]);
 
+		const cards = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD01"),
+				// () => true,
+				() => this.clientOriginTreeIndicators(authCtx, data),
+			),
+		]);
+
 		return {
+			cards: cards.filter(Boolean),
 			charts: charts.filter(Boolean),
 		};
 	}
@@ -4478,37 +4710,78 @@ export default class IndicatorService {
 			name: "bill-payment-format",
 			type: "bar",
 			hasData: result.length > 0,
-			// legend: true,
 			title: "Faturamento x Cond. Pgto",
 			legend: [
-				{
-					value: this.shared.formatter.format(
-						result.map((r) => r.a_vista).at(0) ?? 0,
-					),
-					name: "A Vista",
-					percentage: this.shared.formatPercentage(
-						result
-							.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
-							.at(0) ?? 0,
-					),
-					itemStyle: {
-						color: "#4BC0C0",
+				[
+					{
+						title: "Descrição",
+						value: "A vista",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 					},
-				},
-				{
-					value: this.shared.formatter.format(
-						result.map((r) => r.a_prazo).at(0) ?? 0,
-					),
-					name: "A Prazo",
-					percentage: this.shared.formatPercentage(
-						result
-							.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
-							.at(0) ?? 0,
-					),
-					itemStyle: {
-						color: "#FFCD56",
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_vista / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
 					},
-				},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_vista).at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
+				[
+					{
+						title: "Descrição",
+						value: "A prazo",
+						itemStyle: {
+							color: authCtx.group.colors.at(1),
+						},
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							result
+								.map((r) => (r.a_prazo / (aVistaSum + aPrazoSum)) * 100)
+								.at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(
+							result.map((r) => r.a_prazo).at(0) ?? 0,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
 			],
 			configs: {
 				title: {
@@ -4803,23 +5076,49 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: metasResult.length > 0,
 			title: "Partic. de Produtos x Serviços",
-			legend: [
-				{
-					value: this.shared.formatter.format(productSum),
-					name: "Produtos",
-					percentage: this.shared.formatPercentage(
-						(productSum / (productSum + serviceSum)) * 100,
-					),
-					itemStyle: { color: authCtx.group.colors.at(0) },
-				},
-				{
-					value: this.shared.formatter.format(serviceSum),
-					name: "Serviços",
-					percentage: this.shared.formatPercentage(
-						(serviceSum / (productSum + serviceSum)) * 100,
-					),
-					itemStyle: { color: authCtx.group.colors.at(1) },
-				},
+			legends: [
+				[
+					{
+						title: "Descrição",
+						value: "Produtos",
+						itemStyle: { color: authCtx.group.colors.at(0) },
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(productSum / (productSum + serviceSum)) * 100,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(productSum),
+						itemStyle: { color: "" },
+					},
+					{ title: "Qtd Cli", value: "0", itemStyle: { color: "" } },
+					{ title: "Tkt Medio R$", value: "0", itemStyle: { color: "" } },
+				],
+				[
+					{
+						title: "Descrição",
+						value: "Serviços",
+						itemStyle: { color: authCtx.group.colors.at(1) },
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(serviceSum / (productSum + serviceSum)) * 100,
+						),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(serviceSum),
+						itemStyle: { color: "" },
+					},
+					{ title: "Qtd Cli", value: "0", itemStyle: { color: "" } },
+					{ title: "Tkt Medio R$", value: "0", itemStyle: { color: "" } },
+				],
 			],
 			configs: {
 				title: {
@@ -5388,7 +5687,8 @@ export default class IndicatorService {
         count(total.id)                           as qtd_total,
         sum(coalesce(total.total_value, 0))       as total_orcamentos,
         count(confirmados.id)                     as qtd_confirmados,
-        sum(coalesce(confirmados.total_value, 0)) as total_confirmados
+        sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
           `,
 				),
 			)
@@ -5437,7 +5737,7 @@ export default class IndicatorService {
 
 		return {
 			name: "budgetsAvaliadorConsolidado",
-			description: "Orçamentos por Avaliador",
+			description: "Orçamentos por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
@@ -5465,8 +5765,8 @@ export default class IndicatorService {
 				return {
 					id: group.e_id,
 					identification: group.identification,
-					totalConfirmados: confirmedSum,
-					totalOrcamentos: budgetedSum,
+					totalConfirmados: this.shared.formatter.format(confirmedSum),
+					totalOrcamentos: this.shared.formatter.format(budgetedSum),
 					users: uniqueUsers.map((user) => {
 						const userRow = result.find((r) => r.u_id === user);
 
@@ -5475,16 +5775,18 @@ export default class IndicatorService {
 							userName: userRow.name,
 							qtdClientes: userRow.qtd_confirmados,
 							valorRealizado: this.shared.formatter.format(
-								userRow.total_confirmados,
+								Number.parseFloat(userRow.total_confirmados),
 							),
 							ticketMedioRealizado: this.shared.formatter.format(
-								userRow.total_confirmados / userRow.qtd_confirmados,
+								Number.parseFloat(userRow.total_confirmados) /
+									Number.parseFloat(userRow.qtd_confirmados),
 							),
 							participacaoRealizado: this.shared.formatPercentage(
-								(userRow.total_confirmados / confirmedSum) * 100,
+								(Number.parseFloat(userRow.total_confirmados) / confirmedSum) *
+									100,
 							),
 							conversaoAvaliacoes: this.shared.formatPercentage(
-								(userRow.total_confirmados / budgetedSum) * 100,
+								Number.parseFloat(userRow.conv_venda),
 							),
 							qtdAvaliacoes: userRow.qtd_total,
 							totalAvaliado: this.shared.formatter.format(
@@ -6157,25 +6459,68 @@ export default class IndicatorService {
 			hasData: result.length > 0,
 			title: "Clientes Novos X Recorrentes",
 			legend: [
-				{
-					name: "Recorrentes",
-					value: this.shared.formatter.format(recurringSum),
-					percentage: this.shared.formatPercentage(
-						(recurringSum / totalSum) * 100,
-					),
-					itemStyle: {
-						color: authCtx.group.colors[0 % authCtx.group.colors.length],
+				[
+					{
+						title: "Descrição",
+						value: "Recorrentes",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
 					},
-				},
-				{
-					name: "Novos",
-					value: this.shared.formatter.format(newSum),
-					percentage: this.shared.formatPercentage((newSum / totalSum) * 100),
-					itemStyle: {
-						color: authCtx.group.colors[1 % authCtx.group.colors.length],
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage(
+							(recurringSum / totalSum) * 100,
+						),
+						itemStyle: { color: "" },
 					},
-				},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(recurringSum),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
+				[
+					{
+						title: "Descrição",
+						value: "Novos",
+						itemStyle: {
+							color: authCtx.group.colors.at(0),
+						},
+					},
+					{
+						title: "Partic %",
+						value: this.shared.formatPercentage((newSum / totalSum) * 100),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Total R$",
+						value: this.shared.formatter.format(newSum),
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Qtd Cli",
+						value: "",
+						itemStyle: { color: "" },
+					},
+					{
+						title: "Tkt Medio R$",
+						value: "",
+						itemStyle: { color: "" },
+					},
+				],
 			],
+
 			configs: {
 				title: {
 					text: "Clientes Novos X Recorrentes",
@@ -6335,10 +6680,23 @@ export default class IndicatorService {
 
 		const isSameMonth = today.getMonth() === firstFromInput.getMonth();
 
-		const day = today.getDate();
-		const daysOnMonth = isSameMonth
-			? endOfMonth(today).getDate()
-			: endOfMonth(firstFromInput).getDate();
+		const dt = DateTime.fromISO(
+			data.fromDate
+				? new Date(data.fromDate).toISOString()
+				: new Date().toISOString(),
+		).plus({ hours: 12 });
+
+		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(
+					endOfMonth(dt.toJSDate()),
+					startOfMonth(dt.toJSDate()),
+				)
+			: dt.daysInMonth ?? 30;
+
+		const usefulDaysUntilNow = differenceInBusinessDays(
+			new Date(),
+			startOfMonth(dt.toJSDate()),
+		);
 
 		const {
 			faturamento,
@@ -6362,7 +6720,8 @@ export default class IndicatorService {
 			!Number.isFinite(tkt_medio)
 				? 0
 				: isSameMonth
-					? (faturamento / tkt_medio / daysOnMonth) * day
+					? // ? (faturamento / tkt_medio / daysOnMonth) * day // ANTIGO
+						(faturamento / tkt_medio) * (usefulDaysUntilNow / usefulDays) // NOVO
 					: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
@@ -6562,6 +6921,7 @@ export default class IndicatorService {
 		period: string,
 	) {
 		const [[sql1], [sql2], [sql3], [sql4], [sql5]] = await Promise.all([
+			// Faturamento
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as faturamento"))
 				.joinRaw(
@@ -6571,6 +6931,8 @@ export default class IndicatorService {
 				.where("metas.description", "Faturamento")
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Ticket Medio
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as tkt_medio"))
 				.joinRaw(
@@ -6580,6 +6942,8 @@ export default class IndicatorService {
 				.where("metas.description", "Ticket Medio")
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversao Vendas Crm
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as conv_vendas"))
 				.joinRaw(
@@ -6589,6 +6953,8 @@ export default class IndicatorService {
 				.whereRaw("metas.description ilike ?", ["% Vendas Crm"])
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversão Crm
 			Database.from("metas")
 				.select(
 					Database.raw(
@@ -6602,6 +6968,8 @@ export default class IndicatorService {
 				.whereRaw("metas.description ilike ?", ["% Comparecimentos Crm"])
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversao Agendamentos Crm
 			Database.from("metas")
 				.select(
 					Database.raw("business_unit_metas.value::float as conv_agendamentos"),
@@ -6627,6 +6995,254 @@ export default class IndicatorService {
 			conv_vendas,
 			conv_comparecimentos,
 			conv_agendamentos,
+		};
+	}
+
+	public async activityIndicators_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+        count(opportunity_activities.id)                                                  as criadas_total,
+        sum(case when opportunity_activities.executed_date is not null then 1 else 0 end) as executadas_total,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date > now()
+                   then 1
+               else 0 end)                                                               as agendadas_total,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date <= now()
+                   then 1
+               else 0 end)                                                               as vencidas_total
+          `,
+				),
+			)
+			.joinRaw(`join opportunity_activities
+              on opportunities.id = opportunity_activities.opportunity_id and opportunities.deleted_at is null and
+                 opportunity_activities.deleted_at is null`);
+
+		const qb2 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+        activities.description,
+        count(opportunity_activities.id)                                                  as criadas,
+        sum(case when opportunity_activities.executed_date is not null then 1 else 0 end) as executadas,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date > now()
+                   then 1
+               else 0 end)                                                               as agendadas,
+        sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date <= now()
+                   then 1
+               else 0 end)                                                               as vencidas
+          `,
+				),
+			)
+			.joinRaw(`join opportunity_activities
+              on opportunities.id = opportunity_activities.opportunity_id and opportunities.deleted_at is null and
+                 opportunity_activities.deleted_at is null`)
+			.joinRaw(
+				"join activities on opportunity_activities.activity_id = activities.id",
+			)
+			.groupByRaw("activities.description")
+			.orderByRaw("criadas desc");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("opportunities.business_unit_id", data.units);
+			qb2.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
+			qb2.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.whereRaw("opportunity_activities.issue_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+
+			qb1.whereRaw("opportunity_activities.issue_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const [result1, result2] = await Promise.all([qb1, qb2]);
+
+		return {
+			name: "activities",
+			description: "Atividades",
+			type: "table",
+			hasData: true,
+			data: [
+				{
+					type: "total",
+					items: {
+						name: "total",
+						atividadesTotal: result1.at(0).criadas_totais ?? "0",
+						atividadesExecutadas: result1.at(0).executadas_totais ?? "0",
+						atividadesAgendadas: result1.at(0).agendadas_totais ?? "0",
+						atividadesVencidas: result1.at(0).vencidas_totais ?? "0",
+					},
+				},
+				{
+					type: "atividade",
+					items: result2.map((e) => ({
+						name: e.description,
+						atividadesTotal: e.criadas,
+						atividadesExecutadas: e.executadas,
+						atividadesAgendadas: e.agendadas,
+						atividadesVencidas: e.vencidas,
+					})),
+				},
+			],
+		};
+	}
+
+	public async salesPerReviewerIndicator_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		if (!authCtx.hasPermission("IND28")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id                                         as id_unidade_negocios,
+        coalesce(business_units.identification, 'Não informado')  as identificacao_unidade,
+       avaliador.id                                              as id_avaliador,
+       case
+           when bills.budget_id is null then 'Venda Direta (' || vendedor.name || ')'
+           else coalesce(avaliador.name, 'Não Identificado') end as nome_avaliador,
+       count(distinct bills.client_id)::int                      as qtd_clientes,
+       sum(bills.total_value)::float                             as total_realizado,
+       (sum(bills.total_value) /
+        coalesce(count(distinct bills.client_id), 1))::float     as tkt_medio_realizado,
+       count(budgets.id)::int                                    as qtd_avaliacoes,
+       coalesce(sum(budgets.total_value), 0)::float              as total_avaliacoes,
+       (sum(coalesce(budgets.total_value, 0)) /
+        case
+            when coalesce(count(budgets.id), 1) = 0 then 1
+            else coalesce(count(budgets.id), 1) end)::float      as tkt_medio_avaliacoes
+          `,
+				),
+			)
+			.joinRaw(`left join (budgets left join users avaliador on budgets.reviewer_id = avaliador.id)
+                   on bills.budget_id = budgets.id and budgets.deleted_at is null`)
+			.joinRaw("join users vendedor on bills.seller_id = vendedor.id")
+			.joinRaw(
+				"join business_units on bills.business_unit_id = business_units.id",
+			)
+			.groupByRaw(`business_units.id, business_units.identification, avaliador.id,
+         case
+             when bills.budget_id is null then 'Venda Direta (' || vendedor.name || ')'
+             else coalesce(avaliador.name, 'Não Identificado') end`)
+			.whereNull("bills.deleted_at")
+			.where("bills.economic_group_id", authCtx.group.id);
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.andWhereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id_unidade_negocios: string;
+			identificacao_unidade: string;
+			id_avaliador: string;
+			nome_avaliador: string;
+			qtd_clientes: number;
+			total_realizado: number;
+			tkt_medio_realizado: number;
+			qtd_avaliacoes: number;
+			total_avaliacoes: number;
+			tkt_medio_avaliacoes: number;
+		}[] = await qb;
+
+		const uniqueUnits = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.id_unidade_negocios)) {
+				acc.push(curr.id_unidade_negocios);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "billsReviewer",
+			description: "Vendas por Período",
+			type: "table",
+			hasData: result.length > 0,
+			data: uniqueUnits.map((elem) => {
+				const unit = result.find((r) => r.id_unidade_negocios === elem);
+
+				if (!unit) {
+					return undefined;
+				}
+
+				const unitUsers = result.filter((r) => r.id_unidade_negocios === elem);
+
+				const realizedSum = unitUsers.reduce(
+					(sum, curr) => sum + curr.total_realizado,
+					0,
+				);
+				const reviewedSum = unitUsers.reduce(
+					(sum, curr) => sum + curr.total_avaliacoes,
+					0,
+				);
+
+				return {
+					id: unit.identificacao_unidade,
+					identification: unit.identificacao_unidade,
+					totalConfirmados: this.shared.formatter.format(realizedSum),
+					totalOrcamentos: this.shared.formatter.format(reviewedSum),
+					users: unitUsers.map((usr) => ({
+						userId: usr.id_avaliador,
+						userName: usr.nome_avaliador,
+						qtdClientes: usr.qtd_clientes,
+						valorRealizado: this.shared.formatter.format(usr.total_realizado),
+						ticketMedioRealizado: this.shared.formatter.format(
+							usr.tkt_medio_realizado,
+						),
+						participacaoRealizado: this.shared.formatPercentage(
+							(usr.total_realizado / realizedSum) * 100,
+						),
+						qtdAvaliacoes: usr.qtd_avaliacoes,
+						totalAvaliado: this.shared.formatter.format(usr.total_avaliacoes),
+						ticketMedioAvaliacoes: this.shared.formatter.format(
+							usr.tkt_medio_avaliacoes,
+						),
+					})),
+				};
+			}),
 		};
 	}
 }

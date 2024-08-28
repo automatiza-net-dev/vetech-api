@@ -80,6 +80,12 @@ export default class Product extends BaseModel {
 	@column()
 	public cest?: string;
 
+	@column({
+		columnName: "productivity_item",
+		serializeAs: "productivityItem",
+	})
+	public productivityItem: boolean;
+
 	@column()
 	public features: string;
 

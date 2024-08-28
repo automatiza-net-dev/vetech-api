@@ -17,6 +17,7 @@ import { DateTime } from "luxon";
 import { validateCPF } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PaymentMethod from "App/Models/PaymentMethod";
 
 export type DateSet = {
 	start: Date;
@@ -33,6 +34,13 @@ export type AuthContext = {
 	ip: string | null;
 	hasPermission: (controlID: string) => boolean;
 	hasPermissions: (controlIDs: string[]) => boolean;
+};
+
+type ItemToCheckDiscount = {
+	variacao: string;
+	quantidade: number;
+	preco: number;
+	vlrdesc: number;
 };
 
 @inject()
@@ -93,6 +101,8 @@ export default class SharedService {
 		birthYears: "Anos",
 		birthDays: "Dias",
 		inscription: "Documento",
+		name: "Nome",
+		holders: "Tutores",
 	} as const;
 
 	public async errorHoc(
@@ -147,7 +157,11 @@ export default class SharedService {
 		currency: "BRL",
 	});
 
-	public formatPercentage(value: number) {
+	public formatPercentage(value: number | string) {
+		if (typeof value === "string") {
+			return this.formatPercentage(Number.parseFloat(value));
+		}
+
 		if (Number.isNaN(value)) {
 			return "0%";
 		}
@@ -392,29 +406,44 @@ export default class SharedService {
 			unitaryValue: number;
 			discountValue: number;
 			quantity: number;
+			courtesy?: boolean;
+			maxDiscount?: boolean;
 		}[],
 	) {
+		// [cortesia, maxdiscount]
+		// não, não -> precisa verificar o desconto máximo
+		// sim, não -> não precisa verificar
+		// não, sim -> não precisa verificar
+		// sim, sim -> não precisa verificar
+
+		const items: ItemToCheckDiscount[] = [];
+		for (const entry of data) {
+			const shouldIgnoreForCourtesy =
+				typeof entry.courtesy === "boolean" ? entry.courtesy : false;
+
+			const shouldIgnoreForMxDisc =
+				typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
+
+			if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
+				items.push({
+					variacao: entry.variationId,
+					quantidade: entry.quantity,
+					preco: entry.unitaryValue,
+					vlrdesc: entry.discountValue,
+				});
+			}
+		}
+
 		const rows = await Database.rawQuery(
-			`select * from check_max_discount(?, ?, ?)`,
-			[
-				authCtx.user.id,
-				authCtx.unit.id,
-				JSON.stringify(
-					data.map((d) => ({
-						variacao: d.variationId,
-						quantidade: d.quantity,
-						preco: d.unitaryValue,
-						vlrdesc: d.discountValue,
-					})),
-				),
-			],
+			"select * from check_max_discount(?, ?, ?)",
+			[authCtx.user.id, authCtx.unit.id, JSON.stringify(items)],
 		)
 			.useTransaction(trx)
 			.exec();
 
-		return rows.rows.map((elem) => {
+		return rows.rows.map((elem: { descricao: string, tipoerro: string }) => {
 			return {
-				rule: "DescontoMaximo",
+				rule: elem.tipoerro ?? 'DescontoMaximo',
 				message: elem.descricao,
 			};
 		});
@@ -451,9 +480,36 @@ export default class SharedService {
 
 	static ParseDecimal(value: string | number) {
 		if (typeof value === "string") {
-			return parseFloat(value.replace(",", "."));
+			return Number.parseFloat(value.replace(",", "."));
 		}
 
 		return value;
+	}
+
+	static CalculateDateOffset(
+		idx: number,
+		date: DateTime,
+		paymentMethod: PaymentMethod,
+	): DateTime {
+		// 1a parcela
+		if (idx === 0) {
+			// pular exatamente 1 mês
+			if (paymentMethod.daysFirstInstallment === 30) {
+				return date.plus({ months: 1 });
+			}
+
+			// pular quantos dias forem necessários
+			return date.plus({ days: paymentMethod.daysFirstInstallment });
+		}
+
+		// 2a parcela em diante
+		const lastDate = this.calculateDateOffset(idx - 1, date, paymentMethod);
+		// pular exatamente 1 mês depois da ultima parcela
+		if (paymentMethod.daysBetweenInstallments === 30) {
+			return lastDate.plus({ months: 1 });
+		}
+
+		// pular dias necessários desde a ultima parcela
+		return lastDate.plus({ days: paymentMethod.daysBetweenInstallments });
 	}
 }

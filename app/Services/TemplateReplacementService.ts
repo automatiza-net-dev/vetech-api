@@ -1,9 +1,15 @@
-import { inject } from "@adonisjs/fold";
+import { exec } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
+import Application from "@ioc:Adonis/Core/Application";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Env from "@ioc:Adonis/Core/Env";
+import Database from "@ioc:Adonis/Lucid/Database";
 import { ModelObject } from "@ioc:Adonis/Lucid/Orm";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import Bill from "App/Models/Bill";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DocumentTemplate from "App/Models/DocumentTemplate";
-import Drive from "@ioc:Adonis/Core/Drive";
 import Patient, {
 	PatientGender,
 	PatientVaccineOrigin,
@@ -17,15 +23,13 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import ITemplateReplacementData, {
 	ITemplateReplacementParser,
 } from "Contracts/interfaces/ITemplateReplacementData";
+import { PDFEngine } from "chromiumly";
 import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
-import Env from "@ioc:Adonis/Core/Env";
-import Application from "@ioc:Adonis/Core/Application";
-import { v4 } from "uuid";
-import { exec } from "node:child_process";
-import { writeFile } from "node:fs/promises";
-import { PDFEngine } from "chromiumly";
+import createReport from "docx-templates";
 import { DateTime } from "luxon";
+import { parse } from "node-html-parser";
+import { v4 } from "uuid";
 
 interface ISearch {
 	origin?: string;
@@ -139,6 +143,9 @@ export default class TemplateReplacementService {
 					locale: Locales.ptBR,
 				}),
 			},
+			CONTRACTS: null,
+			CONTRACTOR: null,
+			BILL_ITEMS: null,
 		};
 
 		if (data.businessUnitId) {
@@ -160,6 +167,12 @@ export default class TemplateReplacementService {
 
 		if (data.dependentId) {
 			textData.PATIENT = await this.fetchPatient(data.dependentId);
+		}
+
+		if (data.billId) {
+			textData.CONTRACTS = await this.fetchBillContracts(data.billId);
+			textData.CONTRACTOR = await this.fetchContractor(data.billId);
+			textData.BILL_ITEMS = await this.fetchBillItems(data.billId);
 		}
 
 		const templates = await TemplateReplacement.query()
@@ -197,6 +210,7 @@ export default class TemplateReplacementService {
 			}
 
 			const key = v4();
+
 			const dataPath = `tmp/${key}_data.json`;
 			const templatesPath = `tmp/${key}_templates.json`;
 			const inputPath = `tmp/${key}.docx`;
@@ -271,11 +285,74 @@ export default class TemplateReplacementService {
 				filename: `${key}.pdf`,
 				key: pdfKey,
 			};
+
+			// const outputPath = `tmp/${key}_output.docx`;
+			// const pdfKey = `documents/compiled/${key}.pdf`;
+			//
+			// const fullOutputPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${outputPath}`;
+			//
+			// // const _template = await readFile(fullInputPath);
+			// const buffer = await createReport({
+			// 	template: fileBuffer,
+			// 	data: this.reverseTextTemplateData(textData, templates),
+			// 	cmdDelimiter: ["[", "]"],
+			// });
+			// await writeFile(fullOutputPath, buffer);
+			//
+			// const responseBuffer = await PDFEngine.convert({
+			// 	files: [fullOutputPath],
+			// });
+			//
+			// await Drive.use("s3").put(pdfKey, responseBuffer, {
+			// 	contentType: "application/pdf",
+			// });
+			//
+			// return {
+			// 	filename: `${key}.pdf`,
+			// 	key: pdfKey,
+			// };
 		}
 
 		return {
 			text: this.parseTextTemplate(template.template, textData, templates),
 		};
+	}
+
+	reverseTextTemplateData(
+		data: RenderTextData,
+		templates: TemplateReplacement[],
+	) {
+		return templates.reduce(
+			(map, templ) => {
+				const elem = data[templ.origin];
+				if (!elem) {
+					return map;
+				}
+
+				const value = this.$getValue(templ.attribute, elem);
+				if (!value) {
+					return map;
+				}
+
+				const parsedKey = templ.replacer.substring(
+					1,
+					templ.replacer.length - 1,
+				);
+
+				if (Array.isArray(value)) {
+					map[parsedKey] = value;
+					return map;
+				}
+
+				const value$ = value ? this.$toString(value) ?? templ.attribute : "";
+				map[parsedKey] = value$;
+				return map;
+			},
+			{} as Record<string, string | string[]>,
+		);
 	}
 
 	parseTextTemplate(
@@ -295,6 +372,15 @@ export default class TemplateReplacementService {
 		}
 
 		const value = this.$getValue(head.attribute, elem);
+		if (!value) {
+			return this.parseTextTemplate(raw, data, tail);
+		}
+
+		if (Array.isArray(value)) {
+			const updated = this.parseHtmlTemplate(raw, head, value);
+			return this.parseTextTemplate(updated, data, tail);
+		}
+
 		const value$ = value ? this.$toString(value) ?? head.attribute : "";
 
 		const updated = raw.replaceAll(head.replacer, value$);
@@ -302,7 +388,39 @@ export default class TemplateReplacementService {
 		return this.parseTextTemplate(updated, data, tail);
 	}
 
+	parseHtmlTemplate(
+		raw: string,
+		template: TemplateReplacement,
+		values: string[],
+	) {
+		const root = parse(raw, {});
+
+		const listItems = root.getElementsByTagName("li");
+		for (const listItem of listItems) {
+			if (listItem.innerText === template.replacer) {
+				const parent = listItem.parentNode;
+
+				const updatedChildren = values.map((v) => {
+					const clone = parse(
+						listItem.toString().replace(template.replacer, v),
+					);
+
+					return clone;
+				});
+				parent.set_content(updatedChildren, {});
+
+				break;
+			}
+		}
+
+		return root.toString();
+	}
+
 	$getValue(key: string, obj: ModelObject) {
+		if (Array.isArray(obj)) {
+			return obj;
+		}
+
 		if (obj[key]) {
 			return obj[key];
 		}
@@ -416,6 +534,84 @@ export default class TemplateReplacementService {
 		};
 	}
 
+	async fetchBillContracts(id: string): Promise<string[]> {
+		const bill = await Bill.findOrFail(id);
+
+		const rows = await Database.from("bill_payments")
+			.select(
+				Database.raw(`'0-bill' as ref,
+              case
+           when bill_payments.qty_installments = 1 and payment_methods.tef = 'NAO' then format('R$ \%s em \%s x em \%s - \%s',
+                                                                                  bill_payments.total_value,
+                                                                                  bill_payments.qty_installments,
+                                                                                  payment_methods.description,
+                                                                                  bill_payments.expiration_date::date)
+           when bill_payments.qty_installments > 1 and payment_methods.tef <> 'NAO' then format('R$ \%s em \%s x em \%s - \%s',
+                                                                                   bill_payments.total_value *
+                                                                                   bill_payments.qty_installments,
+                                                                                   bill_payments.qty_installments,
+                                                                                   payment_methods.description,
+                                                                                   bill_payments.created_at::date)
+           else format('R$ \%s em \%s x em \%s - \%s', bill_payments.total_value, bill_payments.qty_installments,
+                       payment_methods.description,
+                       bill_payments.created_at::date) end as pgto
+              `),
+			)
+			.joinRaw(
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
+			)
+			.where("bill_payments.bill_id", id)
+			.whereNull("bill_payments.deleted_at")
+			.groupBy("pgto")
+			.union((qb) => {
+				qb.from("bills")
+					.select(
+						Database.raw(`
+			       '1-bill_pend'  as ref,
+			       format('R$ %s - Pendente de definição da forma de pagamento ', bills.total_value - bills.paid_value) as pgto
+			    `),
+					)
+					.whereRaw(
+						"bills.id = ? and bills.paid_value < bills.total_value and bills.budget_id is null",
+						[id],
+					);
+			})
+			.union((qb) => {
+				qb.from("budget_payments")
+					.select(
+						Database.raw(`
+			           '2-bud_prom'                        as ref,
+			           format('R$ %s em %s x em %s - Pendende de pagamento', budget_payments.total_value, budget_payments.installments,
+			           payment_methods.description) as pgto
+			    `),
+					)
+					.joinRaw(
+						"join payment_methods on budget_payments.payment_method_id = payment_methods.id",
+					)
+					.whereRaw(
+						"budget_payments.budget_id = ? and budget_payments.deleted_at is null and confirmation_date is null",
+						[bill.budget_id ?? v4()],
+					);
+			})
+
+			.union((qb) => {
+				qb.from("budgets")
+					.select(
+						Database.raw(`
+			           '3-bud_pend'                                                                                             as ref,
+			           format('R$ %s - Pendente de definição da forma de pagamento ', budgets.total_value - budgets.paid_value) as pgto
+			           `),
+					)
+					.whereRaw(
+						"budgets.id = ? and budgets.paid_value < budgets.total_value",
+						[bill.budget_id ?? v4()],
+					);
+			})
+			.orderByRaw("1, 2");
+
+		return rows.map((r) => r.pgto);
+	}
+
 	async fetchUnit(id: string) {
 		const model = await BusinessUnit.query().where("id", id).firstOrFail();
 
@@ -425,6 +621,39 @@ export default class TemplateReplacementService {
 			companyName: model.companyName,
 			postalCode: model.postalCode,
 		};
+	}
+
+	async fetchContractor(billID: string) {
+		const model = await Bill.query().where("id", billID).firstOrFail();
+		if (model.financial_responsible_id) {
+			return this.fetchTutor(model.financial_responsible_id);
+		}
+
+		if (model.client_id) {
+			return this.fetchTutor(model.client_id);
+		}
+
+		return {};
+	}
+
+	async fetchBillItems(billID: string): Promise<string[]> {
+		const rows = await Database.from("bills")
+			.select(
+				Database.raw(
+					"format('%sx - %s', bill_items.quantity, products.description) as description",
+				),
+			)
+			.joinRaw("join bill_items on bills.id = bill_items.bill_id")
+			.joinRaw(
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.whereRaw(
+				"bills.id = ? and bills.deleted_at is null and public.bill_items.deleted_at is null",
+				[billID],
+			);
+
+		return rows.map((r) => r.description);
 	}
 
 	async fetchUser(id: string, unitId: string | undefined) {

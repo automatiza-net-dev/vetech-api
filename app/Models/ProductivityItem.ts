@@ -2,6 +2,9 @@ import { DateTime } from "luxon";
 import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
 import ProductivityItemProduct from "App/Models/ProductivityItemProduct";
 
+export const ProductivityItemTypeQty = ["unitario", "total"] as const;
+export type TProductivityItemTypeQty = (typeof ProductivityItemTypeQty)[number];
+
 export default class ProductivityItem extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
@@ -13,6 +16,11 @@ export default class ProductivityItem extends BaseModel {
 		columnName: "reserved_minutes",
 	})
 	public reservedMinutes: number;
+
+	@column({
+		columnName: "type_qty",
+	})
+	public typeQty: TProductivityItemTypeQty;
 
 	@column()
 	public active: boolean;

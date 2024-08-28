@@ -13,6 +13,7 @@ export interface ICreateBillData {
 		unitaryValue: number;
 		discountValue: number;
 		courtesy?: boolean;
+		maxDiscount?: boolean;
 	}>;
 
 	additionalInformation?: string;
@@ -26,6 +27,7 @@ export interface ICreateBillItemData {
 	unitaryValue: number;
 	discountValue: number;
 	courtesy?: boolean;
+	maxDiscount?: boolean;
 }
 
 export interface ICreateBillPaymentData {
@@ -43,5 +45,12 @@ export interface ICreateBillPaymentData {
 }
 
 export interface IUpdateBillItemData {
-	items: Array<{ billItemId: string; discountValue: number }>;
+	items: Array<{
+		billItemId: string;
+		unitaryValue: number;
+		discountValue: number;
+		courtesy: boolean;
+		maxDiscount?: boolean;
+		shouldValidateDiscount?: boolean;
+	}>;
 }

@@ -1,5 +1,6 @@
-import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
@@ -23,6 +24,7 @@ import TaxationGroupRule, {
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
+import Treatment from "App/Models/Treatment";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -37,6 +39,8 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import { v4 } from "uuid";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -50,12 +54,14 @@ interface ISearchPartial {
 	reviewer?: string;
 	tag?: string;
 	budget_id?: string;
+	pending?: string;
 }
 
 interface ISearchComplete {
 	budget?: string;
 	patient?: string;
 	tag?: string;
+	pending?: string;
 }
 
 interface ISearchProduct {
@@ -247,6 +253,71 @@ export default class BudgetService {
 					documents: billDocuments,
 				});
 
+				if (elem.budgets.some((b) => b.status === BudgetStatus.C)) {
+					const treatments = await Treatment.query()
+						.where("economic_group_id", authCtx.group.id)
+						.where("business_unit_id", authCtx.unit.id)
+						.whereIn(
+							"bill_id",
+							elem.budgets.map((b) => b.bill_id).filter(Boolean),
+						)
+						.preload("items", (query) => {
+							// query.whereNull('deleted_at')
+							query.preload("productVariation", (query) => {
+								query.preload("product");
+							});
+						})
+						.preload("executions", (query) => {
+							query.preload("executionUser");
+							query.preload("productivityItem");
+							// query.whereNull('deleted_at')
+						});
+
+					Object.assign(jsonObj, {
+						treatments: treatments.map((elem) => ({
+							id: elem.id,
+							emission_date: elem.emissionDate,
+							observations: elem.observations,
+							status: elem.status,
+							cancellation_date: elem.cancellationDate,
+							cancellation_observations: elem.cancellationObservations,
+
+							items: elem.items.map((exec) => ({
+								description: exec.productVariation.product.description,
+								quantity: exec.quantity,
+								quantity_executed: exec.quantityExecuted,
+								scheduled_quantity: exec.scheduledQuantity,
+								observations: exec.observations,
+								status: exec.status,
+							})),
+
+							executions: elem.executions.map((exec) => ({
+								schedule_id: exec.schedule_id,
+								schedule_date: exec.scheduleDate,
+								scheduled_quantity: exec.scheduledQuantity,
+								quantity_executed: exec.quantityExecuted,
+								execution_date: exec.executionDate,
+								observations: exec.observations,
+								status: exec.status,
+								user: this.sharedService.captureGroup(
+									exec.executionUser,
+									(v) => ({
+										id: v.id,
+										name: v.name,
+									}),
+								),
+								productivitItem: this.sharedService.captureGroup(
+									exec.productivityItem,
+									(v) => ({
+										id: v.id,
+										description: v.description,
+									}),
+								),
+							})),
+						})),
+					});
+				}
+
 				return jsonObj;
 			}),
 		);
@@ -314,7 +385,13 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
+		}
+
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
 		}
 
 		return qb;
@@ -357,7 +434,13 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
+		}
+
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
 		}
 
 		return qb;
@@ -388,6 +471,11 @@ export default class BudgetService {
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
 					query.preload("product");
+
+					query.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", unitId);
+						query.select("id", "maximum_discount_percentage");
+					});
 				});
 
 				query.preload("courtesyIssuedUser", (query) => {
@@ -566,14 +654,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items
-					.filter((f) => !f.courtesy)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -650,6 +738,7 @@ export default class BudgetService {
 					internalObservation: data.internalObservation,
 					clientName: data.clientName,
 					status: BudgetStatus.A,
+					pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 					tag: GenerateTag(
 						Number.parseInt(authCtx.unit.unitConfig.budgetCounter, 10) + 1,
 					),
@@ -667,7 +756,7 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			data.items.forEach(async (item) => {
+			for (const item of data.items) {
 				const variation = items.find(
 					(variation) => variation.id === item.productVariationId,
 				);
@@ -683,9 +772,12 @@ export default class BudgetService {
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: variation.id,
+						courtesy_issued_user_id:
+							item.courtesy || item.maxDiscount ? authCtx.user.id : undefined,
 
 						courtesy: item.courtesy,
 						saleValue: new Decimal(item.saleValue),
+						maxDiscount: item.maxDiscount ?? false,
 						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
 						discountValue: item.courtesy ? 0 : item.discountValue,
 						quantity: new Decimal(item.quantity),
@@ -698,7 +790,7 @@ export default class BudgetService {
 						client: trx,
 					},
 				);
-			});
+			}
 
 			const [productSum, serviceSum, discountSum] = data.items
 				.filter((f) => !f.courtesy)
@@ -729,6 +821,7 @@ export default class BudgetService {
 
 			await budget
 				.merge({
+					pending: data.items.some((f) => f.courtesy || f.maxDiscount),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
@@ -743,19 +836,33 @@ export default class BudgetService {
 
 	public async updateBudget(
 		authCtx: AuthContext,
-		id: string,
 		data: {
-			sellerId?: string;
-			clientId?: string;
+			id: string;
+			clientId: string;
+			expirationDate: DateTime;
+			sellerId: string;
 			reviewerId?: string;
-			patientId?: string;
-			clientName?: string;
+			observation?: string;
+			internalObservation?: string;
+			maxDiscount: boolean;
+			items: {
+				budgetItemId?: string;
+				maxDiscount: boolean;
+				courtesy?: boolean;
+				discountValue: number;
+				productVariationId: string;
+				quantity: number;
+				unitaryValue: number;
+				saleValue?: number;
+			}[];
+			budgetDate: DateTime;
+			dailyMovementId: string;
 		},
 	) {
 		return Database.transaction(async (trx) => {
 			const budget = await Budget.query()
 				.useTransaction(trx)
-				.where("id", id)
+				.where("id", data.id)
 				.andWhere("business_unit_id", authCtx.unit.id)
 				.first();
 
@@ -771,13 +878,146 @@ export default class BudgetService {
 				);
 			}
 
+			const tasks = data.items.map(async (elem) => {
+				const productVariation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("id", elem.productVariationId)
+					.whereHas("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.preload("product")
+					.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.first();
+
+				if (!productVariation) {
+					throw new BadRequestException(
+						"Não foi possível encontrar um preço para esse produto",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+
+				if (elem.courtesy && !productVariation.product.courtesy) {
+					throw new BadRequestException(
+						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					productVariation.businessUnitProducts.some(
+						(p) =>
+							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
+					)
+				) {
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_MAX_DISCOUNT",
+					);
+				}
+
+				return elem.budgetItemId
+					? BudgetItem.query()
+							.useTransaction(trx)
+							.where("budget_id", budget.id)
+							.where("id", elem.budgetItemId)
+							.update({
+								courtesy_issued_user_id: elem.courtesy
+									? authCtx.user.id
+									: undefined, // mantém valor anterior
+
+								courtesy: elem.courtesy,
+								max_discount: elem.maxDiscount,
+								saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity).toNumber(),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+							})
+					: BudgetItem.create(
+							{
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								product_variation_id: elem.productVariationId,
+								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+								budget_id: budget.id,
+
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+								saleValue: new Decimal(elem.saleValue ?? 0),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+								status: BudgetStatus.A,
+							},
+							{ client: trx },
+						);
+			});
+			await Promise.all(tasks);
+
+			const existingItems = await BudgetItem.query()
+				.useTransaction(trx)
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.where("courtesy", false)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
+
+			const [productSum, serviceSum, discountSum] = existingItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						// acc[0] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[0] += curr.totalValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						// acc[1] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[1] += curr.totalValue;
+					}
+
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
+			);
+
+			const pendingItems = await BudgetItem.query()
+				.useTransaction(trx)
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				);
+
 			return budget
 				.merge({
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					reviewer_id: data.reviewerId,
-					patient_id: data.patientId,
-					clientName: data.clientName,
+					daily_movement_id: data.dailyMovementId,
+
+					pending: pendingItems.length > 0,
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum,
+
+					expirationDate: data.expirationDate,
+					budgetDate: data.budgetDate,
+					observation: data.observation,
+					internalObservation: data.internalObservation,
 				})
 				.useTransaction(trx)
 				.save();
@@ -822,13 +1062,15 @@ export default class BudgetService {
 				client: trx,
 			});
 
-			if (!data.courtesy) {
+			if (!data.courtesy || !data.maxDiscount) {
 				const result = await this.sharedService.checkDiscount(trx, authCtx, [
 					{
 						variationId: data.productVariationId,
 						unitaryValue: data.unitaryValue,
 						discountValue: data.discountValue,
 						quantity: data.quantity,
+						courtesy: data.courtesy,
+						maxDiscount: data.maxDiscount,
 					},
 				]);
 				if (result.length > 0) {
@@ -874,7 +1116,7 @@ export default class BudgetService {
 				)
 			) {
 				throw new BadRequestException(
-					`Desconto lançado é superior ao permitido - ${productVariation.product.description}`,
+					"Desconto máximo foi excedido",
 					400,
 					"E_MAX_DISCOUNT",
 				);
@@ -885,6 +1127,7 @@ export default class BudgetService {
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					product_variation_id: data.productVariationId,
+					courtesy_issued_user_id: data.courtesy ? authCtx.user.id : null,
 
 					courtesy: data.courtesy,
 					saleValue: new Decimal(data.saleValue),
@@ -903,12 +1146,16 @@ export default class BudgetService {
 
 			await budget
 				.merge({
+					pending: data.courtesy || data.maxDiscount ? true : budget.pending,
+
 					productValue:
-						productVariation.product.type === ProductType.PRODUCT
+						productVariation.product.type === ProductType.PRODUCT &&
+						!data.courtesy
 							? budget.productValue + item.totalValue
 							: budget.productValue,
 					serviceValue:
-						productVariation.product.type === ProductType.SERVICE
+						productVariation.product.type === ProductType.SERVICE &&
+						!data.courtesy
 							? budget.serviceValue + item.totalValue
 							: budget.serviceValue,
 					discountValue: budget.discountValue + item.discountValue,
@@ -929,14 +1176,14 @@ export default class BudgetService {
 			const result = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data
-					.filter((f) => !f.courtesy)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (result.length > 0) {
 				// return result;
@@ -962,8 +1209,10 @@ export default class BudgetService {
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						product_variation_id: item.productVariationId,
+						courtesy_issued_user_id: item.courtesy ? authCtx.user.id : null,
 
 						courtesy: item.courtesy,
+						maxDiscount: item.maxDiscount,
 						saleValue: new Decimal(item.saleValue),
 						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
 						discountValue: item.courtesy ? 0 : item.discountValue,
@@ -991,12 +1240,15 @@ export default class BudgetService {
 
 				await budget
 					.merge({
+						pending: data.some((f) => f.courtesy || f.maxDiscount)
+							? true
+							: budget.pending,
 						productValue:
-							variation.product.type === ProductType.PRODUCT
+							variation.product.type === ProductType.PRODUCT && !item.courtesy
 								? budget.productValue + dbItem.totalValue
 								: budget.productValue,
 						serviceValue:
-							variation.product.type === ProductType.SERVICE
+							variation.product.type === ProductType.SERVICE && !item.courtesy
 								? budget.serviceValue + dbItem.totalValue
 								: budget.serviceValue,
 						discountValue: budget.discountValue + dbItem.discountValue,
@@ -1013,31 +1265,34 @@ export default class BudgetService {
 
 	public async updateBudgetItem(
 		authCtx: AuthContext,
-		id: string,
-		data: IUpdateBudgetItemData,
+		data: IUpdateBudgetItemData[],
 	) {
 		return Database.transaction(async (trx) => {
-			const budgetItem = await BudgetItem.query()
-				.where("id", id)
+			const budgetItems = await BudgetItem.query()
+				.whereIn(
+					"id",
+					data.map((d) => d.budgetItemId),
+				)
 				.where("business_unit_id", authCtx.unit.id)
 				.preload("budget")
 				.preload("productVariation", (query) => {
 					query.preload("product");
-				})
-				.first();
+				});
 
-			if (!budgetItem) {
-				throw this.sharedService.ResourceNotFound();
-			}
-
-			const result = await this.sharedService.checkDiscount(trx, authCtx, [
-				{
-					variationId: budgetItem.product_variation_id,
-					unitaryValue: data.unitaryValue,
-					discountValue: data.discountValue,
-					quantity: data.quantity,
-				},
-			]);
+			const result = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.map((elem) => ({
+					variationId:
+						budgetItems.find((f) => f.id === elem.budgetItemId)
+							?.product_variation_id ?? v4(),
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
+			);
 			if (result.length > 0) {
 				// return result;
 				throw new BadRequestException(
@@ -1047,20 +1302,42 @@ export default class BudgetService {
 				);
 			}
 
-			const updatedItem = await budgetItem
-				.merge({
-					unitaryValue: data.unitaryValue,
-					discountValue: data.discountValue,
-					quantity: new Decimal(data.quantity),
-					totalValue: data.quantity * data.unitaryValue - data.discountValue,
-					status: data.status,
-				})
+			const tasks = data.map(async (elem) => {
+				const budgetItem = budgetItems.find((f) => f.id === elem.budgetItemId);
+				if (!budgetItem) {
+					throw new BadRequestException(
+						"Item do orçamento não encontrado",
+						400,
+						"E_ERR",
+					);
+				}
+
+				return budgetItem
+					.merge({
+						courtesy_issued_user_id: elem.courtesy
+							? budgetItem.courtesy_approved_user_id || authCtx.user.id
+							: null,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: new Decimal(elem.quantity),
+						totalValue: elem.quantity * elem.unitaryValue - elem.discountValue,
+						status: elem.status,
+						courtesy: elem.courtesy,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			const updatedItems = await Promise.all(tasks);
+
+			const budget = await Budget.query()
+				.where("id", updatedItems.at(0)?.budget_id ?? v4())
 				.useTransaction(trx)
-				.save();
+				.firstOrFail();
 
 			const existingItems = await BudgetItem.query()
-				.where("budget_id", budgetItem.budget_id)
+				.where("budget_id", budget.id)
 				.where("status", BudgetStatus.A)
+				.where("courtesy", false)
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				});
@@ -1068,12 +1345,14 @@ export default class BudgetService {
 			const [productSum, serviceSum, discountSum] = existingItems.reduce(
 				(acc, curr) => {
 					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						// acc[0] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[0] += curr.totalValue;
 					}
 					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						// acc[1] +=
+						// 	curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+						acc[1] += curr.totalValue;
 					}
 
 					acc[2] += curr.discountValue;
@@ -1083,17 +1362,23 @@ export default class BudgetService {
 				[0, 0, 0],
 			);
 
-			await budgetItem.budget
+			const pendingItems = await BudgetItem.query()
+				.where("budget_id", budget.id)
+				.where("status", BudgetStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				);
+
+			await budget
 				.merge({
+					pending: pendingItems.length > 0,
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: productSum + serviceSum - discountSum,
+					totalValue: productSum + serviceSum,
 				})
 				.useTransaction(trx)
 				.save();
-
-			return updatedItem;
 		});
 	}
 
@@ -1128,11 +1413,6 @@ export default class BudgetService {
 				);
 			}
 
-			const existingItems = await BudgetItem.query()
-				.where("budget_id", budgetItem.budget_id)
-				.whereNot("id", id)
-				.where("status", BudgetStatus.A);
-
 			const updatedItem = await budgetItem
 				.merge({
 					exclusion_user_id: authCtx.user.id,
@@ -1142,21 +1422,43 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			const unitarySum = existingItems.reduce(
-				(total, item) => total + item.totalValue,
-				0,
-			);
+			const existingItems = await BudgetItem.query()
+				.where("budget_id", budgetItem.budget_id)
+				.whereNot("id", id)
+				.where("status", BudgetStatus.A)
+				.preload("productVariation", (q) => {
+					q.preload("product");
+				});
 
-			const discountSum = existingItems.reduce(
-				(total, item) => total + item.discountValue,
-				0,
-			);
+			const [productSum, serviceSum, discountSum] = existingItems
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						if (curr.productVariation.product.type === ProductType.PRODUCT) {
+							acc[0] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
+						if (curr.productVariation.product.type === ProductType.SERVICE) {
+							acc[1] +=
+								curr.unitaryValue * curr.quantity.toNumber() -
+								curr.discountValue;
+						}
+
+						acc[2] += curr.discountValue;
+
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await budgetItem.budget
 				.merge({
-					productValue: unitarySum,
+					pending: existingItems.some((i) => i.courtesy || i.maxDiscount),
+					productValue: productSum,
+					serviceValue: serviceSum,
 					discountValue: discountSum,
-					totalValue: unitarySum - discountSum,
+					totalValue: productSum + serviceSum,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1195,6 +1497,14 @@ export default class BudgetService {
 			);
 		}
 
+		// if (model.pending) {
+		// 	throw new BadRequestException(
+		// 		"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
+
 		const client = await Patient.query()
 			.where("id", model.client_id)
 			.preload("tutor")
@@ -1216,13 +1526,14 @@ export default class BudgetService {
 		const items = await model
 			.related("items")
 			.query()
+			.whereNotIn("id", data.notConfirmedItems)
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
 
-		if (items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+		if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
 			throw new BadRequestException(
-				"Orçamento não pode ser confirmado pois possui cortesias não aprovadas",
+				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
 				400,
 				"E_ERR",
 			);
@@ -1250,10 +1561,12 @@ export default class BudgetService {
 			const invalidRows = await this.depositService.validateDepositOperation(
 				trx,
 				authCtx,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
+				items
+					.filter((f) => !data.notConfirmedItems.includes(f.id))
+					.map((elem) => ({
+						productVariationId: elem.product_variation_id,
+						quantity: elem.quantity.toNumber(),
+					})),
 			);
 			if (invalidRows.length > 0) {
 				// return invalidRows.map((elem) => ({
@@ -1433,16 +1746,19 @@ export default class BudgetService {
 				},
 			);
 
-			items.forEach(async (item) => {
-				await item
+			// TODO FIX
+			const itemsToUpdate = await model.related("items").query();
+			const tasks = itemsToUpdate.map((elem) => {
+				return elem
 					.merge({
-						status: data.notConfirmedItems.includes(item.id)
+						status: data.notConfirmedItems.includes(elem.id)
 							? BudgetStatus.N
 							: BudgetStatus.C,
 					})
 					.useTransaction(trx)
 					.save();
 			});
+			await Promise.all(tasks);
 
 			await bill
 				.merge({
@@ -1458,6 +1774,7 @@ export default class BudgetService {
 					client_id: data.clientId,
 					finishedAt: data.finishedAt,
 					status: data.type === "PARCIAL" ? BudgetStatus.P : BudgetStatus.C,
+					observation: data.observation,
 					cancelation_reason_id:
 						data.type === "PARCIAL" ? data.reasonId : undefined,
 					canceledObservation:
@@ -1917,7 +2234,7 @@ export default class BudgetService {
 	public async listBudgetPayments(
 		authCtx: AuthContext,
 		id: string,
-		data: {
+		_data: {
 			type?: string;
 		},
 	) {
@@ -1989,19 +2306,19 @@ export default class BudgetService {
 			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
 			.where("budget_payments.budget_id", id);
 
-		if (!data.type) {
-			qb.whereNot(
-				"budget_payments.status",
-				"Excluido" as TBudgetPaymentStatus,
-			).whereNull("budget_payments.deleted_at");
-		}
-
-		if (data.type === "Venda") {
-			qb.where(
-				"budget_payments.status",
-				"Aberto" as TBudgetPaymentStatus,
-			).whereNull("budget_payments.deleted_at");
-		}
+		// if (!data.type) {
+		// 	qb.whereNot(
+		// 		"budget_payments.status",
+		// 		"Excluido" as TBudgetPaymentStatus,
+		// 	).whereNull("budget_payments.deleted_at");
+		// }
+		//
+		// if (data.type === "Venda") {
+		// 	qb.where(
+		// 		"budget_payments.status",
+		// 		"Aberto" as TBudgetPaymentStatus,
+		// 	).whereNull("budget_payments.deleted_at");
+		// }
 
 		const payments = await qb.exec();
 
@@ -2026,6 +2343,91 @@ export default class BudgetService {
 			});
 
 			return p;
+		});
+	}
+	async approveCourtesyOrMaxDiscount(
+		authCtx: AuthContext,
+		data: {
+			budgetId: string;
+			itemsIdList: string[];
+			email: string;
+			password: string;
+			reason: string;
+			approved: boolean;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const budget = await Budget.query()
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.budgetId)
+				.first();
+			if (!budget) {
+				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
+			}
+
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.email)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.password))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"ORC11",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					401,
+					"E_ERR",
+				);
+			}
+
+			await budget.merge({ pending: false }).useTransaction(trx).save();
+
+			if (data.approved) {
+				await BudgetItem.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservations: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: true,
+					} as Partial<BudgetItem>);
+			} else {
+				await BudgetItem.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservations: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: false,
+					} as Partial<BudgetItem>);
+			}
+
+			return null;
 		});
 	}
 }

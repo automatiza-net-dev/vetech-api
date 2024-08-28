@@ -11,6 +11,8 @@ import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 @inject()
 export default class ReportService {
@@ -2387,7 +2389,397 @@ ON bills.patient_id = Dep."id"`,
 			);
 		}
 
-		console.log(qb.toQuery());
+		return qb;
+	}
+
+	async clientLogReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			units?: string[];
+		},
+	) {
+		if (!data.fromDate || !data.toDate) {
+			throw new BadRequestException(
+				"Faltam as datas de início e fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const fromDate: string = data.fromDate ?? "";
+		const toDate: string = data.toDate ?? "";
+
+		const qb = Database.from("patients")
+			.with("_bills", (qb) => {
+				qb.from("bills").whereRaw("bill_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_schedules", (qb) => {
+				qb.from("schedules").whereRaw("created_at::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_payments", (qb) => {
+				qb.from("bill_payments")
+					.whereRaw("bill_id in (select id from _bills)")
+					.whereRaw("created_at::date between ? and ?", [fromDate, toDate]);
+			})
+			.with("_finances", (qb) => {
+				qb.from("finances").whereRaw("payment_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_budgets", (qb) => {
+				qb.from("budgets").whereRaw("budget_date::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.with("_attendances", (qb) => {
+				qb.from("attendances").whereRaw("created_at::date between ? and ?", [
+					fromDate,
+					toDate,
+				]);
+			})
+			.select(
+				Database.raw(`
+        patients.id                                 as patient_id,
+        patients.name                               as patient_name,
+        patient_contacts.contact                    as patient_main_contact,
+        patients.created_at                         as patient_created,
+        patients.updated_at                         as patient_updated,
+        patients.deleted_at                         as patient_excluded,
+
+        (select max(_schedules.created_at)
+          from _schedules
+          where _schedules.patient_id = patients.id
+            and _schedules.deleted_at is null)       as patient_last_new_schedule_timestamp,
+
+        (select max(_schedules.updated_at)
+          from _schedules
+          where _schedules.patient_id = patients.id
+            and _schedules.deleted_at is null)       as patient_last_updated_schedule_timestamp,
+
+        (select max(schedules.deleted_at)
+          from schedules
+          where schedules.patient_id = patients.id
+            and schedules.deleted_at is not null)    as patient_last_excluded_schedule_timestamp,
+
+        (select max(_bills.created_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is null)           as patient_last_new_sale_timestamp,
+        (select max(_bills.updated_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is null)           as patient_last_updated_sale_timestamp,
+        (select max(_bills.deleted_at)
+          from _bills
+          where _bills.patient_id = patients.id
+            and _bills.deleted_at is not null)       as patient_last_excluded_sale_timestamp,
+
+        (select max(_payments.created_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is null
+                                   order by patients.created_at
+                                   limit 1)
+            and _payments.deleted_at is null)        as patient_last_new_sale_payment_timestamp,
+        (select max(_payments.updated_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is null
+                                   order by patients.updated_at
+                                   limit 1)
+            and _payments.deleted_at is null)        as patient_last_updated_sale_payment_timestamp,
+        (select max(_payments.deleted_at)
+          from _payments
+          where _payments.bill_id = (select id
+                                   from _bills
+                                   where _bills.patient_id = patients.id
+                                     and _bills.deleted_at is not null
+                                   order by patients.deleted_at
+                                   limit 1)
+            and _payments.deleted_at is not null)    as patient_last_excluded_sale_payment_timestamp,
+
+        (select max(_finances.created_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is null)        as patient_last_new_finance_timestamp,
+        (select max(_finances.updated_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is null)        as patient_last_updated_finance_timestamp,
+        (select max(_finances.deleted_at)
+          from _finances
+          where _finances.client_id = patients.id
+            and _finances.deleted_at is not null)    as patient_last_excluded_finance_timestamp,
+
+        (select max(_budgets.created_at)
+          from _budgets
+            where _budgets.client_id = patients.id
+            and _budgets.deleted_at is null)         as patient_last_new_budget_timestamp,
+        (select max(_budgets.updated_at)
+          from _budgets
+            where _budgets.client_id = patients.id
+            and _budgets.deleted_at is null)         as patient_last_updated_budget_timestamp,
+        (select max(_budgets.deleted_at)
+          from _budgets
+          where _budgets.client_id = patients.id
+            and _budgets.deleted_at is not null)     as patient_last_budget_finance_timestamp,
+
+        (select max(_attendances.created_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is null)     as patient_last_new_attendance_timestamp,
+        (select max(_attendances.updated_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is null)     as patient_last_updated_attendance_timestamp,
+        (select max(_attendances.deleted_at)
+          from _attendances
+          where _attendances.patient_id = patients.id
+            and _attendances.deleted_at is not null) as patient_last_budget_attendance_timestamp`),
+			)
+			.joinRaw(`left join patient_contacts
+                   on patients.id = patient_contacts.patient_id and patient_contacts.main and
+                      patient_contacts.type = 'celular' and
+                      patient_contacts.created_at = (select max(pc.created_at)
+                                                     from patient_contacts pc
+                                                     where pc.patient_id = patients.id)`)
+			.joinRaw(
+				"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+			)
+			.joinRaw(
+				`join economic_groups on patient_economic_groups.economic_group_id = economic_groups.id and
+                                 economic_groups.id = ?`,
+				[authCtx.group.id],
+			)
+			.joinRaw(
+				"join business_units on economic_groups.id = business_units.economic_group_id",
+			);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		const result = await qb;
+
+		const tasks = result.map(async (r) => {
+			const lastCreatedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": null,
+			})
+				.sort({ createdAt: -1 })
+				.limit(1);
+
+			const lastUpdatedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": null,
+			})
+				.sort({ updatedAt: -1 })
+				.limit(1);
+
+			const lastExcludedTimeline = await AnimalTimeline.find({
+				"timeline_info.tag": r.patient_id,
+				"extras.deletedAt": { $ne: null },
+			})
+				.sort({ updatedAt: -1 })
+				.limit(1);
+
+			Object.assign(r, {
+				patient_last_created_timeline_type:
+					lastCreatedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_created_timeline_timestamp:
+					lastCreatedTimeline?.at(0)?.createdAt ?? null,
+
+				patient_last_updated_timeline_type:
+					lastUpdatedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_updated_timeline_timestamp:
+					lastUpdatedTimeline?.at(0)?.createdAt ?? null,
+
+				patient_last_excluded_timeline_type:
+					lastExcludedTimeline?.at(0)?.timeline_type?.description ?? null,
+				patient_last_excluded_timeline_timestamp:
+					lastExcludedTimeline?.at(0)?.createdAt ?? null,
+			});
+
+			return r;
+		});
+		return await Promise.all(tasks);
+	}
+
+	public vaccineVermifuge(
+		authCtx: AuthContext,
+		data: {
+			type?: string;
+			units?: string[];
+			fromScheduling?: string;
+			toScheduling?: string;
+			fromApplication?: string;
+			toApplication?: string;
+			specie?: string;
+			vaccine?: string;
+			protocol?: string;
+			status?: string;
+			order?: string;
+			debug?: string;
+		},
+	) {
+		if (!data.type) {
+			throw new BadRequestException(
+				"É preciso informar o tipo de vacina",
+				400,
+				"E_ERR",
+			);
+		}
+		if (data.type !== "vaccine" && data.type !== "vermifuge") {
+			throw new BadRequestException(
+				"É preciso informar um tipo válido de vacina",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.type === "vaccine" && !authCtx.hasPermission("REL13")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				401,
+				"E_ERR",
+			);
+		}
+		if (data.type === "vermifuge" && !authCtx.hasPermission("REL14")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				401,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("patient_vaccines")
+			.select(
+				Database.raw(`
+			  business_units.identification                                            as unidade,
+        p."name"                                                                 as paciente,
+        t.name                                                                   as tutor,
+        patient_contacts.contact                                                 as contato_tutor,
+        case when vaccines."type" = 'vaccine' then 'vacina' else 'vermifugo' end as vacina_vermifugo,
+        vaccines.name                                                            as nome_vacina,
+        vaccines.description                                                     as descricao_vacina,
+        vaccine_protocols."name"                                                 as nome_protocolo,
+        coalesce(species.description, 'Todas')                                   as especie,
+        vaccine_calendars.scheduling_date::date                                  as data_agendamento,
+        vaccine_calendars.application_date::date                                 as data_aplicacao,
+        vaccine_calendars.dose                                                   as dose,
+        vaccine_calendars.laboratory                                             as laboratorio,
+        vaccine_calendars.batch                                                  as lote,
+        case
+           when vaccine_calendars.application_date is not null then 'Dose aplicada'
+           when vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date
+               then 'Dose pendente - atrasada'
+           when vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date
+               then 'Dose pendente - em dia' end                                as status
+       `),
+			)
+			.joinRaw(
+				"join vaccine_calendars on patient_vaccines.id = vaccine_calendars.patient_vaccine_id",
+			)
+			.joinRaw("join vaccines on vaccines.id = patient_vaccines.vaccine_id")
+			.joinRaw(
+				"join vaccine_protocols on vaccine_protocols.id = patient_vaccines.vaccine_protocol_id",
+			)
+			.joinRaw("join patients p on p.id = patient_vaccines.patient_id")
+			.joinRaw("join species on vaccine_protocols.specie_id = species.id")
+			.joinRaw(
+				"join holder_dependents on p.id = holder_dependents.dependent_id",
+			)
+			.joinRaw("join patients t on holder_dependents.holder_id = t.id")
+			.joinRaw(
+				"left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
+			)
+			.joinRaw(
+				"join business_units on patient_vaccines.business_unit_id = business_units.id",
+			)
+			.where("vaccines.system_id", authCtx.system.id)
+			.where("business_units.economic_group_id", authCtx.group.id)
+			.where("vaccines.type", data.type);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("patient_vaccines.business_unit_id", data.units);
+		} else {
+			qb.where("patient_vaccines.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.specie) {
+			qb.whereRaw(
+				"(vaccine_protocols.specie_id = ? or vaccine_protocols.specie_id is null)",
+				[data.specie],
+			);
+		}
+
+		if (data.protocol) {
+			qb.where("vaccine_protocols.id", data.protocol);
+		}
+
+		if (data.vaccine) {
+			qb.where("vaccines.id", data.vaccine);
+		}
+
+		if (data.fromScheduling && data.toScheduling) {
+			qb.whereRaw("vaccine_calendars.scheduling_date::date between ? and ?", [
+				data.fromScheduling,
+				data.toScheduling,
+			]);
+		}
+
+		if (data.fromApplication && data.toApplication) {
+			qb.whereRaw("vaccine_calendars.application_date::date between ? and ?", [
+				data.fromApplication,
+				data.toApplication,
+			]);
+		}
+
+		if (data.status === "Dose aplicada") {
+			qb.whereRaw("vaccine_calendars.application_date is not null");
+		} else if (data.status === "Dose pendente - atrasada") {
+			qb.whereRaw(
+				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
+			);
+		} else if (data.status === "Dose pendente - em dia") {
+			qb.whereRaw(
+				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
+			);
+		}
+
+		if (data.order === "Protocolo") {
+			qb.orderByRaw(
+				"business_units.identification, vaccines.name, vaccine_protocols.name, vaccine_calendars.scheduling_date, p.name",
+			);
+		} else if (data.order === "Data Agendamento") {
+			qb.orderByRaw(
+				"business_units.identification, vaccine_calendars.scheduling_date, vaccine_calendars.application_date, p.name",
+			);
+		} else if (data.order === "Data Aplicacao") {
+			qb.orderByRaw(
+				"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
+			);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
+		}
 
 		return qb;
 	}

@@ -206,6 +206,9 @@ export default class Bill extends BaseModel {
 	})
 	public documentStatus: TBillDocumentStatus;
 
+	@column()
+	public pending: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

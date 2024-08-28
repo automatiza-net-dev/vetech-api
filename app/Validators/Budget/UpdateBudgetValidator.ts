@@ -22,9 +22,14 @@ export default class UpdateBudgetValidator {
 	 *       rules.unique({ table: 'users', column: 'email' }),
 	 *     ])
 	 *    ```
+	 *
 	 */
 	public schema = schema.create({
-		sellerId: schema.string.optional({}, [
+		id: schema.string({}, [
+			rules.uuid(),
+			rules.exists({ table: "budgets", column: "id" }),
+		]),
+		sellerId: schema.string({}, [
 			rules.uuid(),
 			rules.exists({ table: "users", column: "id" }),
 		]),
@@ -32,15 +37,34 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "users", column: "id" }),
 		]),
-		clientId: schema.string.optional({}, [
+		clientId: schema.string({}, [
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
-		patientId: schema.string.optional({}, [
+		dailyMovementId: schema.string({}, [
 			rules.uuid(),
-			rules.exists({ table: "patients", column: "id" }),
+			rules.exists({ table: "daily_movements", column: "id" }),
 		]),
-		clientName: schema.string.optional(),
+		observation: schema.string.optional(),
+		internalObservation: schema.string.optional(),
+		budgetDate: schema.date(),
+		expirationDate: schema.date(),
+		maxDiscount: schema.boolean(),
+		items: schema.array().members(
+			schema.object().members({
+				budgetItemId: schema.string.optional(),
+				productVariationId: schema.string([
+					rules.uuid(),
+					rules.exists({ table: "product_variations", column: "id" }),
+				]),
+				maxDiscount: schema.boolean(),
+				courtesy: schema.boolean.optional(),
+				discountValue: schema.number(),
+				quantity: schema.number(),
+				unitaryValue: schema.number(),
+				saleValue: schema.number.optional(),
+			}),
+		),
 	});
 
 	/**

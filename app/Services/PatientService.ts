@@ -35,6 +35,8 @@ import Attendance from "App/Models/Attendance";
 import { intervalToDuration } from "date-fns";
 import { PatientContactType } from "App/Models/PatientContact";
 import PatientTutor from "App/Models/PatientTutor";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import HolderDependentLog from "App/Models/HolderDependentLog";
 
 interface ISearch {
 	name?: string;
@@ -86,10 +88,10 @@ export default class PatientService {
 		"Dezembro",
 	];
 
-	public async index(unitId: string, data: ISearch): Promise<Array<Patient>> {
+	public async index(unitId: string, data: ISearch) {
 		const group = await this.getEconomicGroup(unitId);
 
-		const qb = group.related("patients").query();
+		const qb = group.related("patients").query().preload("patientAnimal");
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -105,7 +107,35 @@ export default class PatientService {
 			qb.where("type", data.type);
 		}
 
-		return qb;
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			type: elem.type,
+			photo: elem.photo ?? null,
+			gender: elem.gender ?? null,
+			tags: elem.tags ?? "",
+			birthDate: elem.birthDate,
+			active: elem.active,
+			created_at: elem.createdAt,
+			updated_at: elem.updatedAt,
+			vaccine_origin: elem.vaccineOrigin,
+			tag: elem.tag,
+			weight: elem.weight,
+			weight_date: elem.weightDate,
+			weight_origin: elem.weightOrigin,
+			hypertension: elem.hypertension,
+			diabetes: elem.diabetes,
+			glycemia: elem.glycemia,
+			pressure: elem.pressure,
+			first_sale: elem.firstSale,
+			client_origin_item_description: elem.clientOriginItemDescription,
+			community: elem.community,
+			birth_date: elem.birth_date,
+			death: elem.patientAnimal?.death ?? null,
+			raceId: elem.patientAnimal?.race_id ?? null,
+		}));
 	}
 
 	public async nonPets(unitId: string) {
@@ -185,6 +215,10 @@ export default class PatientService {
 				tag: elem.tag,
 				cellphone: elem.tutor.cellphone,
 				createdAt: elem.createdAt,
+				active: elem.active,
+				type: elem.type,
+				raceId: elem.patientAnimal?.race_id ?? null,
+				death: elem.patientAnimal?.death ?? null,
 				dependents: elem.dependents.map((patient) => ({
 					id: patient.id,
 					name: patient.name,
@@ -393,7 +427,7 @@ export default class PatientService {
 			.where("type", PatientType.ANIMAL);
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
 		}
 
 		if (data.race || data.specie) {
@@ -868,6 +902,7 @@ export default class PatientService {
 		patientId: string,
 	): Promise<
 		Omit<IPatientTutorData, "photo" | "birthDate"> & {
+			id: string;
 			photo: string;
 			birthDate: DateTime | null;
 			contacts?: {
@@ -877,6 +912,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients: { id: string; name: string }[];
 		}
 	> {
 		const patient = await authCtx.group
@@ -889,6 +925,7 @@ export default class PatientService {
 			})
 			.preload("contacts")
 			.preload("tutor")
+			.preload("dependents")
 			.first();
 
 		if (!patient) {
@@ -900,6 +937,7 @@ export default class PatientService {
 		}
 
 		return {
+			id: patient.id,
 			name: patient.name,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
@@ -938,6 +976,10 @@ export default class PatientService {
 				notGiven: elem.notGiven,
 				observation: elem.observation,
 				type: elem.type,
+			})),
+			patients: patient.dependents.map((elem) => ({
+				id: elem.id,
+				name: elem.name,
 			})),
 		};
 	}
@@ -1256,6 +1298,21 @@ export default class PatientService {
 				trx,
 			);
 
+			if (data.holders) {
+				await patient.related("tutors").sync(
+					data.holders.reduce(
+						(acc, curr) => {
+							acc[curr.id] = { is_main: curr.main };
+
+							return acc;
+						},
+						{} as Record<number, Record<string, unknown>>,
+					),
+					false,
+					trx,
+				);
+			}
+
 			await trx.commit();
 
 			return patient;
@@ -1272,6 +1329,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients?: { id: string }[];
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1409,6 +1467,14 @@ export default class PatientService {
 
 			await authCtx.group.related("patients").attach([patient.id], trx);
 
+			if (data.patients) {
+				await patient.related("dependents").sync(
+					data.patients.map((p) => p.id),
+					false,
+					trx,
+				);
+			}
+
 			return patient;
 		});
 	}
@@ -1525,8 +1591,10 @@ export default class PatientService {
 			deathDate?: DateTime;
 			technicianId?: string;
 			deathObservation?: string;
+
+			holders?: { id: string }[];
 		},
-	): Promise<Patient> {
+	) {
 		return Database.transaction(async (trx) => {
 			const patient = await authCtx.group
 				.related("patients")
@@ -1611,6 +1679,21 @@ export default class PatientService {
 				}) ?? [];
 			await Promise.all(tasks);
 
+			if (data.holders) {
+				await patient.related("tutors").sync(
+					data.holders.reduce(
+						(acc, curr) => {
+							acc[curr.id] = { is_main: curr.main };
+
+							return acc;
+						},
+						{} as Record<number, Record<string, unknown>>,
+					),
+					false,
+					trx,
+				);
+			}
+
 			return patient;
 		});
 	}
@@ -1667,7 +1750,7 @@ export default class PatientService {
 		await patient.patientAnimal
 			.merge({
 				death: true,
-				deathDate: DateTime.now(),
+				deathDate: data.deathDate,
 			})
 			.useTransaction(trx)
 			.save();
@@ -1692,9 +1775,10 @@ export default class PatientService {
 				data: {
 					type: HospitalizationType[hospitalization.type],
 					hospitalizedAt: hospitalization.createdAt,
-					realizedAt: DateTime.now(),
+					realizedAt: data.deathDate,
 					observation: "-",
 					issuedAt: DateTime.now(),
+					deathObservation: data.deathObservation,
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -1710,7 +1794,7 @@ export default class PatientService {
 				},
 				{
 					$set: {
-						"data.deathAt": DateTime.now(),
+						"data.deathAt": data.deathDate,
 					},
 				},
 			);
@@ -1738,9 +1822,10 @@ export default class PatientService {
 				timeline_info: {
 					tag: patient.id,
 					event: "OBITO",
-					realized: DateTime.now(),
+					realized: data.deathDate,
 					resume: "Óbito",
 					description: "-",
+					deathObservation: data.deathObservation,
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -1761,6 +1846,7 @@ export default class PatientService {
 				observation?: string;
 				type: (typeof PatientContactType)[number];
 			}[];
+			patients?: { id: string }[];
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1896,6 +1982,14 @@ export default class PatientService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.patients) {
+				await tutor.related("dependents").sync(
+					data.patients.map((p) => p.id),
+					false,
+					trx,
+				);
+			}
 
 			return tutor;
 		});
@@ -2160,6 +2254,74 @@ export default class PatientService {
 					},
 				},
 			});
+		});
+	}
+
+	public async unlinkHolderDependent(
+		authCtx: AuthContext,
+		data: {
+			tutorId: string;
+			patientId: string;
+		},
+	) {
+		if (!authCtx.hasPermission("PET04")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para fazer a atividade",
+				400,
+				"E_ERR",
+			);
+		}
+
+		await Database.transaction(async (trx) => {
+			const db_patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.where("type", PatientType.ANIMAL)
+				.first();
+
+			if (!db_patient) {
+				throw new BadRequestException(
+					"Paciente inválido",
+					400,
+					"E_BAD_REQUEST",
+				);
+			}
+
+			const db_tutor = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.tutorId)
+				.where("type", PatientType.TUTOR)
+				.first();
+
+			if (!db_tutor) {
+				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+			}
+
+			const rows = await Database.from("holder_dependents")
+				.select("id")
+				.whereRaw("holder_id = ? and dependent_id = ?", [
+					data.tutorId,
+					data.patientId,
+				]);
+			if (rows.length === 0) {
+				throw new BadRequestException(
+					"Não existe relação entre tutor e paciente",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await db_tutor.related("dependents").detach([db_patient.id], trx);
+
+			await HolderDependentLog.create(
+				{
+					holder_id: data.tutorId,
+					dependent_id: data.patientId,
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				},
+				{ client: trx },
+			);
 		});
 	}
 

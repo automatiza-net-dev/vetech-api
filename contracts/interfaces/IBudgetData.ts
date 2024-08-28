@@ -9,6 +9,7 @@ export interface ICreateBudgetItemData {
 	unitaryValue: number;
 	discountValue: number;
 	courtesy?: boolean;
+	maxDiscount?: boolean;
 }
 
 export interface ICreateBudgetData {
@@ -27,9 +28,12 @@ export interface ICreateBudgetData {
 }
 
 export interface IUpdateBudgetItemData {
+	budgetItemId: string;
 	quantity: number;
 	unitaryValue: number;
 	discountValue: number;
+	courtesy?: boolean;
+	maxDiscount?: boolean;
 	status: BudgetStatus;
 }
 
@@ -39,6 +43,7 @@ export interface IConfirmBudgetData {
 	finishedAt: DateTime;
 	reasonId?: string;
 	clientId?: string;
+	observation?: string;
 	canceledObservation?: string;
 	internalObservation?: string;
 }

@@ -59,6 +59,17 @@ export default class BudgetItem extends BaseModel {
 	})
 	public courtesyApprovedAt: DateTime | null;
 
+	@column({ columnName: "max_discount" })
+	public maxDiscount: boolean;
+
+	@column({
+		columnName: "pending_observations",
+	})
+	public pendingObservations: string | null;
+
+	@column({})
+	public approved: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -96,7 +107,7 @@ export default class BudgetItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_issued_user_id: string;
+	public courtesy_issued_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_issued_user_id",
@@ -106,7 +117,7 @@ export default class BudgetItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_approved_user_id: string;
+	public courtesy_approved_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_approved_user_id",

@@ -965,13 +965,18 @@ export default class BusinessUnitFiscalDocumentService {
 				throw new BadRequestException(result.error, 400, "E_NO_NOTE");
 			}
 
-			await this.mergeNfe(
+			const updated = await this.mergeNfe(
 				document,
 				result.data,
 				unit.unitConfig.fiscalDocumentEnvironment,
 			)
 				.useTransaction(trx)
 				.save();
+			if (updated.disablingReceipt) {
+				await BillItem.query()
+					.where("bill_id", updated.bill_id)
+					.update({ nfeIssued: false } as Partial<BillItem>);
+			}
 		});
 	}
 
@@ -1033,7 +1038,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const token = this.getToken(unit);
 
 			const result = await this.focusNfe.getNfe(document.id, token);
-			if (!result) {
+			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nova",
 					400,
@@ -1041,13 +1046,19 @@ export default class BusinessUnitFiscalDocumentService {
 				);
 			}
 
-			await this.mergeNfe(
+			const updated = await this.mergeNfe(
 				document,
-				result,
+				result.data,
 				unit.unitConfig.fiscalDocumentEnvironment,
 			)
 				.useTransaction(trx)
 				.save();
+
+			if (updated.disablingReceipt) {
+				await BillItem.query()
+					.where("bill_id", updated.bill_id)
+					.update({ nfeIssued: false } as Partial<BillItem>);
+			}
 		});
 	}
 

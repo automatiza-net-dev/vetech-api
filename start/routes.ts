@@ -249,6 +249,7 @@ Route.group(() => {
 
 	Route.put("/main/:patient/:tutor", "PatientsController.setMainTutor");
 	Route.put("/declare-death/:id", "PatientsController.declareDeath");
+	Route.put("/unlink", "PatientsController.unlinkHolderDependent");
 	Route.put("/:id", "PatientsController.update");
 	Route.delete("/:id", "PatientsController.destroy");
 })
@@ -985,13 +986,15 @@ Route.group(() => {
 	Route.post("/create-payments", "BudgetsController.createBudgetPayments");
 	Route.post("/confirm-payment", "BudgetsController.confirmBudgetPayment");
 
-	Route.put("/update/:id", "BudgetsController.updateBudget");
+	Route.post("/approve", "BudgetsController.approveBudgetCourtesyMaxDiscounts");
+
+	Route.put("/update", "BudgetsController.updateBudget");
 	Route.put(
 		"/update-observation/:id",
 		"BudgetsController.updateBudgetObservation",
 	);
 
-	Route.put("/update-item/:id", "BudgetsController.updateBudgetItem");
+	Route.put("/update-items", "BudgetsController.updateBudgetItems");
 	Route.delete("/delete-item/:id", "BudgetsController.deleteBudgetItem");
 
 	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
@@ -1025,6 +1028,8 @@ Route.group(() => {
 	Route.put("/update-item", "BillsController.updateBillItem");
 	Route.put("/delete-item/:id", "BillsController.deleteBillItem");
 	Route.post("/create-payment", "BillsController.createBillPayment");
+
+	Route.post("/approve", "BillsController.approveBillCourtesyMaxDiscounts");
 
 	Route.get("/", "BillsController.index");
 	Route.get("/conference/:id", "BillsController.fetchConferenceCashier");
@@ -1525,6 +1530,8 @@ Route.group(() => {
 		"ReportsController.crmOpportunitiesReport_2",
 	);
 	Route.get("/crm-activities", "ReportsController.crmActivities");
+	Route.get("/client-log", "ReportsController.clientLogReport");
+	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1702,6 +1709,11 @@ Route.group(() => {
 		"/consolidated-reviewers-2",
 		"IndicatorsController.consolidatedReviewerIndicators",
 	);
+	Route.get("/activity-2", "IndicatorsController.activityIndicators");
+	Route.get(
+		"/sales-per-reviewer-2",
+		"IndicatorsController.salesPerReviwerIndicators",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");
@@ -1819,7 +1831,14 @@ Route.group(() => {
 	Route.get("/", "NotificationsController.fullNotifications");
 	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");
+	Route.get(
+		"/pendingBills",
+		"NotificationsController.pendingBillsNotifications",
+	);
+	Route.get(
+		"/pendingBudgets",
+		"NotificationsController.pendingBudgetsNotifications",
+	);
 })
 	.prefix("Notifications")
 	.middleware("auth");
-

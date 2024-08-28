@@ -5,6 +5,7 @@ import {
 	BelongsTo,
 	belongsTo,
 	column,
+	computed,
 	HasMany,
 	hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
@@ -94,8 +95,18 @@ export default class Budget extends BaseModel {
 	})
 	public internalObservation: string;
 
+	@computed({
+		serializeAs: "internalObservation",
+	})
+	public get internal_observation() {
+		return this.internalObservation;
+	}
+
 	@column()
 	public status: BudgetStatus;
+
+	@column()
+	public pending: boolean;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

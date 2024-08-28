@@ -14,6 +14,9 @@ export default interface IScheduleData {
 	userId?: string;
 	ignoreOverlapping?: boolean;
 	onDuty?: boolean;
+	treatmentId?: number;
+	treatmentItemId?: number;
+	treatmentExecutionId?: number;
 }
 
 export interface IRescheduleData {

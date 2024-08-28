@@ -47,6 +47,13 @@ export default class RenderTemplateReplacementValidator {
 				column: "id",
 			}),
 		]),
+		billId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({
+				table: "bills",
+				column: "id",
+			}),
+		]),
 
 		// tag: schema.string(),
 		base: schema.string.optional(),

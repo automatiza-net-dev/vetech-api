@@ -3,6 +3,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BudgetService from "App/Services/BudgetService";
 import SharedService from "App/Services/SharedService";
 import AddKitToBudgetValidator from "App/Validators/Budget/AddKitToBudgetValidator";
+import ApproveBudgetCourtesyMaxDiscountValidator from "App/Validators/Budget/ApproveBudgetCourtesyMaxDiscountValidator";
 import CancelBudgetValidator from "App/Validators/Budget/CancelBudgetValidator";
 import ConfirmBudgetValidator from "App/Validators/Budget/ConfirmBudgetValidator";
 import CreateBudgetItemsValidator from "App/Validators/Budget/CreateBudgetItemsValidator";
@@ -53,11 +54,7 @@ export default class BudgetsController {
 	public async completeIndex({ request, response, auth }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
-		const result = await this.service.completeIndex(unit_id, {
-			budget: qs.budget,
-			patient: qs.patient,
-		});
+		const result = await this.service.completeIndex(unit_id, request.qs());
 
 		return response.ok(result);
 	}
@@ -106,21 +103,17 @@ export default class BudgetsController {
 		});
 	}
 
-	public async updateBudget({
-		request,
-		response,
-		params,
-		auth,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdateBudgetValidator);
+	public async updateBudget({ request, response, auth }: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateBudgetValidator);
 
-		await this.service.updateBudget(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+			await this.service.updateBudget(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.noContent();
+			return response.noContent();
+		});
 	}
 
 	public async updateBudgetObservation({
@@ -174,22 +167,20 @@ export default class BudgetsController {
 		});
 	}
 
-	public async updateBudgetItem({
+	public async updateBudgetItems({
 		request,
-		params,
 		response,
 		auth,
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(UpdateBudgetItemValidator);
 
-			const result = await this.service.updateBudgetItem(
+			await this.service.updateBudgetItem(
 				await this.sharedService.getAuthContext(auth),
-				params.id,
-				payload,
+				payload.items,
 			);
 
-			return response.ok(result);
+			return response.ok(null);
 		});
 	}
 
@@ -318,5 +309,20 @@ export default class BudgetsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async approveBudgetCourtesyMaxDiscounts({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(
+			ApproveBudgetCourtesyMaxDiscountValidator,
+		);
+
+		await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
+
+		return response.noContent();
 	}
 }

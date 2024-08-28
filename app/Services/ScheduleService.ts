@@ -38,6 +38,7 @@ import {
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
+import { v4 } from "uuid";
 
 interface ISearch {
 	pid?: string;
@@ -224,40 +225,98 @@ export default class ScheduleService {
 			nonConfirmedQb,
 		]);
 
-		return {
-			confirmed: confirmedSchedules.map((day) => ({
-				start: day.startHour.toString(),
-				end: day.endHour.toString(),
-				event: day,
-				name: day.user?.name ?? "-",
-				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late:
-					isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-					["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-						? differenceInMinutes(
-								new Date(),
-								day.startHour.plus({ hours: 3 }).toJSDate(),
-							)
-						: null,
-				type: this.getEventLabel(day),
-			})),
+		const executions: {
+			tipo_registro: string;
+			description: string;
+			label: string;
+			reserved_minutes: number;
+			treatment_id: number;
+			treatment_item_id: number;
+			treatment_execution_id: number;
+			schedule_id: string;
+		}[] = await Database.from("treatment_executions")
+			.select(
+				Database.raw(
+					`
+                'Tratamento'                                             as tipo_registro,
+       'Tratamentos - Execuções'                                as description,
+       products.description || ' - ' || productivity_items.description as label,
+       productivity_items.reserved_minutes,
+       treatment_executions.treatment_id                        as treatment_id,
+       treatment_executions.treatment_item_id                   as treatment_item_id,
+       treatment_executions.id                                  as treatment_execution_id,
+       treatment_executions.schedule_id
+       `,
+					[],
+				),
+			)
+			.joinRaw(
+				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+			)
+			.joinRaw(
+				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
+               on product_variations.product_id = products.id)
+              on treatment_executions.treatment_item_id = treatment_items.id and
+                 treatment_executions.treatment_id = treatment_items.treatment_id`,
+			)
+			.joinRaw(
+				"join treatments on treatment_executions.treatment_id = treatments.id",
+			)
+			.where("treatments.economic_group_id", authCtx.group.id)
+			.where("treatments.business_unit_id", authCtx.unit.id)
+			.whereNotNull("treatment_executions.schedule_id")
+			.orderByRaw("1, 4, 3, 7");
 
-			nonConfirmed: nonConfirmedSchedules.map((day) => ({
-				start: day.startHour.toString(),
-				end: day.endHour.toString(),
-				event: day,
-				name: day.user?.name ?? "-",
-				date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
-				late:
-					isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-					["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-						? differenceInMinutes(
-								new Date(),
-								day.startHour.plus({ hours: 3 }).toJSDate(),
-							)
-						: null,
-				type: this.getEventLabel(day),
-			})),
+		return {
+			confirmed: confirmedSchedules
+				.map((day) => {
+					Object.assign(day, {
+						executions: executions.filter((ex) => ex.schedule_id === day.id),
+					});
+
+					return day;
+				})
+				.map((day) => ({
+					start: day.startHour.toString(),
+					end: day.endHour.toString(),
+					event: day,
+					name: day.user?.name ?? "-",
+					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					late:
+						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
+						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+							? differenceInMinutes(
+									new Date(),
+									day.startHour.plus({ hours: 3 }).toJSDate(),
+								)
+							: null,
+					type: this.getEventLabel(day),
+				})),
+
+			nonConfirmed: nonConfirmedSchedules
+				.map((day) => {
+					Object.assign(day, {
+						executions: executions.filter((ex) => ex.schedule_id === day.id),
+					});
+
+					return day;
+				})
+				.map((day) => ({
+					start: day.startHour.toString(),
+					end: day.endHour.toString(),
+					event: day,
+					name: day.user?.name ?? "-",
+					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					late:
+						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
+						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+							? differenceInMinutes(
+									new Date(),
+									day.startHour.plus({ hours: 3 }).toJSDate(),
+								)
+							: null,
+					type: this.getEventLabel(day),
+				})),
 		};
 	}
 
@@ -473,19 +532,23 @@ export default class ScheduleService {
 
 			const result = await Schedule.create(
 				{
-					patientName: data.patientName,
-					patientPhone: data.patientPhone,
-					holder_id: data.holderId,
-					age: data.age,
-					startHour: data.startHour,
-					endHour: data.endHour.minus({ minutes: 1 }),
-					majorComplaint: data.majorComplaint,
 					business_unit_id: authCtx.unit.id,
+					schedule_status_id: status.id,
+					holder_id: data.holderId,
 					user_id: data.userId ?? authCtx.user.id,
 					patient_id: data.patientId,
 					race_id: data.raceId,
 					schedule_service_type_id: data.scheduleServiceTypeId,
-					schedule_status_id: status.id,
+					treatment_id: data.treatmentId,
+					treatment_item_id: data.treatmentItemId,
+					treatment_execution_id: data.treatmentExecutionId,
+
+					patientName: data.patientName,
+					patientPhone: data.patientPhone,
+					age: data.age,
+					startHour: data.startHour,
+					endHour: data.endHour.minus({ minutes: 1 }),
+					majorComplaint: data.majorComplaint,
 					scheduleOriginId: data.scheduleOriginId,
 					onDuty: data.onDuty,
 				},
@@ -1077,6 +1140,7 @@ export default class ScheduleService {
 			status?: string[];
 			working?: string;
 			unavailable?: string;
+			patient?: string;
 		},
 	) {
 		// if (!data.from || !data.to) {
@@ -1086,9 +1150,9 @@ export default class ScheduleService {
 		const refEnd = data.to ? new Date(data.to) : new Date();
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -1096,13 +1160,13 @@ export default class ScheduleService {
 				[refStart.getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[refStart, refEnd],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			);
 
 		if (data.user) {
@@ -1226,6 +1290,49 @@ export default class ScheduleService {
 				});
 			});
 
+		const executions: {
+			tipo_registro: string;
+			description: string;
+			label: string;
+			reserved_minutes: number;
+			treatment_id: number;
+			treatment_item_id: number;
+			treatment_execution_id: number;
+			schedule_id: string;
+		}[] = await Database.from("treatment_executions")
+			.select(
+				Database.raw(
+					`
+                'Tratamento'                                             as tipo_registro,
+       'Tratamentos - Execuções'                                as description,
+       products.description || ' - ' || productivity_items.description as label,
+       productivity_items.reserved_minutes,
+       treatment_executions.treatment_id                        as treatment_id,
+       treatment_executions.treatment_item_id                   as treatment_item_id,
+       treatment_executions.id                                  as treatment_execution_id,
+       treatment_executions.schedule_id
+       `,
+					[],
+				),
+			)
+			.joinRaw(
+				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+			)
+			.joinRaw(
+				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
+               on product_variations.product_id = products.id)
+              on treatment_executions.treatment_item_id = treatment_items.id and
+                 treatment_executions.treatment_id = treatment_items.treatment_id`,
+			)
+			.joinRaw(
+				"join treatments on treatment_executions.treatment_id = treatments.id",
+			)
+			.where("treatments.client_id", data.patient ?? v4())
+			.where("treatments.economic_group_id", authCtx.group.id)
+			.where("treatments.business_unit_id", authCtx.unit.id)
+			.whereNotNull("treatment_executions.schedule_id")
+			.orderByRaw("1, 4, 3, 7");
+
 		const mappedSchedules = resultData[0].map((schedule) => {
 			const jsonKinda = schedule.toJSON();
 			const patient = patients.find((p) => p.id === schedule.patient_id);
@@ -1268,6 +1375,10 @@ export default class ScheduleService {
 				tag: patient?.tag,
 				cellphone: patient?.tutor?.cellphone ?? null,
 			};
+
+			jsonKinda.treatmentExecutions = executions.filter(
+				(ex) => ex.schedule_id === schedule.id,
+			);
 
 			return jsonKinda;
 		});
@@ -1628,11 +1739,19 @@ export default class ScheduleService {
 	private getEventLabel(
 		data: WorkingDay | UnavailableDay | Schedule | unknown,
 	) {
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		if (data instanceof WorkingDay) {
+			return "working";
+		}
+
+		if (data instanceof UnavailableDay) {
+			return "unavailable";
+		}
+
 		// @ts-ignore
-		const { table } = data.constructor;
-		if (table === "working_days") return "working";
-		if (table === "unavailable_days") return "unavailable";
+		if ("tipo_registro" in data) {
+			return "treatment";
+		}
+
 		return "schedule";
 	}
 

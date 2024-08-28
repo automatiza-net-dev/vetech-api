@@ -1,12 +1,14 @@
-import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database, {
 	type TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
+import BudgetPayment from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
@@ -36,7 +38,7 @@ import Treatment from "App/Models/Treatment";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
-import type User from "App/Models/User";
+import User from "App/Models/User";
 import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
@@ -48,9 +50,9 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import DepositService from "./DepositService";
 import { validate } from "uuid";
-import BudgetPayment from "App/Models/BudgetPayment";
+import DepositService from "./DepositService";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 interface ISearch {
 	fromBill?: string;
@@ -61,6 +63,7 @@ interface ISearch {
 	patient?: string;
 	tag?: string;
 	bill_id?: string;
+	pending?: string;
 }
 
 interface ISearchProduct {
@@ -133,13 +136,19 @@ export default class BillService {
 		if (data.patientTag) {
 			qb.whereHas("patient", (query) => {
 				query.whereHas("patientAnimal", (query) => {
-					query.where("tag", "ilike", `%${data.patientTag}%`);
+					qb.where("tag", data.patientTag ?? "");
 				});
 			});
 		}
 
 		if (data.tag) {
-			qb.where("tag", "ilike", `%${data.tag}%`);
+			qb.where("tag", data.tag);
+		}
+
+		if (data.pending === "true") {
+			qb.where("pending", true);
+		} else if (data.pending === "false") {
+			qb.where("pending", false);
 		}
 
 		qb.preload("client");
@@ -153,7 +162,7 @@ export default class BillService {
 			});
 		});
 
-		qb.orderByRaw(`bill_date desc, tag desc`);
+		qb.orderByRaw("bill_date desc, tag desc");
 
 		const result = await qb;
 
@@ -231,6 +240,11 @@ export default class BillService {
 				query.preload("productVariation", (query) => {
 					query.preload("variationOptions");
 					query.preload("product");
+
+					query.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", unitId);
+						query.select("id", "maximum_discount_percentage");
+					});
 				});
 
 				query.preload("courtesyIssuedUser", (query) => {
@@ -262,6 +276,8 @@ export default class BillService {
 					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
 				})),
 			);
 			if (invalid.length > 0) {
@@ -285,14 +301,14 @@ export default class BillService {
 			const invalid = await this.sharedService.checkDiscount(
 				trx,
 				authCtx,
-				data.items
-					.filter((e) => !e.courtesy)
-					.map((elem) => ({
-						variationId: elem.productVariationId,
-						unitaryValue: elem.unitaryValue,
-						discountValue: elem.discountValue,
-						quantity: elem.quantity,
-					})),
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
 			);
 			if (invalid.length > 0) {
 				// return invalid;
@@ -347,6 +363,8 @@ export default class BillService {
 						unitaryValue: elem.unitaryValue,
 						discountValue: elem.discountValue,
 						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
 					})),
 			);
 			if (invalid.length > 0) {
@@ -407,6 +425,8 @@ export default class BillService {
 						unitaryValue: data.unitaryValue,
 						discountValue: data.discountValue,
 						quantity: data.quantity,
+						courtesy: data.courtesy,
+						maxDiscount: data.maxDiscount,
 					},
 				]);
 				if (invalid.length > 0) {
@@ -446,6 +466,8 @@ export default class BillService {
 					unitaryValue: elem.unitaryValue,
 					discountValue: elem.discountValue,
 					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
 				})),
 			);
 
@@ -480,7 +502,7 @@ export default class BillService {
 		});
 	}
 
-	async updateBillItem(_: string, data: IUpdateBillItemData) {
+	async updateBillItem(authCtx: AuthContext, data: IUpdateBillItemData) {
 		return Database.transaction(async (trx) => {
 			const billItems = await BillItem.query()
 				.whereIn(
@@ -504,6 +526,36 @@ export default class BillService {
 				);
 			}
 
+			const invalid: { rule: string; message: string }[] =
+				await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items
+						.filter((f) => f.shouldValidateDiscount)
+						.map((elem) => {
+							const item = billItems.find((bi) => bi.id === elem.billItemId);
+							if (!item) {
+								throw new InternalErrorException(
+									"Atualização de item não encontrado?",
+									500,
+									"E_ERR",
+								);
+							}
+
+							return {
+								variationId: item.product_variation_id,
+								quantity: item.quantity.toNumber(),
+								unitaryValue: elem.unitaryValue,
+								discountValue: elem.discountValue,
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+							};
+						}),
+				);
+			if (invalid.length > 0) {
+				return invalid;
+			}
+
 			const ufList = billItems.map((i) => i.taxRule?.toUf).filter(Boolean);
 			const ufIcms = await UfIcms.query()
 				.useTransaction(trx)
@@ -513,11 +565,19 @@ export default class BillService {
 
 			const promises = billItems.map(async (billItem) => {
 				const dataItem = data.items.find((i) => i.billItemId === billItem.id);
+				if (!dataItem) {
+					throw new InternalErrorException(
+						"Erro procurando item da nota",
+						400,
+						"E_RR",
+					);
+				}
 
 				const totalValue = billItem.quantity
-					.times(billItem.unitaryValue)
-					.minus(dataItem?.discountValue ?? 0)
+					.times(dataItem.unitaryValue)
+					.minus(dataItem.discountValue ?? 0)
 					.toNumber();
+
 				const icmsBase =
 					totalValue *
 					((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
@@ -535,7 +595,14 @@ export default class BillService {
 
 				return billItem
 					.merge({
+						courtesy_issued_user_id:
+							dataItem.courtesy || dataItem.maxDiscount
+								? billItem.courtesy_approved_user_id || authCtx.user.id
+								: null,
+						courtesy: dataItem?.courtesy ?? false,
+						maxDiscount: dataItem?.maxDiscount ?? false,
 						discountValue: dataItem?.discountValue ?? 0,
+						unitaryValue: dataItem.unitaryValue,
 						totalValue,
 						icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
 						icmsCst: billItem.taxRule?.icmsCst,
@@ -633,28 +700,45 @@ export default class BillService {
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			let totalProductValue = 0;
-			let totalServiceValue = 0;
-			validItems.forEach((item) => {
-				if (item.productVariation.product.type === ProductType.PRODUCT) {
-					totalProductValue += item.totalValue;
-				}
-				if (item.productVariation.product.type === ProductType.SERVICE) {
-					totalServiceValue += item.totalValue;
-				}
-			});
+			const [productSum, serviceSum, discountSum] = validItems.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
 
-			const totalDiscountValue = validItems.reduce(
-				(acc, item) => acc + (item.discountValue ?? 0),
-				0,
+					acc[2] += curr.discountValue;
+
+					return acc;
+				},
+				[0, 0, 0],
 			);
+
+			const pendingItems = await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", billId)
+				.where("status", BillItemStatus.A)
+				.whereRaw(
+					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+				)
+				.preload("taxRule")
+				.preload("productVariation", (query) => query.preload("product"));
 
 			await bill
 				.merge({
-					productValue: totalProductValue,
-					serviceValue: totalServiceValue,
-					discountValue: totalDiscountValue,
-					totalValue: totalProductValue + totalServiceValue,
+					pending: pendingItems.some(
+						(f) =>
+							(f.courtesy && !f.courtesy_approved_user_id) ||
+							(f.maxDiscount && !f.courtesy_approved_user_id),
+					),
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems
@@ -761,28 +845,36 @@ export default class BillService {
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			let totalProductValue = 0;
-			let totalServiceValue = 0;
-			validItems.forEach((item) => {
-				if (item.productVariation.product.type === ProductType.PRODUCT) {
-					totalProductValue += item.totalValue;
-				}
-				if (item.productVariation.product.type === ProductType.SERVICE) {
-					totalServiceValue += item.totalValue;
-				}
-			});
+			const [productSum, serviceSum, discountSum] = validItems
+				.filter((f) => !f.courtesy)
+				.reduce(
+					(acc, curr) => {
+						if (curr.productVariation.product.type === ProductType.PRODUCT) {
+							acc[0] += curr.totalValue;
+						}
 
-			const totalDiscountValue = validItems.reduce(
-				(acc, item) => acc + (item.discountValue ?? 0),
-				0,
-			);
+						if (curr.productVariation.product.type === ProductType.SERVICE) {
+							acc[1] += curr.totalValue;
+						}
+
+						acc[2] += curr.discountValue;
+
+						return acc;
+					},
+					[0, 0, 0],
+				);
 
 			await bill
 				.merge({
-					productValue: totalProductValue,
-					serviceValue: totalServiceValue,
-					discountValue: totalDiscountValue,
-					totalValue: totalProductValue + totalServiceValue,
+					pending: validItems.some(
+						(it) =>
+							(it.courtesy && !it.courtesy_approved_user_id) ||
+							(it.maxDiscount && !it.courtesy_approved_user_id),
+					),
+					productValue: productSum,
+					serviceValue: serviceSum,
+					discountValue: discountSum,
+					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems
@@ -946,11 +1038,11 @@ where deposit_id = ?
 							budget_payment_id: data.budgetPaymentId,
 
 							block: max + 1,
-							expirationDate: data.expirationDate.plus({
-								days:
-									paymentMethod.daysFirstInstallment +
-									paymentMethod.daysBetweenInstallments * v,
-							}),
+							expirationDate: SharedService.CalculateDateOffset(
+								v,
+								data.expirationDate,
+								paymentMethod,
+							),
 							feeType:
 								paymentMethod.fee > 0
 									? BillPaymentFeeType.S
@@ -1423,9 +1515,23 @@ where deposit_id = ?
 			);
 		}
 
-		if (bill.items.some((i) => i.courtesy && !i.courtesy_approved_user_id)) {
+		if (
+			bill.items.some(
+				(i) =>
+					(i.courtesy || i.maxDiscount) &&
+					(!i.approved || !i.courtesy_approved_user_id),
+			)
+		) {
 			throw new BadRequestException(
 				"Venda não pode ser finalizada pois possui cortesias não aprovadas",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (bill.pending) {
+			throw new BadRequestException(
+				"Esta Venda possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser finalizada",
 				400,
 				"E_ERR",
 			);
@@ -1926,6 +2032,7 @@ where deposit_id = ?
 				client_id: data.clientId,
 				patient_id: data.patientId,
 
+				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,
 				serviceValue: 0,
@@ -1968,7 +2075,7 @@ where deposit_id = ?
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
 
-		const items = data.items.map((item) => {
+		const tasks = data.items.map((item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
 			) as ProductVariation;
@@ -2008,8 +2115,11 @@ where deposit_id = ?
 					product_variation_id: item.productVariationId,
 					tax_rule_id: rule?.id,
 					deposit_id: undefined,
+					courtesy_issued_user_id:
+						item.courtesy || item.maxDiscount ? authCtx.user.id : undefined,
 
 					courtesy: item.courtesy,
+					maxDiscount: item.maxDiscount,
 					quantity: new Decimal(item.quantity),
 					costValue: price?.costPrice,
 					saleValue: price?.price,
@@ -2097,101 +2207,110 @@ where deposit_id = ?
 			);
 		});
 
-		const validItems = await Promise.all(items);
+		await Promise.all(tasks);
 
-		let totalProductValue = 0;
-		let totalServiceValue = 0;
-		validItems.forEach((item) => {
-			const variation = productVariations.find(
-				(p) => p.id === item.product_variation_id,
-			);
+		const existingItems = await BillItem.query()
+			.useTransaction(trx)
+			.where("bill_id", bill.id)
+			.preload("productVariation", (query) => {
+				query.preload("product");
+			});
 
-			if (variation?.product.type === ProductType.PRODUCT) {
-				totalProductValue += item.totalValue;
-			}
-			if (variation?.product.type === ProductType.SERVICE) {
-				totalServiceValue += item.totalValue;
-			}
-		});
+		const [productSum, serviceSum, discountSum] = existingItems.reduce(
+			(acc, curr) => {
+				if (curr.productVariation.product.type === ProductType.PRODUCT) {
+					acc[0] += curr.totalValue;
+				}
 
-		// const totalProductValue = validItems.reduce(
-		//   (acc, item) => acc + (item.totalValue ?? 0),
-		//   0,
-		// );
+				if (curr.productVariation.product.type === ProductType.SERVICE) {
+					acc[1] += curr.totalValue;
+				}
 
-		const totalDiscountValue = validItems.reduce(
-			(acc, item) => acc + (item.discountValue ?? 0),
-			0,
+				acc[2] += curr.discountValue;
+
+				return acc;
+			},
+			[0, 0, 0],
 		);
 
 		await bill
 			.merge({
-				productValue: totalProductValue,
-				serviceValue: totalServiceValue,
-				discountValue: totalDiscountValue,
-				totalValue: totalProductValue + totalServiceValue,
-				icmsBase: validItems
+				pending: data.items.some((it) => it.courtesy || it.maxDiscount),
+				productValue: productSum,
+				serviceValue: serviceSum,
+				discountValue: discountSum,
+				totalValue: productSum + serviceSum,
+				icmsBase: existingItems
 					.filter((i) => Boolean(i.icmsBase))
 					.reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
-				icmsValue: validItems
+				icmsValue: existingItems
 					.filter((i) => Boolean(i.icmsValue))
 					.reduce((acc, item) => acc + item.icmsValue, 0),
-				icmsStBase: validItems
+				icmsStBase: existingItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
 					.reduce((acc, item) => acc + item.icmsStBase, 0),
-				icmsStValue: validItems
+				icmsStValue: existingItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
 					.reduce((acc, item) => acc + (item.icmsStValue ?? 0), 0),
-				issBase: validItems.reduce((acc, item) => acc + (item.issBase ?? 0), 0),
-				issValue: validItems.reduce(
+				issBase: existingItems.reduce(
+					(acc, item) => acc + (item.issBase ?? 0),
+					0,
+				),
+				issValue: existingItems.reduce(
 					(acc, item) => acc + (item.issValue ?? 0),
 					0,
 				),
-				pisBase: validItems.reduce((acc, item) => acc + (item.pisBase ?? 0), 0),
-				pisValue: validItems.reduce(
+				pisBase: existingItems.reduce(
+					(acc, item) => acc + (item.pisBase ?? 0),
+					0,
+				),
+				pisValue: existingItems.reduce(
 					(acc, item) => acc + (item.pisValue ?? 0),
 					0,
 				),
-				pisRetentionValue: validItems.reduce(
+				pisRetentionValue: existingItems.reduce(
 					(acc, item) => acc + (item.pisRetentionValue ?? 0),
 					0,
 				),
-				cofinsBase: validItems.reduce(
+				cofinsBase: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsBase ?? 0),
 					0,
 				),
-				cofinsValue: validItems.reduce(
+				cofinsValue: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsValue ?? 0),
 					0,
 				),
-				cofinsRetentionValue: validItems.reduce(
+				cofinsRetentionValue: existingItems.reduce(
 					(acc, item) => acc + (item.cofinsRetentionValue ?? 0),
 					0,
 				),
-				ipiBase: validItems.reduce((acc, item) => acc + (item.ipiBase ?? 0), 0),
-				ipiValue: validItems.reduce(
+				ipiBase: existingItems.reduce(
+					(acc, item) => acc + (item.ipiBase ?? 0),
+					0,
+				),
+				ipiValue: existingItems.reduce(
 					(acc, item) => acc + (item.ipiValue ?? 0),
 					0,
 				),
-				icmsDeferredValue: validItems.reduce(
+				icmsDeferredValue: existingItems.reduce(
 					(acc, item) => acc + (item.icmsDeferredValue ?? 0),
 					0,
 				),
-				icmsFcpValue: validItems.reduce(
+				icmsFcpValue: existingItems.reduce(
 					(acc, item) => acc + (item.icmsFcpValue ?? 0),
 					0,
 				),
-				icmsUfDestinationValue: validItems.reduce(
+				icmsUfDestinationValue: existingItems.reduce(
 					(acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
 					0,
 				),
-				icmsUfOriginValue: validItems.reduce(
+				icmsUfOriginValue: existingItems.reduce(
 					(acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
 					0,
 				),
@@ -2228,15 +2347,6 @@ where deposit_id = ?
 			.merge({ documentStatus: "Novos Itens" })
 			.useTransaction(trx)
 			.save();
-
-		const items = await bill
-			.related("items")
-			.query()
-			.useTransaction(trx)
-			.where("status", BillItemStatus.A)
-			.preload("productVariation", (query) => {
-				query.preload("product");
-			});
 
 		const productVariation = await ProductVariation.query()
 			.useTransaction(trx)
@@ -2345,8 +2455,11 @@ where deposit_id = ?
 			tax_rule_id: rule?.id,
 			kit_id: data.kitId,
 			deposit_id,
+			courtesy_issued_user_id:
+				data.courtesy || data.maxDiscount ? authCtx.user.id : undefined,
 
 			courtesy: data.courtesy,
+			maxDiscount: data.maxDiscount,
 			quantity: new Decimal(data.quantity),
 			costValue: price.costPrice,
 			saleValue: price.price,
@@ -2464,44 +2577,50 @@ where deposit_id = ?
 		// icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
 		// icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
 
-		const billItem = await BillItem.create(toCreate, {
+		await BillItem.create(toCreate, {
 			client: trx,
 		});
 
-		const validItems = [billItem, ...items];
+		const validItems = await bill
+			.related("items")
+			.query()
+			.useTransaction(trx)
+			.where("status", BillItemStatus.A)
+			.preload("productVariation", (query) => {
+				query.preload("product");
+			});
 
-		let totalProductValue = 0;
-		let totalServiceValue = 0;
-		items.forEach((item) => {
-			if (item.productVariation.product.type === ProductType.PRODUCT) {
-				totalProductValue += item.totalValue;
-			}
-			if (item.productVariation.product.type === ProductType.SERVICE) {
-				totalServiceValue += item.totalValue;
-			}
-		});
-		if (productVariation.product.type === ProductType.PRODUCT) {
-			totalProductValue += billItem.totalValue;
-		} else {
-			totalServiceValue += billItem.totalValue;
-		}
+		const [productSum, serviceSum, discountSum] = validItems
+			.filter((f) => !f.courtesy)
+			.reduce(
+				(acc, curr) => {
+					if (curr.productVariation.product.type === ProductType.PRODUCT) {
+						acc[0] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
+					if (curr.productVariation.product.type === ProductType.SERVICE) {
+						acc[1] +=
+							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+					}
 
-		// const totalProductValue = validItems.reduce(
-		//   (acc, item) => acc + (item.totalValue ?? 0),
-		//   0,
-		// );
+					acc[2] += curr.discountValue;
 
-		const totalDiscountValue = validItems.reduce(
-			(acc, item) => acc + (item.discountValue ?? 0),
-			0,
-		);
+					return acc;
+				},
+				[0, 0, 0],
+			);
 
 		await bill
 			.merge({
-				productValue: totalProductValue,
-				serviceValue: totalServiceValue,
-				discountValue: totalDiscountValue,
-				totalValue: totalProductValue + totalServiceValue,
+				pending: validItems.some(
+					(it) =>
+						(it.courtesy && !it.courtesy_approved_user_id) ||
+						(it.maxDiscount && !it.courtesy_approved_user_id),
+				),
+				productValue: productSum,
+				serviceValue: serviceSum,
+				discountValue: discountSum,
+				totalValue: productSum + serviceSum,
 				icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 				icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 				icmsStBase: validItems
@@ -2554,9 +2673,8 @@ where deposit_id = ?
 			})
 			.useTransaction(trx)
 			.save();
-
-		return billItem;
 	}
+
 	public async addFromKit(
 		authCtx: AuthContext,
 		data: {
@@ -2843,8 +2961,9 @@ where deposit_id = ?
 				{ client: trx },
 			);
 
-			const products = await Product.query()
+			const services = await Product.query()
 				.useTransaction(trx)
+				.where("type", ProductType.SERVICE)
 				.whereHas("variations", (query) => {
 					query.whereIn(
 						"id",
@@ -2863,56 +2982,19 @@ where deposit_id = ?
 				.whereHas("products", (query) => {
 					query.whereIn(
 						"product_id",
-						products.map((p) => p.id),
+						services.map((p) => p.id),
 					);
 				})
 				.preload("products", (query) => {
 					query.whereIn(
 						"product_id",
-						products.map((p) => p.id),
+						services.map((p) => p.id),
 					);
 				});
 
-			// let itemsCounter = treatmentItems.length;
-			// const tasks = treatmentItems.map((elem, _, totalItems) => {
-			// 	const product = products.find(
-			// 		(p) =>
-			// 			p.variations.find((v) => v.id === elem.product_variation_id)?.id,
-			// 	);
-			// 	const relatedItems = productivityItems.filter((p) =>
-			// 		p.products.some((p) => p.product_id === (product?.id ?? "")),
-			// 	);
-			//
-			// 	const innerTasks = relatedItems.map(async (innerItem, idx) => {
-			// 		return TreatmentItem.create(
-			// 			{
-			// 				economic_group_id: authCtx.group.id,
-			// 				business_unit_id: authCtx.unit.id,
-			// 				treatment_id: treatment.id,
-			// 				id: itemsCounter + idx + 1,
-			// 				reference_item_id: innerItem.id,
-			// 				productivity_item_id: innerItem.id,
-			//
-			// 				quantity: elem.quantity,
-			// 				quantityExecuted: 0,
-			// 				scheduledQuantity: 0,
-			// 				status: "Ativo",
-			// 			},
-			// 			{
-			// 				client: trx,
-			// 			},
-			// 		);
-			// 	});
-			//
-			// 	itemsCounter += relatedItems.length;
-			//
-			// 	return Promise.all(innerTasks);
-			// });
-			// await Promise.all(tasks);
-
 			let execCounter = 1;
 			const tasks2 = treatmentItems.map((elem) => {
-				const product = products.find(
+				const product = services.find(
 					(p) =>
 						p.variations.find((v) => v.id === elem.product_variation_id)?.id,
 				);
@@ -2921,6 +3003,30 @@ where deposit_id = ?
 				);
 
 				const innerTasks = relatedItems.map(async (innerItem, idx) => {
+					if (innerItem.typeQty === "unitario") {
+						return TreatmentExecution.createMany(
+							Array.from(
+								{ length: elem.quantity },
+								() =>
+									({
+										economic_group_id: authCtx.group.id,
+										business_unit_id: authCtx.unit.id,
+										productivity_item_id: innerItem.id,
+
+										// pk
+										id: execCounter++ + idx,
+										treatment_id: treatment.id,
+										treatment_item_id: elem.id,
+
+										scheduledQuantity: 1,
+										quantityExecuted: 0,
+										status: "Ativo",
+									}) as Partial<TreatmentExecution>,
+							),
+							{ client: trx },
+						);
+					}
+
 					return TreatmentExecution.create(
 						{
 							economic_group_id: authCtx.group.id,
@@ -3141,7 +3247,7 @@ where deposit_id = ?
 				print_user_id: authCtx.user.id,
 			});
 
-			return Bill.query()
+			const toPrint = await Bill.query()
 				.useTransaction(trx)
 				.where("id", billID)
 				.select("id", "tag", "bill_date", "business_unit_id", "client_id")
@@ -3206,7 +3312,111 @@ where deposit_id = ?
 							query.select("id", "description");
 						});
 					});
-				});
+				})
+				.first();
+
+			if (!toPrint) {
+				throw new BadRequestException("Nota não encontrada", 400, "E_RR");
+			}
+
+			if (toPrint.payments.length === 0) {
+				throw new BadRequestException(
+					"Não existem titulos baixados para a impressão de recibo",
+					400,
+					"E_RR",
+				);
+			}
+
+			return toPrint;
+		});
+	}
+
+	async approveCourtesyOrMaxDiscount(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+			itemsIdList: string[];
+			email: string;
+			password: string;
+			reason: string;
+			approved: boolean;
+		},
+	) {
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.first();
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.email)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.password))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"VEN16",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					401,
+					"E_ERR",
+				);
+			}
+
+			await bill.merge({ pending: false }).useTransaction(trx).save();
+			if (data.approved) {
+				await BillItem.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservations: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: true,
+					} as Partial<BillItem>);
+			} else {
+				await BillItem.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereIn("id", data.itemsIdList)
+					.update({
+						courtesy_approved_user_id: user.id,
+
+						pendingObservations: data.reason,
+						courtesyApprovedAt: DateTime.now(),
+						approved: false,
+					} as Partial<BillItem>);
+			}
+
+			return null;
 		});
 	}
 }

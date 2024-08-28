@@ -44,6 +44,7 @@ export default class CreateBudgetValidator {
 				unitaryValue: schema.number(),
 				discountValue: schema.number(),
 				courtesy: schema.boolean.optional(),
+				maxDiscount: schema.boolean.optional([]),
 			}),
 		),
 	});

@@ -95,7 +95,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		columnName: "icms_percentage",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentage: number;
 
@@ -107,14 +107,14 @@ export default class BillItem extends BaseModel {
 	@column({
 		columnName: "icms_percentage_red_aliquot",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentageRedAliquot: number;
 
 	@column({
 		columnName: "icms_percentage_red_base",
 		// serialize: SharedService.ParseDecimal,
-		serialize: parseFloat,
+		serialize: Number.parseFloat,
 	})
 	public icmsPercentageRedBase: number;
 
@@ -317,6 +317,17 @@ export default class BillItem extends BaseModel {
 	})
 	public courtesyApprovedAt: DateTime | null;
 
+	@column({ columnName: "max_discount" })
+	public maxDiscount: boolean;
+
+	@column({
+		columnName: "pending_observations",
+	})
+	public pendingObservations: string | null;
+
+	@column({})
+	public approved: boolean;
+
 	@column.dateTime({
 		columnName: "disabled_at",
 	})
@@ -349,7 +360,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_issued_user_id: string;
+	public courtesy_issued_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_issued_user_id",
@@ -359,7 +370,7 @@ export default class BillItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public courtesy_approved_user_id: string;
+	public courtesy_approved_user_id: string | null;
 
 	@belongsTo(() => User, {
 		foreignKey: "courtesy_approved_user_id",

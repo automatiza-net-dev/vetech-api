@@ -41,6 +41,14 @@ export default class CreateSanclaTutorForGenericValidator {
 				type: schema.enum(Object.values(PatientContactType)),
 			}),
 		),
+		patients: schema.array.optional().members(
+			schema.object().members({
+				id: schema.string({ trim: true }, [
+					rules.uuid(),
+					rules.exists({ table: "patients", column: "id" }),
+				]),
+			}),
+		),
 	});
 
 	/**

@@ -6586,6 +6586,24 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: { fromDate?: string; toDate?: string },
 	) {
+		const dt = DateTime.fromISO(
+			data.fromDate
+				? new Date(data.fromDate).toISOString()
+				: new Date().toISOString(),
+		).plus({ hours: 12 });
+
+		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(
+					endOfMonth(dt.toJSDate()),
+					startOfMonth(dt.toJSDate()),
+				)
+			: dt.daysInMonth ?? 30;
+
+		const usefulDaysUntilNow = differenceInBusinessDays(
+			new Date(),
+			startOfMonth(dt.toJSDate()),
+		);
+
 		const {
 			faturamento,
 			tkt_medio,
@@ -6607,7 +6625,7 @@ export default class IndicatorService {
 			Number.isNaN(tkt_medio) ||
 			!Number.isFinite(tkt_medio)
 				? 0
-				: faturamento / tkt_medio;
+				: (faturamento / tkt_medio) * (usefulDays / usefulDaysUntilNow);
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
 		const level1 = (level2 * 100) / conv_agendamentos;
@@ -6680,10 +6698,23 @@ export default class IndicatorService {
 
 		const isSameMonth = today.getMonth() === firstFromInput.getMonth();
 
-		const day = today.getDate();
-		const daysOnMonth = isSameMonth
-			? endOfMonth(today).getDate()
-			: endOfMonth(firstFromInput).getDate();
+		const dt = DateTime.fromISO(
+			data.fromDate
+				? new Date(data.fromDate).toISOString()
+				: new Date().toISOString(),
+		).plus({ hours: 12 });
+
+		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(
+					endOfMonth(dt.toJSDate()),
+					startOfMonth(dt.toJSDate()),
+				)
+			: dt.daysInMonth ?? 30;
+
+		const usefulDaysUntilNow = differenceInBusinessDays(
+			new Date(),
+			startOfMonth(dt.toJSDate()),
+		);
 
 		const {
 			faturamento,
@@ -6707,7 +6738,8 @@ export default class IndicatorService {
 			!Number.isFinite(tkt_medio)
 				? 0
 				: isSameMonth
-					? (faturamento / tkt_medio / daysOnMonth) * day
+					? // ? (faturamento / tkt_medio / daysOnMonth) * day // ANTIGO
+						(faturamento / tkt_medio) * (usefulDays / usefulDaysUntilNow) // NOVO
 					: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
@@ -6907,6 +6939,7 @@ export default class IndicatorService {
 		period: string,
 	) {
 		const [[sql1], [sql2], [sql3], [sql4], [sql5]] = await Promise.all([
+			// Faturamento
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as faturamento"))
 				.joinRaw(
@@ -6916,6 +6949,8 @@ export default class IndicatorService {
 				.where("metas.description", "Faturamento")
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Ticket Medio
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as tkt_medio"))
 				.joinRaw(
@@ -6925,6 +6960,8 @@ export default class IndicatorService {
 				.where("metas.description", "Ticket Medio")
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversao Vendas Crm
 			Database.from("metas")
 				.select(Database.raw("business_unit_metas.value::float as conv_vendas"))
 				.joinRaw(
@@ -6934,6 +6971,8 @@ export default class IndicatorService {
 				.whereRaw("metas.description ilike ?", ["% Vendas Crm"])
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversão Crm
 			Database.from("metas")
 				.select(
 					Database.raw(
@@ -6947,6 +6986,8 @@ export default class IndicatorService {
 				.whereRaw("metas.description ilike ?", ["% Comparecimentos Crm"])
 				.where("business_unit_metas.business_unit_id", unitID)
 				.where("business_unit_metas.period", period),
+
+			// Conversao Agendamentos Crm
 			Database.from("metas")
 				.select(
 					Database.raw("business_unit_metas.value::float as conv_agendamentos"),

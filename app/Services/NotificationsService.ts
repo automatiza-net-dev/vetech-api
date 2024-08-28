@@ -122,7 +122,7 @@ export default class NotificationsService {
 					createdAt: null,
 					createdAtText: null,
 					isRead: false,
-					link: "/dashboard/budgets/partial?pending=true",
+					link: "/dashboard/orcamentos?pending=true",
 				},
 			],
 		};

@@ -6586,24 +6586,6 @@ export default class IndicatorService {
 		authCtx: AuthContext,
 		data: { fromDate?: string; toDate?: string },
 	) {
-		const dt = DateTime.fromISO(
-			data.fromDate
-				? new Date(data.fromDate).toISOString()
-				: new Date().toISOString(),
-		).plus({ hours: 12 });
-
-		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
-			? differenceInBusinessDays(
-					endOfMonth(dt.toJSDate()),
-					startOfMonth(dt.toJSDate()),
-				)
-			: dt.daysInMonth ?? 30;
-
-		const usefulDaysUntilNow = differenceInBusinessDays(
-			new Date(),
-			startOfMonth(dt.toJSDate()),
-		);
-
 		const {
 			faturamento,
 			tkt_medio,
@@ -6625,7 +6607,7 @@ export default class IndicatorService {
 			Number.isNaN(tkt_medio) ||
 			!Number.isFinite(tkt_medio)
 				? 0
-				: (faturamento / tkt_medio) * (usefulDays / usefulDaysUntilNow);
+				: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;
 		const level1 = (level2 * 100) / conv_agendamentos;
@@ -6739,7 +6721,7 @@ export default class IndicatorService {
 				? 0
 				: isSameMonth
 					? // ? (faturamento / tkt_medio / daysOnMonth) * day // ANTIGO
-						(faturamento / tkt_medio) * (usefulDays / usefulDaysUntilNow) // NOVO
+						(faturamento / tkt_medio) * (usefulDaysUntilNow / usefulDays) // NOVO
 					: faturamento / tkt_medio;
 		const level3 = (level4 * 100) / conv_vendas;
 		const level2 = (level3 * 100) / conv_comparecimentos;

@@ -6495,7 +6495,7 @@ export default class IndicatorService {
 						title: "Descrição",
 						value: "Novos",
 						itemStyle: {
-							color: authCtx.group.colors.at(0),
+							color: authCtx.group.colors.at(1),
 						},
 					},
 					{

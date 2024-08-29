@@ -5076,7 +5076,7 @@ export default class IndicatorService {
 			type: "pie",
 			hasData: metasResult.length > 0,
 			title: "Partic. de Produtos x Serviços",
-			legends: [
+			legend: [
 				[
 					{
 						title: "Descrição",

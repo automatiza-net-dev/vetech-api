@@ -441,9 +441,9 @@ export default class SharedService {
 			.useTransaction(trx)
 			.exec();
 
-		return rows.rows.map((elem: { descricao: string, tipoerro: string }) => {
+		return rows.rows.map((elem: { descricao: string; tipoerro: string }) => {
 			return {
-				rule: elem.tipoerro ?? 'DescontoMaximo',
+				rule: elem.tipoerro ?? "DescontoMaximo",
 				message: elem.descricao,
 			};
 		});
@@ -503,7 +503,11 @@ export default class SharedService {
 		}
 
 		// 2a parcela em diante
-		const lastDate = this.calculateDateOffset(idx - 1, date, paymentMethod);
+		const lastDate = SharedService.CalculateDateOffset(
+			idx - 1,
+			date,
+			paymentMethod,
+		);
 		// pular exatamente 1 mês depois da ultima parcela
 		if (paymentMethod.daysBetweenInstallments === 30) {
 			return lastDate.plus({ months: 1 });

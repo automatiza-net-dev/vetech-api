@@ -1135,6 +1135,16 @@ export default class BusinessUnitFiscalDocumentService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", issuedDocument.bill_id)
+				.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.where("type", ProductType.PRODUCT);
+					});
+				})
+				.update({ nfeIssued: false } as Partial<BillItem>);
 		});
 	}
 
@@ -1361,6 +1371,16 @@ export default class BusinessUnitFiscalDocumentService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", document.bill_id)
+				.whereHas("productVariation", (query) => {
+					query.whereHas("product", (query) => {
+						query.where("type", ProductType.PRODUCT);
+					});
+				})
+				.update({ nfeIssued: false } as Partial<BillItem>);
 		});
 	}
 

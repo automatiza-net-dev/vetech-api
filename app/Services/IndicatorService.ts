@@ -5095,8 +5095,8 @@ export default class IndicatorService {
 						value: this.shared.formatter.format(productSum),
 						itemStyle: { color: "" },
 					},
-					{ title: "Qtd Cli", value: "0", itemStyle: { color: "" } },
-					{ title: "Tkt Medio R$", value: "0", itemStyle: { color: "" } },
+					{ title: "Qtd Cli", value: "", itemStyle: { color: "" } },
+					{ title: "Tkt Medio R$", value: "", itemStyle: { color: "" } },
 				],
 				[
 					{

@@ -394,7 +394,34 @@ export default class BudgetService {
 			qb.where("pending", false);
 		}
 
-		return qb;
+    const result = await qb;
+
+		const status: {id: string, status: string}[] = await Database.from("budgets")
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from budget_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and budget_items.budget_id = budgets.id
+                group by budget_id) = true then 'Nao Aprovada'
+           else budgets.status end as status`,
+				),
+			)
+			.whereIn(
+				"id",
+				result.map((b) => b.id),
+			)
+			.orderByRaw("created_at desc");
+
+		return result.map((b) => ({
+			...b.toJSON(),
+			status: status.find((s) => s.id === b.id)?.status ?? b.status,
+		}));
 	}
 
 	public async completeIndex(unitId: string, data: ISearchComplete) {

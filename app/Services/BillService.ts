@@ -186,9 +186,32 @@ export default class BillService {
 		]);
 		const total = count1.concat(count2);
 
+		const status: {id: string, status: string}[] = await Database.from("bills")
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from bill_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and bill_items.bill_id = bills.id
+                group by bill_id) = true then 'Nao Aprovada'
+           else bills.status end as status`,
+				),
+			)
+			.whereIn(
+				"id",
+				result.map((b) => b.id),
+			)
+			.orderByRaw("created_at desc");
+
 		return result.map((b) => ({
 			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
 			...b.toJSON(),
+			status: status.find((s) => s.id === b.id)?.status ?? b.status,
 		}));
 	}
 

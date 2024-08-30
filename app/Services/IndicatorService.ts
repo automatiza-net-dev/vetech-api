@@ -6802,10 +6802,10 @@ export default class IndicatorService {
 					`
           business_units.id,
           business_units.identification,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
           `,
 				),
 			)

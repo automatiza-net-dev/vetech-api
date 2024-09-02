@@ -456,6 +456,52 @@ test.group("Bill resource", (group) => {
 		assert.equal(201, response.status());
 	});
 
+	test("should create bill with financial responsible", async ({
+		assert,
+		client,
+	}) => {
+		const {
+			user,
+			client: holder,
+			patient,
+			dailyCashier,
+			dailyMovement,
+			variation,
+			config,
+		} = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await config.merge({ controlsDeposit: false }).save();
+
+		const response = await client
+			.post(`/bills/create`)
+			.json({
+				clientId: holder.id,
+				financialResponsibleId: holder.id,
+				patientId: patient.id,
+				dailyMovementId: dailyMovement.id,
+				dailyCashierId: dailyCashier.id,
+				billDate: new Date(),
+				productValue: 100,
+				serviceValue: 200,
+				discountValue: 55,
+				items: [
+					{
+						unitaryValue: 10,
+						discountValue: 0,
+						productVariationId: variation.id,
+						quantity: 1,
+					},
+				],
+			})
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
 	test("should update bill", async ({ assert, client }) => {
 		const { user, client: holder, patient, bill } = await createData();
 		const token = await generateJwtToken(client, {
@@ -1583,12 +1629,16 @@ test.group("Bill resource", (group) => {
 		});
 
 		const response = await client
-			.put(`/bills/update-item`)
+			.put("/bills/update-item")
 			.json({
 				items: [
 					{
 						billItemId: item.id,
 						discountValue: 10,
+						unitaryValue: 10,
+						courtesy: false,
+						maxDiscount: false,
+						shouldValidateDiscount: false,
 					},
 				],
 			} as IUpdateBillItemData)

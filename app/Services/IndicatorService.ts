@@ -5699,9 +5699,7 @@ export default class IndicatorService {
 				"join budgets as total on total.business_unit_id = business_units.id and total.deleted_at is null",
 			)
 			.joinRaw(
-				`left join budgets as confirmados
-                   on confirmados.id = total.id and confirmados.business_unit_id = business_units.id
-                       and confirmados.deleted_at is null and confirmados.status in ('CONFIRMADO', 'CONFIRMADO_PARCIAL')`,
+				"left join bills as confirmados on confirmados.budget_id = total.id and confirmados.business_unit_id = business_units.id and confirmados.deleted_at is null",
 			)
 			.joinRaw("left join users on users.id = total.reviewer_id")
 			.groupBy("economic_groups.id", "business_units.id", "users.id")

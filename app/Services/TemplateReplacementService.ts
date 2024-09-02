@@ -214,6 +214,7 @@ export default class TemplateReplacementService {
 			const dataPath = `tmp/${key}_data.json`;
 			const templatesPath = `tmp/${key}_templates.json`;
 			const inputPath = `tmp/${key}.docx`;
+			const resolvedInputPath = `tmp/${key}_resolved.docx`;
 			const outputPath = `tmp/${key}_output.docx`;
 			const pdfKey = `documents/compiled/${key}.pdf`;
 
@@ -231,6 +232,11 @@ export default class TemplateReplacementService {
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
 			)}/uploads/${inputPath}`;
+
+			const fullResolvedInputPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${resolvedInputPath}`;
 
 			const fullOutputPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
@@ -252,11 +258,32 @@ export default class TemplateReplacementService {
 				),
 			]);
 
+			const resolverSuccess = await new Promise<boolean>((res) => {
+				// python3 some/path/to/main.py input.docx input.resolved.docx
+				exec(
+					`python3 ${Env.get(
+						"DOCX_RESOLVER_PATH",
+					)} ${fullInputPath} ${fullResolvedInputPath}`,
+					(error, _stdout, _stderr) => {
+						if (error) {
+							console.error(error);
+							// return rej(false);
+							return res(false);
+						}
+
+						return res(true);
+					},
+				);
+			});
+			if (!resolverSuccess) {
+				throw new BadRequestException("Erro corrigindo arquivo", 500, "");
+			}
+
 			const success = await new Promise<boolean>((res) => {
 				exec(
 					`${Env.get(
 						"TRANSPILER_PATH",
-					)} ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+					)} ${fullResolvedInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
 					(error, _stdout, _stderr) => {
 						if (error) {
 							console.error(error);
@@ -270,7 +297,7 @@ export default class TemplateReplacementService {
 			});
 
 			if (!success) {
-				throw new BadRequestException("Erro processando arquivo", 400, "");
+				throw new BadRequestException("Erro processando arquivo", 500, "");
 			}
 
 			const responseBuffer = await PDFEngine.convert({

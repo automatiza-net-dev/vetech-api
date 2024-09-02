@@ -33,5 +33,6 @@ export default Env.rules({
 	AWS_S3_REGION: Env.schema.string(),
 	AWS_S3_SECRET: Env.schema.string(),
 	TRANSPILER_PATH: Env.schema.string(),
+	DOCX_RESOLVER_PATH: Env.schema.string(),
 	EXCEL_COMPILER_PATH: Env.schema.string(),
 });

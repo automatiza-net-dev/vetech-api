@@ -1831,17 +1831,7 @@ export default class BudgetService {
 			// 	})),
 			// );
 
-			await this.depositService.updateDepositItems(
-				trx,
-				authCtx,
-				bill.id,
-				items
-					.filter((f) => !data.notConfirmedItems.includes(f.id))
-					.map((elem) => ({
-						productVariationId: elem.product_variation_id,
-						quantity: elem.quantity.toNumber(),
-					})),
-			);
+			await this.depositService.updateDepositItems(trx, authCtx, bill.id);
 
 			return bill;
 		});

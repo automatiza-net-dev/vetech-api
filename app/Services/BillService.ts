@@ -2266,10 +2266,6 @@ where deposit_id = ?
 			trx,
 			authCtx,
 			bill.id,
-			data.items.map((elem) => ({
-				quantity: elem.quantity,
-				productVariationId: elem.productVariationId,
-			})),
 		);
 
 		return bill;

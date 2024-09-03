@@ -394,9 +394,11 @@ export default class BudgetService {
 			qb.where("pending", false);
 		}
 
-    const result = await qb;
+		const result = await qb;
 
-		const status: {id: string, status: string}[] = await Database.from("budgets")
+		const status: { id: string; status: string }[] = await Database.from(
+			"budgets",
+		)
 			.select(
 				Database.raw(
 					`id,
@@ -1833,10 +1835,12 @@ export default class BudgetService {
 				trx,
 				authCtx,
 				bill.id,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
+				items
+					.filter((f) => !data.notConfirmedItems.includes(f.id))
+					.map((elem) => ({
+						productVariationId: elem.product_variation_id,
+						quantity: elem.quantity.toNumber(),
+					})),
 			);
 
 			return bill;

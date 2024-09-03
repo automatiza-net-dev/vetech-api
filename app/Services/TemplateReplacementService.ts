@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import Application from "@ioc:Adonis/Core/Application";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Env from "@ioc:Adonis/Core/Env";
@@ -28,7 +28,7 @@ import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
 import createReport from "docx-templates";
 import { DateTime } from "luxon";
-import { parse } from "node-html-parser";
+import { HTMLElement, parse } from "node-html-parser";
 import { v4 } from "uuid";
 
 interface ISearch {
@@ -182,6 +182,29 @@ export default class TemplateReplacementService {
 			.where("system_id", authCtx.system.id);
 
 		if (data.base && !data.documentId) {
+			/*
+			 * expand [SOME] into
+			 * <li>[SOME]</li>
+			 */
+			if (templates.some((s) => s.complex)) {
+				return {
+					result: this.parseTextTemplate(
+						templates
+							.filter((t) => t.complex)
+							.reduce(
+								(currText, tmpl) =>
+									currText.replaceAll(
+										tmpl.replacer,
+										`<li>${tmpl.replacer}</li>`,
+									),
+								data.base,
+							),
+						textData,
+						templates,
+					),
+				};
+			}
+
 			return {
 				result: this.parseTextTemplate(data.base, textData, templates),
 			};
@@ -462,23 +485,49 @@ export default class TemplateReplacementService {
 	) {
 		const root = parse(raw, {});
 
-		const listItems = root.getElementsByTagName("li");
-		for (const listItem of listItems) {
-			if (listItem.innerText === template.replacer) {
-				const parent = listItem.parentNode;
+		const children = root.childNodes;
 
-				const updatedChildren = values.map((v) => {
-					const clone = parse(
-						listItem.toString().replace(template.replacer, v),
-					);
+		const result: HTMLElement[] = [];
 
-					return clone;
-				});
-				parent.set_content(updatedChildren, {});
+		for (const listItem of children) {
+			if (
+				listItem.rawTagName === "li" ||
+				listItem.childNodes.some((n) => n.rawTagName === "li")
+			) {
+				if (listItem.rawTagName === "li") {
+					for (const value of values) {
+						result.push(
+							parse(listItem.toString().replace(template.replacer, value)),
+						);
+					}
+				} else {
+					const block = listItem.clone();
+					block.childNodes = [];
 
-				break;
+					for (const child of listItem.childNodes) {
+						if (child.rawTagName === "li") {
+							for (const value of values) {
+								const cloned = child.clone();
+
+								if (child.textContent === template.replacer) {
+									cloned.textContent = value;
+								}
+
+								block.childNodes.push(cloned);
+							}
+						} else {
+							block.childNodes.push(child);
+						}
+					}
+
+					result.push(parse(block.toString()));
+				}
+			} else {
+				result.push(parse(listItem.toString()));
 			}
 		}
+
+		root.set_content(result, {});
 
 		return root.toString();
 	}

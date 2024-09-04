@@ -73,13 +73,7 @@ export default class PaymentMethodService {
 					query.select("id", "description");
 				});
 				query.preload("flag", (query) => {
-					query.select(
-						"id",
-						"description",
-						"code",
-						"type",
-						"installments_without_password",
-					);
+					query.select("id", "description", "code", "type");
 				});
 				query.preload("installments");
 			})

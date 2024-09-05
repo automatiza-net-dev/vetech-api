@@ -5672,6 +5672,7 @@ export default class IndicatorService {
 			units?: string[];
 			fromDate?: string;
 			toDate?: string;
+			debug?: string;
 		},
 	) {
 		const qb = Database.from("business_units")
@@ -5721,6 +5722,10 @@ export default class IndicatorService {
 				data.fromDate,
 				data.toDate,
 			]);
+		}
+
+		if (data.debug === "PROD") {
+			return qb.toQuery();
 		}
 
 		const result = await qb;

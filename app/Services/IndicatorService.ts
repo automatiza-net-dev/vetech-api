@@ -4307,12 +4307,12 @@ export default class IndicatorService {
 				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
 			),
 			SharedService.NoopPromise(
-				() => authCtx.hasPermission("IND27"),
-				() => this.consolidatedReviewerBudgets(authCtx, data),
-			),
-			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND28"),
 				() => this.salesPerReviewerIndicator_2(authCtx, data),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND27"),
+				() => this.consolidatedReviewerBudgets(authCtx, data),
 			),
 		]);
 
@@ -5737,7 +5737,7 @@ export default class IndicatorService {
 
 		return {
 			name: "budgetsAvaliadorConsolidado",
-			description: "Orçamentos por Período",
+			description: "Conversão das Avaliações por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
@@ -7198,7 +7198,7 @@ export default class IndicatorService {
 
 		return {
 			name: "billsReviewer",
-			description: "Vendas por Período",
+			description: "Participação nas Vendas por Período",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueUnits.map((elem) => {

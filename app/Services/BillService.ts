@@ -46,6 +46,7 @@ import type {
 	ICreateBillData,
 	ICreateBillItemData,
 	ICreateBillPaymentData,
+	IUpdateBillData,
 	IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
@@ -403,15 +404,7 @@ export default class BillService {
 		});
 	}
 
-	async updateBill(
-		authCtx: AuthContext,
-		data: {
-			billId: string;
-			sellerId: string;
-			clientId: string;
-			patientId?: string;
-		},
-	) {
+	async updateBill(authCtx: AuthContext, data: IUpdateBillData) {
 		return Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.useTransaction(trx)
@@ -431,11 +424,100 @@ export default class BillService {
 				);
 			}
 
+			const tasks = data.items.map(async (elem) => {
+				const productVariation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("id", elem.productVariationId)
+					.whereHas("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.preload("product")
+					.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.first();
+
+				if (!productVariation) {
+					throw new BadRequestException(
+						"Não foi possível encontrar um preço para esse produto",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+
+				if (elem.courtesy && !productVariation.product.courtesy) {
+					throw new BadRequestException(
+						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					productVariation.businessUnitProducts.some(
+						(p) =>
+							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
+					)
+				) {
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_MAX_DISCOUNT",
+					);
+				}
+
+				return elem.billItemId
+					? BillItem.query()
+							.useTransaction(trx)
+							.where("bill_id", bill.id)
+							.where("id", elem.billItemId)
+							.update({
+								courtesy_issued_user_id: elem.courtesy
+									? authCtx.user.id
+									: undefined, // mantém valor anterior
+
+								courtesy: elem.courtesy,
+								max_discount: elem.maxDiscount,
+								// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity).toNumber(),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+							} as Partial<Omit<BillItem, "quantity"> & { quantity: number }>)
+					: BillItem.create(
+							{
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								product_variation_id: elem.productVariationId,
+								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+								bill_id: bill.id,
+
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+								status: BillItemStatus.A,
+							},
+							{ client: trx },
+						);
+			});
+			await Promise.all(tasks);
+
+			await this.syncBillPendingAndSum(trx, bill);
+
 			await bill
 				.merge({
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					patient_id: data.patientId,
+					financial_responsible_id: data.financialResponsibleId,
 				})
 				.useTransaction(trx)
 				.save();

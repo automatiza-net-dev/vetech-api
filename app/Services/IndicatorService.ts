@@ -4495,12 +4495,15 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("CRD01"),
 				() => this.monthlyRealizedFunnelIndicators(authCtx, data),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD03"),
+				() => this.opportunitiesPerOrigin(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("CRD01"),
-				// () => true,
 				() => this.clientOriginTreeIndicators(authCtx, data),
 			),
 		]);
@@ -7246,6 +7249,144 @@ export default class IndicatorService {
 					})),
 				};
 			}),
+		};
+	}
+
+	public async opportunitiesPerOrigin(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          coalesce(client_origins.description, 'Outros') as origem,
+          count(opportunities.id)::int as count
+          `,
+				),
+			)
+			.joinRaw(
+				"left join client_origins on client_origins.id = opportunities.client_origin_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.groupByRaw("business_units.id, client_origins.description")
+			.whereNull("opportunities.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+		} else {
+			qb1.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id: string;
+			identification: string;
+			origem: string;
+			count: number;
+		}[] = await qb1;
+
+		const sum = this.shared.sum(result.map((elem) => elem.count));
+
+		return {
+			name: "crm-opportunities-origin",
+			type: "pie",
+			hasData: result.length > 0,
+			title: "Oportunidades X Origem Clientes",
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.origem,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.count / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Total",
+					value: elem.count,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
+
+			configs: {
+				title: {
+					text: "Oportunidades X Origem Clientes",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Origem Clientes",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result.map((elem, idx) => ({
+							value: elem.count,
+							name: elem.origem,
+							percentage: Number.parseFloat(
+								((elem.count / sum) * 100).toFixed(2),
+							),
+							itemStyle: {
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
+							},
+						})),
+					},
+				],
+			},
 		};
 	}
 }

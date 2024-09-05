@@ -897,6 +897,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
 		await flagInstallment.merge({ installment: 3 }).save();
 
 		const response = await client
@@ -904,13 +905,15 @@ test.group("Bill resource", (group) => {
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 200,
+				installments: 1,
 				acquirerId: tefAcq.id,
 				flagId: tefFlag.id,
 				nsuDocument: "some document",
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -926,6 +929,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await ctx.paymentMethod.merge({ maxInstallments: 100 }).save();
 		await ctx.flagInstallment.merge({ installment: 3 }).save();
 
 		const budget = await Budget.create({
@@ -961,7 +965,9 @@ test.group("Bill resource", (group) => {
 
 				nsuDocument: "some document",
 				installmentsValue: 200,
+				installments: 1,
 				expirationDate: DateTime.now(),
+				maxParcelas: true,
 			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
@@ -975,16 +981,19 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 10,
 				nsuDocument: "some document",
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -997,15 +1006,18 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 10,
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -1021,14 +1033,17 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				installmentsValue: 10,
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -1044,14 +1059,213 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
 				expirationDate: DateTime.now(),
 				installmentsValue: 10,
 				installments: 10,
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create bill payment with PMFlagId and invalid installments", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag.merge({ maxInstallments: 1 }).save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Numero de parcelas é Superior ao permitido pela forma de pagamento",
+			body.message,
+		);
+	});
+
+	test("should create bill payment with PMFlagId and invalid installments without password", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+			body.message,
+		);
+	});
+
+	test("should create bill payment with PMFlagId, invalid installments without password, maxParcelas = true", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create bill payment without PMFlagId and invalid installments", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod.merge({ maxInstallments: 1 }).save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Numero de parcelas é Superior ao permitido pela forma de pagamento",
+			body.message,
+		);
+	});
+
+	test("should create bill payment without PMFlagId and invalid installments without password", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+			body.message,
+		);
+	});
+
+	test("should create bill payment without PMFlagId, invalid installments without password, maxParcelas = true", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: true,
 			} as ICreateBillPaymentData)
 			.bearerToken(token);
 

@@ -35,9 +35,11 @@ export interface ICreateBillPaymentData {
 	flagId?: string;
 	acquirerId?: string;
 	paymentMethodId: string;
+	paymentMethodFlagId?: string;
 	paymentMethodFlagInstallmentId?: number;
 	budgetPaymentId?: number;
 
+  maxParcelas?: boolean
 	expirationDate: DateTime;
 	installmentsValue: number;
 	nsuDocument?: string;

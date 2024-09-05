@@ -13,6 +13,10 @@ export default class CreateBillPaymentValidator {
 			rules.uuid(),
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
+		paymentMethodFlagId: schema.string.optional({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "payment_method_flags", column: "id" }),
+		]),
 		paymentMethodFlagInstallmentId: schema.number.optional([
 			rules.exists({ table: "payment_method_flag_installments", column: "id" }),
 		]),
@@ -29,6 +33,7 @@ export default class CreateBillPaymentValidator {
 		]),
 		expirationDate: schema.date(),
 		installmentsValue: schema.number([]),
+		maxParcelas: schema.boolean.optional(),
 		nsuDocument: schema.string.optional(),
 		installments: schema.number.optional(),
 	});

@@ -50,9 +50,10 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import { validate } from "uuid";
+import { v4, validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 
 interface ISearch {
 	fromBill?: string;
@@ -935,12 +936,59 @@ where deposit_id = ?
 				.where("id", data.paymentMethodId)
 				.firstOrFail();
 
-			const installment = data.paymentMethodFlagInstallmentId
-				? await PaymentMethodFlagInstallment.query()
-						.useTransaction(trx)
-						.where("id", data.paymentMethodFlagInstallmentId)
-						.firstOrFail()
-				: { fee: paymentMethod.fee, installment: data.installments ?? 1 };
+			const solidInstallments = data.installments ?? 1;
+			let pendingBillPayment = false;
+			if (data.paymentMethodFlagId) {
+				const paymentMethodFlag = await PaymentMethodFlag.query()
+					.useTransaction(trx)
+					.where("id", data.paymentMethodFlagId)
+					.firstOrFail();
+
+				if (solidInstallments > paymentMethodFlag.maxInstallments) {
+					throw new BadRequestException(
+						"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					solidInstallments >
+					(paymentMethodFlag.installmentsWithoutPassword ?? 0)
+				) {
+					if (data.maxParcelas) {
+						pendingBillPayment = true;
+					} else {
+						throw new BadRequestException(
+							"Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+			} else {
+				if (solidInstallments > paymentMethod.maxInstallments) {
+					throw new BadRequestException(
+						"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					solidInstallments > (paymentMethod.installmentsWithoutPassword ?? 0)
+				) {
+					if (data.maxParcelas) {
+						pendingBillPayment = true;
+					} else {
+						throw new BadRequestException(
+							"Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+			}
 
 			const dailyCashier =
 				authCtx.unit.unitConfig.dailyCashierType === "usuario"
@@ -967,6 +1015,13 @@ where deposit_id = ?
 					"E_NOT_OPEN",
 				);
 			}
+
+			const installment = data.paymentMethodFlagInstallmentId
+				? await PaymentMethodFlagInstallment.query()
+						.useTransaction(trx)
+						.where("id", data.paymentMethodFlagInstallmentId)
+						.firstOrFail()
+				: { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
 			const existingPayments = await BillPayment.query().where(
 				"bill_id",
@@ -1001,6 +1056,7 @@ where deposit_id = ?
 							daily_cashier_id: dailyCashier.id,
 							budget_payment_id: data.budgetPaymentId,
 
+							pending: data.maxParcelas && pendingBillPayment,
 							block: max + 1,
 							expirationDate: SharedService.CalculateDateOffset(
 								v,
@@ -1032,6 +1088,7 @@ where deposit_id = ?
 			await bill
 				.merge({
 					paidValue: bill.paidValue + data.installmentsValue,
+					pending: pendingBillPayment || bill.pending,
 				})
 				.useTransaction(trx)
 				.save();
@@ -2262,11 +2319,7 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		await this.depositService.updateDepositItems(
-			trx,
-			authCtx,
-			bill.id,
-		);
+		await this.depositService.updateDepositItems(trx, authCtx, bill.id);
 
 		return bill;
 	}

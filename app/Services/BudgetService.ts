@@ -1686,6 +1686,10 @@ export default class BudgetService {
 							product_variation_id: item.product_variation_id,
 							tax_rule_id: rule?.id,
 
+							approved: item.approved,
+							maxDiscount: item.maxDiscount,
+							pendingObservations: item.pendingObservations,
+
 							courtesy: item.courtesy,
 							courtesy_approved_user_id: item.courtesy_approved_user_id,
 							courtesy_issued_user_id: item.courtesy_issued_user_id,

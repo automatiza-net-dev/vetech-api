@@ -51,7 +51,7 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import { v4, validate } from "uuid";
+import { validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
@@ -3445,31 +3445,17 @@ where deposit_id = ?
 
 			await bill.merge({ pending: false }).useTransaction(trx).save();
 
-			if (data.approved) {
-				await BillItem.query()
-					.useTransaction(trx)
-					.where("bill_id", bill.id)
-					.whereIn("id", data.itemsIdList)
-					.update({
-						courtesy_approved_user_id: user.id,
+			await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereIn("id", data.itemsIdList)
+				.update({
+					courtesy_approved_user_id: user.id,
 
-						pendingObservations: data.reason,
-						courtesyApprovedAt: DateTime.now(),
-						approved: true,
-					} as Partial<BillItem>);
-			} else {
-				await BillItem.query()
-					.useTransaction(trx)
-					.where("bill_id", bill.id)
-					.whereIn("id", data.itemsIdList)
-					.update({
-						courtesy_approved_user_id: user.id,
-
-						pendingObservations: data.reason,
-						courtesyApprovedAt: DateTime.now(),
-						approved: false,
-					} as Partial<BillItem>);
-			}
+					pendingObservations: data.reason,
+					courtesyApprovedAt: DateTime.now(),
+					approved: data.approved,
+				} as Partial<BillItem>);
 
 			await BillPayment.query()
 				.useTransaction(trx)

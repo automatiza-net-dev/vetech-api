@@ -2334,67 +2334,252 @@ test.group("Bill resource", (group) => {
 		assert.equal(204, response.status());
 		assert.equal(1, item.quantity);
 	});
-	//
-	// test("should handle print", async ({ assert, client }) => {
-	// 	const { user, bill } = await createData();
-	// 	const token = await generateJwtToken(client, {
-	// 		email: user.email,
-	// 		password: "102030",
-	// 	});
-	//
-	// 	const response = await client
-	// 		.get(`/bills/print-payment-receipts/${bill.id}`)
-	// 		.bearerToken(token);
-	//
-	// 	assert.equal(200, response.status());
-	// });
 
-	// test('should recalculate item taxes', async ({ assert, client }) => {
-	//   const { user, bill, business, variation } = await createData();
-	//   const token = await generateJwtToken(client, {
-	//     email: user.email,
-	//     password: '102030',
-	//   });
+	test("should approve pending items for true", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
 
-	//   await bill.related('items').create({
-	//     economic_group_id: business.economicGroupId,
-	//     business_unit_id: business.id,
-	//     bill_id: bill.id,
-	//     product_variation_id: variation.id,
-	//     quantity: new Decimal(1),
-	//     costValue: 10,
-	//     saleValue: 10,
-	//     unitaryValue: 10,
-	//     discountValue: 10,
-	//     totalValue: 100,
-	//     status: BillItemStatus.A,
-	//     createdAt: bill.createdAt,
-	//     fiscalOperationCode: '0',
-	//     icmsOriginProduct: '0',
-	//     icmsBase: 10,
-	//     icmsValue: 10,
-	//     icmsStBase: 10,
-	//     icmsStPercentageUfDestination: 0,
-	//     icmsStValue: 10,
-	//     issCst: '',
-	//     issValue: 0,
-	//     pisBase: 0,
-	//     pisValue: 0,
-	//     pisRetentionValue: 0,
-	//     cofinsBase: 0,
-	//     cofinsValue: 0,
-	//     cofinsRetentionValue: 0,
-	//     ipiBase: 0,
-	//     ipiValue: 0,
-	//     icmsDeferredValue: 0,
-	//     icmsPartitionValue: 0,
-	//     icmsFcpValue: 0,
-	//   });
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
 
-	//   const response = await client
-	//     .put(`/bills/recalculate/${bill.id}`)
-	//     .bearerToken(token);
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: true,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
 
-	//   assert.equal(204, response.status());
-	// });
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should approve pending items for false", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
+
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
+
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: false,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
+
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should handle pending payment items", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
+
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
+
+		const payment = await ctx.bill.related("payments").create({
+			economic_group_id: ctx.group.id,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			payment_method_id: ctx.paymentMethod.id,
+			tef_acquirer_id: ctx.tefAcq.id,
+			tef_flag_id: ctx.tefFlag.id,
+
+			pending: true,
+			block: 1,
+			expirationDate: DateTime.now(),
+			feeType: BillPaymentFeeType.S,
+			feeValue: 0,
+			feePercentage: 0,
+			installments: 1,
+			installmentValue: 10,
+			totalValue: 10,
+			nsuDocument: "",
+			paymentMethodDiscountPercentage: 0,
+			paymentMethodDiscountValue: 0,
+			qtyInstallments: 1,
+		});
+
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: false,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
+
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [payment.id],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
 });

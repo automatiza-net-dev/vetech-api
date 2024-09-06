@@ -89,6 +89,9 @@ export default class BillPayment extends BaseModel {
 	public nsuDocument: string;
 
 	@column()
+	public reason: string | null;
+
+	@column()
 	public pending: boolean;
 
 	@column()
@@ -120,6 +123,11 @@ export default class BillPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public approved_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "approved_user_id",
+	})
+	public approvedUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,

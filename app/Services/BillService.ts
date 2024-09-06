@@ -240,9 +240,14 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
+				query.preload("approvedUser", (query) => {
+					query.select("id", "name");
+				});
+
 				query.preload("acquirer", (query) => {
 					query.select("id", "description");
 				});
+
 				query.preload("flag", (query) => {
 					query.select("id", "description", "code", "type");
 				});
@@ -3388,6 +3393,7 @@ where deposit_id = ?
 			password: string;
 			reason: string;
 			approved: boolean;
+			paymentsIdList: string[];
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -3438,6 +3444,7 @@ where deposit_id = ?
 			}
 
 			await bill.merge({ pending: false }).useTransaction(trx).save();
+
 			if (data.approved) {
 				await BillItem.query()
 					.useTransaction(trx)
@@ -3463,6 +3470,18 @@ where deposit_id = ?
 						approved: false,
 					} as Partial<BillItem>);
 			}
+
+			await BillPayment.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereIn("id", data.paymentsIdList)
+				.update({
+					approved_user_id: user.id,
+					pending: false,
+					approved: data.approved,
+					approvedAt: DateTime.now(),
+					reason: data.reason,
+				} as Partial<BillPayment>);
 
 			return null;
 		});

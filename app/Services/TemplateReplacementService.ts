@@ -351,12 +351,13 @@ export default class TemplateReplacementService {
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
 			)}/uploads/${resolvedInputPath}`;
+
 			const resolverSuccess = await new Promise<boolean>((res) => {
 				// python3 some/path/to/main.py input.docx input.resolved.docx
 				exec(
 					`python3 ${Env.get(
 						"DOCX_RESOLVER_PATH",
-					)} ${fullInputPath} ${fullResolvedInputPath}`,
+					)} ${fullInputPath} ${fullResolvedInputPath} '${JSON.stringify(templates.filter((f) => f.complex).map((f) => f.replacer))}'`,
 					(error, _stdout, _stderr) => {
 						if (error) {
 							console.error(error);

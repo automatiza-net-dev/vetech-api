@@ -1,11 +1,15 @@
 from docx import Document
 import sys
+import json
 
 _input = sys.argv[1]
 _output = sys.argv[2]
+_complexinput = sys.argv[3]
+
+# _complexdata = ["[ABC]", "[DEF]"]
+_complexdata = json.loads(_complexinput)
 
 document = Document(_input)
-
 
 invalid_runs = []
 
@@ -36,7 +40,7 @@ for paragraph in document.paragraphs:
 
     outer_idx += 1
 
-for bad_run in reversed(invalid_runs):
+for bad_run in invalid_runs:
     paragraph = document.paragraphs[bad_run['paragraph_index']]
     p = paragraph._p
 
@@ -55,5 +59,12 @@ for bad_run in reversed(invalid_runs):
             # delete existing run
             paragraph.runs[_group].text = ''
 
+for paragraph in document.paragraphs:
+    for run in paragraph.runs:
+        if run.text in _complexdata:
+            _key = run.text[1:-1]
+            run.text = f"""[FOR valor IN {_key}]
+  - valor
+[END-FOR]"""
 
 document.save(_output)

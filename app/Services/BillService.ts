@@ -523,6 +523,7 @@ export default class BillService {
 					client_id: data.clientId,
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId,
+					additionalInformation: data.additionalInformation,
 				})
 				.useTransaction(trx)
 				.save();

@@ -64,7 +64,7 @@ export interface IUpdateBillData {
 	patientId?: string;
 	financialResponsibleId?: string;
 	maxDiscount: boolean;
-	// observation?: string;
+	additionalInformation?: string;
 	items: {
 		billItemId?: string;
 		productVariationId: string;

@@ -3393,7 +3393,7 @@ where deposit_id = ?
 			password: string;
 			reason: string;
 			approved: boolean;
-			paymentsIdList: string[];
+			paymentsIdList?: string[];
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -3457,17 +3457,19 @@ where deposit_id = ?
 					approved: data.approved,
 				} as Partial<BillItem>);
 
-			await BillPayment.query()
-				.useTransaction(trx)
-				.where("bill_id", bill.id)
-				.whereIn("id", data.paymentsIdList)
-				.update({
-					approved_user_id: user.id,
-					pending: false,
-					approved: data.approved,
-					approvedAt: DateTime.now(),
-					reason: data.reason,
-				} as Partial<BillPayment>);
+			if (data.paymentsIdList) {
+				await BillPayment.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereIn("id", data.paymentsIdList)
+					.update({
+						approved_user_id: user.id,
+						pending: false,
+						approved: data.approved,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BillPayment>);
+			}
 
 			return null;
 		});

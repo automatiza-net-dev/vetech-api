@@ -30,6 +30,7 @@ import createReport from "docx-templates";
 import { DateTime } from "luxon";
 import { HTMLElement, parse } from "node-html-parser";
 import { v4 } from "uuid";
+import { readFile } from "node:fs/promises";
 
 interface ISearch {
 	origin?: string;
@@ -376,7 +377,7 @@ export default class TemplateReplacementService {
 			// create report from docx template
 			// const _template = await readFile(fullInputPath);
 			const buffer = await createReport({
-				template: fileBuffer,
+				template: await readFile(fullResolvedInputPath),
 				data: this.reverseTextTemplateData(textData, templates),
 				cmdDelimiter: ["[", "]"],
 			});
@@ -495,7 +496,10 @@ export default class TemplateReplacementService {
 				listItem.rawTagName === "li" ||
 				listItem.childNodes.some((n) => n.rawTagName === "li")
 			) {
-				if (listItem.rawTagName === "li") {
+				if (
+					listItem.rawTagName === "li" &&
+					listItem.textContent === template.replacer
+				) {
 					for (const value of values) {
 						result.push(
 							parse(listItem.toString().replace(template.replacer, value)),
@@ -506,7 +510,10 @@ export default class TemplateReplacementService {
 					block.childNodes = [];
 
 					for (const child of listItem.childNodes) {
-						if (child.rawTagName === "li") {
+						if (
+							child.rawTagName === "li" &&
+							child.textContent === template.replacer
+						) {
 							for (const value of values) {
 								const cloned = child.clone();
 
@@ -710,7 +717,6 @@ export default class TemplateReplacementService {
 						[bill.budget_id ?? v4()],
 					);
 			})
-
 			.union((qb) => {
 				qb.from("budgets")
 					.select(

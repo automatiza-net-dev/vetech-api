@@ -34,7 +34,6 @@ for paragraph in document.paragraphs:
                 'paragraph_index': outer_idx,
                 'from': _from,
                 'to': inner_idx})
-            # print(run.text, 'ends')
 
         inner_idx += 1
 
@@ -64,7 +63,7 @@ for paragraph in document.paragraphs:
         if run.text in _complexdata:
             _key = run.text[1:-1]
             run.text = f"""[FOR valor IN {_key}]
-  - valor
-[END-FOR]"""
+  - [= $valor ]
+[END-FOR valor]"""
 
 document.save(_output)

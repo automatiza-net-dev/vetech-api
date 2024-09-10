@@ -2385,6 +2385,7 @@ export default class BudgetService {
 			const budget = await Budget.query()
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.budgetId)
+				.preload("items")
 				.first();
 			if (!budget) {
 				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
@@ -2423,6 +2424,33 @@ export default class BudgetService {
 					"E_ERR",
 				);
 			}
+
+			if (
+				budget.items.some(
+					(i) =>
+						i.status === BudgetStatus.A &&
+						(i.maxDiscount || i.courtesy) &&
+						!i.approved,
+				)
+			) {
+				if (data.itemsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar os itens a serem processados quando se tem itens pendentes",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
+			// if (budget.payments.some((i) => i.pending)) {
+			// 	if (!data.paymentsIdList || data.paymentsIdList.length === 0) {
+			// 		throw new BadRequestException(
+			// 			"É preciso informar pagamentos a serem processados quando se tem pagamentos pendentes",
+			// 			400,
+			// 			"E_ERR",
+			// 		);
+			// 	}
+			// }
 
 			await budget.merge({ pending: false }).useTransaction(trx).save();
 

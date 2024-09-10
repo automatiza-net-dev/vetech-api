@@ -3401,6 +3401,8 @@ where deposit_id = ?
 			const bill = await Bill.query()
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.billId)
+				.preload("items")
+				.preload("payments")
 				.first();
 			if (!bill) {
 				throw new BadRequestException(
@@ -3442,6 +3444,33 @@ where deposit_id = ?
 					401,
 					"E_ERR",
 				);
+			}
+
+			if (
+				bill.items.some(
+					(i) =>
+						i.status === BillItemStatus.A &&
+						(i.maxDiscount || i.courtesy) &&
+						!i.approved,
+				)
+			) {
+				if (data.itemsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar os itens a serem processados quando se tem itens pendentes",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
+			if (bill.payments.some((i) => i.pending)) {
+				if (!data.paymentsIdList || data.paymentsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar pagamentos a serem processados quando se tem pagamentos pendentes",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			await bill.merge({ pending: false }).useTransaction(trx).save();

@@ -219,9 +219,37 @@ export default class BudgetService {
 				});
 			});
 
+		const statuses: { id: string; status: string }[] = await Database.from(
+			"budgets",
+		)
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from budget_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and budget_items.budget_id = budgets.id
+                group by budget_id) = true then 'Nao Aprovada'
+           else budgets.status end as status`,
+				),
+			)
+			.where("business_unit_id", authCtx.unit.id)
+			.orderByRaw("created_at desc");
+
 		return Promise.all(
 			attendances.map(async (elem) => {
 				const jsonObj = elem.toJSON();
+
+				Object.assign(jsonObj, {
+					budgets: elem.budgets.map((b) => ({
+						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
+						...b.toJSON(),
+					})),
+				});
 
 				const bills = await Bill.query()
 					.whereIn(

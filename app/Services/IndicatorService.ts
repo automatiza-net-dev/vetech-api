@@ -4508,9 +4508,17 @@ export default class IndicatorService {
 			),
 		]);
 
+		const table = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD04"),
+				() => this.activitiesTable_2(authCtx, data),
+			),
+		]);
+
 		return {
 			cards: cards.filter(Boolean),
 			charts: charts.filter(Boolean),
+			table: table.filter(Boolean),
 		};
 	}
 
@@ -7387,6 +7395,155 @@ export default class IndicatorService {
 					},
 				],
 			},
+		};
+	}
+
+	public async activitiesTable_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		if (!authCtx.hasPermission("CRD04")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          count(opportunity_activities.id)::int                                                  as qtd_criadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date >= now()
+                   then 1
+               else 0 end)::int                                                               as qtd_agendadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date < now()
+                   then 1
+               else 0 end)::int                                                               as qtd_atrasadas,
+          sum(case when opportunity_activities.executed_date is not null then 1 else 0 end)::int as qtd_executadas
+          `,
+				),
+			)
+			.joinRaw(
+				"join opportunity_activities on opportunities.id = opportunity_activities.opportunity_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.whereNull("opportunities.deleted_at")
+			.groupByRaw("business_units.id, business_units.identification")
+			.orderByRaw("1, 2, 3");
+
+		const qb2 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          activities.description,
+          count(opportunity_activities.id)::int                                                  as qtd_criadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date >= now()
+                   then 1
+               else 0 end)::int                                                               as qtd_agendadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date < now()
+                   then 1
+               else 0 end)::int                                                               as qtd_atrasadas,
+          sum(case when opportunity_activities.executed_date is not null then 1 else 0 end)::int as qtd_executadas
+          `,
+				),
+			)
+			.joinRaw(
+				"join opportunity_activities on opportunities.id = opportunity_activities.opportunity_id",
+			)
+			.joinRaw(
+				"join activities on opportunity_activities.activity_id = activities.id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.whereNull("opportunities.deleted_at")
+			.groupByRaw(
+				"business_units.id, business_units.identification, activities.description",
+			)
+			.orderByRaw("1, 2, 4 desc, 3");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("opportunities.business_unit_id", data.units);
+			qb2.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
+			qb2.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb2.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result1: {
+			id: string;
+			identification: string;
+			qtd_criadas: number;
+			qtd_agendadas: number;
+			qtd_atrasadas: number;
+			qtd_executadas: number;
+		}[] = await qb1;
+
+		const result2: {
+			id: string;
+			identification: string;
+			description: string;
+			qtd_criadas: number;
+			qtd_agendadas: number;
+			qtd_atrasadas: number;
+			qtd_executadas: number;
+		}[] = await qb2;
+
+		return {
+			name: "activities",
+			description: "Atividades",
+			type: "table",
+			hasData: result1.length > 0,
+			data: [
+				{
+					units: result1.map((elem) => ({
+						id: elem.id,
+						identification: elem.identification,
+						total: {
+							totalCriadas: elem.qtd_criadas,
+							totalAgendadas: elem.qtd_agendadas,
+							totalExecutadas: elem.qtd_executadas,
+							totalAtrasadas: elem.qtd_atrasadas,
+						},
+						atividades: result2
+							.filter((r) => r.id === elem.id)
+							.map((elem) => ({
+								description: elem.description,
+								totalCriadas: elem.qtd_criadas,
+								totalAgendadas: elem.qtd_agendadas,
+								totalExecutadas: elem.qtd_executadas,
+								totalAtrasadas: elem.qtd_atrasadas,
+							})),
+					})),
+				},
+			],
 		};
 	}
 }

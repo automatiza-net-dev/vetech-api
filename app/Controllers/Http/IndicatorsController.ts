@@ -695,4 +695,17 @@ export default class IndicatorsController {
 
 		return response.ok(result);
 	}
+
+	public async activiesIndicators_2({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.activitiesTable_2(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 }

@@ -1118,6 +1118,7 @@ export default class PatientService {
 				seller: sale.seller.name,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
 				total_value: sale.totalValue,
+				pending: sale.pending,
 				missing_value:
 					sale.totalValue -
 					sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
@@ -1136,6 +1137,7 @@ export default class PatientService {
 				seller: budget.seller ? budget.seller.name : authCtx.user.name,
 				client: key === "patient_id" ? budget.client?.name : budget.user?.name,
 				total_value: budget.totalValue,
+				pending: budget.pending,
 				missing_value: null,
 				// status: "Orçamento em aberto",
 				status:

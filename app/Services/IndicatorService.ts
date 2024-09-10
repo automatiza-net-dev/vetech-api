@@ -7293,9 +7293,9 @@ export default class IndicatorService {
 		}
 
 		if (data.units && Array.isArray(data.units)) {
-			qb1.whereIn("bills.business_unit_id", data.units);
+			qb1.whereIn("opportunities.business_unit_id", data.units);
 		} else {
-			qb1.where("bills.business_unit_id", authCtx.unit.id);
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.fromDate && data.toDate) {

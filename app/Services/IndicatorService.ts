@@ -7521,29 +7521,25 @@ export default class IndicatorService {
 			description: "Atividades",
 			type: "table",
 			hasData: result1.length > 0,
-			data: [
-				{
-					units: result1.map((elem) => ({
-						id: elem.id,
-						identification: elem.identification,
-						total: {
-							totalCriadas: elem.qtd_criadas,
-							totalAgendadas: elem.qtd_agendadas,
-							totalExecutadas: elem.qtd_executadas,
-							totalAtrasadas: elem.qtd_atrasadas,
-						},
-						atividades: result2
-							.filter((r) => r.id === elem.id)
-							.map((elem) => ({
-								description: elem.description,
-								totalCriadas: elem.qtd_criadas,
-								totalAgendadas: elem.qtd_agendadas,
-								totalExecutadas: elem.qtd_executadas,
-								totalAtrasadas: elem.qtd_atrasadas,
-							})),
-					})),
+			data: result1.map((elem) => ({
+				id: elem.id,
+				identification: elem.identification,
+				total: {
+					totalCriadas: elem.qtd_criadas,
+					totalAgendadas: elem.qtd_agendadas,
+					totalExecutadas: elem.qtd_executadas,
+					totalAtrasadas: elem.qtd_atrasadas,
 				},
-			],
+				atividades: result2
+					.filter((r) => r.id === elem.id)
+					.map((elem) => ({
+						description: elem.description,
+						totalCriadas: elem.qtd_criadas,
+						totalAgendadas: elem.qtd_agendadas,
+						totalExecutadas: elem.qtd_executadas,
+						totalAtrasadas: elem.qtd_atrasadas,
+					})),
+			})),
 		};
 	}
 }

@@ -157,6 +157,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public groupNfseDocuments: boolean;
 
+	@column({
+		columnName: "overall_resume_type",
+	})
+	public overallResumeType: "geral" | "mes";
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

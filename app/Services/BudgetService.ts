@@ -247,8 +247,8 @@ export default class BudgetService {
 
 				Object.assign(jsonObj, {
 					budgets: elem.budgets.map((b) => ({
-						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
 						...b.toJSON(),
+						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
 					})),
 				});
 

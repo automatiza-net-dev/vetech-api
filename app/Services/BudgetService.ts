@@ -132,6 +132,7 @@ export default class BudgetService {
 					"status",
 					"finished_at",
 					"observation",
+					"pending",
 					"internal_observation",
 					"client_id",
 					"patient_id",

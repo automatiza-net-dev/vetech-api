@@ -4518,7 +4518,7 @@ export default class IndicatorService {
 		return {
 			cards: cards.filter(Boolean),
 			charts: charts.filter(Boolean),
-			table: table.filter(Boolean),
+			tables: table.filter(Boolean),
 		};
 	}
 

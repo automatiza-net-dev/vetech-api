@@ -1258,6 +1258,8 @@ where deposit_id = ?
 				},
 			);
 
+			await this.syncBillPendingAndSum(trx, bill);
+
 			return payments.map((elem) => ({
 				billId: elem.bill_id,
 				block: elem.block,
@@ -1314,6 +1316,8 @@ where deposit_id = ?
 				});
 
 			await payment.useTransaction(trx).delete();
+
+			await this.syncBillPendingAndSum(trx, payment.bill);
 
 			await payment.bill
 				.merge({
@@ -1405,6 +1409,8 @@ where deposit_id = ?
 					query.where("economic_group_id", group.id);
 				})
 				.delete();
+
+			await this.syncBillPendingAndSum(trx, bill);
 
 			await bill
 				.merge({
@@ -2321,6 +2327,7 @@ where deposit_id = ?
 		const existingItems = await BillItem.query()
 			.useTransaction(trx)
 			.where("bill_id", bill.id)
+			.whereRaw("(courtesy is false or max_discount is false)")
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
@@ -2667,6 +2674,7 @@ where deposit_id = ?
 			.query()
 			.useTransaction(trx)
 			.where("status", BillItemStatus.A)
+			.whereRaw("(courtesy is false or max_discount is false)")
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
@@ -3273,6 +3281,7 @@ where deposit_id = ?
 		});
 		await Promise.all(tasks);
 	}
+
 	async printPaymentReceipt(
 		authCtx: AuthContext,
 		billID: string,
@@ -3540,17 +3549,21 @@ where deposit_id = ?
 			.where("status", BillItemStatus.A)
 			.whereRaw(
 				"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
-			)
-			.preload("taxRule")
-			.preload("productVariation", (query) => query.preload("product"));
+			);
+
+		const pendingPayments = await BillPayment.query()
+			.useTransaction(trx)
+			.where("bill_id", bill.id)
+			.whereRaw("pending is true");
 
 		await bill
 			.merge({
-				pending: pendingItems.some(
-					(f) =>
-						(f.courtesy && !f.courtesy_approved_user_id) ||
-						(f.maxDiscount && !f.courtesy_approved_user_id),
-				),
+				pending:
+					pendingItems.some(
+						(f) =>
+							(f.courtesy && !f.courtesy_approved_user_id) ||
+							(f.maxDiscount && !f.courtesy_approved_user_id),
+					) || pendingPayments.length > 0,
 				productValue: productSum,
 				serviceValue: serviceSum,
 				discountValue: discountSum,

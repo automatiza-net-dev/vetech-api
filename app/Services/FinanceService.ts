@@ -2063,14 +2063,8 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.where("type", FinanceType.D)
 				.where("status", FinanceStatus.A)
-				.whereNull("payment_date")
 				.whereRaw("expiration_date::date < now()::date", [])
-				.whereRaw(
-					authCtx.unit.unitConfig.overallResumeType === "mes"
-						? "to_char(expiration_date, 'YYYY/MM') = to_char(now(), 'YYYY/MM')"
-						: "",
-					[],
-				)
+				.whereNull("payment_date")
 				.whereNull("deleted_at")
 				.sum("value")
 				.first(),
@@ -2093,6 +2087,12 @@ export default class FinanceService {
 				.where("status", FinanceStatus.A)
 				.whereNull("payment_date")
 				.whereRaw("expiration_date::date >= now()::date", [])
+				.whereRaw(
+					authCtx.unit.unitConfig.overallResumeType === "mes"
+						? "to_char(expiration_date, 'YYYY/MM') = to_char(now(), 'YYYY/MM')"
+						: "",
+					[],
+				)
 				.whereNull("deleted_at")
 				.sum("value")
 				.first(),
@@ -2124,23 +2124,23 @@ export default class FinanceService {
 
 		return [
 			{
-				type: "VencidosAPagar",
+				type: "Vencidos a Pagar",
 				total: first.sum ?? 0,
 			},
 			{
-				type: "VencidosAReceber",
+				type: "Vencidos a Receber",
 				total: second.sum ?? 0,
 			},
 			{
-				type: "FuturosAPagar",
+				type: "Futuros a Pagar",
 				total: third.sum ?? 0,
 			},
 			{
-				type: "FuturosAReceber",
+				type: "Futuros a Receber",
 				total: fourth.sum ?? 0,
 			},
 			{
-				type: "ContasCorrentes",
+				type: "Contas Correntes",
 				total: this.parseDecimal(fifth?.balance) ?? 0,
 			},
 		];

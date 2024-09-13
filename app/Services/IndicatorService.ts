@@ -6312,7 +6312,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.join("users", (query) => {
-				query.on("users.id", "=", "bills.user_id");
+				query.on("users.id", "=", "bills.seller_id");
 			})
 			.groupByRaw("economic_groups.id, business_units.id, users.id")
 			.whereNull("bills.deleted_at")

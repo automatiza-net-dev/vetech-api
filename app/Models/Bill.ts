@@ -5,6 +5,7 @@ import {
 	belongsTo,
 	BelongsTo,
 	column,
+	computed,
 	HasMany,
 	hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
@@ -187,6 +188,13 @@ export default class Bill extends BaseModel {
 		columnName: "additional_information",
 	})
 	public additionalInformation: string;
+
+	@computed({
+		serializeAs: "additionalInformation",
+	})
+	public get additional_information() {
+		return this.additionalInformation ?? null;
+	}
 
 	@column({
 		columnName: "cancelled_at",

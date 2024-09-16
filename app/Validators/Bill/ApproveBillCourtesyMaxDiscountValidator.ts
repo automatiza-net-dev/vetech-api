@@ -34,6 +34,11 @@ export default class ApproveBillCourtesyMaxDiscountValidator {
 		password: schema.string(),
 		reason: schema.string(),
 		approved: schema.boolean(),
+		paymentsIdList: schema.array
+			.optional()
+			.members(
+				schema.string([rules.exists({ table: "bill_payments", column: "id" })]),
+			),
 	});
 
 	/**

@@ -46,6 +46,7 @@ import type {
 	ICreateBillData,
 	ICreateBillItemData,
 	ICreateBillPaymentData,
+	IUpdateBillData,
 	IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
@@ -53,6 +54,7 @@ import { DateTime } from "luxon";
 import { validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 
 interface ISearch {
 	fromBill?: string;
@@ -136,7 +138,7 @@ export default class BillService {
 		if (data.patientTag) {
 			qb.whereHas("patient", (query) => {
 				query.whereHas("patientAnimal", (query) => {
-					qb.where("tag", data.patientTag ?? "");
+					query.where("tag", data.patientTag ?? "");
 				});
 			});
 		}
@@ -186,9 +188,34 @@ export default class BillService {
 		]);
 		const total = count1.concat(count2);
 
+		const status: { id: string; status: string }[] = await Database.from(
+			"bills",
+		)
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from bill_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and bill_items.bill_id = bills.id
+                group by bill_id) = true then 'Nao Aprovada'
+           else bills.status end as status`,
+				),
+			)
+			.whereIn(
+				"id",
+				result.map((b) => b.id),
+			)
+			.orderByRaw("created_at desc");
+
 		return result.map((b) => ({
 			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
 			...b.toJSON(),
+			status: status.find((s) => s.id === b.id)?.status ?? b.status,
 		}));
 	}
 
@@ -213,9 +240,14 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
+				query.preload("approvedUser", (query) => {
+					query.select("id", "name");
+				});
+
 				query.preload("acquirer", (query) => {
 					query.select("id", "description");
 				});
+
 				query.preload("flag", (query) => {
 					query.select("id", "description", "code", "type");
 				});
@@ -377,15 +409,7 @@ export default class BillService {
 		});
 	}
 
-	async updateBill(
-		authCtx: AuthContext,
-		data: {
-			billId: string;
-			sellerId: string;
-			clientId: string;
-			patientId?: string;
-		},
-	) {
+	async updateBill(authCtx: AuthContext, data: IUpdateBillData) {
 		return Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.useTransaction(trx)
@@ -405,11 +429,101 @@ export default class BillService {
 				);
 			}
 
+			const tasks = data.items.map(async (elem) => {
+				const productVariation = await ProductVariation.query()
+					.useTransaction(trx)
+					.where("id", elem.productVariationId)
+					.whereHas("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.preload("product")
+					.preload("businessUnitProducts", (query) => {
+						query.where("businness_unit_id", authCtx.unit.id);
+					})
+					.first();
+
+				if (!productVariation) {
+					throw new BadRequestException(
+						"Não foi possível encontrar um preço para esse produto",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+
+				if (elem.courtesy && !productVariation.product.courtesy) {
+					throw new BadRequestException(
+						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					productVariation.businessUnitProducts.some(
+						(p) =>
+							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
+					)
+				) {
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_MAX_DISCOUNT",
+					);
+				}
+
+				return elem.billItemId
+					? BillItem.query()
+							.useTransaction(trx)
+							.where("bill_id", bill.id)
+							.where("id", elem.billItemId)
+							.update({
+								courtesy_issued_user_id: elem.courtesy
+									? authCtx.user.id
+									: undefined, // mantém valor anterior
+
+								courtesy: elem.courtesy,
+								max_discount: elem.maxDiscount,
+								// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								quantity: new Decimal(elem.quantity).toNumber(),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+							} as Partial<Omit<BillItem, "quantity"> & { quantity: number }>)
+					: BillItem.create(
+							{
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								product_variation_id: elem.productVariationId,
+								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+								bill_id: bill.id,
+
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+								status: BillItemStatus.A,
+							},
+							{ client: trx },
+						);
+			});
+			await Promise.all(tasks);
+
+			await this.syncBillPendingAndSum(trx, bill);
+
 			await bill
 				.merge({
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					patient_id: data.patientId,
+					financial_responsible_id: data.financialResponsibleId,
+					additionalInformation: data.additionalInformation,
 				})
 				.useTransaction(trx)
 				.save();
@@ -700,45 +814,10 @@ export default class BillService {
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			const [productSum, serviceSum, discountSum] = validItems.reduce(
-				(acc, curr) => {
-					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
-					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
-
-					acc[2] += curr.discountValue;
-
-					return acc;
-				},
-				[0, 0, 0],
-			);
-
-			const pendingItems = await BillItem.query()
-				.useTransaction(trx)
-				.where("bill_id", billId)
-				.where("status", BillItemStatus.A)
-				.whereRaw(
-					"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
-				)
-				.preload("taxRule")
-				.preload("productVariation", (query) => query.preload("product"));
+			await this.syncBillPendingAndSum(trx, bill);
 
 			await bill
 				.merge({
-					pending: pendingItems.some(
-						(f) =>
-							(f.courtesy && !f.courtesy_approved_user_id) ||
-							(f.maxDiscount && !f.courtesy_approved_user_id),
-					),
-					productValue: productSum,
-					serviceValue: serviceSum,
-					discountValue: discountSum,
-					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems
@@ -845,36 +924,10 @@ export default class BillService {
 				.preload("taxRule")
 				.preload("productVariation", (query) => query.preload("product"));
 
-			const [productSum, serviceSum, discountSum] = validItems
-				.filter((f) => !f.courtesy)
-				.reduce(
-					(acc, curr) => {
-						if (curr.productVariation.product.type === ProductType.PRODUCT) {
-							acc[0] += curr.totalValue;
-						}
-
-						if (curr.productVariation.product.type === ProductType.SERVICE) {
-							acc[1] += curr.totalValue;
-						}
-
-						acc[2] += curr.discountValue;
-
-						return acc;
-					},
-					[0, 0, 0],
-				);
+			await this.syncBillPendingAndSum(trx, bill);
 
 			await bill
 				.merge({
-					pending: validItems.some(
-						(it) =>
-							(it.courtesy && !it.courtesy_approved_user_id) ||
-							(it.maxDiscount && !it.courtesy_approved_user_id),
-					),
-					productValue: productSum,
-					serviceValue: serviceSum,
-					discountValue: discountSum,
-					totalValue: productSum + serviceSum,
 					icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 					icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 					icmsStBase: validItems
@@ -971,12 +1024,59 @@ where deposit_id = ?
 				.where("id", data.paymentMethodId)
 				.firstOrFail();
 
-			const installment = data.paymentMethodFlagInstallmentId
-				? await PaymentMethodFlagInstallment.query()
-						.useTransaction(trx)
-						.where("id", data.paymentMethodFlagInstallmentId)
-						.firstOrFail()
-				: { fee: paymentMethod.fee, installment: data.installments ?? 1 };
+			const solidInstallments = data.installments ?? 1;
+			let pendingBillPayment = false;
+			if (data.paymentMethodFlagId) {
+				const paymentMethodFlag = await PaymentMethodFlag.query()
+					.useTransaction(trx)
+					.where("id", data.paymentMethodFlagId)
+					.firstOrFail();
+
+				if (solidInstallments > paymentMethodFlag.maxInstallments) {
+					throw new BadRequestException(
+						"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					solidInstallments >
+					(paymentMethodFlag.installmentsWithoutPassword ?? 0)
+				) {
+					if (data.maxParcelas) {
+						pendingBillPayment = true;
+					} else {
+						throw new BadRequestException(
+							"Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+			} else {
+				if (solidInstallments > paymentMethod.maxInstallments) {
+					throw new BadRequestException(
+						"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (
+					solidInstallments > (paymentMethod.installmentsWithoutPassword ?? 0)
+				) {
+					if (data.maxParcelas) {
+						pendingBillPayment = true;
+					} else {
+						throw new BadRequestException(
+							"Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+			}
 
 			const dailyCashier =
 				authCtx.unit.unitConfig.dailyCashierType === "usuario"
@@ -1003,6 +1103,13 @@ where deposit_id = ?
 					"E_NOT_OPEN",
 				);
 			}
+
+			const installment = data.paymentMethodFlagInstallmentId
+				? await PaymentMethodFlagInstallment.query()
+						.useTransaction(trx)
+						.where("id", data.paymentMethodFlagInstallmentId)
+						.firstOrFail()
+				: { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
 			const existingPayments = await BillPayment.query().where(
 				"bill_id",
@@ -1037,6 +1144,7 @@ where deposit_id = ?
 							daily_cashier_id: dailyCashier.id,
 							budget_payment_id: data.budgetPaymentId,
 
+							pending: data.maxParcelas && pendingBillPayment,
 							block: max + 1,
 							expirationDate: SharedService.CalculateDateOffset(
 								v,
@@ -1068,6 +1176,7 @@ where deposit_id = ?
 			await bill
 				.merge({
 					paidValue: bill.paidValue + data.installmentsValue,
+					pending: pendingBillPayment || bill.pending,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1149,6 +1258,8 @@ where deposit_id = ?
 				},
 			);
 
+			await this.syncBillPendingAndSum(trx, bill);
+
 			return payments.map((elem) => ({
 				billId: elem.bill_id,
 				block: elem.block,
@@ -1205,6 +1316,8 @@ where deposit_id = ?
 				});
 
 			await payment.useTransaction(trx).delete();
+
+			await this.syncBillPendingAndSum(trx, payment.bill);
 
 			await payment.bill
 				.merge({
@@ -1296,6 +1409,8 @@ where deposit_id = ?
 					query.where("economic_group_id", group.id);
 				})
 				.delete();
+
+			await this.syncBillPendingAndSum(trx, bill);
 
 			await bill
 				.merge({
@@ -2212,34 +2327,15 @@ where deposit_id = ?
 		const existingItems = await BillItem.query()
 			.useTransaction(trx)
 			.where("bill_id", bill.id)
+			.whereRaw("(courtesy is false or max_discount is false)")
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
 
-		const [productSum, serviceSum, discountSum] = existingItems.reduce(
-			(acc, curr) => {
-				if (curr.productVariation.product.type === ProductType.PRODUCT) {
-					acc[0] += curr.totalValue;
-				}
-
-				if (curr.productVariation.product.type === ProductType.SERVICE) {
-					acc[1] += curr.totalValue;
-				}
-
-				acc[2] += curr.discountValue;
-
-				return acc;
-			},
-			[0, 0, 0],
-		);
+		await this.syncBillPendingAndSum(trx, bill);
 
 		await bill
 			.merge({
-				pending: data.items.some((it) => it.courtesy || it.maxDiscount),
-				productValue: productSum,
-				serviceValue: serviceSum,
-				discountValue: discountSum,
-				totalValue: productSum + serviceSum,
 				icmsBase: existingItems
 					.filter((i) => Boolean(i.icmsBase))
 					.reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
@@ -2318,15 +2414,7 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		await this.depositService.updateDepositItems(
-			trx,
-			authCtx,
-			bill.id,
-			data.items.map((elem) => ({
-				quantity: elem.quantity,
-				productVariationId: elem.productVariationId,
-			})),
-		);
+		await this.depositService.updateDepositItems(trx, authCtx, bill.id);
 
 		return bill;
 	}
@@ -2586,41 +2674,15 @@ where deposit_id = ?
 			.query()
 			.useTransaction(trx)
 			.where("status", BillItemStatus.A)
+			.whereRaw("(courtesy is false or max_discount is false)")
 			.preload("productVariation", (query) => {
 				query.preload("product");
 			});
 
-		const [productSum, serviceSum, discountSum] = validItems
-			.filter((f) => !f.courtesy)
-			.reduce(
-				(acc, curr) => {
-					if (curr.productVariation.product.type === ProductType.PRODUCT) {
-						acc[0] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
-					if (curr.productVariation.product.type === ProductType.SERVICE) {
-						acc[1] +=
-							curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
-					}
-
-					acc[2] += curr.discountValue;
-
-					return acc;
-				},
-				[0, 0, 0],
-			);
+		await this.syncBillPendingAndSum(trx, bill);
 
 		await bill
 			.merge({
-				pending: validItems.some(
-					(it) =>
-						(it.courtesy && !it.courtesy_approved_user_id) ||
-						(it.maxDiscount && !it.courtesy_approved_user_id),
-				),
-				productValue: productSum,
-				serviceValue: serviceSum,
-				discountValue: discountSum,
-				totalValue: productSum + serviceSum,
 				icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
 				icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
 				icmsStBase: validItems
@@ -3219,6 +3281,7 @@ where deposit_id = ?
 		});
 		await Promise.all(tasks);
 	}
+
 	async printPaymentReceipt(
 		authCtx: AuthContext,
 		billID: string,
@@ -3340,12 +3403,15 @@ where deposit_id = ?
 			password: string;
 			reason: string;
 			approved: boolean;
+			paymentsIdList?: string[];
 		},
 	) {
 		return Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.billId)
+				.preload("items")
+				.preload("payments")
 				.first();
 			if (!bill) {
 				throw new BadRequestException(
@@ -3389,34 +3455,121 @@ where deposit_id = ?
 				);
 			}
 
+			if (
+				bill.items.some(
+					(i) =>
+						i.status === BillItemStatus.A &&
+						(i.maxDiscount || i.courtesy) &&
+						!i.approved,
+				)
+			) {
+				if (data.itemsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar os itens a serem processados quando se tem itens pendentes",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
+			if (bill.payments.some((i) => i.pending)) {
+				if (!data.paymentsIdList || data.paymentsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar pagamentos a serem processados quando se tem pagamentos pendentes",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			await bill.merge({ pending: false }).useTransaction(trx).save();
-			if (data.approved) {
-				await BillItem.query()
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereIn("id", data.itemsIdList)
+				.update({
+					courtesy_approved_user_id: user.id,
+
+					pendingObservations: data.reason,
+					courtesyApprovedAt: DateTime.now(),
+					approved: data.approved,
+				} as Partial<BillItem>);
+
+			if (data.paymentsIdList) {
+				await BillPayment.query()
 					.useTransaction(trx)
 					.where("bill_id", bill.id)
-					.whereIn("id", data.itemsIdList)
+					.whereIn("id", data.paymentsIdList)
 					.update({
-						courtesy_approved_user_id: user.id,
-
-						pendingObservations: data.reason,
-						courtesyApprovedAt: DateTime.now(),
-						approved: true,
-					} as Partial<BillItem>);
-			} else {
-				await BillItem.query()
-					.useTransaction(trx)
-					.where("bill_id", bill.id)
-					.whereIn("id", data.itemsIdList)
-					.update({
-						courtesy_approved_user_id: user.id,
-
-						pendingObservations: data.reason,
-						courtesyApprovedAt: DateTime.now(),
-						approved: false,
-					} as Partial<BillItem>);
+						approved_user_id: user.id,
+						pending: false,
+						approved: data.approved,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BillPayment>);
 			}
 
 			return null;
 		});
+	}
+
+	private async syncBillPendingAndSum(
+		trx: TransactionClientContract,
+		bill: Bill,
+	) {
+		const validItems = await BillItem.query()
+			.useTransaction(trx)
+			.where("bill_id", bill.id)
+			.where("status", BillItemStatus.A)
+			.preload("taxRule")
+			.preload("productVariation", (query) => query.preload("product"));
+
+		const [productSum, serviceSum, discountSum] = validItems.reduce(
+			(acc, curr) => {
+				if (curr.productVariation.product.type === ProductType.PRODUCT) {
+					acc[0] +=
+						curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+				}
+				if (curr.productVariation.product.type === ProductType.SERVICE) {
+					acc[1] +=
+						curr.unitaryValue * curr.quantity.toNumber() - curr.discountValue;
+				}
+
+				acc[2] += curr.discountValue;
+
+				return acc;
+			},
+			[0, 0, 0],
+		);
+
+		const pendingItems = await BillItem.query()
+			.useTransaction(trx)
+			.where("bill_id", bill.id)
+			.where("status", BillItemStatus.A)
+			.whereRaw(
+				"((courtesy = true or max_discount = true) and courtesy_approved_at is null)",
+			);
+
+		const pendingPayments = await BillPayment.query()
+			.useTransaction(trx)
+			.where("bill_id", bill.id)
+			.whereRaw("pending is true");
+
+		await bill
+			.merge({
+				pending:
+					pendingItems.some(
+						(f) =>
+							(f.courtesy && !f.courtesy_approved_user_id) ||
+							(f.maxDiscount && !f.courtesy_approved_user_id),
+					) || pendingPayments.length > 0,
+				productValue: productSum,
+				serviceValue: serviceSum,
+				discountValue: discountSum,
+				totalValue: productSum + serviceSum,
+			})
+			.useTransaction(trx)
+			.save();
 	}
 }

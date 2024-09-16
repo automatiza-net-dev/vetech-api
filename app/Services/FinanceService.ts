@@ -2052,83 +2052,95 @@ export default class FinanceService {
 	}
 
 	async getOverallResume(authCtx: AuthContext) {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI03",
-		);
+		const hasPermission = authCtx.hasPermission("PRI03");
 		if (!hasPermission) {
 			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
 		}
 
-		// 1.8.1.1
-		const first = await Database.from("finances")
-			.where("business_unit_id", authCtx.unit.id)
-			.where("type", FinanceType.D)
-			.where("status", FinanceStatus.A)
-			.whereNull("payment_date")
-			.whereRaw("expiration_date::date < now()::date", [])
-			.whereNull("deleted_at")
-			.sum("value")
-			.first();
+		const [first, second, third, fourth, fifth] = await Promise.all([
+			// 1.8.1.1
+			Database.from("finances")
+				.where("business_unit_id", authCtx.unit.id)
+				.where("type", FinanceType.D)
+				.where("status", FinanceStatus.A)
+				.whereRaw("expiration_date::date < now()::date", [])
+				.whereNull("payment_date")
+				.whereNull("deleted_at")
+				.sum("value")
+				.first(),
 
-		// 1.8.1.2
-		const second = await Database.from("finances")
-			.where("business_unit_id", authCtx.unit.id)
-			.where("type", FinanceType.C)
-			.where("status", FinanceStatus.A)
-			.whereNull("payment_date")
-			.whereRaw("expiration_date::date < now()::date", [])
-			.whereNull("deleted_at")
-			.sum("value")
-			.first();
+			// 1.8.1.2
+			Database.from("finances")
+				.where("business_unit_id", authCtx.unit.id)
+				.where("type", FinanceType.C)
+				.where("status", FinanceStatus.A)
+				.whereNull("payment_date")
+				.whereRaw("expiration_date::date < now()::date", [])
+				.whereNull("deleted_at")
+				.sum("value")
+				.first(),
 
-		// 1.8.1.3
-		const third = await Database.from("finances")
-			.where("business_unit_id", authCtx.unit.id)
-			.where("type", FinanceType.D)
-			.where("status", FinanceStatus.A)
-			.whereNull("payment_date")
-			.whereRaw("expiration_date::date >= now()::date", [])
-			.whereNull("deleted_at")
-			.sum("value")
-			.first();
+			// 1.8.1.3
+			Database.from("finances")
+				.where("business_unit_id", authCtx.unit.id)
+				.where("type", FinanceType.D)
+				.where("status", FinanceStatus.A)
+				.whereNull("payment_date")
+				.whereRaw("expiration_date::date >= now()::date", [])
+				.whereRaw(
+					authCtx.unit.unitConfig.overallResumeType === "mes"
+						? "to_char(expiration_date, 'YYYY/MM') = to_char(now(), 'YYYY/MM')"
+						: "",
+					[],
+				)
+				.whereNull("deleted_at")
+				.sum("value")
+				.first(),
 
-		// 1.8.1.4
-		const fourth = await Database.from("finances")
-			.where("business_unit_id", authCtx.unit.id)
-			.where("type", FinanceType.C)
-			.where("status", FinanceStatus.A)
-			.whereNull("payment_date")
-			.whereRaw("expiration_date::date >= now()::date", [])
-			.whereNull("deleted_at")
-			.sum("value")
-			.first();
+			// 1.8.1.4
+			Database.from("finances")
+				.debug(true)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("type", FinanceType.C)
+				.where("status", FinanceStatus.A)
+				.whereNull("payment_date")
+				.whereRaw("expiration_date::date >= now()::date", [])
+				.whereRaw(
+					authCtx.unit.unitConfig.overallResumeType === "mes"
+						? "to_char(expiration_date, 'YYYY/MM') = to_char(now(), 'YYYY/MM')"
+						: "",
+					[],
+				)
+				.whereNull("deleted_at")
+				.sum("value")
+				.first(),
 
-		// 1.8.1.5
-		const fifth = await Database.from("checking_accounts")
-			.where("business_unit_id", authCtx.unit.id)
-			.andWhereNull("deleted_at")
-			.first();
+			// 1.8.1.5
+			Database.from("checking_accounts")
+				.where("business_unit_id", authCtx.unit.id)
+				.andWhereNull("deleted_at")
+				.first(),
+		]);
 
 		return [
 			{
-				type: "VencidosAPagar",
+				type: "Vencidos a Pagar",
 				total: first.sum ?? 0,
 			},
 			{
-				type: "VencidosAReceber",
+				type: "Vencidos a Receber",
 				total: second.sum ?? 0,
 			},
 			{
-				type: "FuturosAPagar",
+				type: "Futuros a Pagar",
 				total: third.sum ?? 0,
 			},
 			{
-				type: "FuturosAReceber",
+				type: "Futuros a Receber",
 				total: fourth.sum ?? 0,
 			},
 			{
-				type: "ContasCorrentes",
+				type: "Contas Correntes",
 				total: this.parseDecimal(fifth?.balance) ?? 0,
 			},
 		];

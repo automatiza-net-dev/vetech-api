@@ -2018,40 +2018,34 @@ export default class ReceiptService {
 				});
 
 			await Database.rawQuery(
-				`
-        insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at, updated_at)
-        select ?, bup.id, bup.product_variation_id, 0, 'Ativo', now(), now()
+				`insert into deposit_items (deposit_id, business_unit_product_id, product_variation_id, quantity, status, created_at, updated_at)
+        select distinct ${authCtx.unit.unitConfig.incoming_deposit_id}, bup.id, bup.product_variation_id, 0, 'Ativo', now(), now()
         from receipt_items ri
           join business_unit_products bup
             on ri.product_variation_id = bup.product_variation_id and ri.business_unit_id = bup.businness_unit_id
         where ri.receipt_id = ?
-          and ri.product_variation_id not in (select product_variation_id from deposit_items where deposit_id = ?)`,
-				[
-					authCtx.unit.unitConfig.incoming_deposit_id,
-					receipt.id,
-					authCtx.unit.unitConfig.incoming_deposit_id,
-				],
+          and ri.product_variation_id not in (select distinct product_variation_id from deposit_items where deposit_id = ${authCtx.unit.unitConfig.incoming_deposit_id})`,
+				[receipt.id],
 			)
 				.useTransaction(trx)
 				.exec();
 
 			await Database.rawQuery(
-				`
-        update deposit_items set quantity =
+				`update deposit_items set quantity =
 (
-    select (di.quantity + (ri.quantity * ri.fraction_value))
+    select (avg(di.quantity) + sum(ri.quantity * ri.fraction_value))
     from deposit_items di
       join deposits d on di.deposit_id = d.id
       join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
       join business_unit_configs buc on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
     where ri.receipt_id = ?
       and deposit_items.id = di.id
+    group by di.product_variation_id
           )
 where deposit_id = ?
 and product_variation_id in (
-    select product_variation_id from receipt_items where receipt_id = ?
-)
-          `,
+    select distinct product_variation_id from receipt_items where receipt_id = ? and disabled_date is null
+)`,
 				[receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
 			)
 				.useTransaction(trx)

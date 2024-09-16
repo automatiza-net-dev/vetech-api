@@ -88,6 +88,18 @@ export default class BillPayment extends BaseModel {
 	})
 	public nsuDocument: string;
 
+	@column()
+	public reason: string | null;
+
+	@column()
+	public pending: boolean;
+
+	@column()
+	public approved: boolean;
+
+	@column.dateTime({})
+	public approvedAt: DateTime | null;
+
 	@column.dateTime({})
 	public printedAt: DateTime | null;
 
@@ -106,6 +118,16 @@ export default class BillPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public business_unit_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public approved_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "approved_user_id",
+	})
+	public approvedUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,

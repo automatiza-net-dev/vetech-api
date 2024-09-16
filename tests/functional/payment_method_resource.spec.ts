@@ -12,6 +12,10 @@ import PaymentMethod, {
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
+import {
+	ICreatePaymentMethodFlagData,
+	IUpdatePaymentMethodFlagData,
+} from "Contracts/interfaces/IPaymentMethodData";
 
 import { generateJwtToken, userBootstrap } from "../utils";
 
@@ -156,7 +160,8 @@ test.group("Payment method resource", (group) => {
 				checkingAccountId: checkingAccount.id,
 				maxInstallments: 10,
 				daysUntilTransfer: 10,
-			})
+				installmentsWithoutPassword: 20,
+			} as ICreatePaymentMethodFlagData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -234,8 +239,9 @@ test.group("Payment method resource", (group) => {
 				tefAcquirerId: tefAcq.id,
 				checkingAccountId: checkingAccount.id,
 				maxInstallments: 1,
+				installmentsWithoutPassword: 20,
 				active: true,
-			})
+			} as IUpdatePaymentMethodFlagData)
 			.bearerToken(token);
 
 		assert.equal(204, response.status());
@@ -333,8 +339,6 @@ test.group("Payment method resource", (group) => {
 		const response = await client
 			.get(`/payment-methods/list-checking-accounts?${qs.toString()}`)
 			.bearerToken(token);
-
-		console.log(response.body());
 
 		assert.equal(200, response.status());
 	});

@@ -2491,7 +2491,7 @@ export default class IndicatorService {
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
 				)
-			: dt.daysInMonth ?? 30;
+			: (dt.daysInMonth ?? 30);
 
 		const usefulDaysUntilNow = differenceInBusinessDays(
 			new Date(),
@@ -4052,7 +4052,16 @@ export default class IndicatorService {
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND25"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "VENDEDOR" },
+						{ title: "Planos de Tratamento por Vendedor" },
+					),
+			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND27"),
+				() => this.consolidatedReviewerBudgets(authCtx, data),
 			),
 		]);
 
@@ -4093,6 +4102,10 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("IND17"),
 				() => this.installmentAvgIndicators(authCtx, data),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("IND12"),
+				() => this.clientGroupTreeIndicators(authCtx, data),
+			),
 		]);
 
 		const medianTicket = cards.at(1) as Awaited<
@@ -4112,6 +4125,9 @@ export default class IndicatorService {
 		>;
 		const installmentAvg = cards.at(6) as Awaited<
 			ReturnType<typeof this.installmentAvgIndicators>
+		>;
+		const clientGroupTree = cards.at(7) as Awaited<
+			ReturnType<typeof this.clientGroupTreeIndicators>
 		>;
 
 		return {
@@ -4270,6 +4286,12 @@ export default class IndicatorService {
 							],
 						}
 					: null,
+				authCtx.hasPermission("IND12")
+					? {
+							name: "OrigemClientesporCategoria",
+							items: clientGroupTree,
+						}
+					: null,
 			].filter(Boolean),
 		};
 	}
@@ -4300,11 +4322,21 @@ export default class IndicatorService {
 		const tables = await Promise.all([
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND26"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "AVALIADOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "AVALIADOR" },
+						{ title: "Orçamentos por Avaliador" },
+					),
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND25"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "VENDEDOR" },
+						{ title: "Orçamentos por Vendedor" },
+					),
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND28"),
@@ -4495,19 +4527,30 @@ export default class IndicatorService {
 				() => authCtx.hasPermission("CRD01"),
 				() => this.monthlyRealizedFunnelIndicators(authCtx, data),
 			),
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD03"),
+				() => this.opportunitiesPerOrigin(authCtx, data),
+			),
 		]);
 
 		const cards = await Promise.all([
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("CRD01"),
-				// () => true,
 				() => this.clientOriginTreeIndicators(authCtx, data),
+			),
+		]);
+
+		const table = await Promise.all([
+			SharedService.NoopPromise(
+				() => authCtx.hasPermission("CRD04"),
+				() => this.activitiesTable_2(authCtx, data),
 			),
 		]);
 
 		return {
 			cards: cards.filter(Boolean),
 			charts: charts.filter(Boolean),
+			tables: table.filter(Boolean),
 		};
 	}
 
@@ -5481,6 +5524,13 @@ export default class IndicatorService {
 			toDate?: string;
 			type?: string;
 		},
+		ctx?: {
+			title:
+				| "Orçamentos por Avaliador"
+				| "Orçamentos por Vendedor"
+				| "Planos de Tratamento por Vendedor"
+				| "Orçamentos Gerais";
+		},
 	) {
 		// if (!data.type) {
 		// 	throw new BadRequestException(
@@ -5590,11 +5640,7 @@ export default class IndicatorService {
 
 		return {
 			name: "budgets",
-			description: data.type
-				? data.type === "AVALIADOR"
-					? "Orçamentos por Avaliador"
-					: "Orçamentos por Vendedor"
-				: "Orçamentos Gerais",
+			description: ctx?.title ?? "Orçamentos Gerais",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {
@@ -5700,10 +5746,7 @@ export default class IndicatorService {
 				"join budgets as total on total.business_unit_id = business_units.id and total.deleted_at is null",
 			)
 			.joinRaw(
-				`left join bills as confirmados
-                   on confirmados.budget_id = total.id and confirmados.business_unit_id = business_units.id
-                       and confirmados.deleted_at is null`,
-				[],
+				"left join bills as confirmados on confirmados.budget_id = total.id and confirmados.business_unit_id = business_units.id and confirmados.deleted_at is null",
 			)
 			.joinRaw("left join users on users.id = total.reviewer_id")
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
@@ -6697,7 +6740,7 @@ export default class IndicatorService {
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
 				)
-			: dt.daysInMonth ?? 30;
+			: (dt.daysInMonth ?? 30);
 
 		const usefulDaysUntilNow = differenceInBusinessDays(
 			new Date(),
@@ -6808,10 +6851,10 @@ export default class IndicatorService {
 					`
           business_units.id,
           business_units.identification,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
-          count(*) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' )  as novas_oportunidades,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' )  as agendados,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' )  as comparecidos,
+          count(distinct opportunity_logs.opportunity_id) FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) as ganhos
           `,
 				),
 			)
@@ -7086,7 +7129,7 @@ export default class IndicatorService {
 			name: "activities",
 			description: "Atividades",
 			type: "table",
-			hasData: true,
+			hasData: result1.length > 0,
 			data: [
 				{
 					type: "total",
@@ -7249,6 +7292,289 @@ export default class IndicatorService {
 					})),
 				};
 			}),
+		};
+	}
+
+	public async opportunitiesPerOrigin(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          coalesce(client_origins.description, 'Outros') as origem,
+          count(opportunities.id)::int as count
+          `,
+				),
+			)
+			.joinRaw(
+				"left join client_origins on client_origins.id = opportunities.client_origin_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.groupByRaw("business_units.id, client_origins.description")
+			.whereNull("opportunities.deleted_at");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			id: string;
+			identification: string;
+			origem: string;
+			count: number;
+		}[] = await qb1;
+
+		const sum = this.shared.sum(result.map((elem) => elem.count));
+
+		return {
+			name: "crm-opportunities-origin",
+			type: "pie",
+			hasData: result.length > 0,
+			title: "Oportunidades X Origem Clientes",
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.origem,
+					itemStyle: {
+						color: authCtx.group.colors[idx % authCtx.group.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.count / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Total",
+					value: elem.count,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
+
+			configs: {
+				title: {
+					text: "Oportunidades X Origem Clientes",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Origem Clientes",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result.map((elem, idx) => ({
+							value: elem.count,
+							name: elem.origem,
+							percentage: Number.parseFloat(
+								((elem.count / sum) * 100).toFixed(2),
+							),
+							itemStyle: {
+								color: authCtx.group.colors[idx % authCtx.group.colors.length],
+							},
+						})),
+					},
+				],
+			},
+		};
+	}
+
+	public async activitiesTable_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		if (!authCtx.hasPermission("CRD04")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb1 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          count(opportunity_activities.id)::int                                                  as qtd_criadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date >= now()
+                   then 1
+               else 0 end)::int                                                               as qtd_agendadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date < now()
+                   then 1
+               else 0 end)::int                                                               as qtd_atrasadas,
+          sum(case when opportunity_activities.executed_date is not null then 1 else 0 end)::int as qtd_executadas
+          `,
+				),
+			)
+			.joinRaw(
+				"join opportunity_activities on opportunities.id = opportunity_activities.opportunity_id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.whereNull("opportunities.deleted_at")
+			.groupByRaw("business_units.id, business_units.identification")
+			.orderByRaw("1, 2, 3");
+
+		const qb2 = Database.from("opportunities")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          activities.description,
+          count(opportunity_activities.id)::int                                                  as qtd_criadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date >= now()
+                   then 1
+               else 0 end)::int                                                               as qtd_agendadas,
+          sum(case
+               when opportunity_activities.executed_date is null and opportunity_activities.execution_date < now()
+                   then 1
+               else 0 end)::int                                                               as qtd_atrasadas,
+          sum(case when opportunity_activities.executed_date is not null then 1 else 0 end)::int as qtd_executadas
+          `,
+				),
+			)
+			.joinRaw(
+				"join opportunity_activities on opportunities.id = opportunity_activities.opportunity_id",
+			)
+			.joinRaw(
+				"join activities on opportunity_activities.activity_id = activities.id",
+			)
+			.joinRaw(
+				"join business_units on opportunities.business_unit_id = business_units.id",
+			)
+			.whereNull("opportunities.deleted_at")
+			.groupByRaw(
+				"business_units.id, business_units.identification, activities.description",
+			)
+			.orderByRaw("1, 2, 4 desc, 3");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("opportunities.business_unit_id", data.units);
+			qb2.whereIn("opportunities.business_unit_id", data.units);
+		} else {
+			qb1.where("opportunities.business_unit_id", authCtx.unit.id);
+			qb2.where("opportunities.business_unit_id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb2.andWhereRaw("opportunities.contact_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result1: {
+			id: string;
+			identification: string;
+			qtd_criadas: number;
+			qtd_agendadas: number;
+			qtd_atrasadas: number;
+			qtd_executadas: number;
+		}[] = await qb1;
+
+		const result2: {
+			id: string;
+			identification: string;
+			description: string;
+			qtd_criadas: number;
+			qtd_agendadas: number;
+			qtd_atrasadas: number;
+			qtd_executadas: number;
+		}[] = await qb2;
+
+		return {
+			name: "activities",
+			description: "Atividades",
+			type: "table",
+			hasData: result1.length > 0,
+			data: result1.map((elem) => ({
+				id: elem.id,
+				identification: elem.identification,
+				total: {
+					totalCriadas: elem.qtd_criadas,
+					totalAgendadas: elem.qtd_agendadas,
+					totalExecutadas: elem.qtd_executadas,
+					totalAtrasadas: elem.qtd_atrasadas,
+				},
+				atividades: result2
+					.filter((r) => r.id === elem.id)
+					.map((elem) => ({
+						description: elem.description,
+						totalCriadas: elem.qtd_criadas,
+						totalAgendadas: elem.qtd_agendadas,
+						totalExecutadas: elem.qtd_executadas,
+						totalAtrasadas: elem.qtd_atrasadas,
+					})),
+			})),
 		};
 	}
 }

@@ -4052,7 +4052,12 @@ export default class IndicatorService {
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND25"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "VENDEDOR" },
+						{ title: "Planos de Tratamento por Vendedor" },
+					),
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND27"),
@@ -4308,11 +4313,21 @@ export default class IndicatorService {
 		const tables = await Promise.all([
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND26"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "AVALIADOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "AVALIADOR" },
+						{ title: "Orçamentos por Avaliador" },
+					),
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND25"),
-				() => this.budgetsIndicators_2(authCtx, { ...data, type: "VENDEDOR" }),
+				() =>
+					this.budgetsIndicators_2(
+						authCtx,
+						{ ...data, type: "VENDEDOR" },
+						{ title: "Orçamentos por Vendedor" },
+					),
 			),
 			SharedService.NoopPromise(
 				() => authCtx.hasPermission("IND28"),
@@ -5500,6 +5515,13 @@ export default class IndicatorService {
 			toDate?: string;
 			type?: string;
 		},
+		ctx?: {
+			title:
+				| "Orçamentos por Avaliador"
+				| "Orçamentos por Vendedor"
+				| "Planos de Tratamento por Vendedor"
+				| "Orçamentos Gerais";
+		},
 	) {
 		// if (!data.type) {
 		// 	throw new BadRequestException(
@@ -5609,11 +5631,7 @@ export default class IndicatorService {
 
 		return {
 			name: "budgets",
-			description: data.type
-				? data.type === "AVALIADOR"
-					? "Orçamentos por Avaliador"
-					: "Orçamentos por Vendedor"
-				: "Orçamentos Gerais",
+			description: ctx?.title ?? "Orçamentos Gerais",
 			type: "table",
 			hasData: result.length > 0,
 			data: uniqueGroups.map((elem) => {

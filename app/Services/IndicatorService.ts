@@ -2491,7 +2491,7 @@ export default class IndicatorService {
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
 				)
-			: dt.daysInMonth ?? 30;
+			: (dt.daysInMonth ?? 30);
 
 		const usefulDaysUntilNow = differenceInBusinessDays(
 			new Date(),
@@ -6705,7 +6705,7 @@ export default class IndicatorService {
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
 				)
-			: dt.daysInMonth ?? 30;
+			: (dt.daysInMonth ?? 30);
 
 		const usefulDaysUntilNow = differenceInBusinessDays(
 			new Date(),
@@ -7094,7 +7094,7 @@ export default class IndicatorService {
 			name: "activities",
 			description: "Atividades",
 			type: "table",
-			hasData: true,
+			hasData: result1.length > 0,
 			data: [
 				{
 					type: "total",

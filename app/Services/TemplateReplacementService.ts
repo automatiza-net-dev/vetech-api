@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import Application from "@ioc:Adonis/Core/Application";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Env from "@ioc:Adonis/Core/Env";
@@ -28,8 +28,9 @@ import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
 import createReport from "docx-templates";
 import { DateTime } from "luxon";
-import { parse } from "node-html-parser";
+import { HTMLElement, parse } from "node-html-parser";
 import { v4 } from "uuid";
+import { readFile } from "node:fs/promises";
 
 interface ISearch {
 	origin?: string;
@@ -182,6 +183,29 @@ export default class TemplateReplacementService {
 			.where("system_id", authCtx.system.id);
 
 		if (data.base && !data.documentId) {
+			/*
+			 * expand [SOME] into
+			 * <li>[SOME]</li>
+			 */
+			if (templates.some((s) => s.complex)) {
+				return {
+					result: this.parseTextTemplate(
+						templates
+							.filter((t) => t.complex)
+							.reduce(
+								(currText, tmpl) =>
+									currText.replaceAll(
+										tmpl.replacer,
+										`<li>${tmpl.replacer}</li>`,
+									),
+								data.base,
+							),
+						textData,
+						templates,
+					),
+				};
+			}
+
 			return {
 				result: this.parseTextTemplate(data.base, textData, templates),
 			};
@@ -211,52 +235,130 @@ export default class TemplateReplacementService {
 
 			const key = v4();
 
-			const dataPath = `tmp/${key}_data.json`;
-			const templatesPath = `tmp/${key}_templates.json`;
+			// const dataPath = `tmp/${key}_data.json`;
+			// const templatesPath = `tmp/${key}_templates.json`;
+			// const inputPath = `tmp/${key}.docx`;
+			// const resolvedInputPath = `tmp/${key}_resolved.docx`;
+			// const outputPath = `tmp/${key}_output.docx`;
+			// const pdfKey = `documents/compiled/${key}.pdf`;
+			//
+			// const fullDataPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${dataPath}`;
+			//
+			// const fullTemplatesPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${templatesPath}`;
+			//
+			// const fullInputPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${inputPath}`;
+			//
+			// const fullResolvedInputPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${resolvedInputPath}`;
+			//
+			// const fullOutputPath = `${Env.get(
+			// 	"LOCAL_DISK_ROOT",
+			// 	Application.tmpPath(),
+			// )}/uploads/${outputPath}`;
+			//
+			// await Promise.all([
+			// 	await writeFile(fullInputPath, fileBuffer),
+			// 	await writeFile(fullDataPath, JSON.stringify(textData)),
+			// 	await writeFile(
+			// 		fullTemplatesPath,
+			// 		JSON.stringify(
+			// 			templates.map((t) => ({
+			// 				origin: t.origin,
+			// 				attribute: t.attribute,
+			// 				replacer: t.replacer,
+			// 			})),
+			// 		),
+			// 	),
+			// ]);
+			//
+			// const resolverSuccess = await new Promise<boolean>((res) => {
+			// 	// python3 some/path/to/main.py input.docx input.resolved.docx
+			// 	exec(
+			// 		`python3 ${Env.get(
+			// 			"DOCX_RESOLVER_PATH",
+			// 		)} ${fullInputPath} ${fullResolvedInputPath}`,
+			// 		(error, _stdout, _stderr) => {
+			// 			if (error) {
+			// 				console.error(error);
+			// 				// return rej(false);
+			// 				return res(false);
+			// 			}
+			//
+			// 			return res(true);
+			// 		},
+			// 	);
+			// });
+			// if (!resolverSuccess) {
+			// 	throw new BadRequestException("Erro corrigindo arquivo", 500, "");
+			// }
+			//
+			// const success = await new Promise<boolean>((res) => {
+			// 	exec(
+			// 		`${Env.get(
+			// 			"TRANSPILER_PATH",
+			// 		)} ${fullResolvedInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+			// 		(error, _stdout, _stderr) => {
+			// 			if (error) {
+			// 				console.error(error);
+			// 				// return rej(false);
+			// 				return res(false);
+			// 			}
+			//
+			// 			return res(true);
+			// 		},
+			// 	);
+			// });
+			//
+			// if (!success) {
+			// 	throw new BadRequestException("Erro processando arquivo", 500, "");
+			// }
+			//
+			// const responseBuffer = await PDFEngine.convert({
+			// 	files: [fullOutputPath],
+			// });
+			//
+			// await Drive.use("s3").put(pdfKey, responseBuffer, {
+			// 	contentType: "application/pdf",
+			// });
+
+			// return {
+			// 	filename: `${key}.pdf`,
+			// 	key: pdfKey,
+			// };
+
+			// write file to disk
 			const inputPath = `tmp/${key}.docx`;
-			const outputPath = `tmp/${key}_output.docx`;
-			const pdfKey = `documents/compiled/${key}.pdf`;
-
-			const fullDataPath = `${Env.get(
-				"LOCAL_DISK_ROOT",
-				Application.tmpPath(),
-			)}/uploads/${dataPath}`;
-
-			const fullTemplatesPath = `${Env.get(
-				"LOCAL_DISK_ROOT",
-				Application.tmpPath(),
-			)}/uploads/${templatesPath}`;
-
 			const fullInputPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
 			)}/uploads/${inputPath}`;
 
-			const fullOutputPath = `${Env.get(
+			await writeFile(fullInputPath, fileBuffer);
+
+			// resolve docx to fix broken xml, ty ms word
+			const resolvedInputPath = `tmp/${key}_resolved.docx`;
+			const fullResolvedInputPath = `${Env.get(
 				"LOCAL_DISK_ROOT",
 				Application.tmpPath(),
-			)}/uploads/${outputPath}`;
+			)}/uploads/${resolvedInputPath}`;
 
-			await Promise.all([
-				await writeFile(fullInputPath, fileBuffer),
-				await writeFile(fullDataPath, JSON.stringify(textData)),
-				await writeFile(
-					fullTemplatesPath,
-					JSON.stringify(
-						templates.map((t) => ({
-							origin: t.origin,
-							attribute: t.attribute,
-							replacer: t.replacer,
-						})),
-					),
-				),
-			]);
-
-			const success = await new Promise<boolean>((res) => {
+			const resolverSuccess = await new Promise<boolean>((res) => {
+				// python3 some/path/to/main.py input.docx input.resolved.docx
 				exec(
-					`${Env.get(
-						"TRANSPILER_PATH",
-					)} ${fullInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
+					`python3 ${Env.get(
+						"DOCX_RESOLVER_PATH",
+					)} ${fullInputPath} ${fullResolvedInputPath} '${JSON.stringify(templates.filter((f) => f.complex).map((f) => f.replacer))}'`,
 					(error, _stdout, _stderr) => {
 						if (error) {
 							console.error(error);
@@ -268,52 +370,42 @@ export default class TemplateReplacementService {
 					},
 				);
 			});
-
-			if (!success) {
-				throw new BadRequestException("Erro processando arquivo", 400, "");
+			if (!resolverSuccess) {
+				throw new BadRequestException("Erro corrigindo arquivo", 500, "");
 			}
 
+			// create report from docx template
+			// const _template = await readFile(fullInputPath);
+			const buffer = await createReport({
+				template: await readFile(fullResolvedInputPath),
+				data: this.reverseTextTemplateData(textData, templates),
+				cmdDelimiter: ["[", "]"],
+			});
+
+			// write created report to disk
+			const outputPath = `tmp/${key}_output.docx`;
+			const fullOutputPath = `${Env.get(
+				"LOCAL_DISK_ROOT",
+				Application.tmpPath(),
+			)}/uploads/${outputPath}`;
+			await writeFile(fullOutputPath, buffer);
+
+			// convert created report to pdf
 			const responseBuffer = await PDFEngine.convert({
 				files: [fullOutputPath],
 			});
 
+			// save to s3
+			const pdfKey = `documents/compiled/${key}.pdf`;
 			await Drive.use("s3").put(pdfKey, responseBuffer, {
 				contentType: "application/pdf",
 			});
 
+			// send response back
 			return {
 				filename: `${key}.pdf`,
 				key: pdfKey,
 			};
-
-			// const outputPath = `tmp/${key}_output.docx`;
-			// const pdfKey = `documents/compiled/${key}.pdf`;
-			//
-			// const fullOutputPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${outputPath}`;
-			//
-			// // const _template = await readFile(fullInputPath);
-			// const buffer = await createReport({
-			// 	template: fileBuffer,
-			// 	data: this.reverseTextTemplateData(textData, templates),
-			// 	cmdDelimiter: ["[", "]"],
-			// });
-			// await writeFile(fullOutputPath, buffer);
-			//
-			// const responseBuffer = await PDFEngine.convert({
-			// 	files: [fullOutputPath],
-			// });
-			//
-			// await Drive.use("s3").put(pdfKey, responseBuffer, {
-			// 	contentType: "application/pdf",
-			// });
-			//
-			// return {
-			// 	filename: `${key}.pdf`,
-			// 	key: pdfKey,
-			// };
 		}
 
 		return {
@@ -395,23 +487,55 @@ export default class TemplateReplacementService {
 	) {
 		const root = parse(raw, {});
 
-		const listItems = root.getElementsByTagName("li");
-		for (const listItem of listItems) {
-			if (listItem.innerText === template.replacer) {
-				const parent = listItem.parentNode;
+		const children = root.childNodes;
 
-				const updatedChildren = values.map((v) => {
-					const clone = parse(
-						listItem.toString().replace(template.replacer, v),
-					);
+		const result: HTMLElement[] = [];
 
-					return clone;
-				});
-				parent.set_content(updatedChildren, {});
+		for (const listItem of children) {
+			if (
+				listItem.rawTagName === "li" ||
+				listItem.childNodes.some((n) => n.rawTagName === "li")
+			) {
+				if (
+					listItem.rawTagName === "li" &&
+					listItem.textContent === template.replacer
+				) {
+					for (const value of values) {
+						result.push(
+							parse(listItem.toString().replace(template.replacer, value)),
+						);
+					}
+				} else {
+					const block = listItem.clone();
+					block.childNodes = [];
 
-				break;
+					for (const child of listItem.childNodes) {
+						if (
+							child.rawTagName === "li" &&
+							child.textContent === template.replacer
+						) {
+							for (const value of values) {
+								const cloned = child.clone();
+
+								if (child.textContent === template.replacer) {
+									cloned.textContent = value;
+								}
+
+								block.childNodes.push(cloned);
+							}
+						} else {
+							block.childNodes.push(child);
+						}
+					}
+
+					result.push(parse(block.toString()));
+				}
+			} else {
+				result.push(parse(listItem.toString()));
 			}
 		}
+
+		root.set_content(result, {});
 
 		return root.toString();
 	}
@@ -593,7 +717,6 @@ export default class TemplateReplacementService {
 						[bill.budget_id ?? v4()],
 					);
 			})
-
 			.union((qb) => {
 				qb.from("budgets")
 					.select(

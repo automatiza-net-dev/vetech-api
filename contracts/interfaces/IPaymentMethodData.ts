@@ -32,12 +32,14 @@ export interface ICreatePaymentMethodFlagData {
 	checkingAccountId?: string;
 	maxInstallments?: number;
 	daysUntilTransfer?: number;
+	installmentsWithoutPassword?: number;
 }
 
 export interface IUpdatePaymentMethodFlagData {
 	tefAcquirerId: string;
 	maxInstallments?: number;
 	daysUntilTransfer?: number;
+	installmentsWithoutPassword?: number;
 	active: boolean;
 }
 

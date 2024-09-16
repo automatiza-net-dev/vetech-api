@@ -985,8 +985,6 @@ export default class PatientService {
 	}
 
 	public async metadata(authCtx: AuthContext, patientId: string) {
-		const key = authCtx.system.name === "LiftOne" ? "client_id" : "patient_id";
-
 		const patient = await authCtx.group
 			.related("patients")
 			.query()
@@ -1001,20 +999,17 @@ export default class PatientService {
 			);
 		}
 
+		const key = authCtx.system.name === "LiftOne" ? "client_id" : "patient_id";
 		const sales = await Bill.query()
 			.where(key, patient.id)
 			.where("status", BillStatus.A);
 
-		let total_sum = 0;
-		let paid_sum = 0;
-
-		sales.forEach((sale) => {
-			total_sum += sale.totalValue;
-			paid_sum += sale.paidValue;
-		});
+		const missing = sales.reduce((acc, curr) => {
+			return acc + (curr.totalValue - curr.paidValue);
+		}, 0);
 
 		return {
-			missingFromBills: total_sum - paid_sum,
+			missingFromBills: missing,
 		};
 	}
 
@@ -1040,18 +1035,65 @@ export default class PatientService {
 			.preload("payments")
 			.preload("seller")
 			.preload(key === "patient_id" ? "client" : "user")
-			.orderByRaw(`bill_date desc, tag desc`);
+			.orderByRaw("bill_date desc, tag desc");
 
 		const budgets = await Budget.query()
 			.where(key, patient.id)
 			.where("status", BudgetStatus.A)
 			.preload("seller")
 			.preload(key === "patient_id" ? "client" : "user")
-			.orderByRaw(`budget_date desc, tag desc`);
+			.orderByRaw("budget_date desc, tag desc");
+
+		const budgetStatuses: { id: string; status: string }[] =
+			await Database.from("budgets")
+				.select(
+					Database.raw(
+						`id,
+       case
+           when
+               (select true
+                from budget_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and budget_items.budget_id = budgets.id
+                group by budget_id) = true then 'Nao Aprovada'
+           else budgets.status end as status`,
+					),
+				)
+				.whereIn(
+					"id",
+					budgets.map((b) => b.id),
+				)
+				.orderByRaw("created_at desc");
+
+		const billStatuses: { id: string; status: string }[] = await Database.from(
+			"bills",
+		)
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from bill_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and bill_items.bill_id = bills.id
+                group by bill_id) = true then 'Nao Aprovada'
+           else bills.status end as status`,
+				),
+			)
+			.whereIn(
+				"id",
+				sales.map((b) => b.id),
+			)
+			.orderByRaw("created_at desc");
 
 		const result: Array<unknown> = [];
 
-		sales.forEach((sale) => {
+		for (const sale of sales) {
 			const getStrStatus = (s: Bill) => {
 				if (s.status === BillStatus.A) {
 					return "Venda em Aberto";
@@ -1076,26 +1118,33 @@ export default class PatientService {
 				seller: sale.seller.name,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
 				total_value: sale.totalValue,
+				pending: sale.pending,
 				missing_value:
 					sale.totalValue -
 					sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
-				status: getStrStatus(sale),
+				status:
+					billStatuses.find((s) => s.id === sale.id)?.status ??
+					getStrStatus(sale),
 			});
-		});
+		}
 
-		budgets.forEach((item) => {
+		for (const budget of budgets) {
 			result.push({
-				id: item.id,
+				id: budget.id,
 				_type: "budget" as const,
-				tag: item.tag,
-				date: item.budgetDate,
-				seller: item.seller ? item.seller.name : authCtx.user.name,
-				client: key === "patient_id" ? item.client?.name : item.user?.name,
-				total_value: item.totalValue,
+				tag: budget.tag,
+				date: budget.budgetDate,
+				seller: budget.seller ? budget.seller.name : authCtx.user.name,
+				client: key === "patient_id" ? budget.client?.name : budget.user?.name,
+				total_value: budget.totalValue,
+				pending: budget.pending,
 				missing_value: null,
-				status: "Orçamento em aberto",
+				// status: "Orçamento em aberto",
+				status:
+					budgetStatuses.find((s) => s.id === budget.id)?.status ??
+					"Orçamento em aberto",
 			});
-		});
+		}
 
 		return result.sort(
 			(

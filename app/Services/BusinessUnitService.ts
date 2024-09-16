@@ -252,7 +252,7 @@ export default class BusinessUnitService {
 
 			const userAlreadyExists = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", `%${props.email}%`)
+				.whereRaw("lower(email) = lower(?)", [props.email])
 				.where("system_id", unit.economicGroup.system_id)
 				.first();
 

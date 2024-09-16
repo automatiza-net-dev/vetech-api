@@ -35,9 +35,11 @@ export interface ICreateBillPaymentData {
 	flagId?: string;
 	acquirerId?: string;
 	paymentMethodId: string;
+	paymentMethodFlagId?: string;
 	paymentMethodFlagInstallmentId?: number;
 	budgetPaymentId?: number;
 
+	maxParcelas?: boolean;
 	expirationDate: DateTime;
 	installmentsValue: number;
 	nsuDocument?: string;
@@ -53,4 +55,25 @@ export interface IUpdateBillItemData {
 		maxDiscount?: boolean;
 		shouldValidateDiscount?: boolean;
 	}>;
+}
+
+export interface IUpdateBillData {
+	billId: string;
+	sellerId: string;
+	clientId: string;
+	patientId?: string;
+	financialResponsibleId?: string;
+	maxDiscount: boolean;
+	additionalInformation?: string;
+	items: {
+		billItemId?: string;
+		productVariationId: string;
+		quantity: number;
+		unitaryValue: number;
+		discountValue: number;
+		// saleValue: number;
+		courtesy: boolean;
+		maxDiscount?: boolean;
+		// shouldValidateDiscount?: boolean;
+	}[];
 }

@@ -28,6 +28,7 @@ import Unit, { UnitType } from "App/Models/Unit";
 import UserUnitRole from "App/Models/UserUnitRole";
 import {
 	ICreateBillPaymentData,
+	IUpdateBillData,
 	IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
 import PatientFactory from "Database/factories/PatientFactory";
@@ -456,21 +457,148 @@ test.group("Bill resource", (group) => {
 		assert.equal(201, response.status());
 	});
 
-	test("should update bill", async ({ assert, client }) => {
-		const { user, client: holder, patient, bill } = await createData();
+	test("should create bill with financial responsible", async ({
+		assert,
+		client,
+	}) => {
+		const {
+			user,
+			client: holder,
+			patient,
+			dailyCashier,
+			dailyMovement,
+			variation,
+			config,
+		} = await createData();
 		const token = await generateJwtToken(client, {
 			email: user.email,
 			password: "102030",
 		});
 
+		await config.merge({ controlsDeposit: false }).save();
+
 		const response = await client
-			.post(`/bills/update`)
+			.post(`/bills/create`)
+			.json({
+				clientId: holder.id,
+				financialResponsibleId: holder.id,
+				patientId: patient.id,
+				dailyMovementId: dailyMovement.id,
+				dailyCashierId: dailyCashier.id,
+				billDate: new Date(),
+				productValue: 100,
+				serviceValue: 200,
+				discountValue: 55,
+				items: [
+					{
+						unitaryValue: 10,
+						discountValue: 0,
+						productVariationId: variation.id,
+						quantity: 1,
+					},
+				],
+			})
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should update bill", async ({ assert, client }) => {
+		const {
+			user,
+			client: holder,
+			patient,
+			bill,
+			business,
+			variation,
+			rule,
+		} = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const item = await bill.related("items").create({
+			economic_group_id: business.economicGroupId,
+			business_unit_id: business.id,
+			bill_id: bill.id,
+			product_variation_id: variation.id,
+			tax_rule_id: rule.id,
+			quantity: new Decimal(1),
+			costValue: 100,
+			saleValue: 100,
+			unitaryValue: 100,
+			discountValue: 5,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: rule.icmsPercRedAliquota,
+			icmsStIva: rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: rule.icmsPerc,
+			issPercentage: rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+		});
+
+		const response = await client
+			.post("bills/update")
 			.json({
 				billId: bill.id,
 				sellerId: user.id,
 				clientId: holder.id,
 				patientId: patient.id,
-			})
+				financialResponsibleId: holder.id,
+				maxDiscount: true,
+				items: [
+					{
+						// billItemId: item.id,
+						productVariationId: variation.id,
+						quantity: 1,
+						unitaryValue: 10,
+						discountValue: 0,
+						courtesy: false,
+						maxDiscount: true,
+					},
+					{
+						billItemId: item.id,
+						productVariationId: variation.id,
+						quantity: 1,
+						unitaryValue: 10,
+						discountValue: 0,
+						courtesy: false,
+						maxDiscount: true,
+					},
+				],
+			} as IUpdateBillData)
 			.bearerToken(token);
 
 		assert.equal(204, response.status());
@@ -851,6 +979,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
 		await flagInstallment.merge({ installment: 3 }).save();
 
 		const response = await client
@@ -858,13 +987,15 @@ test.group("Bill resource", (group) => {
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 200,
+				installments: 1,
 				acquirerId: tefAcq.id,
 				flagId: tefFlag.id,
 				nsuDocument: "some document",
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -880,6 +1011,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await ctx.paymentMethod.merge({ maxInstallments: 100 }).save();
 		await ctx.flagInstallment.merge({ installment: 3 }).save();
 
 		const budget = await Budget.create({
@@ -915,7 +1047,9 @@ test.group("Bill resource", (group) => {
 
 				nsuDocument: "some document",
 				installmentsValue: 200,
+				installments: 1,
 				expirationDate: DateTime.now(),
+				maxParcelas: true,
 			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
@@ -929,16 +1063,19 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 10,
 				nsuDocument: "some document",
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -951,15 +1088,18 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				paymentMethodFlagInstallmentId: flagInstallment.id,
 				installmentsValue: 10,
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -975,14 +1115,17 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
+
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
-				expirationDate: new Date(),
+				expirationDate: DateTime.now(),
 				installmentsValue: 10,
-			})
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
@@ -998,14 +1141,213 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
+		await paymentMethod.merge({ maxInstallments: 100 }).save();
 		const response = await client
-			.post(`/bills/create-payment`)
+			.post("/bills/create-payment")
 			.json({
 				billId: bill.id,
 				paymentMethodId: paymentMethod.id,
 				expirationDate: DateTime.now(),
 				installmentsValue: 10,
 				installments: 10,
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create bill payment with PMFlagId and invalid installments", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag.merge({ maxInstallments: 1 }).save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Numero de parcelas é Superior ao permitido pela forma de pagamento",
+			body.message,
+		);
+	});
+
+	test("should create bill payment with PMFlagId and invalid installments without password", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+			body.message,
+		);
+	});
+
+	test("should create bill payment with PMFlagId, invalid installments without password, maxParcelas = true", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod, paymentMethodFlag } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethodFlag
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				paymentMethodFlagId: paymentMethodFlag.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: true,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create bill payment without PMFlagId and invalid installments", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod.merge({ maxInstallments: 1 }).save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Numero de parcelas é Superior ao permitido pela forma de pagamento",
+			body.message,
+		);
+	});
+
+	test("should create bill payment without PMFlagId and invalid installments without password", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: false,
+			} as ICreateBillPaymentData)
+			.bearerToken(token);
+
+		const body = response.body();
+
+		assert.equal(400, response.status());
+		assert.equal(
+			"E_ERR: Esta Venda ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação?",
+			body.message,
+		);
+	});
+
+	test("should create bill payment without PMFlagId, invalid installments without password, maxParcelas = true", async ({
+		assert,
+		client,
+	}) => {
+		const { user, bill, paymentMethod } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		await paymentMethod
+			.merge({ maxInstallments: 20, installmentsWithoutPassword: 1 })
+			.save();
+
+		const response = await client
+			.post("/bills/create-payment")
+			.json({
+				billId: bill.id,
+				paymentMethodId: paymentMethod.id,
+				expirationDate: DateTime.now(),
+				installmentsValue: 10,
+				installments: 10,
+				maxParcelas: true,
 			} as ICreateBillPaymentData)
 			.bearerToken(token);
 
@@ -1583,12 +1925,16 @@ test.group("Bill resource", (group) => {
 		});
 
 		const response = await client
-			.put(`/bills/update-item`)
+			.put("/bills/update-item")
 			.json({
 				items: [
 					{
 						billItemId: item.id,
 						discountValue: 10,
+						unitaryValue: 10,
+						courtesy: false,
+						maxDiscount: false,
+						shouldValidateDiscount: false,
 					},
 				],
 			} as IUpdateBillItemData)
@@ -1988,67 +2334,252 @@ test.group("Bill resource", (group) => {
 		assert.equal(204, response.status());
 		assert.equal(1, item.quantity);
 	});
-	//
-	// test("should handle print", async ({ assert, client }) => {
-	// 	const { user, bill } = await createData();
-	// 	const token = await generateJwtToken(client, {
-	// 		email: user.email,
-	// 		password: "102030",
-	// 	});
-	//
-	// 	const response = await client
-	// 		.get(`/bills/print-payment-receipts/${bill.id}`)
-	// 		.bearerToken(token);
-	//
-	// 	assert.equal(200, response.status());
-	// });
 
-	// test('should recalculate item taxes', async ({ assert, client }) => {
-	//   const { user, bill, business, variation } = await createData();
-	//   const token = await generateJwtToken(client, {
-	//     email: user.email,
-	//     password: '102030',
-	//   });
+	test("should approve pending items for true", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
 
-	//   await bill.related('items').create({
-	//     economic_group_id: business.economicGroupId,
-	//     business_unit_id: business.id,
-	//     bill_id: bill.id,
-	//     product_variation_id: variation.id,
-	//     quantity: new Decimal(1),
-	//     costValue: 10,
-	//     saleValue: 10,
-	//     unitaryValue: 10,
-	//     discountValue: 10,
-	//     totalValue: 100,
-	//     status: BillItemStatus.A,
-	//     createdAt: bill.createdAt,
-	//     fiscalOperationCode: '0',
-	//     icmsOriginProduct: '0',
-	//     icmsBase: 10,
-	//     icmsValue: 10,
-	//     icmsStBase: 10,
-	//     icmsStPercentageUfDestination: 0,
-	//     icmsStValue: 10,
-	//     issCst: '',
-	//     issValue: 0,
-	//     pisBase: 0,
-	//     pisValue: 0,
-	//     pisRetentionValue: 0,
-	//     cofinsBase: 0,
-	//     cofinsValue: 0,
-	//     cofinsRetentionValue: 0,
-	//     ipiBase: 0,
-	//     ipiValue: 0,
-	//     icmsDeferredValue: 0,
-	//     icmsPartitionValue: 0,
-	//     icmsFcpValue: 0,
-	//   });
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
 
-	//   const response = await client
-	//     .put(`/bills/recalculate/${bill.id}`)
-	//     .bearerToken(token);
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: true,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
 
-	//   assert.equal(204, response.status());
-	// });
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should approve pending items for false", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
+
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
+
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: false,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
+
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
+
+	test("should handle pending payment items", async ({ assert, client }) => {
+		const ctx = await createData();
+		const token = await generateJwtToken(client, {
+			email: ctx.user.email,
+			password: "102030",
+		});
+
+		const item = await ctx.bill.related("items").create({
+			economic_group_id: ctx.business.economicGroupId,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			product_variation_id: ctx.variation.id,
+			tax_rule_id: ctx.rule.id,
+			quantity: new Decimal(1),
+			costValue: 10,
+			saleValue: 10,
+			unitaryValue: 10,
+			discountValue: 10,
+			totalValue: 100,
+			status: BillItemStatus.A,
+			createdAt: ctx.bill.createdAt,
+			fiscalOperationCode: "0",
+			icmsOriginProduct: "0",
+			icmsCst: ctx.rule.icmsCst,
+			icmsBase: 10,
+			icmsPercentage: ctx.rule.icmsPerc,
+			icmsValue: 10,
+			icmsPercentageRedAliquot: ctx.rule.icmsPercRedAliquota,
+			icmsPercentageRedBase: ctx.rule.icmsPercRedBaseCalculo,
+			icmsStBase: 10,
+			icmsStPercentageRedBase: ctx.rule.icmsPercRedAliquota,
+			icmsStIva: ctx.rule.icmsPercRedAliquota,
+			icmsStPercentageUfDestination: 0,
+			icmsStValue: 10,
+			issCst: "",
+			issBase: ctx.rule.icmsPerc,
+			issPercentage: ctx.rule.icmsPercRedAliquota,
+			issValue: 0,
+			pisBase: 0,
+			pisPercentage: ctx.rule.pisPerc,
+			pisValue: 0,
+			pisRetentionValue: 0,
+			cofinsBase: 0,
+			cofinsPercentage: ctx.rule.cofinsPerc,
+			cofinsValue: 0,
+			cofinsRetentionValue: 0,
+			ipiBase: 0,
+			ipiPercentage: ctx.rule.ipiPerc,
+			ipiValue: 0,
+			icmsDeferredValue: 0,
+			icmsPartitionValue: 0,
+			icmsFcpPercentage: ctx.rule.fcpPerc,
+			icmsFcpValue: 0,
+			icmsPartitionOriginUfPercentage: ctx.rule.icmsPerc,
+			icmsPartitionDestinationUfPercentage: ctx.rule.icmsPercRedAliquota,
+			icmsPartitionInterUfPercentage: ctx.rule.icmsPercRedAliquota,
+		});
+
+		const payment = await ctx.bill.related("payments").create({
+			economic_group_id: ctx.group.id,
+			business_unit_id: ctx.business.id,
+			bill_id: ctx.bill.id,
+			payment_method_id: ctx.paymentMethod.id,
+			tef_acquirer_id: ctx.tefAcq.id,
+			tef_flag_id: ctx.tefFlag.id,
+
+			pending: true,
+			block: 1,
+			expirationDate: DateTime.now(),
+			feeType: BillPaymentFeeType.S,
+			feeValue: 0,
+			feePercentage: 0,
+			installments: 1,
+			installmentValue: 10,
+			totalValue: 10,
+			nsuDocument: "",
+			paymentMethodDiscountPercentage: 0,
+			paymentMethodDiscountValue: 0,
+			qtyInstallments: 1,
+		});
+
+		const response = await client
+			.post("/bills/approve")
+			.json({
+				approved: false,
+				itemsIdList: [item.id],
+				billId: ctx.bill.id,
+
+				email: ctx.user.email,
+				password: "102030",
+				reason: "aaaaaaaaaaaaaaa",
+				paymentsIdList: [payment.id],
+			})
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
+	});
 });

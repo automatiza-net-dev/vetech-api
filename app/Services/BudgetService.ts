@@ -132,6 +132,7 @@ export default class BudgetService {
 					"status",
 					"finished_at",
 					"observation",
+					"pending",
 					"internal_observation",
 					"client_id",
 					"patient_id",
@@ -219,9 +220,37 @@ export default class BudgetService {
 				});
 			});
 
+		const statuses: { id: string; status: string }[] = await Database.from(
+			"budgets",
+		)
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from budget_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and budget_items.budget_id = budgets.id
+                group by budget_id) = true then 'Nao Aprovada'
+           else budgets.status end as status`,
+				),
+			)
+			.where("business_unit_id", authCtx.unit.id)
+			.orderByRaw("created_at desc");
+
 		return Promise.all(
 			attendances.map(async (elem) => {
 				const jsonObj = elem.toJSON();
+
+				Object.assign(jsonObj, {
+					budgets: elem.budgets.map((b) => ({
+						...b.toJSON(),
+						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
+					})),
+				});
 
 				const bills = await Bill.query()
 					.whereIn(
@@ -394,7 +423,36 @@ export default class BudgetService {
 			qb.where("pending", false);
 		}
 
-		return qb;
+		const result = await qb;
+
+		const status: { id: string; status: string }[] = await Database.from(
+			"budgets",
+		)
+			.select(
+				Database.raw(
+					`id,
+       case
+           when
+               (select true
+                from budget_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and budget_items.budget_id = budgets.id
+                group by budget_id) = true then 'Nao Aprovada'
+           else budgets.status end as status`,
+				),
+			)
+			.whereIn(
+				"id",
+				result.map((b) => b.id),
+			)
+			.orderByRaw("created_at desc");
+
+		return result.map((b) => ({
+			...b.toJSON(),
+			status: status.find((s) => s.id === b.id)?.status ?? b.status,
+		}));
 	}
 
 	public async completeIndex(unitId: string, data: ISearchComplete) {
@@ -1657,6 +1715,10 @@ export default class BudgetService {
 							product_variation_id: item.product_variation_id,
 							tax_rule_id: rule?.id,
 
+							approved: item.approved,
+							maxDiscount: item.maxDiscount,
+							pendingObservations: item.pendingObservations,
+
 							courtesy: item.courtesy,
 							courtesy_approved_user_id: item.courtesy_approved_user_id,
 							courtesy_issued_user_id: item.courtesy_issued_user_id,
@@ -1802,15 +1864,7 @@ export default class BudgetService {
 			// 	})),
 			// );
 
-			await this.depositService.updateDepositItems(
-				trx,
-				authCtx,
-				bill.id,
-				items.map((elem) => ({
-					productVariationId: elem.product_variation_id,
-					quantity: elem.quantity.toNumber(),
-				})),
-			);
+			await this.depositService.updateDepositItems(trx, authCtx, bill.id);
 
 			return bill;
 		});
@@ -2360,6 +2414,7 @@ export default class BudgetService {
 			const budget = await Budget.query()
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.budgetId)
+				.preload("items")
 				.first();
 			if (!budget) {
 				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
@@ -2398,6 +2453,33 @@ export default class BudgetService {
 					"E_ERR",
 				);
 			}
+
+			if (
+				budget.items.some(
+					(i) =>
+						i.status === BudgetStatus.A &&
+						(i.maxDiscount || i.courtesy) &&
+						!i.approved,
+				)
+			) {
+				if (data.itemsIdList.length === 0) {
+					throw new BadRequestException(
+						"É preciso informar os itens a serem processados quando se tem itens pendentes",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
+			// if (budget.payments.some((i) => i.pending)) {
+			// 	if (!data.paymentsIdList || data.paymentsIdList.length === 0) {
+			// 		throw new BadRequestException(
+			// 			"É preciso informar pagamentos a serem processados quando se tem pagamentos pendentes",
+			// 			400,
+			// 			"E_ERR",
+			// 		);
+			// 	}
+			// }
 
 			await budget.merge({ pending: false }).useTransaction(trx).save();
 

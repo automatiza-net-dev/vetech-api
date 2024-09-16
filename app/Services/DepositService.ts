@@ -521,22 +521,15 @@ where deposit_id = ?
 		trx: TransactionClientContract,
 		authCtx: AuthContext,
 		billID: string,
-		data: { productVariationId: string; quantity: number }[],
 	) {
 		if (!authCtx.unit.unitConfig.controlsDeposit) {
 			return;
 		}
 
-		await Database.rawQuery(`select update_quantity_on_deposit(?, ?, ?, ?)`, [
+		await Database.rawQuery(`select update_quantity_on_deposit(?, ?, ?)`, [
 			authCtx.user.id,
 			authCtx.unit.id,
 			billID,
-			JSON.stringify(
-				data.map((elem) => ({
-					variacao: elem.productVariationId,
-					quantidade: elem.quantity,
-				})),
-			),
 		])
 			.useTransaction(trx)
 			.exec();

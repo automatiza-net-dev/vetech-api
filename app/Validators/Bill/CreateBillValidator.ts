@@ -9,6 +9,10 @@ export default class CreateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
+		financialResponsibleId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "patients", column: "id" }),
+		]),
 		patientId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),

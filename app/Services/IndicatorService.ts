@@ -4126,6 +4126,9 @@ export default class IndicatorService {
 		const installmentAvg = cards.at(6) as Awaited<
 			ReturnType<typeof this.installmentAvgIndicators>
 		>;
+		const clientGroupTree = cards.at(7) as Awaited<
+			ReturnType<typeof this.clientGroupTreeIndicators>
+		>;
 
 		return {
 			charts: charts.filter(Boolean),
@@ -4281,6 +4284,12 @@ export default class IndicatorService {
 									),
 								},
 							],
+						}
+					: null,
+				authCtx.hasPermission("IND12")
+					? {
+							name: "OrigemClientesporCategoria",
+							items: clientGroupTree,
 						}
 					: null,
 			].filter(Boolean),

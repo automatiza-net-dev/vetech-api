@@ -50,12 +50,12 @@ export default class VaccineService {
 		data: Omit<IVaccineData, "active">,
 	) {
 		return Vaccine.create({
-			name: data.name,
-			description: data.description,
 			economic_group_id: authCtx.group.id,
 			system_id: authCtx.system.id,
 			subgroup_id: data.subgroupId,
 			type: data.type,
+			name: data.name,
+			description: data.description,
 		});
 	}
 
@@ -97,9 +97,10 @@ export default class VaccineService {
 
 		return vaccine
 			.merge({
+				subgroup_id: data.subgroupId,
+
 				name: data.name,
 				description: data.description,
-				subgroup_id: data.subgroupId,
 				active: data.active,
 				type: data.type,
 			})

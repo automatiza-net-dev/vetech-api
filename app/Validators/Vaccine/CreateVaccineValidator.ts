@@ -14,7 +14,7 @@ export default class CreateVaccineValidator {
       }),
     ]),
     name: schema.string({}, []),
-    description: schema.string({}, []),
+    description: schema.string.optional({}, []),
     type: schema.enum(Object.values(VaccineType), []),
   });
 

@@ -5,4 +5,5 @@ export interface IVaccineProtocolData {
   doses: number;
   interval: number;
   active: boolean;
+  expirationDays?: number
 }

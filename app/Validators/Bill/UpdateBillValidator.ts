@@ -44,9 +44,9 @@ export default class UpdateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
-		maxDiscount: schema.boolean(),
+		maxDiscount: schema.boolean.optional(),
 		additionalInformation: schema.string.optional(),
-		items: schema.array().members(
+		items: schema.array.optional().members(
 			schema.object().members({
 				billItemId: schema.string.optional(),
 				productVariationId: schema.string([

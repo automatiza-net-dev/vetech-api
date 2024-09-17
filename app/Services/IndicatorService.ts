@@ -4060,8 +4060,8 @@ export default class IndicatorService {
 					),
 			),
 			SharedService.NoopPromise(
-				() => authCtx.hasPermission("IND27"),
-				() => this.consolidatedReviewerBudgets(authCtx, data),
+				() => authCtx.hasPermission("IND29"),
+				() => this.salesConvertionsPerSeller_2(authCtx, data),
 			),
 		]);
 
@@ -7575,6 +7575,148 @@ export default class IndicatorService {
 						totalAtrasadas: elem.qtd_atrasadas,
 					})),
 			})),
+		};
+	}
+
+	public async salesConvertionsPerSeller_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		if (!authCtx.hasPermission("IND29")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("business_units")
+			.select(
+				Database.raw(
+					`
+        economic_groups.id                        as e_id,
+        economic_groups.company_name,
+        business_units.id                         as b_id,
+        business_units.identification,
+        users.id                                  as u_id,
+        coalesce(users.name, 'Não identificado')  as name,
+        count(total.id)                           as qtd_total,
+        sum(coalesce(total.total_value, 0))       as total_orcamentos,
+        count(confirmados.id)                     as qtd_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
+          `,
+				),
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join budgets as total on total.business_unit_id = business_units.id and total.deleted_at is null",
+			)
+			.joinRaw(
+				"left join bills as confirmados on confirmados.budget_id = total.id and confirmados.business_unit_id = business_units.id and confirmados.deleted_at is null",
+			)
+			.joinRaw("left join users on users.id = total.seller_id")
+			.groupBy("economic_groups.id", "business_units.id", "users.id")
+			.whereNull("total.deleted_at")
+			.orderByRaw("total_confirmados desc, name");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("total.budget_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result = await qb;
+
+		const uniqueGroups = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.e_id)) {
+				acc.push(curr.e_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "budgetsVendedorConsolidado",
+			description: "Conversão de Planos de Tratamento por Período",
+			type: "table",
+			hasData: result.length > 0,
+			data: uniqueGroups.map((elem) => {
+				const group = result.find((r) => r.e_id === elem);
+
+				const rows = result.filter((r) => r.e_id === elem);
+
+				const confirmedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_confirmados),
+					0,
+				);
+				const budgetedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_orcamentos),
+					0,
+				);
+
+				const uniqueUsers = rows.reduce((acc, curr) => {
+					if (!acc.includes(curr.u_id)) {
+						acc.push(curr.u_id);
+					}
+
+					return acc;
+				}, [] as string[]) as string[];
+
+				return {
+					id: group.e_id,
+					identification: group.identification,
+					totalConfirmados: this.shared.formatter.format(confirmedSum),
+					totalOrcamentos: this.shared.formatter.format(budgetedSum),
+					users: uniqueUsers.map((user) => {
+						const userRow = result.find((r) => r.u_id === user);
+
+						return {
+							userId: user,
+							userName: userRow.name,
+							qtdClientes: userRow.qtd_confirmados,
+							valorRealizado: this.shared.formatter.format(
+								Number.parseFloat(userRow.total_confirmados),
+							),
+							ticketMedioRealizado: this.shared.formatter.format(
+								Number.parseFloat(userRow.total_confirmados) /
+									Number.parseFloat(userRow.qtd_confirmados),
+							),
+							participacaoRealizado: this.shared.formatPercentage(
+								(Number.parseFloat(userRow.total_confirmados) / confirmedSum) *
+									100,
+							),
+							conversaoAvaliacoes: this.shared.formatPercentage(
+								Number.parseFloat(userRow.conv_venda),
+							),
+							qtdAvaliacoes: userRow.qtd_total,
+							totalAvaliado: this.shared.formatter.format(
+								userRow.total_orcamentos,
+							),
+							ticketMedioAvaliacoes: this.shared.formatter.format(
+								userRow.total_orcamentos / userRow.qtd_total,
+							),
+						};
+					}),
+				};
+			}),
 		};
 	}
 }

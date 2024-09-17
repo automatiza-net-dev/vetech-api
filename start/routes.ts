@@ -1715,6 +1715,10 @@ Route.group(() => {
 		"IndicatorsController.salesPerReviwerIndicators",
 	);
 	Route.get("/activities-2", "IndicatorsController.activiesIndicators_2");
+	Route.get(
+		"/sales-convertions-per-seller-2",
+		"IndicatorsController.salesConvertionsPerSeller_2",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");

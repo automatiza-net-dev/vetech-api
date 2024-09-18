@@ -1,42 +1,33 @@
-# syntax = docker/dockerfile:1
 
-# Adjust BUN_VERSION as desired
-ARG BUN_VERSION=1.1.27
-FROM oven/bun:${BUN_VERSION}-slim as base
 
-LABEL fly_launch_runtime="AdonisJS"
 
-# AdonisJS app lives here
+FROM node:20-slim AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS prod
+
+RUN apt-get update -qq && \
+apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
+
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+COPY pnpm-lock.yaml /app
+COPY package.json /app
 
-# Throw-away build stage to reduce size of final image
-FROM base as build
+RUN pnpm install
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
+COPY . /app
+RUN pnpm run build
 
-# Install node modules
-COPY --link bun.lockb package.json ./
-RUN bun install
+RUN rm -rf /node-modules
+RUN pnpm install --prod
 
-# Copy application code
-COPY --link . .
-
-# Build application
-RUN bun run build
-
-
-# Final stage for app image
 FROM base
-
-# Copy built application
-COPY --from=build /app /app
-
-# Start the server by default, this can be overwritten at runtime
+COPY --from=prod /app/node_modules /app/node_modules
+COPY --from=prod /app/build /app/build
+COPY --from=prod /app/public /app/build/public
 EXPOSE 3333
-
 CMD [ "node", "/app/build/server.js" ]

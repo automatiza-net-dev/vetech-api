@@ -35,9 +35,6 @@ importers:
       '@adonisjs/view':
         specifier: ^6.1.5
         version: 6.2.0(@adonisjs/core@5.9.0)
-      '@verful/scheduler':
-        specifier: ^1.6.0
-        version: 1.6.0(@adonisjs/core@5.9.0)
       aws-sdk:
         specifier: ^2.1304.0
         version: 2.1691.0
@@ -1064,12 +1061,6 @@ packages:
 
   '@types/yargs@16.0.9':
     resolution: {integrity: sha512-tHhzvkFXZQeTECenFoRljLBYPZJ7jAVxqqtEI0qTLOmuultnFp4I9yKE17vTuhf7BkhCu7I4XuemPgikDVuYqA==}
-
-  '@verful/scheduler@1.6.0':
-    resolution: {integrity: sha512-0uRsPg9RRC9pIuhMokegV6fWuDrycJMtWp7Mns3My+RZn6Q3sdLZV2njfVA4bmgcjrQuMBlp4VZ+BcuSHFzP7Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@adonisjs/core': ^5.9.0
 
   abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
@@ -3068,10 +3059,6 @@ packages:
 
   node-addon-api@5.1.0:
     resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
-
-  node-cron@3.0.3:
-    resolution: {integrity: sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==}
-    engines: {node: '>=6.0.0'}
 
   node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
@@ -6041,12 +6028,6 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@verful/scheduler@1.6.0(@adonisjs/core@5.9.0)':
-    dependencies:
-      '@adonisjs/core': 5.9.0
-      luxon: 3.5.0
-      node-cron: 3.0.3
-
   abbrev@1.1.1: {}
 
   abort-controller@3.0.0:
@@ -8167,10 +8148,6 @@ snapshots:
       tslib: 2.7.0
 
   node-addon-api@5.1.0: {}
-
-  node-cron@3.0.3:
-    dependencies:
-      uuid: 8.3.2
 
   node-emoji@1.11.0:
     dependencies:

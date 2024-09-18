@@ -40,7 +40,6 @@
       "@adonisjs/view",
       "@adonisjs/i18n",
       "@adonisjs/drive-s3",
-      "@verful/scheduler"
     ]
   }
 }

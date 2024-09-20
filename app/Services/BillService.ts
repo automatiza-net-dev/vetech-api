@@ -3457,7 +3457,7 @@ where deposit_id = ?
 			if (!hasPermissions) {
 				throw new UnauthorizedException(
 					"Usuário sem permissão de fazer a operação",
-					401,
+					400,
 					"E_ERR",
 				);
 			}

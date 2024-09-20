@@ -439,7 +439,7 @@ export default class TemplateReplacementService {
 					return map;
 				}
 
-				const value$ = value ? this.$toString(value) ?? templ.attribute : "";
+				const value$ = value ? (this.$toString(value) ?? templ.attribute) : "";
 				map[parsedKey] = value$;
 				return map;
 			},
@@ -473,7 +473,7 @@ export default class TemplateReplacementService {
 			return this.parseTextTemplate(updated, data, tail);
 		}
 
-		const value$ = value ? this.$toString(value) ?? head.attribute : "";
+		const value$ = value ? (this.$toString(value) ?? head.attribute) : "";
 
 		const updated = raw.replaceAll(head.replacer, value$);
 
@@ -646,7 +646,7 @@ export default class TemplateReplacementService {
 			specie: patient.patientAnimal?.race?.specie?.description,
 			vaccinated: calculateVaccine(patient.vaccineOrigin),
 			numeric_age: patient.birthDate
-				? differenceInYears(new Date(), patient.birthDate)
+				? `${differenceInYears(new Date(), patient.birthDate).toString()}`
 				: null,
 			birthDate: patient.birthDate
 				? format(patient.birthDate, "dd/MM/yyyy", {

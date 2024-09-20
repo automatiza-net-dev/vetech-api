@@ -239,6 +239,8 @@ export default class VaccineService {
 									})),
 							})),
 					});
+
+					return resultUnits;
 				},
 				[] as {
 					id: string;

@@ -13,6 +13,44 @@ interface ISearch {
 	type?: string;
 }
 
+type ShowIt = {
+	id: string;
+	identification: string;
+	pacientes: {
+		idPaciente: string;
+		nomePaciente: string;
+		idTutor: string;
+		nomeTutor: string;
+		tipoContatoTutor: string;
+		contatoTutor: string | null;
+		vacinasPaciente: {
+			idVacinaPaciente: string;
+			vacina: {
+				tipo: string;
+				idVacina: string;
+				nomeVacina: string;
+				idProtocolo: string;
+				nomeProtocolo: string;
+				qtdDosesProtocolo: number;
+				intervaloDiasDosesProtocolo: number;
+				protocoloValidoPor: string;
+				vaccineCalendar: {
+					idVaccineCalendar: string;
+					scheduleId: string | null;
+					dataAgendamento: string;
+					dataAplicacao: string | null;
+					doseAplicacao: number;
+					laboratorioAplicacao: string | null;
+					loteAplicacao: string | null;
+					statusAgendamentoVacina: string;
+					statusProtocolo: string;
+					validadeVacina: string;
+				}[];
+			};
+		}[];
+	}[];
+};
+
 @inject()
 export default class VaccineService {
 	constructor(private readonly sharedService: SharedService) {}
@@ -178,108 +216,82 @@ export default class VaccineService {
 		}[] = await qb;
 
 		return {
-			units: result.reduce(
-				(resultUnits, currRow) => {
-					if (resultUnits.find((ru) => ru.id === currRow.id_unidade)) {
-						// já na lista
-						return resultUnits;
-					}
-
-					resultUnits.push({
-						id: currRow.id_unidade,
-						identification: currRow.identificador_unidade,
-						pacientes: result
-							.filter((f) => f.id_unidade === currRow.id_unidade)
-							.map((pac) => ({
-								idPaciente: pac.id_paciente,
-								nomePaciente: pac.nome_paciente,
-								idTutor: pac.id_tutor,
-								nomeTutor: pac.nome_tutor,
-								contatoTutor: pac.contato_tutor,
-								tipoContatoTutor: pac.tipo_contato_tutor,
-								vacinasPaciente: result
-									.filter(
-										(f) =>
-											f.id_unidade === currRow.id_unidade &&
-											f.id_paciente === pac.id_paciente,
-									)
-									.map((vac) => ({
-										idVacinaPaciente: vac.id_vacina_paciente,
-										vacina: {
-											tipo: vac.tipo,
-											idVacina: vac.id_vacina,
-											nomeVacina: vac.nome_vacina,
-											idProtocolo: vac.id_protocolo,
-											nomeProtocolo: vac.nome_protocolo,
-											qtdDosesProtocolo: vac.qtd_doses_protocolo,
-											intervaloDiasDosesProtocolo:
-												vac.intervalo_dias_doses_protocolo,
-											protocoloValidoPor: vac.protocolo_valido_por,
-											vaccineCalendar: result
-												.filter(
-													(f) =>
-														f.id_unidade === currRow.id_unidade &&
-														f.id_paciente === pac.id_paciente &&
-														f.id_vacina_paciente === vac.id_vacina_paciente,
-												)
-												.map((cal) => ({
-													idVaccineCalendar: cal.id_vaccine_calendar,
-													scheduleId: cal.schedule_id,
-													dataAgendamento: cal.data_agendamento,
-													dataAplicacao: cal.data_aplicacao,
-													doseAplicacao: cal.dose_aplicacao,
-													laboratorioAplicacao: cal.laboratorio_aplicacao,
-													loteAplicacao: cal.lote_aplicacao,
-													statusAgendamentoVacina:
-														cal.status_agendamento_vacina,
-													statusProtocolo: cal.status_protocolo,
-													validadeVacina: cal.validade_vacina,
-												})),
-										},
-									})),
-							})),
-					});
-
+			units: result.reduce((resultUnits, currRow) => {
+				if (resultUnits.find((ru) => ru.id === currRow.id_unidade)) {
+					// já na lista
 					return resultUnits;
-				},
-				[] as {
-					id: string;
-					identification: string;
-					pacientes: {
-						idPaciente: string;
-						nomePaciente: string;
-						idTutor: string;
-						nomeTutor: string;
-						tipoContatoTutor: string;
-						contatoTutor: string | null;
-						vacinasPaciente: {
-							idVacinaPaciente: string;
-							vacina: {
-								tipo: string;
-								idVacina: string;
-								nomeVacina: string;
-								idProtocolo: string;
-								nomeProtocolo: string;
-								qtdDosesProtocolo: number;
-								intervaloDiasDosesProtocolo: number;
-								protocoloValidoPor: string;
-								vaccineCalendar: {
-									idVaccineCalendar: string;
-									scheduleId: string | null;
-									dataAgendamento: string;
-									dataAplicacao: string | null;
-									doseAplicacao: number;
-									laboratorioAplicacao: string | null;
-									loteAplicacao: string | null;
-									statusAgendamentoVacina: string;
-									statusProtocolo: string;
-									validadeVacina: string;
-								}[];
-							};
-						}[];
-					}[];
-				}[],
-			),
+				}
+
+				resultUnits.push({
+					id: currRow.id_unidade,
+					identification: currRow.identificador_unidade,
+					pacientes: result
+						.filter((f) => f.id_unidade === currRow.id_unidade)
+						.reduce(
+							(currPatients, pac) => {
+								if (
+									currPatients.find((f) => f.idPaciente === pac.id_paciente)
+								) {
+									return currPatients;
+								}
+
+								currPatients.push({
+									idPaciente: pac.id_paciente,
+									nomePaciente: pac.nome_paciente,
+									idTutor: pac.id_tutor,
+									nomeTutor: pac.nome_tutor,
+									contatoTutor: pac.contato_tutor,
+									tipoContatoTutor: pac.tipo_contato_tutor,
+									vacinasPaciente: result
+										.filter(
+											(f) =>
+												f.id_unidade === currRow.id_unidade &&
+												f.id_paciente === pac.id_paciente,
+										)
+										.map((vac) => ({
+											idVacinaPaciente: vac.id_vacina_paciente,
+											vacina: {
+												tipo: vac.tipo,
+												idVacina: vac.id_vacina,
+												nomeVacina: vac.nome_vacina,
+												idProtocolo: vac.id_protocolo,
+												nomeProtocolo: vac.nome_protocolo,
+												qtdDosesProtocolo: vac.qtd_doses_protocolo,
+												intervaloDiasDosesProtocolo:
+													vac.intervalo_dias_doses_protocolo,
+												protocoloValidoPor: vac.protocolo_valido_por,
+												vaccineCalendar: result
+													.filter(
+														(f) =>
+															f.id_unidade === currRow.id_unidade &&
+															f.id_paciente === pac.id_paciente &&
+															f.id_vacina_paciente === vac.id_vacina_paciente,
+													)
+													.map((cal) => ({
+														idVaccineCalendar: cal.id_vaccine_calendar,
+														scheduleId: cal.schedule_id,
+														dataAgendamento: cal.data_agendamento,
+														dataAplicacao: cal.data_aplicacao,
+														doseAplicacao: cal.dose_aplicacao,
+														laboratorioAplicacao: cal.laboratorio_aplicacao,
+														loteAplicacao: cal.lote_aplicacao,
+														statusAgendamentoVacina:
+															cal.status_agendamento_vacina,
+														statusProtocolo: cal.status_protocolo,
+														validadeVacina: cal.validade_vacina,
+													})),
+											},
+										})),
+								});
+
+								return currPatients;
+							},
+							[] as ShowIt["pacientes"],
+						),
+				});
+
+				return resultUnits;
+			}, [] as ShowIt[]),
 		};
 	}
 

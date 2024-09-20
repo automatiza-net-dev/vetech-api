@@ -903,7 +903,7 @@ export default class PatientService {
 	): Promise<
 		Omit<IPatientTutorData, "photo" | "birthDate"> & {
 			id: string;
-			photo: string;
+			photo: string | null;
 			birthDate: DateTime | null;
 			contacts?: {
 				main: boolean;
@@ -941,7 +941,9 @@ export default class PatientService {
 			name: patient.name,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
-			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`,
+			photo: patient.photo
+				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`
+				: null,
 			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate

@@ -525,6 +525,11 @@ Route.resource("vaccines", "VaccinesController")
 	.middleware({
 		"*": ["auth"],
 	});
+Route.group(() => {
+	Route.get("/status/:id", "VaccinesController.status");
+})
+	.prefix("vaccines")
+	.middleware("auth");
 
 Route.resource("exams", "ExamsController")
 	.apiOnly()

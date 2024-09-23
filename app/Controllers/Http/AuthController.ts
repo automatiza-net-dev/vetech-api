@@ -185,6 +185,7 @@ export default class AuthController {
 				"integrates_to_crm_schedules",
 				"generates_finances_on_receipts_finish",
 				"treatment",
+				"crm_useful_days",
 			]);
 		});
 

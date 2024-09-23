@@ -804,8 +804,8 @@ export default class ScheduleService {
 						status: 422,
 						title: "É preciso informar a observação",
 						validationErrors: {
-							reasonId: {
-								errors: ["Campo 'Motivo' é obrigatório e está faltando"],
+							observation: {
+								errors: ["É preciso informar a observação"],
 							},
 						},
 					};

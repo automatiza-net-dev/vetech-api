@@ -12,6 +12,7 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateScheduleStatusTypeValidator";
 import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValidator";
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";
+import Schedule from "App/Models/Schedule";
 
 @inject()
 export default class SchedulesController {
@@ -126,7 +127,11 @@ export default class SchedulesController {
 				payload,
 			);
 
-			return response.ok(result);
+			if (result instanceof Schedule) {
+				return response.ok(result);
+			}
+
+			return response.unprocessableEntity(result);
 		});
 	}
 

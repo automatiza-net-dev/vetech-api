@@ -755,7 +755,7 @@ export default class ScheduleService {
 		authCtx: AuthContext,
 		id: string,
 		data: IRescheduleData,
-	): Promise<Schedule> {
+	) {
 		const schedule = await this.show(authCtx.unit.id, id);
 
 		return Database.transaction(async (trx) => {
@@ -793,11 +793,22 @@ export default class ScheduleService {
 			if (data.reasonId) {
 				const reason = await Reason.findOrFail(data.reasonId);
 				if (reason.requiresObservation && !data.observation) {
-					throw new BadRequestException(
-						"É preciso informar observação",
-						400,
-						"E_MISSING",
-					);
+					// throw new BadRequestException(
+					// 	"É preciso informar observação",
+					// 	400,
+					// 	"E_MISSING",
+					// );
+					return {
+						data: null,
+						message: null,
+						status: 422,
+						title: "É preciso informar a observação",
+						validationErrors: {
+							reasonId: {
+								errors: ["Campo 'Motivo' é obrigatório e está faltando"],
+							},
+						},
+					};
 				}
 			}
 

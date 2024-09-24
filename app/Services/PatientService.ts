@@ -787,6 +787,7 @@ export default class PatientService {
 				),
 			),
 			openAttendances: attendances.length > 0,
+			createdAt: patient.createdAt,
 		};
 
 		if (patient.patientAnimal) {

@@ -13,6 +13,7 @@ import { DateTime } from "luxon";
 import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import { unknown } from "zod";
 
 @inject()
 export default class ReportService {
@@ -2782,6 +2783,130 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		return qb;
+	}
+
+	public async marketingCampaign(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			marketingCampaign?: number;
+			active?: string;
+			fromDate?: string;
+			toDate?: string;
+			debug?: string;
+		},
+	) {
+		const qb = Database.from("marketing_campaigns")
+			.select(
+				Database.raw(`economic_groups.id                                  as e_id,
+       economic_groups.company_name                        as e_name,
+       business_units.id                                   as b_id,
+       business_units.identification,
+       marketing_campaigns.id,
+       marketing_campaigns.description,
+       marketing_campaigns.start_date,
+       marketing_campaigns.end_date,
+       marketing_campaigns.investment_value::float,
+       marketing_campaigns.active,
+       count(opportunities.id)::int                        as qty_opportunities,
+       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunities,
+       case
+           when count(opportunities.id) = 0 then 0::float
+           else (investment_value / count(opportunities.id))::float
+           end                                             as cpl`),
+			)
+			.joinRaw(
+				"join economic_groups on marketing_campaigns.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join business_units on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw(
+				"left join opportunities on marketing_campaigns.id = opportunities.marketing_campaign_id",
+			)
+			.groupByRaw(
+				"economic_groups.id, business_units.id, marketing_campaigns.id",
+			)
+			.where("economic_groups.id", authCtx.group.id);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.marketingCampaign) {
+			qb.where("marketing_campaigns.id", data.marketingCampaign);
+		}
+
+		if (data.active) {
+			qb.where("marketing_campaigns.active", data.active);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				`(
+          (marketing_campaigns.start_date between ? and ?) or
+          (marketing_campaigns.end_date between ? and ?)
+        )`,
+				[data.fromDate, data.toDate, data.fromDate, data.toDate],
+			);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
+		}
+
+		const result: {
+			e_id: string;
+			e_name: string;
+			b_id: string;
+			identification: string;
+			id: number;
+			description: string;
+			start_date: string;
+			end_date: string;
+			investment_value: number;
+			active: boolean;
+			qty_opportunities: number;
+			sum_opportunities: number;
+			cpl: number;
+		}[] = await qb;
+
+		const groups = SharedService.GroupBy(result, (row) => [row.e_id, row.b_id]);
+
+		return Object.keys(groups).reduce((accumulator, row) => {
+			const [group, unit] = row.split("___");
+
+			accumulator.push({
+				group: {
+					id: result.find((r) => r.e_id === group)?.e_id,
+					fantasyName: result.find((r) => r.e_id === group)?.e_name,
+					units: [
+						{
+							id: result.find((r) => r.b_id === unit)?.b_id,
+							identification: result.find((r) => r.b_id === unit)
+								?.identification,
+							campaigns: result
+								.filter((f) => f.e_id === group && f.b_id === unit)
+								.map((c) => ({
+									id: c.id,
+									description: c.identification,
+									start_date: c.start_date,
+									end_date: c.end_date,
+									investment_value: c.investment_value,
+									active: c.active,
+									qty_opportunities: c.qty_opportunities,
+									sum_opportunities: c.sum_opportunities,
+									cpl: c.cpl,
+								})),
+						},
+					],
+				},
+			});
+
+			return accumulator;
+		}, [] as unknown[]);
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

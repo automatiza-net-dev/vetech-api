@@ -284,4 +284,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async marketingCampaignReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.marketingCampaign(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

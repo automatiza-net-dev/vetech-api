@@ -1537,6 +1537,7 @@ Route.group(() => {
 	Route.get("/crm-activities", "ReportsController.crmActivities");
 	Route.get("/client-log", "ReportsController.clientLogReport");
 	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
+	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
 })
 	.prefix("reports")
 	.middleware("auth");

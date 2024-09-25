@@ -1852,3 +1852,13 @@ Route.group(() => {
 })
 	.prefix("Notifications")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "MarketingCampaignsController.search");
+	Route.get("/", "MarketingCampaignsController.index");
+	Route.post("/store", "MarketingCampaignsController.store");
+	Route.put("/update", "MarketingCampaignsController.update");
+	Route.delete("/delete/:id", "MarketingCampaignsController.destroy");
+})
+	.prefix("marketing-campaigns")
+	.middleware("auth");

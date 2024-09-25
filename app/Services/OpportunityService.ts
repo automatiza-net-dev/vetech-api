@@ -68,6 +68,9 @@ export default class OpportunityService {
 				query.preload("executionUser");
 				query.preload("activity");
 			})
+			.preload("marketingCampaign", (query) => {
+				query.select("id", "description");
+			})
 			.first();
 
 		if (!result) {
@@ -175,7 +178,10 @@ export default class OpportunityService {
 			.preload("user")
 			.preload("unit")
 			.preload("reason")
-			.preload("clientOrigin");
+			.preload("clientOrigin")
+			.preload("marketingCampaign", (query) => {
+				query.select("id", "description");
+			});
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
@@ -1198,6 +1204,7 @@ export default class OpportunityService {
 			contactSubjectId?: number;
 			originId?: string;
 			raceId?: string;
+			marketingCampaignId?: number;
 
 			clientOriginItemDescription?: string;
 			description?: string;
@@ -1223,6 +1230,7 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					marketing_campaign_id: data.marketingCampaignId,
 
 					clientOriginItemDescription: data.clientOriginItemDescription,
 					origin: "crm",
@@ -1354,6 +1362,7 @@ export default class OpportunityService {
 			contactSubjectId?: number;
 			originId?: string;
 			raceId?: string;
+			marketingCampaignId?: number;
 
 			clientOriginItemDescription?: string;
 			description?: string;
@@ -1385,6 +1394,7 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					marketing_campaign_id: data.marketingCampaignId,
 
 					clientOriginItemDescription: data.clientOriginItemDescription,
 					contactDate: data.contactDate,

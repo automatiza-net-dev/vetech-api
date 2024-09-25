@@ -158,7 +158,7 @@ export default class VaccineService {
 				"join patients tutor on tutor.id = holder_dependents.holder_id and holder_dependents.is_main = true",
 			)
 			.joinRaw(
-				"join patient_contacts on tutor.id = patient_contacts.patient_id and patient_contacts.main = true",
+				'left join patient_contacts on tutor.id = patient_contacts.patient_id and patient_contacts.type = "celular"',
 			)
 			.joinRaw(
 				"join vaccine_calendars on vaccine_calendars.patient_vaccine_id = patient_vaccines.id",

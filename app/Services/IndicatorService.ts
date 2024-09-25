@@ -6670,6 +6670,19 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Mensal",
+			tooltip: {
+				"O Funil Ideal Mensal, é baseado no seguinte calculo": {
+					'A Base do Funil (Vendas) vem do calculo "Meta de Faturamento / Meta do Ticket Medio"':
+						[],
+					"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil.":
+						[
+							"Vendas = 100.00,00 / 5.000,00  = 20 (Meta Faturamento / Meta Ticket Medio )",
+							"Comparecimentos 20 * 100 / 30 = 66 (Vendas * 100 / % Conversao Vendas)",
+							"Agendamentos ",
+							"Novas Oportunidades ",
+						],
+				},
+			},
 			message:
 				level4 === 0
 					? "Não existe meta definida para o período selecionado"
@@ -6785,6 +6798,22 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Parcial",
+			tooltip: authCtx.unit.unitConfig.crmUsefulDays
+				? {
+						'O Funil Ideal Mensal, é baseado no calculo proporcional do dia atual do mês sobre o "Funil Ideal Mensal" (em dias úteis).':
+							[
+								"A Base do Funil (Vendas) vem do calculo proporcional do dia atual do mês;",
+								"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil.",
+							],
+					}
+				: {
+						'O Funil Ideal Mensal, é baseado no calculo proporcional do dia atual do mês sobre o "Funil Ideal Mensal" (em dias corridos)':
+							[
+								"A Base do Funil (Vendas) vem do calculo proporcional do dia atual do mês",
+								"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil",
+							],
+					},
+
 			message:
 				Number.isNaN(faturamento) ||
 				!Number.isFinite(faturamento) ||
@@ -6914,6 +6943,10 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: result.length > 0,
 			title: "Funil Crm Realizado",
+			tooltip: {
+				"Este funil é montado com base na consulta das Oportunidades lançadas no periodo do grafico":
+					[],
+			},
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(

@@ -1863,3 +1863,11 @@ Route.group(() => {
 })
 	.prefix("marketing-campaigns")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/store", "DreGroupsController.store");
+	Route.put("/update", "DreGroupsController.update");
+	Route.delete("/delete/:id", "DreGroupsController.destroy");
+})
+	.prefix("dre-groups")
+	.middleware("auth");

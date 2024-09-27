@@ -20,7 +20,7 @@ Event.on("db:query", ({ sql, bindings }) => {
 	Logger.info(
 		"[SQL] %s",
 		bindings?.reduce(
-			(currSql: string, binding) => currSql.replace("?", binding),
+			(currSql: string, binding) => currSql.replace("?", `'${binding}'`),
 			sql,
 		) ?? sql,
 	);

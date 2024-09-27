@@ -10,6 +10,11 @@ import Decimal from "decimal.js";
 
 export default class DreCostPlanningItem extends BaseModel {
 	@column({
+		serializeAs: null,
+	})
+	public id: number;
+
+	@column({
 		consume: (value) => (value ? new Decimal(value) : new Decimal(0)),
 		prepare: (value) => value.toString(),
 		serialize: (value: Decimal) => value.toNumber(),

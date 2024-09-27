@@ -5,6 +5,7 @@ export default class extends BaseSchema {
 
 	public async up() {
 		this.schema.createTable(this.tableName, (table) => {
+			table.increments("id");
 			table
 				.integer("dre_cost_planning_id")
 				.references("dre_cost_plannings.id")
@@ -15,12 +16,10 @@ export default class extends BaseSchema {
 				.notNullable();
 
 			table.uuid("create_user_id").references("users.id");
-			table.uuid("delete_user_id").references("users.id");
 
 			table.decimal("cost", 18, 2).notNullable();
 
 			table.timestamp("created_at", { useTz: true });
-			table.timestamp("deleted_at", { useTz: true });
 
 			table.primary(["dre_cost_planning_id", "account_plan_id"]);
 		});

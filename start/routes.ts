@@ -1865,9 +1865,16 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/search", "DreGroupsController.search");
+
 	Route.post("/store", "DreGroupsController.store");
+	Route.post("/store-planning", "DreGroupsController.storePlanning");
+
 	Route.put("/update", "DreGroupsController.update");
+	Route.put("/update-planning", "DreGroupsController.updatePlanning");
+
 	Route.delete("/delete/:id", "DreGroupsController.destroy");
+	Route.delete("/delete-planning/:id", "DreGroupsController.destroyPlanning");
 })
 	.prefix("dre-groups")
 	.middleware("auth");

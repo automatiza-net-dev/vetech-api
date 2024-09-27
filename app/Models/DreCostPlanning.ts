@@ -4,8 +4,11 @@ import {
 	beforeFetch,
 	beforeFind,
 	column,
+	HasMany,
+	hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import DreCostPlanningItem from "./DreCostPlanningItem";
 
 export default class DreCostPlanning extends BaseModel {
 	@column({ isPrimary: true })
@@ -54,4 +57,9 @@ export default class DreCostPlanning extends BaseModel {
 		serializeAs: null,
 	})
 	public delete_user_id: string | null;
+
+	@hasMany(() => DreCostPlanningItem, {
+		foreignKey: "dre_cost_planning_id",
+	})
+	public items: HasMany<typeof DreCostPlanningItem>;
 }

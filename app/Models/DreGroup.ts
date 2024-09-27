@@ -3,9 +3,15 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
+	BelongsTo,
+	belongsTo,
 	column,
+    HasMany,
+    hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import User from "./User";
+import DreCostPlanning from "./DreCostPlanning";
 
 export default class DreGroup extends BaseModel {
 	@column({ isPrimary: true })
@@ -65,4 +71,19 @@ export default class DreGroup extends BaseModel {
 		serializeAs: null,
 	})
 	public delete_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "create_user_id",
+	})
+	public createUser: BelongsTo<typeof User>;
+
+	@belongsTo(() => User, {
+		foreignKey: "update_user_id",
+	})
+	public updateUser: BelongsTo<typeof User>;
+
+  @hasMany(() => DreCostPlanning, {
+    foreignKey: "dre_group_id",
+  })
+  public dreCostPlannings: HasMany<typeof DreCostPlanning>;
 }

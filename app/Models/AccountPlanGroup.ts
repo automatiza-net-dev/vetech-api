@@ -1,6 +1,14 @@
-import { BaseModel, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	BelongsTo,
+	belongsTo,
+	column,
+	HasMany,
+	hasMany,
+} from "@ioc:Adonis/Lucid/Orm";
 import AccountPlan from "App/Models/AccountPlan";
 import { DateTime } from "luxon";
+import DreGroup from "./DreGroup";
 
 export enum AccountPlanGroupType {
 	C = "CREDITO",
@@ -41,6 +49,12 @@ export default class AccountPlanGroup extends BaseModel {
 		serializeAs: null,
 	})
 	public dre_group_id: number;
+
+	@belongsTo(() => DreGroup, {
+		localKey: "id",
+		foreignKey: "dre_group_id",
+	})
+	public dreGroup: BelongsTo<typeof DreGroup>;
 
 	@hasMany(() => AccountPlan, {
 		foreignKey: "account_plan_group_id",

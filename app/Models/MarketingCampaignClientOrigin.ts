@@ -21,7 +21,7 @@ export default class MarketingCampaignClientOrigin extends BaseModel {
 	public marketing_campaign_id: number;
 
 	@column({
-		serializeAs: null,
+		serializeAs: "clientOriginId",
 	})
 	public client_origin_id: string;
 

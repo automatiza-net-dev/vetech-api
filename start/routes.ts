@@ -1865,6 +1865,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/", "DreGroupsController.index");
 	Route.get("/search", "DreGroupsController.search");
 
 	Route.post("/store", "DreGroupsController.store");

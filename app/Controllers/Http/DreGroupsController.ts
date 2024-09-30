@@ -14,6 +14,14 @@ export default class DreGroupsController {
 		private service: DreGroupService,
 	) {}
 
+	public async index(ctx: HttpContextContract) {
+		const authCtx = await this.shared.getAuthContext(ctx.auth);
+
+		return ctx.response.ok(
+			await this.service.index(authCtx, ctx.request.qs()),
+		);
+	}
+
 	public async search(ctx: HttpContextContract) {
 		const authCtx = await this.shared.getAuthContext(ctx.auth);
 

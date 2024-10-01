@@ -2994,7 +2994,7 @@ ON bills.patient_id = Dep."id"`,
 				[authCtx.group.id],
 			)
 			.groupByRaw(
-				`business_units.id, dre_groups.id,
+				`dre_groups.id,
          account_plan_groups.id,
          apPai.id, account_plans.description, account_plans.id, coalesce(dre_cost_plannings.period, ?),
          coalesce(dre_cost_planning_items."cost", 0),

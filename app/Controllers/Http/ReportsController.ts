@@ -297,4 +297,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async dreGroupsReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.dreGroupReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

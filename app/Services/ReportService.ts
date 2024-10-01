@@ -15,9 +15,6 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 type DreGroupSqlResult = {
-	b_id: string;
-	identification: string;
-
 	sequencia_dre: string;
 	id_dre: string;
 	agrupamento_dre: string;
@@ -2937,10 +2934,7 @@ ON bills.patient_id = Dep."id"`,
 
 		const result: DreGroupSqlResult[] = await Database.from("account_plans")
 			.select(
-				Database.raw(`business_units.id                                         as b_id,
-       business_units.identification,
-
-       coalesce(dre_groups.sequence, 100)                        as sequencia_dre,
+				Database.raw(`coalesce(dre_groups.sequence, 100)                        as sequencia_dre,
        coalesce(dre_groups.id, -1)                               as id_dre,
        coalesce(dre_groups.description, 'NaoInformado')          as agrupamento_dre,
 
@@ -3015,13 +3009,12 @@ ON bills.patient_id = Dep."id"`,
 
 		const groups = SharedService.GroupBy(result, (row) => [
 			JSON.stringify({
-				b_id: row.b_id,
 				periodo: row.periodo,
 			}),
 		]);
 
 		return Object.keys(groups).reduce((currArray, groupKey) => {
-			const { b_id, periodo } = JSON.parse(groupKey);
+			const { periodo } = JSON.parse(groupKey);
 
 			const uniqueDreGroups = groups[groupKey].reduce((currGroups, currRow) => {
 				if (!currGroups.includes(currRow.id_dre)) {
@@ -3032,10 +3025,8 @@ ON bills.patient_id = Dep."id"`,
 			}, [] as string[]);
 
 			currArray.push({
-				id: b_id,
-				identification:
-					result.find((r) => r.b_id === b_id)?.identification ??
-					"Não encontrado",
+				id: authCtx.unit.id,
+				identification: authCtx.unit.identification ?? "-",
 				periodo,
 				agrupamentos: uniqueDreGroups.map((group) => ({
 					id: group,
@@ -3046,9 +3037,7 @@ ON bills.patient_id = Dep."id"`,
 					grupo_plano_contas: result
 						.filter(
 							(gpContas) =>
-								gpContas.b_id === b_id &&
-								gpContas.periodo === periodo &&
-								gpContas.id_dre === group,
+								gpContas.periodo === periodo && gpContas.id_dre === group,
 						)
 						.reduce((currArray, gpContas) => {
 							if (
@@ -3060,7 +3049,6 @@ ON bills.patient_id = Dep."id"`,
 									grupo_planos_contas_pai: result
 										.filter(
 											(gpContasPai) =>
-												gpContasPai.b_id === b_id &&
 												gpContasPai.periodo === periodo &&
 												gpContasPai.id_dre === group,
 										)

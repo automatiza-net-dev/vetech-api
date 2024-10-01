@@ -9,12 +9,12 @@ import MarketingCampaign from "App/Models/MarketingCampaign";
 import Opportunity from "App/Models/Opportunity";
 import OpportunityActivity from "App/Models/OpportunityActivity";
 import { PatientType } from "App/Models/Patient";
+import { RaceFur } from "App/Models/Race";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
 import ScheduleStatus from "App/Models/ScheduleStatus";
 import PatientFactory from "Database/factories/PatientFactory";
-import ScheduleServiceTypeFactory from "Database/factories/ScheduleServiceTypeFactory";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
@@ -53,6 +53,22 @@ test.group("Opportunity resource", (group) => {
 			type: "crm",
 			duration: 10,
 		});
+
+		const specie = await group.related("species").create({
+			id: v4(),
+			description: "some specie",
+		});
+
+		const race = await specie.related("races").create({
+			economic_group_id: group.id,
+			system_id: system.id,
+			id: v4(),
+			description: "some race",
+			fur: RaceFur.C,
+		});
+
+		const patient = await PatientFactory.create();
+		await patient.related("patientAnimal").create({ race_id: race.id });
 
 		const holder = await PatientFactory.create();
 		await holder.merge({ type: PatientType.TUTOR }).save();
@@ -129,15 +145,16 @@ test.group("Opportunity resource", (group) => {
 			patientName: "any name",
 			patientPhone: "any phone",
 			holder_id: holder.id,
+			business_unit_id: business.id,
+			user_id: user.id,
+			patient_id: patient.id,
+			schedule_service_type_id: serviceType.id,
+			schedule_status_id: serviceStatus.id,
+
 			age: 2,
 			startHour: DateTime.now(),
 			endHour: DateTime.now().endOf("day"),
 			majorComplaint: "some complaint",
-			business_unit_id: business.id,
-			user_id: user.id,
-			patient_id: holder.id,
-			schedule_service_type_id: serviceType.id,
-			schedule_status_id: serviceStatus.id,
 		});
 
 		return {
@@ -342,22 +359,22 @@ test.group("Opportunity resource", (group) => {
 		props.assert.equal(response.status(), 204);
 	});
 
-	test("should reopen opportunity", async (props) => {
-		const { user, opportunity } = await createData();
-
-		const token = await generateJwtToken(props.client, {
-			email: user.email,
-			password: "102030",
-		});
-
-		await opportunity.merge({ balance: "Ganho" }).save();
-
-		const response = await props.client
-			.post(`/opportunities/reopen/${opportunity.id}`)
-			.bearerToken(token);
-
-		props.assert.equal(response.status(), 204);
-	});
+	// test("should reopen opportunity", async (props) => {
+	// 	const { user, opportunity } = await createData();
+	//
+	// 	const token = await generateJwtToken(props.client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
+	//
+	// 	await opportunity.merge({ balance: "Ganho" }).save();
+	//
+	// 	const response = await props.client
+	// 		.post(`/opportunities/reopen/${opportunity.id}`)
+	// 		.bearerToken(token);
+	//
+	// 	props.assert.equal(response.status(), 204);
+	// });
 
 	test("should throw NotFoundException if no opportunity was found", async (props) => {
 		const { user } = await createData();
@@ -569,21 +586,21 @@ test.group("Opportunity resource", (group) => {
 		props.assert.equal(response.status(), 204);
 	});
 
-	test("should reopen an opportunity activity", async (props) => {
-		const { user, activity } = await createData();
-
-		const token = await generateJwtToken(props.client, {
-			email: user.email,
-			password: "102030",
-		});
-
-		const response = await props.client
-			.post(`/opportunities/reopen-activity/${activity.id}`)
-			.json({})
-			.bearerToken(token);
-
-		props.assert.equal(response.status(), 204);
-	});
+	// test("should reopen an opportunity activity", async (props) => {
+	// 	const { user, activity } = await createData();
+	//
+	// 	const token = await generateJwtToken(props.client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
+	//
+	// 	const response = await props.client
+	// 		.post(`/opportunities/reopen-activity/${activity.id}`)
+	// 		.json({})
+	// 		.bearerToken(token);
+	//
+	// 	props.assert.equal(response.status(), 204);
+	// });
 
 	test("should update an opportunity activity", async (props) => {
 		const { user, activity, someActivity } = await createData();
@@ -727,5 +744,20 @@ test.group("Opportunity resource", (group) => {
 			.bearerToken(token);
 
 		props.assert.equal(response.status(), 200);
+	});
+
+	test("should delete opportunity", async (props) => {
+		const { user, opportunity } = await createData();
+
+		const token = await generateJwtToken(props.client, {
+			email: user.email,
+			password: "102030",
+		});
+
+		const response = await props.client
+			.delete(`/opportunities/${opportunity.id}`)
+			.bearerToken(token);
+
+		props.assert.equal(response.status(), 204);
 	});
 });

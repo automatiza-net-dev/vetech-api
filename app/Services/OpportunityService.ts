@@ -1329,12 +1329,12 @@ export default class OpportunityService {
 					client_id: schedule.holder_id ? undefined : schedule.patient_id,
 					race_id: schedule.holder_id
 						? undefined
-						: schedule.patient?.patientAnimal.race_id,
+						: schedule.patient?.patientAnimal?.race_id,
 					gender: schedule.holder_id ? undefined : schedule.patient.gender,
 					weight: schedule.holder_id ? undefined : schedule.patient.weight,
 					castrated: schedule.holder_id
 						? undefined
-						: schedule.patient?.patientAnimal.castrated,
+						: schedule.patient?.patientAnimal?.castrated,
 				},
 				{
 					client: trx,
@@ -1465,6 +1465,14 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+			await OpportunityActivity.query()
+				.useTransaction(trx)
+				.where("opportunity_id", model.id)
+				.whereNull("deleted_at")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				});
 		});
 	}
 

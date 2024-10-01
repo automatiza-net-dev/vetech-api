@@ -2996,10 +2996,10 @@ ON bills.patient_id = Dep."id"`,
 			.groupByRaw(
 				`dre_groups.id,
          account_plan_groups.id,
-         apPai.id, account_plans.description, account_plans.id, coalesce(dre_cost_plannings.period, ?),
+         apPai.id, account_plans.description, account_plans.id, dre_cost_plannings.period,
          coalesce(dre_cost_planning_items."cost", 0),
          coalesce(dre_groups.sequence, 100)`,
-				[data.period],
+				[],
 			)
 			.orderByRaw(
 				`coalesce(dre_groups."sequence", 100), account_plan_groups.description, apPai.description, account_plans.description`,

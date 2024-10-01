@@ -2951,9 +2951,6 @@ ON bills.patient_id = Dep."id"`,
        sum(coalesce(finances.total_value, 0))                    as total_Realizado`),
 			)
 			.joinRaw(
-				"join business_units on account_plans.business_unit_id = business_units.id",
-			)
-			.joinRaw(
 				`left join account_plan_groups
                    on account_plan_groups.id = account_plans.account_plan_group_id and account_plan_groups.system_id = ?`,
 				[authCtx.system.id],
@@ -2999,9 +2996,10 @@ ON bills.patient_id = Dep."id"`,
 			.groupByRaw(
 				`business_units.id, dre_groups.id,
          account_plan_groups.id,
-         apPai.id, account_plans.description, account_plans.id, coalesce(dre_cost_plannings.period, '09/2024'),
+         apPai.id, account_plans.description, account_plans.id, coalesce(dre_cost_plannings.period, ?),
          coalesce(dre_cost_planning_items."cost", 0),
          coalesce(dre_groups.sequence, 100)`,
+				[data.period],
 			)
 			.orderByRaw(
 				`coalesce(dre_groups."sequence", 100), account_plan_groups.description, apPai.description, account_plans.description`,

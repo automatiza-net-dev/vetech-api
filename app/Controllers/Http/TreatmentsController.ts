@@ -302,7 +302,7 @@ export default class TreatmentsController {
 
 		const data = await request.validate(SyncScheduleExecutionValidator);
 
-		await this.service.syncScheduleExecution(authCtx, data);
+		await this.service.syncScheduleExecution(authCtx, data.items);
 
 		return response.noContent();
 	}

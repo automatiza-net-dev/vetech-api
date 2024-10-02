@@ -18,7 +18,7 @@ export default class ScheduleServiceGroupService {
 	constructor(private readonly sharedService: SharedService) {}
 
 	public async index(authCtx: AuthContext, data: ISearch) {
-		if (authCtx.unit.unitConfig.showTreatmentExecutionsSchedule) {
+		if (authCtx.unit.unitConfig.showTreatmentExecutionsSchedule && false) {
 			if (!data.patient) {
 				throw new BadRequestException(
 					"É preciso informar o paciente",

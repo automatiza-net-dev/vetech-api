@@ -24,18 +24,22 @@ export default class SyncScheduleExecutionValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		treatmentId: schema.number([
-			rules.exists({ table: "treatments", column: "id" }),
-		]),
-		treatmentItemId: schema.number([
-			rules.exists({ table: "treatment_items", column: "id" }),
-		]),
-		treatmentExecutionId: schema.number([
-			rules.exists({ table: "treatment_executions", column: "id" }),
-		]),
-		scheduleId: schema.string([
-			rules.exists({ table: "schedules", column: "id" }),
-		]),
+		items: schema.array().members(
+			schema.object().members({
+				treatmentId: schema.number([
+					rules.exists({ table: "treatments", column: "id" }),
+				]),
+				treatmentItemId: schema.number([
+					rules.exists({ table: "treatment_items", column: "id" }),
+				]),
+				treatmentExecutionId: schema.number([
+					rules.exists({ table: "treatment_executions", column: "id" }),
+				]),
+				scheduleId: schema.string([
+					rules.exists({ table: "schedules", column: "id" }),
+				]),
+			}),
+		),
 	});
 
 	/**

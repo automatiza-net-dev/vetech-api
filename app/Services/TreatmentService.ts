@@ -643,7 +643,7 @@ export default class TreatmentService {
 				? {
 						id: elem.bill.id,
 						tag: elem.bill.tag,
-				  }
+					}
 				: null,
 			seller: {
 				id: elem.seller.id,
@@ -864,7 +864,7 @@ export default class TreatmentService {
 				? {
 						id: elem.executionUser.id,
 						name: elem.executionUser.name,
-				  }
+					}
 				: null,
 			scheduleDate: elem.scheduleDate,
 			schedule: {
@@ -1005,7 +1005,7 @@ export default class TreatmentService {
 						tutorPhone:
 							elem.client.tutors.find((t) => t.tutor.cellphone)?.tutor
 								.cellphone ?? null,
-				  }
+					}
 				: null,
 			items: elem.items.map((inner) => ({
 				id: inner.id,
@@ -1028,7 +1028,7 @@ export default class TreatmentService {
 					? {
 							id: inner.schedule.id,
 							date: inner.schedule.startHour,
-					  }
+						}
 					: null,
 			})),
 		}));
@@ -1253,39 +1253,42 @@ export default class TreatmentService {
 			treatmentItemId: number;
 			treatmentExecutionId: number;
 			scheduleId: string;
-		},
+		}[],
 	) {
 		await Database.transaction(async (trx) => {
-			const row = await TreatmentExecution.query()
-				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
-				.where("business_unit_id", authCtx.unit.id)
-				.where("treatment_id", data.treatmentId)
-				.where("treatment_item_id", data.treatmentItemId)
-				.where("id", data.treatmentExecutionId)
-				.first();
+			const tasks = data.map(async (elem) => {
+				const row = await TreatmentExecution.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("treatment_id", elem.treatmentId)
+					.where("treatment_item_id", elem.treatmentItemId)
+					.where("id", elem.treatmentExecutionId)
+					.first();
 
-			if (!row) {
-				throw this.shared.ResourceNotFound("Execução não encontrada");
-			}
+				if (!row) {
+					throw this.shared.ResourceNotFound("Execução não encontrada");
+				}
 
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("business_unit_id", authCtx.unit.id)
-				.where("id", data.scheduleId)
-				.first();
-			if (!schedule) {
-				throw this.shared.ResourceNotFound("Agenda não encontrada");
-			}
+				const schedule = await Schedule.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("id", elem.scheduleId)
+					.first();
+				if (!schedule) {
+					throw this.shared.ResourceNotFound("Agenda não encontrada");
+				}
 
-			await row
-				.merge({
-					schedule_user_id: authCtx.user.id,
-					schedule_id: data.scheduleId,
-					scheduleDate: schedule.startHour,
-				})
-				.useTransaction(trx)
-				.save();
+				await row
+					.merge({
+						schedule_user_id: authCtx.user.id,
+						schedule_id: elem.scheduleId,
+						scheduleDate: schedule.startHour,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(tasks);
 		});
 	}
 

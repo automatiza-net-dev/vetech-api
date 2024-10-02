@@ -32,13 +32,13 @@ export default class ScheduleServiceGroupService {
 	constructor(private readonly sharedService: SharedService) {}
 
 	public async index(authCtx: AuthContext, data: ISearch) {
-		if (!data.patient) {
-			throw new BadRequestException(
-				"É preciso informar o paciente",
-				400,
-				"E_ERR",
-			);
-		}
+		// if (!data.patient) {
+		// 	throw new BadRequestException(
+		// 		"É preciso informar o paciente",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
 
 		const result: {
 			ordem: number;

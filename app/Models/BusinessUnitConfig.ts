@@ -222,4 +222,9 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: null,
 	})
 	public treatment_schedule_service_type_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public default_funnel_meta_id: number | null;
 }

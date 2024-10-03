@@ -2110,7 +2110,6 @@ export default class FinanceService {
 
 			// 1.8.1.4
 			Database.from("finances")
-				.debug(true)
 				.where("business_unit_id", authCtx.unit.id)
 				.where("type", FinanceType.C)
 				.where("status", FinanceStatus.A)

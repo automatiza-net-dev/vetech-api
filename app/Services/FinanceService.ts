@@ -1097,6 +1097,7 @@ export default class FinanceService {
 
 			return Finance.create(
 				{
+					user_id: authCtx.user.id,
 					daily_movement_id: dailyMovement?.id,
 					daily_cashier_id: dailyCashier?.id,
 					status: FinanceStatus.A,
@@ -1202,6 +1203,7 @@ export default class FinanceService {
 
 				return Finance.create(
 					{
+						user_id: authCtx.user.id,
 						daily_movement_id: dailyMovement?.id,
 						daily_cashier_id: dailyCashier?.id,
 						status: FinanceStatus.A,

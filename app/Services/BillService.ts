@@ -1216,6 +1216,7 @@ where deposit_id = ?
 						v === installment.installment - 1 ? withOffset : singleValue;
 
 					return {
+						user_id: authCtx.user.id,
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						daily_movement_id: bill.daily_movement_id,

@@ -5,7 +5,9 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
-import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
+import BusinessUnit, {
+	TBusinessUnitEnvironment,
+} from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -6648,7 +6650,7 @@ export default class IndicatorService {
 			conv_agendamentos,
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
-			authCtx.unit.id,
+			authCtx.unit,
 			format(
 				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
 				"MM/yyyy",
@@ -6773,7 +6775,7 @@ export default class IndicatorService {
 			conv_agendamentos,
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
-			authCtx.unit.id,
+			authCtx.unit,
 			format(
 				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
 				"MM/yyyy",
@@ -7004,7 +7006,7 @@ export default class IndicatorService {
 
 	private async generateComplexFunnelData(
 		systemID: number,
-		unitID: string,
+		unit: BusinessUnit,
 		period: string,
 	) {
 		const [[sql1], [sql2], [sql3], [sql4], [sql5]] = await Promise.all([
@@ -7015,8 +7017,16 @@ export default class IndicatorService {
 					"join business_unit_metas on metas.id = business_unit_metas.meta_id",
 				)
 				.where("metas.system_id", systemID)
-				.where("metas.description", "Faturamento")
-				.where("business_unit_metas.business_unit_id", unitID)
+				.whereRaw(
+					unit.unitConfig.default_funnel_meta_id ? "metas.id = ?" : "",
+					[unit.unitConfig.default_funnel_meta_id ?? 0].filter(Boolean),
+				)
+				.whereRaw(
+					unit.unitConfig.default_funnel_meta_id === null
+						? "metas.description = 'Faturamento'"
+						: "",
+				)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Ticket Medio
@@ -7027,7 +7037,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.where("metas.description", "Ticket Medio")
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversao Vendas Crm
@@ -7038,7 +7048,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Vendas Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversão Crm
@@ -7053,7 +7063,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Comparecimentos Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversao Agendamentos Crm
@@ -7066,7 +7076,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Agendamentos Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 		]);
 

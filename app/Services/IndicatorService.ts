@@ -2490,13 +2490,11 @@ export default class IndicatorService {
 			? differenceInBusinessDays(
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
-				)
+				) + 1
 			: (dt.daysInMonth ?? 30);
 
-		const usefulDaysUntilNow = differenceInBusinessDays(
-			new Date(),
-			startOfMonth(dt.toJSDate()),
-		);
+		const usefulDaysUntilNow =
+			differenceInBusinessDays(new Date(), startOfMonth(dt.toJSDate())) + 1;
 
 		const qb = Database.from("bills")
 			.select(
@@ -2549,7 +2547,7 @@ export default class IndicatorService {
 			)
 			.joinRaw("join systems on economic_groups.system_id = systems.id")
 			.joinRaw(
-				`left join metas on (metas.system_id = systems.id or metas.economic_group_id = economic_groups.id) and metas.description = 'Faturamento'`,
+				`left join metas on (metas.system_id = systems.id or metas.economic_group_id = economic_groups.id) and metas.description = 'Faturamento' and metas.deleted_at is null `,
 			)
 			.joinRaw(
 				`

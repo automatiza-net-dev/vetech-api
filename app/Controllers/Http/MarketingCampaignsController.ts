@@ -13,11 +13,13 @@ export default class MarketingCampaignsController {
 	) {}
 
 	public async index({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		return this.sharedService.errorHoc(response, async () => {
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.index(authCtx, request.qs());
+			const data = await this.service.index(authCtx, request.qs());
 
-		return response.ok(data);
+			return response.ok(data);
+		});
 	}
 
 	public async search({ auth, request, response }: HttpContextContract) {
@@ -29,27 +31,33 @@ export default class MarketingCampaignsController {
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateCampaignValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateCampaignValidator);
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.store(authCtx, payload);
+			const data = await this.service.store(authCtx, payload);
 
-		return response.created(data);
+			return response.created(data);
+		});
 	}
 
 	public async update({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpdateCampaignValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		return this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateCampaignValidator);
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.update(authCtx, payload);
+			const data = await this.service.update(authCtx, payload);
 
-		return response.ok(data);
+			return response.ok(data);
+		});
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-		await this.service.delete(authCtx, params.id);
+		return this.sharedService.errorHoc(response, async () => {
+			const authCtx = await this.sharedService.getAuthContext(auth);
+			await this.service.delete(authCtx, params.id);
 
-		return response.noContent();
+			return response.noContent();
+		});
 	}
 }

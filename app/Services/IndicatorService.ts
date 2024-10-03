@@ -2493,7 +2493,7 @@ export default class IndicatorService {
 			? differenceInBusinessDays(
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
-				)
+				) + 1
 			: (dt.daysInMonth ?? 30);
 
 		const usefulDaysUntilNow =

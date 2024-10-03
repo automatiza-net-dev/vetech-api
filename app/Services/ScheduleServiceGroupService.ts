@@ -1,6 +1,5 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
-import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import ScheduleServiceGroup from "App/Models/ScheduleServiceGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -8,13 +7,13 @@ import IScheduleServiceGroupData from "Contracts/interfaces/IScheduleServiceGrou
 import { v4 } from "uuid";
 
 type IndexResult = {
-	schedule_service_group_id: string;
-	schedule_service_group_description: string;
-	schedule_service_group_type: string | null;
+	id: string;
+	description: string;
+	type: string | null;
 	types: {
-		schedule_service_type_id: string;
-		schedule_service_type_description: string;
-		schedule_service_type_type: string;
+		id: string;
+		description: string;
+		type: string;
 		reserved_minutes: number;
 		allow_return: boolean;
 		product_id: string | null;
@@ -133,26 +132,22 @@ export default class ScheduleServiceGroupService {
 		return Object.keys(groups).reduce((accumulator, groupKey) => {
 			const { group_id } = JSON.parse(groupKey);
 
-			if (
-				!accumulator.find((elem) => elem.schedule_service_group_id === group_id)
-			) {
+			if (!accumulator.find((elem) => elem.id === group_id)) {
 				const rowInfo = result.find(
 					(row) => row.schedule_service_group_id === group_id,
 				);
 
 				accumulator.push({
-					schedule_service_group_id: group_id,
-					schedule_service_group_description:
-						rowInfo?.schedule_service_group_description ?? "",
-					schedule_service_group_type:
-						rowInfo?.schedule_service_group_type ?? "",
+					id: group_id,
+					description:
+						rowInfo?.schedule_service_group_description ?? "Não informado",
+					type: rowInfo?.schedule_service_group_type ?? null,
 					types: result
 						.filter((row) => row.schedule_service_group_id === group_id)
 						.map((row) => ({
-							schedule_service_type_id: row.schedule_service_type_id,
-							schedule_service_type_description:
-								row.schedule_service_type_description,
-							schedule_service_type_type: row.schedule_service_type_type,
+							id: row.schedule_service_type_id,
+							description: row.schedule_service_type_description,
+							type: row.schedule_service_type_type,
 							reserved_minutes: row.reserved_minutes,
 							allow_return: row.allow_return,
 							product_id: row.product_id,

@@ -2476,6 +2476,7 @@ export default class IndicatorService {
 			groups?: string[];
 			fromDate?: string;
 			toDate?: string;
+			debug?: string;
 		},
 	) {
 		const dt = DateTime.fromISO(
@@ -2590,6 +2591,10 @@ export default class IndicatorService {
 				data.fromDate,
 				data.toDate,
 			]);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
 		}
 
 		const metasResult = await qb;

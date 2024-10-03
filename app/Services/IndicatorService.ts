@@ -2490,13 +2490,11 @@ export default class IndicatorService {
 			? differenceInBusinessDays(
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
-				) + 1
+				)
 			: (dt.daysInMonth ?? 30);
 
-		const usefulDaysUntilNow = differenceInBusinessDays(
-			new Date(),
-			startOfMonth(dt.toJSDate()),
-		);
+		const usefulDaysUntilNow =
+			differenceInBusinessDays(new Date(), startOfMonth(dt.toJSDate())) + 1;
 
 		const qb = Database.from("bills")
 			.select(

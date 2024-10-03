@@ -1737,10 +1737,10 @@ export default class FinanceService {
 	}
 
 	// 2.3
-	async deleteFinance(unitId: string, id: string) {
+	async deleteFinance(authCtx: AuthContext, id: string) {
 		const finance = await Finance.query()
 			.where("id", id)
-			.where("business_unit_id", unitId)
+			.where("business_unit_id", authCtx.unit.id)
 			.first();
 
 		if (!finance) {
@@ -1765,6 +1765,7 @@ export default class FinanceService {
 
 		return finance
 			.merge({
+				exclusion_user_id: authCtx.user.id,
 				status: FinanceStatus.E,
 				deletedAt: DateTime.now(),
 			})

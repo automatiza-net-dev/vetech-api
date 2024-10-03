@@ -354,9 +354,10 @@ export default class FinancesController {
 	}
 
 	async deleteFinance({ params, auth, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		await this.service.deleteFinance(unit_id, params.id);
+		await this.service.deleteFinance(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.noContent();
 	}

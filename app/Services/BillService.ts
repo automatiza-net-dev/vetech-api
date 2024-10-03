@@ -1275,9 +1275,7 @@ where deposit_id = ?
 		});
 	}
 
-	async deleteBillPayment(unitId: string, id: string) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
+	async deleteBillPayment(authCtx: AuthContext, id: string) {
 		await Database.transaction(async (trx) => {
 			const payment = await BillPayment.query()
 				.useTransaction(trx)
@@ -1285,7 +1283,7 @@ where deposit_id = ?
 				.preload("bill")
 				.first();
 
-			if (!payment || payment.bill.economic_group_id !== group.id) {
+			if (!payment || payment.bill.economic_group_id !== authCtx.group.id) {
 				throw this.sharedService.ResourceNotFound();
 			}
 
@@ -1299,7 +1297,7 @@ where deposit_id = ?
 
 			const finances = await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereILike("document", `%NFS-${payment.bill.tag}%`)
 				.where("block", payment.block);
@@ -1313,12 +1311,13 @@ where deposit_id = ?
 
 			await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereILike("document", `%NFS-${payment.bill.tag}%`)
 				.where("block", payment.block)
 				.where("origin_id", payment.id)
 				.update({
+					exclusion_user_id: authCtx.user.id,
 					deleted_at: DateTime.now(),
 					status: FinanceStatus.E,
 				});
@@ -1337,18 +1336,16 @@ where deposit_id = ?
 	}
 
 	async deleteBillPaymentBlock(
-		unitId: string,
+		authCtx: AuthContext,
 		data: { billId: string; block: number },
 	) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
 		await Database.transaction(async (trx) => {
 			const payments = await BillPayment.query()
 				.useTransaction(trx)
 				.where("bill_id", data.billId)
 				.where("block", data.block)
 				.whereHas("bill", (query) => {
-					query.where("economic_group_id", group.id);
+					query.where("economic_group_id", authCtx.group.id);
 				})
 				.preload("bill");
 
@@ -1372,7 +1369,7 @@ where deposit_id = ?
 
 			const finances = await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereIn(
 					"document",
@@ -1393,7 +1390,7 @@ where deposit_id = ?
 
 			await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereIn(
 					"document",
@@ -1405,6 +1402,7 @@ where deposit_id = ?
 					payments.map((p) => p.id),
 				)
 				.update({
+					exclusion_user_id: authCtx.user.id,
 					deleted_at: new Date(),
 					status: FinanceStatus.E,
 				});
@@ -1414,7 +1412,7 @@ where deposit_id = ?
 				.where("bill_id", data.billId)
 				.where("block", data.block)
 				.whereHas("bill", (query) => {
-					query.where("economic_group_id", group.id);
+					query.where("economic_group_id", authCtx.group.id);
 				})
 				.delete();
 

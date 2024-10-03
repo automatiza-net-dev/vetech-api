@@ -195,9 +195,10 @@ export default class BillsController {
 		response,
 		auth,
 	}: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		await this.service.deleteBillPayment(unit_id, params.id);
+		await this.service.deleteBillPayment(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.noContent();
 	}
@@ -208,9 +209,11 @@ export default class BillsController {
 		auth,
 	}: HttpContextContract) {
 		const payload = await request.validate(DeletePaymentBlockValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.deleteBillPaymentBlock(unit_id, payload);
+		await this.service.deleteBillPaymentBlock(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
 		return response.noContent();
 	}

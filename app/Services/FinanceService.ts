@@ -152,6 +152,9 @@ export default class FinanceService {
 			.preload("checkingAccount")
 			.preload("flag", (query) => {
 				query.select(["id", "description"]);
+			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
 			});
 
 		const borderosQb = Bordero.query()
@@ -287,6 +290,8 @@ export default class FinanceService {
         finances.fee_percentage,
         finances.discount_value,
         finances.discount_percentage,
+        users.id as user_id,
+        users.name as user_name,
         patients.name             as client,
         payment_methods.description            as payment_method,
         tef_flags.description     as tef_flag,
@@ -302,6 +307,7 @@ export default class FinanceService {
 				[],
 			)
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.joinRaw("left join users on finances.user_id = users.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units);
 
@@ -415,6 +421,8 @@ export default class FinanceService {
         borderos.interest_percentage,
         borderos.discount_value,
         borderos.discount_percentage,
+        null as user_id,
+        null as user_name,
         patients.name                                                           as client,
         payment_methods.description                                             as payment_method,
         tef_flags.description                                                   as tef_flag,

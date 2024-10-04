@@ -347,7 +347,7 @@ export default class DreGroupService {
 
 					description: data.description,
 					sequence: data.sequence,
-					active: true,
+					active: data.active,
 				})
 				.save();
 		} catch (e: unknown) {

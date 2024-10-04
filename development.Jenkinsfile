@@ -101,6 +101,7 @@ pipeline {
                     sh """#!/bin/bash
                         ssh -o StrictHostKeyChecking=no -tt $USER@$HOST -p $PORT '
                             pm2 restart '$APP'
+                            pm2 restart 'cron'
                         '
                     """
                 }

@@ -364,7 +364,7 @@ export default class BillService {
 					// 	message: `O produto '${elem.description}' não existe no depósito`,
 					// }));
 					throw new BadRequestException(
-						"Produto não existe no depósito",
+						`Produto(s) não existe no depósito: ${invalidRows.map((r) => r.description).join(", ")}`,
 						400,
 						"E_ERR",
 					);

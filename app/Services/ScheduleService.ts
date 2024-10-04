@@ -39,6 +39,7 @@ import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
 import { v4 } from "uuid";
+import CrmStatus from "App/Models/CrmStatus";
 
 interface ISearch {
 	pid?: string;
@@ -2324,102 +2325,146 @@ export default class ScheduleService {
 	}
 
 	static async RunSyncLateOrMissingSchedules() {
-		const scheduleStatuses = await ScheduleStatus.query();
+		return await Database.transaction(async (trx) => {
+			const scheduleStatuses = await ScheduleStatus.query().useTransaction(trx);
 
-		const missed: string[] = [];
-		const late: string[] = [];
+			const crmStatuses = await CrmStatus.query().useTransaction(trx);
 
-		const toBeMissedSchedules = (await Database.from("schedules")
-			.select(
-				"schedules.id",
-				"schedules.business_unit_id",
-				"schedule_statuses.system_id",
-			)
-			.join(
-				"schedule_statuses",
-				"schedules.schedule_status_id",
-				"schedule_statuses.id",
-			)
-			.join("business_units", "schedules.business_unit_id", "business_units.id")
-			.join(
-				"business_unit_configs",
-				"business_units.id",
-				"business_unit_configs.business_unit_id",
-			)
-			.whereNull("schedules.deleted_at")
-			.whereRaw(
-				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
-			)
-			.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
-			.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
-			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+			const missed: string[] = [];
+			const late: string[] = [];
 
-		if (toBeMissedSchedules.length > 0) {
-			const tasks = toBeMissedSchedules.map(async (elem) => {
-				const newStatus = scheduleStatuses.find(
-					(s) => s.system_id === elem.system_id && s.type === "FAL",
-				);
+			const toBeMissedSchedules: {
+				id: string;
+				business_unit_id: string;
+				system_id: number;
+			}[] = await Database.from("schedules")
+				.useTransaction(trx)
+				.select(
+					"schedules.id",
+					"schedules.business_unit_id",
+					"schedule_statuses.system_id",
+				)
+				.join(
+					"schedule_statuses",
+					"schedules.schedule_status_id",
+					"schedule_statuses.id",
+				)
+				.join(
+					"business_units",
+					"schedules.business_unit_id",
+					"business_units.id",
+				)
+				.join(
+					"business_unit_configs",
+					"business_units.id",
+					"business_unit_configs.business_unit_id",
+				)
+				.whereNull("schedules.deleted_at")
+				.whereRaw(
+					"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+				)
+				.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
+				.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
+				.exec();
 
-				if (!newStatus) {
-					return Promise.resolve(null);
-				}
+			if (toBeMissedSchedules.length > 0) {
+				const tasks = toBeMissedSchedules.map(async (elem) => {
+					const newStatus = scheduleStatuses.find(
+						(s) => s.system_id === elem.system_id && s.type === "FAL",
+					);
 
-				missed.push(elem.id);
-				return Schedule.query().where("id", elem.id).update({
-					schedule_status_id: newStatus.id,
+					if (!newStatus) {
+						return Promise.resolve(null);
+					}
+
+					missed.push(elem.id);
+					await Schedule.query()
+						.useTransaction(trx)
+						.where("id", elem.id)
+						.update({
+							schedule_status_id: newStatus.id,
+						});
+
+					const updatedOpportunityStatus = crmStatuses.find(
+						(cs) =>
+							cs.system_id === elem.system_id &&
+							cs.type === "OP" &&
+							cs.tag === "F",
+					);
+					if (updatedOpportunityStatus) {
+						await Opportunity.query()
+							.useTransaction(trx)
+							.where("schedule_id", elem.id)
+							.update({
+								status_id: updatedOpportunityStatus.id,
+							});
+					}
 				});
-			});
 
-			await Promise.all(tasks);
-		}
+				await Promise.all(tasks);
+			}
 
-		const lateSchedules = (await Database.from("schedules")
-			.select(
-				"schedules.id",
-				"schedules.business_unit_id",
-				"schedule_statuses.system_id",
-			)
-			.join(
-				"schedule_statuses",
-				"schedules.schedule_status_id",
-				"schedule_statuses.id",
-			)
-			.join("business_units", "schedules.business_unit_id", "business_units.id")
-			.join(
-				"business_unit_configs",
-				"business_units.id",
-				"business_unit_configs.business_unit_id",
-			)
-			.whereNull("schedules.deleted_at")
-			.whereRaw(
-				"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
-			)
-			.whereRaw("schedule_statuses.type in ('AC', 'AN')")
-			.whereRaw("business_unit_configs.schedule_late_minutes > 0")
-			.exec()) as { id: string; business_unit_id: string; system_id: number }[];
+			const lateSchedules: {
+				id: string;
+				business_unit_id: string;
+				system_id: number;
+			}[] = await Database.from("schedules")
+				.useTransaction(trx)
+				.select(
+					"schedules.id",
+					"schedules.business_unit_id",
+					"schedule_statuses.system_id",
+				)
+				.join(
+					"schedule_statuses",
+					"schedules.schedule_status_id",
+					"schedule_statuses.id",
+				)
+				.join(
+					"business_units",
+					"schedules.business_unit_id",
+					"business_units.id",
+				)
+				.join(
+					"business_unit_configs",
+					"business_units.id",
+					"business_unit_configs.business_unit_id",
+				)
+				.whereNull("schedules.deleted_at")
+				.whereRaw(
+					"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+				)
+				.whereRaw("schedule_statuses.type in ('AC', 'AN')")
+				.whereRaw("business_unit_configs.schedule_late_minutes > 0")
+				.exec();
 
-		if (lateSchedules.length > 0) {
-			const tasks = lateSchedules.map(async (elem) => {
-				const newStatus = scheduleStatuses.find(
-					(s) => s.system_id === elem.system_id && s.type === "ATR",
-				);
+			if (lateSchedules.length > 0) {
+				const tasks = lateSchedules.map(async (elem) => {
+					const newStatus = scheduleStatuses.find(
+						(s) => s.system_id === elem.system_id && s.type === "ATR",
+					);
 
-				if (!newStatus) {
-					return Promise.resolve(null);
-				}
+					if (!newStatus) {
+						return Promise.resolve(null);
+					}
 
-				late.push(elem.id);
-				return Schedule.query().where("id", elem.id).update({
-					schedule_status_id: newStatus.id,
+					late.push(elem.id);
+					return Schedule.query()
+
+						.useTransaction(trx)
+						.where("id", elem.id)
+						.update({
+							schedule_status_id: newStatus.id,
+						});
 				});
-			});
 
-			await Promise.all(tasks);
-		}
+				await Promise.all(tasks);
+			}
 
-		return {
-			missed,
-			late,
-		};
+			return {
+				missed,
+				late,
+			};
+		});
 	}
 }

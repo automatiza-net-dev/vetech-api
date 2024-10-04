@@ -5,7 +5,8 @@
 		"@adonisjs/core/build/commands/index.js",
 		"@adonisjs/repl/build/commands",
 		"@adonisjs/lucid/build/commands",
-		"@adonisjs/mail/build/commands"
+		"@adonisjs/mail/build/commands",
+		"@verful/scheduler/build/commands"
 	],
 	"exceptionHandlerNamespace": "App/Exceptions/Handler",
 	"aliases": {
@@ -33,7 +34,8 @@
 		"@adonisjs/mail",
 		"@adonisjs/view",
 		"@adonisjs/i18n",
-		"@adonisjs/drive-s3"
+		"@adonisjs/drive-s3",
+		"@verful/scheduler"
 	],
 	"aceProviders": ["@adonisjs/repl"],
 	"tests": {

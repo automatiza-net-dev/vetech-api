@@ -18,11 +18,6 @@ export default class MarketingCampaignService {
 	) {
 		const qb = MarketingCampaign.query()
 			.select("id", "description")
-			.preload("clientOrigins", (query) => {
-				query.preload("clientOrigin", (query) => {
-					query.select("id", "description");
-				});
-			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.where("active", true)

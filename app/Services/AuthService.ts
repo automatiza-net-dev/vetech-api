@@ -378,7 +378,7 @@ export default class AuthService {
 
 			const user = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", `%${data.email}%`)
+				.where("email", data.email)
 				.where("system_id", system.id)
 				.first();
 
@@ -558,7 +558,7 @@ export default class AuthService {
 
 			const user = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", `%${data.email}%`)
+				.where("email", data.email)
 				.where("system_id", system.id)
 				.first();
 
@@ -608,7 +608,7 @@ export default class AuthService {
 
 			const user = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", `%${data.email}%`)
+				.where("email", data.email)
 				.where("system_id", system.id)
 				.first();
 

@@ -8,7 +8,6 @@ import RescheduleValidator from "App/Validators/Schedule/RescheduleValidator";
 import UpdateScheduleSpecificStatusValidator from "App/Validators/Schedule/UpdateScheduleSpecificStatusValidator";
 import UpdateScheduleValidator from "App/Validators/Schedule/UpdateScheduleValidator";
 import { addDays } from "date-fns";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateScheduleStatusTypeValidator";
 import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValidator";
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";

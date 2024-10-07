@@ -40,6 +40,8 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
 import { v4 } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
+import TreatmentExecution from "App/Models/TreatmentExecution";
+import { flatten } from "@poppinss/utils";
 
 interface ISearch {
 	pid?: string;
@@ -422,13 +424,7 @@ export default class ScheduleService {
                 and ("schedule_service_types"."id" = "schedules"."schedule_service_type_id"))`);
 	}
 
-	public async store(
-		authCtx: AuthContext,
-		data: IScheduleData & {
-			scheduleOriginId?: string;
-			ignoreBlocking?: boolean;
-		},
-	) {
+	public async store(authCtx: AuthContext, data: IScheduleData) {
 		if (data.userId) {
 			const scheduleUser = await User.findOrFail(data.userId);
 
@@ -540,9 +536,9 @@ export default class ScheduleService {
 					patient_id: data.patientId,
 					race_id: data.raceId,
 					schedule_service_type_id: data.scheduleServiceTypeId,
-					treatment_id: data.treatmentId,
-					treatment_item_id: data.treatmentItemId,
-					treatment_execution_id: data.treatmentExecutionId,
+					// treatment_id: data.treatmentId,
+					// treatment_item_id: data.treatmentItemId,
+					// treatment_execution_id: data.treatmentExecutionId,
 
 					patientName: data.patientName,
 					patientPhone: data.patientPhone,
@@ -557,6 +553,20 @@ export default class ScheduleService {
 					client: trx,
 				},
 			);
+
+			const tasks =
+				data.executions?.map(async (exec) => {
+					return TreatmentExecution.query()
+						.useTransaction(trx)
+						.where("business_unit_id", authCtx.unit.id)
+						.where("treatment_id", exec.treatmentId)
+						.where("treatment_item_id", exec.treatmentItemId)
+						.where("id", exec.treatmentExecutionId)
+						.update({
+							schedule_id: result.id,
+						});
+				}) ?? [];
+			await Promise.all(tasks);
 
 			await result.related("statusChanges").create(
 				{

@@ -743,6 +743,7 @@ export default class OpportunityService {
 
 			statusMap.get(key)?.push({
 				id: op.id,
+				marketingCampaign: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				value: op.value,
 				description: op.description,
@@ -1037,6 +1038,7 @@ export default class OpportunityService {
 
 			statusMap.get(key)?.push({
 				id: op.id,
+				marketingCampaign: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				description: op.description,
 				balance: op.balance,

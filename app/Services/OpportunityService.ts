@@ -296,6 +296,7 @@ export default class OpportunityService {
 
 		return result.map((elem) => ({
 			id: elem.id,
+			marketingCampaignId: elem.marketing_campaign_id,
 			openingDate: elem.openingDate,
 			contactDate: elem.contactDate,
 			value: elem.value,

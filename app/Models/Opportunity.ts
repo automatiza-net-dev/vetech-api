@@ -267,9 +267,7 @@ export default class Opportunity extends BaseModel {
 	})
 	public race: BelongsTo<typeof Race>;
 
-	@column({
-		serializeAs: null,
-	})
+	@column({})
 	public marketing_campaign_id: number | null;
 
 	@belongsTo(() => MarketingCampaign, {

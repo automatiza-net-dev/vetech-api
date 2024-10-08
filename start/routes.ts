@@ -1880,3 +1880,15 @@ Route.group(() => {
 })
 	.prefix("dre-groups")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search/:id", "PerformanceRangeGoalController.search");
+
+	Route.post("/store", "PerformanceRangeGoalController.store");
+
+	Route.put("/update", "PerformanceRangeGoalController.update");
+
+	Route.delete("/delete/:id", "PerformanceRangeGoalController.destroy");
+})
+	.prefix("performance-range-goals")
+	.middleware("auth");

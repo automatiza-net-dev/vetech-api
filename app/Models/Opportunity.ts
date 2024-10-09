@@ -58,7 +58,7 @@ export default class Opportunity extends BaseModel {
 	@column({
 		columnName: "client_origin_item_description",
 	})
-	public clientOriginItemDescription: string;
+	public clientOriginItemDescription: string | null;
 
 	@column()
 	public description: string;

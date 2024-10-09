@@ -79,7 +79,7 @@ export default class OpportunityService {
 
 		return {
 			id: result.id,
-      marketingCampaignId: result.marketing_campaign_id,
+			marketingCampaignId: result.marketing_campaign_id,
 			openingDate: result.openingDate,
 			clientOriginItemDescription: result.clientOriginItemDescription,
 			contactDate: result.contactDate,
@@ -1234,9 +1234,9 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
-					marketing_campaign_id: data.marketingCampaignId,
+					marketing_campaign_id: data.marketingCampaignId ?? null,
 
-					clientOriginItemDescription: data.clientOriginItemDescription,
+					clientOriginItemDescription: data.clientOriginItemDescription ?? null,
 					origin: "crm",
 					openingDate: DateTime.now(),
 					contactDate: data.contactDate,
@@ -1398,9 +1398,9 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
-					marketing_campaign_id: data.marketingCampaignId,
+					marketing_campaign_id: data.marketingCampaignId ?? null,
 
-					clientOriginItemDescription: data.clientOriginItemDescription,
+					clientOriginItemDescription: data.clientOriginItemDescription ?? null,
 					contactDate: data.contactDate,
 					description: data.description,
 					observation: data.observation,

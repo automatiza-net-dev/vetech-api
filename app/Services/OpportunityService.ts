@@ -79,6 +79,7 @@ export default class OpportunityService {
 
 		return {
 			id: result.id,
+      marketingCampaignId: result.marketing_campaign_id,
 			openingDate: result.openingDate,
 			clientOriginItemDescription: result.clientOriginItemDescription,
 			contactDate: result.contactDate,

@@ -57,9 +57,9 @@ export default class DreGroupService {
 					[data.period],
 				),
 			)
-			.joinRaw(
-				"join business_units on account_plans.business_unit_id = business_units.id",
-			)
+			.joinRaw("left join business_units on business_units.id = ?", [
+				authCtx.unit.id,
+			])
 			.joinRaw(
 				`left join account_plan_groups
                    on account_plan_groups.id = account_plans.account_plan_group_id and account_plan_groups.system_id = ?`,

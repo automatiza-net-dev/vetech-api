@@ -429,6 +429,26 @@ export default class BillService {
 				);
 			}
 
+			if (
+				data.items &&
+				data.items.length > 0 &&
+				authCtx.unit.unitConfig.controlsDeposit
+			) {
+				const invalidRows = await this.depositService.validateDepositOperation(
+					trx,
+					authCtx,
+					data.items.filter((f) => !f.billItemId),
+				);
+
+				if (invalidRows.length > 0) {
+					throw new BadRequestException(
+						`Produto(s) não existe no depósito= ${invalidRows.map((r) => r.description).join(" | ")}`,
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			const tasks = data.items
 				? data.items.map(async (elem) => {
 						const productVariation = await ProductVariation.query()

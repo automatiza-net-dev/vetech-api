@@ -94,6 +94,7 @@ export default class MetaService {
 				const existing = await Meta.query()
 					.useTransaction(trx)
 					.where("system_id", authCtx.system.id)
+					.whereNot("id", id)
 					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 						authCtx.group.id,
 					])

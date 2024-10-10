@@ -42,7 +42,7 @@ export default class MetaService {
 					authCtx.group.id,
 				])
 				.where("system_id", authCtx.system.id)
-				.whereRaw("lower(unaccent((description)) = lower(unaccent(?))", [
+				.whereRaw("lower(unaccent(description)) = lower(unaccent(?))", [
 					data.description,
 				]);
 
@@ -97,7 +97,7 @@ export default class MetaService {
 					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 						authCtx.group.id,
 					])
-					.whereRaw("lower(unaccent((description)) = lower(unaccent(?))", [
+					.whereRaw("lower(unaccent(description)) = lower(unaccent(?))", [
 						data.description,
 					]);
 

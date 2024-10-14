@@ -2739,6 +2739,7 @@ and product_variation_id in (
 				economic_group_id: authCtx.group.id,
 				business_unit_id: authCtx.unit.id,
 
+				user_id: authCtx.user.id,
 				client_id: data.supplierId,
 				daily_cashier_id: data.dailyCashierId,
 				daily_movement_id: data.dailyMovementId,

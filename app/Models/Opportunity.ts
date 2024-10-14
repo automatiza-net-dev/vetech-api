@@ -19,6 +19,7 @@ import { DateTime } from "luxon";
 import ClientOrigin from "./ClientOrigin";
 import ContactSubject from "./ContactSubject";
 import ContactType from "./ContactType";
+import MarketingCampaign from "./MarketingCampaign";
 import Race from "./Race";
 import Reason from "./Reason";
 import Schedule from "./Schedule";
@@ -57,7 +58,7 @@ export default class Opportunity extends BaseModel {
 	@column({
 		columnName: "client_origin_item_description",
 	})
-	public clientOriginItemDescription: string;
+	public clientOriginItemDescription: string | null;
 
 	@column()
 	public description: string;
@@ -265,4 +266,12 @@ export default class Opportunity extends BaseModel {
 		foreignKey: "race_id",
 	})
 	public race: BelongsTo<typeof Race>;
+
+	@column({})
+	public marketing_campaign_id: number | null;
+
+	@belongsTo(() => MarketingCampaign, {
+		foreignKey: "marketing_campaign_id",
+	})
+	public marketingCampaign: BelongsTo<typeof MarketingCampaign>;
 }

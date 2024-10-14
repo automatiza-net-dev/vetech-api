@@ -95,10 +95,12 @@ export default class RoleService {
 
 			const newRole = await Role.create(
 				{
-					name: data.name,
-					type: "user",
 					system_id: authCtx.system.id,
 					economic_group_id: authCtx.group.id,
+					user_id: authCtx.user.id,
+
+					name: data.name,
+					type: "user",
 					externalAccess: data.externalAccess,
 				},
 				{

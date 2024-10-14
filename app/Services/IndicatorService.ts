@@ -5,7 +5,9 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
-import { TBusinessUnitEnvironment } from "App/Models/BusinessUnit";
+import BusinessUnit, {
+	TBusinessUnitEnvironment,
+} from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -2476,6 +2478,7 @@ export default class IndicatorService {
 			groups?: string[];
 			fromDate?: string;
 			toDate?: string;
+			debug?: string;
 		},
 	) {
 		const dt = DateTime.fromISO(
@@ -2588,6 +2591,10 @@ export default class IndicatorService {
 				data.fromDate,
 				data.toDate,
 			]);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
 		}
 
 		const metasResult = await qb;
@@ -4058,8 +4065,8 @@ export default class IndicatorService {
 					),
 			),
 			SharedService.NoopPromise(
-				() => authCtx.hasPermission("IND27"),
-				() => this.consolidatedReviewerBudgets(authCtx, data),
+				() => authCtx.hasPermission("IND29"),
+				() => this.salesConvertionsPerSeller_2(authCtx, data),
 			),
 		]);
 
@@ -6641,7 +6648,7 @@ export default class IndicatorService {
 			conv_agendamentos,
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
-			authCtx.unit.id,
+			authCtx.unit,
 			format(
 				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
 				"MM/yyyy",
@@ -6668,6 +6675,19 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Mensal",
+			tooltip: {
+				"O Funil Ideal Mensal, é baseado no seguinte calculo": {
+					'A Base do Funil (Vendas) vem do calculo "Meta de Faturamento / Meta do Ticket Medio"':
+						[],
+					"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil.":
+						[
+							"Vendas = 100.00,00 / 5.000,00  = 20 (Meta Faturamento / Meta Ticket Medio )",
+							"Comparecimentos 20 * 100 / 30 = 66 (Vendas * 100 / % Conversao Vendas)",
+							"Agendamentos ",
+							"Novas Oportunidades ",
+						],
+				},
+			},
 			message:
 				level4 === 0
 					? "Não existe meta definida para o período selecionado"
@@ -6753,7 +6773,7 @@ export default class IndicatorService {
 			conv_agendamentos,
 		} = await this.generateComplexFunnelData(
 			authCtx.system.id,
-			authCtx.unit.id,
+			authCtx.unit,
 			format(
 				data.fromDate ? addDays(new Date(data.fromDate), 10) : new Date(),
 				"MM/yyyy",
@@ -6783,6 +6803,22 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: true,
 			title: "Funil Ideal Parcial",
+			tooltip: authCtx.unit.unitConfig.crmUsefulDays
+				? {
+						'O Funil Ideal Mensal, é baseado no calculo proporcional do dia atual do mês sobre o "Funil Ideal Mensal" (em dias úteis).':
+							[
+								"A Base do Funil (Vendas) vem do calculo proporcional do dia atual do mês;",
+								"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil.",
+							],
+					}
+				: {
+						'O Funil Ideal Mensal, é baseado no calculo proporcional do dia atual do mês sobre o "Funil Ideal Mensal" (em dias corridos)':
+							[
+								"A Base do Funil (Vendas) vem do calculo proporcional do dia atual do mês",
+								"Os outros niveis do Funil são feitos os calculos reversos baseados na Base do funil",
+							],
+					},
+
 			message:
 				Number.isNaN(faturamento) ||
 				!Number.isFinite(faturamento) ||
@@ -6912,6 +6948,10 @@ export default class IndicatorService {
 			type: "funnel",
 			hasData: result.length > 0,
 			title: "Funil Crm Realizado",
+			tooltip: {
+				"Este funil é montado com base na consulta das Oportunidades lançadas no periodo do grafico":
+					[],
+			},
 			configs: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="330" viewBox="0 0 400 330" fill="none">
         <g clip-path="url(#clip0_2003_2250)">
         <path d="M306.709 96.4708L329.519 38.0934C331.043 34.1976 328.161 30 323.97 30H5.91384C1.80112 30 -1.08071 34.071 0.30648 37.9375L21.2217 96.315C22.0716 98.6816 24.3185 100.259 26.8291 100.259H301.16C303.612 100.259 305.82 98.7595 306.709 96.4805V96.4708Z" fill="${authCtx.group.colors.at(
@@ -6964,7 +7004,7 @@ export default class IndicatorService {
 
 	private async generateComplexFunnelData(
 		systemID: number,
-		unitID: string,
+		unit: BusinessUnit,
 		period: string,
 	) {
 		const [[sql1], [sql2], [sql3], [sql4], [sql5]] = await Promise.all([
@@ -6975,8 +7015,16 @@ export default class IndicatorService {
 					"join business_unit_metas on metas.id = business_unit_metas.meta_id",
 				)
 				.where("metas.system_id", systemID)
-				.where("metas.description", "Faturamento")
-				.where("business_unit_metas.business_unit_id", unitID)
+				.whereRaw(
+					unit.unitConfig.default_funnel_meta_id ? "metas.id = ?" : "",
+					[unit.unitConfig.default_funnel_meta_id ?? 0].filter(Boolean),
+				)
+				.whereRaw(
+					unit.unitConfig.default_funnel_meta_id === null
+						? "metas.description = 'Faturamento'"
+						: "",
+				)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Ticket Medio
@@ -6987,7 +7035,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.where("metas.description", "Ticket Medio")
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversao Vendas Crm
@@ -6998,7 +7046,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Vendas Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversão Crm
@@ -7013,7 +7061,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Comparecimentos Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 
 			// Conversao Agendamentos Crm
@@ -7026,7 +7074,7 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw("metas.description ilike ?", ["% Agendamentos Crm"])
-				.where("business_unit_metas.business_unit_id", unitID)
+				.where("business_unit_metas.business_unit_id", unit.id)
 				.where("business_unit_metas.period", period),
 		]);
 
@@ -7573,6 +7621,148 @@ export default class IndicatorService {
 						totalAtrasadas: elem.qtd_atrasadas,
 					})),
 			})),
+		};
+	}
+
+	public async salesConvertionsPerSeller_2(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		if (!authCtx.hasPermission("IND29")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para ver o gráfico",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("business_units")
+			.select(
+				Database.raw(
+					`
+        economic_groups.id                        as e_id,
+        economic_groups.company_name,
+        business_units.id                         as b_id,
+        business_units.identification,
+        users.id                                  as u_id,
+        coalesce(users.name, 'Não identificado')  as name,
+        count(total.id)                           as qtd_total,
+        sum(coalesce(total.total_value, 0))       as total_orcamentos,
+        count(confirmados.id)                     as qtd_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
+          `,
+				),
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join budgets as total on total.business_unit_id = business_units.id and total.deleted_at is null",
+			)
+			.joinRaw(
+				"left join bills as confirmados on confirmados.budget_id = total.id and confirmados.business_unit_id = business_units.id and confirmados.deleted_at is null",
+			)
+			.joinRaw("left join users on users.id = total.seller_id")
+			.groupBy("economic_groups.id", "business_units.id", "users.id")
+			.whereNull("total.deleted_at")
+			.orderByRaw("total_confirmados desc, name");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("total.budget_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result = await qb;
+
+		const uniqueGroups = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.e_id)) {
+				acc.push(curr.e_id);
+			}
+
+			return acc;
+		}, [] as string[]) as string[];
+
+		return {
+			name: "budgetsVendedorConsolidado",
+			description: "Conversão de Planos de Tratamento por Período",
+			type: "table",
+			hasData: result.length > 0,
+			data: uniqueGroups.map((elem) => {
+				const group = result.find((r) => r.e_id === elem);
+
+				const rows = result.filter((r) => r.e_id === elem);
+
+				const confirmedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_confirmados),
+					0,
+				);
+				const budgetedSum = rows.reduce(
+					(acc, curr) => acc + Number.parseFloat(curr.total_orcamentos),
+					0,
+				);
+
+				const uniqueUsers = rows.reduce((acc, curr) => {
+					if (!acc.includes(curr.u_id)) {
+						acc.push(curr.u_id);
+					}
+
+					return acc;
+				}, [] as string[]) as string[];
+
+				return {
+					id: group.e_id,
+					identification: group.identification,
+					totalConfirmados: this.shared.formatter.format(confirmedSum),
+					totalOrcamentos: this.shared.formatter.format(budgetedSum),
+					users: uniqueUsers.map((user) => {
+						const userRow = result.find((r) => r.u_id === user);
+
+						return {
+							userId: user,
+							userName: userRow.name,
+							qtdClientes: userRow.qtd_confirmados,
+							valorRealizado: this.shared.formatter.format(
+								Number.parseFloat(userRow.total_confirmados),
+							),
+							ticketMedioRealizado: this.shared.formatter.format(
+								Number.parseFloat(userRow.total_confirmados) /
+									Number.parseFloat(userRow.qtd_confirmados),
+							),
+							participacaoRealizado: this.shared.formatPercentage(
+								(Number.parseFloat(userRow.total_confirmados) / confirmedSum) *
+									100,
+							),
+							conversaoAvaliacoes: this.shared.formatPercentage(
+								Number.parseFloat(userRow.conv_venda),
+							),
+							qtdAvaliacoes: userRow.qtd_total,
+							totalAvaliado: this.shared.formatter.format(
+								userRow.total_orcamentos,
+							),
+							ticketMedioAvaliacoes: this.shared.formatter.format(
+								userRow.total_orcamentos / userRow.qtd_total,
+							),
+						};
+					}),
+				};
+			}),
 		};
 	}
 }

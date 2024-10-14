@@ -38,6 +38,9 @@ export default class CreateOpportunityValidator {
 			rules.uuid(),
 			rules.exists({ table: "races", column: "id" }),
 		]),
+		marketingCampaignId: schema.number.optional([
+			rules.exists({ table: "marketing_campaigns", column: "id" }),
+		]),
 		businessUnitId: schema.string.optional([
 			rules.uuid(),
 			rules.exists({ table: "business_units", column: "id" }),

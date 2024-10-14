@@ -1627,12 +1627,8 @@ export default class BudgetService {
 					})),
 			);
 			if (invalidRows.length > 0) {
-				// return invalidRows.map((elem) => ({
-				// 	rule: "ItemInexistente",
-				// 	message: `O produto '${elem.description}' não existe no depósito`,
-				// }));
 				throw new BadRequestException(
-					"Produto não encontrado no estoque",
+					`Produto(s) não existe no depósito= ${invalidRows.map((r) => r.description).join(" | ")}`,
 					400,
 					"E_ERR",
 				);

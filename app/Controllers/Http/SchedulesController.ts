@@ -8,10 +8,10 @@ import RescheduleValidator from "App/Validators/Schedule/RescheduleValidator";
 import UpdateScheduleSpecificStatusValidator from "App/Validators/Schedule/UpdateScheduleSpecificStatusValidator";
 import UpdateScheduleValidator from "App/Validators/Schedule/UpdateScheduleValidator";
 import { addDays } from "date-fns";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateScheduleStatusTypeValidator";
 import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValidator";
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";
+import Schedule from "App/Models/Schedule";
 
 @inject()
 export default class SchedulesController {
@@ -126,7 +126,11 @@ export default class SchedulesController {
 				payload,
 			);
 
-			return response.ok(result);
+			if (result instanceof Schedule) {
+				return response.ok(result);
+			}
+
+			return response.unprocessableEntity(result);
 		});
 	}
 

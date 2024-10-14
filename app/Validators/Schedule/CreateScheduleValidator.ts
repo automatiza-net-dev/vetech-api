@@ -12,11 +12,15 @@ export default class CreateScheduleValidator {
 				column: "id",
 			}),
 		]),
-		treatmentId: schema.number.optional(),
-		treatmentItemId: schema.number.optional(),
-		treatmentExecutionId: schema.number.optional(),
 		startHour: schema.date({}),
 		endHour: schema.date({}),
+		executions: schema.array.optional().members(
+			schema.object().members({
+				treatmentId: schema.number(),
+				treatmentItemId: schema.number(),
+				treatmentExecutionId: schema.number(),
+			}),
+		),
 
 		patientId: schema.string.optional({}, [
 			rules.uuid(),

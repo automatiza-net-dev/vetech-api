@@ -364,7 +364,7 @@ export default class BillService {
 					// 	message: `O produto '${elem.description}' não existe no depósito`,
 					// }));
 					throw new BadRequestException(
-						"Produto não existe no depósito",
+						`Produto(s) não existe no depósito= ${invalidRows.map((r) => r.description).join(" | ")}`,
 						400,
 						"E_ERR",
 					);
@@ -427,6 +427,26 @@ export default class BillService {
 					400,
 					"E_NOT_OPEN",
 				);
+			}
+
+			if (
+				data.items &&
+				data.items.length > 0 &&
+				authCtx.unit.unitConfig.controlsDeposit
+			) {
+				const invalidRows = await this.depositService.validateDepositOperation(
+					trx,
+					authCtx,
+					data.items.filter((f) => !f.billItemId),
+				);
+
+				if (invalidRows.length > 0) {
+					throw new BadRequestException(
+						`Produto(s) não existe no depósito= ${invalidRows.map((r) => r.description).join(" | ")}`,
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			const tasks = data.items
@@ -529,7 +549,7 @@ export default class BillService {
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					patient_id: data.patientId,
-					financial_responsible_id: data.financialResponsibleId,
+					financial_responsible_id: data.financialResponsibleId ?? null,
 					additionalInformation: data.additionalInformation,
 				})
 				.useTransaction(trx)
@@ -1216,6 +1236,7 @@ where deposit_id = ?
 						v === installment.installment - 1 ? withOffset : singleValue;
 
 					return {
+						user_id: authCtx.user.id,
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
 						daily_movement_id: bill.daily_movement_id,
@@ -1274,9 +1295,7 @@ where deposit_id = ?
 		});
 	}
 
-	async deleteBillPayment(unitId: string, id: string) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
+	async deleteBillPayment(authCtx: AuthContext, id: string) {
 		await Database.transaction(async (trx) => {
 			const payment = await BillPayment.query()
 				.useTransaction(trx)
@@ -1284,7 +1303,7 @@ where deposit_id = ?
 				.preload("bill")
 				.first();
 
-			if (!payment || payment.bill.economic_group_id !== group.id) {
+			if (!payment || payment.bill.economic_group_id !== authCtx.group.id) {
 				throw this.sharedService.ResourceNotFound();
 			}
 
@@ -1298,7 +1317,7 @@ where deposit_id = ?
 
 			const finances = await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereILike("document", `%NFS-${payment.bill.tag}%`)
 				.where("block", payment.block);
@@ -1312,12 +1331,13 @@ where deposit_id = ?
 
 			await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereILike("document", `%NFS-${payment.bill.tag}%`)
 				.where("block", payment.block)
 				.where("origin_id", payment.id)
 				.update({
+					exclusion_user_id: authCtx.user.id,
 					deleted_at: DateTime.now(),
 					status: FinanceStatus.E,
 				});
@@ -1336,18 +1356,16 @@ where deposit_id = ?
 	}
 
 	async deleteBillPaymentBlock(
-		unitId: string,
+		authCtx: AuthContext,
 		data: { billId: string; block: number },
 	) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
 		await Database.transaction(async (trx) => {
 			const payments = await BillPayment.query()
 				.useTransaction(trx)
 				.where("bill_id", data.billId)
 				.where("block", data.block)
 				.whereHas("bill", (query) => {
-					query.where("economic_group_id", group.id);
+					query.where("economic_group_id", authCtx.group.id);
 				})
 				.preload("bill");
 
@@ -1371,7 +1389,7 @@ where deposit_id = ?
 
 			const finances = await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereIn(
 					"document",
@@ -1392,7 +1410,7 @@ where deposit_id = ?
 
 			await Finance.query()
 				.useTransaction(trx)
-				.where("business_unit_id", unitId)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("origin_flag", FinanceOriginFlag.S)
 				.whereIn(
 					"document",
@@ -1404,6 +1422,7 @@ where deposit_id = ?
 					payments.map((p) => p.id),
 				)
 				.update({
+					exclusion_user_id: authCtx.user.id,
 					deleted_at: new Date(),
 					status: FinanceStatus.E,
 				});
@@ -1413,7 +1432,7 @@ where deposit_id = ?
 				.where("bill_id", data.billId)
 				.where("block", data.block)
 				.whereHas("bill", (query) => {
-					query.where("economic_group_id", group.id);
+					query.where("economic_group_id", authCtx.group.id);
 				})
 				.delete();
 
@@ -3457,7 +3476,7 @@ where deposit_id = ?
 			if (!hasPermissions) {
 				throw new UnauthorizedException(
 					"Usuário sem permissão de fazer a operação",
-					401,
+					400,
 					"E_ERR",
 				);
 			}

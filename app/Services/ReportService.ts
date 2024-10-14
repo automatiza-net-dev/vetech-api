@@ -14,6 +14,25 @@ import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
+type DreGroupSqlResult = {
+	sequencia_dre: string;
+	id_dre: string;
+	agrupamento_dre: string;
+
+	id_grupo_plano_contas: string;
+	grupo_plano_contas: string;
+
+	id_plano_contas_pai: string;
+	plano_contas_pai: string;
+
+	id_plano_contas: string;
+	plano_contas: string;
+
+	periodo: string;
+	custo: string;
+	total: string;
+};
+
 @inject()
 export default class ReportService {
 	constructor(private sharedService: SharedService) {}
@@ -2782,6 +2801,300 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		return qb;
+	}
+
+	public async marketingCampaign(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			marketingCampaign?: number;
+			active?: string;
+			fromDate?: string;
+			toDate?: string;
+			debug?: string;
+		},
+	) {
+		const qb = Database.from("marketing_campaigns")
+			.select(
+				Database.raw(`economic_groups.id                                  as e_id,
+       economic_groups.company_name                        as e_name,
+       business_units.id                                   as b_id,
+       business_units.identification,
+       marketing_campaigns.id,
+       marketing_campaigns.description,
+       marketing_campaigns.start_date,
+       marketing_campaigns.end_date,
+       marketing_campaigns.investment_value::float,
+       marketing_campaigns.active,
+       count(opportunities.id)::int                        as qty_opportunities,
+       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunities,
+       case
+           when count(opportunities.id) = 0 then 0::float
+           else (investment_value / count(opportunities.id))::float
+           end                                             as cpl`),
+			)
+			.joinRaw(
+				"join economic_groups on marketing_campaigns.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join business_units on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw(
+				"left join opportunities on marketing_campaigns.id = opportunities.marketing_campaign_id",
+			)
+			.groupByRaw(
+				"economic_groups.id, business_units.id, marketing_campaigns.id",
+			)
+			.where("economic_groups.id", authCtx.group.id);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_units.id", data.units);
+		} else {
+			qb.where("business_units.id", authCtx.unit.id);
+		}
+
+		if (data.marketingCampaign) {
+			qb.where("marketing_campaigns.id", data.marketingCampaign);
+		}
+
+		if (data.active) {
+			qb.where("marketing_campaigns.active", data.active);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw(
+				`(
+          (marketing_campaigns.start_date between ? and ?) or
+          (marketing_campaigns.end_date between ? and ?)
+        )`,
+				[data.fromDate, data.toDate, data.fromDate, data.toDate],
+			);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
+		}
+
+		const result: {
+			e_id: string;
+			e_name: string;
+			b_id: string;
+			identification: string;
+			id: number;
+			description: string;
+			start_date: string;
+			end_date: string;
+			investment_value: number;
+			active: boolean;
+			qty_opportunities: number;
+			sum_opportunities: number;
+			cpl: number;
+		}[] = await qb;
+
+		const groups = SharedService.GroupBy(result, (row) => [row.e_id, row.b_id]);
+
+		return Object.keys(groups).reduce((accumulator, row) => {
+			const [group, unit] = row.split("___");
+
+			accumulator.push({
+				group: {
+					id: result.find((r) => r.e_id === group)?.e_id,
+					fantasyName: result.find((r) => r.e_id === group)?.e_name,
+					units: [
+						{
+							id: result.find((r) => r.b_id === unit)?.b_id,
+							identification: result.find((r) => r.b_id === unit)
+								?.identification,
+							campaigns: result
+								.filter((f) => f.e_id === group && f.b_id === unit)
+								.map((c) => ({
+									id: c.id,
+									description: c.identification,
+									start_date: c.start_date,
+									end_date: c.end_date,
+									investment_value: c.investment_value,
+									active: c.active,
+									qty_opportunities: c.qty_opportunities,
+									sum_opportunities: c.sum_opportunities,
+									cpl: c.cpl,
+								})),
+						},
+					],
+				},
+			});
+
+			return accumulator;
+		}, [] as unknown[]);
+	}
+
+	public async dreGroupReport(authCtx: AuthContext, data: { period?: string }) {
+		if (!data.period) {
+			throw new BadRequestException("Periodo não informado", 400, "E_REQ");
+		}
+
+		const result: DreGroupSqlResult[] = await Database.from("account_plans")
+			.select(
+				Database.raw(`coalesce(dre_groups.sequence, 100)                        as sequencia_dre,
+       coalesce(dre_groups.id, -1)                               as id_dre,
+       coalesce(dre_groups.description, 'NaoInformado')          as agrupamento_dre,
+
+       coalesce(account_plan_groups.id, -1)                      as id_grupo_plano_contas,
+       coalesce(account_plan_groups.description, 'NaoInformado') as grupo_plano_contas,
+
+       apPai.id                                                  as id_plano_Contas_Pai,
+       apPai.description                                         as plano_Contas_Pai,
+
+       account_plans.id                                          as id_Plano_Contas,
+       account_plans.description                                 as plano_Contas,
+       coalesce(dre_cost_plannings."period", '09/2024')          as periodo,
+       coalesce(dre_cost_planning_items."cost", 0)               as custo,
+       sum(coalesce(finances.total_value, 0))                    as total_Realizado`),
+			)
+			.joinRaw(
+				`left join account_plan_groups
+                   on account_plan_groups.id = account_plans.account_plan_group_id and account_plan_groups.system_id = ?`,
+				[authCtx.system.id],
+			)
+			.joinRaw(
+				"left join dre_groups on account_plan_groups.dre_group_id = dre_groups.id and dre_groups.system_id = ?",
+				[authCtx.system.id],
+			)
+			.joinRaw(
+				"left join account_plans apPai on account_plans.parent_id = apPai.id",
+				[],
+			)
+			.joinRaw(
+				`left join dre_cost_plannings
+                   on dre_cost_plannings.business_unit_id = ? and period = ?`,
+				[authCtx.unit.id, data.period],
+			)
+			.joinRaw(
+				`left join dre_cost_planning_items
+                   on dre_cost_plannings.id = dre_cost_planning_items.dre_cost_planning_id and dre_cost_planning_items.account_plan_id = account_plans.id`,
+				[],
+			)
+			.joinRaw(
+				`left join finances
+                   on account_plans.id = finances.account_plan_id and
+                      finances.business_unit_id = ?
+                       and to_char(finances.expiration_date, 'MM/YYYY') = ?`,
+				[authCtx.unit.id, data.period],
+			)
+			.where("account_plans.system_id", authCtx.system.id)
+			.whereRaw(
+				"(account_plans.economic_group_id is null or account_plans.economic_group_id = ?)",
+				[authCtx.group.id],
+			)
+			.whereRaw(
+				"(account_plan_groups.economic_group_id is null or account_plan_groups.economic_group_id = ?)",
+				[authCtx.group.id],
+			)
+			.whereRaw(
+				"(account_plans.business_unit_id is null or account_plans.business_unit_id = ?)",
+				[authCtx.group.id],
+			)
+			.groupByRaw(
+				`dre_groups.id,
+         account_plan_groups.id,
+         apPai.id, account_plans.description, account_plans.id, dre_cost_plannings.period,
+         coalesce(dre_cost_planning_items."cost", 0),
+         coalesce(dre_groups.sequence, 100)`,
+				[],
+			)
+			.orderByRaw(
+				`coalesce(dre_groups."sequence", 100), account_plan_groups.description, apPai.description, account_plans.description`,
+			);
+
+		const groups = SharedService.GroupBy(result, (row) => [
+			JSON.stringify({
+				periodo: row.periodo,
+			}),
+		]);
+
+		return Object.keys(groups).reduce((currArray, groupKey) => {
+			const { periodo } = JSON.parse(groupKey);
+
+			const uniqueDreGroups = groups[groupKey].reduce((currGroups, currRow) => {
+				if (!currGroups.includes(currRow.id_dre)) {
+					currGroups.push(currRow.id_dre);
+				}
+
+				return currGroups;
+			}, [] as string[]);
+
+			currArray.push({
+				id: authCtx.unit.id,
+				identification: authCtx.unit.identification ?? "-",
+				periodo,
+				agrupamentos: uniqueDreGroups.map((group) => ({
+					id: group,
+					identification:
+						result.find((r) => r.id_dre === group)?.agrupamento_dre ??
+						"Não encontrado",
+					sequencia: result.find((r) => r.id_dre === group)?.sequencia_dre ?? 0,
+					grupo_plano_contas: result
+						.filter(
+							(gpContas) =>
+								gpContas.periodo === periodo && gpContas.id_dre === group,
+						)
+						.reduce((currArray, gpContas) => {
+							if (
+								!currArray.find((c) => c.id === gpContas.id_grupo_plano_contas)
+							) {
+								currArray.push({
+									id: gpContas.id_grupo_plano_contas,
+									description: gpContas.grupo_plano_contas,
+									grupo_planos_contas_pai: result
+										.filter(
+											(gpContasPai) =>
+												gpContasPai.periodo === periodo &&
+												gpContasPai.id_dre === group,
+										)
+										.reduce((currArray, gpContasPai) => {
+											if (
+												!currArray.find(
+													(c) => c.id === gpContasPai.id_plano_contas_pai,
+												)
+											) {
+												currArray.push({
+													id: gpContasPai.id_plano_contas_pai,
+													description: gpContasPai.plano_contas_pai,
+													grupo_planos_contas: result
+														.filter(
+															(gpContasFilho) =>
+																gpContasPai.id_plano_contas_pai ===
+																gpContasFilho.id_plano_contas,
+														)
+														.reduce((currArray, gpContasFilho) => {
+															if (
+																!currArray.find(
+																	(c) => c.id === gpContasFilho.id_plano_contas,
+																)
+															) {
+																currArray.push({
+																	id: gpContasFilho.id_plano_contas,
+																	description: gpContasFilho.plano_contas,
+																	custo: gpContasFilho.custo,
+																});
+															}
+
+															return currArray;
+														}, [] as any[]),
+												});
+											}
+
+											return currArray;
+										}, [] as any[]),
+								});
+							}
+
+							return currArray;
+						}, [] as any[]),
+				})),
+			});
+
+			return currArray;
+		}, [] as any[]);
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

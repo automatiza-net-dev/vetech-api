@@ -19,6 +19,8 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
 
+type KeySelector<T> = (item: T) => any[];
+
 export type DateSet = {
 	start: Date;
 	end: Date;
@@ -515,5 +517,25 @@ export default class SharedService {
 
 		// pular dias necessários desde a ultima parcela
 		return lastDate.plus({ days: paymentMethod.daysBetweenInstallments });
+	}
+
+	static GroupBy<T>(
+		array: T[],
+		keySelector: KeySelector<T>,
+	): Record<string, T[]> {
+		return array.reduce(
+			(acc, item) => {
+				// Select multiple keys and join them into a composite key
+				const compositeKey = keySelector(item).join("___");
+
+				if (!acc[compositeKey]) {
+					acc[compositeKey] = [];
+				}
+				acc[compositeKey].push(item);
+
+				return acc;
+			},
+			{} as Record<string, T[]>,
+		);
 	}
 }

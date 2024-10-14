@@ -71,6 +71,11 @@ export default class Role extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public user_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
 	public economic_group_id: string;
 
 	@manyToMany(() => Permission, {

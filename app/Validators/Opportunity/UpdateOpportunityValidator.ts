@@ -34,6 +34,9 @@ export default class UpdateOpportunityValidator {
 		contactDate: schema.date(),
 		clientOriginItemDescription: schema.string.optional({}, []),
 
+		marketingCampaignId: schema.number.optional([
+			rules.exists({ table: "marketing_campaigns", column: "id" }),
+		]),
 		businessUnitId: schema.string.optional([
 			rules.uuid(),
 			rules.exists({ table: "business_units", column: "id" }),

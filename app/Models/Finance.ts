@@ -18,6 +18,7 @@ import Bordero from "./Bordero";
 import BusinessUnit from "./BusinessUnit";
 import Patient from "./Patient";
 import PaymentMethod from "./PaymentMethod";
+import User from "./User";
 
 export enum FinanceType {
 	C = "CREDITO",
@@ -331,6 +332,21 @@ export default class Finance extends BaseModel {
 		serializeAs: null,
 	})
 	public acquirer_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "user_id",
+	})
+	public user: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string;
 
 	@belongsTo(() => TefAcquirer, {
 		foreignKey: "acquirer_id",

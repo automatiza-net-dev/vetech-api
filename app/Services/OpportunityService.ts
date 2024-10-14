@@ -68,6 +68,9 @@ export default class OpportunityService {
 				query.preload("executionUser");
 				query.preload("activity");
 			})
+			.preload("marketingCampaign", (query) => {
+				query.select("id", "description");
+			})
 			.first();
 
 		if (!result) {
@@ -76,6 +79,7 @@ export default class OpportunityService {
 
 		return {
 			id: result.id,
+			marketingCampaignId: result.marketing_campaign_id,
 			openingDate: result.openingDate,
 			clientOriginItemDescription: result.clientOriginItemDescription,
 			contactDate: result.contactDate,
@@ -175,7 +179,10 @@ export default class OpportunityService {
 			.preload("user")
 			.preload("unit")
 			.preload("reason")
-			.preload("clientOrigin");
+			.preload("clientOrigin")
+			.preload("marketingCampaign", (query) => {
+				query.select("id", "description");
+			});
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
@@ -290,6 +297,7 @@ export default class OpportunityService {
 
 		return result.map((elem) => ({
 			id: elem.id,
+			marketingCampaignId: elem.marketing_campaign_id,
 			openingDate: elem.openingDate,
 			contactDate: elem.contactDate,
 			value: elem.value,
@@ -737,6 +745,7 @@ export default class OpportunityService {
 
 			statusMap.get(key)?.push({
 				id: op.id,
+				marketingCampaignId: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				value: op.value,
 				description: op.description,
@@ -1031,6 +1040,7 @@ export default class OpportunityService {
 
 			statusMap.get(key)?.push({
 				id: op.id,
+				marketingCampaignId: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				description: op.description,
 				balance: op.balance,
@@ -1198,6 +1208,7 @@ export default class OpportunityService {
 			contactSubjectId?: number;
 			originId?: string;
 			raceId?: string;
+			marketingCampaignId?: number;
 
 			clientOriginItemDescription?: string;
 			description?: string;
@@ -1223,8 +1234,9 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					marketing_campaign_id: data.marketingCampaignId ?? null,
 
-					clientOriginItemDescription: data.clientOriginItemDescription,
+					clientOriginItemDescription: data.clientOriginItemDescription ?? null,
 					origin: "crm",
 					openingDate: DateTime.now(),
 					contactDate: data.contactDate,
@@ -1321,12 +1333,12 @@ export default class OpportunityService {
 					client_id: schedule.holder_id ? undefined : schedule.patient_id,
 					race_id: schedule.holder_id
 						? undefined
-						: schedule.patient?.patientAnimal.race_id,
+						: schedule.patient?.patientAnimal?.race_id,
 					gender: schedule.holder_id ? undefined : schedule.patient.gender,
 					weight: schedule.holder_id ? undefined : schedule.patient.weight,
 					castrated: schedule.holder_id
 						? undefined
-						: schedule.patient?.patientAnimal.castrated,
+						: schedule.patient?.patientAnimal?.castrated,
 				},
 				{
 					client: trx,
@@ -1354,6 +1366,7 @@ export default class OpportunityService {
 			contactSubjectId?: number;
 			originId?: string;
 			raceId?: string;
+			marketingCampaignId?: number;
 
 			clientOriginItemDescription?: string;
 			description?: string;
@@ -1385,8 +1398,9 @@ export default class OpportunityService {
 					contact_subject_id: data.contactSubjectId,
 					client_origin_id: data.originId,
 					race_id: data.raceId,
+					marketing_campaign_id: data.marketingCampaignId ?? null,
 
-					clientOriginItemDescription: data.clientOriginItemDescription,
+					clientOriginItemDescription: data.clientOriginItemDescription ?? null,
 					contactDate: data.contactDate,
 					description: data.description,
 					observation: data.observation,
@@ -1455,6 +1469,14 @@ export default class OpportunityService {
 				})
 				.useTransaction(trx)
 				.save();
+			await OpportunityActivity.query()
+				.useTransaction(trx)
+				.where("opportunity_id", model.id)
+				.whereNull("deleted_at")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				});
 		});
 	}
 

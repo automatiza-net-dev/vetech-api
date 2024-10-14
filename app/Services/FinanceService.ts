@@ -152,6 +152,9 @@ export default class FinanceService {
 			.preload("checkingAccount")
 			.preload("flag", (query) => {
 				query.select(["id", "description"]);
+			})
+			.preload("user", (query) => {
+				query.select(["id", "name"]);
 			});
 
 		const borderosQb = Bordero.query()
@@ -287,6 +290,8 @@ export default class FinanceService {
         finances.fee_percentage,
         finances.discount_value,
         finances.discount_percentage,
+        users.id as user_id,
+        users.name as user_name,
         patients.name             as client,
         payment_methods.description            as payment_method,
         tef_flags.description     as tef_flag,
@@ -302,6 +307,7 @@ export default class FinanceService {
 				[],
 			)
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
+			.joinRaw("left join users on finances.user_id = users.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units);
 
@@ -415,6 +421,8 @@ export default class FinanceService {
         borderos.interest_percentage,
         borderos.discount_value,
         borderos.discount_percentage,
+        null as user_id,
+        null as user_name,
         patients.name                                                           as client,
         payment_methods.description                                             as payment_method,
         tef_flags.description                                                   as tef_flag,
@@ -1097,6 +1105,7 @@ export default class FinanceService {
 
 			return Finance.create(
 				{
+					user_id: authCtx.user.id,
 					daily_movement_id: dailyMovement?.id,
 					daily_cashier_id: dailyCashier?.id,
 					status: FinanceStatus.A,
@@ -1202,6 +1211,7 @@ export default class FinanceService {
 
 				return Finance.create(
 					{
+						user_id: authCtx.user.id,
 						daily_movement_id: dailyMovement?.id,
 						daily_cashier_id: dailyCashier?.id,
 						status: FinanceStatus.A,
@@ -1735,10 +1745,10 @@ export default class FinanceService {
 	}
 
 	// 2.3
-	async deleteFinance(unitId: string, id: string) {
+	async deleteFinance(authCtx: AuthContext, id: string) {
 		const finance = await Finance.query()
 			.where("id", id)
-			.where("business_unit_id", unitId)
+			.where("business_unit_id", authCtx.unit.id)
 			.first();
 
 		if (!finance) {
@@ -1763,6 +1773,7 @@ export default class FinanceService {
 
 		return finance
 			.merge({
+				exclusion_user_id: authCtx.user.id,
 				status: FinanceStatus.E,
 				deletedAt: DateTime.now(),
 			})
@@ -2099,7 +2110,6 @@ export default class FinanceService {
 
 			// 1.8.1.4
 			Database.from("finances")
-				.debug(true)
 				.where("business_unit_id", authCtx.unit.id)
 				.where("type", FinanceType.C)
 				.where("status", FinanceStatus.A)

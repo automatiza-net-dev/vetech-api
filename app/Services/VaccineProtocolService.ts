@@ -28,6 +28,10 @@ export default class VaccineProtocolService {
 			qb.whereHas("vaccine", (query) => {
 				if (data.type) {
 					query.where("type", data.type);
+
+					// if (data.type === "vermifuge") {
+					// } else {
+					// }
 				}
 
 				if (data.vaccine) {
@@ -42,11 +46,13 @@ export default class VaccineProtocolService {
 
 	public async store(data: Omit<IVaccineProtocolData, "active">) {
 		return VaccineProtocol.create({
+			vaccine_id: data.vaccineId,
+			specie_id: data.specieId,
+
+			expirationDays: data.expirationDays,
 			name: data.name,
 			doses: data.doses,
 			interval: data.interval,
-			vaccine_id: data.vaccineId,
-			specie_id: data.specieId,
 		});
 	}
 
@@ -72,11 +78,13 @@ export default class VaccineProtocolService {
 
 		return model
 			.merge({
+				vaccine_id: data.vaccineId,
+				specie_id: data.specieId,
+
+				expirationDays: data.expirationDays,
 				name: data.name,
 				doses: data.doses,
 				interval: data.interval,
-				vaccine_id: data.vaccineId,
-				specie_id: data.specieId,
 				active: data.active,
 			})
 			.save();

@@ -525,6 +525,11 @@ Route.resource("vaccines", "VaccinesController")
 	.middleware({
 		"*": ["auth"],
 	});
+Route.group(() => {
+	Route.get("/status/:id", "VaccinesController.status");
+})
+	.prefix("vaccines")
+	.middleware("auth");
 
 Route.resource("exams", "ExamsController")
 	.apiOnly()
@@ -1532,6 +1537,8 @@ Route.group(() => {
 	Route.get("/crm-activities", "ReportsController.crmActivities");
 	Route.get("/client-log", "ReportsController.clientLogReport");
 	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
+	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
+	Route.get("/dre-groups", "ReportsController.dreGroupsReport");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1715,6 +1722,10 @@ Route.group(() => {
 		"IndicatorsController.salesPerReviwerIndicators",
 	);
 	Route.get("/activities-2", "IndicatorsController.activiesIndicators_2");
+	Route.get(
+		"/sales-convertions-per-seller-2",
+		"IndicatorsController.salesConvertionsPerSeller_2",
+	);
 })
 	.prefix("indicators")
 	.middleware("auth");
@@ -1842,4 +1853,42 @@ Route.group(() => {
 	);
 })
 	.prefix("Notifications")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "MarketingCampaignsController.search");
+	Route.get("/", "MarketingCampaignsController.index");
+	Route.post("/store", "MarketingCampaignsController.store");
+	Route.put("/update", "MarketingCampaignsController.update");
+	Route.delete("/delete/:id", "MarketingCampaignsController.destroy");
+})
+	.prefix("marketing-campaigns")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "DreGroupsController.index");
+	Route.get("/search", "DreGroupsController.search");
+
+	Route.post("/store", "DreGroupsController.store");
+	Route.post("/store-planning", "DreGroupsController.storePlanning");
+
+	Route.put("/update", "DreGroupsController.update");
+	Route.put("/update-planning", "DreGroupsController.updatePlanning");
+
+	Route.delete("/delete/:id", "DreGroupsController.destroy");
+	Route.delete("/delete-planning/:id", "DreGroupsController.destroyPlanning");
+})
+	.prefix("dre-groups")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search/:id", "PerformanceRangeGoalController.search");
+
+	Route.post("/store", "PerformanceRangeGoalController.store");
+
+	Route.put("/update", "PerformanceRangeGoalController.update");
+
+	Route.delete("/delete/:id", "PerformanceRangeGoalController.destroy");
+})
+	.prefix("performance-range-goals")
 	.middleware("auth");

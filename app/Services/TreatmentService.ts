@@ -1296,16 +1296,21 @@ export default class TreatmentService {
 		authCtx: AuthContext,
 		data: {
 			patientId: string;
+			scheduled?: string;
 		},
 	) {
-		return Database.from("treatments")
+		const scheduled = data.scheduled ? data.scheduled === "true" : false;
+
+		const qb = Database.from("treatments")
 			.select(
 				Database.raw(`treatment_executions.treatment_id,
-       treatment_executions.treatment_item_id,
-       treatment_executions.id        as treatment_execution_id,
-       treatment_executions.productivity_item_id,
-       products.description           as produto,
-       productivity_items.description as item_produtividade`),
+        treatment_executions.treatment_item_id,
+        treatment_executions.id        as treatment_execution_id,
+        treatment_executions.execution_date,
+        treatment_executions.schedule_date,
+        treatment_executions.productivity_item_id,
+        products.description           as produto,
+        productivity_items.description as item_produtividade`),
 			)
 			.joinRaw(`join (treatment_items
     join product_variations on treatment_items.product_variation_id = product_variations.id
@@ -1325,5 +1330,13 @@ export default class TreatmentService {
 			.whereNull("treatment_executions.schedule_id")
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
+
+		if (scheduled) {
+			qb.whereIn("treatments.status", ["Confirmado", "Aberto"]);
+		} else {
+			qb.whereNotIn("treatments.status", ["Confirmado", "Aberto"]);
+		}
+
+		return await qb;
 	}
 }

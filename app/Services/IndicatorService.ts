@@ -26,6 +26,26 @@ import { v4 } from "uuid";
 export default class IndicatorService {
 	constructor(private shared: SharedService) {}
 
+	private getContextClientReference(authCtx: AuthContext): string {
+		if (authCtx.unit.unitConfig.ticketType === "venda") {
+			return "id";
+		}
+
+		if (authCtx.unit.unitConfig.ticketType === "cliente") {
+			return "client_id";
+		}
+
+		if (authCtx.unit.unitConfig.ticketType === "paciente") {
+			return "patient_id";
+		}
+
+		throw new BadRequestException(
+			`Os valores possíveis são: ${["venda", "cliente", "paciente"].join(", ")}`,
+			500,
+			"E_ERR",
+		);
+	}
+
 	public async medianTicket(
 		authCtx: AuthContext,
 		data: {
@@ -113,11 +133,9 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`
-              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
                 on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id
-               `,
+                on bills.${this.getContextClientReference(authCtx)}= patient_tutors.patient_id`,
 				[],
 			)
 			.join("business_units", (query) => {
@@ -218,11 +236,9 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`
-              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
                 on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id
-               `,
+                on bills.${this.getContextClientReference(authCtx)} = patient_tutors.patient_id`,
 				[],
 			)
 			.join("business_units", (query) => {
@@ -249,11 +265,9 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`
-              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
                 on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id
-               `,
+                on bills.${this.getContextClientReference(authCtx)} = patient_tutors.patient_id`,
 				[],
 			)
 			.join("business_units", (query) => {
@@ -1178,11 +1192,9 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`
-              join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
                 on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id
-               `,
+                on bills.${this.getContextClientReference(authCtx)} = patient_tutors.patient_id`,
 				[],
 			)
 			.join("business_units", (query) => {

@@ -39,7 +39,6 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { v4 } from "uuid";
 
 interface ISearchPartial {
@@ -2443,7 +2442,7 @@ export default class BudgetService {
 				"ORC11",
 			);
 			if (!hasPermissions) {
-				throw new UnauthorizedException(
+				throw new BadRequestException(
 					"Usuário sem permissão de fazer a operação",
 					401,
 					"E_ERR",

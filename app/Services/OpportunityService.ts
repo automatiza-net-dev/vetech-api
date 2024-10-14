@@ -1935,7 +1935,7 @@ export default class OpportunityService {
 			.select(
 				"opportunities.id as opID",
 				"opportunities.description as opDescription",
-				"opportunities.contact_date as op_contact_cate",
+				"opportunities.contact_date as op_contact_date",
 				"contact.id as contactID",
 				"contact.name as contactName",
 				"client.id as clientID",

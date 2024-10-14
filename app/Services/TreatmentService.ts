@@ -1326,15 +1326,13 @@ export default class TreatmentService {
 			)
 			.where("treatments.economic_group_id", authCtx.group.id)
 			.where("treatments.business_unit_id", authCtx.unit.id)
+			.whereIn("treatments.status", ["Confirmado", "Aberto"])
 			.where("treatments.client_id", data.patientId)
-			.whereNull("treatment_executions.schedule_id")
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
 
-		if (scheduled) {
-			qb.whereIn("treatments.status", ["Confirmado", "Aberto"]);
-		} else {
-			qb.whereNotIn("treatments.status", ["Confirmado", "Aberto"]);
+		if (!scheduled) {
+			qb.whereNull("treatment_executions.schedule_id");
 		}
 
 		return await qb;

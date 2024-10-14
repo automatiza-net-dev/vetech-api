@@ -2528,7 +2528,21 @@ export default class IndicatorService {
                 then sum(bills.total_value) / business_unit_metas.value * 100
               else (sum(bills.total_value) / ? * ?) /
                 business_unit_metas.value *
-                100 end                                         as meta_projection
+                100 end                                         as meta_projection,
+                       (select performance_range_goals.color
+        from performance_range_goals
+        where metas.id = performance_range_goals.meta_id
+          and (((to_char(now(), 'YYYYMM') < '202409') and
+                0 between performance_range_goals.start_value and performance_range_goals.end_value)
+            or ((to_char(now(), 'YYYYMM') > '202409') and
+                (sum(bills.total_value) /
+                 case when business_unit_metas.value = 0 then 1 else business_unit_metas.value end *
+                 100) between performance_range_goals.start_value and performance_range_goals.end_value)
+            or ((to_char(now(), 'YYYYMM') = '202409') and
+                ((sum(bills.total_value) / 8 * 31) /
+                 case when business_unit_metas.value = 0 then 1 else business_unit_metas.value end *
+                 100) between performance_range_goals.start_value and performance_range_goals.end_value)
+            ))                                as color
           `,
 					[
 						ym,
@@ -2569,6 +2583,7 @@ export default class IndicatorService {
 				"metas.description",
 				"metas.type",
 				"business_unit_metas.value",
+				"metas.id",
 			)
 			.whereNull("bills.deleted_at");
 
@@ -2614,6 +2629,7 @@ export default class IndicatorService {
 					type: elem.meta_type,
 					value: elem.meta_value,
 				},
+				color: elem.color,
 				total: elem.total,
 				percentage: elem.percentage ?? -1,
 				projection: elem.projection,

@@ -6082,7 +6082,7 @@ export default class IndicatorService {
 		const salesQb = Database.from("bills")
 			.select(
 				Database.raw(
-					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
+					`bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.${this.getContextClientReference(authCtx)}) as clients`,
 				),
 			)
 			.leftJoin("business_units", (query) => {

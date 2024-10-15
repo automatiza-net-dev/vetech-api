@@ -2444,7 +2444,7 @@ export default class BudgetService {
 			if (!hasPermissions) {
 				throw new BadRequestException(
 					"Usuário sem permissão de fazer a operação",
-					401,
+					400,
 					"E_ERR",
 				);
 			}

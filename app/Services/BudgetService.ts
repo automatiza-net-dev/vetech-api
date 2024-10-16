@@ -1554,13 +1554,13 @@ export default class BudgetService {
 			);
 		}
 
-		// if (model.pending) {
-		// 	throw new BadRequestException(
-		// 		"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
-		// 		400,
-		// 		"E_ERR",
-		// 	);
-		// }
+		if (model.pending) {
+			throw new BadRequestException(
+				"Orçamento possui pendencias de liberação e não pode ser confirmado",
+				400,
+				"E_ERR",
+			);
+		}
 
 		const client = await Patient.query()
 			.where("id", model.client_id)

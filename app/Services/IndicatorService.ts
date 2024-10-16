@@ -7092,22 +7092,22 @@ export default class IndicatorService {
 						authCtx.system.id,
 						authCtx.unit.id,
 						yyyyMM,
-						_novos,
+						_novos === 0 ? 1 : _novos,
 
 						authCtx.system.id,
 						authCtx.unit.id,
 						yyyyMM,
-						_agendados,
+						_agendados === 0 ? 1 : _agendados,
 
 						authCtx.system.id,
 						authCtx.unit.id,
 						yyyyMM,
-						_comparecidos,
+						_comparecidos === 0 ? 1 : _comparecidos,
 
 						authCtx.system.id,
 						authCtx.unit.id,
 						yyyyMM,
-						_comparecidos,
+						_comparecidos === 0 ? 1 : _comparecidos,
 
 						authCtx.system.id,
 						authCtx.unit.id,

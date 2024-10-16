@@ -1,93 +1,113 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import WeekDay from 'App/Models/shared/WeekDay';
-import WorkingDay from 'App/Models/WorkingDay';
-import IWorkingDayData from 'Contracts/interfaces/IWorkingDayData';
-import { v4 } from 'uuid';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import BusinessUnit from "App/Models/BusinessUnit";
+import WeekDay from "App/Models/shared/WeekDay";
+import WorkingDay from "App/Models/WorkingDay";
+import IWorkingDayData from "Contracts/interfaces/IWorkingDayData";
+import { v4 } from "uuid";
 
 @inject()
 export default class WorkingDayService {
-  public async index(
-    unitId: string,
-    user?: string,
-  ): Promise<Array<WorkingDay>> {
-    const unit = await BusinessUnit.findOrFail(unitId);
+	public async index(
+		unitId: string,
+		user?: string,
+	): Promise<Array<WorkingDay>> {
+		const unit = await BusinessUnit.findOrFail(unitId);
 
-    const qb = unit
-      .related('workingDays')
-      .query()
-      .orderBy('weekday_index', 'asc');
+		const qb = unit
+			.related("workingDays")
+			.query()
+			.orderBy("weekday_index", "asc");
 
-    const days = !user ? await qb : await qb.where('user_id', user);
+		const days = !user ? await qb : await qb.where("user_id", user);
 
-    return this.sortDaysOfWeek(days);
-  }
+		return this.sortDaysOfWeek(days);
+	}
 
-  public async show(unitId: string, id: string): Promise<WorkingDay> {
-    const workingDay = await WorkingDay.find(id);
+	public async show(unitId: string, id: string): Promise<WorkingDay> {
+		const workingDay = await WorkingDay.find(id);
 
-    if (!workingDay || workingDay.business_unit_id !== unitId) {
-      throw new ResourceNotFoundException(
-        'Jornada não foi encontrada',
-        404,
-        'E_NOT_FOUND',
-      );
-    }
+		if (!workingDay || workingDay.business_unit_id !== unitId) {
+			throw new ResourceNotFoundException(
+				"Jornada não foi encontrada",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
-    return workingDay;
-  }
+		return workingDay;
+	}
 
-  public async store(
-    unitId: string,
-    data: IWorkingDayData,
-  ): Promise<WorkingDay> {
-    const unit = await BusinessUnit.findOrFail(unitId);
+	public async store(
+		unitId: string,
+		data: IWorkingDayData,
+	): Promise<WorkingDay> {
+		const unit = await BusinessUnit.findOrFail(unitId);
 
-    return unit.related('workingDays').create({
-      id: v4(),
-      user_id: data.userId,
-      weekDay: data.dayOfWeek,
-      startHour: data.startHour,
-      endHour: data.endHour,
-      weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
-    });
-  }
+		return unit.related("workingDays").create({
+			id: v4(),
+			user_id: data.userId,
+			weekDay: data.dayOfWeek,
+			startHour: data.startHour,
+			endHour: data.endHour,
+			weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
+		});
+	}
 
-  public async update(
-    unitId: string,
-    id: string,
-    data: Omit<IWorkingDayData, 'userId'>,
-  ): Promise<WorkingDay> {
-    const workingDay = await this.show(unitId, id);
+	public async storeMany(
+		unitId: string,
+		data: {
+			items: IWorkingDayData[];
+		},
+	): Promise<WorkingDay[]> {
+		const unit = await BusinessUnit.findOrFail(unitId);
 
-    return workingDay
-      .merge({
-        weekDay: data.dayOfWeek,
-        startHour: data.startHour,
-        endHour: data.endHour,
-        weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
-      })
-      .save();
-  }
+		return unit.related("workingDays").createMany(
+			data.items.map((elem) => ({
+				id: v4(),
+				user_id: elem.userId,
+				weekDay: elem.dayOfWeek,
+				startHour: elem.startHour,
+				endHour: elem.endHour,
+				weekday_index: Object.values(WeekDay).indexOf(elem.dayOfWeek) ?? 0,
+			})),
+		);
+	}
 
-  public async destroy(unitId: string, id: string): Promise<void> {
-    const workingDay = await this.show(unitId, id);
+	public async update(
+		unitId: string,
+		id: string,
+		data: Omit<IWorkingDayData, "userId">,
+	): Promise<WorkingDay> {
+		const workingDay = await this.show(unitId, id);
 
-    await workingDay.delete();
-  }
+		return workingDay
+			.merge({
+				weekDay: data.dayOfWeek,
+				startHour: data.startHour,
+				endHour: data.endHour,
+				weekday_index: Object.values(WeekDay).indexOf(data.dayOfWeek) ?? 0,
+			})
+			.save();
+	}
 
-  sortDaysOfWeek(days: Array<WorkingDay>): Array<WorkingDay> {
-    return days.sort((a, b) => {
-      if (a.weekDay < b.weekDay) {
-        return -1;
-      }
+	public async destroy(unitId: string, id: string): Promise<void> {
+		const workingDay = await this.show(unitId, id);
 
-      if (a.weekDay > b.weekDay) {
-        return 1;
-      }
+		await workingDay.delete();
+	}
 
-      return 0;
-    });
-  }
+	sortDaysOfWeek(days: Array<WorkingDay>): Array<WorkingDay> {
+		return days.sort((a, b) => {
+			if (a.weekDay < b.weekDay) {
+				return -1;
+			}
+
+			if (a.weekDay > b.weekDay) {
+				return 1;
+			}
+
+			return 0;
+		});
+	}
 }

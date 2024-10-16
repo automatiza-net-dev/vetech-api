@@ -7138,10 +7138,14 @@ export default class IndicatorService {
 			.groupBy("business_units.id");
 
 		const svgData = {
-			$block_color_1: colors.at(0)?.cor_camada_ganhos ?? "#fff",
-			$block_color_2: colors.at(0)?.cor_camada_ganhos ?? "#fff",
-			$block_color_3: colors.at(0)?.cor_camada_ganhos ?? "#fff",
-			$block_color_4: colors.at(0)?.cor_camada_ganhos ?? "#fff",
+			$block_color_1:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(0),
+			$block_color_2:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(1),
+			$block_color_3:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(2),
+			$block_color_4:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(3),
 			$novas: _novos,
 			$agendadas: _agendados,
 			$comparecidas: _comparecidos,
@@ -7153,9 +7157,12 @@ export default class IndicatorService {
 			$comparecidas_perc: this.shared.formatPercentage(
 				(_ganhos / _comparecidos) * 100,
 			),
-			$arrow_color_1: colors.at(0)?.cor_camada_ganhos ?? "#fff",
-			$arrow_color_2: colors.at(0)?.cor_camada_ganhos ?? "#fff",
-			$arrow_color_3: colors.at(0)?.cor_camada_ganhos ?? "#fff",
+			$arrow_color_1:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(0),
+			$arrow_color_2:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(1),
+			$arrow_color_3:
+				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(2),
 		};
 
 		return {

@@ -6979,7 +6979,7 @@ export default class IndicatorService {
 		);
 		const _ganhos = Number.parseInt(result.at(0)?.ganhos ?? "0", 10);
 
-		const yyyyMM = DateTime.fromISO(data.fromDate ?? "").toFormat("yyyyMM");
+		const yyyyMM = DateTime.fromISO(data.fromDate ?? "").toFormat("MM/yyyy");
 		const colors: {
 			cor_camada_novas_oportunidades: string | null;
 			cor_camada_agendadas: string | null;

@@ -30,7 +30,7 @@ export default class PerformanceRangeGoalService {
 		return {
 			metaId: meta.id,
 			metaDescription: meta.description,
-			range: goals.map((goal) => ({
+			ranges: goals.map((goal) => ({
 				id: goal.id,
 				startValue: goal.startValue.toNumber(),
 				endValue: goal.endValue.toNumber(),

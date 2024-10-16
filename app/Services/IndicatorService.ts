@@ -7139,11 +7139,12 @@ export default class IndicatorService {
 
 		const svgData = {
 			$block_color_1:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(0),
+				colors.at(0)?.cor_camada_novas_oportunidades ??
+				authCtx.group.colors.at(0),
 			$block_color_2:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(1),
+				colors.at(0)?.cor_camada_agendadas ?? authCtx.group.colors.at(1),
 			$block_color_3:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(2),
+				colors.at(0)?.cor_camada_comparecidas ?? authCtx.group.colors.at(2),
 			$block_color_4:
 				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(3),
 			$novas: _novos,
@@ -7158,11 +7159,14 @@ export default class IndicatorService {
 				(_ganhos / _comparecidos) * 100,
 			),
 			$arrow_color_1:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(0),
+				colors.at(0)?.cor_conversao_novas_agendadas ??
+				authCtx.group.colors.at(0),
 			$arrow_color_2:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(1),
+				colors.at(0)?.cor_conversao_comparecidas_ganho ??
+				authCtx.group.colors.at(1),
 			$arrow_color_3:
-				colors.at(0)?.cor_camada_ganhos ?? authCtx.group.colors.at(2),
+				colors.at(0)?.cor_conversao_comparecidas_ganho ??
+				authCtx.group.colors.at(2),
 		};
 
 		return {

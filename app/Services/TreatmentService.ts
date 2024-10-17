@@ -1335,6 +1335,30 @@ export default class TreatmentService {
 			qb.whereNull("treatment_executions.schedule_id");
 		}
 
-		return await qb;
+		const result: {
+			treatment_id: string;
+			treatment_item_id: string;
+			treatment_execution_id: string;
+			execution_date: string;
+			schedule_date: string;
+			productivity_item_id: string;
+			produto: string;
+			item_produtividade: string;
+		}[] = await qb;
+
+		return result.map((elem) => ({
+			treatmentId: elem.treatment_id,
+			treatmentItemId: elem.treatment_item_id,
+			treatmentExecutionId: elem.treatment_execution_id,
+			productivityItemId: elem.productivity_item_id,
+			produto: elem.produto,
+			itemProdutividade: elem.item_produtividade,
+			executionDate: elem.execution_date
+				? `executado dia ${DateTime.fromISO(elem.execution_date).toFormat("DD/MM/YYYY")}`
+				: "-",
+			scheduleDate: elem.schedule_date
+				? `agendado dia ${DateTime.fromISO(elem.schedule_date).toFormat("DD/MM/YYYY")}`
+				: "-",
+		}));
 	}
 }

@@ -1885,7 +1885,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/search/:id", "PerformanceRangeGoalController.search");
 
-	Route.post("/store", "PerformanceRangeGoalController.store");
+	// Route.post("/store", "PerformanceRangeGoalController.store");
 
 	Route.put("/update", "PerformanceRangeGoalController.update");
 

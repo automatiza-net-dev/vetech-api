@@ -19,14 +19,14 @@ export default class PerformanceRangeGoalController {
 		return response.ok(data);
 	}
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpsertGoalValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		await this.service.store(authCtx, payload);
-
-		return response.created();
-	}
+	// public async store({ auth, request, response }: HttpContextContract) {
+	// 	const payload = await request.validate(UpsertGoalValidator);
+	// 	const authCtx = await this.sharedService.getAuthContext(auth);
+	//
+	// 	await this.service.store(authCtx, payload);
+	//
+	// 	return response.created();
+	// }
 
 	public async update({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(UpsertGoalValidator);

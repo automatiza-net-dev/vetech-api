@@ -39,43 +39,43 @@ export default class PerformanceRangeGoalService {
 		};
 	}
 
-	public async store(
-		authCtx: AuthContext,
-		data: {
-			metaId: number;
-			ranges: {
-				startValue: number;
-				endValue: number;
-				color: string;
-			}[];
-		},
-	) {
-		await Database.transaction(async (trx) => {
-			const meta = await Meta.query()
-				.useTransaction(trx)
-				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
-				.where("id", data.metaId)
-				.first();
-			if (!meta) {
-				throw new BadRequestException("Meta não encontrada", 400, "E_ERR");
-			}
-
-			await meta.related("goals").createMany(
-				data.ranges.map((elem) => ({
-					economic_group_id: authCtx.group.id,
-					create_user_id: authCtx.user.id,
-
-					startValue: new Decimal(elem.startValue),
-					endValue: new Decimal(elem.endValue),
-					color: elem.color,
-				})),
-				{
-					client: trx,
-				},
-			);
-		});
-	}
+	// public async store(
+	// 	authCtx: AuthContext,
+	// 	data: {
+	// 		metaId: number;
+	// 		ranges: {
+	// 			startValue: number;
+	// 			endValue: number;
+	// 			color: string;
+	// 		}[];
+	// 	},
+	// ) {
+	// 	await Database.transaction(async (trx) => {
+	// 		const meta = await Meta.query()
+	// 			.useTransaction(trx)
+	// 			.where("system_id", authCtx.system.id)
+	// 			.where("economic_group_id", authCtx.group.id)
+	// 			.where("id", data.metaId)
+	// 			.first();
+	// 		if (!meta) {
+	// 			throw new BadRequestException("Meta não encontrada", 400, "E_ERR");
+	// 		}
+	//
+	// 		await meta.related("goals").createMany(
+	// 			data.ranges.map((elem) => ({
+	// 				economic_group_id: authCtx.group.id,
+	// 				create_user_id: authCtx.user.id,
+	//
+	// 				startValue: new Decimal(elem.startValue),
+	// 				endValue: new Decimal(elem.endValue),
+	// 				color: elem.color,
+	// 			})),
+	// 			{
+	// 				client: trx,
+	// 			},
+	// 		);
+	// 	});
+	// }
 
 	public async update(
 		authCtx: AuthContext,

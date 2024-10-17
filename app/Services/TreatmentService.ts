@@ -1354,10 +1354,10 @@ export default class TreatmentService {
 			produto: elem.produto,
 			itemProdutividade: elem.item_produtividade,
 			executionDate: elem.execution_date
-				? `executado dia ${DateTime.fromISO(elem.execution_date).toFormat("DD/MM/YYYY")}`
+				? `executado dia ${DateTime.fromJSDate(new Date(elem.execution_date)).toFormat("dd/MM/yyyy")}`
 				: "-",
 			scheduleDate: elem.schedule_date
-				? `agendado dia ${DateTime.fromISO(elem.schedule_date).toFormat("DD/MM/YYYY")}`
+				? `agendado dia ${DateTime.fromJSDate(new Date(elem.schedule_date)).toFormat("dd/MM/yyyy")}`
 				: "-",
 		}));
 	}

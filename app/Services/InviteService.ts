@@ -106,9 +106,9 @@ export default class InviteService {
 				},
 			);
 
-			await existingUser
-				.related("economicGroups")
-				.sync([authCtx.unit.economicGroupId], false, trx);
+			// await existingUser
+			// 	.related("economicGroups")
+			// 	.sync([authCtx.unit.economicGroupId], false, trx);
 
 			const invite = await authCtx.unit.related("invites").create(
 				{
@@ -129,7 +129,7 @@ export default class InviteService {
 					.to(data.email)
 					.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
 					.htmlView("emails/invite", {
-						url: [
+						link: [
 							url.url,
 							url.url.endsWith("/") ? "" : "/",
 							`invites?token=${invite.id}`,
@@ -345,7 +345,9 @@ export default class InviteService {
 			.where("role_id", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
-			.preload("unit")
+			.preload("unit", (query) => {
+				query.preload("economicGroup");
+			})
 			.first();
 
 		if (!role) {
@@ -359,6 +361,10 @@ export default class InviteService {
 		const trx = await Database.transaction();
 
 		try {
+			await user
+				.merge({ system_id: role.unit.economicGroup.system_id, type: "user" })
+				.useTransaction(trx)
+				.save();
 			await role.merge({ active: true }).useTransaction(trx).save();
 			await invite.merge({ active: false }).useTransaction(trx).save();
 			await user
@@ -398,7 +404,9 @@ export default class InviteService {
 			.where("role_id", invite.role_id)
 			.where("unit_id", invite.business_unit_id)
 			.where("active", false)
-			.preload("unit")
+			.preload("unit", (query) => {
+				query.preload("economicGroup");
+			})
 			.first();
 
 		if (!role) {
@@ -413,7 +421,13 @@ export default class InviteService {
 
 		try {
 			await user
-				.merge({ name: data.name, password: data.password, phone: data.phone })
+				.merge({
+					name: data.name,
+					password: data.password,
+					phone: data.phone,
+					system_id: role.unit.economicGroup.system_id,
+					type: "user",
+				})
 				.useTransaction(trx)
 				.save();
 			await role.merge({ active: true }).useTransaction(trx).save();

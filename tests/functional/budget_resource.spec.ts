@@ -213,7 +213,7 @@ test.group("Budget resource", (group) => {
 			password: "102030",
 		});
 
-		const response = await client.get(`/budgets/partial`).bearerToken(token);
+		const response = await client.get("/budgets/partial").bearerToken(token);
 
 		assert.equal(200, response.status());
 		assert.isArray(response.body());
@@ -866,6 +866,40 @@ test.group("Budget resource", (group) => {
 			.bearerToken(token);
 
 		assert.equal(201, response.status());
+	});
+
+	test("should approve payments", async ({ assert, client }) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+		const payment = await dataProps.budget.related("payments").create({
+			payment_method_id: dataProps.paymentMethod.id,
+			tef_flag_id: dataProps.tefFlag.id,
+			tef_acquirer_id: dataProps.tefAcq.id,
+
+			totalValue: 100,
+			installments: 10,
+			pending: true,
+		});
+
+		const response = await client
+			.post("/budgets/approve")
+			.json({
+				budgetId: dataProps.budget.id,
+				approved: true,
+				email: dataProps.user.email,
+				password: "102030",
+				reason: "SUT",
+				itemsIdList: [],
+				paymentsIdList: [payment.id],
+			} as Parameters<BudgetService["approveCourtesyOrMaxDiscount"]>[1])
+			.bearerToken(token);
+
+		assert.equal(204, response.status());
 	});
 
 	test("should throw error if new value is bigger than total value", async ({

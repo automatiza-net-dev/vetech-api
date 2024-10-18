@@ -42,13 +42,13 @@ export default class BudgetPayment extends BaseModel {
 	public installments: number;
 
 	@column()
-	public approved: number;
+	public approved: boolean;
 
 	@column()
 	public pending: boolean;
 
 	@column()
-	public reason: number;
+	public reason: string;
 
 	@column()
 	public status: TBudgetPaymentStatus;
@@ -187,10 +187,10 @@ export default class BudgetPayment extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public user_approval_id: string | null;
+	public approved_user_id: string | null;
 
 	@belongsTo(() => User, {
-		foreignKey: "user_approval_id",
+		foreignKey: "approved_user_id",
 	})
 	public approvalUser: BelongsTo<typeof User>;
 }

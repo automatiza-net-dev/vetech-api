@@ -544,6 +544,11 @@ export default class BudgetService {
 				query.preload("courtesyApprovedUser", (query) => {
 					query.select(["id", "name"]);
 				});
+			})
+			.preload("payments", (query) => {
+				query.preload("approvalUser", (query) => {
+					query.select(["id", "name"]);
+				});
 			});
 
 		const result = await qb.first();
@@ -2382,12 +2387,20 @@ export default class BudgetService {
 		},
 	) {
 		const qb = Database.from("budget_payments")
+			.debug(true)
 			.select(
 				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
        budget_payments.budget_id         as id_Orcamento,
        block                             as bloco,
        total_value                       as valor_total,
        installments                      as qtd_Parcelas_Bloco_pgto,
+       pending                           as pgto_pendente,
+       approved                          as pgto_aprovado,
+       approved_at                       as pgto_aprovado_em,
+       approval_user.id                  as pgto_usuario_aprovou_id,
+       approval_user.name                as pgto_usuario_aprovou_nome,
+       reason                            as pgto_aprovado_motivo,
+
        payment_methods.id                as id_Forma_Pagamento,
        payment_methods.description       as descricao_Forma_Pagamento,
        tef_flags.id                      as id_badeira_tef,
@@ -2445,6 +2458,9 @@ export default class BudgetService {
 			.joinRaw(
 				"left join users exclusion_user on exclusion_user.id = budget_payments.exclusion_user_id",
 			)
+			.joinRaw(
+				"left join users approval_user on approval_user.id = budget_payments.approved_user_id",
+			)
 			.andWhere("budget_payments.economic_group_id", authCtx.group.id)
 			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
 			.where("budget_payments.budget_id", id);
@@ -2488,11 +2504,13 @@ export default class BudgetService {
 			return p;
 		});
 	}
+
 	async approveCourtesyOrMaxDiscount(
 		authCtx: AuthContext,
 		data: {
 			budgetId: string;
 			itemsIdList: string[];
+			paymentsIdList: number[];
 			email: string;
 			password: string;
 			reason: string;
@@ -2504,6 +2522,7 @@ export default class BudgetService {
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.budgetId)
 				.preload("items")
+				.preload("payments")
 				.first();
 			if (!budget) {
 				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
@@ -2531,17 +2550,17 @@ export default class BudgetService {
 				);
 			}
 
-			const hasPermissions = await this.sharedService.userHasPermission(
-				{ ...authCtx, user },
-				"ORC11",
-			);
-			if (!hasPermissions) {
-				throw new BadRequestException(
-					"Usuário sem permissão de fazer a operação",
-					400,
-					"E_ERR",
-				);
-			}
+			// const hasPermissions = await this.sharedService.userHasPermission(
+			// 	{ ...authCtx, user },
+			// 	"ORC11",
+			// );
+			// if (!hasPermissions) {
+			// 	throw new BadRequestException(
+			// 		"Usuário sem permissão de fazer a operação",
+			// 		400,
+			// 		"E_ERR",
+			// 	);
+			// }
 
 			if (
 				budget.items.some(
@@ -2558,6 +2577,17 @@ export default class BudgetService {
 						"E_ERR",
 					);
 				}
+			}
+
+			if (
+				budget.payments.some((p) => p.pending) &&
+				data.paymentsIdList.length === 0
+			) {
+				throw new BadRequestException(
+					"Orçamento tem pagamentos pendentes mas você não mandou lista de aprovados",
+					400,
+					"E_ERR",
+				);
 			}
 
 			// if (budget.payments.some((i) => i.pending)) {
@@ -2584,6 +2614,18 @@ export default class BudgetService {
 						courtesyApprovedAt: DateTime.now(),
 						approved: true,
 					} as Partial<BudgetItem>);
+
+				await BudgetPayment.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.paymentsIdList)
+					.update({
+						approved_user_id: authCtx.user.id,
+						pending: false,
+						approved: true,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BudgetPayment>);
 			} else {
 				await BudgetItem.query()
 					.useTransaction(trx)
@@ -2596,6 +2638,18 @@ export default class BudgetService {
 						courtesyApprovedAt: DateTime.now(),
 						approved: false,
 					} as Partial<BudgetItem>);
+
+				await BudgetPayment.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.paymentsIdList)
+					.update({
+						approved_user_id: authCtx.user.id,
+						pending: false,
+						approved: false,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BudgetPayment>);
 			}
 
 			return null;

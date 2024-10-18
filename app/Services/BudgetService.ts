@@ -40,6 +40,8 @@ import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
 import { v4 } from "uuid";
+import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -1509,9 +1511,16 @@ export default class BudgetService {
 					[0, 0, 0],
 				);
 
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", budgetItem.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
+
 			await budgetItem.budget
 				.merge({
-					pending: existingItems.some((i) => i.courtesy || i.maxDiscount),
+					pending:
+						existingItems.some((i) => i.courtesy || i.maxDiscount) ||
+						budgetPayments.some((p) => p.pending),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
@@ -2017,9 +2026,11 @@ export default class BudgetService {
 				paymentMethodId: string;
 				tefFlagId?: string;
 				tefAcquirerId?: string;
+				paymentMethodFlagId?: string;
 
 				totalValue: number;
 				installments: number;
+				maxParcelas?: boolean;
 			}[];
 		},
 	) {
@@ -2049,13 +2060,91 @@ export default class BudgetService {
 				);
 			}
 
+			const paymentMethods = await PaymentMethod.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((d) => d.paymentMethodId),
+				);
+
+			const paymentMethodFlags = await PaymentMethodFlag.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((d) => d.paymentMethodFlagId ?? 0).filter(Boolean),
+				);
+
 			const [{ count }] = await Database.from("budget_payments")
 				.useTransaction(trx)
 				.where("budget_id", data.budgetId)
 				.count("*");
 
-			const tasks = data.items.map((elem, index) =>
-				BudgetPayment.create(
+			const tasks = data.items.map(async (elem, index) => {
+				if (elem.paymentMethodFlagId) {
+					const paymentMethodFlag = paymentMethodFlags.find(
+						(pm) => pm.id === elem.paymentMethodFlagId,
+					);
+					if (!paymentMethodFlag) {
+						throw new InternalErrorException(
+							"Bandeira não encontrada",
+							500,
+							"E_ERR",
+						);
+					}
+
+					if (elem.installments > paymentMethodFlag.maxInstallments) {
+						throw new BadRequestException(
+							"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+							400,
+							"E_ERR",
+						);
+					}
+
+					if (
+						elem.installments >
+							(paymentMethodFlag.installmentsWithoutPassword ?? 0) &&
+						!elem.maxParcelas
+					) {
+						throw new BadRequestException(
+							"Este Orçamento ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação ?",
+							400,
+							"E_ERR",
+						);
+					}
+				} else {
+					const paymentMethod = paymentMethods.find(
+						(pm) => pm.id === elem.paymentMethodId,
+					);
+					if (!paymentMethod) {
+						throw new InternalErrorException(
+							"Método não encontrado",
+							500,
+							"E_ERR",
+						);
+					}
+
+					if (elem.installments > paymentMethod.maxInstallments) {
+						throw new BadRequestException(
+							"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+							400,
+							"E_ERR",
+						);
+					}
+
+					if (
+						elem.installments >
+							(paymentMethod.installmentsWithoutPassword ?? 0) &&
+						!elem.maxParcelas
+					) {
+						throw new BadRequestException(
+							"Este Orçamento ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação ?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+
+				return await BudgetPayment.create(
 					{
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -2065,6 +2154,7 @@ export default class BudgetService {
 						tef_flag_id: elem.tefFlagId,
 						tef_acquirer_id: elem.tefAcquirerId,
 
+						pending: elem.maxParcelas ?? false,
 						block: Number.parseInt(count) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
@@ -2072,13 +2162,16 @@ export default class BudgetService {
 						issueDate: DateTime.now(),
 					},
 					{ client: trx },
-				),
-			);
-			await Promise.all(tasks);
+				);
+			});
+
+			const result = await Promise.all(tasks);
 
 			await budget
 				.merge({
 					paidValue: decimalPaid.plus(decimalSum).toNumber(),
+					// continua pendente ou fica pendente se algo tá pendente
+					pending: budget.pending || result.some((r) => r.pending),
 				})
 				.useTransaction(trx)
 				.save();
@@ -2274,6 +2367,7 @@ export default class BudgetService {
 					paidValue: this.sharedService.sum(
 						budgetPayments.map((elem) => elem.totalValue),
 					),
+					pending: budgetPayments.some((p) => p.pending),
 				})
 				.useTransaction(trx)
 				.save();

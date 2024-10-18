@@ -19,6 +19,8 @@ import Reason from "App/Models/Reason";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
+import BudgetService from "App/Services/BudgetService";
+import { Parameter } from "aws-sdk/clients/iot";
 import PatientFactory from "Database/factories/PatientFactory";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
@@ -146,8 +148,8 @@ test.group("Budget resource", (group) => {
 			type: PaymentMethodType.C,
 			fee: 0,
 			daysUntilTransfer: 0,
-			installmentsWithoutPassword: 1,
-			maxInstallments: 10,
+			installmentsWithoutPassword: 6,
+			maxInstallments: 12,
 		});
 
 		const tefAcq = await TefAcquirer.create({
@@ -160,6 +162,14 @@ test.group("Budget resource", (group) => {
 			description: "any description",
 			code: "any code",
 			type: TefFlagType.A,
+		});
+
+		const paymentMethodFlag = await paymentMethod.related("flags").create({
+			economic_group_id: group.id,
+			tef_flag_id: tefFlag.id,
+			tef_acquirer_id: tefAcq.id,
+			maxInstallments: 12,
+			installmentsWithoutPassword: 6,
 		});
 
 		const budgetPayment = await BudgetPayment.create({
@@ -189,6 +199,7 @@ test.group("Budget resource", (group) => {
 			kitItem,
 			attendance,
 			paymentMethod,
+			paymentMethodFlag,
 			tefAcq,
 			tefFlag,
 			budgetPayment,
@@ -683,10 +694,175 @@ test.group("Budget resource", (group) => {
 						tefAcquirerId: dataProps.tefAcq.id,
 
 						totalValue: 150,
-						installments: 2,
+						installments: 1,
 					},
 				],
-			})
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should create budget payments with flag", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+
+		const response = await client
+			.post("/budgets/create-payments")
+			.json({
+				budgetId: dataProps.budget.id,
+				items: [
+					{
+						paymentMethodId: dataProps.paymentMethod.id,
+						tefFlagId: dataProps.tefFlag.id,
+						tefAcquirerId: dataProps.tefAcq.id,
+						paymentMethodFlagId: dataProps.paymentMethodFlag.id,
+
+						totalValue: 100,
+						installments: 1,
+					},
+				],
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should not create budget payments with flag and invalid flags and no maxParcelas", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+
+		const response = await client
+			.post("/budgets/create-payments")
+			.json({
+				budgetId: dataProps.budget.id,
+				items: [
+					{
+						paymentMethodId: dataProps.paymentMethod.id,
+						tefFlagId: dataProps.tefFlag.id,
+						tefAcquirerId: dataProps.tefAcq.id,
+						paymentMethodFlagId: dataProps.paymentMethodFlag.id,
+
+						totalValue: 100,
+						installments: 10,
+					},
+				],
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should create budget payments with flag and invalid flags and maxParcelas", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+
+		const response = await client
+			.post("/budgets/create-payments")
+			.json({
+				budgetId: dataProps.budget.id,
+				items: [
+					{
+						paymentMethodId: dataProps.paymentMethod.id,
+						tefFlagId: dataProps.tefFlag.id,
+						tefAcquirerId: dataProps.tefAcq.id,
+						paymentMethodFlagId: dataProps.paymentMethodFlag.id,
+
+						totalValue: 100,
+						installments: 10,
+						maxParcelas: true,
+					},
+				],
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
+			.bearerToken(token);
+
+		assert.equal(201, response.status());
+	});
+
+	test("should not create budget payments without flag and invalid flags and no maxParcelas", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+
+		const response = await client
+			.post("/budgets/create-payments")
+			.json({
+				budgetId: dataProps.budget.id,
+				items: [
+					{
+						paymentMethodId: dataProps.paymentMethod.id,
+						tefFlagId: dataProps.tefFlag.id,
+						tefAcquirerId: dataProps.tefAcq.id,
+
+						totalValue: 100,
+						installments: 10,
+					},
+				],
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
+			.bearerToken(token);
+
+		assert.equal(400, response.status());
+	});
+
+	test("should create budget payments without flag and maxParcelas", async ({
+		assert,
+		client,
+	}) => {
+		const dataProps = await createData();
+		const token = await generateJwtToken(client, {
+			email: dataProps.user.email,
+			password: "102030",
+		});
+
+		await dataProps.budget.merge({ paidValue: 0, totalValue: 1000 }).save();
+
+		const response = await client
+			.post("/budgets/create-payments")
+			.json({
+				budgetId: dataProps.budget.id,
+				items: [
+					{
+						paymentMethodId: dataProps.paymentMethod.id,
+						tefFlagId: dataProps.tefFlag.id,
+						tefAcquirerId: dataProps.tefAcq.id,
+
+						totalValue: 100,
+						installments: 10,
+						maxParcelas: true,
+					},
+				],
+			} as Parameters<BudgetService["createBudgetPayments"]>[1])
 			.bearerToken(token);
 
 		assert.equal(201, response.status());

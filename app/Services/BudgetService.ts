@@ -1610,6 +1610,15 @@ export default class BudgetService {
 			);
 		}
 
+		const payments = await model.related("payments").query();
+		if (payments.some((i) => i.pending)) {
+			throw new BadRequestException(
+				"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const rules = await TaxationGroupRule.query()
 			.whereHas("taxationGroup", (query) => {
 				query.whereIn(

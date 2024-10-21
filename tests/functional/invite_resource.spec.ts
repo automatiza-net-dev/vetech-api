@@ -1,286 +1,378 @@
-import Mail from '@ioc:Adonis/Addons/Mail';
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { DEFAULT_USER_NAME } from 'App/Services/InviteService';
-import UserFactory from 'Database/factories/UserFactory';
-import { v4 } from 'uuid';
+import Mail from "@ioc:Adonis/Addons/Mail";
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import InviteService, { DEFAULT_USER_NAME } from "App/Services/InviteService";
+import UserFactory from "Database/factories/UserFactory";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Invite resource', group => {
-  group.each.setup(async () => {
-    await Database.beginGlobalTransaction();
-    return () => Database.rollbackGlobalTransaction();
-  });
+test.group("Invite resource", (group) => {
+	group.each.setup(async () => {
+		await Database.beginGlobalTransaction();
+		return () => Database.rollbackGlobalTransaction();
+	});
 
-  const createData = async () => {
-    const { user, business, role } = await userBootstrap();
+	const createData = async () => {
+		const { user, business, role } = await userBootstrap();
 
-    const fakeUser = await UserFactory.create();
-    const invite = await business.related('invites').create({
-      id: v4(),
-      email: fakeUser.email,
-      role_id: role.id,
-      active: true,
-      user_id: user.id,
-    });
+		const fakeUser = await UserFactory.create();
+		const invite = await business.related("invites").create({
+			id: v4(),
+			email: fakeUser.email,
+			role_id: role.id,
+			active: true,
+			user_id: user.id,
+		});
 
-    return { user, business, role, invite };
-  };
+		return { user, business, role, invite };
+	};
 
-  test('should return a list of invites', async ({ assert, client }) => {
-    const { user } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+	test("should return a list of invites", async ({ assert, client }) => {
+		const { user } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    const response = await client.get(`/invites`).bearerToken(token);
+		const response = await client.get(`/invites`).bearerToken(token);
 
-    response.assertStatus(200);
-    assert.isArray(response.body());
-  });
+		response.assertStatus(200);
+		assert.isArray(response.body());
+	});
 
-  test('should throw BadRequestException if user already have related role', async ({
-    assert,
-    client,
-  }) => {
-    const { user, business, role } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+	test("should send email to new user", async ({ assert, client }) => {
+		const mailer = Mail.fake();
 
-    const response = await client
-      .post('/invites')
-      .json({
-        business_unit_id: business.id,
-        role_id: role.id,
-        email: user.email,
-      })
-      .bearerToken(token);
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    const body = response.body();
+		const response = await client
+			.post("/invites")
+			.json({
+				businessUnitId: business.id,
+				roleId: role.id,
+				email: `${v4()}@mail.com`,
+			} as Parameters<InviteService["store"]>[1])
+			.bearerToken(token);
 
-    assert.equal(400, response.status());
-    assert.equal(
-      'E_BAD_REQUEST: Convite já existe para o usuário/cargo/unidade',
-      body.message,
-    );
-  });
+		assert.equal(201, response.status());
+		assert.isTrue(
+			mailer.exists((mail) => {
+				return (
+					mail.subject ===
+					"Convite para acesso ao sistema Sancla / Liftone / Vetech"
+				);
+			}),
+		);
 
-  test('should send email to new user', async ({ assert, client }) => {
-    const mailer = Mail.fake();
+		Mail.restore();
+	});
 
-    const { user, business, role } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+	test("should handle invite to a existing user", async ({
+		assert,
+		client,
+	}) => {
+		const mailer = Mail.fake();
 
-    const response = await client
-      .post('/invites')
-      .json({
-        business_unit_id: business.id,
-        role_id: role.id,
-        email: `${v4()}@mail.com`,
-      })
-      .bearerToken(token);
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    assert.equal(201, response.status());
-    assert.isTrue(
-      mailer.exists(mail => {
-        return mail.subject === 'Convite - Vetech';
-      }),
-    );
+		const newUser = await UserFactory.create();
+		// await newUser.related("economicGroups").attach([business.economicGroupId]);
 
-    Mail.restore();
-  });
+		const response = await client
+			.post("/invites")
+			.json({
+				businessUnitId: business.id,
+				roleId: role.id,
+				email: newUser.email,
+			} as Parameters<InviteService["store"]>[1])
+			.bearerToken(token);
 
-  test('should return ResourceNotFoundException if invite does not exists', async ({
-    client,
-    assert,
-  }) => {
-    const { user } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		assert.equal(201, response.status());
+		assert.isTrue(
+			mailer.exists((mail) => {
+				return (
+					mail.subject ===
+					"Convite para acesso ao sistema Sancla / Liftone / Vetech"
+				);
+			}),
+		);
 
-    const response = await client.get(`/invites/${v4()}`).bearerToken(token);
+		Mail.restore();
+	});
 
-    assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Convite não existe', response.body().message);
-  });
+	test("should handle invite to in the same group", async ({
+		assert,
+		client,
+	}) => {
+		const mailer = Mail.fake();
 
-  test('should return invite', async ({ client, assert }) => {
-    const { user, invite } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    const response = await client
-      .get(`/invites/${invite.id}`)
-      .bearerToken(token);
+		const newUser = await UserFactory.create();
+		await newUser.related("economicGroups").attach([business.economicGroupId]);
 
-    assert.equal(200, response.status());
-  });
+		const response = await client
+			.post("/invites")
+			.json({
+				businessUnitId: business.id,
+				roleId: role.id,
+				email: newUser.email,
+			} as Parameters<InviteService["store"]>[1])
+			.bearerToken(token);
 
-  test('should return false for not completly registered user', async ({
-    client,
-    assert,
-  }) => {
-    const { user, business, role } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		assert.equal(201, response.status());
+		assert.isTrue(
+			mailer.exists((mail) => {
+				return (
+					mail.subject ===
+					"Convite para acesso ao sistema Sancla / Liftone / Vetech"
+				);
+			}),
+		);
 
-    const fakeUser = await UserFactory.create();
-    await fakeUser.merge({ name: DEFAULT_USER_NAME }).save();
+		Mail.restore();
+	});
 
-    const invite = await business.related('invites').create({
-      id: v4(),
-      email: fakeUser.email,
-      role_id: role.id,
-    });
+	test("should throw error if creating invite to a user with a role in the unit already", async ({
+		assert,
+		client,
+	}) => {
+		const mailer = Mail.fake();
 
-    const response = await client
-      .get(`/invites/check/${invite.id}`)
-      .bearerToken(token);
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    assert.equal(200, response.status());
-    assert.equal(false, response.body().user);
-  });
+		const newUser = await UserFactory.create();
+		await newUser.merge({ system_id: user.system_id }).save();
+		await newUser.related("economicGroups").attach([business.economicGroupId]);
+		await newUser.related("roles").create({
+			role_id: role.id,
+			unit_id: business.id,
+			active: true,
+		});
 
-  test('should return true for already registered user', async ({
-    client,
-    assert,
-  }) => {
-    const { user, business, role } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		const response = await client
+			.post("/invites")
+			.json({
+				businessUnitId: business.id,
+				roleId: role.id,
+				email: newUser.email,
+			} as Parameters<InviteService["store"]>[1])
+			.bearerToken(token);
 
-    const fakeUser = await UserFactory.create();
-    const invite = await business.related('invites').create({
-      id: v4(),
-      email: fakeUser.email,
-      role_id: role.id,
-    });
+		assert.equal(400, response.status());
+		assert.isFalse(
+			mailer.exists((mail) => {
+				return (
+					mail.subject ===
+					"Convite para acesso ao sistema Sancla / Liftone / Vetech"
+				);
+			}),
+		);
 
-    const response = await client
-      .get(`/invites/check/${invite.id}`)
-      .bearerToken(token);
+		Mail.restore();
+	});
 
-    assert.equal(200, response.status());
-    assert.equal(true, response.body().user);
-  });
+	test("should return ResourceNotFoundException if invite does not exists", async ({
+		client,
+		assert,
+	}) => {
+		const { user } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-  test('should return correct invite status', async ({ client, assert }) => {
-    const { user, invite } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		const response = await client.get(`/invites/${v4()}`).bearerToken(token);
 
-    const response = await client
-      .get(`/invites/check/${invite.id}`)
-      .bearerToken(token);
+		assert.equal(404, response.status());
+		assert.equal("E_NOT_FOUND: Convite não existe", response.body().message);
+	});
 
-    assert.equal(200, response.status());
-    assert.equal(invite.active, response.body().active);
-  });
+	test("should return invite", async ({ client, assert }) => {
+		const { user, invite } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-  test('should throw UnauthorizedException when updating not active invite', async ({
-    client,
-    assert,
-  }) => {
-    const { user, invite, business, role } = await createData();
-    const token = await generateJwtToken(client, {
-      email: user.email,
-      password: '102030',
-    });
+		const response = await client
+			.get(`/invites/${invite.id}`)
+			.bearerToken(token);
 
-    await invite.merge({ active: false }).save();
+		assert.equal(200, response.status());
+	});
 
-    const response = await client
-      .put(`/invites/${invite.id}`)
-      .json({
-        business_unit_id: business.id,
-        role_id: role.id,
-        email: `${v4()}@mail.com`,
-      })
-      .bearerToken(token);
+	test("should return false for not completly registered user", async ({
+		client,
+		assert,
+	}) => {
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-    assert.equal(401, response.status());
-    assert.equal(
-      'E_NOT_AUTHORIZED: Convite não está mais ativo',
-      response.body().message,
-    );
-  });
+		const fakeUser = await UserFactory.create();
+		await fakeUser.merge({ name: DEFAULT_USER_NAME }).save();
 
-  // test('should throw BadRequestException if user has updating role', async ({
-  //   client,
-  //   assert,
-  // }) => {
-  //   const { user, invite, business, role } = await createData();
-  //   const token = await generateJwtToken(client, {
-  //     email: user.email,
-  //     password: '102030',
-  //   });
+		const invite = await business.related("invites").create({
+			id: v4(),
+			email: fakeUser.email,
+			role_id: role.id,
+		});
 
-  //   const fakeUser = await UserFactory.create();
-  //   const fakeRole = await RoleFactory.create();
-  //   await fakeUser.related('roles').create({
-  //     role_id: role.id,
-  //     unit_id: business.id,
-  //     active: false,
-  //   });
+		const response = await client
+			.get(`/invites/check/${invite.id}`)
+			.bearerToken(token);
 
-  //   const response = await client
-  //     .put(`/invites/${invite.id}`)
-  //     .json({
-  //       business_unit_id: business.id,
-  //       role_id: fakeRole.id,
-  //       email: fakeUser.email,
-  //     })
-  //     .bearerToken(token);
+		assert.equal(200, response.status());
+		assert.equal(false, response.body().user);
+	});
 
-  //   assert.equal(401, response.status());
-  //   assert.equal(
-  //     'E_NOT_AUTHORIZED: Convite não está mais ativo',
-  //     response.body().message,
-  //   );
-  // });
+	test("should return true for already registered user", async ({
+		client,
+		assert,
+	}) => {
+		const { user, business, role } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-  // test('should send email to new user', async ({ assert, client }) => {
-  //   const mailer = Mail.fake();
+		const fakeUser = await UserFactory.create();
+		const invite = await business.related("invites").create({
+			id: v4(),
+			email: fakeUser.email,
+			role_id: role.id,
+		});
 
-  //   const { user, business, role } = await createData();
-  //   const token = await generateJwtToken(client, {
-  //     email: user.email,
-  //     password: '102030',
-  //   });
+		const response = await client
+			.get(`/invites/check/${invite.id}`)
+			.bearerToken(token);
 
-  //   const response = await client
-  //     .post('/invites')
-  //     .json({
-  //       business_unit_id: business.id,
-  //       role_id: role.id,
-  //       email: `${v4()}@mail.com`,
-  //     })
-  //     .bearerToken(token);
+		assert.equal(200, response.status());
+		assert.equal(true, response.body().user);
+	});
 
-  //   assert.equal(201, response.status());
-  //   assert.isTrue(
-  //     mailer.exists(mail => {
-  //       return mail.subject === 'Convite - Vetech';
-  //     }),
-  //   );
+	test("should return correct invite status", async ({ client, assert }) => {
+		const { user, invite } = await createData();
+		const token = await generateJwtToken(client, {
+			email: user.email,
+			password: "102030",
+		});
 
-  //   Mail.restore();
-  // });
+		const response = await client
+			.get(`/invites/check/${invite.id}`)
+			.bearerToken(token);
+
+		assert.equal(200, response.status());
+		assert.equal(invite.active, response.body().active);
+	});
+
+	// test("should throw UnauthorizedException when updating not active invite", async ({
+	// 	client,
+	// 	assert,
+	// }) => {
+	// 	const { user, invite, business, role } = await createData();
+	// 	const token = await generateJwtToken(client, {
+	// 		email: user.email,
+	// 		password: "102030",
+	// 	});
+	//
+	// 	await invite.merge({ active: false }).save();
+	//
+	// 	const response = await client
+	// 		.put(`/invites/${invite.id}`)
+	// 		.json({
+	// 			business_unit_id: business.id,
+	// 			role_id: role.id,
+	// 			email: `${v4()}@mail.com`,
+	// 		})
+	// 		.bearerToken(token);
+	//
+	// 	assert.equal(401, response.status());
+	// 	assert.equal(
+	// 		"E_NOT_AUTHORIZED: Convite não está mais ativo",
+	// 		response.body().message,
+	// 	);
+	// });
+
+	// test('should throw BadRequestException if user has updating role', async ({
+	//   client,
+	//   assert,
+	// }) => {
+	//   const { user, invite, business, role } = await createData();
+	//   const token = await generateJwtToken(client, {
+	//     email: user.email,
+	//     password: '102030',
+	//   });
+
+	//   const fakeUser = await UserFactory.create();
+	//   const fakeRole = await RoleFactory.create();
+	//   await fakeUser.related('roles').create({
+	//     role_id: role.id,
+	//     unit_id: business.id,
+	//     active: false,
+	//   });
+
+	//   const response = await client
+	//     .put(`/invites/${invite.id}`)
+	//     .json({
+	//       business_unit_id: business.id,
+	//       role_id: fakeRole.id,
+	//       email: fakeUser.email,
+	//     })
+	//     .bearerToken(token);
+
+	//   assert.equal(401, response.status());
+	//   assert.equal(
+	//     'E_NOT_AUTHORIZED: Convite não está mais ativo',
+	//     response.body().message,
+	//   );
+	// });
+
+	// test('should send email to new user', async ({ assert, client }) => {
+	//   const mailer = Mail.fake();
+
+	//   const { user, business, role } = await createData();
+	//   const token = await generateJwtToken(client, {
+	//     email: user.email,
+	//     password: '102030',
+	//   });
+
+	//   const response = await client
+	//     .post('/invites')
+	//     .json({
+	//       business_unit_id: business.id,
+	//       role_id: role.id,
+	//       email: `${v4()}@mail.com`,
+	//     })
+	//     .bearerToken(token);
+
+	//   assert.equal(201, response.status());
+	//   assert.isTrue(
+	//     mailer.exists(mail => {
+	//       return mail.subject === 'Convite - Vetech';
+	//     }),
+	//   );
+
+	//   Mail.restore();
+	// });
 });

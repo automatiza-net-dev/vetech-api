@@ -11,6 +11,7 @@ import User from "App/Models/User";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
+import Role from "./Role";
 
 export default class Invite extends BaseModel {
 	@column({ isPrimary: true })
@@ -32,12 +33,19 @@ export default class Invite extends BaseModel {
 	})
 	public economic_group_id: string;
 
+	@belongsTo(() => Role, {
+		foreignKey: "role_id",
+	})
+	public role: BelongsTo<typeof Role>;
+
 	@column({
 		serializeAs: "roleId",
 	})
 	public role_id: number;
 
-	@belongsTo(() => User, {})
+	@belongsTo(() => User, {
+		foreignKey: "user_id",
+	})
 	public user: BelongsTo<typeof User>;
 
 	@column({

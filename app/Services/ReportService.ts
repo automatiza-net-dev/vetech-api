@@ -2109,7 +2109,7 @@ ON bills.patient_id = Dep."id"`,
         opportunities.gender as genero_paciente,
         opportunities.weight as peso_paciente,
         opportunities.castrated as castrado_paciente,
-        opportunities.client_origin_item_description as campanha_midia
+        coalesce(mc.description, opportunities.client_origin_item_description) as campanha_midia
         `),
 			)
 			.joinRaw(
@@ -2138,6 +2138,9 @@ ON bills.patient_id = Dep."id"`,
 			)
 			.joinRaw("left join races on opportunities.race_id = races.id")
 			.joinRaw("left join reasons r on opportunities.reason_id = r.id")
+			.joinRaw(
+				"left join marketing_campaigns mc on opportunities.marketing_campaign_id = mc.id",
+			)
 			.where("opportunities.economic_group_id", authCtx.group.id)
 			.whereNull("opportunities.deleted_at");
 

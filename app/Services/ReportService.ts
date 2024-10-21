@@ -3100,6 +3100,159 @@ ON bills.patient_id = Dep."id"`,
 		}, [] as any[]);
 	}
 
+	public async patientsReport(
+		authCtx: AuthContext,
+		data: {
+			species?: string[];
+			races?: string[];
+			hairs?: string[];
+
+			community?: string;
+			gender?: string;
+			castrated?: string;
+			death?: string;
+			vaccineOrigin?: string;
+			microchip?: string;
+
+			fromCreated?: string;
+			toCreated?: string;
+			fromBirth?: string;
+			toBirth?: string;
+
+			debug?: string;
+		},
+	) {
+		const qb = Database.from("patient_economic_groups")
+			.debug(true)
+			.select(
+				Database.raw(`patients.id                                                  as id,
+       patients.name                                                as nome,
+       patients.tag                                                 as rg,
+       patients.community                                           as comunidade_sancla,
+       patients.weight                                              as peso,
+       patients.weight_date::date                                   as data_pesagem,
+       patient_animal_hairs.description                             as pelagem,
+       species.description || ' > ' || races.description            as especie_raca,
+       patient_animals.death                                        as obito,
+       patient_animals.death_date                                   as data_obito,
+       patient_animals.microchip,
+       patient_animals.castrated                                    as castrado,
+       patients.birth_date                                          as paciente_data_nascimento,
+       patients.created_at                                          as paciente_data_cadastro,
+       case
+           when patients.gender = 'male' then 'macho'
+           when patients.gender = 'female' then 'fêmea'
+           else 'Não Informado' end                                 as paciente_genero,
+       case
+           when patients.vaccine_origin = 'FORA_DA_CLINICA' then 'Fora da Clinica'
+           when patients.vaccine_origin = 'PROPRIA_CLINICA' then 'Própria da Clinica'
+           when patients.vaccine_origin = 'NAO_VACINADO' then 'Não Vacinado'
+           else 'Não Informado' end                                 as paciente_vacinado,
+       tutor.name                                                   as tutor_principal,
+       coalesce(patient_tutors.cellphone, patient_tutors.telephone) as tutor_telefone,
+       patient_tutors.email                                         as tutor_email`),
+			)
+			.joinRaw(
+				"join patients on patient_economic_groups.patient_id = patients.id",
+			)
+			.joinRaw(`join (patient_animals
+    left join ( races left join species on races.specie_id = species.id) on patient_animals.race_id = races.id
+    left join patient_animal_hairs on patient_animals.hair_id = patient_animal_hairs.id)
+              on patients.id = patient_animals.patient_id`)
+			.joinRaw(`left join (holder_dependents join (patients tutor join patient_tutors
+                                            on tutor.id = patient_tutors.patient_id)
+                    on holder_dependents.holder_id = tutor.id)
+                   on patients.id = holder_dependents.dependent_id and is_main = true`)
+			.whereRaw("patient_economic_groups.economic_group_id = ?", [
+				authCtx.group.id,
+			]);
+
+		if (data.species && Array.isArray(data.species)) {
+			qb.whereIn("species.id", data.species);
+		}
+
+		if (data.races && Array.isArray(data.races)) {
+			qb.whereIn("races.id", data.races);
+		}
+
+		if (data.hairs && Array.isArray(data.hairs)) {
+			qb.whereIn("patient_animal_hairs.id", data.hairs);
+		}
+
+		if (data.community) {
+			qb.whereRaw("patients.community = ?", [data.community === "Sim"]);
+		}
+
+		if (data.gender) {
+			qb.whereRaw("tutor.gender = ?", [
+				data.gender === "Macho" ? "male" : "female",
+			]);
+		}
+
+		if (data.castrated) {
+			qb.whereRaw("patient_animals.castrated = ?", [data.castrated === "true"]);
+		}
+
+		if (data.death) {
+			switch (data.death) {
+				case "Sim":
+					qb.whereRaw("patient_animals.death_date is not null");
+					break;
+				case "Nao":
+					qb.whereRaw("patient_animals.death_date is null");
+					break;
+			}
+		}
+
+		if (data.vaccineOrigin) {
+			switch (data.vaccineOrigin) {
+				case "Não Vacinado":
+					qb.whereRaw("patients.vaccine_origin = ?", ["NAO_VACINADO"]);
+					break;
+				case "Fora da Clinica":
+					qb.whereRaw("patients.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
+					break;
+				case "Propria Clinica":
+					qb.whereRaw("patients.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
+					break;
+				case "Não Informado":
+				default:
+					qb.whereRaw("patients.vaccine_origin is null");
+			}
+		}
+
+		if (data.microchip) {
+			switch (data.microchip) {
+				case "Sim":
+					qb.whereRaw("patient_animals.microchip is not null");
+					break;
+				case "Nao":
+					qb.whereRaw("patient_animals.microchip is null");
+					break;
+			}
+		}
+
+		if (data.fromCreated && data.toCreated) {
+			qb.andWhereRaw("patients.created_at::date between ? and ?", [
+				data.fromCreated,
+				data.toCreated,
+			]);
+		}
+
+		if (data.fromBirth && data.toBirth) {
+			qb.andWhereRaw("patients.birth_date::date between ? and ?", [
+				data.fromBirth,
+				data.toBirth,
+			]);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
+		}
+
+		return qb;
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

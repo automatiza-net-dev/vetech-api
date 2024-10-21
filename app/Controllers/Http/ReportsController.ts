@@ -310,4 +310,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async patientsReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.patientsReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

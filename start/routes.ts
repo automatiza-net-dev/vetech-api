@@ -1540,6 +1540,7 @@ Route.group(() => {
 	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
 	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
 	Route.get("/dre-groups", "ReportsController.dreGroupsReport");
+	Route.get("/patients", "ReportsController.patientsReport");
 })
 	.prefix("reports")
 	.middleware("auth");

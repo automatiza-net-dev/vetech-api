@@ -2901,14 +2901,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			qty_opportunities: number;
 			sum_opportunities: number;
 			cpl: number;
-			qtd_novas: number;
-			qtd_agendadas: number;
-			qtd_comparecidas: number;
-			qtd_faltou: number;
-			qtd_desmarcou: number;
-			qtd_fechadas: number;
-			qtd_ganhos: number;
-			qtd_perdas: number;
+			qtd_novas: string;
+			qtd_agendadas: string;
+			qtd_comparecidas: string;
+			qtd_faltou: string;
+			qtd_desmarcou: string;
+			qtd_fechadas: string;
+			qtd_ganhos: string;
+			qtd_perdas: string;
 		}[] = await qb;
 
 		const groups = SharedService.GroupBy(result, (row) => [row.e_id, row.b_id]);
@@ -2937,14 +2937,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									qty_opportunities: c.qty_opportunities,
 									sum_opportunities: c.sum_opportunities,
 									cpl: c.cpl,
-									qty_novas: c.qtd_novas,
-									qty_agendadas: c.qtd_agendadas,
-									qty_comparecidas: c.qtd_comparecidas,
-									qty_faltou: c.qtd_faltou,
-									qty_desmarcou: c.qtd_desmarcou,
-									qty_fechadas: c.qtd_fechadas,
-									qty_ganhos: c.qtd_ganhos,
-									qty_perdas: c.qtd_perdas,
+									qty_novas: Number.parseFloat(c.qtd_novas),
+									qty_agendadas: Number.parseFloat(c.qtd_agendadas),
+									qty_comparecidas: Number.parseFloat(c.qtd_comparecidas),
+									qty_faltou: Number.parseFloat(c.qtd_faltou),
+									qty_desmarcou: Number.parseFloat(c.qtd_desmarcou),
+									qty_fechadas: Number.parseFloat(c.qtd_fechadas),
+									qty_ganhos: Number.parseFloat(c.qtd_ganhos),
+									qty_perdas: Number.parseFloat(c.qtd_perdas),
 								})),
 						},
 					],

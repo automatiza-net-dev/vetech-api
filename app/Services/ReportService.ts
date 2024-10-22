@@ -2929,7 +2929,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								.filter((f) => f.e_id === group && f.b_id === unit)
 								.map((c) => ({
 									id: c.id,
-									description: c.identification,
+									description: c.description,
 									start_date: c.start_date,
 									end_date: c.end_date,
 									investment_value: c.investment_value,

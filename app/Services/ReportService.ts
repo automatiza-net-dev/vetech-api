@@ -2834,7 +2834,15 @@ ON bills.patient_id = Dep."id"`,
        case
            when count(opportunities.id) = 0 then 0::float
            else (investment_value / count(opportunities.id))::float
-           end                                             as cpl`),
+           end                                             as cpl,
+         sum(case when cs.type = 'OP' and tag = 'N' and opportunities.balance is null then 1 else 0 end) as qtd_novas,
+sum(case when cs.type = 'OP' and tag = 'A' and opportunities.balance is null then 1 else 0 end) as qtd_agendadas,
+sum(case when cs.type = 'OP' and tag = 'C' and opportunities.balance is null then 1 else 0 end) as qtd_comparecidas,
+sum(case when cs.type = 'OP' and tag = 'F' and opportunities.balance is null then 1 else 0 end) as qtd_faltou,
+sum(case when cs.type = 'OP' and tag = 'D' and opportunities.balance is null then 1 else 0 end) as qtd_desmarcou,
+sum(case when cs.type = 'OP' and tag = 'FE' and opportunities.balance is null then 1 else 0 end) as qtd_fechadas,
+sum(case when opportunities.balance = 'Ganho' then 1 else 0 end) as qtd_ganhos,
+sum(case when opportunities.balance = 'Perda' then 1 else 0 end) as qtd_perdas`),
 			)
 			.joinRaw(
 				"join economic_groups on marketing_campaigns.economic_group_id = economic_groups.id",
@@ -2843,7 +2851,8 @@ ON bills.patient_id = Dep."id"`,
 				"join business_units on economic_groups.id = business_units.economic_group_id",
 			)
 			.joinRaw(
-				"left join opportunities on marketing_campaigns.id = opportunities.marketing_campaign_id",
+				`left join ( opportunities
+left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campaigns.id = opportunities.marketing_campaign_id`,
 			)
 			.groupByRaw(
 				"economic_groups.id, business_units.id, marketing_campaigns.id",
@@ -2892,6 +2901,14 @@ ON bills.patient_id = Dep."id"`,
 			qty_opportunities: number;
 			sum_opportunities: number;
 			cpl: number;
+			qtd_novas: number;
+			qtd_agendadas: number;
+			qtd_comparecidas: number;
+			qtd_faltou: number;
+			qtd_desmarcou: number;
+			qtd_fechadas: number;
+			qtd_ganhos: number;
+			qtd_perdas: number;
 		}[] = await qb;
 
 		const groups = SharedService.GroupBy(result, (row) => [row.e_id, row.b_id]);
@@ -2920,6 +2937,14 @@ ON bills.patient_id = Dep."id"`,
 									qty_opportunities: c.qty_opportunities,
 									sum_opportunities: c.sum_opportunities,
 									cpl: c.cpl,
+									qty_novas: c.qtd_novas,
+									qty_agendadas: c.qtd_agendadas,
+									qty_comparecidas: c.qtd_comparecidas,
+									qty_faltou: c.qtd_faltou,
+									qty_desmarcou: c.qtd_desmarcou,
+									qty_fechadas: c.qtd_fechadas,
+									qty_ganhos: c.qtd_ganhos,
+									qty_perdas: c.qtd_perdas,
 								})),
 						},
 					],

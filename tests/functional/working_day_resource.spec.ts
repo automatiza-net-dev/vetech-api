@@ -3,6 +3,7 @@ import { test } from "@japa/runner";
 import WeekDay from "App/Models/shared/WeekDay";
 import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
+import WorkingDayService from "App/Services/WorkingDayService";
 import UserFactory from "Database/factories/UserFactory";
 import { v4 } from "uuid";
 
@@ -50,8 +51,8 @@ test.group("Working day resource", (group) => {
 		assert.equal(201, response.status());
 	});
 
-	test("should create many new working days", async ({ client, assert }) => {
-		const [user] = await createData();
+	test("should update many working days", async ({ client, assert }) => {
+		const [user, day] = await createData();
 		const newUser = await UserFactory.create();
 
 		const token = await generateJwtToken(client, {
@@ -60,17 +61,18 @@ test.group("Working day resource", (group) => {
 		});
 
 		const response = await client
-			.post("/working-days/many")
+			.put("/working-days/many")
 			.json({
 				items: [
 					{
+						id: day.id,
 						userId: newUser.id,
 						dayOfWeek: "segunda",
 						startHour: "09:00",
 						endHour: "09:00",
 					},
 				],
-			})
+			} as Parameters<WorkingDayService["storeMany"]>[1])
 			.bearerToken(token);
 
 		assert.equal(201, response.status());

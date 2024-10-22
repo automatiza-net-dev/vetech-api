@@ -57,20 +57,21 @@ export default class WorkingDayService {
 	public async storeMany(
 		unitId: string,
 		data: {
-			items: IWorkingDayData[];
+			items: (IWorkingDayData & { id: string })[];
 		},
 	): Promise<WorkingDay[]> {
 		const unit = await BusinessUnit.findOrFail(unitId);
 
-		return unit.related("workingDays").createMany(
+		return unit.related("workingDays").updateOrCreateMany(
 			data.items.map((elem) => ({
-				id: v4(),
 				user_id: elem.userId,
+				id: elem.id,
 				weekDay: elem.dayOfWeek,
 				startHour: elem.startHour,
 				endHour: elem.endHour,
 				weekday_index: Object.values(WeekDay).indexOf(elem.dayOfWeek) ?? 0,
 			})),
+			"id",
 		);
 	}
 

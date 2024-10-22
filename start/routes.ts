@@ -331,9 +331,9 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/", "WorkingDaysController.index");
-	Route.post("/many", "WorkingDaysController.storeMany");
 	Route.post("/", "WorkingDaysController.store");
 	Route.get("/:id", "WorkingDaysController.show");
+	Route.put("/many", "WorkingDaysController.storeMany");
 	Route.put("/:id", "WorkingDaysController.update");
 	Route.delete("/:id", "WorkingDaysController.destroy");
 })

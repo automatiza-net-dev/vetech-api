@@ -8,6 +8,13 @@ export default class CreateManyWorkingDayValidator {
 	public schema = schema.create({
 		items: schema.array().members(
 			schema.object().members({
+				id: schema.string({}, [
+					rules.uuid(),
+					rules.exists({
+						table: "working_days",
+						column: "id",
+					}),
+				]),
 				userId: schema.string({}, [
 					rules.uuid(),
 					rules.exists({

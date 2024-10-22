@@ -942,6 +942,27 @@ export default class BudgetService {
 				);
 			}
 
+			const result = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
+			);
+			if (result.length > 0) {
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const tasks = data.items.map(async (elem) => {
 				const productVariation = await ProductVariation.query()
 					.useTransaction(trx)
@@ -968,19 +989,6 @@ export default class BudgetService {
 						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
 						400,
 						"E_ERR",
-					);
-				}
-
-				if (
-					productVariation.businessUnitProducts.some(
-						(p) =>
-							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
-					)
-				) {
-					throw new BadRequestException(
-						"Desconto máximo foi excedido",
-						400,
-						"E_MAX_DISCOUNT",
 					);
 				}
 

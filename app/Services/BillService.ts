@@ -429,6 +429,29 @@ export default class BillService {
 				);
 			}
 
+			if (data.items) {
+				const result = await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
+					})),
+				);
+				if (result.length > 0) {
+					// return result;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			if (
 				data.items &&
 				data.items.length > 0 &&
@@ -476,20 +499,6 @@ export default class BillService {
 								`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
 								400,
 								"E_ERR",
-							);
-						}
-
-						if (
-							productVariation.businessUnitProducts.some(
-								(p) =>
-									!data.maxDiscount &&
-									p.maximumDiscountValue < elem.discountValue,
-							)
-						) {
-							throw new BadRequestException(
-								"Desconto máximo foi excedido",
-								400,
-								"E_MAX_DISCOUNT",
 							);
 						}
 

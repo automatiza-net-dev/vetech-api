@@ -2830,7 +2830,8 @@ ON bills.patient_id = Dep."id"`,
        marketing_campaigns.investment_value::float,
        marketing_campaigns.active,
        count(opportunities.id)::int                        as qty_opportunities,
-       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunities,
+       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunity_profit,
+       coalesce(sum(opportunities.value), 0)::float as sum_opportunity_value,
        case
            when count(opportunities.id) = 0 then 0::float
            else (investment_value / count(opportunities.id))::float
@@ -2899,7 +2900,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			investment_value: number;
 			active: boolean;
 			qty_opportunities: number;
-			sum_opportunities: number;
+			sum_opportunity_profit: number;
+			sum_opportunity_value: number;
 			cpl: number;
 			qtd_novas: string;
 			qtd_agendadas: string;
@@ -2935,7 +2937,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									investment_value: c.investment_value,
 									active: c.active,
 									qty_opportunities: c.qty_opportunities,
-									sum_opportunities: c.sum_opportunities,
+									sum_opportunity_profit: c.sum_opportunity_profit,
+									sum_opportunity_value: c.sum_opportunity_value,
 									cpl: c.cpl,
 									qty_novas: Number.parseFloat(c.qtd_novas),
 									qty_agendadas: Number.parseFloat(c.qtd_agendadas),

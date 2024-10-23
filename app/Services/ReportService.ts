@@ -3173,7 +3173,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
            else 'Não Informado' end                                 as paciente_genero,
        case
            when patients.vaccine_origin = 'FORA_DA_CLINICA' then 'Fora da Clinica'
-           when patients.vaccine_origin = 'PROPRIA_CLINICA' then 'Própria da Clinica'
+           when patients.vaccine_origin = 'PROPRIA_CLINICA' then 'Na Própria Clinica'
            when patients.vaccine_origin = 'NAO_VACINADO' then 'Não Vacinado'
            else 'Não Informado' end                                 as paciente_vacinado,
        tutor.name                                                   as tutor_principal,

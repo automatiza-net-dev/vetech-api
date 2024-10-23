@@ -34,6 +34,9 @@ type ShowIt = {
 				qtdDosesProtocolo: number;
 				intervaloDiasDosesProtocolo: number;
 				protocoloValidoPor: string;
+				dataUltimaAplicacao: string | null;
+				dataValido: string | null;
+				statusVacina: string | null;
 				vaccineCalendar: {
 					idVaccineCalendar: string;
 					scheduleId: string | null;
@@ -109,6 +112,10 @@ export default class VaccineService {
        patient_contacts.contact                                                 as contato_tutor,
        case when vaccines."type" = 'vaccine' then 'Vacina' else 'Vermifugo' end as tipo,
        patient_vaccines.id                                                      as id_vacina_paciente,
+
+      patient_vaccines.last_application_at                          as data_ultima_aplicacao,
+      patient_vaccines.valid_until                                            as data_valido,
+      patient_vaccines.status                                                  as status_vacina,
 
        vaccines.id                                                              as id_vacina,
        vaccines.name                                                            as nome_Vacina,
@@ -196,6 +203,9 @@ export default class VaccineService {
 			contato_tutor: string | null;
 			tipo: "Vacina" | "Vermifugo";
 			id_vacina_paciente: string;
+			data_ultima_aplicacao: string | null;
+			data_valido: string | null;
+			status_vacina: string | null;
 			id_vacina: string;
 			nome_vacina: string;
 			id_protocolo: string;
@@ -271,6 +281,9 @@ export default class VaccineService {
 														intervaloDiasDosesProtocolo:
 															vac.intervalo_dias_doses_protocolo,
 														protocoloValidoPor: vac.protocolo_valido_por,
+														dataUltimaAplicacao: vac.data_ultima_aplicacao,
+														dataValido: vac.data_valido,
+														statusVacina: vac.status_vacina,
 														vaccineCalendar: result
 															.filter(
 																(f) =>

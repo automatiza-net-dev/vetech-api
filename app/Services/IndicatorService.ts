@@ -232,7 +232,7 @@ export default class IndicatorService {
             business_units.identification,
             'Recorrentes'          as description,
             sum(bills.total_value) as total,
-            count(distinct bills.client_id) as qty_clients
+            count(distinct bills.${this.getContextClientReference(authCtx)}) as qty_clients
           `,
 				),
 			)
@@ -261,7 +261,7 @@ export default class IndicatorService {
           business_units.identification,
           client_origins.description,
           sum(bills.total_value) as total,
-          count( distinct bills.client_id ) as qty_clients
+          count( distinct bills.${this.getContextClientReference(authCtx)} ) as qty_clients
           `,
 				),
 			)

@@ -53,6 +53,16 @@ export default class Invite extends BaseModel {
 	})
 	public user_id?: string;
 
+	@belongsTo(() => User, {
+		foreignKey: "invitedBy",
+	})
+	public invitedBy: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public invited_by_user_id: string | null;
+
 	@column()
 	public email: string;
 

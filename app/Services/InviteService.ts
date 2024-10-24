@@ -70,6 +70,7 @@ export default class InviteService {
 			if (rows.length === 0) {
 				const invite = await Invite.create(
 					{
+						invited_by_user_id: authCtx.user.id,
 						economic_group_id: authCtx.group.id,
 						role_id: data.roleId,
 						business_unit_id: authCtx.unit.id,
@@ -111,6 +112,7 @@ export default class InviteService {
 			if (!row.id_grupo_economico) {
 				const invite = await Invite.create(
 					{
+						invited_by_user_id: authCtx.user.id,
 						economic_group_id: authCtx.group.id,
 						role_id: data.roleId,
 						business_unit_id: authCtx.unit.id,
@@ -160,6 +162,7 @@ export default class InviteService {
 			// Usuario existe no grupo economico logado mas não na unidade do convite;
 			const invite = await Invite.create(
 				{
+					invited_by_user_id: authCtx.user.id,
 					economic_group_id: authCtx.group.id,
 					role_id: data.roleId,
 					business_unit_id: authCtx.unit.id,
@@ -190,6 +193,9 @@ export default class InviteService {
 			})
 			.preload("user", (query) => {
 				query.select("id", "email");
+			})
+			.preload("invitedBy", (query) => {
+				query.select("id", "name");
 			})
 			.where("id", id)
 			.first();

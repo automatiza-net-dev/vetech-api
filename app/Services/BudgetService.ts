@@ -2567,17 +2567,17 @@ export default class BudgetService {
 				);
 			}
 
-			// const hasPermissions = await this.sharedService.userHasPermission(
-			// 	{ ...authCtx, user },
-			// 	"ORC11",
-			// );
-			// if (!hasPermissions) {
-			// 	throw new BadRequestException(
-			// 		"Usuário sem permissão de fazer a operação",
-			// 		400,
-			// 		"E_ERR",
-			// 	);
-			// }
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"ORC11",
+			);
+			if (!hasPermissions) {
+				throw new BadRequestException(
+					"Usuário sem permissão de fazer a operação",
+					400,
+					"E_ERR",
+				);
+			}
 
 			if (
 				budget.items.some(

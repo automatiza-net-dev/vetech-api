@@ -189,7 +189,7 @@ export default class PatientVaccineService {
 		unitId: string,
 		id: string,
 		user: User,
-		data: Omit<IPatientVaccineData, "applications"> & { dose: number },
+		data: Omit<IPatientVaccineData, "applications">,
 	) {
 		const entity = await this.show(unitId, id);
 
@@ -200,13 +200,6 @@ export default class PatientVaccineService {
 			vaccine_id: data.vaccineId,
 			vaccine_protocol_id: data.vaccineProtocolId,
 			schedule_id: data.scheduleId,
-
-			lastApplicationAt: DateTime.now(),
-			validUntil:
-				entity.protocol.doses === data.dose
-					? DateTime.now().plus({ days: entity.protocol.expirationDays ?? 0 })
-					: null,
-			status: entity.protocol.doses === data.dose ? "Completo" : "Incompleto",
 		});
 
 		return await entity.save();

@@ -156,6 +156,22 @@ export default class VaccineCalendarService {
 				},
 			});
 
+			await calendar.patientVaccine
+				.merge({
+					lastApplicationAt: DateTime.now(),
+					validUntil:
+						calendar.patientVaccine.protocol.doses === data.dose
+							? DateTime.now().plus({
+									days: calendar.patientVaccine.protocol.expirationDays ?? 0,
+								})
+							: null,
+					status:
+						calendar.patientVaccine.protocol.doses === data.dose
+							? "Completo"
+							: "Incompleto",
+				})
+				.save();
+
 			return calendar;
 		});
 	}

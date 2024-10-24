@@ -54,7 +54,7 @@ export default class Invite extends BaseModel {
 	public user_id?: string;
 
 	@belongsTo(() => User, {
-		foreignKey: "invitedBy",
+		foreignKey: "invited_by_user_id",
 	})
 	public invitedBy: BelongsTo<typeof User>;
 

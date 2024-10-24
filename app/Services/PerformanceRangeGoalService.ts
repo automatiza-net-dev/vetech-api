@@ -14,9 +14,12 @@ export default class PerformanceRangeGoalService {
 	public async search(authCtx: AuthContext, metaId: string) {
 		const meta = await Meta.query()
 			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			])
 			.where("id", metaId)
 			.first();
+
 		if (!meta) {
 			throw new BadRequestException("Meta não encontrada", 400, "E_ERR");
 		}
@@ -24,6 +27,7 @@ export default class PerformanceRangeGoalService {
 		const goals = await meta
 			.related("goals")
 			.query()
+			.where("economic_group_id", authCtx.group.id)
 			.select("id", "startValue", "endValue", "color", "meta_id")
 			.orderByRaw("start_value, end_value");
 
@@ -92,12 +96,22 @@ export default class PerformanceRangeGoalService {
 			const meta = await Meta.query()
 				.useTransaction(trx)
 				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.where("id", data.metaId)
 				.first();
 			if (!meta) {
 				throw new BadRequestException("Meta não encontrada", 400, "E_ERR");
 			}
+
+			// if (!meta.economic_group_id) {
+			// 	throw new BadRequestException(
+			// 		"Meta geral do sistema não pode ser alterada",
+			// 		400,
+			// 		"E_ERR",
+			// 	);
+			// }
 
 			await PerformanceRangeGoal.query()
 				.useTransaction(trx)

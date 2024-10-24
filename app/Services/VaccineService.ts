@@ -46,8 +46,6 @@ type ShowIt = {
 					laboratorioAplicacao: string | null;
 					loteAplicacao: string | null;
 					statusAgendamentoVacina: string;
-					statusProtocolo: string;
-					validadeVacina: string;
 				}[];
 			};
 		}[];
@@ -142,17 +140,7 @@ export default class VaccineService {
                then 'Atrasada (' || now()::date - vaccine_calendars.scheduling_date::date || ' dias)'
 
            when vaccine_calendars.scheduling_date::date >= now()::date and vaccine_calendars.application_date is null
-               then 'Agendada' end                                              as status_Agendamento_Vacina,
-
-       case
-           when vaccine_calendars.dose = vaccine_protocols.doses and vaccine_calendars.application_date is not null
-               then 'Protocolo Completo'
-           else 'Protocolo Incompleto' end                                      as status_Protocolo,
-
-       case
-           when vaccine_calendars.dose = vaccine_protocols.doses and vaccine_calendars.application_date is not null
-               then vaccine_calendars.application_date::date + coalesce(vaccine_protocols.expiration_days, 0)
-           else now()::date end                                                 as validade_Vacina`),
+               then 'Agendada' end                                              as status_Agendamento_Vacina`),
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
@@ -302,8 +290,6 @@ export default class VaccineService {
 																loteAplicacao: cal.lote_aplicacao,
 																statusAgendamentoVacina:
 																	cal.status_agendamento_vacina,
-																statusProtocolo: cal.status_protocolo,
-																validadeVacina: cal.validade_vacina,
 															})),
 													},
 												});

@@ -2545,23 +2545,28 @@ export default class IndicatorService {
                        (select performance_range_goals.color
         from performance_range_goals
         where metas.id = performance_range_goals.meta_id
-          and (((to_char(now(), 'YYYYMM') < '202409') and
+          and (((to_char(now(), 'YYYYMM') < ?) and
                 0 between performance_range_goals.start_value and performance_range_goals.end_value)
-            or ((to_char(now(), 'YYYYMM') > '202409') and
+            or ((to_char(now(), 'YYYYMM') > ?) and
                 (sum(bills.total_value) /
                  case when business_unit_metas.value = 0 then 1 else business_unit_metas.value end *
                  100) between performance_range_goals.start_value and performance_range_goals.end_value)
-            or ((to_char(now(), 'YYYYMM') = '202409') and
-                ((sum(bills.total_value) / 8 * 31) /
+            or ((to_char(now(), 'YYYYMM') = ?) and
+                ((sum(bills.total_value) / ? * ?) /
                  case when business_unit_metas.value = 0 then 1 else business_unit_metas.value end *
                  100) between performance_range_goals.start_value and performance_range_goals.end_value)
-            ))                                as color
+            ) limit 1)                                as color
           `,
 					[
 						ym,
 						ym,
 						usefulDaysUntilNow,
 						usefulDays,
+						ym,
+						ym,
+						usefulDaysUntilNow,
+						usefulDays,
+						ym,
 						ym,
 						ym,
 						usefulDaysUntilNow,

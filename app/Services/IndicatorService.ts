@@ -4531,19 +4531,19 @@ export default class IndicatorService {
 			);
 		}
 
-		// if (authCtx.system.name === "Sanclá") {
+		if (authCtx.system.name === "Sanclá") {
 			return this.sanclaChartsIndicators(authCtx, data);
-		// }
-		//
-		// if (authCtx.system.name === "LiftOne") {
-		// 	return this.liftOneChartsIndicators(authCtx, data);
-		// }
-		//
-		// throw new InternalErrorException(
-		// 	`Sistema '${authCtx.system.name}' não tem gráficos definidos`,
-		// 	400,
-		// 	"E_ERR",
-		// );
+		}
+
+		if (authCtx.system.name === "LiftOne") {
+			return this.liftOneChartsIndicators(authCtx, data);
+		}
+
+		throw new InternalErrorException(
+			`Sistema '${authCtx.system.name}' não tem gráficos definidos`,
+			400,
+			"E_ERR",
+		);
 	}
 
 	public async crmDashboard(authCtx: AuthContext, data: Record<string, any>) {

@@ -35,4 +35,7 @@ export default Env.rules({
 	TRANSPILER_PATH: Env.schema.string(),
 	DOCX_RESOLVER_PATH: Env.schema.string(),
 	EXCEL_COMPILER_PATH: Env.schema.string(),
+	AXIOM_TOKEN: Env.schema.string(),
+	AXIOM_DATASET: Env.schema.string(),
+	AXIOM_LABEL: Env.schema.string(),
 });

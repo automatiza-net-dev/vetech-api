@@ -94,15 +94,20 @@ export default class InviteService {
 
 				const url = [
 					systemUrl.url.endsWith("/") ? systemUrl.url : `${systemUrl.url}/`,
-					`convite/novo-usuario/${invite.id}'`,
+					`convite/novo-usuario/${invite.id}`,
 				].join("");
 
-				await this.sendInviteEmail(
-					data.email,
-					invite,
+				await this.sendInviteEmail({
+					email: data.email,
 					url,
-					authCtx.group.fantasyName || authCtx.group.companyName || "-",
-				);
+					unitName:
+						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					invitedBy: authCtx.user.name,
+					systemName: authCtx.system.name,
+					imageUrl: authCtx.system.mailImage ?? "#",
+					bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
+					rawHtml: authCtx.system.mailTextNewUser ?? "",
+				});
 
 				return invite;
 			}
@@ -137,15 +142,20 @@ export default class InviteService {
 
 				const url = [
 					systemUrl.url.endsWith("/") ? systemUrl.url : `${systemUrl.url}/`,
-					`convite/aceite/${invite.id}'`,
+					`convite/aceite/${invite.id}`,
 				].join("");
 
-				await this.sendInviteEmail(
-					data.email,
-					invite,
+				await this.sendInviteEmail({
+					email: data.email,
 					url,
-					authCtx.group.fantasyName || authCtx.group.companyName || "-",
-				);
+					unitName:
+						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					invitedBy: authCtx.user.name,
+					systemName: authCtx.system.name,
+					imageUrl: authCtx.system.mailImage ?? "#",
+					bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
+					rawHtml: authCtx.system.mailTextNewUser ?? "",
+				});
 
 				return invite;
 			}
@@ -181,6 +191,17 @@ export default class InviteService {
 				},
 				{ client: trx },
 			);
+
+			await this.sendInviteEmail({
+				email: data.email,
+				url: "",
+				unitName: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				invitedBy: authCtx.user.name,
+				systemName: authCtx.system.name,
+				imageUrl: authCtx.system.mailImage ?? "#",
+				bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
+				rawHtml: authCtx.system.mailTextWarnUser ?? "",
+			});
 
 			return invite;
 		});
@@ -488,21 +509,38 @@ export default class InviteService {
 
 		return entities.flatMap((ent) => ent.businessUnits);
 	}
-	private async sendInviteEmail(
-		email: string,
-		invite: Invite,
-		url: string,
-		unitName: string,
-	) {
+
+	private async sendInviteEmail(props: {
+		email: string;
+		url: string;
+		unitName: string;
+		invitedBy: string;
+		systemName: string;
+		bgColor: string;
+		imageUrl: string;
+		rawHtml: string;
+	}) {
+		const templateData = {
+			email: props.email,
+			invitedBy: props.invitedBy,
+			identification: props.unitName,
+			systemName: props.systemName,
+			url: props.url,
+		};
+
 		await Mail.send((message) => {
 			message
 				.from("sysvetech@gmail.com")
-				.to(email)
-				.subject("Convite para acesso ao sistema Sancla / Liftone / Vetech")
+				.to(props.email)
+				.subject(`Convite para acesso ao sistema ${props.systemName}`)
 				.htmlView("emails/invite", {
-					link: url,
-					id: invite.id,
-					name: unitName,
+					email: props.email,
+					bgColor: props.bgColor,
+					imageUrl: props.imageUrl,
+					url: props.url,
+					plainHtml: Object.keys(templateData).reduce((acc, key) => {
+						return acc.replaceAll(`:${key}`, templateData[key]);
+					}, props.rawHtml),
 				});
 		});
 	}

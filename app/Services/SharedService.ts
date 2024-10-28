@@ -231,19 +231,18 @@ export default class SharedService {
 	public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
 		const { user, unit_id, ip } = this.extractUser(auth);
 
-		const unit = await BusinessUnit.query()
-			.where("id", unit_id)
-			.preload("economicGroup", (query) => {
-				query.preload("system", (query) => {
-					query.preload("systemUrls");
-				});
-			})
-			.preload("unitConfig")
-			.firstOrFail();
-
-		const userRoles = await UserUnitRole.query()
-			.where("user_id", user.id)
-			.where("unit_id", unit.id);
+		const [unit, userRoles] = await Promise.all([
+			BusinessUnit.query()
+				.where("id", unit_id)
+				.preload("economicGroup", (query) => {
+					query.preload("system", (query) => {
+						query.preload("systemUrls");
+					});
+				})
+				.preload("unitConfig")
+				.firstOrFail(),
+			UserUnitRole.query().where("user_id", user.id).where("unit_id", unit_id),
+		]);
 
 		const rows = await Database.from("user_unit_roles")
 			.select(Database.raw("permissions.control_id"))

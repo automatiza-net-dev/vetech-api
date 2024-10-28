@@ -196,7 +196,6 @@ export default class SharedService {
 		authCtx: AuthContext,
 		permissionControlID: string,
 	): Promise<boolean> {
-    return true;
 		const rows = await Database.from("user_unit_roles")
 			.select(Database.raw("1"))
 			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
@@ -272,12 +271,10 @@ export default class SharedService {
 			permissions: flatPermissions,
 			ip,
 			hasPermission: (controlID) => {
-				return true;
-				// return !!flatPermissions.find((r) => r === controlID);
+				return !!flatPermissions.find((r) => r === controlID);
 			},
 			hasPermissions: (controlIDs) => {
-				return true;
-				// return controlIDs.every((r) => flatPermissions.includes(r));
+				return controlIDs.every((r) => flatPermissions.includes(r));
 			},
 		};
 	}

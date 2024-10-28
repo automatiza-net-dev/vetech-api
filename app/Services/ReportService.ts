@@ -2871,7 +2871,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.active) {
-			qb.where("marketing_campaigns.active", data.active);
+			qb.where("marketing_campaigns.active", data.active === "true");
 		}
 
 		if (data.fromDate && data.toDate) {

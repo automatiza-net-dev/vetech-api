@@ -144,7 +144,7 @@ export default class BillService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereILike("tag", `%${data.tag}%`);
 		}
 
 		if (data.pending === "true") {

@@ -9,8 +9,6 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
-import BusinessUnit from "App/Models/BusinessUnit";
-import EconomicGroup from "App/Models/EconomicGroup";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
@@ -39,12 +37,14 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import HolderDependentLog from "App/Models/HolderDependentLog";
 
 interface ISearch {
+	id?: string;
 	name?: string;
 	gender?: PatientGender;
 	type?: PatientType;
 }
 
 interface ISearchAnimals {
+	id?: string;
 	name?: string;
 	tutor?: string;
 	race?: string;
@@ -55,6 +55,7 @@ interface ISearchAnimals {
 }
 
 interface ISearchTutor {
+	id?: string;
 	name?: string;
 	document?: string;
 	phone?: string;
@@ -65,6 +66,7 @@ interface ISearchTutor {
 }
 
 interface ISearchSupplier {
+	id?: string;
 	name?: string;
 	document?: string;
 }
@@ -88,10 +90,15 @@ export default class PatientService {
 		"Dezembro",
 	];
 
-	public async index(unitId: string, data: ISearch) {
-		const group = await this.getEconomicGroup(unitId);
+	public async index(authCtx: AuthContext, data: ISearch) {
+		const qb = authCtx.group
+			.related("patients")
+			.query()
+			.preload("patientAnimal");
 
-		const qb = group.related("patients").query().preload("patientAnimal");
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -138,10 +145,8 @@ export default class PatientService {
 		}));
 	}
 
-	public async nonPets(unitId: string) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async nonPets(authCtx: AuthContext) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.whereIn("type", [PatientType.TUTOR, PatientType.SUPPLIER])
@@ -150,10 +155,8 @@ export default class PatientService {
 		return qb;
 	}
 
-	public async reducedTutorsIndex(unitId: string, data: ISearchTutor) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async reducedTutorsIndex(authCtx: AuthContext, data: ISearchTutor) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.TUTOR)
@@ -176,6 +179,10 @@ export default class PatientService {
 					});
 				});
 			});
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -234,10 +241,8 @@ export default class PatientService {
 			}));
 	}
 
-	public async tutorsIndex(unitId: string, data: ISearchTutor) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async tutorsIndex(authCtx: AuthContext, data: ISearchTutor) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.orderBy("name", "asc")
@@ -257,6 +262,10 @@ export default class PatientService {
 					});
 				});
 			});
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
@@ -375,10 +384,8 @@ export default class PatientService {
 			}));
 	}
 
-	public async supplierIndex(unitId: string, data: ISearchSupplier) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async supplierIndex(authCtx: AuthContext, data: ISearchSupplier) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.SUPPLIER)
@@ -425,6 +432,10 @@ export default class PatientService {
 			.query()
 			.orderBy("name", "asc")
 			.where("type", PatientType.ANIMAL);
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.tag) {
 			qb.where("tag", data.tag);
@@ -592,10 +603,8 @@ export default class PatientService {
 		return rows.map((r) => r.desc);
 	}
 
-	public async search(unitId: string, data: ISearchPatient) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const tutors = await group
+	public async search(authCtx: AuthContext, data: ISearchPatient) {
+		const tutors = await authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.TUTOR)
@@ -608,7 +617,7 @@ export default class PatientService {
 		return tutors.flatMap((t) => t.dependents);
 	}
 
-	public async tutorNonPatients(unitId: string, id: string) {
+	public async tutorNonPatients(authCtx: AuthContext, id: string) {
 		const tutor = await Patient.query()
 			.where("id", id)
 			.preload("dependents")
@@ -622,7 +631,7 @@ export default class PatientService {
 			);
 		}
 
-		const animalsIndex = await this.animalsIndex(unitId, {});
+		const animalsIndex = await this.animalsIndex(authCtx, {});
 
 		const dependents = tutor.dependents.map((d) => d.id);
 
@@ -632,10 +641,8 @@ export default class PatientService {
 		);
 	}
 
-	public async show(unitId: string, patientId: string) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const patient = await group
+	public async show(authCtx: AuthContext, patientId: string) {
+		const patient = await authCtx.group
 			.related("patients")
 			.query()
 			.where("patient_id", patientId)
@@ -1167,18 +1174,9 @@ export default class PatientService {
 		);
 	}
 
-	public async fastStore(unitId: string, data: IFastStorePatient) {
-		const group = await this.getEconomicGroup(unitId);
-
+	public async fastStore(authCtx: AuthContext, data: IFastStorePatient) {
 		const client = Database.connection();
 		return Database.transaction(async (trx) => {
-			const tutors = await group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.TUTOR)
-				.select("id");
-
 			const [{ next_id = 1 }] = await Database.from("economic_groups")
 				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
 				.joinRaw(
@@ -1187,7 +1185,7 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id);
+				.where("economic_groups.id", authCtx.group.id);
 
 			const tutor = await Patient.create(
 				{
@@ -1215,7 +1213,7 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			await group.related("patients").attach([tutor.id], trx);
+			await authCtx.group.related("patients").attach([tutor.id], trx);
 
 			if (data.patientName || data.patientRaceId || data.patientGender) {
 				patient = await Patient.create(
@@ -1231,7 +1229,7 @@ export default class PatientService {
 				);
 
 				await tutor.related("dependents").attach([patient.id], trx);
-				await group.related("patients").attach([patient.id], trx);
+				await authCtx.group.related("patients").attach([patient.id], trx);
 				await patient.related("patientAnimal").create(
 					{
 						race_id: data.patientRaceId,
@@ -1255,11 +1253,9 @@ export default class PatientService {
 	}
 
 	public async store(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientData, "active">,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
 			data.holders &&
@@ -1284,7 +1280,7 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id)
+				.where("economic_groups.id", authCtx.group.id)
 				.limit(1);
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
@@ -1338,7 +1334,7 @@ export default class PatientService {
 				}) ?? [];
 			await Promise.all(tasks);
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			await patient.related("patientAnimal").create(
 				{
@@ -1551,11 +1547,9 @@ export default class PatientService {
 	}
 
 	public async storeSupplier(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientSupplierData, "active">,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			if (data.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
@@ -1566,7 +1560,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -1593,7 +1587,7 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id);
+				.where("economic_groups.id", authCtx.group.id);
 
 			const patient = await Patient.create(
 				{
@@ -1629,7 +1623,7 @@ export default class PatientService {
 				cityCode: data.cityCode,
 			});
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			return patient;
 		});
@@ -2048,12 +2042,10 @@ export default class PatientService {
 	}
 
 	public async updateSupplier(
-		unitId: string,
+		authCtx: AuthContext,
 		id: string,
 		data: IPatientSupplierData,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			const supplier = await Patient.query()
 				.useTransaction(trx)
@@ -2079,7 +2071,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -2377,7 +2369,7 @@ export default class PatientService {
 		});
 	}
 
-	public async checkExistingDocument(unitId: string, document: string) {
+	public async checkExistingDocument(authCtx: AuthContext, document: string) {
 		const isValidDocument = this.sharedService.validDocument(document);
 		if (!isValidDocument) {
 			return {
@@ -2386,8 +2378,7 @@ export default class PatientService {
 			};
 		}
 
-		const group = await this.getEconomicGroup(unitId);
-		const db_doc = await group
+		const db_doc = await authCtx.group
 			.related("patients")
 			.query()
 			.whereHas("tutor", (query) => {
@@ -2462,11 +2453,6 @@ export default class PatientService {
 				};
 			}),
 		}));
-	}
-
-	private async getEconomicGroup(unitId: string) {
-		const businessUnit = await BusinessUnit.findOrFail(unitId);
-		return EconomicGroup.findOrFail(businessUnit.economicGroupId);
 	}
 
 	private async uploadPhoto(file: MultipartFileContract): Promise<string> {

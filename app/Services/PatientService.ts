@@ -1517,7 +1517,20 @@ export default class PatientService {
 
 			if (data.patients) {
 				await patient.related("dependents").sync(
-					data.patients.map((p) => p.id),
+					data.patients
+						.map((p) => p.id)
+						.reduce(
+							(acc, curr) => {
+								if (!acc[curr]) {
+									acc[curr] = {
+										is_main: true,
+									};
+								}
+
+								return acc;
+							},
+							{} as Record<string, { is_main: boolean }>,
+						),
 					false,
 					trx,
 				);

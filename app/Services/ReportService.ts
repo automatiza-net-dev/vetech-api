@@ -643,6 +643,7 @@ ON bills.patient_id = Dep."id"`,
 			group by a.patient_id, a.business_unit_id, open_user_id, avaliador."name"
 		) atendimentos on atendimentos.business_unit_id = business_units.id and atendimentos.patient_id = cli.id`)
 			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
 			.orderByRaw('Cli."name", Dep.tag, bills.bill_date');
 
 		if (data.fromDate) {

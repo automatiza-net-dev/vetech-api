@@ -2533,12 +2533,12 @@ export default class IndicatorService {
 					[
 						ym,
 						ym,
-						usefulDaysUntilNow,
 						usefulDays,
+						usefulDaysUntilNow,
 						ym,
 						ym,
-						usefulDaysUntilNow,
 						usefulDays,
+						usefulDaysUntilNow,
 					],
 				),
 			)

@@ -15,6 +15,7 @@ import {
 	addDays,
 	addHours,
 	differenceInBusinessDays,
+	differenceInDays,
 	endOfMonth,
 	format,
 	startOfMonth,
@@ -2496,8 +2497,9 @@ export default class IndicatorService {
 				) + 1
 			: (dt.daysInMonth ?? 30);
 
-		const usefulDaysUntilNow =
-			differenceInBusinessDays(new Date(), startOfMonth(dt.toJSDate())) + 1;
+		const usefulDaysUntilNow = authCtx.unit.unitConfig.crmUsefulDays
+			? differenceInBusinessDays(new Date(), startOfMonth(dt.toJSDate())) + 1
+			: differenceInDays(new Date(), startOfMonth(dt.toJSDate())) + 1;
 
 		const qb = Database.from("bills")
 			.select(

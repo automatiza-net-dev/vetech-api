@@ -564,125 +564,83 @@ export default class BudgetService {
 		const today = DateTime.now();
 		const group = await this.sharedService.getUserGroup(unitId);
 
-		const qb = Product.query()
-			.orderByRaw("description asc")
-			.where("economic_group_id", group.id)
-			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
-			.where("active", true);
-
-		if (
-			data.variation ||
-			data.barcode ||
-			data.quantity ||
-			data.minPrice ||
-			data.maxPrice ||
-			data.maxDiscountPercentage
-		) {
-			qb.whereHas("variations", (query) => {
-				if (data.variation) {
-					query.where("id", data.variation);
-				}
-
-				if (data.barcode) {
-					query.whereILike("barcode", data.barcode);
-				}
-
-				if (
-					data.minPrice ||
-					data.maxPrice ||
-					data.quantity ||
-					data.maxDiscountPercentage
-				) {
-					query.whereHas("businessUnitProducts", (query) => {
-						query.where("businness_unit_id", unitId);
-
-						if (data.quantity) {
-							query.where("stock", ">=", data.quantity);
-						}
-
-						if (data.minPrice) {
-							query.where("price", ">=", Number.parseFloat(data.minPrice));
-						}
-
-						if (data.maxPrice) {
-							query.where("price", "<=", Number.parseFloat(data.maxPrice));
-						}
-
-						if (data.maxDiscountPercentage) {
-							query.where(
-								"maximumDiscountPercentage",
-								"<=",
-								data.maxDiscountPercentage,
-							);
-						}
-					});
-				}
-			});
-		}
+		const qb = Database.from("products")
+			.select(
+				Database.raw(`products.id,
+       description,
+       reference_code,
+       courtesy,
+       json_build_object('id', product_variations.id, 'businessUnitProducts',
+                         json_agg(json_build_object('id', business_unit_products.id, 'price',
+                                                    business_unit_products.price, 'maximum_discount_percentage',
+                                                    business_unit_products.maximum_discount_percentage))) as variation`),
+			)
+			.joinRaw(
+				"join product_variations on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				`join business_unit_products on product_variations.id = business_unit_products.product_variation_id and
+                                        business_unit_products.businness_unit_id = ?`,
+				[unitId],
+			)
+			.orderByRaw("description")
+			.groupByRaw("products.id, product_variations.id")
+			.whereRaw("products.economic_group_id = ?", [group.id])
+			.whereRaw("products.purpose not in ('internal')")
+			.whereRaw("products.active is true");
 
 		if (data.description) {
-			qb.where("description", "ilike", `%${data.description}%`);
+			qb.whereRaw("products.description like ?", [`%${data.description}%`]);
 		}
 
 		if (data.unit) {
-			qb.where("unit_id", data.unit);
+			qb.whereRaw("products.unit_id = ?", [data.unit]);
 		}
 
 		if (data.reference) {
-			qb.where("referenceCode", "ilike", `%${data.reference}%`);
+			qb.whereRaw("products.reference_code ilike ?", [`%${data.reference}%`]);
 		}
 
-		qb.preload("variations", (query) => {
-			query.preload("product");
-			query.preload("variationOptions");
+		if (data.variation) {
+			qb.whereRaw("product_variations.id = ?", [data.variation]);
+		}
 
-			query.preload("kitItems", (query) => {
-				query.whereHas("kit", (query) => {
-					query.where("active", true);
-				});
+		if (data.barcode) {
+			qb.whereRaw("product_variations.barcode ilike ?", [`%${data.barcode}%`]);
+		}
 
-				query.preload("kit", (query) => {
-					qb.whereRaw("(from_expiration >= ? or from_expiration is null)", [
-						today.startOf("day").toISO()!,
-					]);
-					qb.whereRaw("(from_expiration <= ? or from_expiration is null)", [
-						today.endOf("day").toISO()!,
-					]);
+		if (data.quantity) {
+			qb.whereRaw("business_unit_products.stock >= ?", [data.quantity]);
+		}
 
-					query.preload("items", (query) => {
-						query.where("business_unit_id", unitId);
+		if (data.minPrice) {
+			qb.whereRaw("business_unit_products.price >= ?", [data.minPrice]);
+		}
 
-						query.preload("productVariation");
-					});
-				});
-			});
+		if (data.maxPrice) {
+			qb.whereRaw("business_unit_products.price <= ?", [data.maxPrice]);
+		}
 
-			query.preload("businessUnitProducts", (query) => {
-				query.where("businness_unit_id", unitId);
+		if (data.maxDiscountPercentage) {
+			qb.whereRaw("business_unit_products.maximum_discount_percentage <= ?", [
+				data.maxDiscountPercentage,
+			]);
+		}
 
-				if (data.quantity) {
-					query.where("stock", ">=", Number.parseFloat(data.quantity));
-				}
-
-				if (data.minPrice) {
-					query.where("price", ">=", Number.parseFloat(data.minPrice));
-				}
-
-				if (data.maxPrice) {
-					query.where("price", "<=", Number.parseFloat(data.maxPrice));
-				}
-
-				if (data.maxDiscountPercentage) {
-					query.where(
-						"maximumDiscountPercentage",
-						"<=",
-						data.maxDiscountPercentage,
-					);
-				}
-			});
-		});
-		qb.preload("unit");
-		const products = await qb;
+		const result: {
+			id: string;
+			description: string;
+			reference_code: string;
+			courtesy: boolean;
+			variation: {
+				id: string;
+				businessUnitProducts: {
+					id: string;
+					price: number;
+					maximum_discount_percentage: number;
+				}[];
+			};
+		}[] = await qb;
 
 		const kits = await Kit.query()
 			.where("economic_group_id", group.id)
@@ -708,7 +666,7 @@ export default class BudgetService {
 		//   });
 
 		return [
-			...products,
+			...result,
 			...kits.map((elem) => ({ ...elem.toJSON(), type: "kit" })),
 		];
 	}

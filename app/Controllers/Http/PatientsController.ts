@@ -152,6 +152,7 @@ export default class PatientsController {
 				await this.sharedService.getAuthContext(auth),
 				// @ts-expect-error
 				request.body(),
+        origin
 			);
 
 			return response.created(patient);

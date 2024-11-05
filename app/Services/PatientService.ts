@@ -1281,13 +1281,12 @@ export default class PatientService {
 	public async store(
 		authCtx: AuthContext,
 		data: Omit<IPatientData, "active">,
+		origin: "Agenda" | "CRM" | (string & {}),
 	): Promise<Patient> {
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
-			data.holders &&
-			!data.birthDate &&
-			!data.birthDays &&
-			!data.birthMonths &&
+			origin !== "Agenda" &&
+			data.holders && !data.birthDate && !data.birthDays && !data.birthMonths &&
 			!data.birthYears
 		) {
 			throw new BadRequestException(

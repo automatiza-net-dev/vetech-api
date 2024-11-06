@@ -157,17 +157,6 @@ export default class AuthController {
 		}
 
 		const { unit } = await this.sharedService.getAuthContext(auth);
-		if (ip) {
-		}
-
-		const economicGroup = await EconomicGroup.query()
-			.where("id", unit.economicGroupId)
-			.preload("system", (query) => {
-				query.preload("systemUrls", (query) => {
-					query.select(["id", "url", "active"]);
-				});
-			})
-			.firstOrFail();
 		await unit.load("unitConfig", (query) => {
 			query.select([
 				"id",
@@ -190,9 +179,45 @@ export default class AuthController {
 		});
 
 		return response.ok({
-			user,
-			unit,
-			url: economicGroup.system.systemUrls.at(0) ?? null,
+			user: {
+				id: user.id,
+				name: user.name,
+				email: user.email,
+				document: user.document,
+				phone: user.phone,
+				profile_picture: user.profilePicture ?? null,
+				postal_code: user.postalCode,
+				address: user.address,
+				number: user.number,
+				complement: user.complement,
+				district: user.district,
+				city: user.city,
+				state: user.state,
+				licensing_job: user.licensingJob,
+				inscription: user.inscription,
+				birth_date: user.birthDate,
+				on_duty: user.onDuty,
+				type: user.type,
+			},
+			unit: {
+				id: unit.id,
+				unitConfig: {
+					interval: unit.unitConfig.interval,
+					alter_prices: unit.unitConfig.alterPrices ?? false,
+					requires_client_document:
+						unit.unitConfig.requiresClientDocument ?? false,
+					allow_change_schedule_duration:
+						unit.unitConfig.allowChangeScheduleDuration ?? false,
+				},
+				phone: unit.phone,
+				fantasy_name: unit.fantasyName,
+				address: unit.address,
+				complement: unit.complement,
+				district: unit.district,
+				city: unit.city,
+				state: unit.state,
+				economicGroup: { id: unit.economicGroupId },
+			},
 			cl: await this.authService.getUserACL(user, system_id, unit.id),
 			isThirdParty: false,
 		});

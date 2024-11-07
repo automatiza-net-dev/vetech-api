@@ -428,7 +428,7 @@ export default class PatientService {
                        json_build_object(
                                'id', tut.id,
                                'name', tut.name,
-                               'is_main', holder_dependents.is_main
+                               'isMain', holder_dependents.is_main
                        ))
                        FILTER (WHERE tut.id IS NOT NULL),
                        '[]'::json

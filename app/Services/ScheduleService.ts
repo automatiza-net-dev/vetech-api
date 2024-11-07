@@ -1329,37 +1329,7 @@ export default class ScheduleService {
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id");
 
-		// resultData[0] = await schedulesQb;
-		resultData[0] = [
-			{
-				id: "54deb689-3e8b-40a1-a351-70d4a64d2ba6",
-				user_id: "14fb9560-1c96-4883-b73b-0623b0e0cb34",
-				start_hour: "2024-10-29T08:00:00.000Z",
-				end_hour: "2024-10-29T08:44:00.000Z",
-				service_type: {
-					id: "13ff866b-59d3-41b6-a6b2-54c2ca2ff612",
-					description: "Consulta Odontológica",
-					type: "A",
-				},
-				service_status: {
-					id: "06f9836f-75a3-4dfa-a1bc-578aa60305ad",
-					description: "Faltou",
-					color: "#FF7F27",
-					type: "FAL",
-				},
-				reason: null,
-				attendances: [],
-				patient: {
-					id: "2823d94c-a11d-4e50-bd9b-7d1dbf8a8656",
-					name: "LARISSA RODRIGUES DA LUZ DE OLIVEIRA",
-					photo: null,
-					tag: "9011",
-					cellphone: null,
-				},
-				race: null,
-				specie: null,
-			},
-		];
+		resultData[0] = await schedulesQb;
 
 		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()

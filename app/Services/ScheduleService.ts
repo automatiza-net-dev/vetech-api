@@ -1462,9 +1462,9 @@ export default class ScheduleService {
 						)
 						.map((day) => ({
 							//@ts-ignore
-							start: day.start_hour,
+							start: "start_hour" in day ? day.start_hour : day.startHour,
 							//@ts-ignore
-							end: day.start_hour,
+							end: "end_hour" in day ? day.end_hour : day.endHour,
 							event: day,
 							name: elem.name,
 							type: this.getEventLabel(day),

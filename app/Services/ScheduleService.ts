@@ -1260,8 +1260,8 @@ export default class ScheduleService {
 			.select(
 				Database.raw(`schedules.id,
        schedules.user_id,
-       schedules.start_hour,
-       schedules.end_hour,
+       to_char(schedules.start_hour, 'HH24:MI:SS')                                       as start_hour,
+       to_char(schedules.end_hour, 'HH24:MI:SS')                                         as end_hour,
        json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type) as service_type,
        json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
                          ss.type)                                                        as service_status,
@@ -1329,9 +1329,8 @@ export default class ScheduleService {
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id");
 
-		resultData[0] = await schedulesQb;
 		// @ts-ignore
-		resultData[0] = resultData[0].map(this.snakeToCamelDeep);
+		resultData[0] = await schedulesQb;
 
 		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()

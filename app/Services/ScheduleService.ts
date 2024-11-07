@@ -1418,9 +1418,10 @@ export default class ScheduleService {
 							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
 						)
 						.map((day) => ({
-							start:
-								"start_hour" in day ? day.start_hour : day.startHour.toString(),
-							end: "end_hour" in day ? day.end_hour : day.endHour.toString(),
+							//@ts-ignore
+							start: day.startHour.toString(),
+							//@ts-ignore
+							end: day.endHour.toString(),
 							event: day,
 							name: elem.name,
 							type: this.getEventLabel(day),

@@ -70,11 +70,12 @@ export default class NotificationsService {
 	public async pendingBills(
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
-		const pendingBills = await Bill.query()
+		const [{ count }]: { count: number }[] = await Database.from("bills")
+			.select(Database.raw("count(bills.id)::int"))
 			.where("business_unit_id", authCtx.unit.id)
 			.where("pending", true);
 
-		if (pendingBills.length === 0) {
+		if (count === 0) {
 			return {
 				data: [],
 			};
@@ -100,12 +101,13 @@ export default class NotificationsService {
 	public async pendingBudgets(
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
-		const pendingBudgets = await Budget.query()
+		const [{ count }]: { count: number }[] = await Database.from("budgets")
+			.select(Database.raw("count(budgets.id)::int"))
 			.where("business_unit_id", authCtx.unit.id)
 			.where("pending", true)
 			.whereNot("status", BudgetStatus.N);
 
-		if (pendingBudgets.length === 0) {
+		if (count === 0) {
 			return {
 				data: [],
 			};

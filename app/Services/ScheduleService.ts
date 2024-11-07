@@ -1330,6 +1330,8 @@ export default class ScheduleService {
 			.joinRaw("left join species sp on rc.specie_id = sp.id");
 
 		resultData[0] = await schedulesQb;
+		// @ts-ignore
+		resultData[0] = resultData[0].map(this.snakeToCamelDeep);
 
 		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()
@@ -1366,58 +1368,7 @@ export default class ScheduleService {
 				])
 				.whereIn("user_id", userIds);
 		}
-
-		// const executions: {
-		// 	tipo_registro: string;
-		// 	description: string;
-		// 	label: string;
-		// 	reserved_minutes: number;
-		// 	treatment_id: number;
-		// 	treatment_item_id: number;
-		// 	treatment_execution_id: number;
-		// 	schedule_id: string;
-		// }[] = await Database.from("treatment_executions")
-		// 	.select(
-		// 		Database.raw(
-		// 			`
-		//               'Tratamento'                                             as tipo_registro,
-		//      'Tratamentos - Execuções'                                as description,
-		//      products.description || ' - ' || productivity_items.description as label,
-		//      productivity_items.reserved_minutes,
-		//      treatment_executions.treatment_id                        as treatment_id,
-		//      treatment_executions.treatment_item_id                   as treatment_item_id,
-		//      treatment_executions.id                                  as treatment_execution_id,
-		//      treatment_executions.schedule_id
-		//      `,
-		// 			[],
-		// 		),
-		// 	)
-		// 	.joinRaw(
-		// 		"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
-		// 	)
-		// 	.joinRaw(
-		// 		`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
-		//              on product_variations.product_id = products.id)
-		//             on treatment_executions.treatment_item_id = treatment_items.id and
-		//                treatment_executions.treatment_id = treatment_items.treatment_id`,
-		// 	)
-		// 	.joinRaw(
-		// 		"join treatments on treatment_executions.treatment_id = treatments.id",
-		// 	)
-		// 	.where("treatments.client_id", data.patient ?? v4())
-		// 	.where("treatments.economic_group_id", authCtx.group.id)
-		// 	.where("treatments.business_unit_id", authCtx.unit.id)
-		// 	.whereNotNull("treatment_executions.schedule_id")
-		// 	.orderByRaw("1, 4, 3, 7");
-
-		const allEvents = [
-			...resultData[1],
-			...resultData[2],
-			...resultData[0].map((v) => this.snakeToCamelDeep(v)),
-		].flat();
-
-		console.log(JSON.stringify(resultData[0], null, 2));
-		console.log(JSON.stringify(allEvents, null, 2));
+		const allEvents = [...resultData[0], ...resultData[1], ...resultData[2]];
 
 		return users
 			.map((elem) => {
@@ -2505,6 +2456,7 @@ export default class ScheduleService {
 				const newKey = key.replace(/_([a-z])/g, (_, letter) =>
 					letter.toUpperCase(),
 				);
+				console.log({ newKey, key, value });
 				return [
 					newKey,
 					value && typeof value === "object"

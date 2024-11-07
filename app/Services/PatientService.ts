@@ -585,7 +585,18 @@ export default class PatientService {
 			);
 		}
 
-		const result = await qb;
+		const result = (await qb).map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			tutors: elem.tutors,
+			tag: elem.tag,
+			gender: elem.gender,
+			birthDate: elem.birth_date,
+			race: elem.race,
+			community: elem.community,
+			castrated: elem.castrated,
+			weight: elem.weight,
+		}));
 
 		const tutors =
 			data.tutor || data.document

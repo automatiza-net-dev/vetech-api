@@ -1330,7 +1330,19 @@ export default class ScheduleService {
 			.joinRaw("left join species sp on rc.specie_id = sp.id");
 
 		// @ts-ignore
-		resultData[0] = await schedulesQb;
+		resultData[0] = (await schedulesQb).map((elem) => ({
+			id: elem.id,
+			userId: elem.user_id,
+			startHour: elem.start_hour,
+			endHour: elem.end_hour,
+			serviceType: elem.service_type,
+			serviceStatus: elem.service_status,
+			reason: elem.reason,
+			attendances: elem.attendances,
+			patient: elem.patient,
+			race: elem.race,
+			specie: elem.specie,
+		}));
 
 		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()

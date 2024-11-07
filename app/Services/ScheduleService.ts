@@ -1406,6 +1406,8 @@ export default class ScheduleService {
 			...resultData[0].map((v) => this.snakeToCamelDeep(v)),
 		].flat();
 
+		console.log(JSON.stringify(allEvents, null, 2));
+
 		return users
 			.map((elem) => {
 				return {

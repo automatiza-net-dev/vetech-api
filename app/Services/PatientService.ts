@@ -47,6 +47,7 @@ interface ISearchAnimals {
 	id?: string;
 	name?: string;
 	tutor?: string;
+	tutorID?: string;
 	race?: string;
 	specie?: string;
 	document?: string;
@@ -480,6 +481,17 @@ export default class PatientService {
 
 		if (data.specie) {
 			qb.whereRaw("species.description ilike ?", [`%${data.specie}%`]);
+		}
+
+		if (data.tutorID) {
+			qb.whereRaw(
+				`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                                            and holder_dependents.holder_id = ?)`,
+				[data.tutorID],
+			);
 		}
 
 		if (data.tutor || data.document) {
@@ -1286,7 +1298,10 @@ export default class PatientService {
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
 			origin !== "Agenda" &&
-			data.holders && !data.birthDate && !data.birthDays && !data.birthMonths &&
+			data.holders &&
+			!data.birthDate &&
+			!data.birthDays &&
+			!data.birthMonths &&
 			!data.birthYears
 		) {
 			throw new BadRequestException(

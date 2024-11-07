@@ -119,18 +119,9 @@ export default class PatientsController {
 	}
 
 	public async showAnimals({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
 		const patients = await this.service.animalsIndex(
 			await this.sharedService.getAuthContext(auth),
-			{
-				name: qs.name,
-				race: qs.race,
-				specie: qs.specie,
-				tutor: qs.tutor,
-				document: qs.document,
-				phone: qs.phone,
-				tag: qs.tag,
-			},
+			request.qs(),
 		);
 
 		return response.ok(patients);
@@ -152,7 +143,7 @@ export default class PatientsController {
 				await this.sharedService.getAuthContext(auth),
 				// @ts-expect-error
 				request.body(),
-        origin
+				origin,
 			);
 
 			return response.created(patient);

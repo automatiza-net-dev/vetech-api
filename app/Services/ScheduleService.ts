@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import { string } from "@ioc:Adonis/Core/Helpers";
 import Database from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -1399,7 +1400,11 @@ export default class ScheduleService {
 		// 	.whereNotNull("treatment_executions.schedule_id")
 		// 	.orderByRaw("1, 4, 3, 7");
 
-		const allEvents = [...resultData[1], ...resultData[2], ...resultData[0]];
+		const allEvents = [
+			...resultData[1],
+			...resultData[2],
+			...resultData[0].map((v) => this.snakeToCamelDeep(v)),
+		];
 
 		return users
 			.map((elem) => {
@@ -1408,7 +1413,10 @@ export default class ScheduleService {
 					name: elem.name,
 					onDuty: elem.on_duty,
 					events: allEvents
-						.filter((e) => e.user_id === elem.id)
+						.filter((e) =>
+							//@ts-ignore
+							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
+						)
 						.map((day) => ({
 							start:
 								"start_hour" in day ? day.start_hour : day.startHour.toString(),
@@ -2471,5 +2479,29 @@ export default class ScheduleService {
 				late,
 			};
 		});
+	}
+
+	private snakeToCamelDeep<T extends object>(
+		obj: T,
+	): {
+		[K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+	} {
+		return Object.fromEntries(
+			Object.entries(obj).map(([key, value]) => {
+				const newKey = key.replace(/_([a-z])/g, (_, letter) =>
+					letter.toUpperCase(),
+				);
+				return [
+					newKey,
+					value && typeof value === "object"
+						? this.snakeToCamelDeep(value as object)
+						: value,
+				];
+			}),
+		) as {
+			[K in keyof T]: T[K] extends object
+				? { [k in keyof T[K]]: string }
+				: T[K];
+		};
 	}
 }

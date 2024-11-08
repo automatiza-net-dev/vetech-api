@@ -1260,8 +1260,8 @@ export default class ScheduleService {
 			.select(
 				Database.raw(`schedules.id,
        schedules.user_id,
-       to_char(schedules.start_hour, 'HH24:MI:SS')                                       as start_hour,
-       to_char(schedules.end_hour, 'HH24:MI:SS')                                         as end_hour,
+       schedules.start_hour,
+       schedules.end_hour,
        json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type) as service_type,
        json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
                          ss.type)                                                        as service_status,
@@ -1388,10 +1388,10 @@ export default class ScheduleService {
 					name: elem.name,
 					onDuty: elem.on_duty,
 					events: allEvents
-						.filter((e) =>
-							//@ts-ignore
-							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
-						)
+						// .filter((e) =>
+						// 	//@ts-ignore
+						// 	"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
+						// )
 						.map((day) => ({
 							//@ts-ignore
 							start: day.startHour,

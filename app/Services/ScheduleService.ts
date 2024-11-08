@@ -1388,10 +1388,10 @@ export default class ScheduleService {
 					name: elem.name,
 					onDuty: elem.on_duty,
 					events: allEvents
-						// .filter((e) =>
-						// 	//@ts-ignore
-						// 	"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
-						// )
+						.filter((e) =>
+							//@ts-ignore
+							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
+						)
 						.map((day) => ({
 							//@ts-ignore
 							start: day.startHour,

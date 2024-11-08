@@ -441,12 +441,17 @@ export default class PatientService {
            else
                json_build_object('id', races.id, 'description', races.description)
            end as race,
+       case
+           when patient_animals.race_id is null then null
+           else
+               json_build_object('id', species.id, 'description', species.description)
+           end as specie,
        patients.community,
        patient_animals.castrated,
        patients.weight`),
 			)
 			.orderByRaw("patients.name desc")
-			.groupByRaw("patients.id, patient_animals.id, races.id")
+			.groupByRaw("patients.id, patient_animals.id, races.id, species.id")
 			.joinRaw(
 				"join patients on patient_economic_groups.patient_id = patients.id",
 			)
@@ -593,6 +598,7 @@ export default class PatientService {
 			gender: elem.gender,
 			birthDate: elem.birth_date,
 			race: elem.race,
+			specie: elem.specie,
 			community: elem.community,
 			castrated: elem.castrated,
 			weight: elem.weight,

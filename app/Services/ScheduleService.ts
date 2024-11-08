@@ -1309,7 +1309,7 @@ export default class ScheduleService {
                                           json_build_object('id', rsr.id, 'reason', rsr.reason))
        )                                                                                  as reschedules,
        json_build_array(json_build_object('id', sc.id, 'contact_date', sc.contact_date, 'observation',
-                                          sc.contact_date)
+                                          sc.observation)
        )                                                                                  as contacts,
        json_build_array(json_build_object('id', ssc.id, 'created_at', ssc.created_at, 'observation',
                                           ssc.observation)

@@ -439,13 +439,8 @@ export default class PatientService {
        case
            when patient_animals.race_id is null then null
            else
-               json_build_object('id', races.id, 'description', races.description)
+               json_build_object('id', races.id, 'description', races.description, 'specie', json_build_object('id', species.id, 'description', species.description))
            end as race,
-       case
-           when patient_animals.race_id is null then null
-           else
-               json_build_object('id', species.id, 'description', species.description)
-           end as specie,
        patients.community,
        patient_animals.castrated,
        patients.weight`),
@@ -598,7 +593,6 @@ export default class PatientService {
 			gender: elem.gender,
 			birthDate: elem.birth_date,
 			race: elem.race,
-			specie: elem.specie,
 			community: elem.community,
 			castrated: elem.castrated,
 			weight: elem.weight,

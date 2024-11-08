@@ -1243,6 +1243,15 @@ export default class ScheduleService {
 					tag: string;
 					cellphone: string | null;
 				} | null;
+				holder: {
+					id: string;
+					name: string;
+					tutor: {
+						cellphone: string | null;
+						telephone: string | null;
+						fullAddress: string;
+					};
+				};
 				race: {
 					id: string;
 					description: string;
@@ -1259,20 +1268,22 @@ export default class ScheduleService {
 		const schedulesQb = Database.from("schedules")
 			.select(
 				Database.raw(`schedules.id,
+       schedules.business_unit_id,
        schedules.user_id,
        schedules.start_hour,
        schedules.end_hour,
-       json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type) as service_type,
+       json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type)  as service_type,
        json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
-                         ss.type)                                                        as service_status,
+                         ss.type)                                                         as service_status,
        case
            when schedules.reason_id is not null then
                json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
                                  ss.type)
-           end                                                                           as reason,
+           end                                                                            as reason,
        coalesce(json_agg(json_build_array(json_build_object('id', at.id, 'scheduleService',
                                                             json_build_object('id', ssat.id, 'description', ssat.description))
-                         )) filter (where at.id is not null), '[]'::json)                as attendances,
+                         )) filter (where at.id is not null),
+                '[]'::json)                                                               as attendances,
        case
            when p.id is null then
                null
@@ -1280,13 +1291,20 @@ export default class ScheduleService {
                json_build_object('id', p.id, 'name', p.name, 'photo', p.photo, 'tag', p.tag, 'cellphone',
                                  pt.cellphone)
            end
-                                                                                         as patient,
+                                                                                          as patient,
        case
            when p.type = 'animal' then
-               json_build_object('id', rc.id, 'description', rc.description) end         as race,
+               json_build_object('id', rc.id, 'description', rc.description) end          as race,
        case
            when p.type = 'animal' then
-               json_build_object('id', sp.id, 'description', sp.description) end         as specie`),
+               json_build_object('id', sp.id, 'description', sp.description) end          as specie,
+       json_build_object('id', h.id, 'name', h.name, 'tutor',
+                         json_build_object('cellphone', pt.cellphone,
+                                           'telephone', pt.telephone,
+                                           'fullAddress',
+                                           format('%s, %s, %s, %s, %s', pt.street, pt.number, pt.complement,
+                                                  pt.district,
+                                                  format('%s - %s', pt.city, pt.state)))) as holder`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -1299,7 +1317,15 @@ export default class ScheduleService {
 			.joinRaw(
 				"left join schedule_service_types ssat on at.schedule_service_id = ssat.id",
 			)
-			.groupByRaw("schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id")
+			.joinRaw("left join patients h on schedules.holder_id = h.id")
+			.joinRaw("left join patient_tutors pt on h.id = pt.patient_id")
+			.joinRaw("left join patients p on schedules.patient_id = p.id")
+			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
+			.joinRaw("left join races rc on pa.race_id = rc.id")
+			.joinRaw("left join species sp on rc.specie_id = sp.id")
+			.groupByRaw(
+				"schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id, h.id",
+			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,
@@ -1315,20 +1341,6 @@ export default class ScheduleService {
 			schedulesQb.whereRaw("ss.type <> 'CANC'", []);
 		}
 
-		if (authCtx.unit.unitConfig?.requiresScheduleTutor) {
-			schedulesQb.joinRaw("left join patients p on schedules.holder_id = p.id");
-		} else {
-			schedulesQb.joinRaw(
-				"left join patients p on schedules.patient_id = p.id",
-			);
-		}
-
-		schedulesQb
-			.joinRaw("left join patient_tutors pt on p.id = pt.patient_id")
-			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
-			.joinRaw("left join races rc on pa.race_id = rc.id")
-			.joinRaw("left join species sp on rc.specie_id = sp.id");
-
 		// @ts-ignore
 		resultData[0] = (await schedulesQb).map((elem) => ({
 			id: elem.id,
@@ -1340,6 +1352,7 @@ export default class ScheduleService {
 			reason: elem.reason,
 			attendances: elem.attendances,
 			patient: elem.patient,
+			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
 		}));

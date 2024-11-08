@@ -1331,7 +1331,8 @@ export default class ScheduleService {
 				refStart,
 				refEnd,
 			])
-			.whereIn("schedules.user_id", userIds);
+			.whereIn("schedules.user_id", userIds)
+			.whereNull("schedules.deleted_at");
 
 		if (data.status) {
 			schedulesQb.whereRaw("ss.type = ?", [data.status]);

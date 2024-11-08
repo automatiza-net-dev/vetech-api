@@ -1342,13 +1342,10 @@ export default class PatientService {
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const patient = await Patient.create(
-				{
-					name: data.name,
-					gender: data.gender,
-					tags: data.tags,
-					community: data.community,
-					birthDate: data.birthDate
+			const birthDate =
+				origin === "Agenda"
+					? undefined
+					: data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
 						: DateTime.now()
 								.minus({
@@ -1356,7 +1353,15 @@ export default class PatientService {
 									months: data.birthMonths ?? 0,
 									days: data.birthDays ?? 0,
 								})
-								.toJSDate(),
+								.toJSDate();
+
+			const patient = await Patient.create(
+				{
+					name: data.name,
+					gender: data.gender,
+					tags: data.tags,
+					community: data.community,
+					birthDate,
 					type: PatientType.ANIMAL,
 					photo,
 					vaccineOrigin: data.vaccineOrigin,

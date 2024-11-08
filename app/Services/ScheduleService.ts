@@ -1268,7 +1268,6 @@ export default class ScheduleService {
 		const schedulesQb = Database.from("schedules")
 			.select(
 				Database.raw(`schedules.id,
-       schedules.business_unit_id,
        schedules.user_id,
        schedules.start_hour,
        schedules.end_hour,
@@ -1304,7 +1303,17 @@ export default class ScheduleService {
                                            'fullAddress',
                                            format('%s, %s, %s, %s, %s', pt.street, pt.number, pt.complement,
                                                   pt.district,
-                                                  format('%s - %s', pt.city, pt.state)))) as holder`),
+                                                  format('%s - %s', pt.city, pt.state)))) as holder,
+       json_build_array(json_build_object('id', rs.id, 'observation', rs.observation, 'createdAt',
+                                          rs.created_at, 'reason',
+                                          json_build_object('id', rsr.id, 'reason', rsr.reason))
+       )                                                                                  as reschedules,
+       json_build_array(json_build_object('id', sc.id, 'contact_date', sc.contact_date, 'observation',
+                                          sc.contact_date)
+       )                                                                                  as contacts,
+       json_build_array(json_build_object('id', ssc.id, 'created_at', ssc.created_at, 'observation',
+                                          ssc.observation)
+       )                                                                                  as status_changes`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -1312,6 +1321,18 @@ export default class ScheduleService {
 			.joinRaw(
 				"join schedule_statuses ss on schedules.schedule_status_id = ss.id",
 			)
+
+			.joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
+			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
+
+			.joinRaw(
+				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
+			)
+
+			.joinRaw(
+				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id",
+			)
+
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
 			.joinRaw("left join attendances at on schedules.id = at.schedule_id")
 			.joinRaw(
@@ -1324,7 +1345,7 @@ export default class ScheduleService {
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
 			.groupByRaw(
-				"schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id, h.id",
+				"schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id, h.id, sc.id, rs.id, rsr.id, ssc.id",
 			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
@@ -1356,6 +1377,9 @@ export default class ScheduleService {
 			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
+			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
+			contacts: elem.contacts.filter((f) => Boolean(f.id)),
+			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),
 		}));
 
 		if (typeof data.working === "undefined" || data.working === "true") {

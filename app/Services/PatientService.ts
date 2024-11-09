@@ -1338,7 +1338,7 @@ export default class PatientService {
 
 			const birthDate =
 				origin === "Agenda"
-					? undefined
+					? (data.birthDate ?? null)
 					: data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
 						: DateTime.now()

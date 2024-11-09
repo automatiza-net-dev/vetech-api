@@ -277,7 +277,7 @@ export default class PatientService {
                        '[]'::json
        ) as dependents`),
 			)
-			.orderByRaw("patients.name desc")
+			.orderByRaw("patients.name asc")
 			.groupByRaw("patients.id, patient_tutors.id")
 			.joinRaw(
 				"join patients on patient_economic_groups.patient_id = patients.id",
@@ -445,7 +445,7 @@ export default class PatientService {
        patient_animals.castrated,
        patients.weight`),
 			)
-			.orderByRaw("patients.name desc")
+			.orderByRaw("patients.name asc")
 			.groupByRaw("patients.id, patient_animals.id, races.id, species.id")
 			.joinRaw(
 				"join patients on patient_economic_groups.patient_id = patients.id",

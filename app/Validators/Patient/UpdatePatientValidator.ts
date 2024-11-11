@@ -15,7 +15,7 @@ export default class UpdatePatientValidator {
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		gender: schema.enum(Object.values(PatientGender), []),
+		gender: schema.enum.optional(Object.values(PatientGender), []),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date({}),
 		active: schema.boolean([]),
@@ -31,7 +31,7 @@ export default class UpdatePatientValidator {
 			rules.uuid(),
 			rules.exists({ table: "patient_animal_hairs", column: "id" }),
 		]),
-		castrated: schema.boolean(),
+		castrated: schema.boolean.optional(),
 		community: schema.boolean.optional(),
 		microchip: schema.string.optional(),
 		death: schema.boolean(),

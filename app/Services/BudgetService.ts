@@ -1,4 +1,4 @@
-import Hash from "@ioc:Adonis/Core/uHash";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";

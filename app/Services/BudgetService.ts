@@ -568,6 +568,8 @@ export default class BudgetService {
 			.select(
 				Database.raw(`products.id,
        courtesy,
+       description,
+       reference_code,
        json_build_array(json_build_object('id', pv.id,
                                           'product', json_build_object(
                                                   'description', products.description,

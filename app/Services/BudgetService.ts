@@ -567,26 +567,24 @@ export default class BudgetService {
 		const qb = Database.from("products")
 			.select(
 				Database.raw(`products.id,
+       description,
+       reference_code,
        courtesy,
-       json_build_array(json_build_object('id', pv.id,
-                                          'product', json_build_object(
-                                                  'description', products.description,
-                                                  'reference_code', products.reference_code
-                                                     ),
-                                          'businessUnitProducts',
-                                          json_agg(json_build_object('id', bup.id, 'price',
-                                                                     bup.price,
-                                                                     'maximum_discount_percentage',
-                                                                     bup.maximum_discount_percentage)))) as variations`),
+       json_build_object('id', product_variations.id, 'businessUnitProducts',
+                         json_agg(json_build_object('id', business_unit_products.id, 'price',
+                                                    business_unit_products.price, 'maximum_discount_percentage',
+                                                    business_unit_products.maximum_discount_percentage))) as variation`),
 			)
-			.joinRaw("join product_variations pv on products.id = pv.product_id")
 			.joinRaw(
-				`join business_unit_products bup on pv.id = bup.product_variation_id and
-                                            bup.businness_unit_id = ?`,
+				"join product_variations on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				`join business_unit_products on product_variations.id = business_unit_products.product_variation_id and
+                                        business_unit_products.businness_unit_id = ?`,
 				[unitId],
 			)
 			.orderByRaw("description")
-			.groupByRaw("products.id, pv.id")
+			.groupByRaw("products.id, product_variations.id")
 			.whereRaw("products.economic_group_id = ?", [group.id])
 			.whereRaw("products.purpose not in ('internal')")
 			.whereRaw("products.active is true");

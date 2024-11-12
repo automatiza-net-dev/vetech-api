@@ -591,7 +591,8 @@ export default class BudgetService {
 			.groupByRaw("products.id, pv.id")
 			.whereRaw("products.economic_group_id = ?", [group.id])
 			.whereRaw("products.purpose not in ('internal')")
-			.whereRaw("products.active is true");
+			.whereRaw("products.active is true")
+      .whereRaw("products.deleted_at is null");
 
 		if (data.description) {
 			qb.whereRaw("products.description like ?", [`%${data.description}%`]);

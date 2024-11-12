@@ -1894,3 +1894,9 @@ Route.group(() => {
 })
 	.prefix("performance-range-goals")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/store", "ScheduleMovementsController.store");
+})
+	.prefix("schedule-movements")
+	.middleware("auth");

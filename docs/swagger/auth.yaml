@@ -5,8 +5,8 @@
     security: []
     description: Login
     parameters:
-      - name: credentials
-        in:  body
+      - name: body
+        in: body
         required: true
         schema:
           properties:

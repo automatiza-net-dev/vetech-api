@@ -1326,7 +1326,7 @@ export default class ScheduleService {
 			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
 
 			.joinRaw(
-				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
+				"left join schedule_contacts sc on schedules.id = sc.schedule_id and ssc.schedule_status_id = ss.id",
 			)
 
 			.joinRaw(

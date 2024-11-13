@@ -34,6 +34,9 @@ type ShowIt = {
 				qtdDosesProtocolo: number;
 				intervaloDiasDosesProtocolo: number;
 				protocoloValidoPor: string;
+				dataUltimaAplicacao: string | null;
+				dataValido: string | null;
+				statusVacina: string | null;
 				vaccineCalendar: {
 					idVaccineCalendar: string;
 					scheduleId: string | null;
@@ -43,8 +46,6 @@ type ShowIt = {
 					laboratorioAplicacao: string | null;
 					loteAplicacao: string | null;
 					statusAgendamentoVacina: string;
-					statusProtocolo: string;
-					validadeVacina: string;
 				}[];
 			};
 		}[];
@@ -110,6 +111,10 @@ export default class VaccineService {
        case when vaccines."type" = 'vaccine' then 'Vacina' else 'Vermifugo' end as tipo,
        patient_vaccines.id                                                      as id_vacina_paciente,
 
+      patient_vaccines.last_application_at                          as data_ultima_aplicacao,
+      patient_vaccines.valid_until                                            as data_valido,
+      patient_vaccines.status                                                  as status_vacina,
+
        vaccines.id                                                              as id_vacina,
        vaccines.name                                                            as nome_Vacina,
        vaccine_protocols.id                                                     as id_Protocolo,
@@ -135,17 +140,7 @@ export default class VaccineService {
                then 'Atrasada (' || now()::date - vaccine_calendars.scheduling_date::date || ' dias)'
 
            when vaccine_calendars.scheduling_date::date >= now()::date and vaccine_calendars.application_date is null
-               then 'Agendada' end                                              as status_Agendamento_Vacina,
-
-       case
-           when vaccine_calendars.dose = vaccine_protocols.doses and vaccine_calendars.application_date is not null
-               then 'Protocolo Completo'
-           else 'Protocolo Incompleto' end                                      as status_Protocolo,
-
-       case
-           when vaccine_calendars.dose = vaccine_protocols.doses and vaccine_calendars.application_date is not null
-               then vaccine_calendars.application_date::date + coalesce(vaccine_protocols.expiration_days, 0)
-           else now()::date end                                                 as validade_Vacina`),
+               then 'Agendada' end                                              as status_Agendamento_Vacina`),
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
@@ -196,6 +191,9 @@ export default class VaccineService {
 			contato_tutor: string | null;
 			tipo: "Vacina" | "Vermifugo";
 			id_vacina_paciente: string;
+			data_ultima_aplicacao: string | null;
+			data_valido: string | null;
+			status_vacina: string | null;
 			id_vacina: string;
 			nome_vacina: string;
 			id_protocolo: string;
@@ -271,6 +269,9 @@ export default class VaccineService {
 														intervaloDiasDosesProtocolo:
 															vac.intervalo_dias_doses_protocolo,
 														protocoloValidoPor: vac.protocolo_valido_por,
+														dataUltimaAplicacao: vac.data_ultima_aplicacao,
+														dataValido: vac.data_valido,
+														statusVacina: vac.status_vacina,
 														vaccineCalendar: result
 															.filter(
 																(f) =>
@@ -289,8 +290,6 @@ export default class VaccineService {
 																loteAplicacao: cal.lote_aplicacao,
 																statusAgendamentoVacina:
 																	cal.status_agendamento_vacina,
-																statusProtocolo: cal.status_protocolo,
-																validadeVacina: cal.validade_vacina,
 															})),
 													},
 												});

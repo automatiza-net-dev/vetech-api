@@ -69,6 +69,8 @@ export default class PatientVaccineService {
 					vaccine_id: data.vaccineId,
 					vaccine_protocol_id: data.vaccineProtocolId,
 					schedule_id: data.scheduleId,
+
+					status: "Incompleto",
 				},
 				{
 					client: trx,
@@ -200,9 +202,7 @@ export default class PatientVaccineService {
 			schedule_id: data.scheduleId,
 		});
 
-		await entity.save();
-
-		return entity;
+		return await entity.save();
 	}
 
 	public async destroy(unitId: string, id: string) {

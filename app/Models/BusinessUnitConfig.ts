@@ -162,6 +162,11 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public overallResumeType: "geral" | "mes";
 
+	@column({
+		columnName: "ticket_type",
+	})
+	public ticketType: "venda" | "cliente" | "paciente";
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

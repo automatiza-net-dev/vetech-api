@@ -22,18 +22,16 @@ export default class PatientTutorsController {
 	) {}
 
 	public async index({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
 
 		const qs = request.qs();
-		const patients = await this.service.tutorsIndex(unit_id, qs);
+		const patients = await this.service.tutorsIndex(await this.sharedService.getAuthContext(auth), qs);
 
 		return response.ok(patients);
 	}
 
 	public async reducedIndex({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
 		const qs = request.qs();
-		const patients = await this.service.reducedTutorsIndex(unit_id, {
+		const patients = await this.service.reducedTutorsIndex(await this.sharedService.getAuthContext(auth), {
 			name: qs.name,
 			document: qs.document,
 			patient: qs.patient,
@@ -45,17 +43,15 @@ export default class PatientTutorsController {
 	}
 
 	public async notRelated({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const patients = await this.service.tutorNonPatients(unit_id, params.id);
+		const patients = await this.service.tutorNonPatients(await this.sharedService.getAuthContext(auth), params.id);
 
 		return response.ok(patients);
 	}
 
 	public async show({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const patients = await this.service.show(unit_id, params.id);
+		const patients = await this.service.show(await this.sharedService.getAuthContext(auth), params.id);
 
 		return response.ok(patients);
 	}
@@ -126,9 +122,8 @@ export default class PatientTutorsController {
 	public async assign({ auth, request, response }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(AssignPatientTutorValidator);
-			const { unit_id } = this.sharedService.extractUser(auth);
 
-			await this.service.assignPatientTutor(unit_id, payload);
+			await this.service.assignPatientTutor(await this.sharedService.getAuthContext(auth), payload);
 
 			return response.created();
 		});

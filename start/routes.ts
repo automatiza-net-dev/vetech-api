@@ -333,6 +333,7 @@ Route.group(() => {
 	Route.get("/", "WorkingDaysController.index");
 	Route.post("/", "WorkingDaysController.store");
 	Route.get("/:id", "WorkingDaysController.show");
+	Route.put("/many", "WorkingDaysController.storeMany");
 	Route.put("/:id", "WorkingDaysController.update");
 	Route.delete("/:id", "WorkingDaysController.destroy");
 })
@@ -1539,6 +1540,7 @@ Route.group(() => {
 	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
 	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
 	Route.get("/dre-groups", "ReportsController.dreGroupsReport");
+	Route.get("/patients", "ReportsController.patientsReport");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1884,11 +1886,17 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/search/:id", "PerformanceRangeGoalController.search");
 
-	Route.post("/store", "PerformanceRangeGoalController.store");
+	// Route.post("/store", "PerformanceRangeGoalController.store");
 
 	Route.put("/update", "PerformanceRangeGoalController.update");
 
 	Route.delete("/delete/:id", "PerformanceRangeGoalController.destroy");
 })
 	.prefix("performance-range-goals")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/store", "ScheduleMovementsController.store");
+})
+	.prefix("schedule-movements")
 	.middleware("auth");

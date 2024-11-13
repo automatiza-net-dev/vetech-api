@@ -42,12 +42,27 @@ export default class BudgetPayment extends BaseModel {
 	public installments: number;
 
 	@column()
+	public approved: boolean;
+
+	@column()
+	public pending: boolean;
+
+	@column()
+	public reason: string;
+
+	@column()
 	public status: TBudgetPaymentStatus;
 
 	@column.dateTime({
 		columnName: "confirmation_date",
 	})
 	public confirmationDate: DateTime | null;
+
+	@column.dateTime({
+		columnName: "approved_at",
+		serializeAs: "approvedAt",
+	})
+	public approvedAt: DateTime | null;
 
 	@column({
 		columnName: "exclusion_origin",
@@ -168,4 +183,14 @@ export default class BudgetPayment extends BaseModel {
 		foreignKey: "exclusion_user_id",
 	})
 	public exclusionUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public approved_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "approved_user_id",
+	})
+	public approvalUser: BelongsTo<typeof User>;
 }

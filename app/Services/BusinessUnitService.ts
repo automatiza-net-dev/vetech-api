@@ -136,22 +136,25 @@ export default class BusinessUnitService {
 					for await (const variation of product.variations) {
 						const [unitPrice] = product.variations[0].businessUnitProducts;
 
-						await variation.related("businessUnitProducts").create(
-							{
-								businness_unit_id: unit.id,
-								stock: 0,
-								price: unitPrice.price,
-								costPrice: unitPrice.costPrice,
-								maximumStock: unitPrice.maximumStock,
-								minimumStock: unitPrice.minimumStock,
-								maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
-								maximumDiscountValue: unitPrice.maximumDiscountValue,
-								profitMargin: unitPrice.profitMargin,
-							},
-							{
-								client: trx,
-							},
-						);
+						if (unitPrice) {
+							await variation.related("businessUnitProducts").create(
+								{
+									businness_unit_id: unit.id,
+									stock: 0,
+									price: unitPrice.price,
+									costPrice: unitPrice.costPrice,
+									maximumStock: unitPrice.maximumStock,
+									minimumStock: unitPrice.minimumStock,
+									maximumDiscountPercentage:
+										unitPrice.maximumDiscountPercentage,
+									maximumDiscountValue: unitPrice.maximumDiscountValue,
+									profitMargin: unitPrice.profitMargin,
+								},
+								{
+									client: trx,
+								},
+							);
+						}
 					}
 				}
 

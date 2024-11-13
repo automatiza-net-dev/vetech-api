@@ -335,7 +335,7 @@ test.group("Bill resource", (group) => {
 			password: "102030",
 		});
 
-		const response = await client.get(`/bills/products`).bearerToken(token);
+		const response = await client.get("/bills/products").bearerToken(token);
 
 		assert.equal(200, response.status());
 		assert.isArray(response.body());
@@ -478,7 +478,7 @@ test.group("Bill resource", (group) => {
 		await config.merge({ controlsDeposit: false }).save();
 
 		const response = await client
-			.post(`/bills/create`)
+			.post("/bills/create")
 			.json({
 				clientId: holder.id,
 				financialResponsibleId: holder.id,
@@ -650,7 +650,7 @@ test.group("Bill resource", (group) => {
 		});
 
 		const response = await client
-			.post(`/bills/create`)
+			.post("/bills/create")
 			.json({
 				clientId: holder.id,
 				patientId: patient.id,
@@ -676,7 +676,7 @@ test.group("Bill resource", (group) => {
 		});
 
 		const response = await client
-			.post(`/bills/create`)
+			.post("/bills/create")
 			.json({
 				clientId: holder.id,
 				patientId: patient.id,
@@ -818,7 +818,7 @@ test.group("Bill resource", (group) => {
 		});
 
 		const response = await client
-			.post(`/bills/create-items`)
+			.post("/bills/create-items")
 			.json({
 				items: [
 					{
@@ -916,7 +916,7 @@ test.group("Bill resource", (group) => {
 			.save();
 
 		const response = await client
-			.post(`/bills/create-item`)
+			.post("/bills/create-item")
 			.json({
 				billId: bill.id,
 				productVariationId: variation.id,

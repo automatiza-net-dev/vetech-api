@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import { string } from "@ioc:Adonis/Core/Helpers";
 import Database from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -1207,62 +1208,179 @@ export default class ScheduleService {
 			const tmpDate = addDays(refStart, k);
 			return ScheduleService.GetWD(tmpDate);
 		});
-		const resultData: [Schedule[], WorkingDay[], UnavailableDay[]] = [
-			[],
-			[],
-			[],
-		];
+		const resultData: [
+			{
+				id: string;
+				user_id: string;
+				start_hour: string;
+				end_hour: string;
+				service_type: {
+					id: string;
+					description: string;
+					type: string;
+				};
+				service_status: {
+					id: string;
+					description: string;
+					color: string;
+					type: string;
+				};
+				reason: {
+					id: string;
+					description: string;
+				} | null;
+				attendances: {
+					id: number;
+					scheduleService: {
+						id: string;
+						description: string;
+					};
+				}[];
+				patient: {
+					id: string;
+					name: string;
+					photo: string | null;
+					tag: string;
+					cellphone: string | null;
+				} | null;
+				holder: {
+					id: string;
+					name: string;
+					tutor: {
+						cellphone: string | null;
+						telephone: string | null;
+						fullAddress: string;
+					};
+				};
+				race: {
+					id: string;
+					description: string;
+				} | null;
+				specie: {
+					id: string;
+					description: string;
+				} | null;
+			}[],
+			WorkingDay[],
+			UnavailableDay[],
+		] = [[], [], []];
 
-		const schedulesQb = Schedule.query()
-			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [refStart, refEnd])
-			.whereIn("user_id", userIds)
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("reason", (query) => {
-				query.select(["id", "reason"]);
-			})
-			.preload("attendances", (query) => {
-				query.select("id", "schedule_service_id");
+		const schedulesQb = Database.from("schedules")
+			.select(
+				Database.raw(`schedules.id,
+       schedules.user_id,
+       schedules.start_hour,
+       schedules.end_hour,
+       json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type)  as service_type,
+       json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
+                         ss.type)                                                         as service_status,
+       case
+           when schedules.reason_id is not null then
+               json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
+                                 ss.type)
+           end                                                                            as reason,
+       coalesce(json_agg(json_build_array(json_build_object('id', at.id, 'scheduleService',
+                                                            json_build_object('id', ssat.id, 'description', ssat.description))
+                         )) filter (where at.id is not null),
+                '[]'::json)                                                               as attendances,
+       case
+           when p.id is null then
+               null
+           else
+               json_build_object('id', p.id, 'name', p.name, 'photo', p.photo, 'tag', p.tag, 'cellphone',
+                                 pt.cellphone)
+           end
+                                                                                          as patient,
+       case
+           when p.type = 'animal' then
+               json_build_object('id', rc.id, 'description', rc.description) end          as race,
+       case
+           when p.type = 'animal' then
+               json_build_object('id', sp.id, 'description', sp.description) end          as specie,
+       json_build_object('id', h.id, 'name', h.name, 'tutor',
+                         json_build_object('cellphone', pt.cellphone,
+                                           'telephone', pt.telephone,
+                                           'fullAddress',
+                                           format('%s, %s, %s, %s, %s', pt.street, pt.number, pt.complement,
+                                                  pt.district,
+                                                  format('%s - %s', pt.city, pt.state)))) as holder,
+       json_build_array(json_build_object('id', rs.id, 'observation', rs.observation, 'createdAt',
+                                          rs.created_at, 'reason',
+                                          json_build_object('id', rsr.id, 'reason', rsr.reason))
+       )                                                                                  as reschedules,
+       json_build_array(json_build_object('id', sc.id, 'contact_date', sc.contact_date, 'observation',
+                                          sc.observation)
+       )                                                                                  as contacts,
+       json_build_array(json_build_object('id', ssc.id, 'created_at', ssc.created_at, 'observation',
+                                          ssc.observation)
+       )                                                                                  as status_changes`),
+			)
+			.joinRaw(
+				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
+			)
+			.joinRaw(
+				"join schedule_statuses ss on schedules.schedule_status_id = ss.id",
+			)
 
-				query.preload("scheduleService", (query) => {
-					query.select("id", "description");
-				});
-			});
+			.joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
+			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
+
+			.joinRaw(
+				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
+			)
+
+			.joinRaw(
+				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id",
+			)
+
+			.joinRaw("left join reasons r on schedules.reason_id = r.id")
+			.joinRaw("left join attendances at on schedules.id = at.schedule_id")
+			.joinRaw(
+				"left join schedule_service_types ssat on at.schedule_service_id = ssat.id",
+			)
+			.joinRaw("left join patients h on schedules.holder_id = h.id")
+			.joinRaw("left join patient_tutors pt on h.id = pt.patient_id")
+			.joinRaw("left join patients p on schedules.patient_id = p.id")
+			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
+			.joinRaw("left join races rc on pa.race_id = rc.id")
+			.joinRaw("left join species sp on rc.specie_id = sp.id")
+			.groupByRaw(
+				"schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id, h.id, sc.id, rs.id, rsr.id, ssc.id",
+			)
+			.where("schedules.business_unit_id", authCtx.unit.id)
+			.whereRaw("schedules.start_hour::date between ? and ?", [
+				refStart,
+				refEnd,
+			])
+			.whereIn("schedules.user_id", userIds)
+			.whereNull("schedules.deleted_at");
 
 		if (data.status) {
-			schedulesQb.whereHas("serviceStatus", (query) => {
-				query.whereIn("type", data.status ?? []);
-			});
+			schedulesQb.whereRaw("ss.type = ?", [data.status]);
 		}
 
 		if (data.lista_cancelados?.toLowerCase() === "false") {
-			schedulesQb.whereHas("serviceStatus", (query) => {
-				query.whereNot("type", "CANC");
-			});
+			schedulesQb.whereRaw("ss.type <> 'CANC'", []);
 		}
 
-		if (authCtx.unit.unitConfig?.requiresScheduleTutor) {
-			schedulesQb.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			});
-		} else {
-			schedulesQb.preload("patient", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			});
-		}
-
-		resultData[0] = await schedulesQb;
+		// @ts-ignore
+		resultData[0] = (await schedulesQb).map((elem) => ({
+			id: elem.id,
+			userId: elem.user_id,
+			startHour: elem.start_hour,
+			endHour: elem.end_hour,
+			serviceType: elem.service_type,
+			serviceStatus: elem.service_status,
+			reason: elem.reason,
+			attendances: elem.attendances,
+			patient: elem.patient,
+			holder: elem.holder,
+			race: elem.race,
+			specie: elem.specie,
+			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
+			contacts: elem.contacts.filter((f) => Boolean(f.id)),
+			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),
+		}));
 
 		if (typeof data.working === "undefined" || data.working === "true") {
 			resultData[1] = await WorkingDay.query()
@@ -1299,113 +1417,7 @@ export default class ScheduleService {
 				])
 				.whereIn("user_id", userIds);
 		}
-
-		const patients = await Patient.query()
-			.whereIn(
-				"id",
-				resultData[0].map((s) => s.patient_id).filter(Boolean) as string[],
-			)
-			.preload("tutor")
-			.preload("patientAnimal", (query) => {
-				query.preload("race", (query) => {
-					query.preload("specie");
-				});
-			});
-
-		const executions: {
-			tipo_registro: string;
-			description: string;
-			label: string;
-			reserved_minutes: number;
-			treatment_id: number;
-			treatment_item_id: number;
-			treatment_execution_id: number;
-			schedule_id: string;
-		}[] = await Database.from("treatment_executions")
-			.select(
-				Database.raw(
-					`
-                'Tratamento'                                             as tipo_registro,
-       'Tratamentos - Execuções'                                as description,
-       products.description || ' - ' || productivity_items.description as label,
-       productivity_items.reserved_minutes,
-       treatment_executions.treatment_id                        as treatment_id,
-       treatment_executions.treatment_item_id                   as treatment_item_id,
-       treatment_executions.id                                  as treatment_execution_id,
-       treatment_executions.schedule_id
-       `,
-					[],
-				),
-			)
-			.joinRaw(
-				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
-			)
-			.joinRaw(
-				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
-               on product_variations.product_id = products.id)
-              on treatment_executions.treatment_item_id = treatment_items.id and
-                 treatment_executions.treatment_id = treatment_items.treatment_id`,
-			)
-			.joinRaw(
-				"join treatments on treatment_executions.treatment_id = treatments.id",
-			)
-			.where("treatments.client_id", data.patient ?? v4())
-			.where("treatments.economic_group_id", authCtx.group.id)
-			.where("treatments.business_unit_id", authCtx.unit.id)
-			.whereNotNull("treatment_executions.schedule_id")
-			.orderByRaw("1, 4, 3, 7");
-
-		const mappedSchedules = resultData[0].map((schedule) => {
-			const jsonKinda = schedule.toJSON();
-			const patient = patients.find((p) => p.id === schedule.patient_id);
-
-			jsonKinda.user_id = schedule.user_id;
-			// jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			// jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
-			jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
-			jsonKinda.start_hour = undefined;
-			jsonKinda.end_hour = undefined;
-			jsonKinda.start = undefined;
-			jsonKinda.end = undefined;
-			jsonKinda.created_at = undefined;
-			jsonKinda.updated_at = undefined;
-
-			jsonKinda.race = patient?.patientAnimal?.race
-				? {
-						id: patient?.patientAnimal?.race?.id,
-						description: patient?.patientAnimal?.race?.description,
-					}
-				: null;
-			jsonKinda.specie = patient?.patientAnimal?.race?.specie
-				? {
-						id: patient?.patientAnimal?.race?.specie?.id,
-						description: patient?.patientAnimal?.race?.specie?.description,
-					}
-				: null;
-
-			jsonKinda.patientAnimal = undefined;
-
-			jsonKinda.patient = {
-				id: patient?.id,
-				name: patient?.name,
-				photo: patient?.photo,
-				tag: patient?.tag,
-				cellphone: patient?.tutor?.cellphone ?? null,
-			};
-
-			jsonKinda.treatmentExecutions = executions.filter(
-				(ex) => ex.schedule_id === schedule.id,
-			);
-
-			return jsonKinda;
-		});
-
-		const allEvents = [...resultData[1], ...resultData[2], ...mappedSchedules];
+		const allEvents = [...resultData[0], ...resultData[1], ...resultData[2]];
 
 		return users
 			.map((elem) => {
@@ -1414,10 +1426,15 @@ export default class ScheduleService {
 					name: elem.name,
 					onDuty: elem.on_duty,
 					events: allEvents
-						.filter((e) => e.user_id === elem.id)
+						.filter((e) =>
+							//@ts-ignore
+							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
+						)
 						.map((day) => ({
-							start: day.startHour.toString(),
-							end: day.endHour.toString(),
+							//@ts-ignore
+							start: day.startHour,
+							//@ts-ignore
+							end: day.endHour,
 							event: day,
 							name: elem.name,
 							type: this.getEventLabel(day),
@@ -2476,5 +2493,30 @@ export default class ScheduleService {
 				late,
 			};
 		});
+	}
+
+	private snakeToCamelDeep<T extends object>(
+		obj: T,
+	): {
+		[K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+	} {
+		return Object.fromEntries(
+			Object.entries(obj).map(([key, value]) => {
+				const newKey = key.replace(/_([a-z])/g, (_, letter) =>
+					letter.toUpperCase(),
+				);
+				console.log({ newKey, key, value });
+				return [
+					newKey,
+					value && typeof value === "object"
+						? this.snakeToCamelDeep(value as object)
+						: value,
+				];
+			}),
+		) as {
+			[K in keyof T]: T[K] extends object
+				? { [k in keyof T[K]]: string }
+				: T[K];
+		};
 	}
 }

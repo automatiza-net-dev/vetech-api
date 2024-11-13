@@ -23,6 +23,30 @@ export default class System extends BaseModel {
 	})
 	public colors: string[];
 
+	@column({
+		columnName: "mail_image",
+		serializeAs: "mailImage",
+	})
+	public mailImage: string | null;
+
+	@column({
+		columnName: "mail_background_color",
+		serializeAs: "mailBackgroundColor",
+	})
+	public mailBackgroundColor: string | null;
+
+	@column({
+		columnName: "mail_text_new_user",
+		serializeAs: "mailTextNewUser",
+	})
+	public mailTextNewUser: string | null;
+
+	@column({
+		columnName: "mail_text_warn_user",
+		serializeAs: "mailTextWarnUser",
+	})
+	public mailTextWarnUser: string | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

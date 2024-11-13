@@ -3,6 +3,7 @@ import Deposit from "App/Models/Deposit";
 import { LicenceType } from "App/Models/Licence";
 import Role from "App/Models/Role";
 import System from "App/Models/System";
+import SystemUrl from "App/Models/SystemUrl";
 import RoleFactory from "Database/factories/RoleFactory";
 import UserFactory from "Database/factories/UserFactory";
 import { addDays } from "date-fns";
@@ -45,6 +46,10 @@ export const userBootstrap = async (system_name = "SUT") => {
 			name: system_name,
 		},
 	);
+	await SystemUrl.create({
+		system_id: system.id,
+		url: "http://sut",
+	});
 
 	await user
 		.merge({

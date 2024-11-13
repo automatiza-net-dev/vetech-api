@@ -531,18 +531,55 @@ export default class AuthService {
 		});
 	}
 
-	public async getAvailableSwaps(user: User, systemID: number) {
-		const roles = await this.getRoles(user, systemID, null, false);
+	public async getAvailableSwaps(
+		user: User,
+		systemID: number,
+	): Promise<
+		{ id: string; identification: string | null; group: string | null }[]
+	> {
+		const qb = Database.from("user_unit_roles")
+			.select(
+				Database.raw(
+					'business_units.id, business_units.identification, economic_groups.company_name as "group"',
+				),
+			)
+			.joinRaw(
+				"join business_units on user_unit_roles.unit_id = business_units.id",
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.joinRaw(
+				"join roles on user_unit_roles.role_id = roles.id and roles.system_id = ?",
+				[systemID],
+			)
+			.whereRaw("user_unit_roles.user_id = ?", [user.id])
+			.whereRaw("economic_groups.system_id =  ?", [systemID])
+			.whereRaw("user_unit_roles.active is true", [])
+			.groupByRaw("business_units.id, economic_groups.company_name")
+			.orderByRaw("business_units.identification");
 
-		const validUnits = roles
-			.map((r) => r.unit)
-			.filter((u) => u !== null) as BusinessUnit[];
+		if (user.type === "user") {
+			qb.whereRaw("roles.type in ('user', 'both')");
+		}
 
-		return validUnits.map((elem) => ({
-			id: elem.id,
-			identification: elem.identification,
-			group: elem.economicGroup.companyName,
-		}));
+		if (user.type === "controller") {
+			qb.whereRaw("roles.type in ('controller', 'both')");
+		}
+
+		return qb;
+
+		// const roles = await this.getRoles(user, systemID, null, false);
+		//
+		// const validUnits = roles
+		// 	.map((r) => r.unit)
+		// 	.filter((u) => u !== null) as BusinessUnit[];
+		//
+		// return validUnits.map((elem) => ({
+		// 	id: elem.id,
+		// 	identification: elem.identification,
+		// 	group: elem.economicGroup.companyName,
+		// }));
 	}
 
 	public async controllerLogin(

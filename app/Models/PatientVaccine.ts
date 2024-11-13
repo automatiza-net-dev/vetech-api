@@ -1,103 +1,118 @@
 import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-  HasMany,
-  hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import Patient from 'App/Models/Patient';
-import Schedule from 'App/Models/Schedule';
-import User from 'App/Models/User';
-import Vaccine from 'App/Models/Vaccine';
-import VaccineCalendar from 'App/Models/VaccineCalendar';
-import VaccineProtocol from 'App/Models/VaccineProtocol';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	BelongsTo,
+	belongsTo,
+	column,
+	HasMany,
+	hasMany,
+} from "@ioc:Adonis/Lucid/Orm";
+import Patient from "App/Models/Patient";
+import Schedule from "App/Models/Schedule";
+import User from "App/Models/User";
+import Vaccine from "App/Models/Vaccine";
+import VaccineCalendar from "App/Models/VaccineCalendar";
+import VaccineProtocol from "App/Models/VaccineProtocol";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class PatientVaccine extends BaseModel {
-  @column({ isPrimary: true })
-  public id: string = v4();
+	@column({ isPrimary: true })
+	public id: string = v4();
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column({
+		columnName: "last_application_at",
+		serializeAs: "lastApplicationAt",
+	})
+	public lastApplicationAt: DateTime | null;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column({
+		columnName: "valid_until",
+		serializeAs: "validUntil",
+	})
+	public validUntil: DateTime | null;
 
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime;
+	@column({})
+	public status: "Completo" | "Incompleto" | null;
 
-  @beforeFind()
-  public static softDeletesFind = softDeleteQuery;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @beforeFetch()
-  public static softDeletesFetch = softDeleteQuery;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
 
-  public async softDelete(column?: string) {
-    await softDelete(this, column);
-  }
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
 
-  @column({
-    serializeAs: null,
-  })
-  public vaccine_id: string;
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
 
-  @belongsTo(() => Vaccine, {
-    foreignKey: 'vaccine_id',
-  })
-  public vaccine: BelongsTo<typeof Vaccine>;
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
 
-  @column({
-    serializeAs: null,
-  })
-  public vaccine_protocol_id: string;
+	public async softDelete(column?: string) {
+		await softDelete(this, column);
+	}
 
-  @belongsTo(() => VaccineProtocol, {
-    foreignKey: 'vaccine_protocol_id',
-  })
-  public protocol: BelongsTo<typeof VaccineProtocol>;
+	@column({
+		serializeAs: null,
+	})
+	public vaccine_id: string;
 
-  @column({
-    serializeAs: null,
-  })
-  public patient_id: string;
+	@belongsTo(() => Vaccine, {
+		foreignKey: "vaccine_id",
+	})
+	public vaccine: BelongsTo<typeof Vaccine>;
 
-  @belongsTo(() => Patient, {
-    foreignKey: 'patient_id',
-  })
-  public patient: BelongsTo<typeof Patient>;
+	@column({
+		serializeAs: null,
+	})
+	public vaccine_protocol_id: string;
 
-  @column({
-    serializeAs: null,
-  })
-  public user_id: string;
+	@belongsTo(() => VaccineProtocol, {
+		foreignKey: "vaccine_protocol_id",
+	})
+	public protocol: BelongsTo<typeof VaccineProtocol>;
 
-  @belongsTo(() => User, {
-    foreignKey: 'user_id',
-  })
-  public user: BelongsTo<typeof User>;
+	@column({
+		serializeAs: null,
+	})
+	public patient_id: string;
 
-  @column({
-    serializeAs: null,
-  })
-  public schedule_id: string;
+	@belongsTo(() => Patient, {
+		foreignKey: "patient_id",
+	})
+	public patient: BelongsTo<typeof Patient>;
 
-  @belongsTo(() => Schedule, {
-    foreignKey: 'schedule_id',
-  })
-  public schedule: BelongsTo<typeof Schedule>;
+	@column({
+		serializeAs: null,
+	})
+	public user_id: string;
 
-  @column({
-    serializeAs: null,
-  })
-  public business_unit_id: string;
+	@belongsTo(() => User, {
+		foreignKey: "user_id",
+	})
+	public user: BelongsTo<typeof User>;
 
-  @hasMany(() => VaccineCalendar, {
-    foreignKey: 'patient_vaccine_id',
-  })
-  public calendars: HasMany<typeof VaccineCalendar>;
+	@column({
+		serializeAs: null,
+	})
+	public schedule_id: string;
+
+	@belongsTo(() => Schedule, {
+		foreignKey: "schedule_id",
+	})
+	public schedule: BelongsTo<typeof Schedule>;
+
+	@column({
+		serializeAs: null,
+	})
+	public business_unit_id: string;
+
+	@hasMany(() => VaccineCalendar, {
+		foreignKey: "patient_vaccine_id",
+	})
+	public calendars: HasMany<typeof VaccineCalendar>;
 }

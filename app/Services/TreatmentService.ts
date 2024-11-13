@@ -1296,16 +1296,21 @@ export default class TreatmentService {
 		authCtx: AuthContext,
 		data: {
 			patientId: string;
+			scheduled?: string;
 		},
 	) {
-		return Database.from("treatments")
+		const scheduled = data.scheduled ? data.scheduled === "true" : false;
+
+		const qb = Database.from("treatments")
 			.select(
 				Database.raw(`treatment_executions.treatment_id,
-       treatment_executions.treatment_item_id,
-       treatment_executions.id        as treatment_execution_id,
-       treatment_executions.productivity_item_id,
-       products.description           as produto,
-       productivity_items.description as item_produtividade`),
+        treatment_executions.treatment_item_id,
+        treatment_executions.id        as treatment_execution_id,
+        treatment_executions.execution_date,
+        treatment_executions.schedule_date,
+        treatment_executions.productivity_item_id,
+        products.description           as produto,
+        productivity_items.description as item_produtividade`),
 			)
 			.joinRaw(`join (treatment_items
     join product_variations on treatment_items.product_variation_id = product_variations.id
@@ -1321,9 +1326,39 @@ export default class TreatmentService {
 			)
 			.where("treatments.economic_group_id", authCtx.group.id)
 			.where("treatments.business_unit_id", authCtx.unit.id)
+			.whereIn("treatments.status", ["Confirmado", "Aberto"])
 			.where("treatments.client_id", data.patientId)
-			.whereNull("treatment_executions.schedule_id")
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
+
+		if (!scheduled) {
+			qb.whereNull("treatment_executions.schedule_id");
+		}
+
+		const result: {
+			treatment_id: string;
+			treatment_item_id: string;
+			treatment_execution_id: string;
+			execution_date: string;
+			schedule_date: string;
+			productivity_item_id: string;
+			produto: string;
+			item_produtividade: string;
+		}[] = await qb;
+
+		return result.map((elem) => ({
+			treatmentId: elem.treatment_id,
+			treatmentItemId: elem.treatment_item_id,
+			treatmentExecutionId: elem.treatment_execution_id,
+			productivityItemId: elem.productivity_item_id,
+			produto: elem.produto,
+			itemProdutividade: elem.item_produtividade,
+			executionDate: elem.execution_date
+				? `executado dia ${DateTime.fromJSDate(new Date(elem.execution_date)).toFormat("dd/MM/yyyy")}`
+				: "-",
+			scheduleDate: elem.schedule_date
+				? `agendado dia ${DateTime.fromJSDate(new Date(elem.schedule_date)).toFormat("dd/MM/yyyy")}`
+				: "-",
+		}));
 	}
 }

@@ -2111,7 +2111,7 @@ ON bills.patient_id = Dep."id"`,
         opportunities.gender as genero_paciente,
         opportunities.weight as peso_paciente,
         opportunities.castrated as castrado_paciente,
-        opportunities.client_origin_item_description as campanha_midia
+        coalesce(mc.description, opportunities.client_origin_item_description) as campanha_midia
         `),
 			)
 			.joinRaw(
@@ -2140,6 +2140,9 @@ ON bills.patient_id = Dep."id"`,
 			)
 			.joinRaw("left join races on opportunities.race_id = races.id")
 			.joinRaw("left join reasons r on opportunities.reason_id = r.id")
+			.joinRaw(
+				"left join marketing_campaigns mc on opportunities.marketing_campaign_id = mc.id",
+			)
 			.where("opportunities.economic_group_id", authCtx.group.id)
 			.whereNull("opportunities.deleted_at");
 
@@ -2829,11 +2832,20 @@ ON bills.patient_id = Dep."id"`,
        marketing_campaigns.investment_value::float,
        marketing_campaigns.active,
        count(opportunities.id)::int                        as qty_opportunities,
-       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunities,
+       coalesce(sum(opportunities.profit_value), 0)::float as sum_opportunity_profit,
+       coalesce(sum(opportunities.value), 0)::float as sum_opportunity_value,
        case
            when count(opportunities.id) = 0 then 0::float
            else (investment_value / count(opportunities.id))::float
-           end                                             as cpl`),
+           end                                             as cpl,
+         sum(case when cs.type = 'OP' and tag = 'N' and opportunities.balance is null then 1 else 0 end) as qtd_novas,
+sum(case when cs.type = 'OP' and tag = 'A' and opportunities.balance is null then 1 else 0 end) as qtd_agendadas,
+sum(case when cs.type = 'OP' and tag = 'C' and opportunities.balance is null then 1 else 0 end) as qtd_comparecidas,
+sum(case when cs.type = 'OP' and tag = 'F' and opportunities.balance is null then 1 else 0 end) as qtd_faltou,
+sum(case when cs.type = 'OP' and tag = 'D' and opportunities.balance is null then 1 else 0 end) as qtd_desmarcou,
+sum(case when cs.type = 'OP' and tag = 'FE' and opportunities.balance is null then 1 else 0 end) as qtd_fechadas,
+sum(case when opportunities.balance = 'Ganho' then 1 else 0 end) as qtd_ganhos,
+sum(case when opportunities.balance = 'Perda' then 1 else 0 end) as qtd_perdas`),
 			)
 			.joinRaw(
 				"join economic_groups on marketing_campaigns.economic_group_id = economic_groups.id",
@@ -2842,7 +2854,8 @@ ON bills.patient_id = Dep."id"`,
 				"join business_units on economic_groups.id = business_units.economic_group_id",
 			)
 			.joinRaw(
-				"left join opportunities on marketing_campaigns.id = opportunities.marketing_campaign_id",
+				`left join ( opportunities
+left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campaigns.id = opportunities.marketing_campaign_id`,
 			)
 			.groupByRaw(
 				"economic_groups.id, business_units.id, marketing_campaigns.id",
@@ -2860,7 +2873,7 @@ ON bills.patient_id = Dep."id"`,
 		}
 
 		if (data.active) {
-			qb.where("marketing_campaigns.active", data.active);
+			qb.where("marketing_campaigns.active", data.active === "true");
 		}
 
 		if (data.fromDate && data.toDate) {
@@ -2889,8 +2902,17 @@ ON bills.patient_id = Dep."id"`,
 			investment_value: number;
 			active: boolean;
 			qty_opportunities: number;
-			sum_opportunities: number;
+			sum_opportunity_profit: number;
+			sum_opportunity_value: number;
 			cpl: number;
+			qtd_novas: string;
+			qtd_agendadas: string;
+			qtd_comparecidas: string;
+			qtd_faltou: string;
+			qtd_desmarcou: string;
+			qtd_fechadas: string;
+			qtd_ganhos: string;
+			qtd_perdas: string;
 		}[] = await qb;
 
 		const groups = SharedService.GroupBy(result, (row) => [row.e_id, row.b_id]);
@@ -2911,14 +2933,23 @@ ON bills.patient_id = Dep."id"`,
 								.filter((f) => f.e_id === group && f.b_id === unit)
 								.map((c) => ({
 									id: c.id,
-									description: c.identification,
-									start_date: c.start_date,
-									end_date: c.end_date,
-									investment_value: c.investment_value,
+									description: c.description,
+									startDate: c.start_date,
+									endDate: c.end_date,
+									investmentValue: c.investment_value,
 									active: c.active,
-									qty_opportunities: c.qty_opportunities,
-									sum_opportunities: c.sum_opportunities,
+									qtyOpportunities: c.qty_opportunities,
+									sumOpportunityProfit: c.sum_opportunity_profit,
+									sumOpportunityValue: c.sum_opportunity_value,
 									cpl: c.cpl,
+									qtyNovas: Number.parseFloat(c.qtd_novas),
+									qtyAgendadas: Number.parseFloat(c.qtd_agendadas),
+									qtyComparecidas: Number.parseFloat(c.qtd_comparecidas),
+									qtyFaltou: Number.parseFloat(c.qtd_faltou),
+									qtyDesmarcou: Number.parseFloat(c.qtd_desmarcou),
+									qtyFechadas: Number.parseFloat(c.qtd_fechadas),
+									qtyGanhos: Number.parseFloat(c.qtd_ganhos),
+									qtyPerdas: Number.parseFloat(c.qtd_perdas),
 								})),
 						},
 					],
@@ -3097,6 +3128,159 @@ ON bills.patient_id = Dep."id"`,
 
 			return currArray;
 		}, [] as any[]);
+	}
+
+	public async patientsReport(
+		authCtx: AuthContext,
+		data: {
+			species?: string[];
+			races?: string[];
+			hairs?: string[];
+
+			community?: string;
+			gender?: string;
+			castrated?: string;
+			death?: string;
+			vaccineOrigin?: string;
+			microchip?: string;
+
+			fromCreated?: string;
+			toCreated?: string;
+			fromBirth?: string;
+			toBirth?: string;
+
+			debug?: string;
+		},
+	) {
+		const qb = Database.from("patient_economic_groups")
+			.debug(true)
+			.select(
+				Database.raw(`patients.id                                                  as id,
+       patients.name                                                as nome,
+       patients.tag                                                 as rg,
+       patients.community                                           as comunidade_sancla,
+       patients.weight                                              as peso,
+       patients.weight_date::date                                   as data_pesagem,
+       patient_animal_hairs.description                             as pelagem,
+       species.description || ' > ' || races.description            as especie_raca,
+       patient_animals.death                                        as obito,
+       patient_animals.death_date                                   as data_obito,
+       patient_animals.microchip,
+       patient_animals.castrated                                    as castrado,
+       patients.birth_date                                          as paciente_data_nascimento,
+       patients.created_at                                          as paciente_data_cadastro,
+       case
+           when patients.gender = 'male' then 'macho'
+           when patients.gender = 'female' then 'fêmea'
+           else 'Não Informado' end                                 as paciente_genero,
+       case
+           when patients.vaccine_origin = 'FORA_DA_CLINICA' then 'Fora da Clinica'
+           when patients.vaccine_origin = 'PROPRIA_CLINICA' then 'Na Própria Clinica'
+           when patients.vaccine_origin = 'NAO_VACINADO' then 'Não Vacinado'
+           else 'Não Informado' end                                 as paciente_vacinado,
+       tutor.name                                                   as tutor_principal,
+       coalesce(patient_tutors.cellphone, patient_tutors.telephone) as tutor_telefone,
+       patient_tutors.email                                         as tutor_email`),
+			)
+			.joinRaw(
+				"join patients on patient_economic_groups.patient_id = patients.id",
+			)
+			.joinRaw(`join (patient_animals
+    left join ( races left join species on races.specie_id = species.id) on patient_animals.race_id = races.id
+    left join patient_animal_hairs on patient_animals.hair_id = patient_animal_hairs.id)
+              on patients.id = patient_animals.patient_id`)
+			.joinRaw(`left join (holder_dependents join (patients tutor join patient_tutors
+                                            on tutor.id = patient_tutors.patient_id)
+                    on holder_dependents.holder_id = tutor.id)
+                   on patients.id = holder_dependents.dependent_id and is_main = true`)
+			.whereRaw("patient_economic_groups.economic_group_id = ?", [
+				authCtx.group.id,
+			]);
+
+		if (data.species && Array.isArray(data.species)) {
+			qb.whereIn("species.id", data.species);
+		}
+
+		if (data.races && Array.isArray(data.races)) {
+			qb.whereIn("races.id", data.races);
+		}
+
+		if (data.hairs && Array.isArray(data.hairs)) {
+			qb.whereIn("patient_animal_hairs.id", data.hairs);
+		}
+
+		if (data.community) {
+			qb.whereRaw("patients.community = ?", [data.community === "Sim"]);
+		}
+
+		if (data.gender) {
+			qb.whereRaw("tutor.gender = ?", [
+				data.gender === "Macho" ? "male" : "female",
+			]);
+		}
+
+		if (data.castrated) {
+			qb.whereRaw("patient_animals.castrated = ?", [data.castrated === "true"]);
+		}
+
+		if (data.death) {
+			switch (data.death) {
+				case "Sim":
+					qb.whereRaw("patient_animals.death_date is not null");
+					break;
+				case "Nao":
+					qb.whereRaw("patient_animals.death_date is null");
+					break;
+			}
+		}
+
+		if (data.vaccineOrigin) {
+			switch (data.vaccineOrigin) {
+				case "Não Vacinado":
+					qb.whereRaw("patients.vaccine_origin = ?", ["NAO_VACINADO"]);
+					break;
+				case "Fora da Clinica":
+					qb.whereRaw("patients.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
+					break;
+				case "Propria Clinica":
+					qb.whereRaw("patients.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
+					break;
+				case "Não Informado":
+				default:
+					qb.whereRaw("patients.vaccine_origin is null");
+			}
+		}
+
+		if (data.microchip) {
+			switch (data.microchip) {
+				case "Sim":
+					qb.whereRaw("patient_animals.microchip is not null");
+					break;
+				case "Nao":
+					qb.whereRaw("patient_animals.microchip is null");
+					break;
+			}
+		}
+
+		if (data.fromCreated && data.toCreated) {
+			qb.andWhereRaw("patients.created_at::date between ? and ?", [
+				data.fromCreated,
+				data.toCreated,
+			]);
+		}
+
+		if (data.fromBirth && data.toBirth) {
+			qb.andWhereRaw("patients.birth_date::date between ? and ?", [
+				data.fromBirth,
+				data.toBirth,
+			]);
+		}
+
+		if (data.debug) {
+			return qb.toQuery();
+		}
+
+		return qb;
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

@@ -1935,6 +1935,7 @@ export default class OpportunityService {
 			.select(
 				"opportunities.id as opID",
 				"opportunities.description as opDescription",
+				"opportunities.contact_date as op_contact_date",
 				"contact.id as contactID",
 				"contact.name as contactName",
 				"client.id as clientID",
@@ -1975,6 +1976,7 @@ export default class OpportunityService {
 		return result.map((elem) => ({
 			id: elem.opID,
 			description: elem.opDescription ?? "-",
+			contactDate: elem.op_contact_date ?? "-",
 			contact: elem.contactID
 				? {
 						id: elem.contactID ?? null,

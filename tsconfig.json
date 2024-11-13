@@ -40,7 +40,8 @@
       "@adonisjs/view",
       "@adonisjs/i18n",
       "@adonisjs/drive-s3",
-      "@verful/scheduler"
+      "@verful/scheduler",
+      "adonis5-swagger"
     ]
   }
 }

@@ -9,8 +9,6 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
-import BusinessUnit from "App/Models/BusinessUnit";
-import EconomicGroup from "App/Models/EconomicGroup";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
@@ -39,14 +37,17 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import HolderDependentLog from "App/Models/HolderDependentLog";
 
 interface ISearch {
+	id?: string;
 	name?: string;
 	gender?: PatientGender;
 	type?: PatientType;
 }
 
 interface ISearchAnimals {
+	id?: string;
 	name?: string;
 	tutor?: string;
+	tutorID?: string;
 	race?: string;
 	specie?: string;
 	document?: string;
@@ -55,6 +56,7 @@ interface ISearchAnimals {
 }
 
 interface ISearchTutor {
+	id?: string;
 	name?: string;
 	document?: string;
 	phone?: string;
@@ -65,6 +67,7 @@ interface ISearchTutor {
 }
 
 interface ISearchSupplier {
+	id?: string;
 	name?: string;
 	document?: string;
 }
@@ -88,10 +91,15 @@ export default class PatientService {
 		"Dezembro",
 	];
 
-	public async index(unitId: string, data: ISearch) {
-		const group = await this.getEconomicGroup(unitId);
+	public async index(authCtx: AuthContext, data: ISearch) {
+		const qb = authCtx.group
+			.related("patients")
+			.query()
+			.preload("patientAnimal");
 
-		const qb = group.related("patients").query().preload("patientAnimal");
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -138,10 +146,8 @@ export default class PatientService {
 		}));
 	}
 
-	public async nonPets(unitId: string) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async nonPets(authCtx: AuthContext) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.whereIn("type", [PatientType.TUTOR, PatientType.SUPPLIER])
@@ -150,10 +156,8 @@ export default class PatientService {
 		return qb;
 	}
 
-	public async reducedTutorsIndex(unitId: string, data: ISearchTutor) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async reducedTutorsIndex(authCtx: AuthContext, data: ISearchTutor) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.TUTOR)
@@ -176,6 +180,10 @@ export default class PatientService {
 					});
 				});
 			});
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
 
 		if (data.name) {
 			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
@@ -234,151 +242,142 @@ export default class PatientService {
 			}));
 	}
 
-	public async tutorsIndex(unitId: string, data: ISearchTutor) {
-		const group = await this.getEconomicGroup(unitId);
+	public async tutorsIndex(
+		authCtx: AuthContext,
+		data: ISearchTutor,
+	): Promise<
+		{
+			id: string;
+			name: string;
+			tag: string;
+			cellphone: string | null;
+			document: string | null;
+			dependents: {
+				id: string;
+				name: string;
+				tag: string;
+			}[];
+		}[]
+	> {
+		const qb = Database.from("patient_economic_groups")
+			.select(
+				Database.raw(`patients.id,
+       patients.name,
+       patients.tag,
+       patient_tutors.cellphone,
+       patient_tutors.document,
+       coalesce(
+                       json_agg(
+                       json_build_object(
+                               'id', dep.id,
+                               'name', dep.name,
+                               'tag', dep.tag
+                       ))
+                       FILTER (WHERE dep.id IS NOT NULL),
+                       '[]'::json
+       ) as dependents`),
+			)
+			.orderByRaw("patients.name asc")
+			.groupByRaw("patients.id, patient_tutors.id")
+			.joinRaw(
+				"join patients on patient_economic_groups.patient_id = patients.id",
+			)
+			.joinRaw("join patient_tutors on patients.id = patient_tutors.patient_id")
+			.joinRaw(
+				"left join client_origins on patient_tutors.client_origin_id = client_origins.id",
+			)
+			.joinRaw(
+				"left join professions on patient_tutors.profession_id = professions.id",
+			)
+			.joinRaw(
+				"left join holder_dependents on patients.id = holder_dependents.holder_id",
+			)
+			.joinRaw(
+				"left join patients dep on holder_dependents.dependent_id = dep.id",
+			)
+			.whereRaw("patient_economic_groups.economic_group_id = ?", [
+				authCtx.group.id,
+			])
+			.whereRaw("patients.type = ?", [PatientType.TUTOR])
+			.whereRaw("patients.deleted_at is null", []);
 
-		const qb = group
-			.related("patients")
-			.query()
-			.orderBy("name", "asc")
-			.where("type", PatientType.TUTOR)
-			.preload("tutor", (query) => {
-				query.preload("clientOrigin");
-				query.preload("profession");
-
-				if (data.document) {
-					query.where("document", "ilike", `%${data.document}%`);
-				}
-			})
-			.preload("dependents", (query) => {
-				query.preload("patientAnimal", (query) => {
-					query.preload("race", (query) => {
-						query.whereILike("description", `%${data.race ?? ""}`);
-					});
-				});
-			});
-
-		if (data.phone) {
-			const clearPhone = data.phone.replace(/\D/g, "");
-			qb.whereHas("contacts", (query) => {
-				query.whereRaw(
-					`patient_contacts.type <> 'email'
-  and (
-    case
-        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
-            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
-            ? -- add o 9
-        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
-                                                                           '%' ||
-                                                                           SUBSTRING(?, 1, 2) ||
-                                                                           '9' ||
-                                                                           SUBSTRING(?, 3, 8) ||
-                                                                           '%' -- add o 9
-        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
-    )`,
-					[
-						clearPhone,
-						`%${clearPhone}%`,
-						clearPhone,
-						clearPhone,
-						clearPhone,
-						`%${clearPhone}%`,
-					],
-				);
-			});
-		}
-
-		if (data.tutorId) {
-			qb.where("patients.id", data.tutorId);
+		if (data.id) {
+			qb.where("patients.id", data.id);
 		}
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+			qb.whereRaw("unaccent(patients.name) ilike '%' || unaccent(?) || '%'", [
 				data.name.replaceAll(" ", "%"),
 			]);
 		}
 
-		if (data.patient || data.patientId) {
-			qb.whereHas("dependents", (query) => {
-				if (data.patient) {
-					query.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-						data.patient!.replaceAll(" ", "%"),
-					]);
-				}
-
-				if (data.patientId) {
-					query.where("holder_dependents.dependent_id", data.patientId);
-				}
-			});
+		if (data.document) {
+			qb.whereRaw("patient_tutors.document ilike ?", [
+				`%${data.document?.replace(/\D/g, "")}%`,
+			]);
 		}
 
-		const result = await qb;
+		if (data.phone) {
+			const clearPhone = data.phone.replace(/\D/g, "");
+			qb.whereRaw(
+				`exists (select *
+              from "patient_contacts"
+              where (patient_contacts.type <> 'email'
+                  and (
+                         case
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 10 and length(?) = 11 then
+                                 SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         1, 2) || '9' || SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         3, 8) ilike
+                                 ? -- add o 9
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 11 and length(?) = 10 then
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 '%' ||
+                                 SUBSTRING(?, 1, 2) ||
+                                 '9' ||
+                                 SUBSTRING(?, 3, 8) ||
+                                 '%' -- add o 9
+                             else
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 ? end
+                         ))
+                and ("patients"."id" = "patient_contacts"."patient_id"))`,
+				[
+					clearPhone,
+					`%${clearPhone}%`,
+					clearPhone,
+					clearPhone,
+					clearPhone,
+					`%${clearPhone}%`,
+				],
+			);
+		}
 
-		return result
-			.filter((model) => {
-				if (data.document && !model.tutor) {
-					return false;
-				}
-				if (data.phone && !model.tutor) {
-					return false;
-				}
+		// if (data.patient || data.patientId) {
+		// 	qb.whereHas("dependents", (query) => {
+		// 		if (data.patient) {
+		// 			query.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+		// 				data.patient!.replaceAll(" ", "%"),
+		// 			]);
+		// 		}
+		//
+		// 		if (data.patientId) {
+		// 			query.where("holder_dependents.dependent_id", data.patientId);
+		// 		}
+		// 	});
+		// }
 
-				if (data.race && !model.patientAnimal.race) {
-					return false;
-				}
-
-				return true;
-			})
-			.map((elem) => ({
-				id: elem.id,
-				name: elem.name,
-				email: elem.tutor.email,
-				document: elem.tutor.document,
-				inscription: elem.tutor.inscription,
-				tag: elem.tag,
-				cellphone: elem.tutor.cellphone,
-				diabetes: elem.diabetes,
-				hypertension: elem.hypertension,
-				profession: elem.tutor.profession,
-				civilStatus: elem.tutor.civilStatus,
-				nationality: elem.tutor.nationality,
-				clientOriginItemDescription: elem.clientOriginItemDescription,
-				createdAt: elem.createdAt,
-				clientOrigin: this.sharedService.captureGroup(
-					elem.tutor?.clientOrigin,
-					(v) => ({
-						id: v.id,
-						description: v.description,
-					}),
-				),
-				address: {
-					street: elem.tutor.street,
-					number: elem.tutor.number,
-					complement: elem.tutor.complement,
-					district: elem.tutor.district,
-					city: elem.tutor.city,
-					state: elem.tutor.state,
-				},
-				dependents: elem.dependents.map((patient) => ({
-					id: patient.id,
-					name: patient.name,
-					tag: patient.tag,
-					gender: patient.gender,
-					birthDate: patient.birthDate,
-					race: patient?.patientAnimal?.race
-						? {
-								id: patient.patientAnimal.race.id,
-								description: patient.patientAnimal.race.description,
-							}
-						: null,
-				})),
-			}));
+		return await qb;
 	}
 
-	public async supplierIndex(unitId: string, data: ISearchSupplier) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const qb = group
+	public async supplierIndex(authCtx: AuthContext, data: ISearchSupplier) {
+		const qb = authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.SUPPLIER)
@@ -420,74 +419,165 @@ export default class PatientService {
 	}
 
 	public async animalsIndex(authCtx: AuthContext, data: ISearchAnimals) {
-		const qb = authCtx.group
-			.related("patients")
-			.query()
-			.orderBy("name", "asc")
-			.where("type", PatientType.ANIMAL);
+		const qb = Database.from("patient_economic_groups")
+			.select(
+				Database.raw(`patients.id,
+       patients.name,
+       coalesce(
+                       json_agg(
+                       json_build_object(
+                               'id', tut.id,
+                               'name', tut.name,
+                               'isMain', holder_dependents.is_main
+                       ))
+                       FILTER (WHERE tut.id IS NOT NULL),
+                       '[]'::json
+       )       as tutors,
+       patients.tag,
+       patients.gender,
+       patients.birth_date,
+       case
+           when patient_animals.race_id is null then null
+           else
+               json_build_object('id', races.id, 'description', races.description, 'specie', json_build_object('id', species.id, 'description', species.description))
+           end as race,
+       patients.community,
+       patient_animals.castrated,
+       patients.weight`),
+			)
+			.orderByRaw("patients.name asc")
+			.groupByRaw("patients.id, patient_animals.id, races.id, species.id")
+			.joinRaw(
+				"join patients on patient_economic_groups.patient_id = patients.id",
+			)
+			.joinRaw(
+				"join patient_animals on patients.id = patient_animals.patient_id",
+			)
+			.joinRaw("left join races on patient_animals.race_id = races.id")
+			.joinRaw("left join species on races.specie_id = species.id")
+			.joinRaw(
+				"left join holder_dependents on patients.id = holder_dependents.dependent_id",
+			)
+			.joinRaw("left join patients tut on holder_dependents.holder_id = tut.id")
+			.whereRaw("patient_economic_groups.economic_group_id = ?", [
+				authCtx.group.id,
+			])
+			.whereRaw("patients.type = ?", [PatientType.ANIMAL])
+			.whereRaw("patients.deleted_at is null", []);
 
-		if (data.tag) {
-			qb.where("tag", data.tag);
-		}
-
-		if (data.race || data.specie) {
-			qb.whereHas("patientAnimal", (query) => {
-				query.whereHas("race", (subquery) => {
-					if (data.race) {
-						subquery.whereILike("description", `%${data.race ?? ""}%`);
-					}
-
-					if (data.specie) {
-						subquery.whereHas("specie", (query) => {
-							query.whereILike("description", `%${data.specie ?? ""}%`);
-						});
-					}
-				});
-			});
+		if (data.id) {
+			qb.where("patients.id", data.id);
 		}
 
 		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+			qb.whereRaw("unaccent(patients.name) ilike '%' || unaccent(?) || '%'", [
 				data.name.replaceAll(" ", "%"),
 			]);
 		}
 
-		if (data.document) {
-			qb.whereHas("tutors", (q) => {
-				q.whereRaw("document ilike ?", [
-					`%${data.document?.replace(/\D/g, "")}%`,
-				]);
-			});
+		if (data.race) {
+			qb.whereRaw("races.description ilike ?", [`%${data.race}%`]);
 		}
 
-		if (data.tutor) {
-			qb.whereHas("tutors", (q) => {
-				q.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-					data.tutor!.replaceAll(" ", "%"),
-				]);
-			});
+		if (data.specie) {
+			qb.whereRaw("species.description ilike ?", [`%${data.specie}%`]);
+		}
+
+		if (data.tag) {
+			qb.whereRaw("patients.tag ilike ?", [`%${data.tag}%`]);
+		}
+
+		if (data.tutorID) {
+			qb.whereRaw(
+				`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                                            and holder_dependents.holder_id = ?)`,
+				[data.tutorID],
+			);
+		}
+
+		if (data.tutor || data.document) {
+			if (data.tutor && data.document) {
+				qb.whereRaw(
+					`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                       join patient_tutors on tut.id = patient_tutors.patient_id
+              where unaccent(tut.name) ilike '%' || unaccent(?) || '%'
+                 and patient_tutors.document ilike ?)`,
+					[data.tutor, `%${data.document}%`],
+				);
+			} else {
+				if (data.tutor) {
+					qb.whereRaw(
+						`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                       join patient_tutors on tut.id = patient_tutors.patient_id
+              where unaccent(tut.name) ilike '%' || unaccent(?) || '%')`,
+						[data.tutor],
+					);
+				} else {
+					if (data.tutor) {
+						qb.whereRaw(
+							`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                       join patient_tutors on tut.id = patient_tutors.patient_id
+              where unaccent(tut.name) ilike '%' || unaccent(?) || '%')`,
+							[data.tutor],
+						);
+					} else {
+						qb.whereRaw(
+							`exists (select 1
+              from holder_dependents
+                       join patients tut on holder_dependents.holder_id = tut.id and
+                                            holder_dependents.dependent_id = patients.id
+                       join patient_tutors on tut.id = patient_tutors.patient_id
+              where patient_tutors.document ilike ?)`,
+							[`%${data.document}%`],
+						);
+					}
+				}
+			}
 		}
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");
 			qb.whereRaw(
-				`patients.id in (select holder_dependents.dependent_id
-             from "patient_contacts"
-                      join holder_dependents
-                           on patients.id = holder_dependents.dependent_id and
-                              patient_contacts.patient_id = holder_dependents.holder_id
-             where (patient_contacts.type <> 'email'
-                 and (
-                        case
-                            when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
-                                regexp_replace(SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' ||
-                                               SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8), 'D', '', 'g') ilike
-                                ? -- add o 9
-                            when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then
-                                regexp_replace(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 'D', '', 'g') ilike
-                                '%' || SUBSTRING(?, 1, 2) || '9' || SUBSTRING(?, 3, 8) || '%' -- add o 9
-                            else regexp_replace(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 'D', '', 'g') ilike ? end
-                        )))`,
+				`exists (select *
+              from "patient_contacts"
+              where (patient_contacts.type <> 'email'
+                  and (
+                         case
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 10 and length(?) = 11 then
+                                 SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         1, 2) || '9' || SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         3, 8) ilike
+                                 ? -- add o 9
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 11 and length(?) = 10 then
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 '%' ||
+                                 SUBSTRING(?, 1, 2) ||
+                                 '9' ||
+                                 SUBSTRING(?, 3, 8) ||
+                                 '%' -- add o 9
+                             else
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 ? end
+                         ))
+                and ("patients"."id" = "patient_contacts"."patient_id"))`,
 				[
 					clearPhone,
 					`%${clearPhone}%`,
@@ -499,22 +589,18 @@ export default class PatientService {
 			);
 		}
 
-		qb.preload("tutors", (query) => {
-			query
-				.preload("tutor", (query) => {
-					query.preload("clientOrigin");
-				})
-				.pivotColumns(["is_main"]);
-		});
-
-		qb.preload("patientAnimal", (query) => {
-			query.preload("race", (q) => {
-				q.preload("specie");
-			});
-			query.preload("hair");
-		});
-
-		const result = await qb;
+		const result = (await qb).map((elem) => ({
+			id: elem.id,
+			name: elem.name,
+			tutors: elem.tutors,
+			tag: elem.tag,
+			gender: elem.gender,
+			birthDate: elem.birth_date,
+			race: elem.race,
+			community: elem.community,
+			castrated: elem.castrated,
+			weight: elem.weight,
+		}));
 
 		const tutors =
 			data.tutor || data.document
@@ -538,40 +624,18 @@ export default class PatientService {
 								: `(? = '' or 1=1)`,
 							[data.tutor ?? ""],
 						)
-						.whereRaw(data.document ? `document ilike ?` : `(? = '' or 1=1)`, [
+						.whereRaw(data.document ? "document ilike ?" : `(? = '' or 1=1)`, [
 							data.document ? `%${data.document}%` : "",
 						])
 						.orderByRaw("name asc")
 				: [];
-
-		const patients = result.map((patient) => {
-			return {
-				id: patient.id,
-				name: patient.name,
-				tag: patient.tag,
-				gender: patient.gender,
-				community: patient.community,
-				birthDate: patient.birthDate,
-				castrated: patient.patientAnimal?.castrated,
-				weight: patient.weight,
-				race: patient.patientAnimal?.race,
-				tutors: patient.tutors.map((elem) => ({
-					id: elem.id,
-					name: elem.name,
-					email: elem.tutor?.email ?? "-",
-					tag: elem.tag,
-					cellphone: elem.tutor?.cellphone ?? "-",
-					isMain: elem.$extras.pivot_is_main,
-				})),
-			};
-		});
 
 		const $tutors = tutors.map((elem) => ({
 			id: "-",
 			tutors: [{ id: elem.id, name: elem.tutor }],
 		}));
 
-		return [...$tutors, ...patients];
+		return [...$tutors, ...result];
 	}
 
 	public async uniqueOrigins(authCtx: AuthContext) {
@@ -592,10 +656,8 @@ export default class PatientService {
 		return rows.map((r) => r.desc);
 	}
 
-	public async search(unitId: string, data: ISearchPatient) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const tutors = await group
+	public async search(authCtx: AuthContext, data: ISearchPatient) {
+		const tutors = await authCtx.group
 			.related("patients")
 			.query()
 			.where("type", PatientType.TUTOR)
@@ -608,7 +670,7 @@ export default class PatientService {
 		return tutors.flatMap((t) => t.dependents);
 	}
 
-	public async tutorNonPatients(unitId: string, id: string) {
+	public async tutorNonPatients(authCtx: AuthContext, id: string) {
 		const tutor = await Patient.query()
 			.where("id", id)
 			.preload("dependents")
@@ -622,7 +684,7 @@ export default class PatientService {
 			);
 		}
 
-		const animalsIndex = await this.animalsIndex(unitId, {});
+		const animalsIndex = await this.animalsIndex(authCtx, {});
 
 		const dependents = tutor.dependents.map((d) => d.id);
 
@@ -632,10 +694,8 @@ export default class PatientService {
 		);
 	}
 
-	public async show(unitId: string, patientId: string) {
-		const group = await this.getEconomicGroup(unitId);
-
-		const patient = await group
+	public async show(authCtx: AuthContext, patientId: string) {
+		const patient = await authCtx.group
 			.related("patients")
 			.query()
 			.where("patient_id", patientId)
@@ -1167,18 +1227,9 @@ export default class PatientService {
 		);
 	}
 
-	public async fastStore(unitId: string, data: IFastStorePatient) {
-		const group = await this.getEconomicGroup(unitId);
-
+	public async fastStore(authCtx: AuthContext, data: IFastStorePatient) {
 		const client = Database.connection();
 		return Database.transaction(async (trx) => {
-			const tutors = await group
-				.related("patients")
-				.query()
-				.useTransaction(trx)
-				.where("type", PatientType.TUTOR)
-				.select("id");
-
 			const [{ next_id = 1 }] = await Database.from("economic_groups")
 				.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
 				.joinRaw(
@@ -1187,7 +1238,7 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id);
+				.where("economic_groups.id", authCtx.group.id);
 
 			const tutor = await Patient.create(
 				{
@@ -1215,7 +1266,7 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			await group.related("patients").attach([tutor.id], trx);
+			await authCtx.group.related("patients").attach([tutor.id], trx);
 
 			if (data.patientName || data.patientRaceId || data.patientGender) {
 				patient = await Patient.create(
@@ -1231,7 +1282,7 @@ export default class PatientService {
 				);
 
 				await tutor.related("dependents").attach([patient.id], trx);
-				await group.related("patients").attach([patient.id], trx);
+				await authCtx.group.related("patients").attach([patient.id], trx);
 				await patient.related("patientAnimal").create(
 					{
 						race_id: data.patientRaceId,
@@ -1255,13 +1306,13 @@ export default class PatientService {
 	}
 
 	public async store(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientData, "active">,
+		origin: "Agenda" | "CRM" | (string & {}),
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		// não é nem CRM nem Agenda, vai precisar ter bithDate ou birthMonths + birthDays
 		if (
+			origin !== "Agenda" &&
 			data.holders &&
 			!data.birthDate &&
 			!data.birthDays &&
@@ -1284,18 +1335,15 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id)
+				.where("economic_groups.id", authCtx.group.id)
 				.limit(1);
 
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
-			const patient = await Patient.create(
-				{
-					name: data.name,
-					gender: data.gender,
-					tags: data.tags,
-					community: data.community,
-					birthDate: data.birthDate
+			const birthDate =
+				origin === "Agenda"
+					? (data.birthDate ?? null)
+					: data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
 						: DateTime.now()
 								.minus({
@@ -1303,7 +1351,15 @@ export default class PatientService {
 									months: data.birthMonths ?? 0,
 									days: data.birthDays ?? 0,
 								})
-								.toJSDate(),
+								.toJSDate();
+
+			const patient = await Patient.create(
+				{
+					name: data.name,
+					gender: data.gender,
+					tags: data.tags,
+					community: data.community,
+					birthDate,
 					type: PatientType.ANIMAL,
 					photo,
 					vaccineOrigin: data.vaccineOrigin,
@@ -1338,7 +1394,7 @@ export default class PatientService {
 				}) ?? [];
 			await Promise.all(tasks);
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			await patient.related("patientAnimal").create(
 				{
@@ -1441,52 +1497,6 @@ export default class PatientService {
 				{ client: trx },
 			);
 
-			const result = await patient.related("contacts").createMany(
-				data.contacts
-					?.filter((f) => !!f.contact)
-					?.map((inner) => ({
-						main: inner.main,
-						contact: inner.contact === "-" ? undefined : inner.contact,
-						observation: inner.observation,
-						type: inner.type,
-						notGiven: inner.notGiven,
-					})) ?? [],
-				{ client: trx },
-			);
-
-			const updateTasks = result
-				.flat()
-				.filter((f) => typeof f.contact !== "undefined")
-				.map((elem) => {
-					if (elem.type === "celular") {
-						return PatientTutor.query()
-							.where("patient_id", elem.patient_id)
-							.useTransaction(trx)
-							.update({
-								cellphone: elem.contact,
-							});
-					}
-
-					if (elem.type === "email") {
-						return PatientTutor.query()
-							.where("patient_id", elem.patient_id)
-							.useTransaction(trx)
-							.update({
-								email: elem.contact,
-							});
-					}
-
-					if (["residencial", "comercial", "recado"].includes(elem.type)) {
-						return PatientTutor.query()
-							.where("patient_id", elem.patient_id)
-							.useTransaction(trx)
-							.update({
-								telephone: elem.contact,
-							});
-					}
-				});
-			await Promise.all(updateTasks);
-
 			await patient.related("tutor").create(
 				{
 					residence: data.address?.residence,
@@ -1517,11 +1527,73 @@ export default class PatientService {
 				},
 			);
 
+			const result = await patient.related("contacts").createMany(
+				data.contacts
+					?.filter((f) => !!f.contact)
+					?.map((inner) => ({
+						main: inner.main,
+						contact: inner.contact === "-" ? undefined : inner.contact,
+						observation: inner.observation,
+						type: inner.type,
+						notGiven: inner.notGiven,
+					})) ?? [],
+				{ client: trx },
+			);
+
+			const updateTasks = result
+				.flat()
+				.filter((f) => typeof f.contact !== "undefined")
+				.map((elem) => {
+					if (elem.type === "celular") {
+						return PatientTutor.query()
+							.debug(true)
+							.where("patient_id", elem.patient_id)
+							.useTransaction(trx)
+							.update({
+								cellphone: elem.contact,
+							});
+					}
+
+					if (elem.type === "email") {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.debug(true)
+							.useTransaction(trx)
+							.update({
+								email: elem.contact,
+							});
+					}
+
+					if (["residencial", "comercial", "recado"].includes(elem.type)) {
+						return PatientTutor.query()
+							.where("patient_id", elem.patient_id)
+							.debug(true)
+							.useTransaction(trx)
+							.update({
+								telephone: elem.contact,
+							});
+					}
+				});
+			await Promise.all(updateTasks);
+
 			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			if (data.patients) {
 				await patient.related("dependents").sync(
-					data.patients.map((p) => p.id),
+					data.patients
+						.map((p) => p.id)
+						.reduce(
+							(acc, curr) => {
+								if (!acc[curr]) {
+									acc[curr] = {
+										is_main: true,
+									};
+								}
+
+								return acc;
+							},
+							{} as Record<string, { is_main: boolean }>,
+						),
 					false,
 					trx,
 				);
@@ -1551,11 +1623,9 @@ export default class PatientService {
 	}
 
 	public async storeSupplier(
-		unitId: string,
+		authCtx: AuthContext,
 		data: Omit<IPatientSupplierData, "active">,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			if (data.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
@@ -1566,7 +1636,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -1593,7 +1663,7 @@ export default class PatientService {
 				.joinRaw(
 					"left join patients on patient_economic_groups.patient_id = patients.id",
 				)
-				.where("economic_groups.id", group.id);
+				.where("economic_groups.id", authCtx.group.id);
 
 			const patient = await Patient.create(
 				{
@@ -1629,7 +1699,7 @@ export default class PatientService {
 				cityCode: data.cityCode,
 			});
 
-			await group.related("patients").attach([patient.id], trx);
+			await authCtx.group.related("patients").attach([patient.id], trx);
 
 			return patient;
 		});
@@ -2048,12 +2118,10 @@ export default class PatientService {
 	}
 
 	public async updateSupplier(
-		unitId: string,
+		authCtx: AuthContext,
 		id: string,
 		data: IPatientSupplierData,
 	): Promise<Patient> {
-		const group = await this.getEconomicGroup(unitId);
-
 		return Database.transaction(async (trx) => {
 			const supplier = await Patient.query()
 				.useTransaction(trx)
@@ -2079,7 +2147,7 @@ export default class PatientService {
 				// 	);
 				// }
 
-				const document = await group
+				const document = await authCtx.group
 					.related("patients")
 					.query()
 					.useTransaction(trx)
@@ -2377,7 +2445,7 @@ export default class PatientService {
 		});
 	}
 
-	public async checkExistingDocument(unitId: string, document: string) {
+	public async checkExistingDocument(authCtx: AuthContext, document: string) {
 		const isValidDocument = this.sharedService.validDocument(document);
 		if (!isValidDocument) {
 			return {
@@ -2386,8 +2454,7 @@ export default class PatientService {
 			};
 		}
 
-		const group = await this.getEconomicGroup(unitId);
-		const db_doc = await group
+		const db_doc = await authCtx.group
 			.related("patients")
 			.query()
 			.whereHas("tutor", (query) => {
@@ -2462,11 +2529,6 @@ export default class PatientService {
 				};
 			}),
 		}));
-	}
-
-	private async getEconomicGroup(unitId: string) {
-		const businessUnit = await BusinessUnit.findOrFail(unitId);
-		return EconomicGroup.findOrFail(businessUnit.economicGroupId);
 	}
 
 	private async uploadPhoto(file: MultipartFileContract): Promise<string> {

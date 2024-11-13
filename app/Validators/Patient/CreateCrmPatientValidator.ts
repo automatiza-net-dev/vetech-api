@@ -26,11 +26,11 @@ export default class CreateCrmPatientValidator {
 	 */
 	public schema = schema.create({
 		name: schema.string({}),
-		raceId: schema.string({}, [
+		raceId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "races", column: "id" }),
 		]),
-		gender: schema.enum(Object.values(PatientGender), []),
+		gender: schema.enum.optional(Object.values(PatientGender), []),
 
 		holders: schema.array.optional().members(
 			schema.object().members({

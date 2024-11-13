@@ -1,0 +1,34 @@
+/schedule-movements/store:
+  post:
+    tags:
+      - ScheduleMovements
+    security: []
+    description: ScheduleMovements
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          properties:
+            items:
+              type: object
+              required: true
+              properties:
+                scheduleId:
+                  type: string
+                  example: "Id da Agenda"
+                movementId:
+                  type: string
+                  example: "Id do Orçamento ou Agenda"
+                type:
+                  type: string
+                  example: "bill ou budget"
+    produces:
+      - application/json
+    responses:
+      201:
+        description: Success
+      400:
+        description: Bad Request
+      422:
+        description: Unprocessable Entity

@@ -20,16 +20,18 @@ export default class PatientsController {
 	) {}
 
 	public async index({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		const patients = await this.service.index(unit_id, request.qs());
+		const patients = await this.service.index(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
 
 		return response.ok(patients);
 	}
 
 	public async nonPets({ auth, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-		const result = await this.service.nonPets(unit_id);
+		const result = await this.service.nonPets(
+			await this.sharedService.getAuthContext(auth),
+		);
 
 		return response.ok(result);
 	}
@@ -43,8 +45,10 @@ export default class PatientsController {
 	}
 
 	public async show({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-		const patients = await this.service.show(unit_id, params.id);
+		const patients = await this.service.show(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.ok(patients);
 	}
@@ -61,10 +65,11 @@ export default class PatientsController {
 	}
 
 	public async checkDocument({ params, response, auth }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
 		const { document } = params;
-		const result = await this.service.checkExistingDocument(unit_id, document);
+		const result = await this.service.checkExistingDocument(
+			await this.sharedService.getAuthContext(auth),
+			document,
+		);
 
 		return response.ok(result);
 	}
@@ -98,7 +103,6 @@ export default class PatientsController {
 	}
 
 	public async search({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
 		const qs = request.qs();
 
 		const data = {
@@ -106,24 +110,18 @@ export default class PatientsController {
 			patient: qs.patient,
 		} as ISearchPatient;
 
-		const patients = await this.service.search(unit_id, data);
+		const patients = await this.service.search(
+			await this.sharedService.getAuthContext(auth),
+			data,
+		);
 
 		return response.ok(patients);
 	}
 
 	public async showAnimals({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
 		const patients = await this.service.animalsIndex(
 			await this.sharedService.getAuthContext(auth),
-			{
-				name: qs.name,
-				race: qs.race,
-				specie: qs.specie,
-				tutor: qs.tutor,
-				document: qs.document,
-				phone: qs.phone,
-				tag: qs.tag,
-			},
+			request.qs(),
 		);
 
 		return response.ok(patients);
@@ -131,9 +129,6 @@ export default class PatientsController {
 
 	public async store({ auth, request, response }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			// const payload = await request.validate(CreatePatientValidator);
-			const { unit_id } = this.sharedService.extractUser(auth);
-
 			const origin = request.input("origin", "");
 
 			if (origin === "Agenda") {
@@ -144,7 +139,12 @@ export default class PatientsController {
 				await request.validate(CreatePatientValidator);
 			}
 
-			const patient = await this.service.store(unit_id, request.body());
+			const patient = await this.service.store(
+				await this.sharedService.getAuthContext(auth),
+				// @ts-expect-error
+				request.body(),
+				origin,
+			);
 
 			return response.created(patient);
 		});
@@ -207,9 +207,11 @@ export default class PatientsController {
 
 	public async fastStore({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(FastCreatePatientValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.fastStore(unit_id, payload);
+		const result = await this.service.fastStore(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
 		return response.created(result);
 	}

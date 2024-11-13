@@ -318,6 +318,7 @@ export default class TreatmentsController {
 			authCtx,
 			{
 				patientId: request.param("patientId"),
+				scheduled: request.qs().scheduled,
 			},
 		);
 

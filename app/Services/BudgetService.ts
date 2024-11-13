@@ -17,7 +17,7 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient from "App/Models/Patient";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
-import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import TaxationGroupRule, {
 	CompanyType,
@@ -39,8 +39,9 @@ import {
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import DepositService from "./DepositService";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { v4 } from "uuid";
+import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -414,7 +415,7 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereILike("tag", `%${data.tag}%`);
 		}
 
 		if (data.pending === "true") {
@@ -492,7 +493,7 @@ export default class BudgetService {
 		}
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereILike("tag", `%${data.tag}%`);
 		}
 
 		if (data.pending === "true") {
@@ -543,6 +544,11 @@ export default class BudgetService {
 				query.preload("courtesyApprovedUser", (query) => {
 					query.select(["id", "name"]);
 				});
+			})
+			.preload("payments", (query) => {
+				query.preload("approvalUser", (query) => {
+					query.select(["id", "name"]);
+				});
 			});
 
 		const result = await qb.first();
@@ -558,125 +564,88 @@ export default class BudgetService {
 		const today = DateTime.now();
 		const group = await this.sharedService.getUserGroup(unitId);
 
-		const qb = Product.query()
-			.orderByRaw("description asc")
-			.where("economic_group_id", group.id)
-			.whereNotIn("purpose", [ProductPurpose.INTERNAL])
-			.where("active", true);
-
-		if (
-			data.variation ||
-			data.barcode ||
-			data.quantity ||
-			data.minPrice ||
-			data.maxPrice ||
-			data.maxDiscountPercentage
-		) {
-			qb.whereHas("variations", (query) => {
-				if (data.variation) {
-					query.where("id", data.variation);
-				}
-
-				if (data.barcode) {
-					query.whereILike("barcode", data.barcode);
-				}
-
-				if (
-					data.minPrice ||
-					data.maxPrice ||
-					data.quantity ||
-					data.maxDiscountPercentage
-				) {
-					query.whereHas("businessUnitProducts", (query) => {
-						query.where("businness_unit_id", unitId);
-
-						if (data.quantity) {
-							query.where("stock", ">=", data.quantity);
-						}
-
-						if (data.minPrice) {
-							query.where("price", ">=", Number.parseFloat(data.minPrice));
-						}
-
-						if (data.maxPrice) {
-							query.where("price", "<=", Number.parseFloat(data.maxPrice));
-						}
-
-						if (data.maxDiscountPercentage) {
-							query.where(
-								"maximumDiscountPercentage",
-								"<=",
-								data.maxDiscountPercentage,
-							);
-						}
-					});
-				}
-			});
-		}
+		const qb = Database.from("products")
+			.select(
+				Database.raw(`products.id,
+       courtesy,
+       description,
+       reference_code,
+       json_build_array(json_build_object('id', pv.id,
+                                          'product', json_build_object(
+                                                  'description', products.description,
+                                                  'reference_code', products.reference_code
+                                                     ),
+                                          'businessUnitProducts',
+                                          json_agg(json_build_object('id', bup.id, 'price',
+                                                                     bup.price,
+                                                                     'maximum_discount_percentage',
+                                                                     bup.maximum_discount_percentage)))) as variations`),
+			)
+			.joinRaw("join product_variations pv on products.id = pv.product_id")
+			.joinRaw(
+				`join business_unit_products bup on pv.id = bup.product_variation_id and
+                                            bup.businness_unit_id = ?`,
+				[unitId],
+			)
+			.orderByRaw("description")
+			.groupByRaw("products.id, pv.id")
+			.whereRaw("products.economic_group_id = ?", [group.id])
+			.whereRaw("products.purpose not in ('internal')")
+			.whereRaw("products.active is true")
+      .whereRaw("products.deleted_at is null");
 
 		if (data.description) {
-			qb.where("description", "ilike", `%${data.description}%`);
+			qb.whereRaw("products.description like ?", [`%${data.description}%`]);
 		}
 
 		if (data.unit) {
-			qb.where("unit_id", data.unit);
+			qb.whereRaw("products.unit_id = ?", [data.unit]);
 		}
 
 		if (data.reference) {
-			qb.where("referenceCode", "ilike", `%${data.reference}%`);
+			qb.whereRaw("products.reference_code ilike ?", [`%${data.reference}%`]);
 		}
 
-		qb.preload("variations", (query) => {
-			query.preload("product");
-			query.preload("variationOptions");
+		if (data.variation) {
+			qb.whereRaw("product_variations.id = ?", [data.variation]);
+		}
 
-			query.preload("kitItems", (query) => {
-				query.whereHas("kit", (query) => {
-					query.where("active", true);
-				});
+		if (data.barcode) {
+			qb.whereRaw("product_variations.barcode ilike ?", [`%${data.barcode}%`]);
+		}
 
-				query.preload("kit", (query) => {
-					qb.whereRaw("(from_expiration >= ? or from_expiration is null)", [
-						today.startOf("day").toISO()!,
-					]);
-					qb.whereRaw("(from_expiration <= ? or from_expiration is null)", [
-						today.endOf("day").toISO()!,
-					]);
+		if (data.quantity) {
+			qb.whereRaw("business_unit_products.stock >= ?", [data.quantity]);
+		}
 
-					query.preload("items", (query) => {
-						query.where("business_unit_id", unitId);
+		if (data.minPrice) {
+			qb.whereRaw("business_unit_products.price >= ?", [data.minPrice]);
+		}
 
-						query.preload("productVariation");
-					});
-				});
-			});
+		if (data.maxPrice) {
+			qb.whereRaw("business_unit_products.price <= ?", [data.maxPrice]);
+		}
 
-			query.preload("businessUnitProducts", (query) => {
-				query.where("businness_unit_id", unitId);
+		if (data.maxDiscountPercentage) {
+			qb.whereRaw("business_unit_products.maximum_discount_percentage <= ?", [
+				data.maxDiscountPercentage,
+			]);
+		}
 
-				if (data.quantity) {
-					query.where("stock", ">=", Number.parseFloat(data.quantity));
-				}
-
-				if (data.minPrice) {
-					query.where("price", ">=", Number.parseFloat(data.minPrice));
-				}
-
-				if (data.maxPrice) {
-					query.where("price", "<=", Number.parseFloat(data.maxPrice));
-				}
-
-				if (data.maxDiscountPercentage) {
-					query.where(
-						"maximumDiscountPercentage",
-						"<=",
-						data.maxDiscountPercentage,
-					);
-				}
-			});
-		});
-		qb.preload("unit");
-		const products = await qb;
+		const result: {
+			id: string;
+			description: string;
+			reference_code: string;
+			courtesy: boolean;
+			variation: {
+				id: string;
+				businessUnitProducts: {
+					id: string;
+					price: number;
+					maximum_discount_percentage: number;
+				}[];
+			};
+		}[] = await qb;
 
 		const kits = await Kit.query()
 			.where("economic_group_id", group.id)
@@ -702,7 +671,7 @@ export default class BudgetService {
 		//   });
 
 		return [
-			...products,
+			...result,
 			...kits.map((elem) => ({ ...elem.toJSON(), type: "kit" })),
 		];
 	}
@@ -936,6 +905,27 @@ export default class BudgetService {
 				);
 			}
 
+			const result = await this.sharedService.checkDiscount(
+				trx,
+				authCtx,
+				data.items.map((elem) => ({
+					variationId: elem.productVariationId,
+					unitaryValue: elem.unitaryValue,
+					discountValue: elem.discountValue,
+					quantity: elem.quantity,
+					courtesy: elem.courtesy,
+					maxDiscount: elem.maxDiscount,
+				})),
+			);
+			if (result.length > 0) {
+				// return result;
+				throw new BadRequestException(
+					"Desconto máximo foi excedido",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const tasks = data.items.map(async (elem) => {
 				const productVariation = await ProductVariation.query()
 					.useTransaction(trx)
@@ -962,19 +952,6 @@ export default class BudgetService {
 						`Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
 						400,
 						"E_ERR",
-					);
-				}
-
-				if (
-					productVariation.businessUnitProducts.some(
-						(p) =>
-							!data.maxDiscount && p.maximumDiscountValue < elem.discountValue,
-					)
-				) {
-					throw new BadRequestException(
-						"Desconto máximo foi excedido",
-						400,
-						"E_MAX_DISCOUNT",
 					);
 				}
 
@@ -1510,9 +1487,16 @@ export default class BudgetService {
 					[0, 0, 0],
 				);
 
+			const budgetPayments = await BudgetPayment.query()
+				.useTransaction(trx)
+				.where("budget_id", budgetItem.budget_id)
+				.where("status", "Aberto" as TBudgetPaymentStatus);
+
 			await budgetItem.budget
 				.merge({
-					pending: existingItems.some((i) => i.courtesy || i.maxDiscount),
+					pending:
+						existingItems.some((i) => i.courtesy || i.maxDiscount) ||
+						budgetPayments.some((p) => p.pending),
 					productValue: productSum,
 					serviceValue: serviceSum,
 					discountValue: discountSum,
@@ -1555,13 +1539,13 @@ export default class BudgetService {
 			);
 		}
 
-		// if (model.pending) {
-		// 	throw new BadRequestException(
-		// 		"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
-		// 		400,
-		// 		"E_ERR",
-		// 	);
-		// }
+		if (model.pending) {
+			throw new BadRequestException(
+				"Orçamento possui pendencias de liberação e não pode ser confirmado",
+				400,
+				"E_ERR",
+			);
+		}
 
 		const client = await Patient.query()
 			.where("id", model.client_id)
@@ -1592,6 +1576,15 @@ export default class BudgetService {
 		if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
 			throw new BadRequestException(
 				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const payments = await model.related("payments").query();
+		if (payments.some((i) => i.pending)) {
+			throw new BadRequestException(
+				"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
 				400,
 				"E_ERR",
 			);
@@ -2018,9 +2011,11 @@ export default class BudgetService {
 				paymentMethodId: string;
 				tefFlagId?: string;
 				tefAcquirerId?: string;
+				paymentMethodFlagId?: string;
 
 				totalValue: number;
 				installments: number;
+				maxParcelas?: boolean;
 			}[];
 		},
 	) {
@@ -2050,13 +2045,91 @@ export default class BudgetService {
 				);
 			}
 
+			const paymentMethods = await PaymentMethod.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((d) => d.paymentMethodId),
+				);
+
+			const paymentMethodFlags = await PaymentMethodFlag.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					data.items.map((d) => d.paymentMethodFlagId ?? 0).filter(Boolean),
+				);
+
 			const [{ count }] = await Database.from("budget_payments")
 				.useTransaction(trx)
 				.where("budget_id", data.budgetId)
 				.count("*");
 
-			const tasks = data.items.map((elem, index) =>
-				BudgetPayment.create(
+			const tasks = data.items.map(async (elem, index) => {
+				if (elem.paymentMethodFlagId) {
+					const paymentMethodFlag = paymentMethodFlags.find(
+						(pm) => pm.id === elem.paymentMethodFlagId,
+					);
+					if (!paymentMethodFlag) {
+						throw new InternalErrorException(
+							"Bandeira não encontrada",
+							500,
+							"E_ERR",
+						);
+					}
+
+					if (elem.installments > paymentMethodFlag.maxInstallments) {
+						throw new BadRequestException(
+							"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+							400,
+							"E_ERR",
+						);
+					}
+
+					if (
+						elem.installments >
+							(paymentMethodFlag.installmentsWithoutPassword ?? 0) &&
+						!elem.maxParcelas
+					) {
+						throw new BadRequestException(
+							"Este Orçamento ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação ?",
+							400,
+							"E_ERR",
+						);
+					}
+				} else {
+					const paymentMethod = paymentMethods.find(
+						(pm) => pm.id === elem.paymentMethodId,
+					);
+					if (!paymentMethod) {
+						throw new InternalErrorException(
+							"Método não encontrado",
+							500,
+							"E_ERR",
+						);
+					}
+
+					if (elem.installments > paymentMethod.maxInstallments) {
+						throw new BadRequestException(
+							"Numero de parcelas é Superior ao permitido pela forma de pagamento",
+							400,
+							"E_ERR",
+						);
+					}
+
+					if (
+						elem.installments >
+							(paymentMethod.installmentsWithoutPassword ?? 0) &&
+						!elem.maxParcelas
+					) {
+						throw new BadRequestException(
+							"Este Orçamento ficará pendente de liberação pois o Numero de Parcelas lançado exige liberação. Deseja enviar para aprovação ?",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+
+				return await BudgetPayment.create(
 					{
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -2066,6 +2139,7 @@ export default class BudgetService {
 						tef_flag_id: elem.tefFlagId,
 						tef_acquirer_id: elem.tefAcquirerId,
 
+						pending: elem.maxParcelas ?? false,
 						block: Number.parseInt(count) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
@@ -2073,13 +2147,16 @@ export default class BudgetService {
 						issueDate: DateTime.now(),
 					},
 					{ client: trx },
-				),
-			);
-			await Promise.all(tasks);
+				);
+			});
+
+			const result = await Promise.all(tasks);
 
 			await budget
 				.merge({
 					paidValue: decimalPaid.plus(decimalSum).toNumber(),
+					// continua pendente ou fica pendente se algo tá pendente
+					pending: budget.pending || result.some((r) => r.pending),
 				})
 				.useTransaction(trx)
 				.save();
@@ -2275,6 +2352,7 @@ export default class BudgetService {
 					paidValue: this.sharedService.sum(
 						budgetPayments.map((elem) => elem.totalValue),
 					),
+					pending: budgetPayments.some((p) => p.pending),
 				})
 				.useTransaction(trx)
 				.save();
@@ -2289,12 +2367,20 @@ export default class BudgetService {
 		},
 	) {
 		const qb = Database.from("budget_payments")
+			.debug(true)
 			.select(
 				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
        budget_payments.budget_id         as id_Orcamento,
        block                             as bloco,
        total_value                       as valor_total,
        installments                      as qtd_Parcelas_Bloco_pgto,
+       pending                           as pgto_pendente,
+       approved                          as pgto_aprovado,
+       approved_at                       as pgto_aprovado_em,
+       approval_user.id                  as pgto_usuario_aprovou_id,
+       approval_user.name                as pgto_usuario_aprovou_nome,
+       reason                            as pgto_aprovado_motivo,
+
        payment_methods.id                as id_Forma_Pagamento,
        payment_methods.description       as descricao_Forma_Pagamento,
        tef_flags.id                      as id_badeira_tef,
@@ -2352,6 +2438,9 @@ export default class BudgetService {
 			.joinRaw(
 				"left join users exclusion_user on exclusion_user.id = budget_payments.exclusion_user_id",
 			)
+			.joinRaw(
+				"left join users approval_user on approval_user.id = budget_payments.approved_user_id",
+			)
 			.andWhere("budget_payments.economic_group_id", authCtx.group.id)
 			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
 			.where("budget_payments.budget_id", id);
@@ -2395,11 +2484,13 @@ export default class BudgetService {
 			return p;
 		});
 	}
+
 	async approveCourtesyOrMaxDiscount(
 		authCtx: AuthContext,
 		data: {
 			budgetId: string;
 			itemsIdList: string[];
+			paymentsIdList: number[];
 			email: string;
 			password: string;
 			reason: string;
@@ -2411,6 +2502,7 @@ export default class BudgetService {
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.budgetId)
 				.preload("items")
+				.preload("payments")
 				.first();
 			if (!budget) {
 				throw new BadRequestException("Orçamento não encontrado", 400, "E_ERR");
@@ -2443,9 +2535,9 @@ export default class BudgetService {
 				"ORC11",
 			);
 			if (!hasPermissions) {
-				throw new UnauthorizedException(
+				throw new BadRequestException(
 					"Usuário sem permissão de fazer a operação",
-					401,
+					400,
 					"E_ERR",
 				);
 			}
@@ -2465,6 +2557,17 @@ export default class BudgetService {
 						"E_ERR",
 					);
 				}
+			}
+
+			if (
+				budget.payments.some((p) => p.pending) &&
+				data.paymentsIdList.length === 0
+			) {
+				throw new BadRequestException(
+					"Orçamento tem pagamentos pendentes mas você não mandou lista de aprovados",
+					400,
+					"E_ERR",
+				);
 			}
 
 			// if (budget.payments.some((i) => i.pending)) {
@@ -2491,6 +2594,18 @@ export default class BudgetService {
 						courtesyApprovedAt: DateTime.now(),
 						approved: true,
 					} as Partial<BudgetItem>);
+
+				await BudgetPayment.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.paymentsIdList)
+					.update({
+						approved_user_id: authCtx.user.id,
+						pending: false,
+						approved: true,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BudgetPayment>);
 			} else {
 				await BudgetItem.query()
 					.useTransaction(trx)
@@ -2503,6 +2618,18 @@ export default class BudgetService {
 						courtesyApprovedAt: DateTime.now(),
 						approved: false,
 					} as Partial<BudgetItem>);
+
+				await BudgetPayment.query()
+					.useTransaction(trx)
+					.where("budget_id", budget.id)
+					.whereIn("id", data.paymentsIdList)
+					.update({
+						approved_user_id: authCtx.user.id,
+						pending: false,
+						approved: false,
+						approvedAt: DateTime.now(),
+						reason: data.reason,
+					} as Partial<BudgetPayment>);
 			}
 
 			return null;

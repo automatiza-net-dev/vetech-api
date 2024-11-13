@@ -1,3 +1,5 @@
 export default interface IAcceptInvite {
-  id: string;
+	id: string;
+	email: string;
+	password: string;
 }

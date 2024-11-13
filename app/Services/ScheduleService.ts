@@ -1271,49 +1271,107 @@ export default class ScheduleService {
        schedules.user_id,
        schedules.start_hour,
        schedules.end_hour,
-       json_build_object('id', sst.id, 'description', sst.description, 'type', sst.type)  as service_type,
-       json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
-                         ss.type)                                                         as service_status,
-       case
-           when schedules.reason_id is not null then
-               json_build_object('id', ss.id, 'description', ss.description, 'color', ss.color, 'type',
-                                 ss.type)
-           end                                                                            as reason,
-       coalesce(json_agg(json_build_array(json_build_object('id', at.id, 'scheduleService',
-                                                            json_build_object('id', ssat.id, 'description', ssat.description))
-                         )) filter (where at.id is not null),
-                '[]'::json)                                                               as attendances,
-       case
-           when p.id is null then
-               null
-           else
-               json_build_object('id', p.id, 'name', p.name, 'photo', p.photo, 'tag', p.tag, 'cellphone',
-                                 pt.cellphone)
-           end
-                                                                                          as patient,
-       case
-           when p.type = 'animal' then
-               json_build_object('id', rc.id, 'description', rc.description) end          as race,
-       case
-           when p.type = 'animal' then
-               json_build_object('id', sp.id, 'description', sp.description) end          as specie,
-       json_build_object('id', h.id, 'name', h.name, 'tutor',
-                         json_build_object('cellphone', pt.cellphone,
-                                           'telephone', pt.telephone,
-                                           'fullAddress',
-                                           format('%s, %s, %s, %s, %s', pt.street, pt.number, pt.complement,
-                                                  pt.district,
-                                                  format('%s - %s', pt.city, pt.state)))) as holder,
-       json_build_array(json_build_object('id', rs.id, 'observation', rs.observation, 'createdAt',
-                                          rs.created_at, 'reason',
-                                          json_build_object('id', rsr.id, 'reason', rsr.reason))
-       )                                                                                  as reschedules,
-       json_build_array(json_build_object('id', sc.id, 'contact_date', sc.contact_date, 'observation',
-                                          sc.observation)
-       )                                                                                  as contacts,
-       json_build_array(json_build_object('id', ssc.id, 'created_at', ssc.created_at, 'observation',
-                                          ssc.observation)
-       )                                                                                  as status_changes`),
+       json_build_object(
+               'id', sst.id,
+               'description', sst.description,
+               'type', sst.type
+       )       as service_type,
+       json_build_object(
+               'id', ss.id,
+               'description', ss.description,
+               'color', ss.color,
+               'type', ss.type
+       )       as service_status,
+       CASE
+           WHEN schedules.reason_id IS NOT NULL THEN
+               json_build_object(
+                       'id', ss.id,
+                       'description', ss.description,
+                       'color', ss.color,
+                       'type', ss.type
+               )
+           END as reason,
+       COALESCE(
+                       json_agg(
+                       json_build_array(
+                               json_build_object(
+                                       'id', at.id,
+                                       'scheduleService', json_build_object(
+                                               'id', ssat.id,
+                                               'description', ssat.description
+                                                          )
+                               )
+                       )
+                               ) FILTER (WHERE at.id IS NOT NULL),
+                       '[]'::json
+       )       as attendances,
+       CASE
+           WHEN p.id IS NULL THEN NULL
+           ELSE json_build_object(
+                   'id', p.id,
+                   'name', p.name,
+                   'photo', p.photo,
+                   'tag', p.tag,
+                   'cellphone', pt.cellphone
+                )
+           END as patient,
+       CASE
+           WHEN p.type = 'animal' THEN
+               json_build_object('id', rc.id, 'description', rc.description)
+           END as race,
+       CASE
+           WHEN p.type = 'animal' THEN
+               json_build_object('id', sp.id, 'description', sp.description)
+           END as specie,
+       json_build_object(
+               'id', h.id,
+               'name', h.name,
+               'tutor', json_build_object(
+                       'cellphone', pt.cellphone,
+                       'telephone', pt.telephone,
+                       'fullAddress', format('%s, %s, %s, %s, %s',
+                                             pt.street,
+                                             pt.number,
+                                             pt.complement,
+                                             pt.district,
+                                             format('%s - %s', pt.city, pt.state)
+                                      )
+                        )
+       )       as holder,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', rs.id,
+                               'observation', rs.observation,
+                               'createdAt', rs.created_at,
+                               'reason', json_build_object(
+                                       'id', rsr.id,
+                                       'reason', rsr.reason
+                                         )
+                                )
+                               ) FILTER (WHERE rs.id IS NOT NULL),
+                       '[]'::json
+       )       as reschedules,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', sc.id,
+                               'contact_date', sc.contact_date,
+                               'observation', sc.observation
+                                )
+                               ) FILTER (WHERE sc.id IS NOT NULL),
+                       '[]'::json
+       )       as contacts,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', ssc.id,
+                               'created_at', ssc.created_at,
+                               'observation', ssc.observation
+                                )
+                               ) FILTER (WHERE ssc.id IS NOT NULL),
+                       '[]'::json
+       )       as status_changes`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -1331,6 +1389,7 @@ export default class ScheduleService {
 			.joinRaw(
 				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id and ssc.schedule_status_id = ss.id ",
 			)
+
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
 			.joinRaw("left join attendances at on schedules.id = at.schedule_id")
 			.joinRaw(
@@ -1342,9 +1401,36 @@ export default class ScheduleService {
 			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
-			.groupByRaw(
-				"schedules.id, sst.id, ss.id, p.id, pt.id, rc.id, sp.id, h.id, sc.id, rs.id, rsr.id, ssc.id",
-			)
+			.groupByRaw(`schedules.id,
+         schedules.user_id,
+         schedules.start_hour,
+         schedules.end_hour,
+         sst.id,
+         sst.description,
+         sst.type,
+         ss.id,
+         ss.description,
+         ss.color,
+         ss.type,
+         p.id,
+         p.name,
+         p.photo,
+         p.tag,
+         p.type,
+         pt.cellphone,
+         pt.telephone,
+         pt.street,
+         pt.number,
+         pt.complement,
+         pt.district,
+         pt.city,
+         pt.state,
+         rc.id,
+         rc.description,
+         sp.id,
+         sp.description,
+         h.id,
+         h.name`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

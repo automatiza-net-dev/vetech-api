@@ -1326,13 +1326,11 @@ export default class ScheduleService {
 			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
 
 			.joinRaw(
-				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
+				"left join schedule_contacts sc on schedules.id = sc.schedule_id ",
 			)
-
 			.joinRaw(
-				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id",
+				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id and ssc.schedule_status_id = ss.id ",
 			)
-
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
 			.joinRaw("left join attendances at on schedules.id = at.schedule_id")
 			.joinRaw(

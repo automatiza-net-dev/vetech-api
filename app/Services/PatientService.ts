@@ -483,6 +483,10 @@ export default class PatientService {
 			qb.whereRaw("species.description ilike ?", [`%${data.specie}%`]);
 		}
 
+		if (data.tag) {
+			qb.whereRaw("patients.tag ilike ?", [`%${data.tag}%`]);
+		}
+
 		if (data.tutorID) {
 			qb.whereRaw(
 				`exists (select 1

@@ -15,7 +15,7 @@ import BudgetPayment, {
 } from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
-import Patient from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -51,7 +51,9 @@ interface ISearchPartial {
 	seller?: string;
 	status?: string;
 	patient?: string;
+	patientName?: string;
 	client?: string;
+	clientName?: string;
 	reviewer?: string;
 	tag?: string;
 	budget_id?: string;
@@ -406,8 +408,26 @@ export default class BudgetService {
 			qb.where("patient_id", data.patient);
 		}
 
+		if (data.patientName) {
+			qb.whereHas("patient", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
+			});
+		}
+
 		if (data.client) {
 			qb.where("client_id", data.client);
+		}
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
+			});
 		}
 
 		if (data.reviewer) {
@@ -592,7 +612,7 @@ export default class BudgetService {
 			.whereRaw("products.economic_group_id = ?", [group.id])
 			.whereRaw("products.purpose not in ('internal')")
 			.whereRaw("products.active is true")
-      .whereRaw("products.deleted_at is null");
+			.whereRaw("products.deleted_at is null");
 
 		if (data.description) {
 			qb.whereRaw("products.description like ?", [`%${data.description}%`]);
@@ -2367,7 +2387,6 @@ export default class BudgetService {
 		},
 	) {
 		const qb = Database.from("budget_payments")
-			.debug(true)
 			.select(
 				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
        budget_payments.budget_id         as id_Orcamento,

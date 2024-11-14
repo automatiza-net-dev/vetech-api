@@ -1214,6 +1214,7 @@ export default class ScheduleService {
 				user_id: string;
 				start_hour: string;
 				end_hour: string;
+				major_complaint: string;
 				service_type: {
 					id: string;
 					description: string;
@@ -1271,6 +1272,7 @@ export default class ScheduleService {
        schedules.user_id,
        schedules.start_hour,
        schedules.end_hour,
+       schedules.major_complaint,
        json_build_object(
                'id', sst.id,
                'description', sst.description,
@@ -1451,6 +1453,7 @@ export default class ScheduleService {
 		resultData[0] = (await schedulesQb).map((elem) => ({
 			id: elem.id,
 			userId: elem.user_id,
+			majorComplaint: elem.major_complaint,
 			startHour: elem.start_hour,
 			endHour: elem.end_hour,
 			serviceType: elem.service_type,

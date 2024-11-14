@@ -1309,6 +1309,7 @@ export default class ScheduleService {
        )       as attendances,
        CASE
            WHEN p.id IS NULL THEN NULL
+           when p.type = 'tutor' then json_build_object( 'id', p.id, 'name', p.name, 'photo', p.photo, 'tag', p.tag, 'cellphone', pt2.cellphone )
            ELSE json_build_object(
                    'id', p.id,
                    'name', p.name,
@@ -1401,6 +1402,7 @@ export default class ScheduleService {
 			.joinRaw("left join patient_tutors pt on h.id = pt.patient_id")
 			.joinRaw("left join patients p on schedules.patient_id = p.id")
 			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
+			.joinRaw("left join patient_tutors pt2 on p.id = pt2.patient_id")
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
 			.groupByRaw(`schedules.id,
@@ -1432,7 +1434,8 @@ export default class ScheduleService {
          sp.id,
          sp.description,
          h.id,
-         h.name`)
+         h.name,
+         pt2.cellphone`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

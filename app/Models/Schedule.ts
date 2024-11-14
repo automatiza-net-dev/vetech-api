@@ -150,6 +150,17 @@ export default class Schedule extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public creation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		localKey: "id",
+		foreignKey: "creation_user_id",
+	})
+	public creationUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
 	public cancellation_user_id?: string;
 
 	@belongsTo(() => User, {

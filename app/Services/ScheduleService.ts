@@ -537,6 +537,7 @@ export default class ScheduleService {
 					patient_id: data.patientId,
 					race_id: data.raceId,
 					schedule_service_type_id: data.scheduleServiceTypeId,
+					creation_user_id: authCtx.user.id,
 					// treatment_id: data.treatmentId,
 					// treatment_item_id: data.treatmentItemId,
 					// treatment_execution_id: data.treatmentExecutionId,

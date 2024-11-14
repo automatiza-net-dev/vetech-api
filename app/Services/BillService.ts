@@ -2122,7 +2122,7 @@ where deposit_id = ?
 		}
 		await Patient.query()
 			.useTransaction(trx)
-			.where("id", [client.id, data.patientId].filter(Boolean) as string[])
+			.whereIn("id", [client.id, data.patientId].filter(Boolean) as string[])
 			.update({
 				lastSale: DateTime.now(),
 			});

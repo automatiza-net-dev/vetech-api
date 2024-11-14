@@ -1583,7 +1583,7 @@ export default class BudgetService {
 			}
 			await Patient.query()
 				.useTransaction(trx)
-				.where("id", [client.id].filter(Boolean) as string[])
+				.whereIn("id", [client.id].filter(Boolean) as string[])
 				.update({
 					lastSale: DateTime.now(),
 				});

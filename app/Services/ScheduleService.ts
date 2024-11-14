@@ -1291,7 +1291,8 @@ export default class ScheduleService {
                        'id', ss.id,
                        'description', ss.description,
                        'color', ss.color,
-                       'type', ss.type
+                       'type', ss.type,
+                       'reason', ssc.observation
                )
            END as reason,
        COALESCE(
@@ -1436,7 +1437,8 @@ export default class ScheduleService {
          sp.description,
          h.id,
          h.name,
-         pt2.cellphone`)
+         pt2.cellphone,
+         ssc.observation`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

@@ -1567,68 +1567,83 @@ export default class BudgetService {
 			);
 		}
 
-		const client = await Patient.query()
-			.where("id", model.client_id)
-			.preload("tutor")
-			.preload("bills")
-			.firstOrFail();
-		if (client.bills.length === 0) {
-			await client
-				.merge({
-					firstSale: DateTime.now(),
-				})
-				.save();
-		}
-
-		const ufIcms = await UfIcms.query()
-			.where("origin_uf", authCtx.unit.state ?? "")
-			.where("destination_uf", client.tutor?.state ?? authCtx.unit.state ?? "")
-			.first();
-
-		const items = await model
-			.related("items")
-			.query()
-			.whereNotIn("id", data.notConfirmedItems)
-			.preload("productVariation", (query) => {
-				query.preload("product");
-			});
-
-		if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
-			throw new BadRequestException(
-				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const payments = await model.related("payments").query();
-		if (payments.some((i) => i.pending)) {
-			throw new BadRequestException(
-				"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const rules = await TaxationGroupRule.query()
-			.whereHas("taxationGroup", (query) => {
-				query.whereIn(
-					"id",
-					items.map((item) => item.productVariation.product.taxation_group_id),
-				);
-			})
-			.where("movement_type", MovementType.S)
-			.where("movement_category", MovementCategory.NS)
-			.where("fromUf", authCtx.unit.state ?? "")
-			.where("toUf", authCtx.unit.state ?? "")
-			.where(
-				"company_type",
-				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
-			)
-			.preload("taxationGroup")
-			.preload("taxOperation");
-
 		return Database.transaction(async (trx) => {
+			const client = await Patient.query()
+				.where("id", model.client_id)
+				.preload("tutor")
+				.preload("bills")
+				.firstOrFail();
+			if (client.bills.length === 0) {
+				await client
+					.merge({
+						firstSale: DateTime.now(),
+					})
+					.useTransaction(trx)
+					.save();
+			}
+			await Patient.query()
+				.useTransaction(trx)
+				.where("id", [client.id].filter(Boolean) as string[])
+				.update({
+					lastSale: DateTime.now(),
+				});
+
+			const ufIcms = await UfIcms.query()
+				.useTransaction(trx)
+				.where("origin_uf", authCtx.unit.state ?? "")
+				.where(
+					"destination_uf",
+					client.tutor?.state ?? authCtx.unit.state ?? "",
+				)
+				.first();
+
+			const items = await model
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.whereNotIn("id", data.notConfirmedItems)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
+
+			if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
+				throw new BadRequestException(
+					"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const payments = await model.related("payments").query();
+			if (payments.some((i) => i.pending)) {
+				throw new BadRequestException(
+					"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const rules = await TaxationGroupRule.query()
+				.useTransaction(trx)
+				.whereHas("taxationGroup", (query) => {
+					query.whereIn(
+						"id",
+						items.map(
+							(item) => item.productVariation.product.taxation_group_id,
+						),
+					);
+				})
+				.where("movement_type", MovementType.S)
+				.where("movement_category", MovementCategory.NS)
+				.where("fromUf", authCtx.unit.state ?? "")
+				.where("toUf", authCtx.unit.state ?? "")
+				.where(
+					"company_type",
+					authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+				)
+				.preload("taxationGroup")
+				.preload("taxOperation");
+
 			const invalidRows = await this.depositService.validateDepositOperation(
 				trx,
 				authCtx,

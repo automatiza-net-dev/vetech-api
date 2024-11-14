@@ -3161,6 +3161,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        patients.community                                           as comunidade_sancla,
        patients.weight                                              as peso,
        patients.weight_date::date                                   as data_pesagem,
+       patients.first_sale::date                                    as data_primeira_venda,
+       patients.last_sale::date                                     as data_ultima_venda,
        patient_animal_hairs.description                             as pelagem,
        species.description || ' > ' || races.description            as especie_raca,
        patient_animals.death                                        as obito,

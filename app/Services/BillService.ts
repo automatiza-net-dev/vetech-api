@@ -2120,6 +2120,12 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 		}
+		await Patient.query()
+			.useTransaction(trx)
+			.where("id", [client.id, data.patientId].filter(Boolean) as string[])
+			.update({
+				lastSale: DateTime.now(),
+			});
 
 		const productVariations = await ProductVariation.query()
 			.useTransaction(trx)

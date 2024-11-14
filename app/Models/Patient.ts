@@ -92,6 +92,11 @@ export default class Patient extends BaseModel {
 	})
 	public firstSale?: DateTime;
 
+	@column.dateTime({
+		columnName: "last_sale",
+	})
+	public lastSale?: DateTime;
+
 	@column()
 	public weight: number;
 

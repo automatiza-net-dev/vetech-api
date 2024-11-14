@@ -1453,7 +1453,7 @@ export default class ScheduleService {
 		resultData[0] = (await schedulesQb).map((elem) => ({
 			id: elem.id,
 			userId: elem.user_id,
-			majorComplaint: elem.major_complaint,
+			major_complaint: elem.major_complaint,
 			startHour: elem.start_hour,
 			endHour: elem.end_hour,
 			serviceType: elem.service_type,

@@ -21,7 +21,7 @@ import Finance, {
 } from "App/Models/Finance";
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
-import Patient from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
@@ -61,8 +61,10 @@ interface ISearch {
 	toBill?: string;
 	status?: string;
 	client?: string;
+	clientName?: string;
 	patientTag?: string;
 	patient?: string;
+	patientName?: string;
 	tag?: string;
 	bill_id?: string;
 	pending?: string;
@@ -129,6 +131,24 @@ export default class BillService {
 
 		if (data.patient) {
 			qb.where("patient_id", data.patient);
+		}
+
+		if (data.patientName) {
+			qb.whereHas("patient", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
+			});
+		}
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
+			});
 		}
 
 		if (data.bill_id) {

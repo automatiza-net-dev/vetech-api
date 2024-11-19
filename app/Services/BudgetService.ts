@@ -1581,9 +1581,29 @@ export default class BudgetService {
 					.useTransaction(trx)
 					.save();
 			}
+
+			if (model.patient_id) {
+				const patient = await Patient.query()
+					.useTransaction(trx)
+					.where("id", model.patient_id)
+					.preload("bills")
+					.firstOrFail();
+				if (patient.bills.length === 0) {
+					await client
+						.merge({
+							firstSale: DateTime.now(),
+						})
+						.useTransaction(trx)
+						.save();
+				}
+			}
+
 			await Patient.query()
 				.useTransaction(trx)
-				.whereIn("id", [client.id].filter(Boolean) as string[])
+				.whereIn(
+					"id",
+					[model.client_id, model.patient_id].filter(Boolean) as string[],
+				)
 				.update({
 					lastSale: DateTime.now(),
 				});

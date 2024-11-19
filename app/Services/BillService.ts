@@ -2120,6 +2120,23 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 		}
+
+		if (data.patientId) {
+			const patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.preload("bills")
+				.firstOrFail();
+			if (patient.bills.length === 0) {
+				await client
+					.merge({
+						firstSale: DateTime.now(),
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
+
 		await Patient.query()
 			.useTransaction(trx)
 			.whereIn("id", [client.id, data.patientId].filter(Boolean) as string[])

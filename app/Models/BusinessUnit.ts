@@ -25,6 +25,9 @@ import { v4 } from "uuid";
 export const BusinessUnitEnvironment = ["P", "H"] as const;
 export type TBusinessUnitEnvironment = (typeof BusinessUnitEnvironment)[number];
 
+export const UnitStatus = ["Ativa", "Inativa", "Consulta", "Excluida"] as const;
+export type TUnitStatus = (typeof UnitStatus)[number];
+
 export default class BusinessUnit extends BaseModel {
 	@column({ isPrimary: true })
 	public id: string = v4();
@@ -109,6 +112,9 @@ export default class BusinessUnit extends BaseModel {
 
 	@column()
 	public simple: boolean;
+
+	@column()
+	public status: TUnitStatus;
 
 	@column({
 		columnName: "economic_group_id",

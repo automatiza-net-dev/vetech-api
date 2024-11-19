@@ -395,6 +395,8 @@ export default class BusinessUnitService {
 					cnae: data.cnae,
 					simple: data.simple,
 					cityCode: data.cityCode,
+
+					status: data.status,
 				})
 				.useTransaction(trx)
 				.save();

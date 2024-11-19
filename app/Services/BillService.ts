@@ -2106,7 +2106,7 @@ where deposit_id = ?
 		//   .where('id', data.clientId)
 		//   .preload('tutor')
 		//   .firstOrFail();
-
+		//
 		const client = await Patient.query()
 			.useTransaction(trx)
 			.where("id", data.clientId)
@@ -2128,7 +2128,7 @@ where deposit_id = ?
 				.preload("bills")
 				.firstOrFail();
 			if (patient.bills.length === 0) {
-				await client
+				await patient
 					.merge({
 						firstSale: DateTime.now(),
 					})

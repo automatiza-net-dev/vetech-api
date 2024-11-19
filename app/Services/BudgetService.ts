@@ -1589,7 +1589,7 @@ export default class BudgetService {
 					.preload("bills")
 					.firstOrFail();
 				if (patient.bills.length === 0) {
-					await client
+					await patient
 						.merge({
 							firstSale: DateTime.now(),
 						})

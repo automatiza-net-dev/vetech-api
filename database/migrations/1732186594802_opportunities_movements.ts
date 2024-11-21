@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 
 			table.uuid("economic_group_id").references("economic_groups.id");
 			table.uuid("business_unit_id").references("business_units.id");
-			table.uuid("opportunity_id").references("opportunities.id");
+			table.integer("opportunity_id").references("opportunities.id");
 			table.uuid("creation_user_id").references("users.id");
 			table.uuid("deletion_user_id").references("users.id");
 			table.uuid("movement_id").comment("ID de uma venda ou orçamento");

@@ -26,7 +26,7 @@ export default class UpsertOpportunityMovementValidator {
 	public schema = schema.create({
 		items: schema.array().members(
 			schema.object().members({
-				opportunityId: schema.string([
+				opportunityId: schema.number([
 					rules.exists({ table: "opportunities", column: "id" }),
 				]),
 				movementId: schema.string([rules.uuid()]),

@@ -8,13 +8,13 @@ export default class OpportunityMovementsService {
 	public async searchOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			opportunity?: string;
+			opportunity?: number;
 			movement?: string;
 			type?: string;
 		},
 	): Promise<
 		{
-			opportunity_id: string;
+			opportunity_id: number;
 			movement_id: string;
 			type: "bill" | "budget";
 		}[]
@@ -43,7 +43,7 @@ export default class OpportunityMovementsService {
 	public async createOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			opportunityId: string;
+			opportunityId: number;
 			movementId: string;
 			type: string;
 		}[],
@@ -65,7 +65,7 @@ export default class OpportunityMovementsService {
 	public async cancelOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			opportunityId: string;
+			opportunityId: number;
 			movementId: string;
 			type: string;
 		}[],

@@ -1900,3 +1900,11 @@ Route.group(() => {
 })
 	.prefix("schedule-movements")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "OpportunitiesMovementsController.search");
+	Route.post("/store", "OpportunitiesMovementsController.store");
+	Route.post("/cancel", "OpportunitiesMovementsController.cancel");
+})
+	.prefix("opportunity-movements")
+	.middleware("auth");

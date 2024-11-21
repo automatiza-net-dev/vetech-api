@@ -3048,7 +3048,7 @@ export default class IndicatorService {
 				[],
 			)
 			.groupBy("business_units.id")
-			.where("status", data.status)
+			.where("budgets.status", data.status)
 			.whereNull("budgets.deleted_at")
 			.where("business_units.environment", "P");
 

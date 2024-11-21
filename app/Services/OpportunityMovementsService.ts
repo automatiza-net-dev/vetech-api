@@ -20,7 +20,7 @@ export default class OpportunityMovementsService {
 		}[]
 	> {
 		const qb = Database.from("opportunities_movements")
-			.select("opportunity_id, movement_id, type")
+			.select("opportunity_id", "movement_id", "type")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.whereNull("deleted_at");

@@ -7004,7 +7004,7 @@ export default class IndicatorService {
           and (count(distinct opportunity_logs.opportunity_id)
                FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' ) /
                ? * 100)
-            between prg.start_value and prg.end_value)         as cor_camada_novas_oportunidades,
+            between prg.start_value and prg.end_value limit 1)         as cor_camada_novas_oportunidades,
        (select prg.color
         from "metas"
                  join business_unit_metas on metas.id = business_unit_metas.meta_id
@@ -7016,7 +7016,7 @@ export default class IndicatorService {
           and (count(distinct opportunity_logs.opportunity_id)
                FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' ) / ? *
                100)
-            between prg.start_value and prg.end_value)         as cor_camada_agendadas,
+            between prg.start_value and prg.end_value limit 1)         as cor_camada_agendadas,
        (select prg.color
         from "metas"
                  join business_unit_metas on metas.id = business_unit_metas.meta_id
@@ -7028,7 +7028,7 @@ export default class IndicatorService {
           and (count(distinct opportunity_logs.opportunity_id)
                FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' ) /
                ? * 100)
-            between prg.start_value and prg.end_value)         as cor_camada_comparecidas,
+            between prg.start_value and prg.end_value limit 1)         as cor_camada_comparecidas,
        (select prg.color
         from "metas"
                  join business_unit_metas on metas.id = business_unit_metas.meta_id
@@ -7040,7 +7040,7 @@ export default class IndicatorService {
           and (count(distinct opportunity_logs.opportunity_id)
                FILTER ( WHERE crm_statuses.type = 'OPR' and crm_statuses.tag = 'G' ) /
                ? * 100)
-            between prg.start_value and prg.end_value)         as cor_camada_ganhos,
+            between prg.start_value and prg.end_value limit 1)         as cor_camada_ganhos,
 -- calculos para colorir as setas de conversão e % do funil
        (select prg.color
         from "metas"
@@ -7057,7 +7057,7 @@ export default class IndicatorService {
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' ) = 0 then 1
                          else count(distinct opportunity_logs.opportunity_id)
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'N' ) end *
-               100) between prg.start_value and prg.end_value) as cor_conversao_novas_agendadas,
+               100) between prg.start_value and prg.end_value limit 1) as cor_conversao_novas_agendadas,
        (select prg.color
         from "metas"
                  join business_unit_metas on metas.id = business_unit_metas.meta_id
@@ -7073,7 +7073,7 @@ export default class IndicatorService {
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' ) = 0 then 1
                          else count(distinct opportunity_logs.opportunity_id)
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'A' ) end *
-               100) between prg.start_value and prg.end_value) as cor_conversao_agendadas_comparecidas,
+               100) between prg.start_value and prg.end_value limit 1) as cor_conversao_agendadas_comparecidas,
        (select prg.color
         from "metas"
                  join business_unit_metas on metas.id = business_unit_metas.meta_id
@@ -7089,7 +7089,7 @@ export default class IndicatorService {
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' ) = 0 then 1
                          else count(distinct opportunity_logs.opportunity_id)
                               FILTER ( WHERE crm_statuses.type = 'OP' and crm_statuses.tag = 'C' ) end *
-               100) between prg.start_value and prg.end_value) as cor_conversao_comparecidas_ganho`,
+               100) between prg.start_value and prg.end_value limit 1) as cor_conversao_comparecidas_ganho`,
 					[
 						authCtx.system.id,
 						authCtx.unit.id,

@@ -1577,7 +1577,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("bills.business_unit_id")
-			.whereNot("status", BillStatus.EX);
+			.whereNot("bills.status", BillStatus.EX);
 
 		const opportunityLogsQb = Database.from("opportunity_logs")
 			.select(
@@ -5912,7 +5912,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("bills.business_unit_id")
-			.whereNot("status", BillStatus.EX);
+			.whereNot("bills.status", BillStatus.EX);
 
 		const qb = Database.from("schedules")
 			.select(
@@ -6092,7 +6092,7 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "bills.business_unit_id");
 			})
 			.groupBy("bills.business_unit_id")
-			.whereNot("status", BillStatus.EX);
+			.whereNot("bills.status", BillStatus.EX);
 
 		const opportunityLogsQb = Database.from("opportunity_logs")
 			.select(

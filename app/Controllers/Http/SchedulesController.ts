@@ -20,6 +20,19 @@ export default class SchedulesController {
 		private readonly sharedService: SharedService,
 	) {}
 
+	public async schedulesAttendances({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.schedulesAttendances(
+			await this.sharedService.getAuthContext(auth),
+			request.param("patientID"),
+		);
+
+		return response.ok(result);
+	}
+
 	public async homeContent({ auth, request, response }: HttpContextContract) {
 		const qs = request.qs();
 		const result = await this.service.homeContent(

@@ -368,6 +368,7 @@ Route.group(() => {
 	Route.get("/appointsments/:id", "SchedulesController.userAppointments");
 	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
 	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
+	Route.get("/schedules-attendances/:patientID", "SchedulesController.schedulesAttendances");
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");

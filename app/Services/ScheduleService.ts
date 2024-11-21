@@ -1,5 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import { string } from "@ioc:Adonis/Core/Helpers";
 import Database from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -39,10 +38,9 @@ import {
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
-import { v4 } from "uuid";
+import { validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
-import { flatten } from "@poppinss/utils";
 
 interface ISearch {
 	pid?: string;
@@ -63,6 +61,27 @@ export default class ScheduleService {
 		private readonly sharedService: SharedService,
 		private opportunityService: OpportunityService,
 	) {}
+
+	public async schedulesAttendances(authCtx: AuthContext, patientID: string) {
+		if (!validate(patientID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		return Database.from("schedules")
+			.select(
+				Database.raw(
+					"schedules.id, users.name, schedules.start_hour, schedules.finished_at",
+				),
+			)
+			.joinRaw("join users on schedules.user_id = users.id")
+			.whereNull("schedules.deleted_at")
+			.where("schedules.business_unit_id", authCtx.unit.id)
+			.where("schedules.patient_id", patientID)
+			.whereRaw("schedules.start_hour::date >= now()::date - 1")
+			.whereRaw(
+				"schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null)",
+			);
+	}
 
 	public async homeContent(authCtx: AuthContext, data: IHomeSearch) {
 		const qb = Schedule.query()

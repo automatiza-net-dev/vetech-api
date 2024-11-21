@@ -217,6 +217,12 @@ export default class Bill extends BaseModel {
 	@column()
 	public pending: boolean;
 
+	@column({
+		columnName: "internal_code",
+		serializeAs: "internalCode",
+	})
+	public internalCode: string;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

@@ -775,6 +775,7 @@ export default class BudgetService {
 					attendance_id: data.attendanceId,
 					reviewer_id: data.reviewerId,
 
+					internalCode: data.internalCode,
 					budgetDate: data.budgetDate,
 					expirationDate: data.expirationDate,
 					productValue: 0,
@@ -891,6 +892,7 @@ export default class BudgetService {
 			reviewerId?: string;
 			observation?: string;
 			internalObservation?: string;
+			internalCode?: string;
 			maxDiscount: boolean;
 			items: {
 				budgetItemId?: string;
@@ -1068,6 +1070,7 @@ export default class BudgetService {
 					serviceValue: serviceSum,
 					discountValue: discountSum,
 					totalValue: productSum + serviceSum,
+					internalCode: data.internalCode,
 
 					expirationDate: data.expirationDate,
 					budgetDate: data.budgetDate,
@@ -1697,9 +1700,10 @@ export default class BudgetService {
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
 					daily_movement_id: model.daily_movement_id,
-
 					client_id: model.client_id,
 					patient_id: model.patient_id,
+
+					internalCode: model.internalCode,
 					billDate: DateTime.now(),
 					productValue: totalProductValue,
 					serviceValue: totalServiceValue,

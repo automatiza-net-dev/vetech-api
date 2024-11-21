@@ -19,6 +19,7 @@ export interface ICreateBudgetData {
 	patientId?: string;
 	dailyMovementId?: string;
 	attendanceId?: number;
+	internalCode?: string;
 	budgetDate: DateTime;
 	expirationDate: DateTime;
 	observation?: string;
@@ -35,6 +36,7 @@ export interface IUpdateBudgetItemData {
 	courtesy?: boolean;
 	maxDiscount?: boolean;
 	status: BudgetStatus;
+	internalCode?: string;
 }
 
 export interface IConfirmBudgetData {

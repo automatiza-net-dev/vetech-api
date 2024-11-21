@@ -36,6 +36,7 @@ export default class ServiceService {
 				query.select("id", "barcode", "active");
 
 				query.preload("businessUnitProducts", (query) => {
+					query.where("id", authCtx.unit.id);
 					query.preload("businessUnit", (query) => {
 						query.select("id", "fantasyName", "companyName", "identification");
 					});

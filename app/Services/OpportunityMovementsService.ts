@@ -87,7 +87,7 @@ export default class OpportunityMovementsService {
 				data.map((d) => d.type),
 			)
 			.update({
-				user_deletion_id: authCtx.user.id,
+				deletion_user_id: authCtx.user.id,
 				deleted_at: DateTime.now(),
 			});
 	}

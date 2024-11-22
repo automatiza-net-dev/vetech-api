@@ -124,7 +124,7 @@ const detSchema = z.object({
 					z.object({
 						orig: z.string(),
 						CST: z.string(),
-						vICMSDeson: z.coerce.number(),
+						vICMSDeson: z.optional(z.coerce.number()),
 					}),
 				),
 				ICMS51: z.optional(

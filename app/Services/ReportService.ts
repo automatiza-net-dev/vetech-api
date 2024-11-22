@@ -3198,7 +3198,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.castrated) {
-			qb.whereRaw("pp.castrated = ?", [data.castrated === "true"]);
+			qb.whereRaw("pet.castrated = ?", [data.castrated === "true"]);
 		}
 
 		if (data.death) {

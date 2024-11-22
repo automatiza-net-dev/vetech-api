@@ -13,6 +13,7 @@ import { DateTime } from "luxon";
 import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import { string } from "@ioc:Adonis/Core/Helpers";
 
 type DreGroupSqlResult = {
 	sequencia_dre: string;
@@ -3135,69 +3136,52 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		data: {
 			species?: string[];
 			races?: string[];
-			hairs?: string[];
-
-			community?: string;
 			gender?: string;
 			castrated?: string;
 			death?: string;
-			vaccineOrigin?: string;
 			microchip?: string;
-
-			fromCreated?: string;
-			toCreated?: string;
-			fromBirth?: string;
-			toBirth?: string;
-
-			debug?: string;
+			vaccineOrigin?: string;
 		},
 	) {
-		const qb = Database.from("patient_economic_groups")
-			.debug(true)
+		const qb = Database.from("holder_dependents hd")
 			.select(
-				Database.raw(`patients.id                                                  as id,
-       patients.name                                                as nome,
-       patients.tag                                                 as rg,
-       patients.community                                           as comunidade_sancla,
-       patients.weight                                              as peso,
-       patients.weight_date::date                                   as data_pesagem,
-       patients.first_sale::date                                    as data_primeira_venda,
-       patients.last_sale::date                                     as data_ultima_venda,
-       patient_animal_hairs.description                             as pelagem,
-       species.description || ' > ' || races.description            as especie_raca,
-       patient_animals.death                                        as obito,
-       patient_animals.death_date                                   as data_obito,
-       patient_animals.microchip,
-       patient_animals.castrated                                    as castrado,
-       patients.birth_date                                          as paciente_data_nascimento,
-       patients.created_at                                          as paciente_data_cadastro,
-       case
-           when patients.gender = 'male' then 'macho'
-           when patients.gender = 'female' then 'fêmea'
-           else 'Não Informado' end                                 as paciente_genero,
-       case
-           when patients.vaccine_origin = 'FORA_DA_CLINICA' then 'Fora da Clinica'
-           when patients.vaccine_origin = 'PROPRIA_CLINICA' then 'Na Própria Clinica'
-           when patients.vaccine_origin = 'NAO_VACINADO' then 'Não Vacinado'
-           else 'Não Informado' end                                 as paciente_vacinado,
-       tutor.name                                                   as tutor_principal,
-       coalesce(patient_tutors.cellphone, patient_tutors.telephone) as tutor_telefone,
-       patient_tutors.email                                         as tutor_email`),
+				Database.raw(`pt.name                                                                as tutor_nome,
+       t.cellphone                                                                           as tutor_celular,
+       t.telephone                                                                           as tutor_telefone,
+       t.email                                                                               as tutor_email,
+       CASE WHEN pt.gender = 'male' THEN 'MASCULINO' ELSE 'FEMININO' END                     as tutor_genero,
+       prof.description                                                                      as tutor_profissao,
+       pt.birth_date                                                                         as tutor_dt_nasc,
+       pt.created_at::date                                                                   as tutor_dt_cadastro,
+       pp.tag                                                                                as pet_Rg,
+       pp.name                                                                               as pet_Nome,
+       CASE WHEN pp.gender = 'male' THEN 'MACHO' ELSE 'FÊMEA' END                            as pet_Genero,
+       pp.birth_date                                                                         as pet_Data_Nascimento,
+       pp.vaccine_origin                                                                     as pet_Vacinado,
+       CASE WHEN pet.death = true THEN 'SIM' ELSE '' END                                     as pet_Obito,
+       CASE WHEN pet.castrated = true THEN 'SIM' ELSE 'NÃO' END                              as pet_Castrado,
+       species.description || ' > ' || races.description                                     as pet_EspecieRaca,
+       pp.weight                                                                             as pet_Peso,
+       pp.tags                                                                               as pet_Observacao,
+       pp.created_at::date                                                                   as pet_Dt_Cadastro,
+       (select 'SIM' protocolo from patient_vaccines pv where pp.id = pv.patient_id limit 1) as pet_Tem_Protocolo_Vacina,
+       pp.community                                                                          as pet_Comunidade_Sancla,
+       pp.first_sale                                                                         as pet_Data_Primeira_Venda,
+       pp.last_sale                                                                          as pet_Data_Ultima_Venda`),
+			)
+			.joinRaw("join patients pt on hd.holder_id = pt.ID")
+			.joinRaw(
+				"join patients pp on hd.dependent_id = pp.ID and hd.is_main = true",
 			)
 			.joinRaw(
-				"join patients on patient_economic_groups.patient_id = patients.id",
+				"join (patient_tutors t left join professions prof on t.profession_id = prof.id) on pt.id = t.patient_id",
 			)
-			.joinRaw(`join (patient_animals
-    left join ( races left join species on races.specie_id = species.id) on patient_animals.race_id = races.id
-    left join patient_animal_hairs on patient_animals.hair_id = patient_animal_hairs.id)
-              on patients.id = patient_animals.patient_id`)
-			.joinRaw(`left join (holder_dependents join (patients tutor join patient_tutors
-                                            on tutor.id = patient_tutors.patient_id)
-                    on holder_dependents.holder_id = tutor.id)
-                   on patients.id = holder_dependents.dependent_id and is_main = true`)
-			.whereRaw("patient_economic_groups.economic_group_id = ?", [
-				authCtx.group.id,
-			]);
+			.joinRaw(`join (patient_animals pet left join (races join species on races.specie_id = species.id)
+               on pet.race_id = races.id) on pp.id = pet.patient_id`)
+			.joinRaw(
+				"join patient_economic_groups pgroup on pp.id = pgroup.patient_id",
+			)
+			.whereRaw("pgroup.economic_group_id = ?", [authCtx.group.id]);
 
 		if (data.species && Array.isArray(data.species)) {
 			qb.whereIn("species.id", data.species);
@@ -3207,31 +3191,23 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			qb.whereIn("races.id", data.races);
 		}
 
-		if (data.hairs && Array.isArray(data.hairs)) {
-			qb.whereIn("patient_animal_hairs.id", data.hairs);
-		}
-
-		if (data.community) {
-			qb.whereRaw("patients.community = ?", [data.community === "Sim"]);
-		}
-
 		if (data.gender) {
-			qb.whereRaw("tutor.gender = ?", [
+			qb.whereRaw("pp.gender = ?", [
 				data.gender === "Macho" ? "male" : "female",
 			]);
 		}
 
 		if (data.castrated) {
-			qb.whereRaw("patient_animals.castrated = ?", [data.castrated === "true"]);
+			qb.whereRaw("pp.castrated = ?", [data.castrated === "true"]);
 		}
 
 		if (data.death) {
 			switch (data.death) {
 				case "Sim":
-					qb.whereRaw("patient_animals.death_date is not null");
+					qb.whereRaw("pet.death_date is not null");
 					break;
 				case "Nao":
-					qb.whereRaw("patient_animals.death_date is null");
+					qb.whereRaw("pet.death_date is null");
 					break;
 			}
 		}
@@ -3239,50 +3215,67 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		if (data.vaccineOrigin) {
 			switch (data.vaccineOrigin) {
 				case "Não Vacinado":
-					qb.whereRaw("patients.vaccine_origin = ?", ["NAO_VACINADO"]);
+					qb.whereRaw("pp.vaccine_origin = ?", ["NAO_VACINADO"]);
 					break;
 				case "Fora da Clinica":
-					qb.whereRaw("patients.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
+					qb.whereRaw("pp.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
 					break;
 				case "Propria Clinica":
-					qb.whereRaw("patients.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
+					qb.whereRaw("pp.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
 					break;
 				case "Não Informado":
 				default:
-					qb.whereRaw("patients.vaccine_origin is null");
+					qb.whereRaw("pp.vaccine_origin is null");
 			}
 		}
 
 		if (data.microchip) {
 			switch (data.microchip) {
 				case "Sim":
-					qb.whereRaw("patient_animals.microchip is not null");
+					qb.whereRaw("pet.microchip is not null");
 					break;
 				case "Nao":
-					qb.whereRaw("patient_animals.microchip is null");
+					qb.whereRaw("pet.microchip is null");
 					break;
 			}
 		}
+		//
+		// if (data.fromCreated && data.toCreated) {
+		// 	qb.andWhereRaw("patients.created_at::date between ? and ?", [
+		// 		data.fromCreated,
+		// 		data.toCreated,
+		// 	]);
+		// }
+		//
+		// if (data.fromBirth && data.toBirth) {
+		// 	qb.andWhereRaw("patients.birth_date::date between ? and ?", [
+		// 		data.fromBirth,
+		// 		data.toBirth,
+		// 	]);
+		// }
+		//
+		// if (data.debug) {
+		// 	return qb.toQuery();
+		// }
 
-		if (data.fromCreated && data.toCreated) {
-			qb.andWhereRaw("patients.created_at::date between ? and ?", [
-				data.fromCreated,
-				data.toCreated,
-			]);
-		}
+		const result: Record<string, unknown>[] = await qb;
 
-		if (data.fromBirth && data.toBirth) {
-			qb.andWhereRaw("patients.birth_date::date between ? and ?", [
-				data.fromBirth,
-				data.toBirth,
-			]);
-		}
+		return result.reduce(
+			(aggregate, record) => {
+				aggregate.push(
+					Object.keys(record).reduce(
+						(recordAggregate, key) => {
+							recordAggregate[string.camelCase(key)] = record[key];
+							return recordAggregate;
+						},
+						{} as Record<string, unknown>,
+					),
+				);
 
-		if (data.debug) {
-			return qb.toQuery();
-		}
-
-		return qb;
+				return aggregate;
+			},
+			[] as Record<string, unknown>[],
+		);
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

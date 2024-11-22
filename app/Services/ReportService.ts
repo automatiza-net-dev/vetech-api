@@ -3143,7 +3143,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			vaccineOrigin?: string;
 		},
 	) {
-		const qb = Database.from("holder_dependents hd")
+		const qb = Database.from("holder_dependents")
 			.select(
 				Database.raw(`pt.name                                                                as tutor_nome,
        t.cellphone                                                                           as tutor_celular,
@@ -3169,9 +3169,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        pp.first_sale                                                                         as pet_Data_Primeira_Venda,
        pp.last_sale                                                                          as pet_Data_Ultima_Venda`),
 			)
-			.joinRaw("join patients pt on hd.holder_id = pt.ID")
+			.joinRaw("join patients pt on holder_dependents.holder_id = pt.ID")
 			.joinRaw(
-				"join patients pp on hd.dependent_id = pp.ID and hd.is_main = true",
+				"join patients pp on holder_dependents.dependent_id = pp.ID and holder_dependents.is_main = true",
 			)
 			.joinRaw(
 				"join (patient_tutors t left join professions prof on t.profession_id = prof.id) on pt.id = t.patient_id",

@@ -488,14 +488,7 @@ export default class PatientService {
 		}
 
 		if (data.tutorID) {
-			qb.whereRaw(
-				`exists (select 1
-              from holder_dependents
-                       join patients tut on holder_dependents.holder_id = tut.id and
-                                            holder_dependents.dependent_id = patients.id
-                                            and holder_dependents.holder_id = ?)`,
-				[data.tutorID],
-			);
+			qb.whereRaw(`holder_dependents.holder_id = ?`, [data.tutorID]);
 		}
 
 		// tem nome de tutor ou documento

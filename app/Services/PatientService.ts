@@ -491,28 +491,34 @@ export default class PatientService {
 			qb.whereRaw(`holder_dependents.holder_id = ?`, [data.tutorID]);
 		}
 
-		// tem nome de tutor ou documento
-		if (data.tutor || data.document) {
-			// tem nome e documento
-			if (data.tutor && data.document) {
-				qb.whereRaw(
-					`(unaccent(tut.name) ilike '%' || unaccent(?) || '%'
-                 and patient_tutors.document ilike ?)`,
-					[data.tutor, `%${data.document}%`],
-				);
-			} else {
-				// tem tutor
-				if (data.tutor) {
-					qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [
-						data.tutor,
-					]);
-				} else {
-					qb.whereRaw("patient_tutors.document ilike ?", [
-						`%${data.document}%`,
-					]);
-				}
-			}
+		if (data.tutor) {
+			qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [
+				data.tutor,
+			]);
 		}
+
+		// tem nome de tutor ou documento
+		// if (data.tutor || data.document) {
+		// 	// tem nome e documento
+		// 	if (data.tutor && data.document) {
+		// 		qb.whereRaw(
+		// 			`(unaccent(tut.name) ilike '%' || unaccent(?) || '%'
+		//                and patient_tutors.document ilike ?)`,
+		// 			[data.tutor, `%${data.document}%`],
+		// 		);
+		// 	} else {
+		// 		// tem tutor
+		// 		if (data.tutor) {
+		// 			qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [
+		// 				data.tutor,
+		// 			]);
+		// 		} else {
+		// 			qb.whereRaw("patient_tutors.document ilike ?", [
+		// 				`%${data.document}%`,
+		// 			]);
+		// 		}
+		// 	}
+		// }
 
 		if (data.phone) {
 			const clearPhone = data.phone.replace(/\D/g, "");

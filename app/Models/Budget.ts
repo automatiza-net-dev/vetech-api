@@ -99,7 +99,7 @@ export default class Budget extends BaseModel {
 		columnName: "internal_code",
 		serializeAs: "internalCode",
 	})
-	public internalCode: string;
+	public internalCode: string | null;
 
 	@computed({
 		serializeAs: "internalObservation",

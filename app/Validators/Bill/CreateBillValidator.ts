@@ -29,6 +29,13 @@ export default class CreateBillValidator {
 			rules.exists({ table: "budgets", column: "id" }),
 		]),
 
+    internalCode: schema.string.optional(),
+		originBillId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "bills", column: "id" }),
+		]),
+
+
 		items: schema.array().members(
 			schema.object().members({
 				productVariationId: schema.string({ trim: true }, [

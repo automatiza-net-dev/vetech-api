@@ -18,6 +18,9 @@ export interface ICreateBillData {
 
 	additionalInformation?: string;
 	budgetId?: string;
+
+	internalCode?: string;
+	originBillId?: string;
 }
 
 export interface ICreateBillItemData {
@@ -65,6 +68,7 @@ export interface IUpdateBillData {
 	financialResponsibleId?: string;
 	maxDiscount?: boolean;
 	additionalInformation?: string;
+	internalCode?: string;
 	items?: {
 		billItemId?: string;
 		productVariationId: string;

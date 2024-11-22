@@ -580,6 +580,7 @@ export default class BillService {
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId ?? null,
 					additionalInformation: data.additionalInformation,
+					internalCode: data.internalCode,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1278,6 +1279,7 @@ where deposit_id = ?
 							$checkingAccountMeta?.checking_account_id ??
 							paymentMethod.checkingAccountId,
 
+						internalCode: bill.internalCode,
 						type: FinanceType.C,
 						installment: v + 1,
 						block: max + 1,
@@ -1752,6 +1754,17 @@ where deposit_id = ?
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
 			}
 
+			const rows = await Database.from("bills")
+				.select("id")
+				.where("origin_bill_id", bill.id);
+			if (rows.length > 0) {
+				throw new BadRequestException(
+					"Esta venda não pode ser excluida pois foi utilizada como Referencia para outras vendas",
+					400,
+					"E_ERR",
+				);
+			}
+
 			// if (bill.payments.length > 0) {
 			// 	throw new BadRequestException(
 			// 		"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
@@ -2224,7 +2237,9 @@ where deposit_id = ?
 				financial_responsible_id: data.financialResponsibleId ?? data.clientId,
 				client_id: data.clientId,
 				patient_id: data.patientId,
+				origin_bill_id: data.originBillId,
 
+				internalCode: data.internalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,

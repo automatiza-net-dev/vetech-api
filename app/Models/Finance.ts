@@ -224,6 +224,12 @@ export default class Finance extends BaseModel {
 	@column()
 	public status: FinanceStatus;
 
+	@column({
+		columnName: "internal_code",
+		serializeAs: "internalCode",
+	})
+	public internalCode: string | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

@@ -221,7 +221,7 @@ export default class Bill extends BaseModel {
 		columnName: "internal_code",
 		serializeAs: "internalCode",
 	})
-	public internalCode: string;
+	public internalCode: string | null;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
@@ -261,6 +261,9 @@ export default class Bill extends BaseModel {
 		foreignKey: "business_unit_id",
 	})
 	public businessUnit: BelongsTo<typeof BusinessUnit>;
+
+	@column({})
+	public origin_bill_id: string;
 
 	@column({
 		serializeAs: null,

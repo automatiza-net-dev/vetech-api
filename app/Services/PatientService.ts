@@ -498,51 +498,25 @@ export default class PatientService {
 			);
 		}
 
+		// tem nome de tutor ou documento
 		if (data.tutor || data.document) {
+			// tem nome e documento
 			if (data.tutor && data.document) {
 				qb.whereRaw(
-					`exists (select 1
-              from holder_dependents
-                       join patients tut on holder_dependents.holder_id = tut.id and
-                                            holder_dependents.dependent_id = patients.id
-                       join patient_tutors on tut.id = patient_tutors.patient_id
-              where unaccent(tut.name) ilike '%' || unaccent(?) || '%'
+					`(unaccent(tut.name) ilike '%' || unaccent(?) || '%'
                  and patient_tutors.document ilike ?)`,
 					[data.tutor, `%${data.document}%`],
 				);
 			} else {
+				// tem tutor
 				if (data.tutor) {
-					qb.whereRaw(
-						`exists (select 1
-              from holder_dependents
-                       join patients tut on holder_dependents.holder_id = tut.id and
-                                            holder_dependents.dependent_id = patients.id
-                       join patient_tutors on tut.id = patient_tutors.patient_id
-              where unaccent(tut.name) ilike '%' || unaccent(?) || '%')`,
-						[data.tutor],
-					);
+					qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [
+						data.tutor,
+					]);
 				} else {
-					if (data.tutor) {
-						qb.whereRaw(
-							`exists (select 1
-              from holder_dependents
-                       join patients tut on holder_dependents.holder_id = tut.id and
-                                            holder_dependents.dependent_id = patients.id
-                       join patient_tutors on tut.id = patient_tutors.patient_id
-              where unaccent(tut.name) ilike '%' || unaccent(?) || '%')`,
-							[data.tutor],
-						);
-					} else {
-						qb.whereRaw(
-							`exists (select 1
-              from holder_dependents
-                       join patients tut on holder_dependents.holder_id = tut.id and
-                                            holder_dependents.dependent_id = patients.id
-                       join patient_tutors on tut.id = patient_tutors.patient_id
-              where patient_tutors.document ilike ?)`,
-							[`%${data.document}%`],
-						);
-					}
+					qb.whereRaw("patient_tutors.document ilike ?", [
+						`%${data.document}%`,
+					]);
 				}
 			}
 		}

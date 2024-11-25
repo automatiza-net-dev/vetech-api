@@ -1704,6 +1704,7 @@ ON bills.patient_id = Dep."id"`,
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(`
+       patients.name as client_name,
        bills.tag,
        movement_type,
        purpose,
@@ -1725,8 +1726,9 @@ ON bills.patient_id = Dep."id"`,
        `),
 			)
 			.joinRaw(
-				`join issued_fiscal_documents on bills.id = issued_fiscal_documents.bill_id`,
+				"join issued_fiscal_documents on bills.id = issued_fiscal_documents.bill_id",
 			)
+			.joinRaw("join patients on bills.client_id = patients.id")
 			.where("bills.economic_group_id", authCtx.group.id)
 			.where("bills.business_unit_id", authCtx.unit.id)
 			.whereNull("issued_fiscal_documents.deleted_at")

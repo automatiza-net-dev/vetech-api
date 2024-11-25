@@ -100,8 +100,7 @@ export default class InviteService {
 				await this.sendInviteEmail({
 					email: data.email,
 					url,
-					unitName:
-						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
 					imageUrl: authCtx.system.mailImage ?? "#",
@@ -148,8 +147,7 @@ export default class InviteService {
 				await this.sendInviteEmail({
 					email: data.email,
 					url,
-					unitName:
-						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
 					imageUrl: authCtx.system.mailImage ?? "#",
@@ -195,7 +193,7 @@ export default class InviteService {
 			await this.sendInviteEmail({
 				email: data.email,
 				url: "",
-				unitName: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				unitName: authCtx.unit.identification ?? "-",
 				invitedBy: authCtx.user.name,
 				systemName: authCtx.system.name,
 				imageUrl: authCtx.system.mailImage ?? "#",

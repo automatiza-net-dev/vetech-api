@@ -566,6 +566,9 @@ export default class BudgetService {
 				});
 			})
 			.preload("payments", (query) => {
+				query.preload("paymentMethod", (query) => {
+					query.select(["id", "description"]);
+				});
 				query.preload("approvalUser", (query) => {
 					query.select(["id", "name"]);
 				});

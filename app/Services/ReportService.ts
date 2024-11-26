@@ -640,7 +640,18 @@ export default class ReportService {
 				where a.deleted_at is null
 				and a.business_unit_id = business_units.id and a.patient_id = cli.id
 				order by a.created_at desc limit 1
-		  ) as ultima_avaliacao
+		  ) as ultima_avaliacao,
+
+      (select users.name
+        from users
+                 join schedules on users.id = schedules.creation_user_id
+                 join schedules_movements sm on schedules.id = sm.schedule_id and sm.movement_id = bills.id and
+                                                sm.type = 'bill')              as usuario_agenda_origem_venda,
+       (select max(UltimaVenda.bill_date)
+        from bills UltimaVenda
+        where UltimaVenda.client_id = bills.client_id
+          and UltimaVenda.bill_date < bills.bill_date
+          and UltimaVenda.business_unit_id = bills.business_unit_id)           as data_venda_anterior
         `),
 			)
 			.joinRaw(

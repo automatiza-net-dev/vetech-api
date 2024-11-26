@@ -368,7 +368,10 @@ Route.group(() => {
 	Route.get("/appointsments/:id", "SchedulesController.userAppointments");
 	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
 	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
-	Route.get("/schedules-attendances/:patientID", "SchedulesController.schedulesAttendances");
+	Route.get(
+		"/schedules-attendances/:patientID",
+		"SchedulesController.schedulesAttendances",
+	);
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");
@@ -1897,7 +1900,9 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/search", "ScheduleMovementsController.search");
 	Route.post("/store", "ScheduleMovementsController.store");
+	Route.post("/cancel", "ScheduleMovementsController.cancel");
 })
 	.prefix("schedule-movements")
 	.middleware("auth");

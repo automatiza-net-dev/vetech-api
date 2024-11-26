@@ -11,6 +11,17 @@ export default class ScheduleMovementsController {
 		private service: ScheduleMovementsService,
 	) {}
 
+	public async index({ request, response, auth }: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const result = await this.service.searchScheduleMovements(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			);
+
+			return response.ok(result);
+		});
+	}
+
 	public async store({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const data = await request.validate(CreateMovementValidator);
@@ -21,6 +32,19 @@ export default class ScheduleMovementsController {
 			);
 
 			return response.created();
+		});
+	}
+
+	public async cancel({ request, response, auth }: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const data = await request.validate(CreateMovementValidator);
+
+			await this.service.cancelScheduleMovements(
+				await this.sharedService.getAuthContext(auth),
+				data.items,
+			);
+
+			return response.noContent();
 		});
 	}
 }

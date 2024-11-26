@@ -44,7 +44,7 @@ export default class OpportunityMovementsController {
 				data.items,
 			);
 
-			return response.created();
+			return response.noContent();
 		});
 	}
 }

@@ -351,6 +351,10 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get(
+		"/search-to-movement",
+		"SchedulesController.searchSchedulesToAddToMovement",
+	);
 	Route.get("/home", "SchedulesController.homeContent");
 	Route.get("/home-2", "SchedulesController.homeContent_2");
 	Route.get("/disponibility", "SchedulesController.viewDisponibility");

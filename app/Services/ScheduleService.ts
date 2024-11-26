@@ -62,6 +62,67 @@ export default class ScheduleService {
 		private opportunityService: OpportunityService,
 	) {}
 
+	public async searchSchedulesToAddToMovement(
+		authCtx: AuthContext,
+		data: {
+			patientId?: string;
+			businessUnitId?: string;
+			type?: string;
+		},
+	) {
+		if (!data.patientId || !validate(data.patientId)) {
+			throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
+		}
+
+		const pastSchedules: {
+			id: string;
+			start_hour: string;
+			description: string;
+			tipo: "agendas_passadas";
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_passadas' as tipo`,
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
+			.whereRaw("business_unit_id = ?", [
+				data.businessUnitId ?? authCtx.unit.id,
+			])
+			.whereRaw("schedules.start_hour::date > now()::date - 2")
+			.where("schedules.patient_id", data.patientId)
+			.orderBy("schedules.start_hour", "desc")
+			.limit(1);
+
+		const futureSchedules: {
+			id: string;
+			start_hour: string;
+			description: string;
+			tipo: "agendas_futuras";
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_futuras' as tipo`,
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
+			.whereRaw("business_unit_id = ?", [
+				data.businessUnitId ?? authCtx.unit.id,
+			])
+			.whereRaw("schedules.start_hour::date >= now()::date")
+			.where("schedules.patient_id", data.patientId)
+			.orderBy("schedules.start_hour", "desc");
+
+		return [...pastSchedules, ...futureSchedules].sort(
+			(a, b) =>
+				new Date(a.start_hour).getTime() - new Date(b.start_hour).getTime(),
+		);
+	}
+
 	public async schedulesAttendances(authCtx: AuthContext, patientID: string) {
 		if (!validate(patientID)) {
 			throw new BadRequestException("ID inválido", 400, "E_ERR");

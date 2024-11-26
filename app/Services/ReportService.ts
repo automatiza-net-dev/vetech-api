@@ -439,14 +439,9 @@ export default class ReportService {
 			});
 		}
 
-		if (data.fromDate) {
-			qb.whereRaw("bill_date::date >= ?", [
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
 				DateTime.fromISO(data.fromDate).toFormat("yyyy-MM-dd"),
-			]);
-		}
-
-		if (data.toDate) {
-			qb.whereRaw("bill_date::date <= ?", [
 				DateTime.fromISO(data.toDate).toFormat("yyyy-MM-dd"),
 			]);
 		}
@@ -465,6 +460,38 @@ export default class ReportService {
 
 		const result = await qb;
 
+		const metaResult: {
+			usuario_Agenda_Origem_Venda: string | null;
+			data_Venda_Anterior: string | null;
+			id: string;
+		}[] = await Database.from("bills")
+			.select(
+				Database.raw(`(select users.name
+        from users
+                 join schedules on users.id = schedules.creation_user_id
+                 join schedules_movements sm on schedules.id = sm.schedule_id and sm.movement_id = bills.id and
+                                                sm.type = 'bill')    as usuario_Agenda_Origem_Venda,
+       (select max(UltimaVenda.bill_date)
+        from bills UltimaVenda
+        where UltimaVenda.client_id = bills.client_id
+          and UltimaVenda.bill_date < bills.bill_date
+          and UltimaVenda.business_unit_id = bills.business_unit_id) as data_Venda_Anterior,
+       bills.id`),
+			)
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id and economic_groups.system_id = ?",
+				[authCtx.system.id],
+			)
+			.whereRaw("bills.deleted_at is null")
+			.whereRaw("bills.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate ?? "",
+				data.toDate ?? "",
+			]);
+
 		return result
 			.map((elem) => ({
 				id: elem.id,
@@ -477,6 +504,13 @@ export default class ReportService {
 				paidValue: elem.paidValue,
 				missingPaymentValue: elem.totalValue - elem.paidValue,
 				status: elem.status,
+
+				originUser:
+					metaResult.find((mr) => mr.id === elem.id)
+						?.usuario_Agenda_Origem_Venda ?? null,
+				pastSaleDate:
+					metaResult.find((mr) => mr.id === elem.id)?.data_Venda_Anterior ??
+					null,
 
 				group: {
 					id: elem.economicGroup.id,

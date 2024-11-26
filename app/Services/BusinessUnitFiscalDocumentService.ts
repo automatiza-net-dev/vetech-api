@@ -155,6 +155,18 @@ export default class BusinessUnitFiscalDocumentService {
 		});
 	}
 
+	async getPeriodXmls(
+		authCtx: AuthContext,
+		data: {
+			cnpj: string;
+			periodo: string;
+		},
+	) {
+		const token = this.getToken(authCtx.unit);
+
+		return await this.focusNfe.getDownloadLinks(token, data);
+	}
+
 	async authorize(unitId: string, user: User, data: IAuthorizeFiscalDocument) {
 		const group = await this.sharedService.getUserGroup(unitId);
 

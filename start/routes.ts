@@ -1914,3 +1914,9 @@ Route.group(() => {
 })
 	.prefix("opportunity-movements")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "FocusController.search");
+})
+	.prefix("focus")
+	.middleware("auth");

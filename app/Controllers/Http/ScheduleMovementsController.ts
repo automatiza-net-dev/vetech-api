@@ -11,7 +11,7 @@ export default class ScheduleMovementsController {
 		private service: ScheduleMovementsService,
 	) {}
 
-	public async index({ request, response, auth }: HttpContextContract) {
+	public async search({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const result = await this.service.searchScheduleMovements(
 				await this.sharedService.getAuthContext(auth),

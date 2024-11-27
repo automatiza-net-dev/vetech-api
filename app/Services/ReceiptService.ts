@@ -456,7 +456,10 @@ const schema = z.object({
 				// 		vPag: z.string(),
 				// 	}),
 				// }),
-				infAdic: z.object({ infCpl: z.string() }),
+				infAdic: z.object({
+					infCpl: z.optional(z.string()),
+					infAdFisco: z.optional(z.string()),
+				}),
 				// infRespTec: z.object({
 				// 	CNPJ: z.string(),
 				// 	xContato: z.string(),
@@ -953,7 +956,12 @@ export default class ReceiptService {
 					icmsUfDestinationValue:
 						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
-					additionalInformation: parsed.data.nfeProc.NFe.infNFe.infAdic.infCpl,
+					additionalInformation: [
+						parsed.data.nfeProc.NFe.infNFe.infAdic?.infCpl,
+						parsed.data.nfeProc.NFe.infNFe.infAdic?.infAdFisco,
+					]
+						.filter(Boolean)
+						.join(" - "),
 					status: "PendenteXml",
 				},
 				{ client: trx },

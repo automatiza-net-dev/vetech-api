@@ -140,7 +140,7 @@ export default class ScheduleService {
 			.where("schedules.patient_id", patientID)
 			.whereRaw("schedules.start_hour::date >= now()::date - 1")
 			.whereRaw(
-				"schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null)",
+				"schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null and attendances.patient_id = schedules.patient_id)",
 			);
 	}
 

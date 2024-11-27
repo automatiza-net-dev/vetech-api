@@ -5,6 +5,7 @@ export interface ICreateBillData {
 	financialResponsibleId?: string;
 	patientId?: string;
 	dailyMovementId?: string;
+	scheduleId?: string;
 	billDate: DateTime;
 
 	items: Array<{

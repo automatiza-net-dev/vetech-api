@@ -55,6 +55,7 @@ import { validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import ScheduleMovementsService from "./ScheduleMovementsService";
 
 interface ISearch {
 	fromBill?: string;
@@ -92,6 +93,7 @@ export default class BillService {
 	constructor(
 		private sharedService: SharedService,
 		private depositService: DepositService,
+		private scheduleMovementService: ScheduleMovementsService,
 	) {}
 
 	isValidNumber(data: number | undefined) {
@@ -2260,6 +2262,16 @@ where deposit_id = ?
 				client: trx,
 			},
 		);
+
+		if (data.scheduleId) {
+			await this.scheduleMovementService.createScheduleMovements(authCtx, [
+				{
+					scheduleId: data.scheduleId,
+					type: "bill",
+					movementId: bill.id,
+				},
+			]);
+		}
 
 		await authCtx.unit.unitConfig
 			.merge({

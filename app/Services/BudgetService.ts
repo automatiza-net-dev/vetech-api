@@ -42,6 +42,7 @@ import DepositService from "./DepositService";
 import { v4 } from "uuid";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import ScheduleMovementsService from "./ScheduleMovementsService";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -84,6 +85,7 @@ export default class BudgetService {
 	constructor(
 		private sharedService: SharedService,
 		private depositService: DepositService,
+		private scheduleMovementService: ScheduleMovementsService,
 	) {}
 
 	public async budgetsFromAttendance(
@@ -806,6 +808,16 @@ export default class BudgetService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.scheduleId) {
+				await this.scheduleMovementService.createScheduleMovements(authCtx, [
+					{
+						scheduleId: data.scheduleId,
+						type: "budget",
+						movementId: budget.id,
+					},
+				]);
+			}
 
 			for (const item of data.items) {
 				const variation = items.find(

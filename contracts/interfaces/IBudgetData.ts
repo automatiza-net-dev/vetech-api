@@ -19,6 +19,7 @@ export interface ICreateBudgetData {
 	patientId?: string;
 	dailyMovementId?: string;
 	attendanceId?: number;
+	scheduleId?: string;
 	internalCode?: string;
 	budgetDate: DateTime;
 	expirationDate: DateTime;

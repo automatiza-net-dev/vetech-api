@@ -58,6 +58,8 @@ export default class ScheduleMovementsService {
 					schedule_id: elem.scheduleId,
 					movement_id: elem.movementId,
 					type: elem.type,
+					created_at: DateTime.now(),
+					updated_at: DateTime.now(),
 				})),
 			);
 	}

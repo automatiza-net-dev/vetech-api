@@ -22,36 +22,45 @@ export default class PatientTutorsController {
 	) {}
 
 	public async index({ auth, request, response }: HttpContextContract) {
-
 		const qs = request.qs();
-		const patients = await this.service.tutorsIndex(await this.sharedService.getAuthContext(auth), qs);
+		const patients = await this.service.tutorsIndex(
+			await this.sharedService.getAuthContext(auth),
+			qs,
+		);
 
 		return response.ok(patients);
 	}
 
 	public async reducedIndex({ auth, request, response }: HttpContextContract) {
 		const qs = request.qs();
-		const patients = await this.service.reducedTutorsIndex(await this.sharedService.getAuthContext(auth), {
-			name: qs.name,
-			document: qs.document,
-			patient: qs.patient,
-			phone: qs.phone,
-			race: qs.race,
-		});
+		const patients = await this.service.reducedTutorsIndex(
+			await this.sharedService.getAuthContext(auth),
+			{
+				name: qs.name,
+				document: qs.document,
+				patient: qs.patient,
+				phone: qs.phone,
+				race: qs.race,
+			},
+		);
 
 		return response.ok(patients);
 	}
 
 	public async notRelated({ auth, params, response }: HttpContextContract) {
-
-		const patients = await this.service.tutorNonPatients(await this.sharedService.getAuthContext(auth), params.id);
+		const patients = await this.service.tutorNonPatients(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.ok(patients);
 	}
 
 	public async show({ auth, params, response }: HttpContextContract) {
-
-		const patients = await this.service.show(await this.sharedService.getAuthContext(auth), params.id);
+		const patients = await this.service.show(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.ok(patients);
 	}
@@ -93,17 +102,23 @@ export default class PatientTutorsController {
 			const origin = ctx.request.input("origin", "");
 
 			if (origin === "" || origin === "Cadastro") {
-				if (authCtx.system.name === "Sanclá") {
+				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
-				} else if (authCtx.system.name === "LiftOne") {
+				} else if (
+					authCtx.system.name === "LiftOne" ||
+					authCtx.system.type === "Clinica"
+				) {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
-				if (authCtx.system.name === "Sanclá") {
+				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForGenericValidator);
 				}
 
-				if (authCtx.system.name === "LiftOne") {
+				if (
+					authCtx.system.name === "LiftOne" ||
+					authCtx.system.type === "Clinica"
+				) {
 					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
 			} else {
@@ -123,7 +138,10 @@ export default class PatientTutorsController {
 		return this.sharedService.errorHoc(response, async () => {
 			const payload = await request.validate(AssignPatientTutorValidator);
 
-			await this.service.assignPatientTutor(await this.sharedService.getAuthContext(auth), payload);
+			await this.service.assignPatientTutor(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
 			return response.created();
 		});
@@ -158,19 +176,25 @@ export default class PatientTutorsController {
 			const origin = request.input("origin");
 
 			if (origin === "" || origin === "Cadastro") {
-				if (authCtx.system.name === "Sanclá") {
+				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
 				}
 
-				if (authCtx.system.name === "LiftOne") {
+				if (
+					authCtx.system.name === "LiftOne" ||
+					authCtx.system.type === "Clinica"
+				) {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
-				if (authCtx.system.name === "Sanclá") {
+				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForGenericValidator);
 				}
 
-				if (authCtx.system.name === "LiftOne") {
+				if (
+					authCtx.system.name === "LiftOne" ||
+					authCtx.system.type === "Clinica"
+				) {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}
 			} else {

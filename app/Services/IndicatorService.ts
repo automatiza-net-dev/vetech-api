@@ -4533,11 +4533,14 @@ export default class IndicatorService {
 			);
 		}
 
-		if (authCtx.system.name === "Sanclá") {
+		if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 			return this.sanclaChartsIndicators(authCtx, data);
 		}
 
-		if (authCtx.system.name === "LiftOne") {
+		if (
+			authCtx.system.name === "LiftOne" ||
+			authCtx.system.type === "Clinica"
+		) {
 			return this.liftOneChartsIndicators(authCtx, data);
 		}
 
@@ -5962,7 +5965,7 @@ export default class IndicatorService {
 		const salesResult = await salesQb;
 		const generalResult = await qb;
 
-		if (authCtx.system.name === "Sanclá") {
+		if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 			const _agendados = Number.parseInt(
 				generalResult.at(0)?.agendados ?? "0",
 				10,

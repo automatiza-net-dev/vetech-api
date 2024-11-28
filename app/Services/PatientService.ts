@@ -765,7 +765,9 @@ export default class PatientService {
 			.where("status", HospitalizationStatus.ACTIVE);
 		const sales = await Bill.query()
 			.where(
-				authCtx.system.name === "LiftOne" ? "client_id" : "patient_id",
+				authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+					? "client_id"
+					: "patient_id",
 				patient.id,
 			)
 			.where("status", BillStatus.A);
@@ -1035,7 +1037,10 @@ export default class PatientService {
 			);
 		}
 
-		const key = authCtx.system.name === "LiftOne" ? "client_id" : "patient_id";
+		const key =
+			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+				? "client_id"
+				: "patient_id";
 		const sales = await Bill.query()
 			.where(key, patient.id)
 			.where("status", BillStatus.A);
@@ -1050,7 +1055,10 @@ export default class PatientService {
 	}
 
 	public async salesMetadata(authCtx: AuthContext, patientId: string) {
-		const key = authCtx.system.name === "LiftOne" ? "client_id" : "patient_id";
+		const key =
+			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+				? "client_id"
+				: "patient_id";
 
 		const patient = await authCtx.group
 			.related("patients")

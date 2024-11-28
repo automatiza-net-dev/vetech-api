@@ -20,6 +20,19 @@ export default class SchedulesController {
 		private readonly sharedService: SharedService,
 	) {}
 
+	public async searchScheduleEvents({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.searchScheduleEvents(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async searchSchedulesToAddToMovement({
 		auth,
 		request,

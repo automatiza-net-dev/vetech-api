@@ -461,8 +461,8 @@ export default class ReportService {
 		const result = await qb;
 
 		const metaResult: {
-			usuario_Agenda_Origem_Venda: string | null;
-			data_Venda_Anterior: string | null;
+			usuario_agenda_origem_venda: string | null;
+			data_venda_anterior: string | null;
 			id: string;
 		}[] = await Database.from("bills")
 			.select(
@@ -470,12 +470,12 @@ export default class ReportService {
         from users
                  join schedules on users.id = schedules.creation_user_id
                  join schedules_movements sm on schedules.id = sm.schedule_id and sm.movement_id = bills.id and
-                                                sm.type = 'bill')    as usuario_Agenda_Origem_Venda,
+                                                sm.type = 'bill')    as usuario_agenda_origem_venda,
        (select max(UltimaVenda.bill_date)
         from bills UltimaVenda
         where UltimaVenda.client_id = bills.client_id
           and UltimaVenda.bill_date < bills.bill_date
-          and UltimaVenda.business_unit_id = bills.business_unit_id) as data_Venda_Anterior,
+          and UltimaVenda.business_unit_id = bills.business_unit_id) as data_venda_anterior,
        bills.id`),
 			)
 			.joinRaw(
@@ -507,9 +507,9 @@ export default class ReportService {
 
 				originUser:
 					metaResult.find((mr) => mr.id === elem.id)
-						?.usuario_Agenda_Origem_Venda ?? null,
+						?.usuario_agenda_origem_venda ?? null,
 				pastSaleDate:
-					metaResult.find((mr) => mr.id === elem.id)?.data_Venda_Anterior ??
+					metaResult.find((mr) => mr.id === elem.id)?.data_venda_anterior ??
 					null,
 
 				group: {

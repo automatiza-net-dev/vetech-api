@@ -1,19 +1,19 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { inject } from "@adonisjs/fold";
 import SharedService from "App/Services/SharedService";
-import ScheduleMovementsService from "App/Services/ScheduleMovementsService";
-import CreateMovementValidator from "App/Validators/ScheduleMovements/CreateMovementValidator";
+import UpsertOpportunityMovementValidator from "App/Validators/OpportunityMovements/UpsertOpportunityMovementValidator";
+import OpportunityMovementsService from "App/Services/OpportunityMovementsService";
 
 @inject()
-export default class ScheduleMovementsController {
+export default class OpportunityMovementsController {
 	constructor(
 		private sharedService: SharedService,
-		private service: ScheduleMovementsService,
+		private service: OpportunityMovementsService,
 	) {}
 
 	public async search({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			const result = await this.service.searchScheduleMovements(
+			const result = await this.service.searchOpportunityMovements(
 				await this.sharedService.getAuthContext(auth),
 				request.qs(),
 			);
@@ -24,9 +24,9 @@ export default class ScheduleMovementsController {
 
 	public async store({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateMovementValidator);
+			const data = await request.validate(UpsertOpportunityMovementValidator);
 
-			await this.service.createScheduleMovements(
+			await this.service.createOpportunityMovements(
 				await this.sharedService.getAuthContext(auth),
 				data.items,
 			);
@@ -37,9 +37,9 @@ export default class ScheduleMovementsController {
 
 	public async cancel({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateMovementValidator);
+			const data = await request.validate(UpsertOpportunityMovementValidator);
 
-			await this.service.cancelScheduleMovements(
+			await this.service.cancelOpportunityMovements(
 				await this.sharedService.getAuthContext(auth),
 				data.items,
 			);

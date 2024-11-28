@@ -1,5 +1,6 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { UnitStatus } from "App/Models/BusinessUnit";
 
 export default class UpdateBusinessUnitValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -25,6 +26,8 @@ export default class UpdateBusinessUnitValidator {
 		cityRegistration: schema.string.optional({}),
 		cnae: schema.string.optional({}),
 		simple: schema.boolean(),
+
+		status: schema.enum.optional(UnitStatus),
 	});
 
 	public messages: CustomMessages = {};

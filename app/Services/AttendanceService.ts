@@ -154,6 +154,7 @@ export default class AttendanceService {
 							user_id: authCtx.user.id,
 							holder_id: mainTutor.id,
 							patient_id: patient.id,
+							creation_user_id: authCtx.user.id,
 							startHour: DateTime.now().minus({ hours: 3 }),
 							endHour: DateTime.now()
 								.minus({

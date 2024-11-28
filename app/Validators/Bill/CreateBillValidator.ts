@@ -21,12 +21,22 @@ export default class CreateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "daily_movements", column: "id" }),
 		]),
+		scheduleId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "schedules", column: "id" }),
+		]),
 		billDate: schema.date(),
 
 		additionalInformation: schema.string.optional(),
 		budgetId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "budgets", column: "id" }),
+		]),
+
+		internalCode: schema.string.optional(),
+		originBillId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "bills", column: "id" }),
 		]),
 
 		items: schema.array().members(

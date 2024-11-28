@@ -57,7 +57,7 @@ export default class InviteService {
 				.joinRaw(
 					`left join user_unit_roles
                    ON user_unit_roles.user_id = users.id and user_unit_roles.unit_id = ?`,
-					[authCtx.unit.id],
+					[data.businessUnitId],
 				)
 				.whereRaw("users.email = ?", [data.email])
 				.whereRaw("users_economic_groups.economic_group_id = ?", [
@@ -100,8 +100,7 @@ export default class InviteService {
 				await this.sendInviteEmail({
 					email: data.email,
 					url,
-					unitName:
-						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
 					imageUrl: authCtx.system.mailImage ?? "#",
@@ -148,8 +147,7 @@ export default class InviteService {
 				await this.sendInviteEmail({
 					email: data.email,
 					url,
-					unitName:
-						authCtx.group.fantasyName || authCtx.group.companyName || "-",
+					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
 					imageUrl: authCtx.system.mailImage ?? "#",
@@ -195,7 +193,7 @@ export default class InviteService {
 			await this.sendInviteEmail({
 				email: data.email,
 				url: "",
-				unitName: authCtx.group.fantasyName || authCtx.group.companyName || "-",
+				unitName: authCtx.unit.identification ?? "-",
 				invitedBy: authCtx.user.name,
 				systemName: authCtx.system.name,
 				imageUrl: authCtx.system.mailImage ?? "#",

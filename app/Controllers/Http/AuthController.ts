@@ -156,7 +156,7 @@ export default class AuthController {
 			});
 		}
 
-		const { unit } = await this.sharedService.getAuthContext(auth);
+		const { unit, system } = await this.sharedService.getAuthContext(auth);
 		await unit.load("unitConfig", (query) => {
 			query.select([
 				"id",
@@ -217,6 +217,10 @@ export default class AuthController {
 				city: unit.city,
 				state: unit.state,
 				economicGroup: { id: unit.economicGroupId },
+				system: {
+					id: system.id,
+					type: system.type,
+				},
 			},
 			cl: await this.authService.getUserACL(user, system_id, unit.id),
 			isThirdParty: false,

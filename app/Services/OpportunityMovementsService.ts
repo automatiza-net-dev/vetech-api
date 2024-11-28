@@ -4,11 +4,11 @@ import { DateTime } from "luxon";
 import { AuthContext } from "./SharedService";
 
 @inject()
-export default class ScheduleMovementsService {
-	public async searchScheduleMovements(
+export default class OpportunityMovementsService {
+	public async searchOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			schedule?: string;
+			opportunity?: number;
 			movement?: string;
 			type?: string;
 		},
@@ -19,14 +19,14 @@ export default class ScheduleMovementsService {
 			type: "bill" | "budget";
 		}[]
 	> {
-		const qb = Database.from("schedules_movements")
-			.select("schedule_id", "movement_id", "type")
+		const qb = Database.from("opportunities_movements")
+			.select("opportunity_id", "movement_id", "type")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.whereNull("deleted_at");
 
-		if (data.schedule) {
-			qb.where("schedule_id", data.schedule);
+		if (data.opportunity) {
+			qb.where("opportunity_id", data.opportunity);
 		}
 
 		if (data.movement) {
@@ -40,22 +40,22 @@ export default class ScheduleMovementsService {
 		return qb;
 	}
 
-	public async createScheduleMovements(
+	public async createOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			scheduleId: string;
+			opportunityId: number;
 			movementId: string;
 			type: string;
 		}[],
 	) {
-		await Database.table("schedules_movements")
+		await Database.table("opportunities_movements")
 			.returning("id")
 			.multiInsert(
 				data.map((elem) => ({
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					creation_user_id: authCtx.user.id,
-					schedule_id: elem.scheduleId,
+					opportunity_id: elem.opportunityId,
 					movement_id: elem.movementId,
 					type: elem.type,
 					created_at: DateTime.now(),
@@ -64,21 +64,21 @@ export default class ScheduleMovementsService {
 			);
 	}
 
-	public async cancelScheduleMovements(
+	public async cancelOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
-			scheduleId: string;
+			opportunityId: number;
 			movementId: string;
 			type: string;
 		}[],
 	) {
-		await Database.from("schedules_movements")
+		await Database.from("opportunities_movements")
 			.whereNull("deleted_at")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.whereIn(
-				"schedule_id",
-				data.map((d) => d.scheduleId),
+				"opportunity_id",
+				data.map((d) => d.opportunityId),
 			)
 			.whereIn(
 				"movement_id",

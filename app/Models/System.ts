@@ -47,6 +47,9 @@ export default class System extends BaseModel {
 	})
 	public mailTextWarnUser: string | null;
 
+	@column({})
+	public type: string;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

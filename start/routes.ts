@@ -351,6 +351,10 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get(
+		"/search-to-movement",
+		"SchedulesController.searchSchedulesToAddToMovement",
+	);
 	Route.get("/home", "SchedulesController.homeContent");
 	Route.get("/home-2", "SchedulesController.homeContent_2");
 	Route.get("/disponibility", "SchedulesController.viewDisponibility");
@@ -368,6 +372,10 @@ Route.group(() => {
 	Route.get("/appointsments/:id", "SchedulesController.userAppointments");
 	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
 	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
+	Route.get(
+		"/schedules-attendances/:patientID",
+		"SchedulesController.schedulesAttendances",
+	);
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");
@@ -1896,7 +1904,23 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/search", "ScheduleMovementsController.search");
 	Route.post("/store", "ScheduleMovementsController.store");
+	Route.post("/cancel", "ScheduleMovementsController.cancel");
 })
 	.prefix("schedule-movements")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "OpportunitiesMovementsController.search");
+	Route.post("/store", "OpportunitiesMovementsController.store");
+	Route.post("/cancel", "OpportunitiesMovementsController.cancel");
+})
+	.prefix("opportunity-movements")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "FocusController.search");
+})
+	.prefix("focus")
 	.middleware("auth");

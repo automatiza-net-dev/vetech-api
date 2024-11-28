@@ -15,7 +15,7 @@ import BudgetPayment, {
 } from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
-import Patient from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -42,6 +42,7 @@ import DepositService from "./DepositService";
 import { v4 } from "uuid";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import ScheduleMovementsService from "./ScheduleMovementsService";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -51,7 +52,9 @@ interface ISearchPartial {
 	seller?: string;
 	status?: string;
 	patient?: string;
+	patientName?: string;
 	client?: string;
+	clientName?: string;
 	reviewer?: string;
 	tag?: string;
 	budget_id?: string;
@@ -82,6 +85,7 @@ export default class BudgetService {
 	constructor(
 		private sharedService: SharedService,
 		private depositService: DepositService,
+		private scheduleMovementService: ScheduleMovementsService,
 	) {}
 
 	public async budgetsFromAttendance(
@@ -406,8 +410,26 @@ export default class BudgetService {
 			qb.where("patient_id", data.patient);
 		}
 
+		if (data.patientName) {
+			qb.whereHas("patient", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
+			});
+		}
+
 		if (data.client) {
 			qb.where("client_id", data.client);
+		}
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
+			});
 		}
 
 		if (data.reviewer) {
@@ -546,6 +568,9 @@ export default class BudgetService {
 				});
 			})
 			.preload("payments", (query) => {
+				query.preload("paymentMethod", (query) => {
+					query.select(["id", "description"]);
+				});
 				query.preload("approvalUser", (query) => {
 					query.select(["id", "name"]);
 				});
@@ -592,7 +617,7 @@ export default class BudgetService {
 			.whereRaw("products.economic_group_id = ?", [group.id])
 			.whereRaw("products.purpose not in ('internal')")
 			.whereRaw("products.active is true")
-      .whereRaw("products.deleted_at is null");
+			.whereRaw("products.deleted_at is null");
 
 		if (data.description) {
 			qb.whereRaw("products.description like ?", [`%${data.description}%`]);
@@ -755,6 +780,7 @@ export default class BudgetService {
 					attendance_id: data.attendanceId,
 					reviewer_id: data.reviewerId,
 
+					internalCode: data.internalCode,
 					budgetDate: data.budgetDate,
 					expirationDate: data.expirationDate,
 					productValue: 0,
@@ -782,6 +808,16 @@ export default class BudgetService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			if (data.scheduleId) {
+				await this.scheduleMovementService.createScheduleMovements(authCtx, [
+					{
+						scheduleId: data.scheduleId,
+						type: "budget",
+						movementId: budget.id,
+					},
+				]);
+			}
 
 			for (const item of data.items) {
 				const variation = items.find(
@@ -871,6 +907,7 @@ export default class BudgetService {
 			reviewerId?: string;
 			observation?: string;
 			internalObservation?: string;
+			internalCode?: string;
 			maxDiscount: boolean;
 			items: {
 				budgetItemId?: string;
@@ -1048,6 +1085,7 @@ export default class BudgetService {
 					serviceValue: serviceSum,
 					discountValue: discountSum,
 					totalValue: productSum + serviceSum,
+					internalCode: data.internalCode,
 
 					expirationDate: data.expirationDate,
 					budgetDate: data.budgetDate,
@@ -1547,68 +1585,103 @@ export default class BudgetService {
 			);
 		}
 
-		const client = await Patient.query()
-			.where("id", model.client_id)
-			.preload("tutor")
-			.preload("bills")
-			.firstOrFail();
-		if (client.bills.length === 0) {
-			await client
-				.merge({
-					firstSale: DateTime.now(),
-				})
-				.save();
-		}
-
-		const ufIcms = await UfIcms.query()
-			.where("origin_uf", authCtx.unit.state ?? "")
-			.where("destination_uf", client.tutor?.state ?? authCtx.unit.state ?? "")
-			.first();
-
-		const items = await model
-			.related("items")
-			.query()
-			.whereNotIn("id", data.notConfirmedItems)
-			.preload("productVariation", (query) => {
-				query.preload("product");
-			});
-
-		if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
-			throw new BadRequestException(
-				"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const payments = await model.related("payments").query();
-		if (payments.some((i) => i.pending)) {
-			throw new BadRequestException(
-				"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const rules = await TaxationGroupRule.query()
-			.whereHas("taxationGroup", (query) => {
-				query.whereIn(
-					"id",
-					items.map((item) => item.productVariation.product.taxation_group_id),
-				);
-			})
-			.where("movement_type", MovementType.S)
-			.where("movement_category", MovementCategory.NS)
-			.where("fromUf", authCtx.unit.state ?? "")
-			.where("toUf", authCtx.unit.state ?? "")
-			.where(
-				"company_type",
-				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
-			)
-			.preload("taxationGroup")
-			.preload("taxOperation");
-
 		return Database.transaction(async (trx) => {
+			const client = await Patient.query()
+				.where("id", model.client_id)
+				.preload("tutor")
+				.preload("bills")
+				.firstOrFail();
+			if (client.bills.length === 0) {
+				await client
+					.merge({
+						firstSale: DateTime.now(),
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (model.patient_id) {
+				const patient = await Patient.query()
+					.useTransaction(trx)
+					.where("id", model.patient_id)
+					.preload("bills")
+					.firstOrFail();
+				if (patient.bills.length === 0) {
+					await patient
+						.merge({
+							firstSale: DateTime.now(),
+						})
+						.useTransaction(trx)
+						.save();
+				}
+			}
+
+			await Patient.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					[model.client_id, model.patient_id].filter(Boolean) as string[],
+				)
+				.update({
+					lastSale: DateTime.now(),
+				});
+
+			const ufIcms = await UfIcms.query()
+				.useTransaction(trx)
+				.where("origin_uf", authCtx.unit.state ?? "")
+				.where(
+					"destination_uf",
+					client.tutor?.state ?? authCtx.unit.state ?? "",
+				)
+				.first();
+
+			const items = await model
+				.related("items")
+				.query()
+				.useTransaction(trx)
+				.whereNotIn("id", data.notConfirmedItems)
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				});
+
+			if (items.some((i) => (i.courtesy || i.maxDiscount) && !i.approved)) {
+				throw new BadRequestException(
+					"Este orçamento possui pendencias de Cortesia/Desconto Máximo que precisam ser aprovadas antes de ser confirmado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const payments = await model.related("payments").query();
+			if (payments.some((i) => i.pending)) {
+				throw new BadRequestException(
+					"Orçamento possui pendencias de liberação nos pagamentos e não pode ser confirmado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const rules = await TaxationGroupRule.query()
+				.useTransaction(trx)
+				.whereHas("taxationGroup", (query) => {
+					query.whereIn(
+						"id",
+						items.map(
+							(item) => item.productVariation.product.taxation_group_id,
+						),
+					);
+				})
+				.where("movement_type", MovementType.S)
+				.where("movement_category", MovementCategory.NS)
+				.where("fromUf", authCtx.unit.state ?? "")
+				.where("toUf", authCtx.unit.state ?? "")
+				.where(
+					"company_type",
+					authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+				)
+				.preload("taxationGroup")
+				.preload("taxOperation");
+
 			const invalidRows = await this.depositService.validateDepositOperation(
 				trx,
 				authCtx,
@@ -1642,9 +1715,10 @@ export default class BudgetService {
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
 					daily_movement_id: model.daily_movement_id,
-
 					client_id: model.client_id,
 					patient_id: model.patient_id,
+
+					internalCode: model.internalCode,
 					billDate: DateTime.now(),
 					productValue: totalProductValue,
 					serviceValue: totalServiceValue,
@@ -2367,7 +2441,6 @@ export default class BudgetService {
 		},
 	) {
 		const qb = Database.from("budget_payments")
-			.debug(true)
 			.select(
 				Database.raw(`budget_payments.id                as id_Orcamento_Pgto,
        budget_payments.budget_id         as id_Orcamento,

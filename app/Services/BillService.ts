@@ -21,7 +21,7 @@ import Finance, {
 } from "App/Models/Finance";
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
-import Patient from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
@@ -55,14 +55,17 @@ import { validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import ScheduleMovementsService from "./ScheduleMovementsService";
 
 interface ISearch {
 	fromBill?: string;
 	toBill?: string;
 	status?: string;
 	client?: string;
+	clientName?: string;
 	patientTag?: string;
 	patient?: string;
+	patientName?: string;
 	tag?: string;
 	bill_id?: string;
 	pending?: string;
@@ -90,6 +93,7 @@ export default class BillService {
 	constructor(
 		private sharedService: SharedService,
 		private depositService: DepositService,
+		private scheduleMovementService: ScheduleMovementsService,
 	) {}
 
 	isValidNumber(data: number | undefined) {
@@ -129,6 +133,24 @@ export default class BillService {
 
 		if (data.patient) {
 			qb.where("patient_id", data.patient);
+		}
+
+		if (data.patientName) {
+			qb.whereHas("patient", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
+			});
+		}
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query.whereRaw("patients.name ilike ? and patients.type = ?", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
+			});
 		}
 
 		if (data.bill_id) {
@@ -560,6 +582,7 @@ export default class BillService {
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId ?? null,
 					additionalInformation: data.additionalInformation,
+					internalCode: data.internalCode,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1258,6 +1281,7 @@ where deposit_id = ?
 							$checkingAccountMeta?.checking_account_id ??
 							paymentMethod.checkingAccountId,
 
+						internalCode: bill.internalCode,
 						type: FinanceType.C,
 						installment: v + 1,
 						block: max + 1,
@@ -1732,6 +1756,17 @@ where deposit_id = ?
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
 			}
 
+			const rows = await Database.from("bills")
+				.select("id")
+				.where("origin_bill_id", bill.id);
+			if (rows.length > 0) {
+				throw new BadRequestException(
+					"Esta venda não pode ser excluida pois foi utilizada como Referencia para outras vendas",
+					400,
+					"E_ERR",
+				);
+			}
+
 			// if (bill.payments.length > 0) {
 			// 	throw new BadRequestException(
 			// 		"Venda possui pagamentos lançados. Para exclui-la é necessário excluir todos os pagamentos",
@@ -2086,7 +2121,7 @@ where deposit_id = ?
 		//   .where('id', data.clientId)
 		//   .preload('tutor')
 		//   .firstOrFail();
-
+		//
 		const client = await Patient.query()
 			.useTransaction(trx)
 			.where("id", data.clientId)
@@ -2100,6 +2135,29 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 		}
+
+		if (data.patientId) {
+			const patient = await Patient.query()
+				.useTransaction(trx)
+				.where("id", data.patientId)
+				.preload("bills")
+				.firstOrFail();
+			if (patient.bills.length === 0) {
+				await patient
+					.merge({
+						firstSale: DateTime.now(),
+					})
+					.useTransaction(trx)
+					.save();
+			}
+		}
+
+		await Patient.query()
+			.useTransaction(trx)
+			.whereIn("id", [client.id, data.patientId].filter(Boolean) as string[])
+			.update({
+				lastSale: DateTime.now(),
+			});
 
 		const productVariations = await ProductVariation.query()
 			.useTransaction(trx)
@@ -2181,7 +2239,9 @@ where deposit_id = ?
 				financial_responsible_id: data.financialResponsibleId ?? data.clientId,
 				client_id: data.clientId,
 				patient_id: data.patientId,
+				origin_bill_id: data.originBillId,
 
+				internalCode: data.internalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,
@@ -2202,6 +2262,16 @@ where deposit_id = ?
 				client: trx,
 			},
 		);
+
+		if (data.scheduleId) {
+			await this.scheduleMovementService.createScheduleMovements(authCtx, [
+				{
+					scheduleId: data.scheduleId,
+					type: "bill",
+					movementId: bill.id,
+				},
+			]);
+		}
 
 		await authCtx.unit.unitConfig
 			.merge({

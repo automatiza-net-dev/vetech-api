@@ -1,5 +1,4 @@
 import { inject } from "@adonisjs/fold";
-import { string } from "@ioc:Adonis/Core/Helpers";
 import Database from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -39,10 +38,9 @@ import {
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
-import { v4 } from "uuid";
+import { validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
-import { flatten } from "@poppinss/utils";
 
 interface ISearch {
 	pid?: string;
@@ -63,6 +61,90 @@ export default class ScheduleService {
 		private readonly sharedService: SharedService,
 		private opportunityService: OpportunityService,
 	) {}
+
+	public async searchSchedulesToAddToMovement(
+		authCtx: AuthContext,
+		data: {
+			patientId?: string;
+			businessUnitId?: string;
+			type?: string;
+		},
+	) {
+		if (!data.patientId || !validate(data.patientId)) {
+			throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
+		}
+
+		const pastSchedules: {
+			id: string;
+			start_hour: string;
+			description: string;
+			tipo: "agendas_passadas";
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_passadas' as tipo`,
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
+			.whereRaw("business_unit_id = ?", [
+				data.businessUnitId ?? authCtx.unit.id,
+			])
+			.whereRaw(
+				"(schedules.start_hour::date > now()::date -2 and schedules.start_hour::date < now()::date)",
+			)
+			.where("schedules.patient_id", data.patientId)
+			.orderBy("schedules.start_hour", "desc")
+			.limit(1);
+
+		const futureSchedules: {
+			id: string;
+			start_hour: string;
+			description: string;
+			tipo: "agendas_futuras";
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_futuras' as tipo`,
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+			)
+			.whereRaw("business_unit_id = ?", [
+				data.businessUnitId ?? authCtx.unit.id,
+			])
+			.whereRaw("schedules.start_hour::date >= now()::date")
+			.where("schedules.patient_id", data.patientId)
+			.orderBy("schedules.start_hour", "desc");
+
+		return [...pastSchedules, ...futureSchedules].sort(
+			(a, b) =>
+				new Date(a.start_hour).getTime() - new Date(b.start_hour).getTime(),
+		);
+	}
+
+	public async schedulesAttendances(authCtx: AuthContext, patientID: string) {
+		if (!validate(patientID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		return Database.from("schedules")
+			.select(
+				Database.raw(
+					"schedules.id, users.name, schedules.start_hour, schedules.finished_at",
+				),
+			)
+			.joinRaw("join users on schedules.user_id = users.id")
+			.whereNull("schedules.deleted_at")
+			.where("schedules.business_unit_id", authCtx.unit.id)
+			.where("schedules.patient_id", patientID)
+			.whereRaw("schedules.start_hour::date >= now()::date - 1")
+			.whereRaw(
+				"schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null and attendances.patient_id = schedules.patient_id)",
+			);
+	}
 
 	public async homeContent(authCtx: AuthContext, data: IHomeSearch) {
 		const qb = Schedule.query()
@@ -537,6 +619,7 @@ export default class ScheduleService {
 					patient_id: data.patientId,
 					race_id: data.raceId,
 					schedule_service_type_id: data.scheduleServiceTypeId,
+					creation_user_id: authCtx.user.id,
 					// treatment_id: data.treatmentId,
 					// treatment_item_id: data.treatmentItemId,
 					// treatment_execution_id: data.treatmentExecutionId,
@@ -1290,7 +1373,8 @@ export default class ScheduleService {
                        'id', ss.id,
                        'description', ss.description,
                        'color', ss.color,
-                       'type', ss.type
+                       'type', ss.type,
+                       'reason', ssc.observation
                )
            END as reason,
        COALESCE(
@@ -1435,7 +1519,8 @@ export default class ScheduleService {
          sp.description,
          h.id,
          h.name,
-         pt2.cellphone`)
+         pt2.cellphone,
+         ssc.observation`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

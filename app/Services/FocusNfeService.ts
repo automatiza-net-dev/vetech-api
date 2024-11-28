@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
@@ -553,6 +554,32 @@ export default class FocusNfeService {
 		}
 
 		return obj;
+	}
+
+	public async getDownloadLinks(
+		token: string,
+		data: {
+			cnpj: string;
+			periodo: string;
+		},
+	) {
+		const response = await this.ax.get(`/v2/backups/${data.cnpj}.json`, {
+			auth: {
+				username: token,
+				password: "",
+			},
+		});
+
+		const record = response.data.find((f) => f.mes === data.periodo);
+		if (!record) {
+			throw new ResourceNotFoundException(
+				"Arquivo não encontrado",
+				404,
+				"E_BACKUP_NOT_FOUND",
+			);
+		}
+
+		return record.xmls;
 	}
 
 	public async getNfe(ref: string, token: string, complete = true) {

@@ -106,7 +106,9 @@ export default class ScheduleService {
                        DISTINCT jsonb_build_object(
                                'id', ssc.id,
                                'created_at', ssc.created_at,
-                               'observation', ssc.observation
+                               'status', ss.description,
+                               'observation', ssc.observation,
+                               'color', ss.color
                                 )
                                ) FILTER (WHERE ssc.id IS NOT NULL),
                        '[]'::json

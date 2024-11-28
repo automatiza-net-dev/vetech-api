@@ -1374,7 +1374,7 @@ export default class ScheduleService {
                        'description', ss.description,
                        'color', ss.color,
                        'type', ss.type,
-                       'reason', ssc.observation
+                       'reason', schedules.observation
                )
            END as reason,
        COALESCE(
@@ -1425,56 +1425,15 @@ export default class ScheduleService {
                                       )
                         )
        )       as holder,
-       COALESCE(
-                       json_agg(
-                       DISTINCT jsonb_build_object(
-                               'id', rs.id,
-                               'observation', rs.observation,
-                               'createdAt', rs.created_at,
-                               'reason', json_build_object(
-                                       'id', rsr.id,
-                                       'reason', rsr.reason
-                                         )
-                                )
-                               ) FILTER (WHERE rs.id IS NOT NULL),
-                       '[]'::json
-       )       as reschedules,
-       COALESCE(
-                       json_agg(
-                       DISTINCT jsonb_build_object(
-                               'id', sc.id,
-                               'contact_date', sc.contact_date,
-                               'observation', sc.observation
-                                )
-                               ) FILTER (WHERE sc.id IS NOT NULL),
-                       '[]'::json
-       )       as contacts,
-       COALESCE(
-                       json_agg(
-                       DISTINCT jsonb_build_object(
-                               'id', ssc.id,
-                               'created_at', ssc.created_at,
-                               'observation', ssc.observation
-                                )
-                               ) FILTER (WHERE ssc.id IS NOT NULL),
-                       '[]'::json
-       )       as status_changes`),
+       '[]'::json as reschedules,
+       '[]'::json as contacts,
+       '[]'::json as status_changes`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
 			)
 			.joinRaw(
 				"join schedule_statuses ss on schedules.schedule_status_id = ss.id",
-			)
-
-			.joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
-			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
-
-			.joinRaw(
-				"left join schedule_contacts sc on schedules.id = sc.schedule_id ",
-			)
-			.joinRaw(
-				"left join schedule_status_changes ssc on ssc.schedule_id = schedules.id and ssc.schedule_status_id = ss.id ",
 			)
 
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
@@ -1519,8 +1478,7 @@ export default class ScheduleService {
          sp.description,
          h.id,
          h.name,
-         pt2.cellphone,
-         ssc.observation`)
+         pt2.cellphone`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

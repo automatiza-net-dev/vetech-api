@@ -62,6 +62,73 @@ export default class ScheduleService {
 		private opportunityService: OpportunityService,
 	) {}
 
+	public async searchScheduleEvents(
+		authCtx: AuthContext,
+		data: {
+			scheduleId?: string;
+			businessUnitId?: string;
+			type?: string;
+		},
+	) {
+		if (!data.scheduleId || !validate(data.scheduleId)) {
+			throw new BadRequestException("ID de agenda inválido", 400, "E_ERR");
+		}
+
+		return Database.from("schedules")
+			.select(
+				Database.raw(`schedules.id as id_agenda,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', rs.id,
+                               'observation', rs.observation,
+                               'createdAt', rs.created_at,
+                               'reason', json_build_object(
+                                       'id', rsr.id,
+                                       'reason', rsr.reason
+                                         )
+                                )
+                               ) FILTER (WHERE rs.id IS NOT NULL),
+                       '[]'::json
+       )            as reschedules,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', sc.id,
+                               'contact_date', sc.contact_date,
+                               'observation', sc.observation
+                                )
+                               ) FILTER (WHERE sc.id IS NOT NULL),
+                       '[]'::json
+       )            as contacts,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', ssc.id,
+                               'created_at', ssc.created_at,
+                               'observation', ssc.observation
+                                )
+                               ) FILTER (WHERE ssc.id IS NOT NULL),
+                       '[]'::json
+       )            as status_changes`),
+			)
+			.joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
+			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
+			.joinRaw(
+				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
+			)
+			.joinRaw(`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
+                   on ssc.schedule_id = schedules.id`)
+			.joinRaw("left join reasons r on schedules.reason_id = r.id")
+			.where(
+				"schedules.business_unit_id",
+				data.businessUnitId ?? authCtx.unit.id,
+			)
+			.where("schedules.id", data.scheduleId)
+			.whereRaw("schedules.deleted_at is null")
+			.groupByRaw("schedules.id");
+	}
+
 	public async searchSchedulesToAddToMovement(
 		authCtx: AuthContext,
 		data: {

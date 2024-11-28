@@ -351,6 +351,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/search-events", "SchedulesController.searchScheduleEvents");
 	Route.get(
 		"/search-to-movement",
 		"SchedulesController.searchSchedulesToAddToMovement",

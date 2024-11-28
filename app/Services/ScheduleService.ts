@@ -74,7 +74,7 @@ export default class ScheduleService {
 			throw new BadRequestException("ID de agenda inválido", 400, "E_ERR");
 		}
 
-		return Database.from("schedules")
+		const result = await Database.from("schedules")
 			.select(
 				Database.raw(`schedules.id as id_agenda,
        COALESCE(
@@ -127,6 +127,10 @@ export default class ScheduleService {
 			.where("schedules.id", data.scheduleId)
 			.whereRaw("schedules.deleted_at is null")
 			.groupByRaw("schedules.id");
+
+		return {
+			events: result.map((r) => ({ event: r })),
+		};
 	}
 
 	public async searchSchedulesToAddToMovement(

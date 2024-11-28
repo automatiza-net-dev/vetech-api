@@ -1374,7 +1374,7 @@ export default class ScheduleService {
                        'description', ss.description,
                        'color', ss.color,
                        'type', ss.type,
-                       'reason', ssc.observation
+                       'reason', schedules.observation
                )
            END as reason,
        COALESCE(

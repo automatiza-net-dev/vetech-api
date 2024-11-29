@@ -557,8 +557,10 @@ export default class BusinessUnitService {
 		}
 
 		if (data.name) {
-			query.orWhere("fantasyName", "ilike", `%${data.name}%`);
-			query.orWhere("companyName", "ilike", `%${data.name}%`);
+			query.whereRaw("(fantasy_name ilike ? or company_name ilike ?)", [
+				`%${data.name}%`,
+				`%${data.name}%`,
+			]);
 		}
 
 		if (data.identification) {

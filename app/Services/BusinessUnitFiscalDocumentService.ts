@@ -4,6 +4,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BusinessUnit from "App/Models/BusinessUnit";
@@ -157,12 +158,20 @@ export default class BusinessUnitFiscalDocumentService {
 	}
 
 	async getPeriodXmls(
-		_authCtx: AuthContext,
+		authCtx: AuthContext,
 		data: {
 			businessUnitId: string;
 			periodo: string;
 		},
 	) {
+		if (!authCtx.hasPermission("REL18")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (!data.businessUnitId || !validate(data.businessUnitId)) {
 			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
 		}

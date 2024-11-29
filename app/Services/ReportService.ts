@@ -1738,6 +1738,14 @@ ON bills.patient_id = Dep."id"`,
 			statuses?: string[];
 		},
 	) {
+		if (!authCtx.hasPermission("REL17")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (!data.businessUnit) {
 			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
 		}
@@ -3190,6 +3198,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			vaccineOrigin?: string;
 		},
 	) {
+		if (!authCtx.hasPermission("REL16")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const qb = Database.from("holder_dependents")
 			.select(
 				Database.raw(`pt.name                                                                as tutor_nome,

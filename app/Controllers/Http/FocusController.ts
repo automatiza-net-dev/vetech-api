@@ -16,6 +16,7 @@ export default class FocusController {
 		return response.ok({
 			url: await this.service.getPeriodXmls(authCtx, {
 				periodo: request.qs().periodo,
+				businessUnitId: request.qs().businessUnitId,
 			}),
 		});
 	}

@@ -38,6 +38,7 @@ import IBusinessUnitFiscalDocumentData, {
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import { validate } from "uuid";
 import { z } from "zod";
 
 interface ISearch {
@@ -156,16 +157,26 @@ export default class BusinessUnitFiscalDocumentService {
 	}
 
 	async getPeriodXmls(
-		authCtx: AuthContext,
+		_authCtx: AuthContext,
 		data: {
+			businessUnitId: string;
 			periodo: string;
 		},
 	) {
-		const token = this.getToken(authCtx.unit);
+		if (!data.businessUnitId || !validate(data.businessUnitId)) {
+			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
+		}
+
+		const unit = await BusinessUnit.findBy("id", data.businessUnitId);
+		if (!unit) {
+			throw new BadRequestException("Unidade inválida", 404, "E_ERR");
+		}
+
+		const token = this.getToken(unit);
 
 		return await this.focusNfe.getDownloadLinks(token, {
 			periodo: data.periodo,
-			cnpj: authCtx.unit.document?.replaceAll(/\D/g, "") ?? "",
+			cnpj: unit.document?.replaceAll(/\D/g, "") ?? "",
 		});
 	}
 

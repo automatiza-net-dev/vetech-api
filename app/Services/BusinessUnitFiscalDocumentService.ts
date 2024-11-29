@@ -167,7 +167,10 @@ export default class BusinessUnitFiscalDocumentService {
 			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
 		}
 
-		const unit = await BusinessUnit.findBy("id", data.businessUnitId);
+		const unit = await BusinessUnit.query()
+			.where("id", data.businessUnitId)
+			.preload("unitConfig")
+			.first();
 		if (!unit) {
 			throw new BadRequestException("Unidade inválida", 404, "E_ERR");
 		}

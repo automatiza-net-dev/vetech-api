@@ -158,13 +158,15 @@ export default class BusinessUnitFiscalDocumentService {
 	async getPeriodXmls(
 		authCtx: AuthContext,
 		data: {
-			cnpj: string;
 			periodo: string;
 		},
 	) {
 		const token = this.getToken(authCtx.unit);
 
-		return await this.focusNfe.getDownloadLinks(token, data);
+		return await this.focusNfe.getDownloadLinks(token, {
+			periodo: data.periodo,
+			cnpj: authCtx.unit.document?.replaceAll(/\D/g, "") ?? "",
+		});
 	}
 
 	async authorize(unitId: string, user: User, data: IAuthorizeFiscalDocument) {

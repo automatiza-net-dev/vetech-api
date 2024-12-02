@@ -9,6 +9,10 @@ export default class CreateHospitalizationOccurrenceValidator {
 			rules.uuid(),
 			rules.exists({ table: "hospitalizations", column: "id" }),
 		]),
+		userId: schema.string.optional({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "users", column: "id" }),
+		]),
 		occurrenceId: schema.string({ trim: true }, [
 			rules.uuid(),
 			rules.exists({ table: "occurrences", column: "id" }),

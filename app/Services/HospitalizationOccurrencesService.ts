@@ -16,6 +16,7 @@ import Occurrence, {
 } from "App/Models/Occurrence";
 import Patient, { PatientWeightOrigin } from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
+import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IHospitalizationOccurrenceData, {
 	IHospitalizationOccurrenceAttachmentData,
@@ -39,16 +40,25 @@ export default class HospitalizationOccurrencesService {
 
 			const hospAttachments: Array<HospitalizationOccurrenceAttachment> = [];
 
+			const technician = data.userId
+				? await User.findOrFail(data.userId, {
+						client: trx,
+					})
+				: authCtx.user;
+
 			const ent = await hospitalization.related("occurrences").create(
 				{
 					occurrence_id: data.occurrenceId,
-					description: data.description,
-					executedAt: data.executedAt,
+					user_id: authCtx.user.id,
+					creation_user_id: data.userId ?? authCtx.user.id,
+
 					hospitalization_medical_prescription_id:
 						data.hospitalizationMedicalPrescriptionId,
+
+					description: data.description,
+					executedAt: data.executedAt,
 					previewedAt: data.previewedAt,
 					resume: data.resume,
-					user_id: authCtx.user.id,
 				},
 				{
 					client: trx,
@@ -94,6 +104,10 @@ export default class HospitalizationOccurrencesService {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
 						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
+						},
 						description: data.description,
 						resume: data.resume,
 						attachments: hospAttachments.map((a) => a.attachment),
@@ -118,6 +132,10 @@ export default class HospitalizationOccurrencesService {
 						technician: {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
+						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
 						},
 						description: data.description,
 						resume: data.resume,
@@ -166,6 +184,10 @@ export default class HospitalizationOccurrencesService {
 						technician: {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
+						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
 						},
 						attachments: hospAttachments.map((a) => a.attachment),
 					},
@@ -216,6 +238,10 @@ export default class HospitalizationOccurrencesService {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
 						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
+						},
 					},
 				});
 			}
@@ -251,6 +277,10 @@ export default class HospitalizationOccurrencesService {
 						technician: {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
+						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
 						},
 						description: data.description,
 						resume: data.resume,
@@ -291,6 +321,10 @@ export default class HospitalizationOccurrencesService {
 						technician: {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
+						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
 						},
 					},
 				});
@@ -338,6 +372,10 @@ export default class HospitalizationOccurrencesService {
 						technician: {
 							id: authCtx.user.id,
 							name: authCtx.user.name,
+						},
+						creationUser: {
+							id: technician.id,
+							name: technician.name,
 						},
 						type: HospitalizationType[hospitalization.type],
 						releaseType: data.resume.includes("AO")

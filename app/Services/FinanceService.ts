@@ -1465,6 +1465,9 @@ export default class FinanceService {
 					paymentValue: elem.paymentValue,
 					paymentDate: elem.paymentDate,
 					originDownFlag: elem.originDownFlag,
+					payment_method_id: elem.paymentMethodId,
+					acquirer_id: elem.tefAcquirerId,
+					tef_flag_id: elem.tefFlagId,
 
 					feeValue: elem.feeValue ?? 0,
 					feePercentage: elem.feePercentage ?? 0,
@@ -1483,8 +1486,6 @@ export default class FinanceService {
 					bank: elem.bank,
 					agency: elem.agency,
 					account: elem.account,
-					acquirer_id: elem.tefAcquirerId,
-					tef_flag_id: elem.tefFlagId,
 				});
 
 				const banking = await Banking.create(

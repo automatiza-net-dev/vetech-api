@@ -78,6 +78,7 @@ export interface IUpdateFinance {
 export interface IFinanceDownData {
 	financeId: string;
 	checkingAccountId: string;
+	paymentMethodId?: string;
 	paymentDate: DateTime;
 	paymentValue: number;
 	originDownFlag: FinanceOriginDownFlag;

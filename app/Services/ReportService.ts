@@ -733,9 +733,9 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			fromDate?: string;
 			toDate?: string;
-			status?: string;
-			client?: string;
-			patient?: string;
+			status?: string[];
+			client?: string[];
+			patient?: string[];
 			businessUnits?: string[];
 			economicGroups?: string[];
 			businessStates?: string[];
@@ -832,16 +832,19 @@ ON bills.patient_id = Dep."id"`,
 			]);
 		}
 
-		if (data.status) {
-			qb.where("status", data.status);
+		if (data.status && Array.isArray(data.status) && data.status.length > 0) {
+			qb.whereIn("status", data.status);
 		}
 
-		if (data.client) {
-			qb.where("client_id", data.client);
+		if (data.client && Array.isArray(data.client) && data.client.length > 0) {
+			qb.whereIn("client_id", data.client);
 		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
+		if (
+			data.patient &&
+			Array.isArray(data.patient) &&
+			data.patient.length > 0
+		) {
+			qb.whereIn("patient_id", data.patient);
 		}
 
 		const result = await qb;
@@ -1245,10 +1248,7 @@ ON bills.patient_id = Dep."id"`,
         pac.name                                                                 as nome_Paciente,
         pac.tag                                                                  as rg_Paciente,
         pac.birth_date                                                           as nasc_Paciente,
-        case
-           when pac.gender = 'male' then 'macho'
-           when pac.gender = 'female' then 'femea'
-           else null end                                                        as genero_Paciente,
+        pac.gender                                                               as genero_Paciente,
         species.description                                                      as especie_Paciente,
         races.description                                                        as raca_Paciente,
         case when pa.castrated then 'Sim' else 'Não' end                         as castrado_Paciente,
@@ -3255,9 +3255,17 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.gender) {
-			qb.whereRaw("pp.gender = ?", [
-				data.gender === "Macho" ? "male" : "female",
-			]);
+			switch (data.gender) {
+				case "Macho":
+					qb.whereRaw("pp.gender = ?", ["masculino"]);
+					break;
+				case "Femea":
+					qb.whereRaw("pp.gender = ?", ["feminino"]);
+					break;
+				case "Outros":
+					qb.whereRaw("pp.gender = ?", ["outros"]);
+					break;
+			}
 		}
 
 		if (data.castrated) {

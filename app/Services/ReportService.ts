@@ -3016,9 +3016,130 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}, [] as unknown[]);
 	}
 
-	public async dreGroupReport(authCtx: AuthContext, data: { period?: string }) {
+	public async dreGroupReport(
+		authCtx: AuthContext,
+		data: { period?: string; v2?: string },
+	) {
 		if (!data.period) {
 			throw new BadRequestException("Periodo não informado", 400, "E_REQ");
+		}
+
+		if (data.v2 === "true") {
+			const dreGroups: {
+				id: number;
+				description: string;
+				sequence: number;
+			}[] = await Database.from("dre_groups")
+				.select("id", "description", "sequence")
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				])
+				.whereNull("deleted_at");
+
+			const accountPlanGroups: {
+				id: number;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				dre_group_id: number | null;
+			}[] = await Database.from("account_plan_groups")
+				.select("id", "description", "type", "dre_group_id")
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				])
+				.whereNull("deleted_at");
+
+			const accountPlanParents: {
+				id: string;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				account_plan_group_id: number | null;
+				sum: number;
+			}[] = await Database.from("account_plans")
+				.select(
+					"account_plans.id",
+					"description",
+					"account_plans.type",
+					"account_plan_group_id",
+					"coalesce(sum(finances.total_value), 0)::float as sum",
+				)
+				.joinRaw(
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",
+				)
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				])
+				.where("dre", true)
+				.whereNull("parent_id")
+				.whereNull("deleted_at");
+
+			const accountPlanChildren: {
+				id: string;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				account_plan_group_id: number | null;
+				parent_id: string;
+				sum: number;
+			}[] = await Database.from("account_plans")
+				.select(
+					"account_plans.id",
+					"description",
+					"account_plans.type",
+					"account_plan_group_id",
+					"parent_id",
+					"coalesce(sum(finances.total_value), 0)::float as sum",
+				)
+				.joinRaw(
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",
+				)
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				])
+				.where("dre", true)
+				.whereNotNull("parent_id")
+				.whereNull("deleted_at");
+
+			return [
+				{
+					id: authCtx.unit.id,
+					identification: authCtx.unit.identification,
+					periodo: data.period,
+					agrupamentos: dreGroups.map((group) => ({
+						id: group.id,
+						basear: false,
+						custo: "100 + 200",
+						refCusto: "99 + 100",
+						total: 100,
+						grupo_plano_contas: accountPlanGroups
+							.filter((a) => a.dre_group_id === group.id)
+							.map((app) => ({
+								id: app.id,
+								description: app.description,
+								custo: 0,
+								refCusto: "12 + 13 - 14",
+								grupo_planos_contas_pai: accountPlanParents
+									.filter((ap) => ap.account_plan_group_id === app.id)
+									.map((ap) => ({
+										id: ap.id,
+										description: ap.description,
+										custo: 0,
+										refCusto: "12 + 13 - 14",
+										grupo_planos_contas: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.map((apc) => ({
+												id: apc.id,
+												description: apc.description,
+												tipo: apc.type,
+												custo: 0,
+											})),
+									})),
+							})),
+					})),
+				},
+			];
 		}
 
 		const result: DreGroupSqlResult[] = await Database.from("account_plans")

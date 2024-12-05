@@ -3383,10 +3383,10 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		if (data.gender) {
 			switch (data.gender) {
 				case "Macho":
-					qb.whereRaw("pp.gender = ?", ["masculino"]);
+					qb.whereRaw("pp.gender = ?", ["male"]);
 					break;
 				case "Femea":
-					qb.whereRaw("pp.gender = ?", ["feminino"]);
+					qb.whereRaw("pp.gender = ?", ["female"]);
 					break;
 				case "Outros":
 					qb.whereRaw("pp.gender = ?", ["outros"]);

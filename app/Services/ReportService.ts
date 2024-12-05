@@ -3064,7 +3064,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        coalesce(sum(finances.total_value), 0)::float as sum`),
 				)
 				.joinRaw(
-					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+					[data.period],
 				)
 				.where("system_id", authCtx.system.id)
 				.whereRaw(
@@ -3092,7 +3093,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        coalesce(sum(finances.total_value), 0)::float as sum`),
 				)
 				.joinRaw(
-					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+					[data.period],
 				)
 				.where("account_plans.system_id", authCtx.system.id)
 				.whereRaw(
@@ -3115,6 +3117,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						custo: "100 + 200",
 						refCusto: "99 + 100",
 						total: 100,
+						description: group.description,
 						grupo_plano_contas: accountPlanGroups
 							.filter((a) => a.dre_group_id === group.id)
 							.map((app) => ({

@@ -733,9 +733,9 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			fromDate?: string;
 			toDate?: string;
-			status?: string;
-			client?: string;
-			patient?: string;
+			status?: string[];
+			client?: string[];
+			patient?: string[];
 			businessUnits?: string[];
 			economicGroups?: string[];
 			businessStates?: string[];
@@ -832,16 +832,19 @@ ON bills.patient_id = Dep."id"`,
 			]);
 		}
 
-		if (data.status) {
-			qb.where("status", data.status);
+		if (data.status && Array.isArray(data.status) && data.status.length > 0) {
+			qb.whereIn("status", data.status);
 		}
 
-		if (data.client) {
-			qb.where("client_id", data.client);
+		if (data.client && Array.isArray(data.client) && data.client.length > 0) {
+			qb.whereIn("client_id", data.client);
 		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
+		if (
+			data.patient &&
+			Array.isArray(data.patient) &&
+			data.patient.length > 0
+		) {
+			qb.whereIn("patient_id", data.patient);
 		}
 
 		const result = await qb;
@@ -1248,7 +1251,7 @@ ON bills.patient_id = Dep."id"`,
         case
            when pac.gender = 'male' then 'macho'
            when pac.gender = 'female' then 'femea'
-           else null end                                                        as genero_Paciente,
+           else null end                                                         as genero_Paciente,
         species.description                                                      as especie_Paciente,
         races.description                                                        as raca_Paciente,
         case when pa.castrated then 'Sim' else 'Não' end                         as castrado_Paciente,
@@ -1738,6 +1741,14 @@ ON bills.patient_id = Dep."id"`,
 			statuses?: string[];
 		},
 	) {
+		if (!authCtx.hasPermission("REL17")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (!data.businessUnit) {
 			throw new BadRequestException("Unidade não informada", 400, "E_ERR");
 		}
@@ -3008,9 +3019,135 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}, [] as unknown[]);
 	}
 
-	public async dreGroupReport(authCtx: AuthContext, data: { period?: string }) {
+	public async dreGroupReport(
+		authCtx: AuthContext,
+		data: { period?: string; v2?: string },
+	) {
 		if (!data.period) {
 			throw new BadRequestException("Periodo não informado", 400, "E_REQ");
+		}
+
+		if (data.v2 === "true") {
+			const dreGroups: {
+				id: number;
+				description: string;
+				sequence: number;
+			}[] = await Database.from("dre_groups")
+				.select("id", "description", "sequence")
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				])
+				.whereNull("deleted_at");
+
+			const accountPlanGroups: {
+				id: number;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				dre_group_id: number | null;
+			}[] = await Database.from("account_plan_groups")
+				.select("id", "description", "type", "dre_group_id")
+				.where("system_id", authCtx.system.id)
+				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+					authCtx.group.id,
+				]);
+
+			const accountPlanParents: {
+				id: string;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				account_plan_group_id: number | null;
+				sum: number;
+			}[] = await Database.from("account_plans")
+				.select(
+					Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
+				)
+				.joinRaw(
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+					[data.period],
+				)
+				.where("system_id", authCtx.system.id)
+				.whereRaw(
+					"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
+					[authCtx.group.id],
+				)
+				.where("dre", true)
+				.whereNull("parent_id")
+				.whereNull("account_plans.deleted_at")
+				.groupBy("account_plans.id");
+
+			const accountPlanChildren: {
+				id: string;
+				description: string;
+				type: "CREDITO" | "DEBITO";
+				account_plan_group_id: number | null;
+				parent_id: string;
+				sum: number;
+			}[] = await Database.from("account_plans")
+				.select(
+					Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
+				)
+				.joinRaw(
+					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+					[data.period],
+				)
+				.where("account_plans.system_id", authCtx.system.id)
+				.whereRaw(
+					"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
+					[authCtx.group.id],
+				)
+				.where("dre", true)
+				.whereNotNull("parent_id")
+				.whereNull("account_plans.deleted_at")
+				.groupBy("account_plans.id");
+
+			return [
+				{
+					id: authCtx.unit.id,
+					identification: authCtx.unit.identification,
+					periodo: data.period,
+					agrupamentos: dreGroups.map((group) => ({
+						id: group.id,
+						basear: false,
+						custo: "100 + 200",
+						refCusto: "99 + 100",
+						total: 100,
+						description: group.description,
+						grupo_plano_contas: accountPlanGroups
+							.filter((a) => a.dre_group_id === group.id)
+							.map((app) => ({
+								id: app.id,
+								description: app.description,
+								custo: 0,
+								refCusto: "12 + 13 - 14",
+								grupo_planos_contas_pai: accountPlanParents
+									.filter((ap) => ap.account_plan_group_id === app.id)
+									.map((ap) => ({
+										id: ap.id,
+										description: ap.description,
+										custo: 0,
+										refCusto: "12 + 13 - 14",
+										grupo_planos_contas: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.map((apc) => ({
+												id: apc.id,
+												description: apc.description,
+												tipo: apc.type,
+												custo: 0,
+											})),
+									})),
+							})),
+					})),
+				},
+			];
 		}
 
 		const result: DreGroupSqlResult[] = await Database.from("account_plans")
@@ -3190,6 +3327,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			vaccineOrigin?: string;
 		},
 	) {
+		if (!authCtx.hasPermission("REL16")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
+
 		const qb = Database.from("holder_dependents")
 			.select(
 				Database.raw(`pt.name                                                                as tutor_nome,
@@ -3239,9 +3384,17 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.gender) {
-			qb.whereRaw("pp.gender = ?", [
-				data.gender === "Macho" ? "male" : "female",
-			]);
+			switch (data.gender) {
+				case "Macho":
+					qb.whereRaw("pp.gender = ?", ["male"]);
+					break;
+				case "Femea":
+					qb.whereRaw("pp.gender = ?", ["female"]);
+					break;
+				case "Outros":
+					qb.whereRaw("pp.gender = ?", ["outros"]);
+					break;
+			}
 		}
 
 		if (data.castrated) {

@@ -4234,8 +4234,13 @@ export default class IndicatorService {
 											.at(0)
 											?.reduce((acc, curr) => acc + curr.projection, 0) ?? 0,
 									),
-									// @ts-ignore
-									color: "color" in cards.at(0) ? cards.at(0).color : "#000000",
+									color:
+										// @ts-ignore
+										// biome-ignore lint/correctness/noUnsafeOptionalChaining: <explanation>
+										"color" in cards.at(0)?.at(0)
+											? // @ts-ignore
+												cards.at(0).at(0).color
+											: "#000000",
 								},
 							],
 						}

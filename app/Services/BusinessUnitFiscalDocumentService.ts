@@ -4,6 +4,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BusinessUnit from "App/Models/BusinessUnit";
@@ -38,6 +39,7 @@ import IBusinessUnitFiscalDocumentData, {
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import { validate } from "uuid";
 import { z } from "zod";
 
 interface ISearch {
@@ -158,13 +160,36 @@ export default class BusinessUnitFiscalDocumentService {
 	async getPeriodXmls(
 		authCtx: AuthContext,
 		data: {
-			cnpj: string;
+			businessUnitId: string;
 			periodo: string;
 		},
 	) {
-		const token = this.getToken(authCtx.unit);
+		if (!authCtx.hasPermission("REL18")) {
+			throw new UnauthorizedException(
+				"Sem permissão para ver o relatório",
+				400,
+				"E_ERR",
+			);
+		}
 
-		return await this.focusNfe.getDownloadLinks(token, data);
+		if (!data.businessUnitId || !validate(data.businessUnitId)) {
+			throw new BadRequestException("Unidade inválida", 400, "E_ERR");
+		}
+
+		const unit = await BusinessUnit.query()
+			.where("id", data.businessUnitId)
+			.preload("unitConfig")
+			.first();
+		if (!unit) {
+			throw new BadRequestException("Unidade inválida", 404, "E_ERR");
+		}
+
+		const token = this.getToken(unit);
+
+		return await this.focusNfe.getDownloadLinks(token, {
+			periodo: data.periodo,
+			cnpj: unit.document?.replaceAll(/\D/g, "") ?? "",
+		});
 	}
 
 	async authorize(unitId: string, user: User, data: IAuthorizeFiscalDocument) {

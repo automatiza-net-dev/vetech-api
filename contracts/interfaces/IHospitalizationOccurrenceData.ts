@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 
 export default interface IHospitalizationOccurrenceData {
 	hospitalizationId: string;
+	userId?: string;
 	occurrenceId: string;
 	hospitalizationMedicalPrescriptionId?: string;
 	executedAt: DateTime;

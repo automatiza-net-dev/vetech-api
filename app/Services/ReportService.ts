@@ -3057,11 +3057,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				sum: number;
 			}[] = await Database.from("account_plans")
 				.select(
-					"account_plans.id",
-					"description",
-					"account_plans.type",
-					"account_plan_group_id",
-					"coalesce(sum(finances.total_value), 0)::float as sum",
+					Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
 				)
 				.joinRaw(
 					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",
@@ -3083,12 +3083,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				sum: number;
 			}[] = await Database.from("account_plans")
 				.select(
-					"account_plans.id",
-					"description",
-					"account_plans.type",
-					"account_plan_group_id",
-					"parent_id",
-					"coalesce(sum(finances.total_value), 0)::float as sum",
+					Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
 				)
 				.joinRaw(
 					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null",

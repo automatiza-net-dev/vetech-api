@@ -3073,7 +3073,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				)
 				.where("dre", true)
 				.whereNull("parent_id")
-				.whereNull("account_plans.deleted_at");
+				.whereNull("account_plans.deleted_at")
+				.groupBy("account_plans.id");
 
 			const accountPlanChildren: {
 				id: string;
@@ -3100,7 +3101,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				)
 				.where("dre", true)
 				.whereNotNull("parent_id")
-				.whereNull("account_plans.deleted_at");
+				.whereNull("account_plans.deleted_at")
+				.groupBy("account_plans.id");
 
 			return [
 				{

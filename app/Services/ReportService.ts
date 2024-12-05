@@ -1248,7 +1248,10 @@ ON bills.patient_id = Dep."id"`,
         pac.name                                                                 as nome_Paciente,
         pac.tag                                                                  as rg_Paciente,
         pac.birth_date                                                           as nasc_Paciente,
-        pac.gender                                                               as genero_Paciente,
+        case
+           when pac.gender = 'male' then 'macho'
+           when pac.gender = 'female' then 'femea'
+           else null end                                                         as genero_Paciente,
         species.description                                                      as especie_Paciente,
         races.description                                                        as raca_Paciente,
         case when pa.castrated then 'Sim' else 'Não' end                         as castrado_Paciente,

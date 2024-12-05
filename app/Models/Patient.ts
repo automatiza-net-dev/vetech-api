@@ -29,8 +29,9 @@ export enum PatientType {
 }
 
 export enum PatientGender {
-	MALE = "male",
-	FEMALE = "female",
+	MALE = "masculino",
+	FEMALE = "feminino",
+	OTHER = "outro",
 }
 
 export enum PatientVaccineOrigin {

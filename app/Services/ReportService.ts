@@ -3047,8 +3047,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				.where("system_id", authCtx.system.id)
 				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
 					authCtx.group.id,
-				])
-				.whereNull("deleted_at");
+				]);
 
 			const accountPlanParents: {
 				id: string;
@@ -3072,7 +3071,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 					authCtx.group.id,
 				])
 				.where("dre", true)
-				.whereNull("parent_id");
+				.whereNull("parent_id")
+				.whereNull("deleted_at");
 
 			const accountPlanChildren: {
 				id: string;
@@ -3098,7 +3098,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 					authCtx.group.id,
 				])
 				.where("dre", true)
-				.whereNotNull("parent_id");
+				.whereNotNull("parent_id")
+				.whereNull("deleted_at");
 
 			return [
 				{

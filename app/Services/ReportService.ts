@@ -1122,6 +1122,7 @@ ON bills.patient_id = Dep."id"`,
 
 		return result.map((elem) => ({
 			id: elem.id,
+			clientName: elem.clientName ?? null,
 			tag: elem.tag,
 			budgetDate: elem.budgetDate,
 			expirationDate: elem.expirationDate,

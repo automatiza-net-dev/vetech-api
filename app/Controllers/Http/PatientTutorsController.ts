@@ -127,6 +127,7 @@ export default class PatientTutorsController {
 
 			const patient = await this.service.storeTutor(
 				await this.sharedService.getAuthContext(ctx.auth),
+				// @ts-ignore
 				ctx.request.body(),
 			);
 
@@ -204,6 +205,7 @@ export default class PatientTutorsController {
 			const patient = await this.service.updateTutor(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
+				// @ts-ignore
 				request.body(),
 			);
 

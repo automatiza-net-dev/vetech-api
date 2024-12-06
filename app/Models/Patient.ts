@@ -29,6 +29,11 @@ export enum PatientType {
 }
 
 export enum PatientGender {
+	MALE = "macho",
+	FEMALE = "femea",
+}
+
+export enum TutorGender {
 	MALE = "masculino",
 	FEMALE = "feminino",
 	OTHER = "outro",
@@ -67,7 +72,7 @@ export default class Patient extends BaseModel {
 	public vaccineOrigin: PatientVaccineOrigin;
 
 	@column()
-	public gender?: PatientGender;
+	public gender?: PatientGender | TutorGender;
 
 	@column()
 	public tags?: string;

@@ -319,12 +319,8 @@ export default class DailyCashierService {
 		}
 
 		if (!data.tag) {
-			if (!data.complete) {
-				if (data.status) {
-					query.where("status", data.status);
-				} else {
-					query.where("status", DailyCashierStatus.A);
-				}
+			if (data.status !== "TODOS") {
+				query.where("status", data.status as string);
 			}
 		}
 

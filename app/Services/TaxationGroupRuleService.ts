@@ -1,162 +1,163 @@
-import { inject } from '@adonisjs/fold';
+import { inject } from "@adonisjs/fold";
 import TaxationGroupRule, {
-  CompanyType,
-  MovementType,
-} from 'App/Models/TaxationGroupRule';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
-import ITaxationGroupRuleData from 'Contracts/interfaces/ITaxationGroupRuleData';
+	CompanyType,
+	MovementType,
+} from "App/Models/TaxationGroupRule";
+import User from "App/Models/User";
+import SharedService from "App/Services/SharedService";
+import ITaxationGroupRuleData from "Contracts/interfaces/ITaxationGroupRuleData";
 
 interface ISearch {
-  name?: string;
-  type?: CompanyType;
-  movement?: MovementType;
-  fromUf?: string;
-  toUf?: string;
-  active?: string;
+	name?: string;
+	type?: CompanyType;
+	movement?: MovementType;
+	fromUf?: string;
+	toUf?: string;
+	active?: string;
 }
 @inject()
 export default class TaxationGroupRuleService {
-  constructor(private sharedService: SharedService) {}
+	constructor(private sharedService: SharedService) {}
 
-  public async index(unitId: string, data: ISearch) {
-    const group = await this.sharedService.getUserGroup(unitId);
+	public async index(unitId: string, data: ISearch) {
+		const group = await this.sharedService.getUserGroup(unitId);
 
-    const query = TaxationGroupRule.query()
-      .preload('taxationGroup')
-      .preload('taxOperation')
-      .whereIn('taxation_group_id', query => {
-        query
-          .select('id')
-          .from('taxation_groups')
-          .where('economic_group_id', group.id);
-      });
+		const query = TaxationGroupRule.query()
+			.preload("taxationGroup")
+			.preload("taxOperation")
+			.orderByRaw("taxation_groups.name, taxation_group_rules.company_type")
+			.whereIn("taxation_group_id", (query) => {
+				query
+					.select("id")
+					.from("taxation_groups")
+					.where("economic_group_id", group.id);
+			});
 
-    if (data.name) {
-      query.whereHas('taxationGroup', query => {
-        query.where('name', 'like', `%${data.name}%`);
-      });
-    }
+		if (data.name) {
+			query.whereHas("taxationGroup", (query) => {
+				query.where("name", "like", `%${data.name}%`);
+			});
+		}
 
-    if (data.type) {
-      query.where('company_type', data.type);
-    }
+		if (data.type) {
+			query.where("company_type", data.type);
+		}
 
-    if (data.movement) {
-      query.where('movement_type', data.movement);
-    }
+		if (data.movement) {
+			query.where("movement_type", data.movement);
+		}
 
-    if (data.fromUf) {
-      query.where('from_uf', data.fromUf);
-    }
+		if (data.fromUf) {
+			query.where("from_uf", data.fromUf);
+		}
 
-    if (data.toUf) {
-      query.where('to_uf', data.toUf);
-    }
+		if (data.toUf) {
+			query.where("to_uf", data.toUf);
+		}
 
-    if (data.active) {
-      query.where('active', data.active === 'true');
-    }
+		if (data.active) {
+			query.where("active", data.active === "true");
+		}
 
-    return query;
-  }
+		return query;
+	}
 
-  public async store(data: Omit<ITaxationGroupRuleData, 'active'>) {
-    const rule = await TaxationGroupRule.create({
-      companyType: data.companyType,
-      movementType: data.movementType,
-      movementCategory: data.movementCategory,
-      fromUf: data.fromUf,
-      toUf: data.toUf,
-      icmsCst: data.icmsCst,
-      icmsPerc: data.icmsPerc,
-      icmsPercRedAliquota: data.icmsPercRedAliquota,
-      icmsPercRedBaseCalculo: data.icmsPercRedBaseCalculo,
-      ivaIcmsSt: data.ivaIcmsSt,
-      fcpPerc: data.fcpPerc,
-      taxBenefitCode: data.taxBenefitCode,
-      ipiCst: data.ipiCst,
-      ipiPerc: data.ipiPerc,
-      pisCst: data.pisCst,
-      cofinsCst: data.cofinsCst,
-      active: true,
-      icmsPercDiferimento: data.icmsPercDiferimento,
-      icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
-      pisPerc: data.pisPerc,
-      cofinsPerc: data.cofinsPerc,
-      tax_operation_id: data.taxOperationId,
-      taxation_group_id: data.taxationGroupId,
-    });
+	public async store(data: Omit<ITaxationGroupRuleData, "active">) {
+		const rule = await TaxationGroupRule.create({
+			companyType: data.companyType,
+			movementType: data.movementType,
+			movementCategory: data.movementCategory,
+			fromUf: data.fromUf,
+			toUf: data.toUf,
+			icmsCst: data.icmsCst,
+			icmsPerc: data.icmsPerc,
+			icmsPercRedAliquota: data.icmsPercRedAliquota,
+			icmsPercRedBaseCalculo: data.icmsPercRedBaseCalculo,
+			ivaIcmsSt: data.ivaIcmsSt,
+			fcpPerc: data.fcpPerc,
+			taxBenefitCode: data.taxBenefitCode,
+			ipiCst: data.ipiCst,
+			ipiPerc: data.ipiPerc,
+			pisCst: data.pisCst,
+			cofinsCst: data.cofinsCst,
+			active: true,
+			icmsPercDiferimento: data.icmsPercDiferimento,
+			icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
+			pisPerc: data.pisPerc,
+			cofinsPerc: data.cofinsPerc,
+			tax_operation_id: data.taxOperationId,
+			taxation_group_id: data.taxationGroupId,
+		});
 
-    return rule;
-  }
+		return rule;
+	}
 
-  public async show(unitId: string, user: User, id: string) {
-    const group = await this.sharedService.getUserGroup(unitId);
-    const isSudo = await this.sharedService.isSuperAdmin(user);
+	public async show(unitId: string, user: User, id: string) {
+		const group = await this.sharedService.getUserGroup(unitId);
+		const isSudo = await this.sharedService.isSuperAdmin(user);
 
-    const rule = await TaxationGroupRule.query()
-      .preload('taxationGroup')
-      .preload('taxOperation')
-      .where('id', id)
-      .first();
+		const rule = await TaxationGroupRule.query()
+			.preload("taxationGroup")
+			.preload("taxOperation")
+			.where("id", id)
+			.first();
 
-    if (!rule) {
-      throw this.sharedService.ResourceNotFound();
-    }
+		if (!rule) {
+			throw this.sharedService.ResourceNotFound();
+		}
 
-    if (!isSudo) {
-      if (
-        rule.taxationGroup.economic_group_id &&
-        rule.taxationGroup.economic_group_id !== group.id
-      ) {
-        throw this.sharedService.ResourceNotFound();
-      }
-    }
+		if (!isSudo) {
+			if (
+				rule.taxationGroup.economic_group_id &&
+				rule.taxationGroup.economic_group_id !== group.id
+			) {
+				throw this.sharedService.ResourceNotFound();
+			}
+		}
 
-    return rule;
-  }
+		return rule;
+	}
 
-  public async update(
-    unitId: string,
-    user: User,
-    id: string,
-    data: ITaxationGroupRuleData,
-  ) {
-    const rule = await this.show(unitId, user, id);
+	public async update(
+		unitId: string,
+		user: User,
+		id: string,
+		data: ITaxationGroupRuleData,
+	) {
+		const rule = await this.show(unitId, user, id);
 
-    rule.merge({
-      companyType: data.companyType,
-      movementType: data.movementType,
-      movementCategory: data.movementCategory,
-      fromUf: data.fromUf,
-      toUf: data.toUf,
-      icmsCst: data.icmsCst,
-      icmsPerc: data.icmsPerc,
-      icmsPercRedAliquota: data.icmsPercRedAliquota,
-      icmsPercRedBaseCalculo: data.icmsPercRedBaseCalculo,
-      ivaIcmsSt: data.ivaIcmsSt,
-      fcpPerc: data.fcpPerc,
-      taxBenefitCode: data.taxBenefitCode,
-      ipiCst: data.ipiCst,
-      ipiPerc: data.ipiPerc,
-      pisCst: data.pisCst,
-      cofinsCst: data.cofinsCst,
-      active: data.active,
-      icmsPercDiferimento: data.icmsPercDiferimento,
-      icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
-      pisPerc: data.pisPerc,
-      cofinsPerc: data.cofinsPerc,
-      tax_operation_id: data.taxOperationId,
-      taxation_group_id: data.taxationGroupId,
-    });
+		rule.merge({
+			companyType: data.companyType,
+			movementType: data.movementType,
+			movementCategory: data.movementCategory,
+			fromUf: data.fromUf,
+			toUf: data.toUf,
+			icmsCst: data.icmsCst,
+			icmsPerc: data.icmsPerc,
+			icmsPercRedAliquota: data.icmsPercRedAliquota,
+			icmsPercRedBaseCalculo: data.icmsPercRedBaseCalculo,
+			ivaIcmsSt: data.ivaIcmsSt,
+			fcpPerc: data.fcpPerc,
+			taxBenefitCode: data.taxBenefitCode,
+			ipiCst: data.ipiCst,
+			ipiPerc: data.ipiPerc,
+			pisCst: data.pisCst,
+			cofinsCst: data.cofinsCst,
+			active: data.active,
+			icmsPercDiferimento: data.icmsPercDiferimento,
+			icmsPercRedBaseCalculoST: data.icmsPercRedBaseCalculoST,
+			pisPerc: data.pisPerc,
+			cofinsPerc: data.cofinsPerc,
+			tax_operation_id: data.taxOperationId,
+			taxation_group_id: data.taxationGroupId,
+		});
 
-    return rule.save();
-  }
+		return rule.save();
+	}
 
-  public async destroy(unitId: string, user: User, id: string) {
-    const rule = await this.show(unitId, user, id);
+	public async destroy(unitId: string, user: User, id: string) {
+		const rule = await this.show(unitId, user, id);
 
-    await rule.softDelete();
-  }
+		await rule.softDelete();
+	}
 }

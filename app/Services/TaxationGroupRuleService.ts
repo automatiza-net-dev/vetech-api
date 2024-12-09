@@ -58,7 +58,14 @@ export default class TaxationGroupRuleService {
 			query.where("active", data.active === "true");
 		}
 
-		return query;
+		const result = await query;
+
+		return result.sort((a, b) => {
+			return (
+				a.taxationGroup.name.localeCompare(b.taxationGroup.name) ||
+				a.companyType.localeCompare(b.companyType)
+			);
+		});
 	}
 
 	public async store(data: Omit<ITaxationGroupRuleData, "active">) {

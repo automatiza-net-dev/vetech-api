@@ -165,7 +165,7 @@ export default class ScheduleService {
 				data.businessUnitId ?? authCtx.unit.id,
 			])
 			.whereRaw(
-				"(schedules.start_hour::date > now()::date -2 and schedules.start_hour::date < now()::date)",
+				"(schedules.start_hour::date > now()::date - 7 and schedules.start_hour::date < now()::date)",
 			)
 			.where("schedules.patient_id", data.patientId)
 			.orderBy("schedules.start_hour", "desc")

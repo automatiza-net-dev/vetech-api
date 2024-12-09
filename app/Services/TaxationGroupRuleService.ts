@@ -25,7 +25,6 @@ export default class TaxationGroupRuleService {
 		const query = TaxationGroupRule.query()
 			.preload("taxationGroup")
 			.preload("taxOperation")
-			.orderByRaw("taxation_groups.name")
 			.whereIn("taxation_group_id", (query) => {
 				query
 					.select("id")

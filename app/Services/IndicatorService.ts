@@ -4544,7 +4544,7 @@ export default class IndicatorService {
 
 		if (
 			authCtx.system.name === "LiftOne" ||
-			authCtx.system.type === "Clinica"
+			authCtx.system.type === "Clinicas"
 		) {
 			return this.liftOneChartsIndicators(authCtx, data);
 		}

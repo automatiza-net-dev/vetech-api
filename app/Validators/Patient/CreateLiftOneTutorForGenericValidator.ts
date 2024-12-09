@@ -3,7 +3,6 @@ import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateLiftOneTutorForGenericValidator {
 	constructor(protected ctx: HttpContextContract) {
-		console.log("lift one for generic");
 	}
 
 	/*
@@ -27,6 +26,7 @@ export default class CreateLiftOneTutorForGenericValidator {
 	 */
 	public schema = schema.create({
 		name: schema.string({}),
+		document: schema.string({}),
 		cellphone: schema.string.optional(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),

@@ -106,7 +106,7 @@ export default class PatientTutorsController {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
 				} else if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
 				}
@@ -117,7 +117,7 @@ export default class PatientTutorsController {
 
 				if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
@@ -183,7 +183,7 @@ export default class PatientTutorsController {
 
 				if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
 				}
@@ -194,7 +194,7 @@ export default class PatientTutorsController {
 
 				if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}

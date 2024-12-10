@@ -5,9 +5,7 @@ import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class CreateLiftOneTutorForRegisterValidator {
-	constructor(protected ctx: HttpContextContract) {
-		console.log("lift one for register");
-	}
+	constructor(protected ctx: HttpContextContract) {}
 
 	/*
 	 * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.

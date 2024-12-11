@@ -37,7 +37,7 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "users", column: "id" }),
 		]),
-		clientId: schema.string({}, [
+		clientId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),

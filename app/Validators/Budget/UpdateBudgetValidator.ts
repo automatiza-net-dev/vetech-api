@@ -45,6 +45,7 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "daily_movements", column: "id" }),
 		]),
+		clientName: schema.string.optional(),
 		observation: schema.string.optional(),
 		internalObservation: schema.string.optional(),
 		budgetDate: schema.date(),

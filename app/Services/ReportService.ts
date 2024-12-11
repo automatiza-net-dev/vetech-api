@@ -3090,6 +3090,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        description,
        account_plans.type,
        account_plan_group_id,
+       parent_id,
        coalesce(sum(finances.total_value), 0)::float as sum`),
 			)
 			.joinRaw(

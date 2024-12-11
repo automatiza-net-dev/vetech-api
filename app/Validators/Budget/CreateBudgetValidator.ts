@@ -35,6 +35,7 @@ export default class CreateBudgetValidator {
 		budgetDate: schema.date(),
 		expirationDate: schema.date(),
 		observation: schema.string.optional(),
+		internalCode: schema.string.optional(),
 		internalObservation: schema.string.optional(),
 		clientName: schema.string.optional(),
 		items: schema.array().members(

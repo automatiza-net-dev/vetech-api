@@ -5910,17 +5910,17 @@ export default class IndicatorService {
 			toDate?: string;
 		},
 	) {
-		const salesQb = Database.from("bills")
-			.select(
-				Database.raw(
-					"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
-				),
-			)
-			.leftJoin("business_units", (query) => {
-				query.on("business_units.id", "=", "bills.business_unit_id");
-			})
-			.groupBy("bills.business_unit_id")
-			.whereNot("bills.status", BillStatus.EX);
+		// const salesQb = Database.from("bills")
+		// 	.select(
+		// 		Database.raw(
+		// 			"bills.business_unit_id as id, count(distinct bills.id) as sales, count(distinct bills.client_id) as clients",
+		// 		),
+		// 	)
+		// 	.leftJoin("business_units", (query) => {
+		// 		query.on("business_units.id", "=", "bills.business_unit_id");
+		// 	})
+		// 	.groupBy("bills.business_unit_id")
+		// 	.whereNot("bills.status", BillStatus.EX);
 
 		const qb = Database.from("schedules")
 			.select(
@@ -5929,7 +5929,8 @@ export default class IndicatorService {
             business_units.id,
             business_units.identification,
             count(schedules.id)          as agendados,
-            count(schedules.started_at)  as atendidos
+            count(schedules.started_at)  as atendidos,
+            count(distinct sm.schedule_id)  as vendidos
           `,
 				),
 			)
@@ -5937,37 +5938,40 @@ export default class IndicatorService {
 				query.on("business_units.id", "=", "schedules.business_unit_id");
 			})
 			.joinRaw(
+				"left join schedules_movements sm on schedules.id = sm.schedule_id and sm.type = 'bill'",
+			)
+			.joinRaw(
 				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
 			)
 			.groupBy("business_units.id");
 
 		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
 			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			salesQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
+			// salesQb.where(
+			// 	"business_units.environment",
+			// 	"P" as TBusinessUnitEnvironment,
+			// );
 		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("schedules.business_unit_id", data.units);
-			salesQb.whereIn("bills.business_unit_id", data.units);
+			// salesQb.whereIn("bills.business_unit_id", data.units);
 		} else {
 			qb.where("schedules.business_unit_id", authCtx.unit.id);
-			salesQb.where("bills.business_unit_id", authCtx.unit.id);
+			// salesQb.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.fromDate) {
 			qb.andWhereRaw("schedules.start_hour::date >= ?", [data.fromDate]);
-			salesQb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
+			// salesQb.andWhereRaw("bills.bill_date::date >= ?", [data.fromDate]);
 		}
 
 		if (data.toDate) {
 			qb.andWhereRaw("schedules.start_hour::date <= ?", [data.toDate]);
-			salesQb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
+			// salesQb.andWhereRaw("bills.bill_date::date <= ?", [data.toDate]);
 		}
 
-		const salesResult = await salesQb;
+		// const salesResult = await salesQb;
 		const generalResult = await qb;
 
 		if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
@@ -5980,12 +5984,16 @@ export default class IndicatorService {
 				10,
 			);
 			const _vendidos = Number.parseInt(
-				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+				generalResult.at(0)?.vendidos ?? "0",
+				10,
 			);
-			const _clientes = Number.parseInt(
-				salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ??
-					"0",
-			);
+			// const _vendidos = Number.parseInt(
+			// 	salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+			// );
+			// const _clientes = Number.parseInt(
+			// 	salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ??
+			// 		"0",
+			// );
 
 			return {
 				name: "scheduling",
@@ -6019,7 +6027,7 @@ export default class IndicatorService {
           <tspan x="130.9531" y="280.9">Vendidas</tspan>
         </text>
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em">
-          <tspan x="152" y="298.9">${_clientes}</tspan>
+          <tspan x="152" y="298.9">${_vendidos}</tspan>
         </text>
 
       </g>
@@ -6030,7 +6038,7 @@ export default class IndicatorService {
       </text>
       <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="16" font-weight="bold" letter-spacing="0em">
         <tspan x="300" y="240">${this.shared.formatPercentage(
-					(_clientes / _atendidos) * 100,
+					(_vendidos / _atendidos) * 100,
 				)}</tspan>
       </text>
       <path d="M339.6 106.95C338.66 106.3 337.52 106 336.38 106H312.82C311.92 106 311.1 106.53 310.74 107.36L307.9 113.81C307.24 115.31 308.34 117 309.98 117H328.45L319.06 141.1H309.28L310.97 135.35C311.3 134.22 310.1 133.27 309.07 133.84L294.08 142.29C293.44 142.65 293.22 143.48 293.6 144.11L302.05 158C302.64 158.97 304.1 158.78 304.42 157.69L306.06 152.11H322.82C325.09 152.11 327.12 150.72 327.94 148.61L341.63 113.5C342.53 111.19 341.79 108.48 339.61 106.95H339.6Z" fill="#828282" />
@@ -6064,18 +6072,12 @@ export default class IndicatorService {
 							},
 							{
 								name: "Vendidos",
-								value: Number.parseInt(
-									salesResult.find((r) => r.id === generalResult.at(0)?.id)
-										?.sales ?? "0",
-								),
+								value: Number.parseInt(generalResult.at(0).vendidos, 10),
 								normal: { fill: "orange" },
 							},
 							{
 								name: "Clientes",
-								value: Number.parseInt(
-									salesResult.find((r) => r.id === generalResult.at(0)?.id)
-										?.clients ?? "0",
-								),
+								value: 0,
 								normal: { fill: "orange" },
 							},
 						],

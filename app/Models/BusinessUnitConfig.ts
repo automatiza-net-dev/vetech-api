@@ -167,6 +167,21 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public ticketType: "venda" | "cliente" | "paciente";
 
+	@column({})
+	public reviewer: "S" | "N" | "O";
+
+	@column({
+		columnName: "internal_code",
+		serializeAs: "internalCode",
+	})
+	public internalCode: boolean;
+
+  @column({
+		columnName: "sync_schedule_movements",
+		serializeAs: "syncScheduleMovements",
+	})
+	public syncScheduleMovements: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

@@ -54,7 +54,7 @@ export default class TimelineService {
 						"Formato Receita Médica",
 						"Consulta", // Campo para manter compatibilidade
 						authCtx.system.name === "LiftOne" ||
-							(authCtx.system.type === "Clinica" && "Avaliação"),
+							(authCtx.system.type === "Clinicas" && "Avaliação"),
 						authCtx.system.name === "Sanclá" ||
 							(authCtx.system.type === "Vet" && "Atendimento"),
 					].filter(Boolean),
@@ -428,7 +428,7 @@ export default class TimelineService {
 
 			if (
 				authCtx.system.name === "LiftOne" ||
-				authCtx.system.type === "Clinica"
+				authCtx.system.type === "Clinicas"
 			) {
 				const att = await Attendance.create(
 					{

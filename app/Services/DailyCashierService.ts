@@ -318,13 +318,9 @@ export default class DailyCashierService {
 			query.where("cashier_balance", "<=", Number.parseFloat(data.toBalance));
 		}
 
-		if (!data.tag) {
-			if (!data.complete) {
-				if (data.status) {
-					query.where("status", data.status);
-				} else {
-					query.where("status", DailyCashierStatus.A);
-				}
+		if (!data.tag && data.status) {
+			if (data.status !== "TODOS") {
+				query.where("status", data.status as string);
 			}
 		}
 

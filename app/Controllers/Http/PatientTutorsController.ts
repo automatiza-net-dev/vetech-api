@@ -13,6 +13,7 @@ import UpdateLiftOneTutorForRegisterValidator from "App/Validators/Patient/Updat
 import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatientWithTutorValidator";
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
+import UpsertClinicsTutorValidator from "App/Validators/Patient/UpsertClinicsTutorValidator";
 
 @inject()
 export default class PatientTutorsController {
@@ -104,11 +105,14 @@ export default class PatientTutorsController {
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
-				} else if (
-					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
-				) {
+				}
+
+				if (authCtx.system.name === "LiftOne") {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
+				}
+
+				if (authCtx.system.type === "Clinicas") {
+					await ctx.request.validate(UpsertClinicsTutorValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
@@ -117,7 +121,7 @@ export default class PatientTutorsController {
 
 				if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
@@ -127,6 +131,7 @@ export default class PatientTutorsController {
 
 			const patient = await this.service.storeTutor(
 				await this.sharedService.getAuthContext(ctx.auth),
+				// @ts-ignore
 				ctx.request.body(),
 			);
 
@@ -180,11 +185,12 @@ export default class PatientTutorsController {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
 				}
 
-				if (
-					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
-				) {
+				if (authCtx.system.name === "LiftOne") {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
+				}
+
+				if (authCtx.system.type === "Clinicas") {
+					await request.validate(UpsertClinicsTutorValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
@@ -193,7 +199,7 @@ export default class PatientTutorsController {
 
 				if (
 					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinica"
+					authCtx.system.type === "Clinicas"
 				) {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}
@@ -204,6 +210,7 @@ export default class PatientTutorsController {
 			const patient = await this.service.updateTutor(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
+				// @ts-ignore
 				request.body(),
 			);
 

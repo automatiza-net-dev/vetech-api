@@ -175,6 +175,9 @@ export default class AuthController {
 				"generates_finances_on_receipts_finish",
 				"treatment",
 				"crm_useful_days",
+				"reviewer",
+				"internal_code",
+				"sync_schedule_movements",
 			]);
 		});
 
@@ -208,6 +211,9 @@ export default class AuthController {
 						unit.unitConfig.requiresClientDocument ?? false,
 					allow_change_schedule_duration:
 						unit.unitConfig.allowChangeScheduleDuration ?? false,
+					reviewer: unit.unitConfig.reviewer,
+					internalCode: unit.unitConfig.internalCode,
+					syncScheduleMovements: unit.unitConfig.syncScheduleMovements,
 				},
 				phone: unit.phone,
 				fantasy_name: unit.fantasyName,

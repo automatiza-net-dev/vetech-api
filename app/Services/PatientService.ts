@@ -12,7 +12,11 @@ import Budget, { BudgetStatus } from "App/Models/Budget";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
-import Patient, { PatientGender, PatientType } from "App/Models/Patient";
+import Patient, {
+	PatientGender,
+	TutorGender,
+	PatientType,
+} from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
 import User from "App/Models/User";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
@@ -765,7 +769,7 @@ export default class PatientService {
 			.where("status", HospitalizationStatus.ACTIVE);
 		const sales = await Bill.query()
 			.where(
-				authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+				authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
 					? "client_id"
 					: "patient_id",
 				patient.id,
@@ -980,7 +984,7 @@ export default class PatientService {
 			photo: patient.photo
 				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`
 				: null,
-			gender: patient.gender,
+			gender: patient.gender as TutorGender,
 			tags: patient.tags,
 			birthDate: patient.birthDate
 				? DateTime.fromJSDate(patient.birthDate)
@@ -1038,7 +1042,7 @@ export default class PatientService {
 		}
 
 		const key =
-			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
 				? "client_id"
 				: "patient_id";
 		const sales = await Bill.query()
@@ -1056,7 +1060,7 @@ export default class PatientService {
 
 	public async salesMetadata(authCtx: AuthContext, patientId: string) {
 		const key =
-			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinica"
+			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
 				? "client_id"
 				: "patient_id";
 
@@ -1584,7 +1588,10 @@ export default class PatientService {
 		});
 	}
 
-	public async assignPatientTutor(_: string, data: IAssignPatientTutor) {
+	public async assignPatientTutor(
+		_authCtx: AuthContext,
+		data: IAssignPatientTutor,
+	) {
 		const tutor = await Patient.query()
 			.where("id", data.holder)
 			.where("type", PatientType.TUTOR)

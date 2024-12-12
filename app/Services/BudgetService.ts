@@ -901,7 +901,8 @@ export default class BudgetService {
 		authCtx: AuthContext,
 		data: {
 			id: string;
-			clientId: string;
+			clientId?: string;
+			clientName?: string;
 			expirationDate: DateTime;
 			sellerId: string;
 			reviewerId?: string;
@@ -939,6 +940,14 @@ export default class BudgetService {
 					"Não é possível alterar um orçamento que não esteja em aberto",
 					400,
 					"E_BAD_REQUEST",
+				);
+			}
+
+			if (!data.clientId && !data.clientName) {
+				throw new BadRequestException(
+					"É necessário informar o cliente para atualizar o orçamento",
+					400,
+					"E_ERR",
 				);
 			}
 
@@ -1080,6 +1089,7 @@ export default class BudgetService {
 					reviewer_id: data.reviewerId,
 					daily_movement_id: data.dailyMovementId,
 
+					clientName: data.clientName,
 					pending: pendingItems.length > 0,
 					productValue: productSum,
 					serviceValue: serviceSum,

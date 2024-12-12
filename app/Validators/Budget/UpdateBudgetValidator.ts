@@ -37,7 +37,7 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "users", column: "id" }),
 		]),
-		clientId: schema.string({}, [
+		clientId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
@@ -45,6 +45,7 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "daily_movements", column: "id" }),
 		]),
+		clientName: schema.string.optional(),
 		observation: schema.string.optional(),
 		internalObservation: schema.string.optional(),
 		budgetDate: schema.date(),

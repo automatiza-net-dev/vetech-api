@@ -387,7 +387,10 @@ export default class HospitalizationOccurrencesService {
 				});
 			}
 
-			return ent;
+			return {
+				...ent.toJSON(),
+				creation_user_id: ent.creation_user_id,
+			};
 		});
 	}
 

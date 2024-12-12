@@ -89,12 +89,14 @@ export default class OpportunitiesController {
 	}
 
 	public async store({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateOpportunityValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		await this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateOpportunityValidator);
+			const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.store(authCtx, payload);
+			await this.service.store(authCtx, payload);
 
-		return response.created();
+			return response.created();
+		});
 	}
 
 	public async storeFromSchedule({

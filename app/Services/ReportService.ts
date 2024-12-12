@@ -1122,6 +1122,7 @@ ON bills.patient_id = Dep."id"`,
 
 		return result.map((elem) => ({
 			id: elem.id,
+			clientName: elem.clientName ?? null,
 			tag: elem.tag,
 			budgetDate: elem.budgetDate,
 			expirationDate: elem.expirationDate,
@@ -1248,10 +1249,7 @@ ON bills.patient_id = Dep."id"`,
         pac.name                                                                 as nome_Paciente,
         pac.tag                                                                  as rg_Paciente,
         pac.birth_date                                                           as nasc_Paciente,
-        case
-           when pac.gender = 'male' then 'macho'
-           when pac.gender = 'female' then 'femea'
-           else null end                                                         as genero_Paciente,
+        pac.gender                                                               as genero_Paciente,
         species.description                                                      as especie_Paciente,
         races.description                                                        as raca_Paciente,
         case when pa.castrated then 'Sim' else 'Não' end                         as castrado_Paciente,
@@ -3027,292 +3025,180 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			throw new BadRequestException("Periodo não informado", 400, "E_REQ");
 		}
 
-		if (data.v2 === "true") {
-			const dreGroups: {
-				id: number;
-				description: string;
-				sequence: number;
-			}[] = await Database.from("dre_groups")
-				.select("id", "description", "sequence")
-				.where("system_id", authCtx.system.id)
-				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
-					authCtx.group.id,
-				])
-				.whereNull("deleted_at");
+		const dreGroups: {
+			id: number;
+			description: string;
+			sequence: number;
+		}[] = await Database.from("dre_groups")
+			.select("id", "description", "sequence")
+			.where("system_id", authCtx.system.id)
+			.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+				authCtx.group.id,
+			])
+			.whereNull("deleted_at")
+			.orderBy("sequence");
 
-			const accountPlanGroups: {
-				id: number;
-				description: string;
-				type: "CREDITO" | "DEBITO";
-				dre_group_id: number | null;
-			}[] = await Database.from("account_plan_groups")
-				.select("id", "description", "type", "dre_group_id")
-				.where("system_id", authCtx.system.id)
-				.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
-					authCtx.group.id,
-				]);
+		const accountPlanGroups: {
+			id: number;
+			description: string;
+			type: "CREDITO" | "DEBITO";
+			dre_group_id: number | null;
+		}[] = await Database.from("account_plan_groups")
+			.select("id", "description", "type", "dre_group_id")
+			.where("system_id", authCtx.system.id)
+			.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
+				authCtx.group.id,
+			])
+			.orderByRaw("dre_group_id, type, description");
 
-			const accountPlanParents: {
-				id: string;
-				description: string;
-				type: "CREDITO" | "DEBITO";
-				account_plan_group_id: number | null;
-				sum: number;
-			}[] = await Database.from("account_plans")
-				.select(
-					Database.raw(`account_plans.id,
-       description,
-       account_plans.type,
-       account_plan_group_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
-				)
-				.joinRaw(
-					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
-					[data.period],
-				)
-				.where("system_id", authCtx.system.id)
-				.whereRaw(
-					"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
-					[authCtx.group.id],
-				)
-				.where("dre", true)
-				.whereNull("parent_id")
-				.whereNull("account_plans.deleted_at")
-				.groupBy("account_plans.id");
-
-			const accountPlanChildren: {
-				id: string;
-				description: string;
-				type: "CREDITO" | "DEBITO";
-				account_plan_group_id: number | null;
-				parent_id: string;
-				sum: number;
-			}[] = await Database.from("account_plans")
-				.select(
-					Database.raw(`account_plans.id,
-       description,
-       account_plans.type,
-       account_plan_group_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
-				)
-				.joinRaw(
-					"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
-					[data.period],
-				)
-				.where("account_plans.system_id", authCtx.system.id)
-				.whereRaw(
-					"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
-					[authCtx.group.id],
-				)
-				.where("dre", true)
-				.whereNotNull("parent_id")
-				.whereNull("account_plans.deleted_at")
-				.groupBy("account_plans.id");
-
-			return [
-				{
-					id: authCtx.unit.id,
-					identification: authCtx.unit.identification,
-					periodo: data.period,
-					agrupamentos: dreGroups.map((group) => ({
-						id: group.id,
-						basear: false,
-						custo: "100 + 200",
-						refCusto: "99 + 100",
-						total: 100,
-						description: group.description,
-						grupo_plano_contas: accountPlanGroups
-							.filter((a) => a.dre_group_id === group.id)
-							.map((app) => ({
-								id: app.id,
-								description: app.description,
-								custo: 0,
-								refCusto: "12 + 13 - 14",
-								grupo_planos_contas_pai: accountPlanParents
-									.filter((ap) => ap.account_plan_group_id === app.id)
-									.map((ap) => ({
-										id: ap.id,
-										description: ap.description,
-										custo: 0,
-										refCusto: "12 + 13 - 14",
-										grupo_planos_contas: accountPlanChildren
-											.filter((apc) => apc.parent_id === ap.id)
-											.map((apc) => ({
-												id: apc.id,
-												description: apc.description,
-												tipo: apc.type,
-												custo: 0,
-											})),
-									})),
-							})),
-					})),
-				},
-			];
-		}
-
-		const result: DreGroupSqlResult[] = await Database.from("account_plans")
+		const accountPlanParents: {
+			id: string;
+			description: string;
+			type: "CREDITO" | "DEBITO";
+			account_plan_group_id: number | null;
+			sum: number;
+		}[] = await Database.from("account_plans")
 			.select(
-				Database.raw(`coalesce(dre_groups.sequence, 100)                        as sequencia_dre,
-       coalesce(dre_groups.id, -1)                               as id_dre,
-       coalesce(dre_groups.description, 'NaoInformado')          as agrupamento_dre,
+				Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
+			)
+			.joinRaw(
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+				[data.period],
+			)
+			.where("system_id", authCtx.system.id)
+			.whereRaw(
+				"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
+				[authCtx.group.id],
+			)
+			.where("dre", true)
+			.whereNull("parent_id")
+			.whereNull("account_plans.deleted_at")
+			.groupBy("account_plans.id")
+			.orderByRaw("account_plan_group_id, type, description");
 
-       coalesce(account_plan_groups.id, -1)                      as id_grupo_plano_contas,
-       coalesce(account_plan_groups.description, 'NaoInformado') as grupo_plano_contas,
-
-       apPai.id                                                  as id_plano_Contas_Pai,
-       apPai.description                                         as plano_Contas_Pai,
-
-       account_plans.id                                          as id_Plano_Contas,
-       account_plans.description                                 as plano_Contas,
-       coalesce(dre_cost_plannings."period", '09/2024')          as periodo,
-       coalesce(dre_cost_planning_items."cost", 0)               as custo,
-       sum(coalesce(finances.total_value, 0))                    as total_Realizado`),
+		const accountPlanChildren: {
+			id: string;
+			description: string;
+			type: "CREDITO" | "DEBITO";
+			account_plan_group_id: number | null;
+			parent_id: string;
+			sum: number;
+		}[] = await Database.from("account_plans")
+			.select(
+				Database.raw(`account_plans.id,
+       description,
+       account_plans.type,
+       account_plan_group_id,
+       parent_id,
+       coalesce(sum(finances.total_value), 0)::float as sum`),
 			)
 			.joinRaw(
-				`left join account_plan_groups
-                   on account_plan_groups.id = account_plans.account_plan_group_id and account_plan_groups.system_id = ?`,
-				[authCtx.system.id],
-			)
-			.joinRaw(
-				"left join dre_groups on account_plan_groups.dre_group_id = dre_groups.id and dre_groups.system_id = ?",
-				[authCtx.system.id],
-			)
-			.joinRaw(
-				"left join account_plans apPai on account_plans.parent_id = apPai.id",
-				[],
-			)
-			.joinRaw(
-				`left join dre_cost_plannings
-                   on dre_cost_plannings.business_unit_id = ? and period = ?`,
-				[authCtx.unit.id, data.period],
-			)
-			.joinRaw(
-				`left join dre_cost_planning_items
-                   on dre_cost_plannings.id = dre_cost_planning_items.dre_cost_planning_id and dre_cost_planning_items.account_plan_id = account_plans.id`,
-				[],
-			)
-			.joinRaw(
-				`left join finances
-                   on account_plans.id = finances.account_plan_id and
-                      finances.business_unit_id = ?
-                       and to_char(finances.expiration_date, 'MM/YYYY') = ?`,
-				[authCtx.unit.id, data.period],
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
+				[data.period],
 			)
 			.where("account_plans.system_id", authCtx.system.id)
 			.whereRaw(
-				"(account_plans.economic_group_id is null or account_plans.economic_group_id = ?)",
+				"(account_plans.economic_group_id = ? OR account_plans.economic_group_id IS NULL)",
 				[authCtx.group.id],
 			)
-			.whereRaw(
-				"(account_plan_groups.economic_group_id is null or account_plan_groups.economic_group_id = ?)",
-				[authCtx.group.id],
-			)
-			.whereRaw(
-				"(account_plans.business_unit_id is null or account_plans.business_unit_id = ?)",
-				[authCtx.group.id],
-			)
-			.groupByRaw(
-				`dre_groups.id,
-         account_plan_groups.id,
-         apPai.id, account_plans.description, account_plans.id, dre_cost_plannings.period,
-         coalesce(dre_cost_planning_items."cost", 0),
-         coalesce(dre_groups.sequence, 100)`,
-				[],
-			)
-			.orderByRaw(
-				`coalesce(dre_groups."sequence", 100), account_plan_groups.description, apPai.description, account_plans.description`,
-			);
+			.where("dre", true)
+			.whereNotNull("parent_id")
+			.whereNull("account_plans.deleted_at")
+			.groupBy("account_plans.id")
+			.orderByRaw("parent_id, type, description");
 
-		const groups = SharedService.GroupBy(result, (row) => [
-			JSON.stringify({
-				periodo: row.periodo,
-			}),
-		]);
-
-		return Object.keys(groups).reduce((currArray, groupKey) => {
-			const { periodo } = JSON.parse(groupKey);
-
-			const uniqueDreGroups = groups[groupKey].reduce((currGroups, currRow) => {
-				if (!currGroups.includes(currRow.id_dre)) {
-					currGroups.push(currRow.id_dre);
-				}
-
-				return currGroups;
-			}, [] as string[]);
-
-			currArray.push({
+		return [
+			{
 				id: authCtx.unit.id,
-				identification: authCtx.unit.identification ?? "-",
-				periodo,
-				agrupamentos: uniqueDreGroups.map((group) => ({
-					id: group,
-					identification:
-						result.find((r) => r.id_dre === group)?.agrupamento_dre ??
-						"Não encontrado",
-					sequencia: result.find((r) => r.id_dre === group)?.sequencia_dre ?? 0,
-					grupo_plano_contas: result
-						.filter(
-							(gpContas) =>
-								gpContas.periodo === periodo && gpContas.id_dre === group,
-						)
-						.reduce((currArray, gpContas) => {
-							if (
-								!currArray.find((c) => c.id === gpContas.id_grupo_plano_contas)
-							) {
-								currArray.push({
-									id: gpContas.id_grupo_plano_contas,
-									description: gpContas.grupo_plano_contas,
-									grupo_planos_contas_pai: result
-										.filter(
-											(gpContasPai) =>
-												gpContasPai.periodo === periodo &&
-												gpContasPai.id_dre === group,
-										)
-										.reduce((currArray, gpContasPai) => {
-											if (
-												!currArray.find(
-													(c) => c.id === gpContasPai.id_plano_contas_pai,
-												)
-											) {
-												currArray.push({
-													id: gpContasPai.id_plano_contas_pai,
-													description: gpContasPai.plano_contas_pai,
-													grupo_planos_contas: result
-														.filter(
-															(gpContasFilho) =>
-																gpContasPai.id_plano_contas_pai ===
-																gpContasFilho.id_plano_contas,
-														)
-														.reduce((currArray, gpContasFilho) => {
-															if (
-																!currArray.find(
-																	(c) => c.id === gpContasFilho.id_plano_contas,
-																)
-															) {
-																currArray.push({
-																	id: gpContasFilho.id_plano_contas,
-																	description: gpContasFilho.plano_contas,
-																	custo: gpContasFilho.custo,
-																});
-															}
+				identification: authCtx.unit.identification,
+				periodo: data.period,
+				agrupamentos: dreGroups.map((group) => {
+					const accountPlans = accountPlanGroups
+						.filter((a) => a.dre_group_id === group.id)
+						.map((app) => {
+							const parents = accountPlanParents
+								.filter((ap) => ap.account_plan_group_id === app.id)
+								.map((ap) => {
+									const contas = accountPlanChildren
+										.filter((apc) => apc.parent_id === ap.id)
+										.map((apc) => ({
+											id: apc.id,
+											description: apc.description,
+											type: apc.type,
+											custo: apc.sum,
+										}));
 
-															return currArray;
-														}, [] as any[]),
-												});
-											}
+									return {
+										id: ap.id,
+										description: ap.description,
+										type: ap.type,
+										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
+										refCusto: contas
+											.reduce((acc, curr) => {
+												if (curr.type === "CREDITO") {
+													acc.push("+");
+												} else {
+													acc.push("-");
+												}
 
-											return currArray;
-										}, [] as any[]),
+												acc.push(curr.id);
+
+												return acc;
+											}, [] as string[])
+											.join(" "),
+										grupo_planos_contas: contas,
+									};
 								});
-							}
 
-							return currArray;
-						}, [] as any[]),
-				})),
-			});
+							return {
+								id: app.id,
+								description: app.description,
+								type: app.type,
+								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
+								refCusto: parents
+									.reduce((acc, curr) => {
+										if (curr.type === "CREDITO") {
+											acc.push("+");
+										} else {
+											acc.push("-");
+										}
 
-			return currArray;
-		}, [] as any[]);
+										acc.push(curr.id);
+
+										return acc;
+									}, [] as string[])
+									.join(" "),
+								grupo_planos_contas_pai: parents,
+							};
+						});
+
+					return {
+						id: group.id,
+						basear: false,
+						description: group.description,
+						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
+						refCusto: accountPlans
+							.reduce((acc, curr) => {
+								if (curr.type === "CREDITO") {
+									acc.push("+");
+								} else {
+									acc.push("-");
+								}
+
+								acc.push(curr.id.toString());
+
+								return acc;
+							}, [] as string[])
+							.join(" "),
+						grupo_plano_contas: accountPlans,
+					};
+				}),
+			},
+		];
 	}
 
 	public async patientsReport(
@@ -3386,10 +3272,10 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		if (data.gender) {
 			switch (data.gender) {
 				case "Macho":
-					qb.whereRaw("pp.gender = ?", ["male"]);
+					qb.whereRaw("pp.gender = ?", ["masculino"]);
 					break;
 				case "Femea":
-					qb.whereRaw("pp.gender = ?", ["female"]);
+					qb.whereRaw("pp.gender = ?", ["feminino"]);
 					break;
 				case "Outros":
 					qb.whereRaw("pp.gender = ?", ["outros"]);

@@ -9,7 +9,7 @@ export default class OpenDailyCashierValidator {
       rules.uuid(),
       rules.exists({ table: 'daily_movements', column: 'id' }),
     ]),
-    userId: schema.string({}, [
+    userId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),

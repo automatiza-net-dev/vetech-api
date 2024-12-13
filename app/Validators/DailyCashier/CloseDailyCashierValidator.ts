@@ -5,7 +5,7 @@ export default class CloseDailyCashierValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    userId: schema.string({}, [
+    userId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({ table: 'users', column: 'id' }),
     ]),

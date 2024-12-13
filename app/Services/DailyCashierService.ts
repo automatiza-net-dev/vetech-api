@@ -354,7 +354,7 @@ export default class DailyCashierService {
 				const anotherOpenCashiers = await DailyCashier.query()
 					.useTransaction(trx)
 					.where("business_unit_id", authCtx.unit.id)
-					.where("user_who_opened_id", data.userId)
+					.where("user_who_opened_id", data.userId ?? authCtx.user.id)
 					.whereRaw(`(status = ? or opening_date::date = now()::date)`, [
 						DailyCashierStatus.A,
 					])
@@ -443,7 +443,7 @@ export default class DailyCashierService {
 				.related("cashiers")
 				.query()
 				.useTransaction(trx)
-				.where("user_who_opened_id", data.userId)
+				.where("user_who_opened_id", data.userId ?? authCtx.user.id)
 				.where("status", DailyCashierStatus.A)
 				.first();
 
@@ -461,7 +461,7 @@ export default class DailyCashierService {
 
 			return dailyMovement.related("cashiers").create({
 				business_unit_id: authCtx.unit.id,
-				user_who_opened_id: data.userId,
+				user_who_opened_id: data.userId ?? authCtx.user.id,
 				openingDate: data.openingDate,
 				status: DailyCashierStatus.A,
 				tag: count.length + 1,

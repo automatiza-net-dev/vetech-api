@@ -2,13 +2,13 @@ import { DateTime } from 'luxon';
 
 export interface IOpenCashierData {
   dailyMovementId: string;
-  userId: string;
+  userId?: string;
   openingDate: DateTime;
   initialBalance: number;
 }
 
 export interface ICloseCashierData {
-  userId: string;
+  userId?: string;
   closingDate: DateTime;
   cashierTotal: number;
   observations?: string;

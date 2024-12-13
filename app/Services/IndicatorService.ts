@@ -2494,7 +2494,18 @@ export default class IndicatorService {
 			toDate?: string;
 			debug?: string;
 		},
-	) {
+	): Promise<
+		{
+			group: { id: string; name: string };
+			unit: { id: string; name: string };
+			meta: { description: string; type: string; value: number };
+			color: string | null;
+			total: number;
+			percentage: number;
+			projection: number;
+			metaProjection: number;
+		}[]
+	> {
 		const dt = DateTime.fromISO(
 			data.fromDate
 				? new Date(data.fromDate).toISOString()
@@ -2628,9 +2639,9 @@ export default class IndicatorService {
 			]);
 		}
 
-		if (data.debug) {
-			return qb.toQuery();
-		}
+		// if (data.debug) {
+		// 	return qb.toQuery();
+		// }
 
 		const metasResult = await qb;
 
@@ -4149,6 +4160,9 @@ export default class IndicatorService {
 			),
 		]);
 
+		const billing = cards.at(0) as Awaited<
+			ReturnType<typeof this.billingIndicators>
+		>;
 		const medianTicket = cards.at(1) as Awaited<
 			ReturnType<typeof this.medianTicket>
 		>;
@@ -4234,13 +4248,9 @@ export default class IndicatorService {
 											.at(0)
 											?.reduce((acc, curr) => acc + curr.projection, 0) ?? 0,
 									),
-									color:
-										// @ts-ignore
-										// biome-ignore lint/correctness/noUnsafeOptionalChaining: <explanation>
-										"color" in cards.at(0)?.at(0)
-											? // @ts-ignore
-												cards.at(0).at(0).color
-											: "#000000",
+									color: authCtx.hasPermission("IND14")
+										? (billing.at(0)?.color ?? "#000")
+										: "#000",
 								},
 							],
 						}

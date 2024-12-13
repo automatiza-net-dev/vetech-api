@@ -470,7 +470,7 @@ export default class ReportService {
         from users
                  join schedules on users.id = schedules.creation_user_id
                  join schedules_movements sm on schedules.id = sm.schedule_id and sm.movement_id = bills.id and
-                                                sm.type = 'bill')    as usuario_agenda_origem_venda,
+                                                sm.type = 'bill' limit 1)    as usuario_agenda_origem_venda,
        (select max(UltimaVenda.bill_date)
         from bills UltimaVenda
         where UltimaVenda.client_id = bills.client_id
@@ -646,7 +646,7 @@ export default class ReportService {
         from users
                  join schedules on users.id = schedules.creation_user_id
                  join schedules_movements sm on schedules.id = sm.schedule_id and sm.movement_id = bills.id and
-                                                sm.type = 'bill')              as usuario_agenda_origem_venda,
+                                                sm.type = 'bill' limit 1)              as usuario_agenda_origem_venda,
        (select max(UltimaVenda.bill_date)
         from bills UltimaVenda
         where UltimaVenda.client_id = bills.client_id

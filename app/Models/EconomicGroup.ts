@@ -74,6 +74,9 @@ export default class EconomicGroup extends BaseModel {
 	})
 	public users: ManyToMany<typeof User>;
 
+	@column()
+	public status: "Ativo" | "Inativo" | "Consulta" | "Bloqueado";
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

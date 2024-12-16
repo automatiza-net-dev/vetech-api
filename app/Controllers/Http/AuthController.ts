@@ -11,6 +11,7 @@ import SwapUnitValidator from "App/Validators/Auth/SwapUnitValidator";
 import CreateUserValidator from "App/Validators/User/CreateUserValidator";
 import ForgotPasswordValidator from "App/Validators/User/ForgotPasswordValidator";
 import ResetPasswordValidator from "App/Validators/User/ResetPasswordValidator";
+import BadRequestException from "App/Exceptions/BadRequestException";
 
 @inject()
 export default class AuthController {
@@ -156,7 +157,25 @@ export default class AuthController {
 			});
 		}
 
-		const { unit, system } = await this.sharedService.getAuthContext(auth);
+		const { unit, system, group } =
+			await this.sharedService.getAuthContext(auth);
+
+		if (group.status === "Inativo") {
+			throw new BadRequestException(
+				"Login Invalido - Sistema Inativo",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (group.status === "Bloqueado") {
+			throw new BadRequestException(
+				"Login Bloqueado - Entre em contato com a Automatiza",
+				400,
+				"E_ERR",
+			);
+		}
+
 		await unit.load("unitConfig", (query) => {
 			query.select([
 				"id",
@@ -228,7 +247,12 @@ export default class AuthController {
 					type: system.type,
 				},
 			},
-			cl: await this.authService.getUserACL(user, system_id, unit.id),
+			cl: await this.authService.getUserACL(
+				user,
+				system_id,
+				unit.id,
+				group.status === "Consulta",
+			),
 			isThirdParty: false,
 		});
 	}

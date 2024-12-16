@@ -784,7 +784,9 @@ export default class PatientService {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
+			photo: patient.photo
+				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo}`
+				: null,
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE

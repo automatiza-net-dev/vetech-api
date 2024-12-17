@@ -1220,6 +1220,10 @@ Route.group(() => {
 }).prefix("urls");
 
 Route.group(() => {
+	Route.get(
+		"/schedules-treatment-executions",
+		"TreatmentsController.searchScheduleServices",
+	);
 	Route.get("/search", "TreatmentsController.searchTreatment");
 	Route.get(
 		"/search-schedule-services",

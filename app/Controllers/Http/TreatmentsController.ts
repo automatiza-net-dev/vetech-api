@@ -100,6 +100,21 @@ export default class TreatmentsController {
 		return response.noContent();
 	}
 
+	public async scheduleTreatmentExecution({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.scheduleTreatmentExecution(
+			authCtx,
+			request.param("id"),
+		);
+
+		return response.ok(result);
+	}
+
 	public async batchExecuteExecution({
 		request,
 		response,

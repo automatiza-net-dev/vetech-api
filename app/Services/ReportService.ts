@@ -3116,7 +3116,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				id: authCtx.unit.id,
 				identification: authCtx.unit.identification,
 				periodo: data.period,
-				items: dreGroups.map((group) => {
+				itens: dreGroups.map((group) => {
 					const accountPlans = accountPlanGroups
 						.filter((a) => a.dre_group_id === group.id)
 						.map((app) => {

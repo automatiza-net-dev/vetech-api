@@ -721,6 +721,8 @@ export default class ScheduleService {
 						.where("id", exec.treatmentExecutionId)
 						.update({
 							schedule_id: result.id,
+							schedule_date: data.startHour,
+							schedule_user_id: authCtx.user.id,
 						});
 				}) ?? [];
 			await Promise.all(tasks);

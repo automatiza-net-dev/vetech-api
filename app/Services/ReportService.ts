@@ -3149,7 +3149,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 												return acc;
 											}, [] as string[])
-											.join(" "),
+											.join(" ")
+											.replaceAll("-", ""),
 										grupo_planos_contas: contas,
 									};
 								});
@@ -3171,7 +3172,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 										return acc;
 									}, [] as string[])
-									.join(" "),
+									.join(" ")
+									.replaceAll("-", ""),
 								grupo_planos_contas_pai: parents,
 							};
 						});
@@ -3193,7 +3195,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 								return acc;
 							}, [] as string[])
-							.join(" "),
+							.join(" ")
+							.replaceAll("-", ""),
 						grupo_plano_contas: accountPlans,
 					};
 				}),

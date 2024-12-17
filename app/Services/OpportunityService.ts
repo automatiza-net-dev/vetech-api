@@ -751,6 +751,8 @@ export default class OpportunityService {
 				description: op.description,
 				observation: op.observation,
 				profitValue: op.profitValue,
+				ganho: op.ganho,
+				perda: op.perda,
 				resultObservation: op.resultObservation,
 				balance: op.balance,
 
@@ -1043,6 +1045,8 @@ export default class OpportunityService {
 				marketingCampaignId: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				description: op.description,
+				ganho: op.ganho,
+				perda: op.perda,
 				balance: op.balance,
 
 				status: this.sharedService.captureGroup(op.status, (v) => ({
@@ -1499,6 +1503,14 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
+			if (typeof model.ganho === "boolean" && model.ganho === false) {
+				throw new BadRequestException(
+					"Não é possivel dar Ganho em oportunidades no Status Atual",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const result = await model
 				.merge({
 					reason_id: data.reasonId,
@@ -1550,6 +1562,14 @@ export default class OpportunityService {
 
 			if (!model) {
 				throw this.sharedService.ResourceNotFound();
+			}
+
+			if (typeof model.ganho === "boolean" && model.ganho === true) {
+				throw new BadRequestException(
+					"Não é possivel dar Perda em oportunidades no Status Atual",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const result = await model

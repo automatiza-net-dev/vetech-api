@@ -1221,7 +1221,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get(
-		"/schedules-treatment-executions",
+		"/schedules-treatment-executions/:id",
 		"TreatmentsController.searchScheduleServices",
 	);
 	Route.get("/search", "TreatmentsController.searchTreatment");

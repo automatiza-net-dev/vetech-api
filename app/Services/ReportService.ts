@@ -3116,7 +3116,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				id: authCtx.unit.id,
 				identification: authCtx.unit.identification,
 				periodo: data.period,
-				agrupamentos: dreGroups.map((group) => {
+				items: dreGroups.map((group) => {
 					const accountPlans = accountPlanGroups
 						.filter((a) => a.dre_group_id === group.id)
 						.map((app) => {
@@ -3151,7 +3151,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											}, [] as string[])
 											.join(" ")
 											.replaceAll("-", ""),
-										grupo_planos_contas: contas,
+										itens: contas,
 									};
 								});
 
@@ -3174,7 +3174,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									}, [] as string[])
 									.join(" ")
 									.replaceAll("-", ""),
-								grupo_planos_contas_pai: parents,
+								itens: parents,
 							};
 						});
 
@@ -3197,7 +3197,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 							}, [] as string[])
 							.join(" ")
 							.replaceAll("-", ""),
-						grupo_plano_contas: accountPlans,
+						itens: accountPlans,
 					};
 				}),
 			},

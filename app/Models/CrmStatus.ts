@@ -26,6 +26,12 @@ export default class CrmStatus extends BaseModel {
 	@column()
 	public perda: boolean | null;
 
+	@column({
+		columnName: "sync_schedules",
+		serializeAs: "syncSchedules",
+	})
+	public syncSchedules: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

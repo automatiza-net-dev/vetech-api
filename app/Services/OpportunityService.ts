@@ -1050,6 +1050,7 @@ export default class OpportunityService {
 					description: v.description,
 					ganho: v.ganho,
 					perda: v.perda,
+					syncSchedules: v.syncSchedules,
 				})),
 				contact: this.sharedService.captureGroup(op.contact, (v) => ({
 					id: v.id,

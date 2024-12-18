@@ -89,12 +89,6 @@ export default class Opportunity extends BaseModel {
 	public castrated: boolean;
 
 	@column()
-	public ganho: boolean | null;
-
-	@column()
-	public perda: boolean | null;
-
-	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

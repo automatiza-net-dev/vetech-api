@@ -751,8 +751,6 @@ export default class OpportunityService {
 				description: op.description,
 				observation: op.observation,
 				profitValue: op.profitValue,
-				ganho: op.ganho,
-				perda: op.perda,
 				resultObservation: op.resultObservation,
 				balance: op.balance,
 
@@ -1045,8 +1043,6 @@ export default class OpportunityService {
 				marketingCampaignId: op.marketing_campaign_id,
 				openingDate: op.openingDate,
 				description: op.description,
-				ganho: op.ganho,
-				perda: op.perda,
 				balance: op.balance,
 
 				status: this.sharedService.captureGroup(op.status, (v) => ({
@@ -1495,6 +1491,7 @@ export default class OpportunityService {
 	) {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
+				.preload("status")
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.first();
@@ -1503,7 +1500,10 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (typeof model.ganho === "boolean" && model.ganho === false) {
+			if (
+				typeof model.status.ganho === "boolean" &&
+				model.status.perda === true
+			) {
 				throw new BadRequestException(
 					"Não é possivel dar Ganho em oportunidades no Status Atual",
 					400,
@@ -1564,7 +1564,10 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (typeof model.ganho === "boolean" && model.ganho === true) {
+			if (
+				typeof model.status.ganho === "boolean" &&
+				model.status.ganho === true
+			) {
 				throw new BadRequestException(
 					"Não é possivel dar Perda em oportunidades no Status Atual",
 					400,

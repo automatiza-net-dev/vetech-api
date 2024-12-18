@@ -1,38 +1,44 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
-import { DateTime } from 'luxon';
+import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { DateTime } from "luxon";
 
-export const CrmStatusTypes = ['OP', 'OPR'] as const;
-export type CrmStatusType = typeof CrmStatusTypes[number];
+export const CrmStatusTypes = ["OP", "OPR"] as const;
+export type CrmStatusType = (typeof CrmStatusTypes)[number];
 
 export default class CrmStatus extends BaseModel {
-  @column({ isPrimary: true })
-  public id: number;
+	@column({ isPrimary: true })
+	public id: number;
 
-  @column()
-  public description: string;
+	@column()
+	public description: string;
 
-  @column()
-  public tag: string;
+	@column()
+	public tag: string;
 
-  @column()
-  public type: CrmStatusType;
+	@column()
+	public type: CrmStatusType;
 
-  @column()
-  public active: boolean;
+	@column()
+	public active: boolean;
 
-  @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime;
+	@column()
+	public ganho: boolean | null;
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime;
+	@column()
+	public perda: boolean | null;
 
-  @column({
-    serializeAs: null,
-  })
-  public system_id: number;
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
 
-  @column({
-    serializeAs: null,
-  })
-  public economic_group_id: string;
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
+
+	@column({
+		serializeAs: null,
+	})
+	public system_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public economic_group_id: string;
 }

@@ -197,6 +197,7 @@ export default class AuthController {
 				"reviewer",
 				"internal_code",
 				"sync_schedule_movements",
+				"sync_crm_schedules",
 			]);
 		});
 
@@ -233,6 +234,7 @@ export default class AuthController {
 					reviewer: unit.unitConfig.reviewer,
 					internalCode: unit.unitConfig.internalCode,
 					syncScheduleMovements: unit.unitConfig.syncScheduleMovements,
+					syncCrmSchedules: unit.unitConfig.syncCrmSchedules,
 				},
 				phone: unit.phone,
 				fantasy_name: unit.fantasyName,

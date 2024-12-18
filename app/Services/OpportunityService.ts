@@ -1558,6 +1558,7 @@ export default class OpportunityService {
 	) {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
+				.preload("status")
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.first();

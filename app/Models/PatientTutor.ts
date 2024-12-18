@@ -45,6 +45,7 @@ export default class PatientTutor extends BaseModel {
 
 	@column({
 		columnName: "corporate_name",
+		serializeAs: "corporateName",
 	})
 	public corporateName?: string;
 

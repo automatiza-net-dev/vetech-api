@@ -994,7 +994,7 @@ export default class PatientService {
 			active: patient.active,
 			document: patient.tutor.document,
 			inscription: patient.tutor.inscription,
-			corporate_name: patient.tutor.corporateName,
+			corporateName: patient.tutor.corporateName,
 			telephone: patient.tutor.telephone,
 			message_person_name: patient.tutor.messagePersonName,
 			message_person_phone: patient.tutor.messagePersonPhone,
@@ -1468,7 +1468,7 @@ export default class PatientService {
 
 			const patient = await Patient.create(
 				{
-					name: data.name,
+					name: data.name ?? data.corporateName ?? "",
 					birthDate: data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
 						: undefined,
@@ -1489,7 +1489,7 @@ export default class PatientService {
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
-					corporateName: data.corporate_name,
+					corporateName: data.corporateName,
 					// email: data.email,
 					// cellphone: data.cellphone,
 					telephone: data.telephone,
@@ -2056,7 +2056,7 @@ export default class PatientService {
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
-					corporateName: data.corporate_name,
+					corporateName: data.corporateName,
 					// email: data.email,
 					// cellphone: data.cellphone,
 					telephone: data.telephone,

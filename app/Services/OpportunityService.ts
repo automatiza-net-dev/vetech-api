@@ -1502,10 +1502,12 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (
-				typeof model.status.ganho === "boolean" &&
-				model.status.perda === true
-			) {
+			const [ganho]: { ganho: boolean }[] = await Database.from("crm_statuses")
+				.select(Database.raw("coalesce(ganho,false) as ganho"))
+				.where("id", model.status_id)
+				.first();
+
+			if (!ganho) {
 				throw new BadRequestException(
 					"Não é possivel dar Ganho em oportunidades no Status Atual",
 					400,
@@ -1567,12 +1569,14 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			if (
-				typeof model.status.ganho === "boolean" &&
-				model.status.ganho === true
-			) {
+			const [perda]: { perda: boolean }[] = await Database.from("crm_statuses")
+				.select(Database.raw("coalesce(perda,false) as perda"))
+				.where("id", model.status_id)
+				.first();
+
+			if (!perda) {
 				throw new BadRequestException(
-					"Não é possivel dar Perda em oportunidades no Status Atual",
+					"Não é possivel dar Ganho em oportunidades no Status Atual",
 					400,
 					"E_ERR",
 				);

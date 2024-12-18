@@ -1048,6 +1048,8 @@ export default class OpportunityService {
 				status: this.sharedService.captureGroup(op.status, (v) => ({
 					id: v.id,
 					description: v.description,
+					ganho: v.ganho,
+					perda: v.perda,
 				})),
 				contact: this.sharedService.captureGroup(op.contact, (v) => ({
 					id: v.id,

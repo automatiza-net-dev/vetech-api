@@ -1183,7 +1183,7 @@ export default class ScheduleService {
 
 				if (result.executado === "NaoExec" && data.ignoreConflict === false) {
 					throw new BadRequestException(
-						`Este agendamento está vinculado ao tratamento ${result.treatment_id}`,
+						`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
 						400,
 						"E_ERR",
 					);

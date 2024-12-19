@@ -15,25 +15,6 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 
-type DreGroupSqlResult = {
-	sequencia_dre: string;
-	id_dre: string;
-	agrupamento_dre: string;
-
-	id_grupo_plano_contas: string;
-	grupo_plano_contas: string;
-
-	id_plano_contas_pai: string;
-	plano_contas_pai: string;
-
-	id_plano_contas: string;
-	plano_contas: string;
-
-	periodo: string;
-	custo: string;
-	total: string;
-};
-
 @inject()
 export default class ReportService {
 	constructor(private sharedService: SharedService) {}
@@ -3056,14 +3037,20 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			description: string;
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
-			sum: number;
+			custo: number;
+			total: number;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
        description,
        account_plans.type,
        account_plan_group_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
+       coalesce(dcpi.cost::float, 0) as custo,
+       coalesce(sum(finances.total_value), 0)::float as total`),
+			)
+			.joinRaw(
+				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
+				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
 				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
@@ -3077,7 +3064,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupBy("account_plans.id")
+			.groupByRaw("account_plans.id, coalesce(dcpi.cost, 0)")
 			.orderByRaw("account_plan_group_id, type, description");
 
 		const accountPlanChildren: {
@@ -3086,7 +3073,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
 			parent_id: string;
-			sum: number;
+			custo: number;
+			total: number;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
@@ -3094,7 +3082,12 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        parent_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
+       coalesce(dcpi.cost, 0)::float as custo,
+       coalesce(sum(finances.total_value), 0)::float as total`),
+			)
+			.joinRaw(
+				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
+				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
 				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
@@ -3108,7 +3101,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNotNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupBy("account_plans.id")
+			.groupByRaw("account_plans.id, coalesce(dcpi.cost,0)")
 			.orderByRaw("parent_id, type, description");
 
 		return [
@@ -3129,14 +3122,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											id: apc.id,
 											description: apc.description,
 											type: apc.type,
-											custo: apc.sum,
+											total: apc.total,
 										}));
 
 									return {
 										id: ap.id,
 										description: ap.description,
 										type: ap.type,
-										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
+										total: contas.reduce((acc, curr) => acc + curr.total, 0),
 										refCusto: contas
 											.reduce((acc, curr) => {
 												if (curr.type === "CREDITO") {
@@ -3159,7 +3152,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								id: app.id,
 								description: app.description,
 								type: app.type,
-								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
+								total: parents.reduce((acc, curr) => acc + curr.total, 0),
 								refCusto: parents
 									.reduce((acc, curr) => {
 										if (curr.type === "CREDITO") {
@@ -3182,7 +3175,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						id: group.id,
 						basear: false,
 						description: group.description,
-						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
+						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
 						refCusto: accountPlans
 							.reduce((acc, curr) => {
 								if (curr.type === "CREDITO") {

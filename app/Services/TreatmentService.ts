@@ -394,14 +394,11 @@ export default class TreatmentService {
 
 		return Database.from("treatment_executions")
 			.select(
-				Database.raw(`json_build_object('id', products.id, 'description', products.description) as product,
-       json_build_object('id', productivity_items.id, 'description',
-                         productivity_items.description)                         as productivity_item,
-       treatment_executions.execution_date                                       as execution_date,
-       case
-           when treatment_executions.exclusion_user_id is not null
-               then json_build_object('id', users.id, 'name', users.name)
-           end                                                                   as "user"`),
+				Database.raw(`json_build_object('treatmentId', treatment_executions.treatment_id, 'treatmentItemId', treatment_executions.treatment_item_id, 'treatmentExecutionId', treatment_executions.id,
+
+'productId', products.id, 'productDescription', products.description, 'productivityItemid', productivity_items.id, 'productivityItemdescription', productivity_items.description,
+
+'executionUserId', users.id, 'executionUserName', users.name, 'executionDate', treatment_executions.execution_date) as executions`),
 			)
 			.joinRaw(
 				"join treatment_items on treatment_executions.treatment_item_id = treatment_items.id",
@@ -414,7 +411,7 @@ export default class TreatmentService {
 				"left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
 			)
 			.joinRaw(
-				"left join users on treatment_executions.exclusion_user_id = users.id",
+				"left join users on treatment_executions.execution_user_id = users.id",
 			)
 
 			.where("treatment_executions.economic_group_id", authCtx.group.id)

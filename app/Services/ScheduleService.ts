@@ -1160,10 +1160,10 @@ export default class ScheduleService {
 				throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
 			}
 
-			const [result]: {
+			const result: {
 				treatment_id: number;
 				executado: "Exec" | "NaoExec";
-			}[] = await Database.from("treatment_executions")
+			} | null = await Database.from("treatment_executions")
 				.select(
 					Database.raw(
 						"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",

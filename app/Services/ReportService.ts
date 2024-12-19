@@ -3145,12 +3145,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 													acc.push("-");
 												}
 
-												acc.push(curr.id);
+												acc.push(curr.id.replaceAll("-", ""));
 
 												return acc;
 											}, [] as string[])
-											.join(" ")
-											.replaceAll("-", ""),
+											.join(" "),
 										ref: contas.map((c) => c.id),
 										itens: contas,
 									};
@@ -3169,12 +3168,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											acc.push("-");
 										}
 
-										acc.push(curr.id);
+										acc.push(curr.id.replaceAll("-", ""));
 
 										return acc;
 									}, [] as string[])
-									.join(" ")
-									.replaceAll("-", ""),
+									.join(" "),
 								ref: parents.map((c) => c.id),
 								itens: parents,
 							};
@@ -3197,8 +3195,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 								return acc;
 							}, [] as string[])
-							.join(" ")
-							.replaceAll("-", ""),
+							.join(" "),
 						ref: accountPlans.map((c) => c.id),
 						itens: accountPlans,
 					};

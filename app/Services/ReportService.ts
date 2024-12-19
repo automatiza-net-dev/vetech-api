@@ -3064,7 +3064,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupByRaw("account_plans.id, coalesce(dcpi.cost, 0)")
+			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("account_plan_group_id, type, description");
 
 		const accountPlanChildren: {
@@ -3101,7 +3101,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNotNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupByRaw("account_plans.id, coalesce(dcpi.cost,0)")
+			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("parent_id, type, description");
 
 		return [

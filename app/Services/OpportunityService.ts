@@ -1503,7 +1503,7 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			const [ganho]: { ganho: boolean }[] = await Database.from("crm_statuses")
+			const { ganho }: { ganho: boolean } = await Database.from("crm_statuses")
 				.select(Database.raw("coalesce(ganho,false) as ganho"))
 				.where("id", model.status_id)
 				.first();
@@ -1570,7 +1570,7 @@ export default class OpportunityService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			const [perda]: { perda: boolean }[] = await Database.from("crm_statuses")
+			const { perda }: { perda: boolean } = await Database.from("crm_statuses")
 				.select(Database.raw("coalesce(perda,false) as perda"))
 				.where("id", model.status_id)
 				.first();

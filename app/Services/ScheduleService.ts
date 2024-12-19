@@ -1130,7 +1130,13 @@ export default class ScheduleService {
 		});
 	}
 
-	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+	public async destroy(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+			ignoreConflict: boolean;
+		},
+	): Promise<void> {
 		return Database.transaction(async (trx) => {
 			const hasPermission = await this.sharedService.userHasPermission(
 				authCtx,
@@ -1144,7 +1150,45 @@ export default class ScheduleService {
 				);
 			}
 
-			const schedule = await this.show(authCtx.unit.id, id);
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.first();
+
+			if (!schedule) {
+				throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
+			}
+
+			const [result]: {
+				treatment_id: number;
+				executado: "Exec" | "NaoExec";
+			}[] = await Database.from("treatment_executions")
+				.select(
+					Database.raw(
+						"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
+					),
+				)
+				.where("schedule_id", data.id)
+				.first();
+
+			if (result) {
+				if (result.executado === "Exec") {
+					throw new BadRequestException(
+						`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (result.executado === "NaoExec" && data.ignoreConflict === false) {
+					throw new BadRequestException(
+						`Este agendamento está vinculado ao tratamento ${result.treatment_id}`,
+						400,
+						"E_ERR",
+					);
+				}
+			}
 
 			await schedule
 				.merge({
@@ -1158,6 +1202,16 @@ export default class ScheduleService {
 				.useTransaction(trx)
 				.where("schedule_id", schedule.id)
 				.update({ schedule_id: null });
+
+			// update set schedule_user_id = null, schedule_id = null, schedule_date = null where schedule_id = 'fab80145-fbc9-4d74-83e2-4652353de57a';
+			await Database.from("treatment_executions")
+				.useTransaction(trx)
+				.where("schedule_id", data.id)
+				.update({
+					schedule_user_id: null,
+					schedule_id: null,
+					schedule_date: null,
+				});
 		});
 	}
 

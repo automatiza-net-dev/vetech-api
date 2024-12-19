@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
@@ -1118,36 +1120,10 @@ export default class ScheduleService {
 				client: trx,
 			});
 			if (toStatus.type === "CANC") {
-				const result: {
-					treatment_id: number;
-					executado: "Exec" | "NaoExec";
-				} | null = await Database.from("treatment_executions")
-					.select(
-						Database.raw(
-							"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
-						),
-					)
-					.orderBy("execution_date")
-					.where("schedule_id", id)
-					.first();
-
-				if (result) {
-					if (result.executado === "Exec") {
-						throw new BadRequestException(
-							`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
-							400,
-							"E_ERR",
-						);
-					}
-
-					if (result.executado === "NaoExec" && data.ignoreConflict === false) {
-						throw new BadRequestException(
-							`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
-							400,
-							"E_ERR",
-						);
-					}
-				}
+				await this.validateScheduleChange(trx, {
+					scheduleId: id,
+					ignoreConflict: data.ignoreConflict,
+				});
 
 				await Database.from("treatment_executions")
 					.useTransaction(trx)
@@ -1210,36 +1186,10 @@ export default class ScheduleService {
 				throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
 			}
 
-			const result: {
-				treatment_id: number;
-				executado: "Exec" | "NaoExec";
-			} | null = await Database.from("treatment_executions")
-				.select(
-					Database.raw(
-						"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
-					),
-				)
-				.orderBy("execution_date")
-				.where("schedule_id", data.id)
-				.first();
-
-			if (result) {
-				if (result.executado === "Exec") {
-					throw new BadRequestException(
-						`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
-						400,
-						"E_ERR",
-					);
-				}
-
-				if (result.executado === "NaoExec" && data.ignoreConflict === false) {
-					throw new BadRequestException(
-						`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
-						400,
-						"E_ERR",
-					);
-				}
-			}
+			await this.validateScheduleChange(trx, {
+				scheduleId: data.id,
+				ignoreConflict: data.ignoreConflict,
+			});
 
 			await Database.from("treatment_executions")
 				.useTransaction(trx)
@@ -2312,45 +2262,10 @@ export default class ScheduleService {
 			}
 
 			if (toStatus.type === "CANC") {
-				const result: {
-					treatment_id: number;
-					executado: "Exec" | "NaoExec";
-				} | null = await Database.from("treatment_executions")
-					.select(
-						Database.raw(
-							"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
-						),
-					)
-					.orderBy("execution_date")
-					.where("schedule_id", data.scheduleId)
-					.first();
-
-				if (result) {
-					if (result.executado === "Exec") {
-						throw new BadRequestException(
-							`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
-							400,
-							"E_ERR",
-						);
-					}
-
-					if (result.executado === "NaoExec" && data.ignoreConflict === false) {
-						throw new BadRequestException(
-							`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
-							400,
-							"E_ERR",
-						);
-					}
-				}
-
-				await Database.from("treatment_executions")
-					.useTransaction(trx)
-					.where("schedule_id", data.scheduleId)
-					.update({
-						schedule_user_id: null,
-						schedule_id: null,
-						schedule_date: null,
-					});
+				await this.validateScheduleChange(trx, {
+					scheduleId: data.scheduleId,
+					ignoreConflict: data.ignoreConflict,
+				});
 
 				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
 					authCtx,
@@ -2503,6 +2418,55 @@ export default class ScheduleService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	private async validateScheduleChange(
+		transaction: TransactionClientContract,
+		data: {
+			scheduleId: string;
+			ignoreConflict?: boolean;
+		},
+	) {
+		const result: {
+			treatment_id: number;
+			executado: "Exec" | "NaoExec";
+		} | null = await Database.from("treatment_executions")
+			.useTransaction(transaction)
+			.select(
+				Database.raw(
+					"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
+				),
+			)
+			.orderBy("execution_date")
+			.where("schedule_id", data.scheduleId)
+			.first();
+
+		if (result) {
+			if (result.executado === "Exec") {
+				throw new BadRequestException(
+					`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (result.executado === "NaoExec" && data.ignoreConflict === false) {
+				throw new BadRequestException(
+					`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
+		await Database.from("treatment_executions")
+			.useTransaction(transaction)
+			.where("schedule_id", data.scheduleId)
+			.update({
+				schedule_user_id: null,
+				schedule_id: null,
+				schedule_date: null,
+			});
 	}
 
 	public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {

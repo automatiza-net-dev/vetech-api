@@ -1,7 +1,8 @@
 export default interface IUpdateScheduleStatus {
-  scheduleId: string;
-  statusId: string;
+	scheduleId: string;
+	statusId: string;
 
-  reasonId?: string;
-  observation?: string;
+	reasonId?: string;
+	observation?: string;
+	ignoreConflict?: boolean;
 }

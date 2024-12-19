@@ -33,6 +33,7 @@ export default class UpsertScheduleStatusValidator {
 			rules.exists({ table: "schedule_statuses", column: "id" }),
 		]),
 		observation: schema.string({}, [rules.maxLength(255)]),
+		ignoreConflict: schema.boolean.optional(),
 	});
 
 	/**

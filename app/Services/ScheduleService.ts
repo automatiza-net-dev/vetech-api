@@ -1169,6 +1169,7 @@ export default class ScheduleService {
 						"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
 					),
 				)
+				.orderBy("execution_date")
 				.where("schedule_id", data.id)
 				.first();
 

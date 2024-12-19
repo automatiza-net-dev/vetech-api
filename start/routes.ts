@@ -387,8 +387,8 @@ Route.group(() => {
 	Route.put("/upsert/:id", "SchedulesController.upsertStatus");
 	Route.put("/status", "SchedulesController.updateStatus");
 	Route.put("/status-type", "SchedulesController.updateStatusType");
-	Route.put("/:id", "SchedulesController.update");
 	Route.put("/exclude", "SchedulesController.destroy");
+	Route.put("/:id", "SchedulesController.update");
 
 	Route.post("/sync", "SchedulesController.syncLateSchedules");
 })

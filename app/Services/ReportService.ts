@@ -3122,6 +3122,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											id: apc.id,
 											description: apc.description,
 											type: apc.type,
+											custo: apc.custo,
 											total: apc.total,
 										}));
 
@@ -3129,6 +3130,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										id: ap.id,
 										description: ap.description,
 										type: ap.type,
+										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
 										total: contas.reduce((acc, curr) => acc + curr.total, 0),
 										refCusto: contas
 											.reduce((acc, curr) => {
@@ -3152,6 +3154,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								id: app.id,
 								description: app.description,
 								type: app.type,
+								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
 								total: parents.reduce((acc, curr) => acc + curr.total, 0),
 								refCusto: parents
 									.reduce((acc, curr) => {
@@ -3175,6 +3178,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						id: group.id,
 						basear: false,
 						description: group.description,
+						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
 						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
 						refCusto: accountPlans
 							.reduce((acc, curr) => {

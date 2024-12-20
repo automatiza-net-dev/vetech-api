@@ -1346,7 +1346,7 @@ Route.group(() => {
 	);
 
 	Route.post("/close-winning/:id", "OpportunitiesController.closeWinning");
-	Route.post("/close-losing/:id", "OpportunitiesController.closeLoosing");
+	Route.post("/close-loosing/:id", "OpportunitiesController.closeLoosing");
 	Route.post("/reopen/:id", "OpportunitiesController.reopen");
 	Route.post("/update-status/:id", "OpportunitiesController.updateStatus");
 	Route.post("/update-user/:id", "OpportunitiesController.updateUser");

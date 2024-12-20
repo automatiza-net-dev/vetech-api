@@ -14,7 +14,7 @@ export default interface IPatientTutorData {
 	active?: boolean;
 	document?: string;
 	inscription?: string;
-	corporate_name?: string;
+	corporateName?: string;
 	telephone?: string;
 	message_person_name?: string;
 	message_person_phone?: string;

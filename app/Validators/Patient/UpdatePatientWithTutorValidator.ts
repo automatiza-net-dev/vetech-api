@@ -9,7 +9,7 @@ export default class UpdatePatientWithTutorValidator {
 
 	public schema = schema.create({
 		name: schema.string({}),
-
+		corporateName: schema.string.optional({}),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
@@ -20,7 +20,6 @@ export default class UpdatePatientWithTutorValidator {
 		active: schema.boolean([]),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
-		corporate_name: schema.string.optional({}, []),
 		telephone: schema.string.optional({}, []),
 		message_person_name: schema.string.optional({}, []),
 		message_person_phone: schema.string.optional({}, []),

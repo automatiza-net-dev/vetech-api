@@ -26,6 +26,12 @@ export default class AccountPlanGroup extends BaseModel {
 	@column()
 	public type: AccountPlanGroupType;
 
+	@column({
+		columnName: "dre_basis",
+		serializeAs: null,
+	})
+	public dreBasis: boolean;
+
 	@column()
 	public active: boolean;
 

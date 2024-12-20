@@ -784,7 +784,9 @@ export default class PatientService {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? ""}`,
+			photo: patient.photo
+				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo}`
+				: null,
 			gender: patient.gender,
 			genderText: patient.gender
 				? patient.gender === PatientGender.MALE
@@ -992,7 +994,7 @@ export default class PatientService {
 			active: patient.active,
 			document: patient.tutor.document,
 			inscription: patient.tutor.inscription,
-			corporate_name: patient.tutor.corporateName,
+			corporateName: patient.tutor.corporateName,
 			telephone: patient.tutor.telephone,
 			message_person_name: patient.tutor.messagePersonName,
 			message_person_phone: patient.tutor.messagePersonPhone,
@@ -1466,7 +1468,7 @@ export default class PatientService {
 
 			const patient = await Patient.create(
 				{
-					name: data.name,
+					name: data.name ?? data.corporateName ?? "",
 					birthDate: data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
 						: undefined,
@@ -1487,7 +1489,7 @@ export default class PatientService {
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
-					corporateName: data.corporate_name,
+					corporateName: data.corporateName,
 					// email: data.email,
 					// cellphone: data.cellphone,
 					telephone: data.telephone,
@@ -2054,7 +2056,7 @@ export default class PatientService {
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
-					corporateName: data.corporate_name,
+					corporateName: data.corporateName,
 					// email: data.email,
 					// cellphone: data.cellphone,
 					telephone: data.telephone,

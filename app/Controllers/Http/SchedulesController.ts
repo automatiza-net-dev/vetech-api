@@ -12,6 +12,7 @@ import UpdateScheduleStatusTypeValidator from "App/Validators/Schedule/UpdateSch
 import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValidator";
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";
 import Schedule from "App/Models/Schedule";
+import ExcludeSchedulingValidator from "App/Validators/Schedule/ExcludeSchedulingValidator";
 
 @inject()
 export default class SchedulesController {
@@ -245,10 +246,12 @@ export default class SchedulesController {
 		});
 	}
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
+	public async destroy({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(ExcludeSchedulingValidator);
+
 		await this.service.destroy(
 			await this.sharedService.getAuthContext(auth),
-			params.id,
+			payload,
 		);
 
 		return response.noContent();

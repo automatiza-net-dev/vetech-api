@@ -587,6 +587,7 @@ export default class TemplateReplacementService {
 
 		return {
 			...tutor.toJSON(),
+			corporateName: tutor.tutor?.corporateName || null,
 			firstName: tutor.name.split(" ").at(0),
 			address: [tutor.tutor?.street, tutor.tutor?.number]
 				.filter(Boolean)

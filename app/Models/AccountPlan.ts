@@ -35,6 +35,9 @@ export default class AccountPlan extends BaseModel {
 	public dre: boolean;
 
 	@column()
+	public tag: string | null;
+
+	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

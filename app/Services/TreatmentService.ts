@@ -12,6 +12,7 @@ import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedul
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
+import { validate } from "uuid";
 
 @inject()
 export default class TreatmentService {
@@ -367,14 +368,69 @@ export default class TreatmentService {
 		});
 	}
 
+	public async scheduleTreatmentExecution(
+		authCtx: AuthContext,
+		scheduleId: string,
+	): Promise<
+		{
+			product: {
+				id: number;
+				description: string;
+			};
+			productivity_item: {
+				id: number;
+				description: string;
+			};
+			execution_date: string;
+			user: {
+				id: number;
+				name: string;
+			} | null;
+		}[]
+	> {
+		if (!scheduleId || !validate(scheduleId)) {
+			throw new BadRequestException("ID de agenda inválido", 400, "E_ERR");
+		}
+
+		return Database.from("treatment_executions")
+			.select(
+				Database.raw(`json_build_object('treatmentId', treatment_executions.treatment_id, 'treatmentItemId', treatment_executions.treatment_item_id, 'treatmentExecutionId', treatment_executions.id,
+
+'productId', products.id, 'productDescription', products.description, 'productivityItemid', productivity_items.id, 'productivityItemdescription', productivity_items.description,
+
+'executionUserId', users.id, 'executionUserName', users.name, 'executionDate', treatment_executions.execution_date) as executions`),
+			)
+			.joinRaw(
+				"join treatment_items on treatment_executions.treatment_item_id = treatment_items.id",
+			)
+			.joinRaw(
+				"join product_variations on treatment_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw(
+				"left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+			)
+			.joinRaw(
+				"left join users on treatment_executions.execution_user_id = users.id",
+			)
+
+			.where("treatment_executions.economic_group_id", authCtx.group.id)
+			.where("treatment_executions.business_unit_id", authCtx.unit.id)
+			.where("treatment_executions.schedule_id", scheduleId);
+	}
+
 	public async batchExecuteExecution(
 		authCtx: AuthContext,
 		data: {
-			executionList: { id: number; quantity: number; itemId: number }[];
+			executionList: {
+				id: number;
+				quantity: number;
+				itemId: number;
+				observations?: string;
+			}[];
 			treatmentId: number;
 
 			executionDate: DateTime;
-			observations?: string;
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -421,7 +477,7 @@ export default class TreatmentService {
 					.merge({
 						execution_user_id: authCtx.user.id,
 						executionDate: data.executionDate,
-						observations: data.observations,
+						observations: entry?.observations,
 						quantityExecuted: entry?.quantity ?? 0,
 						status: "Confirmado",
 					})

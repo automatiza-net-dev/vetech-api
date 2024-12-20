@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
@@ -721,6 +723,8 @@ export default class ScheduleService {
 						.where("id", exec.treatmentExecutionId)
 						.update({
 							schedule_id: result.id,
+							schedule_date: data.startHour,
+							schedule_user_id: authCtx.user.id,
 						});
 				}) ?? [];
 			await Promise.all(tasks);
@@ -1082,7 +1086,12 @@ export default class ScheduleService {
 	public async upsertStatus(
 		authCtx: AuthContext,
 		id: string,
-		data: { reasonId: string; statusId: string; observation: string },
+		data: {
+			reasonId: string;
+			statusId: string;
+			observation: string;
+			ignoreConflict?: boolean;
+		},
 	): Promise<Schedule> {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,
@@ -1107,6 +1116,25 @@ export default class ScheduleService {
 		}
 
 		return Database.transaction(async (trx) => {
+			const toStatus = await ScheduleStatus.findOrFail(data.statusId, {
+				client: trx,
+			});
+			if (toStatus.type === "CANC") {
+				await this.validateScheduleChange(trx, {
+					scheduleId: id,
+					ignoreConflict: data.ignoreConflict,
+				});
+
+				await Database.from("treatment_executions")
+					.useTransaction(trx)
+					.where("schedule_id", id)
+					.update({
+						schedule_user_id: null,
+						schedule_id: null,
+						schedule_date: null,
+					});
+			}
+
 			await schedule.related("statusChanges").create(
 				{
 					user_id: authCtx.user.id,
@@ -1128,7 +1156,13 @@ export default class ScheduleService {
 		});
 	}
 
-	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+	public async destroy(
+		authCtx: AuthContext,
+		data: {
+			id: string;
+			ignoreConflict: boolean;
+		},
+	): Promise<void> {
 		return Database.transaction(async (trx) => {
 			const hasPermission = await this.sharedService.userHasPermission(
 				authCtx,
@@ -1142,7 +1176,29 @@ export default class ScheduleService {
 				);
 			}
 
-			const schedule = await this.show(authCtx.unit.id, id);
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.id)
+				.andWhere("business_unit_id", authCtx.unit.id)
+				.first();
+
+			if (!schedule) {
+				throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
+			}
+
+			await this.validateScheduleChange(trx, {
+				scheduleId: data.id,
+				ignoreConflict: data.ignoreConflict,
+			});
+
+			await Database.from("treatment_executions")
+				.useTransaction(trx)
+				.where("schedule_id", data.id)
+				.update({
+					schedule_user_id: null,
+					schedule_id: null,
+					schedule_date: null,
+				});
 
 			await schedule
 				.merge({
@@ -2206,6 +2262,11 @@ export default class ScheduleService {
 			}
 
 			if (toStatus.type === "CANC") {
+				await this.validateScheduleChange(trx, {
+					scheduleId: data.scheduleId,
+					ignoreConflict: data.ignoreConflict,
+				});
+
 				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
 					authCtx,
 					schedule,
@@ -2357,6 +2418,55 @@ export default class ScheduleService {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	private async validateScheduleChange(
+		transaction: TransactionClientContract,
+		data: {
+			scheduleId: string;
+			ignoreConflict?: boolean;
+		},
+	) {
+		const result: {
+			treatment_id: number;
+			executado: "Exec" | "NaoExec";
+		} | null = await Database.from("treatment_executions")
+			.useTransaction(transaction)
+			.select(
+				Database.raw(
+					"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
+				),
+			)
+			.orderBy("execution_date")
+			.where("schedule_id", data.scheduleId)
+			.first();
+
+		if (result) {
+			if (result.executado === "Exec") {
+				throw new BadRequestException(
+					`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (result.executado === "NaoExec" && data.ignoreConflict === false) {
+				throw new BadRequestException(
+					`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
+		await Database.from("treatment_executions")
+			.useTransaction(transaction)
+			.where("schedule_id", data.scheduleId)
+			.update({
+				schedule_user_id: null,
+				schedule_id: null,
+				schedule_date: null,
+			});
 	}
 
 	public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {

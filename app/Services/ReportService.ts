@@ -15,25 +15,6 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 
-type DreGroupSqlResult = {
-	sequencia_dre: string;
-	id_dre: string;
-	agrupamento_dre: string;
-
-	id_grupo_plano_contas: string;
-	grupo_plano_contas: string;
-
-	id_plano_contas_pai: string;
-	plano_contas_pai: string;
-
-	id_plano_contas: string;
-	plano_contas: string;
-
-	periodo: string;
-	custo: string;
-	total: string;
-};
-
 @inject()
 export default class ReportService {
 	constructor(private sharedService: SharedService) {}
@@ -3043,8 +3024,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			description: string;
 			type: "CREDITO" | "DEBITO";
 			dre_group_id: number | null;
+			dre_basis: boolean;
 		}[] = await Database.from("account_plan_groups")
-			.select("id", "description", "type", "dre_group_id")
+			.select(Database.raw("id, description, type, dre_group_id, dre_basis"))
 			.where("system_id", authCtx.system.id)
 			.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
 				authCtx.group.id,
@@ -3056,14 +3038,24 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			description: string;
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
-			sum: number;
+			custo: number;
+			total: number;
+			tag: string;
+			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
        description,
        account_plans.type,
        account_plan_group_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
+       coalesce(dcpi.cost::float, 0) as custo,
+       coalesce(sum(finances.total_value), 0)::float as total,
+       account_plans.tag,
+       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
+			)
+			.joinRaw(
+				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
+				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
 				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
@@ -3077,7 +3069,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupBy("account_plans.id")
+			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("account_plan_group_id, type, description");
 
 		const accountPlanChildren: {
@@ -3086,7 +3078,10 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
 			parent_id: string;
-			sum: number;
+			custo: number;
+			total: number;
+			tag: string;
+			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
@@ -3094,7 +3089,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        parent_id,
-       coalesce(sum(finances.total_value), 0)::float as sum`),
+       coalesce(dcpi.cost, 0)::float as custo,
+       coalesce(sum(finances.total_value), 0)::float as total,
+       account_plans.tag,
+       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
+			)
+			.joinRaw(
+				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
+				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
 				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
@@ -3108,7 +3110,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.where("dre", true)
 			.whereNotNull("parent_id")
 			.whereNull("account_plans.deleted_at")
-			.groupBy("account_plans.id")
+			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("parent_id, type, description");
 
 		return [
@@ -3116,7 +3118,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				id: authCtx.unit.id,
 				identification: authCtx.unit.identification,
 				periodo: data.period,
-				agrupamentos: dreGroups.map((group) => {
+				itens: dreGroups.map((group) => {
 					const accountPlans = accountPlanGroups
 						.filter((a) => a.dre_group_id === group.id)
 						.map((app) => {
@@ -3127,52 +3129,49 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										.filter((apc) => apc.parent_id === ap.id)
 										.map((apc) => ({
 											id: apc.id,
+											// ref: apc.ref,
+											tag: apc.tag,
+											basear: false,
 											description: apc.description,
 											type: apc.type,
-											custo: apc.sum,
+											custo: apc.custo,
+											total: apc.total,
 										}));
 
 									return {
 										id: ap.id,
+										tag: ap.tag,
+										basear: false,
 										description: ap.description,
 										type: ap.type,
 										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
-										refCusto: contas
-											.reduce((acc, curr) => {
-												if (curr.type === "CREDITO") {
-													acc.push("+");
-												} else {
-													acc.push("-");
-												}
-
-												acc.push(curr.id);
-
-												return acc;
-											}, [] as string[])
+										total: contas.reduce((acc, curr) => acc + curr.total, 0),
+										refCusto: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.map((c) => c.ref)
 											.join(" "),
-										grupo_planos_contas: contas,
+										refs: contas.map((c) => c.id),
+										itens: contas,
 									};
 								});
 
 							return {
 								id: app.id,
+								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
 								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
+								total: parents.reduce((acc, curr) => acc + curr.total, 0),
 								refCusto: parents
-									.reduce((acc, curr) => {
-										if (curr.type === "CREDITO") {
-											acc.push("+");
-										} else {
-											acc.push("-");
-										}
-
-										acc.push(curr.id);
-
-										return acc;
-									}, [] as string[])
-									.join(" "),
-								grupo_planos_contas_pai: parents,
+									.map((p) =>
+										p.itens.length === 0
+											? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
+											: p.refCusto,
+									)
+									.join(" ")
+									.trim(),
+								refs: parents.map((c) => c.id),
+								itens: parents,
 							};
 						});
 
@@ -3181,20 +3180,13 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						basear: false,
 						description: group.description,
 						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
+						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
 						refCusto: accountPlans
-							.reduce((acc, curr) => {
-								if (curr.type === "CREDITO") {
-									acc.push("+");
-								} else {
-									acc.push("-");
-								}
-
-								acc.push(curr.id.toString());
-
-								return acc;
-							}, [] as string[])
-							.join(" "),
-						grupo_plano_contas: accountPlans,
+							.flatMap((c) => c.refCusto)
+							.join(" ")
+							.trim(),
+						refs: accountPlans.map((c) => c.id),
+						itens: accountPlans,
 					};
 				}),
 			},

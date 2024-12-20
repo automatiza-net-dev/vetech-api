@@ -632,15 +632,13 @@ export default class BusinessUnitService {
 		};
 	}
 
-	public async calculateStates(unitId: string) {
-		const unit = await BusinessUnit.query().where("id", unitId).firstOrFail();
+	public async calculateStates(authCtx: AuthContext) {
+		const result: { state: string }[] = await Database.from("business_units")
+			.select(Database.raw("distinct state"))
+			.whereRaw("economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("state is not null")
+			.orderBy("state");
 
-		const egUnits = await BusinessUnit.query().where(
-			"economic_group_id",
-			unit.economicGroupId,
-		);
-
-		const states = egUnits.map((u) => u.state);
-		return [...new Set(states)];
+		return result.map((r) => r.state);
 	}
 }

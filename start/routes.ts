@@ -387,8 +387,8 @@ Route.group(() => {
 	Route.put("/upsert/:id", "SchedulesController.upsertStatus");
 	Route.put("/status", "SchedulesController.updateStatus");
 	Route.put("/status-type", "SchedulesController.updateStatusType");
+	Route.put("/exclude", "SchedulesController.destroy");
 	Route.put("/:id", "SchedulesController.update");
-	Route.delete("/:id", "SchedulesController.destroy");
 
 	Route.post("/sync", "SchedulesController.syncLateSchedules");
 })
@@ -1220,6 +1220,10 @@ Route.group(() => {
 }).prefix("urls");
 
 Route.group(() => {
+	Route.get(
+		"/schedules-treatment-executions/:id",
+		"TreatmentsController.scheduleTreatmentExecution",
+	);
 	Route.get("/search", "TreatmentsController.searchTreatment");
 	Route.get(
 		"/search-schedule-services",

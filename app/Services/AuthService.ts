@@ -174,7 +174,12 @@ export default class AuthService {
 		};
 	}
 
-	public async getUserACL(user: User, sID: number, unitID: string | null) {
+	public async getUserACL(
+		user: User,
+		sID: number,
+		unitID: string | null,
+		read?: boolean,
+	) {
 		if (!user.type) {
 			throw new BadRequestException("Usuário sem tipo", 400, "E_NO_TYPE");
 		}
@@ -202,6 +207,10 @@ export default class AuthService {
 			qb.where("business_units.id", unitID);
 		}
 
+		if (read) {
+			qb.whereRaw("permissions.control_id ilike '%00'");
+		}
+
 		if (user.type === "user") {
 			qb.whereIn("roles.type", ["user", "both", "all"] as TRoleType[]);
 			qb.whereIn("permissions.type", [
@@ -225,7 +234,7 @@ export default class AuthService {
 			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
 		}
 
-		const rows = await qb;
+		const rows: { control_id: string }[] = await qb;
 
 		return rows.map((r) => r.control_id);
 	}
@@ -415,6 +424,23 @@ export default class AuthService {
 
 			if (validUnits.length === 1) {
 				const [unit] = validUnits;
+
+				if (unit.economicGroup.status === "Inativo") {
+					throw new BadRequestException(
+						"Login Invalido - Sistema Inativo",
+						400,
+						"E_ERR",
+					);
+				}
+
+				if (unit.economicGroup.status === "Bloqueado") {
+					throw new BadRequestException(
+						"Login Bloqueado - Entre em contato com a Automatiza",
+						400,
+						"E_ERR",
+					);
+				}
+
 				if (data.ip) {
 					const canAccess = await this.ipService.checkAccess(
 						{

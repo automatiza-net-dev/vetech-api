@@ -1,11 +1,18 @@
-import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import BillItem from "App/Models/BillItem";
+import BudgetItem from "App/Models/BudgetItem";
 import BusinessUnit from "App/Models/BusinessUnit";
+import DepositItem from "App/Models/DepositItem";
+import DepositMovementItem from "App/Models/DepositMovementItem";
+import KitItem from "App/Models/KitItem";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import ProductVariation from "App/Models/ProductVariation";
+import ReceiptItem from "App/Models/ReceiptItem";
 import VariationGroup from "App/Models/VariationGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IProductData, {
@@ -378,58 +385,88 @@ export default class ProductService {
 	}
 
 	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
-		const product = await this.show(authCtx.unit.id, id);
-
-		let valid = false;
-
-		const trx = await Database.transaction();
-		try {
-			const rows = await Database.from("product_variations")
+		await Database.transaction(async (trx) => {
+			const product = await Product.query()
 				.useTransaction(trx)
-				.select("id")
-				.where("product_id", id);
+				.where("id", id)
+				.preload("variations")
+				.first();
 
-			await Database.from("business_unit_products")
-				.delete()
+			if (!product) {
+				throw new ResourceNotFoundException(
+					"Recurso não encontrado",
+					404,
+					"E_NOT_FOUND",
+				);
+			}
+
+			const biQb = BillItem.query()
+				.useTransaction(trx)
 				.whereIn(
 					"product_variation_id",
-					rows.map((elem) => elem.id),
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+			const buQb = BudgetItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"product_variation_id",
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+			const riQb = ReceiptItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"product_variation_id",
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+			const diQb = DepositItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"product_variation_id",
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+			const dmiQb = DepositMovementItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"product_variation_id",
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+			const kiQb = KitItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"product_variation_id",
+					product.variations.map((pv) => pv.id),
+				)
+				.first();
+
+			const items = await Promise.all([biQb, buQb, riQb, diQb, dmiQb, kiQb]);
+			if (items.some(Boolean)) {
+				throw new BadRequestException(
+					"Produto já lançado em movimentações, impossível excluir. Marque o produto como Inativo",
+					400,
+					"E_ERR",
 				);
+			}
 
-			await Database.from("product_variations")
-				.delete()
-				.where("product_id", id)
-				.useTransaction(trx);
+			await ProductVariation.query()
+				.useTransaction(trx)
+				.where("product_id", product.id)
+				.update({
+					deleted_at: DateTime.now(),
+				});
 
-			await Database.from("products")
-				.delete()
-				.where("id", id)
-				.useTransaction(trx);
-
-			valid = true;
-		} catch (e) {
-			// console.log(e);
-			// throw new Error(
-			// 	"Failed, means that there is references to patient still",
-			// );
-			valid = false;
-		}
-		await trx.rollback();
-
-		if (!valid) {
-			throw new BadRequestException(
-				"Este registro não pode ser excluido, somente pode ser inativado",
-				400,
-				"E_DANGLING",
-			);
-		}
-
-		await product
-			.merge({
-				exclusion_user_id: authCtx.user.id,
-				deletedAt: DateTime.now(),
-			})
-			.save();
+			await product
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+		});
 	}
 
 	private checkForPrice(unit: BusinessUnit, data: IProductDataVariation) {

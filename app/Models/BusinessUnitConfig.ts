@@ -176,11 +176,17 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public internalCode: boolean;
 
-  @column({
+	@column({
 		columnName: "sync_schedule_movements",
 		serializeAs: "syncScheduleMovements",
 	})
 	public syncScheduleMovements: boolean;
+
+	@column({
+		columnName: "sync_crm_schedules",
+		serializeAs: "syncCrmSchedules",
+	})
+	public syncCrmSchedules: boolean;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

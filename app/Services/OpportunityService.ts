@@ -1048,6 +1048,9 @@ export default class OpportunityService {
 				status: this.sharedService.captureGroup(op.status, (v) => ({
 					id: v.id,
 					description: v.description,
+					ganho: v.ganho,
+					perda: v.perda,
+					syncSchedules: v.syncSchedules,
 				})),
 				contact: this.sharedService.captureGroup(op.contact, (v) => ({
 					id: v.id,
@@ -1491,12 +1494,26 @@ export default class OpportunityService {
 	) {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
+				.preload("status")
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.first();
 
 			if (!model) {
 				throw this.sharedService.ResourceNotFound();
+			}
+
+			const { ganho }: { ganho: boolean } = await Database.from("crm_statuses")
+				.select(Database.raw("coalesce(ganho,false) as ganho"))
+				.where("id", model.status_id)
+				.first();
+
+			if (!ganho) {
+				throw new BadRequestException(
+					"Não é possivel dar Ganho em oportunidades no Status Atual",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const result = await model
@@ -1544,12 +1561,26 @@ export default class OpportunityService {
 	) {
 		await Database.transaction(async (trx) => {
 			const model = await Opportunity.query()
+				.preload("status")
 				.where("economic_group_id", authCtx.group.id)
 				.where("id", id)
 				.first();
 
 			if (!model) {
 				throw this.sharedService.ResourceNotFound();
+			}
+
+			const { perda }: { perda: boolean } = await Database.from("crm_statuses")
+				.select(Database.raw("coalesce(perda,false) as perda"))
+				.where("id", model.status_id)
+				.first();
+
+			if (!perda) {
+				throw new BadRequestException(
+					"Não é possivel dar Perda em oportunidades no Status Atual",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const result = await model

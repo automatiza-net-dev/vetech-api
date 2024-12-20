@@ -3024,8 +3024,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			description: string;
 			type: "CREDITO" | "DEBITO";
 			dre_group_id: number | null;
+			dre_basis: boolean;
 		}[] = await Database.from("account_plan_groups")
-			.select("id", "description", "type", "dre_group_id")
+			.select(Database.raw("id, description, type, dre_group_id, dre_basis"))
 			.where("system_id", authCtx.system.id)
 			.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
 				authCtx.group.id,
@@ -3039,6 +3040,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			account_plan_group_id: number | null;
 			custo: number;
 			total: number;
+			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
@@ -3046,7 +3048,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        coalesce(dcpi.cost::float, 0) as custo,
-       coalesce(sum(finances.total_value), 0)::float as total`),
+       coalesce(sum(finances.total_value), 0)::float as total,
+       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)
 			.joinRaw(
 				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
@@ -3075,6 +3078,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			parent_id: string;
 			custo: number;
 			total: number;
+			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
 				Database.raw(`account_plans.id,
@@ -3083,7 +3087,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plan_group_id,
        parent_id,
        coalesce(dcpi.cost, 0)::float as custo,
-       coalesce(sum(finances.total_value), 0)::float as total`),
+       coalesce(sum(finances.total_value), 0)::float as total,
+       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)
 			.joinRaw(
 				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
@@ -3120,6 +3125,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										.filter((apc) => apc.parent_id === ap.id)
 										.map((apc) => ({
 											id: apc.id,
+											basear: false,
 											description: apc.description,
 											type: apc.type,
 											custo: apc.custo,
@@ -3128,23 +3134,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 									return {
 										id: ap.id,
+										basear: false,
 										description: ap.description,
 										type: ap.type,
 										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
 										total: contas.reduce((acc, curr) => acc + curr.total, 0),
-										refCusto: contas
-											.reduce((acc, curr) => {
-												if (curr.type === "CREDITO") {
-													acc.push("+");
-												} else {
-													acc.push("-");
-												}
-
-												acc.push(curr.id.replaceAll("-", ""));
-
-												return acc;
-											}, [] as string[])
-											.join(" "),
+										refCusto: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.map((c) => c.ref),
 										refs: contas.map((c) => c.id),
 										itens: contas,
 									};
@@ -3152,23 +3149,12 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 							return {
 								id: app.id,
+								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
 								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
 								total: parents.reduce((acc, curr) => acc + curr.total, 0),
-								refCusto: parents
-									.reduce((acc, curr) => {
-										if (curr.type === "CREDITO") {
-											acc.push("+");
-										} else {
-											acc.push("-");
-										}
-
-										acc.push(curr.id.replaceAll("-", ""));
-
-										return acc;
-									}, [] as string[])
-									.join(" "),
+								refCusto: parents.flatMap((p) => p.refCusto),
 								refs: parents.map((c) => c.id),
 								itens: parents,
 							};
@@ -3180,19 +3166,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						description: group.description,
 						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
 						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
-						refCusto: accountPlans
-							.reduce((acc, curr) => {
-								if (curr.type === "CREDITO") {
-									acc.push("+");
-								} else {
-									acc.push("-");
-								}
-
-								acc.push(curr.id.toString());
-
-								return acc;
-							}, [] as string[])
-							.join(" "),
+						refCusto: accountPlans.flatMap((c) => c.refCusto),
 						refs: accountPlans.map((c) => c.id),
 						itens: accountPlans,
 					};

@@ -3141,7 +3141,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										total: contas.reduce((acc, curr) => acc + curr.total, 0),
 										refCusto: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
-											.map((c) => c.ref),
+											.map((c) => c.id),
 										refs: contas.map((c) => c.id),
 										itens: contas,
 									};

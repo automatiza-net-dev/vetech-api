@@ -3146,12 +3146,10 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										type: ap.type,
 										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
 										total: contas.reduce((acc, curr) => acc + curr.total, 0),
-										refCusto:
-											contas.length === 0
-												? []
-												: accountPlanChildren
-														.filter((apc) => apc.parent_id === ap.id)
-														.map((c) => c.ref),
+										refCusto: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.map((c) => c.ref)
+											.join(" "),
 										refs: contas.map((c) => c.id),
 										itens: contas,
 									};
@@ -3165,7 +3163,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
 								total: parents.reduce((acc, curr) => acc + curr.total, 0),
 								refCusto: parents
-									.flatMap((p) => p.refCusto)
+									.map((p) => `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`)
 									.join(" ")
 									.trim(),
 								refs: parents.map((c) => c.id),

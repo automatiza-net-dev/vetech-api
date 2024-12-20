@@ -1577,7 +1577,7 @@ export default class OpportunityService {
 
 			if (!perda) {
 				throw new BadRequestException(
-					"Não é possivel dar Ganho em oportunidades no Status Atual",
+					"Não é possivel dar Perda em oportunidades no Status Atual",
 					400,
 					"E_ERR",
 				);

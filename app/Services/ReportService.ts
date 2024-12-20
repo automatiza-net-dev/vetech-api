@@ -3125,6 +3125,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										.filter((apc) => apc.parent_id === ap.id)
 										.map((apc) => ({
 											id: apc.id,
+											ref: apc.ref,
 											basear: false,
 											description: apc.description,
 											type: apc.type,
@@ -3134,6 +3135,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 									return {
 										id: ap.id,
+										tag: ap.ref,
 										basear: false,
 										description: ap.description,
 										type: ap.type,

@@ -3144,11 +3144,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 												? []
 												: accountPlanChildren
 														.filter((apc) => apc.parent_id === ap.id)
-														.map((c) =>
-															c.type === "CREDITO"
-																? `+ ${c.ref}`
-																: `- ${c.ref}`,
-														),
+														.map((c) => c.ref),
 										refs: contas.map((c) => c.id),
 										itens: contas,
 									};

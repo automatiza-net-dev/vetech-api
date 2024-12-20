@@ -3163,7 +3163,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
 								total: parents.reduce((acc, curr) => acc + curr.total, 0),
 								refCusto: parents
-									.map((p) => `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`)
+									.map((p) =>
+										p.itens.length === 0
+											? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
+											: p.refCusto,
+									)
 									.join(" ")
 									.trim(),
 								refs: parents.map((c) => c.id),

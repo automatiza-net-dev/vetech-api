@@ -841,14 +841,10 @@ export default class PatientService {
 			),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
-		};
 
-		if (scheduleData) {
-			Object.assign(displayData, {
-				scheduleId: scheduleData.id,
-				scheduleStartedAt: scheduleData.started_at,
-			});
-		}
+			scheduleId: scheduleData?.id ?? null,
+			scheduleStartedAt: scheduleData?.started_at ?? null,
+		};
 
 		if (patient.patientAnimal) {
 			Object.assign(displayData, {

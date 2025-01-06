@@ -582,7 +582,11 @@ export default class PatientService {
 		const tutors =
 			data.tutor || data.document
 				? await Database.from("patients")
-						.select(Database.raw("patients.id, name as tutor"))
+						.select(
+							Database.raw(
+								"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
+							),
+						)
 						.joinRaw(
 							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
 							[authCtx.group.id],

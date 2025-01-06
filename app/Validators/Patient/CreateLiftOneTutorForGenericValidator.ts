@@ -2,8 +2,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateLiftOneTutorForGenericValidator {
-	constructor(protected ctx: HttpContextContract) {
-	}
+	constructor(protected ctx: HttpContextContract) {}
 
 	/*
 	 * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
@@ -27,8 +26,8 @@ export default class CreateLiftOneTutorForGenericValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
-		document: schema.string({}),
-		cellphone: schema.string.optional(),
+		document: schema.string.optional({}),
+		cellphone: schema.string(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

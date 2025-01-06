@@ -787,7 +787,7 @@ export default class PatientService {
 		const scheduleData: { id: string; started_at: string } | null =
 			await Database.from("schedules")
 				.select(Database.raw("id, started_at"))
-				.whereRaw("patients = ?", [patient.id])
+				.whereRaw("patient_id = ?", [patient.id])
 				.whereRaw("created_at::date = now()::date")
 				.orderByRaw("created_at desc")
 				.first();

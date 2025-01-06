@@ -27,7 +27,7 @@ export default class CreateLiftOneTutorForGenericValidator {
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
 		document: schema.string.optional({}),
-		cellphone: schema.string(),
+		cellphone: schema.string.optional(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

@@ -1,5 +1,6 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { PatientContactType } from "App/Models/PatientContact";
 
 export default class CreateLiftOneTutorForGenericValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -40,6 +41,15 @@ export default class CreateLiftOneTutorForGenericValidator {
 					rules.uuid(),
 					rules.exists({ table: "patients", column: "id" }),
 				]),
+			}),
+		),
+		contacts: schema.array().members(
+			schema.object().members({
+				main: schema.boolean(),
+				notGiven: schema.boolean(),
+				contact: schema.string.optional([rules.emailContato()]),
+				observation: schema.string.optional(),
+				type: schema.enum(Object.values(PatientContactType)),
 			}),
 		),
 	});

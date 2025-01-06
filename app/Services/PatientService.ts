@@ -784,6 +784,14 @@ export default class PatientService {
 			.where("patient_id", patient.id)
 			.whereNull("close_user_id");
 
+		const scheduleData: { id: string; started_at: string } | null =
+			await Database.from("schedules")
+				.select(Database.raw("id, started_at"))
+				.whereRaw("patients = ?", [patient.id])
+				.whereRaw("created_at::date = now()::date")
+				.orderByRaw("created_at desc")
+				.first();
+
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
@@ -834,6 +842,13 @@ export default class PatientService {
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
 		};
+
+		if (scheduleData) {
+			Object.assign(displayData, {
+				scheduleId: scheduleData.id,
+				scheduleStartedAt: scheduleData.started_at,
+			});
+		}
 
 		if (patient.patientAnimal) {
 			Object.assign(displayData, {

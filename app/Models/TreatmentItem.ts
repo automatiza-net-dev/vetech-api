@@ -103,4 +103,9 @@ export default class TreatmentItem extends BaseModel {
 		serializeAs: null,
 	})
 	public productivity_item_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public bill_item_id: number;
 }

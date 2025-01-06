@@ -401,7 +401,7 @@ export default class TreatmentService {
 'executionUserId', users.id, 'executionUserName', users.name, 'executionDate', treatment_executions.execution_date) as executions`),
 			)
 			.joinRaw(
-				"join treatment_items on treatment_executions.treatment_item_id = treatment_items.id",
+				"join treatment_items on treatment_executions.treatment_id = treatment_items.treatment_id and treatment_executions.treatment_item_id = treatment_items.id",
 			)
 			.joinRaw(
 				"join product_variations on treatment_items.product_variation_id = product_variations.id",

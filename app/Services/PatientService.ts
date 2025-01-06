@@ -788,7 +788,7 @@ export default class PatientService {
 			await Database.from("schedules")
 				.select(Database.raw("id, started_at"))
 				.whereRaw("patient_id = ?", [patient.id])
-				.whereRaw("started_at::date = now()::date")
+				.whereRaw("created_at::date = now()::date")
 				.orderByRaw("created_at desc")
 				.first();
 

@@ -3191,7 +3191,12 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 							.flatMap((c) => c.refCusto)
 							.join(" ")
 							.trim(),
-						refs: accountPlans.flatMap((c) => c.refCusto),
+						refs: accountPlans
+							.flatMap((c) => c.refCusto)
+							.join(" ")
+							.split(" ")
+							.filter((v) => v !== "-" && v !== "+")
+							.map((v) => v.trim()),
 						itens: accountPlans,
 					};
 				}),

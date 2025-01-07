@@ -3178,7 +3178,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										? p.tag
 										: p.refCusto
 												.split(" ")
-												.filter((v) => v !== "-" && v !== "+"),
+												.filter((v) => v !== "-" && v !== "+")
+												.filter((v) => v.length > 0),
 								),
 								itens: parents,
 							};

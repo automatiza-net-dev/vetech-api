@@ -3196,7 +3196,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 							.join(" ")
 							.split(" ")
 							.filter((v) => v !== "-" && v !== "+")
-							.map((v) => v.trim()),
+							.map((v) => v.trim())
+							.filter((v) => v.length > 0),
 						itens: accountPlans,
 					};
 				}),

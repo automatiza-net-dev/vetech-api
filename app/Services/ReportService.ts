@@ -3157,6 +3157,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 							return {
 								id: app.id,
+								tag: app.id.toString(),
 								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
@@ -3177,6 +3178,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 					return {
 						id: group.id,
+						tag: group.id.toString(),
 						basear: false,
 						description: group.description,
 						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),

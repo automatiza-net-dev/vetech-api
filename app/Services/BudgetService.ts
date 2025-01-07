@@ -740,6 +740,14 @@ export default class BudgetService {
 				);
 			}
 
+			if (authCtx.unit.unitConfig.reviewer === "O" && !data.reviewerId) {
+				throw new BadRequestException(
+					"É necessário informar o avaliador",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
 				.preload("product")

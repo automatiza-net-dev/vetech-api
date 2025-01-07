@@ -3150,7 +3150,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)
 											.join(" "),
-										refs: contas.map((c) => c.id),
+										refs: contas.map((c) => c.tag),
 										itens: contas,
 									};
 								});
@@ -3171,7 +3171,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									)
 									.join(" ")
 									.trim(),
-								refs: parents.map((c) => c.id),
+								refs: parents.map((c) => c.tag),
 								itens: parents,
 							};
 						});
@@ -3187,7 +3187,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 							.flatMap((c) => c.refCusto)
 							.join(" ")
 							.trim(),
-						refs: accountPlans.map((c) => c.id),
+						refs: accountPlans.map((c) => c.tag),
 						itens: accountPlans,
 					};
 				}),

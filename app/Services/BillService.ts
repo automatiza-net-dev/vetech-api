@@ -113,80 +113,79 @@ export default class BillService {
 	}
 
 	async index(unitId: string, data: ISearch) {
-		const qb = Bill.query().where("business_unit_id", unitId);
-
-		if (data.fromBill) {
-			qb.whereRaw("bill_date::date >= ?", [data.fromBill]);
-		}
-
-		if (data.toBill) {
-			qb.whereRaw("bill_date::date <= ?", [data.toBill]);
-		}
-
-		if (data.status) {
-			qb.where("status", data.status);
-		}
-
-		if (data.client) {
-			qb.where("client_id", data.client);
-		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
-		}
-
-		if (data.patientName) {
-			qb.whereHas("patient", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.patientName?.replaceAll(" ", "%")}%`,
-					PatientType.ANIMAL,
-				]);
-			});
-		}
-
-		if (data.clientName) {
-			qb.whereHas("client", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.clientName?.replaceAll(" ", "%")}%`,
-					PatientType.TUTOR,
-				]);
-			});
-		}
-
-		if (data.bill_id) {
-			qb.where("id", data.bill_id);
-		}
-
-		if (data.patientTag) {
-			qb.whereHas("patient", (query) => {
-				query.whereHas("patientAnimal", (query) => {
-					query.where("tag", data.patientTag ?? "");
+		const qb = Bill.query()
+			.where("business_unit_id", unitId)
+			.preload("client")
+			.preload("patient")
+			.preload("seller")
+			.preload("user")
+			.preload("items", (query) => {
+				query.preload("productVariation", (query) => {
+					query.preload("variationOptions");
+					query.preload("product");
 				});
-			});
-		}
+			})
+			.orderByRaw("bill_date desc, tag desc");
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
+		} else {
+			if (data.fromBill) {
+				qb.whereRaw("bill_date::date >= ?", [data.fromBill]);
+			}
+
+			if (data.toBill) {
+				qb.whereRaw("bill_date::date <= ?", [data.toBill]);
+			}
+
+			if (data.status) {
+				qb.where("status", data.status);
+			}
+
+			if (data.client) {
+				qb.where("client_id", data.client);
+			}
+
+			if (data.patient) {
+				qb.where("patient_id", data.patient);
+			}
+
+			if (data.patientName) {
+				qb.whereHas("patient", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.patientName?.replaceAll(" ", "%")}%`,
+						PatientType.ANIMAL,
+					]);
+				});
+			}
+
+			if (data.clientName) {
+				qb.whereHas("client", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.clientName?.replaceAll(" ", "%")}%`,
+						PatientType.TUTOR,
+					]);
+				});
+			}
+
+			if (data.bill_id) {
+				qb.where("id", data.bill_id);
+			}
+
+			if (data.patientTag) {
+				qb.whereHas("patient", (query) => {
+					query.whereHas("patientAnimal", (query) => {
+						query.where("tag", data.patientTag ?? "");
+					});
+				});
+			}
+
+			if (data.pending === "true") {
+				qb.where("pending", true);
+			} else if (data.pending === "false") {
+				qb.where("pending", false);
+			}
 		}
-
-		if (data.pending === "true") {
-			qb.where("pending", true);
-		} else if (data.pending === "false") {
-			qb.where("pending", false);
-		}
-
-		qb.preload("client");
-		qb.preload("patient");
-		qb.preload("seller");
-		qb.preload("user");
-		qb.preload("items", (query) => {
-			query.preload("productVariation", (query) => {
-				query.preload("variationOptions");
-				query.preload("product");
-			});
-		});
-
-		qb.orderByRaw("bill_date desc, tag desc");
 
 		const result = await qb;
 

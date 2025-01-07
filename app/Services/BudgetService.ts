@@ -359,7 +359,6 @@ export default class BudgetService {
 
 	public async partialIndex(unitId: string, data: ISearchPartial) {
 		const qb = Budget.query()
-			.where("business_unit_id", unitId)
 			.preload("client", (query) => {
 				query.preload("tutor");
 			})
@@ -376,74 +375,75 @@ export default class BudgetService {
 			.preload("dailyMovement")
 			.preload("conclusionUser")
 			.preload("cancelationReason")
-			.orderBy("created_at", "desc");
-
-		if (data.budget_id) {
-			qb.where("id", data.budget_id);
-		}
-
-		if (data.fromCreation) {
-			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
-		}
-
-		if (data.toCreation) {
-			qb.whereRaw("budget_date::date <= ?", [data.toCreation]);
-		}
-
-		if (data.fromExpiration) {
-			qb.whereRaw("expiration_date::date >= ?", [data.fromExpiration]);
-		}
-
-		if (data.toExpiration) {
-			qb.whereRaw("expiration_date::date <= ?", [data.toExpiration]);
-		}
-
-		if (data.seller) {
-			qb.where("seller_id", data.seller);
-		}
-
-		if (data.status) {
-			qb.where("status", data.status);
-		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
-		}
-
-		if (data.patientName) {
-			qb.whereHas("patient", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.patientName?.replaceAll(" ", "%")}%`,
-					PatientType.ANIMAL,
-				]);
-			});
-		}
-
-		if (data.client) {
-			qb.where("client_id", data.client);
-		}
-
-		if (data.clientName) {
-			qb.whereHas("client", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.clientName?.replaceAll(" ", "%")}%`,
-					PatientType.TUTOR,
-				]);
-			});
-		}
-
-		if (data.reviewer) {
-			qb.where("reviewer_id", data.reviewer);
-		}
+			.orderBy("created_at", "desc")
+			.where("business_unit_id", unitId);
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
-		}
+		} else {
+			if (data.budget_id) {
+				qb.where("id", data.budget_id);
+			}
 
-		if (data.pending === "true") {
-			qb.where("pending", true);
-		} else if (data.pending === "false") {
-			qb.where("pending", false);
+			if (data.fromCreation) {
+				qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
+			}
+
+			if (data.toCreation) {
+				qb.whereRaw("budget_date::date <= ?", [data.toCreation]);
+			}
+
+			if (data.fromExpiration) {
+				qb.whereRaw("expiration_date::date >= ?", [data.fromExpiration]);
+			}
+
+			if (data.toExpiration) {
+				qb.whereRaw("expiration_date::date <= ?", [data.toExpiration]);
+			}
+
+			if (data.seller) {
+				qb.where("seller_id", data.seller);
+			}
+
+			if (data.status) {
+				qb.where("status", data.status);
+			}
+
+			if (data.patient) {
+				qb.where("patient_id", data.patient);
+			}
+
+			if (data.patientName) {
+				qb.whereHas("patient", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.patientName?.replaceAll(" ", "%")}%`,
+						PatientType.ANIMAL,
+					]);
+				});
+			}
+
+			if (data.client) {
+				qb.where("client_id", data.client);
+			}
+
+			if (data.clientName) {
+				qb.whereHas("client", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.clientName?.replaceAll(" ", "%")}%`,
+						PatientType.TUTOR,
+					]);
+				});
+			}
+
+			if (data.reviewer) {
+				qb.where("reviewer_id", data.reviewer);
+			}
+
+			if (data.pending === "true") {
+				qb.where("pending", true);
+			} else if (data.pending === "false") {
+				qb.where("pending", false);
+			}
 		}
 
 		const result = await qb;

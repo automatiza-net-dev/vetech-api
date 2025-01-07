@@ -107,5 +107,5 @@ export default class TreatmentItem extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public bill_item_id: number;
+	public bill_item_id: string;
 }

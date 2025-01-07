@@ -3121,6 +3121,7 @@ where deposit_id = ?
 					business_unit_id: authCtx.unit.id,
 					treatment_id: treatment.id,
 					product_variation_id: inner.product_variation_id,
+					bill_item_id: inner.id,
 
 					status: TreatmentItemStatus[0],
 					quantity: new Decimal(inner.quantity).toNumber(),

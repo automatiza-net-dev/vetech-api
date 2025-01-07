@@ -3152,7 +3152,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											.join(" "),
 										refs: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
-											.map((c) => c.ref),
+											.flatMap((c) => c.ref.split(" "))
+											.filter((v) => v !== "-" && v !== "+")
+											.filter((v) => v.length > 0),
 										itens: contas,
 									};
 								});

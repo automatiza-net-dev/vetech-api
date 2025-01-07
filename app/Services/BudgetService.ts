@@ -1735,6 +1735,7 @@ export default class BudgetService {
 					daily_movement_id: model.daily_movement_id,
 					client_id: model.client_id,
 					patient_id: model.patient_id,
+					financial_responsible_id: data.financialResponsibleId,
 
 					internalCode: model.internalCode,
 					billDate: DateTime.now(),

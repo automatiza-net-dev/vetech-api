@@ -3169,14 +3169,16 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									.map((p) =>
 										p.itens.length === 0
 											? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
-											: p.refCusto
-													.split(" ")
-													.filter((v) => v !== "-" && v !== "+"),
+											: p.refCusto,
 									)
 									.join(" ")
 									.trim(),
-								refs: parents.map((p) =>
-									p.itens.length === 0 ? p.tag : p.refCusto,
+								refs: parents.flatMap((p) =>
+									p.itens.length === 0
+										? p.tag
+										: p.refCusto
+												.split(" ")
+												.filter((v) => v !== "-" && v !== "+"),
 								),
 								itens: parents,
 							};

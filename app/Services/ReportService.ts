@@ -3169,7 +3169,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									.map((p) =>
 										p.itens.length === 0
 											? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
-											: p.refCusto,
+											: p.refCusto
+													.split(" ")
+													.filter((v) => v !== "-" && v !== "+"),
 									)
 									.join(" ")
 									.trim(),

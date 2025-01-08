@@ -300,11 +300,12 @@ export default class BudgetService {
 							query.preload("productVariation", (query) => {
 								query.preload("product");
 							});
-						})
-						.preload("executions", (query) => {
-							query.preload("executionUser");
-							query.preload("productivityItem");
-							// query.whereNull('deleted_at')
+
+							query.preload("executions", (query) => {
+								query.preload("executionUser");
+								query.preload("productivityItem");
+								// query.whereNull('deleted_at')
+							});
 						});
 
 					Object.assign(jsonObj, {
@@ -323,30 +324,29 @@ export default class BudgetService {
 								scheduled_quantity: exec.scheduledQuantity,
 								observations: exec.observations,
 								status: exec.status,
-							})),
-
-							executions: elem.executions.map((exec) => ({
-								schedule_id: exec.schedule_id,
-								schedule_date: exec.scheduleDate,
-								scheduled_quantity: exec.scheduledQuantity,
-								quantity_executed: exec.quantityExecuted,
-								execution_date: exec.executionDate,
-								observations: exec.observations,
-								status: exec.status,
-								user: this.sharedService.captureGroup(
-									exec.executionUser,
-									(v) => ({
-										id: v.id,
-										name: v.name,
-									}),
-								),
-								productivitItem: this.sharedService.captureGroup(
-									exec.productivityItem,
-									(v) => ({
-										id: v.id,
-										description: v.description,
-									}),
-								),
+								executions: exec.executions.map((itemExec) => ({
+									schedule_id: itemExec.schedule_id,
+									schedule_date: itemExec.scheduleDate,
+									scheduled_quantity: itemExec.scheduledQuantity,
+									quantity_executed: itemExec.quantityExecuted,
+									execution_date: itemExec.executionDate,
+									observations: itemExec.observations,
+									status: itemExec.status,
+									user: this.sharedService.captureGroup(
+										itemExec.executionUser,
+										(v) => ({
+											id: v.id,
+											name: v.name,
+										}),
+									),
+									productivitItem: this.sharedService.captureGroup(
+										itemExec.productivityItem,
+										(v) => ({
+											id: v.id,
+											description: v.description,
+										}),
+									),
+								})),
 							})),
 						})),
 					});

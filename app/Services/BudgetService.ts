@@ -317,36 +317,42 @@ export default class BudgetService {
 							cancellation_date: elem.cancellationDate,
 							cancellation_observations: elem.cancellationObservations,
 
-							items: elem.items.map((exec) => ({
-								description: exec.productVariation.product.description,
-								quantity: exec.quantity,
-								quantity_executed: exec.quantityExecuted,
-								scheduled_quantity: exec.scheduledQuantity,
-								observations: exec.observations,
-								status: exec.status,
-								executions: exec.executions.map((itemExec) => ({
-									schedule_id: itemExec.schedule_id,
-									schedule_date: itemExec.scheduleDate,
-									scheduled_quantity: itemExec.scheduledQuantity,
-									quantity_executed: itemExec.quantityExecuted,
-									execution_date: itemExec.executionDate,
-									observations: itemExec.observations,
-									status: itemExec.status,
-									user: this.sharedService.captureGroup(
-										itemExec.executionUser,
-										(v) => ({
-											id: v.id,
-											name: v.name,
-										}),
-									),
-									productivitItem: this.sharedService.captureGroup(
-										itemExec.productivityItem,
-										(v) => ({
-											id: v.id,
-											description: v.description,
-										}),
-									),
-								})),
+							items: elem.items.map((item) => ({
+								description: item.productVariation.product.description,
+								quantity: item.quantity,
+								quantity_executed: item.quantityExecuted,
+								scheduled_quantity: item.scheduledQuantity,
+								observations: item.observations,
+								status: item.status,
+								executions: item.executions
+									.filter(
+										(ex) =>
+											ex.treatment_item_id === item.id &&
+											ex.treatment_id === elem.id,
+									)
+									.map((itemExec) => ({
+										schedule_id: itemExec.schedule_id,
+										schedule_date: itemExec.scheduleDate,
+										scheduled_quantity: itemExec.scheduledQuantity,
+										quantity_executed: itemExec.quantityExecuted,
+										execution_date: itemExec.executionDate,
+										observations: itemExec.observations,
+										status: itemExec.status,
+										user: this.sharedService.captureGroup(
+											itemExec.executionUser,
+											(v) => ({
+												id: v.id,
+												name: v.name,
+											}),
+										),
+										productivitItem: this.sharedService.captureGroup(
+											itemExec.productivityItem,
+											(v) => ({
+												id: v.id,
+												description: v.description,
+											}),
+										),
+									})),
 							})),
 						})),
 					});

@@ -219,6 +219,7 @@ export default class BusinessUnitConfig extends BaseModel {
 		consume(rawValue) {
 			const result = ConfigSchema.safeParse(rawValue);
 			if (!result.success) {
+				console.log(result.error.format());
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",
 					500,

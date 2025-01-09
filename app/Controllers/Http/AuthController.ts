@@ -198,6 +198,7 @@ export default class AuthController {
 				"internal_code",
 				"sync_schedule_movements",
 				"sync_crm_schedules",
+				"config",
 			]);
 		});
 

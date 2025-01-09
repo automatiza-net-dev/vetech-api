@@ -1,6 +1,33 @@
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
+import * as z from "zod";
+
+const ConfigCrmSchema = z.object({
+	crm_useful_days: z.optional(z.boolean()),
+	default_funnel_meta_id: z.optional(z.number()),
+});
+
+const ConfigBillSchema = z.object({
+	sale_exit_account_plan_id: z.optional(z.string().uuid()),
+	other_exit_account_plan_id: z.optional(z.string().uuid()),
+	requires_bill_patient: z.optional(z.boolean()),
+});
+
+const ConfigReceiptSchema = z.object({
+	order_entry_account_plan_id: z.optional(z.string().uuid()),
+	other_entry_account_plan_id: z.optional(z.string().uuid()),
+	generate_finances_on_receipt_finish: z.optional(z.boolean()),
+});
+
+const ConfigSchema = z.object({
+	crm: ConfigCrmSchema,
+	bill: ConfigBillSchema,
+	receipt: ConfigReceiptSchema,
+});
+
+type TConfigSchema = z.infer<typeof ConfigSchema>;
 
 export default class BusinessUnitConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -187,6 +214,25 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: "syncCrmSchedules",
 	})
 	public syncCrmSchedules: boolean;
+
+	@column({
+		consume(rawValue) {
+			const result = ConfigSchema.safeParse(rawValue);
+			if (!result.success) {
+				throw new InternalErrorException(
+					"Erro buscando informações da unidade, contate o desenvolvedor",
+					500,
+					"E_ERR",
+				);
+			}
+
+			return result.data;
+		},
+		serialize(zodValue: TConfigSchema) {
+			return JSON.stringify(zodValue);
+		},
+	})
+	public config: TConfigSchema;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

@@ -22,9 +22,9 @@ const ConfigReceiptSchema = z.object({
 });
 
 const ConfigSchema = z.object({
-	crm: ConfigCrmSchema,
-	bill: ConfigBillSchema,
-	receipt: ConfigReceiptSchema,
+	crm: z.optional(ConfigCrmSchema),
+	bill: z.optional(ConfigBillSchema),
+	receipt: z.optional(ConfigReceiptSchema),
 });
 
 type TConfigSchema = z.infer<typeof ConfigSchema>;
@@ -219,7 +219,7 @@ export default class BusinessUnitConfig extends BaseModel {
 		consume(rawValue) {
 			const result = ConfigSchema.safeParse(rawValue);
 			if (!result.success) {
-				console.log(result.error.format());
+				// console.log(result.error.format());
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",
 					500,

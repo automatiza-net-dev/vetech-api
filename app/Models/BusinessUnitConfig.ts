@@ -260,6 +260,12 @@ export default class BusinessUnitConfig extends BaseModel {
 	})
 	public config: TConfigSchema;
 
+	@column({
+		columnName: "budgets_payments_required",
+		serializeAs: "budgetsPaymentsRequired",
+	})
+	public budgetsPaymentsRequired: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

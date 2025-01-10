@@ -37,12 +37,64 @@ const ConfigFiscalDocumentSchema = z.object({
 	default_nfse_description: z.optional(z.string()),
 });
 
+const ConfigSchedulesSchema = z.object({
+	allow_change_schedule_duration: z.optional(z.boolean()),
+	interval: z.optional(z.number()),
+	show_treatment_executions_schedule: z.optional(z.boolean()),
+	show_treatment_schedules: z.optional(z.boolean()),
+	treatment_schedule_service_type_id: z.optional(z.string().uuid()),
+	return_interval: z.optional(z.number()),
+	allowed_return_qty: z.optional(z.number()),
+	schedule_late_minutes: z.optional(z.number()),
+	schedule_missed_minutes: z.optional(z.number()),
+	integrates_to_crm_schedules: z.optional(z.boolean()),
+	sync_schedule_movements: z.optional(z.boolean()),
+	sync_schedules_crm: z.optional(z.boolean()),
+});
+
+const ConfigBusinessUnitsSchema = z.object({
+	patient_dependent: z.optional(z.boolean()),
+	locked_daily_movement_date: z.optional(z.boolean()),
+	daily_cashier_type: z.optional(
+		z.union([z.literal("geral"), z.literal("usuario")]),
+	),
+	requires_finance_client: z.optional(z.boolean()),
+	marketing_account_plan_id: z.optional(z.string().uuid()),
+	incoming_deposit_id: z.optional(z.number()),
+	outgoing_deposit_id: z.optional(z.number()),
+	balance_control: z.optional(
+		z.union([z.literal("realizado"), z.literal("usuario")]),
+	),
+	controls_deposit: z.optional(z.boolean()),
+	requires_client_document: z.optional(z.boolean()),
+	alter_prices: z.optional(z.boolean()),
+	dashboard_lists_retroactive_schedules: z.optional(z.boolean()),
+	dre_report_file: z.optional(z.string()),
+	useful_days: z.optional(z.boolean()),
+	treatment: z.optional(z.boolean()),
+	overall_resume_type: z.optional(z.literal("geral")),
+	ticket_type: z.optional(
+		z.union([z.literal("venda"), z.literal("cliente"), z.literal("paciente")]),
+	),
+	reviewer: z.optional(
+		z.union([z.literal("S"), z.literal("N"), z.literal("O")]),
+	),
+	internal_code: z.optional(z.boolean()),
+});
+
+const ConfigBudgetSchema = z.object({
+	budgets_payments_required: z.optional(z.boolean()),
+});
+
 const ConfigSchema = z.object({
 	crm: z.optional(ConfigCrmSchema),
-	bill: z.optional(ConfigBillSchema),
-	receipt: z.optional(ConfigReceiptSchema),
-	product: z.optional(ConfigProductSchema),
-	fiscalDocument: z.optional(ConfigFiscalDocumentSchema),
+	bills: z.optional(ConfigBillSchema),
+	receipts: z.optional(ConfigReceiptSchema),
+	products: z.optional(ConfigProductSchema),
+	fiscalDocuments: z.optional(ConfigFiscalDocumentSchema),
+	schedules: z.optional(ConfigSchedulesSchema),
+	businessUnits: z.optional(ConfigBusinessUnitsSchema),
+	budgets: z.optional(ConfigBudgetSchema),
 });
 
 type TConfigSchema = z.infer<typeof ConfigSchema>;

@@ -61,10 +61,10 @@ export default class BusinessUnitService {
 		return qb;
 	}
 
-	public async store(user: User, data: ICreateBusinessUnit) {
+	public async store(authCtx: AuthContext, data: ICreateBusinessUnit) {
 		try {
 			await Database.transaction(async (trx) => {
-				const economicGroups = await user
+				const economicGroups = await authCtx.user
 					.related("economicGroups")
 					.query()
 					.useTransaction(trx);
@@ -116,7 +116,9 @@ export default class BusinessUnitService {
 					},
 				);
 
-				await unit.related("unitConfig").create({});
+				await unit.related("unitConfig").create({
+					config: authCtx.system.defaultConfig,
+				});
 
 				await unit.related("licences").create(
 					{

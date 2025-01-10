@@ -1,33 +1,33 @@
+import Env from "@ioc:Adonis/Core/Env";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import { axiom } from "App/Lib/Axiom";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";
-import { axiom } from "App/Lib/Axiom";
-import Env from "@ioc:Adonis/Core/Env";
 
-const ConfigCrmSchema = z.object({
+export const ConfigCrmSchema = z.object({
 	crm_useful_days: z.optional(z.boolean()),
 	default_funnel_meta_id: z.optional(z.number()),
 });
 
-const ConfigBillSchema = z.object({
+export const ConfigBillSchema = z.object({
 	sale_exit_account_plan_id: z.optional(z.string().uuid()),
 	other_exit_account_plan_id: z.optional(z.string().uuid()),
 	requires_bill_patient: z.optional(z.boolean()),
 });
 
-const ConfigReceiptSchema = z.object({
+export const ConfigReceiptSchema = z.object({
 	order_entry_account_plan_id: z.optional(z.string().uuid()),
 	other_entry_account_plan_id: z.optional(z.string().uuid()),
 	generate_finances_on_receipt_finish: z.optional(z.boolean()),
 });
 
-const ConfigProductSchema = z.object({
+export const ConfigProductSchema = z.object({
 	service_variation_group_id: z.optional(z.string().uuid()),
 });
 
-const ConfigFiscalDocumentSchema = z.object({
+export const ConfigFiscalDocumentSchema = z.object({
 	service_variation_group_id: z.optional(z.string().uuid()),
 	fiscal_document_environment: z.optional(z.string()),
 	focus_homologation_token: z.optional(z.string()),
@@ -37,7 +37,7 @@ const ConfigFiscalDocumentSchema = z.object({
 	default_nfse_description: z.optional(z.string()),
 });
 
-const ConfigSchedulesSchema = z.object({
+export const ConfigSchedulesSchema = z.object({
 	allow_change_schedule_duration: z.optional(z.boolean()),
 	interval: z.optional(z.number()),
 	show_treatment_executions_schedule: z.optional(z.boolean()),
@@ -52,7 +52,7 @@ const ConfigSchedulesSchema = z.object({
 	sync_schedules_crm: z.optional(z.boolean()),
 });
 
-const ConfigBusinessUnitsSchema = z.object({
+export const ConfigBusinessUnitsSchema = z.object({
 	patient_dependent: z.optional(z.boolean()),
 	locked_daily_movement_date: z.optional(z.boolean()),
 	daily_cashier_type: z.optional(
@@ -82,11 +82,11 @@ const ConfigBusinessUnitsSchema = z.object({
 	internal_code: z.optional(z.boolean()),
 });
 
-const ConfigBudgetSchema = z.object({
+export const ConfigBudgetSchema = z.object({
 	budgets_payments_required: z.optional(z.boolean()),
 });
 
-const ConfigSchema = z.object({
+export const ConfigSchema = z.object({
 	crm: z.optional(ConfigCrmSchema),
 	bills: z.optional(ConfigBillSchema),
 	receipts: z.optional(ConfigReceiptSchema),
@@ -97,7 +97,7 @@ const ConfigSchema = z.object({
 	budgets: z.optional(ConfigBudgetSchema),
 });
 
-type TConfigSchema = z.infer<typeof ConfigSchema>;
+export type TConfigSchema = z.infer<typeof ConfigSchema>;
 
 export default class BusinessUnitConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -292,6 +292,7 @@ export default class BusinessUnitConfig extends BaseModel {
 				axiom.ingest(Env.get("AXIOM_DATASET"), [
 					{
 						_type: "$config-error",
+						origin: "business-unit-config",
 						errors: result.error.flatten(),
 					},
 				]);

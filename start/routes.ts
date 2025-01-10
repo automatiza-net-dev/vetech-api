@@ -154,6 +154,10 @@ Route.group(() => {
 		"BusinessUnitsController.createCollaborator",
 	).middleware("auth");
 
+	Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware(
+		"auth",
+	);
+
 	Route.post("", "BusinessUnitsController.store").middleware("auth");
 
 	Route.put(

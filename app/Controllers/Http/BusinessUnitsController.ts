@@ -27,6 +27,14 @@ export default class BusinessUnitsController {
 		);
 	}
 
+	public async syncConfig({ response, auth }: HttpContextContract) {
+		await this.service.syncConfig(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.noContent();
+	}
+
 	public async index({ request, response }: HttpContextContract) {
 		const qs = request.qs();
 		return response.ok(

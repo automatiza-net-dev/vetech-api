@@ -28,7 +28,6 @@ export const ConfigProductSchema = z.object({
 });
 
 export const ConfigFiscalDocumentSchema = z.object({
-	service_variation_group_id: z.optional(z.string().uuid()),
 	fiscal_document_environment: z.optional(z.string()),
 	focus_homologation_token: z.optional(z.string()),
 	focus_production_token: z.optional(z.string()),
@@ -63,7 +62,11 @@ export const ConfigBusinessUnitsSchema = z.object({
 	incoming_deposit_id: z.optional(z.number()),
 	outgoing_deposit_id: z.optional(z.number()),
 	balance_control: z.optional(
-		z.union([z.literal("realizado"), z.literal("usuario")]),
+		z.union([
+			z.literal("realizado"),
+			z.literal("usuario"),
+			z.literal("previsto"),
+		]),
 	),
 	controls_deposit: z.optional(z.boolean()),
 	requires_client_document: z.optional(z.boolean()),
@@ -72,7 +75,9 @@ export const ConfigBusinessUnitsSchema = z.object({
 	dre_report_file: z.optional(z.string()),
 	useful_days: z.optional(z.boolean()),
 	treatment: z.optional(z.boolean()),
-	overall_resume_type: z.optional(z.literal("geral")),
+	overall_resume_type: z.optional(
+		z.union([z.literal("geral"), z.literal("mes")]),
+	),
 	ticket_type: z.optional(
 		z.union([z.literal("venda"), z.literal("cliente"), z.literal("paciente")]),
 	),
@@ -184,7 +189,7 @@ export default class BusinessUnitConfig extends BaseModel {
 	@column({
 		columnName: "allow_change_schedule_duration",
 	})
-	public allowChangeScheduleDuration: string;
+	public allowChangeScheduleDuration: boolean;
 
 	@column({
 		columnName: "return_interval",

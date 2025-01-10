@@ -21,10 +21,26 @@ const ConfigReceiptSchema = z.object({
 	generate_finances_on_receipt_finish: z.optional(z.boolean()),
 });
 
+const ConfigProductSchema = z.object({
+	service_variation_group_id: z.optional(z.string().uuid()),
+});
+
+const ConfigFiscalDocumentSchema = z.object({
+	service_variation_group_id: z.optional(z.string().uuid()),
+	fiscal_document_environment: z.optional(z.string()),
+	focus_homologation_token: z.optional(z.string()),
+	focus_production_token: z.optional(z.string()),
+	xml_download_authorization: z.optional(z.string()),
+	group_nfse_documents: z.optional(z.boolean()),
+	default_nfse_description: z.optional(z.string()),
+});
+
 const ConfigSchema = z.object({
 	crm: z.optional(ConfigCrmSchema),
 	bill: z.optional(ConfigBillSchema),
 	receipt: z.optional(ConfigReceiptSchema),
+	product: z.optional(ConfigProductSchema),
+	fiscalDocument: z.optional(ConfigFiscalDocumentSchema),
 });
 
 type TConfigSchema = z.infer<typeof ConfigSchema>;

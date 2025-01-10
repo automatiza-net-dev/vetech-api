@@ -754,6 +754,21 @@ export default class BudgetService {
 				);
 			}
 
+			if (data.internalCode) {
+				const existingBudget = await Budget.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("internal_code", data.internalCode)
+					.first();
+				if (existingBudget) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
 				.preload("product")
@@ -963,6 +978,21 @@ export default class BudgetService {
 					400,
 					"E_ERR",
 				);
+			}
+
+			if (data.internalCode && budget.internalCode !== data.internalCode) {
+				const existingBudget = await Budget.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("internal_code", data.internalCode)
+					.first();
+				if (existingBudget) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			const result = await this.sharedService.checkDiscount(
@@ -1749,6 +1779,19 @@ export default class BudgetService {
 				.filter((item) => !data.notConfirmedItems.includes(item.id))
 				.reduce((total, item) => total + item.discountValue, 0);
 			const totalServiceValue = 0;
+
+			const existingBillWithInternalCode = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`%${model.internalCode}`])
+				.first();
+			if (existingBillWithInternalCode) {
+				throw new BadRequestException(
+					`Código '${model.internalCode}' já está sendo usado pela venda '${existingBillWithInternalCode.tag}', e não é possível repetir.`,
+					400,
+					"E_ERR",
+				);
+			}
 
 			const bill = await Bill.create(
 				{

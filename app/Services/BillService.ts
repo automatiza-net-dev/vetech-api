@@ -2136,7 +2136,7 @@ where deposit_id = ?
 				.select("id")
 				.where("business_unit_id", authCtx.unit.id)
 				.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
-			dynamicInternalCode = `${data.internalCode} / ${(count.length + 1).toString().padStart(3, "0")}`;
+			dynamicInternalCode = `${data.internalCode} / ${count.length.toString().padStart(3, "0")}`;
 		}
 
 		// const client = await Patient.query()

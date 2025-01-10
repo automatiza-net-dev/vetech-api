@@ -51,7 +51,7 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import { validate } from "uuid";
+import { v4, validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
@@ -2113,6 +2113,29 @@ where deposit_id = ?
 				400,
 				"E_ERR",
 			);
+		}
+
+		const existingBillWithInternalCode = await Bill.query()
+			.useTransaction(trx)
+			.where("business_unit_id", authCtx.unit.id)
+			.whereRaw("internal_code ilike ?", [`%${data.internalCode ?? v4()}%`])
+			.first();
+
+		if (data.internalCode && existingBillWithInternalCode) {
+			if (!data.originBillId) {
+				throw new BadRequestException(
+					`Código '${data.internalCode}' já está sendo usado pela venda '${existingBillWithInternalCode.tag}', e não é possível repetir.`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			const count = await Bill.query()
+				.useTransaction(trx)
+				.select("id")
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
+			data.internalCode = `${data.internalCode} / ${(count.length + 1).toString().padStart(3, "0")}`;
 		}
 
 		// const client = await Patient.query()

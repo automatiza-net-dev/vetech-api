@@ -2121,6 +2121,7 @@ where deposit_id = ?
 			.whereRaw("internal_code ilike ?", [`%${data.internalCode ?? v4()}%`])
 			.first();
 
+		let dynamicInternalCode = data.internalCode;
 		if (data.internalCode && existingBillWithInternalCode) {
 			if (!data.originBillId) {
 				throw new BadRequestException(
@@ -2135,7 +2136,7 @@ where deposit_id = ?
 				.select("id")
 				.where("business_unit_id", authCtx.unit.id)
 				.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
-			data.internalCode = `${data.internalCode} / ${(count.length + 1).toString().padStart(3, "0")}`;
+			dynamicInternalCode = `${data.internalCode} / ${(count.length + 1).toString().padStart(3, "0")}`;
 		}
 
 		// const client = await Patient.query()
@@ -2263,7 +2264,7 @@ where deposit_id = ?
 				patient_id: data.patientId,
 				origin_bill_id: data.originBillId,
 
-				internalCode: data.internalCode,
+				internalCode: dynamicInternalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,

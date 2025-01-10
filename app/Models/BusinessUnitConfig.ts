@@ -3,6 +3,8 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";
+import { axiom } from "App/Lib/Axiom";
+import Env from "@ioc:Adonis/Core/Env";
 
 const ConfigCrmSchema = z.object({
 	crm_useful_days: z.optional(z.boolean()),
@@ -232,10 +234,17 @@ export default class BusinessUnitConfig extends BaseModel {
 	public syncCrmSchedules: boolean;
 
 	@column({
-		consume(rawValue) {
+		async consume(rawValue) {
 			const result = ConfigSchema.safeParse(rawValue);
 			if (!result.success) {
-				// console.log(result.error.format());
+				axiom.ingest(Env.get("AXIOM_DATASET"), [
+					{
+						_type: "$config-error",
+						errors: result.error.flatten(),
+					},
+				]);
+				await axiom.flush();
+
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",
 					500,

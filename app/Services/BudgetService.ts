@@ -1609,6 +1609,24 @@ export default class BudgetService {
 			);
 		}
 
+		if (authCtx.unit.unitConfig.budgetsPaymentsRequired) {
+			if (model.totalValue !== model.paidValue) {
+				throw new BadRequestException(
+					"Valor de pago precisa ser igual ao valor total",
+					400,
+					"E_ERR",
+				);
+			}
+		} else {
+			if (model.paidValue > model.totalValue) {
+				throw new BadRequestException(
+					"Valor pago não pode ser superior ao valor total",
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
 		return Database.transaction(async (trx) => {
 			const client = await Patient.query()
 				.where("id", model.client_id)

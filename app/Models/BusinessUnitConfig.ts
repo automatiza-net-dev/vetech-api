@@ -8,7 +8,7 @@ import * as z from "zod";
 
 export const ConfigCrmSchema = z.object({
 	crm_useful_days: z.optional(z.boolean()),
-	default_funnel_meta_id: z.optional(z.number()),
+	default_funnel_meta_id: z.optional(z.union([z.number(), z.null()])),
 });
 
 export const ConfigBillSchema = z.object({

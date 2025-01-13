@@ -639,8 +639,7 @@ export default class BusinessUnitService {
 		const data: TConfigSchema = {
 			crm: {
 				crm_useful_days: authCtx.unit.unitConfig.crmUsefulDays,
-				default_funnel_meta_id:
-					authCtx.unit.unitConfig.default_funnel_meta_id ?? undefined,
+				default_funnel_meta_id: authCtx.unit.unitConfig.default_funnel_meta_id,
 			},
 			bills: {
 				sale_exit_account_plan_id:

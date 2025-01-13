@@ -934,6 +934,7 @@ Route.group(() => {
 	Route.post("/create", "FinancesController.storeFinance");
 	Route.post("/create-multiple", "FinancesController.storeMultipleFinances");
 	Route.post("/accept-many", "FinancesController.acceptManyFinances");
+	Route.post("/not-accept-many", "FinancesController.notAcceptManyFinances");
 	Route.put("/update/:id", "FinancesController.updateFinance");
 	Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
 	Route.put("/update-down", "FinancesController.updateFinanceDown");

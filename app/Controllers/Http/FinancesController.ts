@@ -373,6 +373,21 @@ export default class FinancesController {
 		return response.noContent();
 	}
 
+	async notAcceptManyFinances({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(AcceptManyFinanceValidator);
+
+		await this.service.notAcceptMany(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
 	async openAttendances({ auth, response }: HttpContextContract) {
 		const result = await this.service.getOpenAttendances(
 			await this.sharedService.getAuthContext(auth),

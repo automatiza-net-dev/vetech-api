@@ -1810,6 +1810,44 @@ export default class FinanceService {
 		});
 	}
 
+	async notAcceptMany(
+		authCtx: AuthContext,
+		data: { ids: string[]; type: "Credito" | "Debito" },
+	) {
+		if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
+			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		}
+
+		if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
+			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const finances = await Finance.query()
+				.useTransaction(trx)
+				.whereIn("id", data.ids)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id);
+
+			if (finances.length !== data.ids.length) {
+				throw new BadRequestException(
+					"Não foi possível encontrar todos os lançamentos",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await Finance.query()
+				.useTransaction(trx)
+				.whereIn("id", data.ids)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.update({
+					accept: FinanceAccept.N,
+				});
+		});
+	}
+
 	async getExpiringExpenses(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,

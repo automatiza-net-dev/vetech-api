@@ -69,6 +69,7 @@ interface ISearch {
 	tag?: string;
 	bill_id?: string;
 	pending?: string;
+	internalCode?: string;
 }
 
 interface ISearchProduct {
@@ -129,6 +130,8 @@ export default class BillService {
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
+		} else if (data.internalCode) {
+			qb.whereILike("internal_code", `%${data.internalCode}%`);
 		} else {
 			if (data.fromBill) {
 				qb.whereRaw("bill_date::date >= ?", [data.fromBill]);

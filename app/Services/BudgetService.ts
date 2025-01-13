@@ -59,6 +59,7 @@ interface ISearchPartial {
 	tag?: string;
 	budget_id?: string;
 	pending?: string;
+	internalCode?: string;
 }
 
 interface ISearchComplete {
@@ -386,6 +387,8 @@ export default class BudgetService {
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
+		} else if (data.internalCode) {
+			qb.whereILike("internal_code", `%${data.internalCode}%`);
 		} else {
 			if (data.budget_id) {
 				qb.where("id", data.budget_id);

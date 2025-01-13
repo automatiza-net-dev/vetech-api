@@ -1645,7 +1645,7 @@ export default class BudgetService {
 		if (authCtx.unit.unitConfig.budgetsPaymentsRequired) {
 			if (model.totalValue !== model.paidValue) {
 				throw new BadRequestException(
-					"Valor de pago precisa ser igual ao valor total",
+					"Valor de pagamento precisa ser igual ao valor total do orçamento",
 					400,
 					"E_ERR",
 				);

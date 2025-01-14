@@ -1876,6 +1876,18 @@ Route.group(() => {
 		"/pendingBudgets",
 		"NotificationsController.pendingBudgetsNotifications",
 	);
+	Route.get(
+		"/pendingBillItemEvaluations",
+		"NotificationsController.pendingBillItemEvaluations",
+	);
+	Route.get(
+		"/pendingBillPaymentEvaluations",
+		"NotificationsController.pendingBillPaymentEvaluations",
+	);
+	Route.get(
+		"/pendingBillPaymentApprovals",
+		"NotificationsController.pendingBillPaymentApprovals",
+	);
 })
 	.prefix("Notifications")
 	.middleware("auth");

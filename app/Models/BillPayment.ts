@@ -218,4 +218,9 @@ export default class BillPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public reviewer_cancel_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "reviewer_cancel_user_id",
+	})
+	public reviewerCancelUser: BelongsTo<typeof User>;
 }

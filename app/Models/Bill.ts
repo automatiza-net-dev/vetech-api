@@ -21,6 +21,7 @@ import EconomicGroup from "App/Models/EconomicGroup";
 import Patient from "App/Models/Patient";
 import User from "App/Models/User";
 import Decimal from "decimal.js";
+import Reason from "./Reason";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -440,13 +441,29 @@ export default class Bill extends BaseModel {
 	})
 	public cancel_user_id: string | null;
 
+	@belongsTo(() => User, {
+		foreignKey: "cancel_user_id",
+	})
+	public cancelUser: BelongsTo<typeof User>;
+
 	@column({
 		serializeAs: null,
 	})
 	public finish_cancel_user_id: string | null;
 
+	@belongsTo(() => User, {
+		foreignKey: "finish_cancel_user_id",
+	})
+	public finishCancelUser: BelongsTo<typeof User>;
+
 	@column({
 		serializeAs: null,
 	})
 	public cancel_reason_id: string | null;
+
+	@belongsTo(() => Reason, {
+		foreignKey: "cancel_reason_id",
+		serializeAs: "_cancelReason",
+	})
+	public _cancelReason: BelongsTo<typeof Reason>;
 }

@@ -253,6 +253,15 @@ export default class BillService {
 			.preload("financialResponsible", (query) => {
 				query.select("id", "name");
 			})
+			.preload("cancelUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("finishCancelUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("_cancelReason", (query) => {
+				query.select("id", "reason");
+			})
 			.preload("patient")
 			.preload("seller")
 			.preload("user")
@@ -277,6 +286,10 @@ export default class BillService {
 				});
 
 				query.preload("paymentMethod");
+
+				query.preload("reviewerCancelUser", (query) => {
+					query.select(["id", "name"]);
+				});
 
 				query.preload("finance", (q) => {
 					q.select(["id", "payment_date", "payment_method_id"]);
@@ -307,6 +320,9 @@ export default class BillService {
 					query.select(["id", "name"]);
 				});
 				query.preload("courtesyApprovedUser", (query) => {
+					query.select(["id", "name"]);
+				});
+				query.preload("reviewerCancelUser", (query) => {
 					query.select(["id", "name"]);
 				});
 			})

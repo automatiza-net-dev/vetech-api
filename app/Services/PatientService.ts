@@ -1343,17 +1343,20 @@ export default class PatientService {
 			const photo = data.photo ? await this.uploadPhoto(data.photo) : undefined;
 
 			const birthDate =
-				origin === "Agenda"
-					? (data.birthDate ?? null)
-					: data.birthDate
+				// não tem nenhuma informação de data relativa?
+				!data.birthYears && !data.birthMonths && !data.birthDays
+					? // verifica se tem data
+						data.birthDate
 						? DateTime.fromISO(data.birthDate).toJSDate()
-						: DateTime.now()
-								.minus({
-									years: data.birthYears ?? 0,
-									months: data.birthMonths ?? 0,
-									days: data.birthDays ?? 0,
-								})
-								.toJSDate();
+						: // se não tiver, usa null
+							null
+					: DateTime.now()
+							.minus({
+								years: data.birthYears ?? 0,
+								months: data.birthMonths ?? 0,
+								days: data.birthDays ?? 0,
+							})
+							.toJSDate();
 
 			const patient = await Patient.create(
 				{

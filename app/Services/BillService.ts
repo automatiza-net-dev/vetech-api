@@ -3662,6 +3662,89 @@ where deposit_id = ?
 		});
 	}
 
+	async requestBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			reasonId: string;
+			billId: string;
+			billItems: string[];
+			billPayments: string[];
+
+			notes: string;
+		},
+	) {
+		if (!authCtx.hasPermission("VEN18")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão de fazer a operação",
+				400,
+				"E_ERR",
+			);
+		}
+
+		await Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.preload("items", (query) => {
+					query.whereIn("id", data.billItems);
+				})
+				.preload("payments", (query) => {
+					query.whereIn("id", data.billPayments);
+				})
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			await bill
+				.merge({
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: data.reasonId,
+
+					cancelled: "P",
+					cancelledAt: DateTime.now(),
+					cancelNotes: data.notes,
+					cancelValueTotal: new Decimal(bill.totalValue),
+					cancelValueProducts: new Decimal(bill.productValue),
+					cancelValueServices: new Decimal(bill.serviceValue),
+				})
+				.useTransaction(trx)
+				.save();
+
+			const itemTasks = bill.items.map(async (item) => {
+				return item
+					.merge({
+						cancelled: "P",
+						originalTotalValue: new Decimal(item.totalValue),
+						originalTotalQuantity: item.quantity,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(itemTasks);
+
+			const paymentTasks = bill.payments.map(async (payment) => {
+				return payment
+					.merge({
+						cancelled: "P",
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(paymentTasks);
+		});
+	}
+
 	private async syncBillPendingAndSum(
 		trx: TransactionClientContract,
 		bill: Bill,

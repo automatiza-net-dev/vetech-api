@@ -406,15 +406,18 @@ export default class Bill extends BaseModel {
 	})
 	public budget: BelongsTo<typeof Budget>;
 
+	// TODO: "dead" field
 	@column({
 		serializeAs: null,
+		columnName: "cancellation_user_id",
 	})
-	public cancellation_user_id: string;
+	public _cancellation_user_id: string;
 
+	// TODO: "dead" field
 	@column({
 		serializeAs: null,
 	})
-	public cancellation_reason_id: string;
+	public _cancellation_reason_id: string;
 
 	@hasMany(() => BillItem, {
 		foreignKey: "bill_id",

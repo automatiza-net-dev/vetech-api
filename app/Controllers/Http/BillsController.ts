@@ -18,6 +18,7 @@ import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator
 import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
 import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
 import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import RequestBillCancellationValidator from "App/Validators/Bill/RequestBillCancellationValidator";
 
 @inject()
 export default class BillsController {
@@ -418,6 +419,19 @@ export default class BillsController {
 		);
 
 		await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
+
+		return response.noContent();
+	}
+
+	public async requestBillCancellation({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(RequestBillCancellationValidator);
+
+		await this.service.requestBillCancellation(authCtx, payload);
 
 		return response.noContent();
 	}

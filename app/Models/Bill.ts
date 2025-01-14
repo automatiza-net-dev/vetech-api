@@ -233,6 +233,12 @@ export default class Bill extends BaseModel {
 	})
 	public cancelDate: DateTime | null;
 
+	@column.dateTime({
+		columnName: "finishe_cancel_date",
+		serializeAs: "finishCancelDate",
+	})
+	public finishCancelDate: DateTime | null;
+
 	@column({
 		columnName: "cancel_reason",
 		serializeAs: "cancelReason",
@@ -433,6 +439,11 @@ export default class Bill extends BaseModel {
 		serializeAs: null,
 	})
 	public cancel_user_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public finish_cancel_user_id: string | null;
 
 	@column({
 		serializeAs: null,

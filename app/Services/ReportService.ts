@@ -3426,8 +3426,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		const result: {
 			id: string;
 			name: string;
-			total_vendas: number[];
-			valor_comissao: number;
+			total_vendas: string;
+			valor_comissao: string;
 		}[] = await qb;
 
 		return [
@@ -3437,8 +3437,12 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				vendedor: result.map((ve) => ({
 					id: ve.id,
 					nome: ve.name,
-					totalVendas: ve.total_vendas,
-					valorComissao: ve.valor_comissao,
+					totalVendas: this.sharedService.formatter.format(
+						Number.parseFloat(ve.total_vendas),
+					),
+					valorComissao: this.sharedService.formatter.format(
+						Number.parseFloat(ve.valor_comissao),
+					),
 				})),
 			},
 		];

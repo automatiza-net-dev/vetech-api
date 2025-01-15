@@ -3373,6 +3373,75 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		);
 	}
 
+	async comissionSellerConsolidated(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+			seller?: string;
+			from?: string;
+			to?: string;
+		},
+	) {
+		if (!data.from || !data.to) {
+			throw new BadRequestException(
+				"É preciso informar a data de início e a data de fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`users.id,
+       users.name                                                                              as vendedor,
+       cast(sum(bill_items.total_value) as numeric(15, 2))                                     as total_vendas,
+       cast(sum(bill_items.total_value * coalesce(bup.commission, 0) / 100) as numeric(15, 2)) as valor_comissao`,
+				),
+			)
+			.joinRaw(
+				"join bill_items on bills.id = bill_items.bill_id AND bill_items.status <> 'INATIVA'",
+			)
+			.joinRaw("join users on bills.seller_id = users.id")
+			.joinRaw(
+				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_id",
+			)
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.whereBetween("bills.bill_date", [data.from, data.to])
+			.where("bills.economic_group_id", authCtx.group.id);
+
+		if (data.seller) {
+			qb.where("bills.seller_id", data.seller);
+		}
+
+		if (data.businessUnits && Array.isArray(data.businessUnits)) {
+			qb.whereIn("bills.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		const result: {
+			id: string;
+			name: string;
+			total_vendas: number[];
+			valor_comissao: number;
+		}[] = await qb;
+
+		return [
+			{
+				dataInicio: data.from,
+				dataFim: data.to,
+				vendedor: result.map((ve) => ({
+					id: ve.id,
+					nome: ve.name,
+					totalVendas: ve.total_vendas,
+					valorComissao: ve.valor_comissao,
+				})),
+			},
+		];
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

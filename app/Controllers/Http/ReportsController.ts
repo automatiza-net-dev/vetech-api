@@ -323,6 +323,7 @@ export default class ReportsController {
 			),
 		);
 	}
+
 	public async comissionSellerConsolidated({
 		request,
 		response,
@@ -330,6 +331,19 @@ export default class ReportsController {
 	}: HttpContextContract) {
 		response.ok(
 			await this.service.comissionSellerConsolidated(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
+
+	public async comissionSellerConference({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.comissionSellerConference(
 				await this.sharedService.getAuthContext(auth),
 				request.qs(),
 			),

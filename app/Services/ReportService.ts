@@ -3448,6 +3448,109 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		];
 	}
 
+	async comissionSellerConference(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+			seller?: string;
+			from?: string;
+			to?: string;
+		},
+	) {
+		if (!data.from || !data.to) {
+			throw new BadRequestException(
+				"É preciso informar a data de início e a data de fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`users.id,
+       users."name"                                                                       as vendedor,
+       business_units.identification                                                      as unidade_negocios,
+       bills.tag                                                                          as codigo_venda,
+       cli.name                                                                           as cliente,
+       dep.name                                                                           as paciente,
+       products.description                                                               as produto_servico,
+       cast(bill_items.total_value as numeric(15, 2))                                     as total_servico_produto,
+       cast(coalesce(bup.commission, 0) as numeric(15, 2))                                as percentual_comissao,
+       cast(bill_items.total_value * coalesce(bup.commission, 0) / 100 as numeric(15, 2)) as valor_comissao`),
+			)
+			.joinRaw(
+				"join bill_items on bills.id = bill_items.bill_id AND bill_items.status <> 'INATIVA'",
+			)
+			.joinRaw("join users on bills.seller_id = users.id")
+			.joinRaw(
+				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_i",
+			)
+			.joinRaw(
+				'JOIN business_units ON bills.business_unit_id = business_units."id"',
+			)
+			.joinRaw(
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw('JOIN patients Cli ON bills.client_id = Cli."id"')
+			.joinRaw('LEFT JOIN patients Dep ON bills.patient_id = Dep."id"')
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.whereBetween("bills.bill_date", [data.from, data.to])
+			.where("bills.economic_group_id", authCtx.group.id)
+			.orderByRaw(
+				`users."name", business_units.identification, bills.tag, products.description`,
+			);
+
+		if (data.seller) {
+			qb.where("bills.seller_id", data.seller);
+		}
+
+		if (data.businessUnits && Array.isArray(data.businessUnits)) {
+			qb.whereIn("bills.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		const result: {
+			id: string;
+			vendedor: string;
+			unidade_negocios: string;
+			codigo_venda: string;
+			cliente: string;
+			paciente: string;
+			produto_servico: string;
+			total_servico_produto: string;
+			percentual_comissao: string;
+			valor_comissao: string;
+		}[] = await qb;
+
+		return [
+			{
+				dataInicio: data.from,
+				dataFim: data.to,
+				comissao: result.map((ve) => ({
+					id: ve.id,
+					vendedor: ve.vendedor,
+					unidadeNegocios: ve.unidade_negocios,
+					codigoVenda: ve.codigo_venda,
+					cliente: ve.cliente,
+					paciente: ve.paciente,
+					produtoServico: ve.produto_servico,
+					totalServicoProduto: this.sharedService.formatter.format(
+						Number.parseFloat(ve.total_servico_produto),
+					),
+					percentualComissao: this.sharedService.formatPercentage(
+						ve.percentual_comissao,
+					),
+					valorComissao: this.sharedService.formatter.format(
+						Number.parseFloat(ve.valor_comissao),
+					),
+				})),
+			},
+		];
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

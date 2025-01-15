@@ -1569,6 +1569,10 @@ Route.group(() => {
 		"/comission-seller-consolidated",
 		"ReportsController.comissionSellerConsolidated",
 	);
+	Route.get(
+		"/comission-seller-conference",
+		"ReportsController.comissionSellerConference",
+	);
 })
 	.prefix("reports")
 	.middleware("auth");

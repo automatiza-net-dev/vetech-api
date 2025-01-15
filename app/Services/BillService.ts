@@ -3745,6 +3745,131 @@ where deposit_id = ?
 		});
 	}
 
+	async reviewBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			email: string;
+			password: string;
+			billId: string;
+			billItems: { id: string; cancelled: boolean; note: string }[];
+			billPayments: { id: string; cancelled: boolean; note: string }[];
+		},
+	) {
+		const user = await User.query()
+			.whereILike("email", data.email)
+			.where("system_id", authCtx.system.id)
+			.first();
+
+		if (!user) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!(await Hash.verify(user.password, data.password))) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (data.billItems.length > 0 && !authCtx.hasPermission("VEN19")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para avaliar o cancelamento de itens",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.billPayments.length > 0 && !authCtx.hasPermission("VEN20")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para avaliar o cancelamento de pagamentos",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.preload("items", (query) => {
+					query.whereIn(
+						"id",
+						data.billItems.map((i) => i.id),
+					);
+				})
+				.preload("payments", (query) => {
+					query.whereIn(
+						"id",
+						data.billPayments.map((i) => i.id),
+					);
+				})
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			const itemTasks = bill.items.map(async (elem) => {
+				return elem.merge({
+					reviewer_cancel_user_id: authCtx.user.id,
+					reviewCancelDate: DateTime.now(),
+					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+						? "S"
+						: "N",
+					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+				});
+			});
+			await Promise.all(itemTasks);
+
+			const paymentTasks = bill.payments.map(async (elem) => {
+				return elem.merge({
+					reviewer_cancel_user_id: authCtx.user.id,
+					reviewCancelDate: DateTime.now(),
+					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+						? "S"
+						: "N",
+					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+				});
+			});
+			await Promise.all(paymentTasks);
+
+			const missingStuff = await Database.from("bill_items")
+				.useTransaction(trx)
+				.select("id")
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bill_id", data.billId)
+				.union((query) => {
+					query
+						.useTransaction(trx)
+						.select("id")
+						.from("bill_payments")
+						.where("business_unit_id", authCtx.unit.id)
+						.where("bill_id", data.billId);
+				});
+
+			await bill
+				.merge({
+					cancelled: missingStuff.length === 0 ? "A" : "P",
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
 	private async syncBillPendingAndSum(
 		trx: TransactionClientContract,
 		bill: Bill,

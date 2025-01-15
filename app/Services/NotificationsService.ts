@@ -138,11 +138,7 @@ export default class NotificationsService {
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
 		if (!authCtx.hasPermission("VEN19")) {
-			throw new UnauthorizedException(
-				"Usuário sem permissão de fazer a operação",
-				400,
-				"E_ERR",
-			);
+			return { data: [] };
 		}
 
 		const [{ count }]: { count: number }[] = await Database.from("bill_items")
@@ -177,11 +173,7 @@ export default class NotificationsService {
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
 		if (!authCtx.hasPermission("VEN20")) {
-			throw new UnauthorizedException(
-				"Usuário sem permissão de fazer a operação",
-				400,
-				"E_ERR",
-			);
+			return { data: [] };
 		}
 
 		const [{ count }]: { count: number }[] = await Database.from(
@@ -218,11 +210,7 @@ export default class NotificationsService {
 		authCtx: AuthContext,
 	): Promise<{ data: Notification[] }> {
 		if (!authCtx.hasPermission("VEN21")) {
-			throw new UnauthorizedException(
-				"Usuário sem permissão de fazer a operação",
-				400,
-				"E_ERR",
-			);
+			return { data: [] };
 		}
 
 		const [{ count }]: { count: number }[] = await Database.from(

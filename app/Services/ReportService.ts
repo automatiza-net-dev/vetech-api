@@ -3409,7 +3409,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.whereNull("bills.deleted_at")
 			.whereNull("bill_items.deleted_at")
 			.whereBetween("bills.bill_date", [data.from, data.to])
-			.where("bills.economic_group_id", authCtx.group.id);
+			.where("bills.economic_group_id", authCtx.group.id)
+			.groupBy("users.id")
+			.orderBy("users.name");
 
 		if (data.seller) {
 			qb.where("bills.seller_id", data.seller);

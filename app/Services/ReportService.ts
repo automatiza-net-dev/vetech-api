@@ -3483,7 +3483,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			)
 			.joinRaw("join users on bills.seller_id = users.id")
 			.joinRaw(
-				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_i",
+				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_id",
 			)
 			.joinRaw(
 				'JOIN business_units ON bills.business_unit_id = business_units."id"',

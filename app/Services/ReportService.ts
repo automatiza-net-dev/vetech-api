@@ -3217,8 +3217,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			races?: string[];
 			gender?: string;
 			castrated?: string;
-			death?: string;
-			microchip?: string;
+			community?: string;
+			// death?: string;
+			// microchip?: string;
 			vaccineOrigin?: string;
 		},
 	) {
@@ -3236,13 +3237,13 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        t.cellphone                                                                           as tutor_celular,
        t.telephone                                                                           as tutor_telefone,
        t.email                                                                               as tutor_email,
-       CASE WHEN pt.gender = 'male' THEN 'MASCULINO' ELSE 'FEMININO' END                     as tutor_genero,
+       pt.gender as tutor_genero,
        prof.description                                                                      as tutor_profissao,
        pt.birth_date                                                                         as tutor_dt_nasc,
        pt.created_at::date                                                                   as tutor_dt_cadastro,
        pp.tag                                                                                as pet_Rg,
        pp.name                                                                               as pet_Nome,
-       CASE WHEN pp.gender = 'male' THEN 'MACHO' ELSE 'FÊMEA' END                            as pet_Genero,
+       pp.gender                            as pet_Genero,
        pp.birth_date                                                                         as pet_Data_Nascimento,
        pp.vaccine_origin                                                                     as pet_Vacinado,
        CASE WHEN pet.death = true THEN 'SIM' ELSE '' END                                     as pet_Obito,
@@ -3279,14 +3280,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.gender) {
-			switch (data.gender) {
-				case "Macho":
+			switch (data.gender.toLowerCase()) {
+				case "macho":
 					qb.whereRaw("pp.gender = ?", ["masculino"]);
 					break;
-				case "Femea":
+				case "femea":
 					qb.whereRaw("pp.gender = ?", ["feminino"]);
 					break;
-				case "Outros":
+				case "outros":
 					qb.whereRaw("pp.gender = ?", ["outros"]);
 					break;
 			}
@@ -3296,44 +3297,48 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			qb.whereRaw("pet.castrated = ?", [data.castrated === "true"]);
 		}
 
-		if (data.death) {
-			switch (data.death) {
-				case "Sim":
-					qb.whereRaw("pet.death_date is not null");
-					break;
-				case "Nao":
-					qb.whereRaw("pet.death_date is null");
-					break;
-			}
-		}
+		// if (data.death) {
+		// 	switch (data.death) {
+		// 		case "Sim":
+		// 			qb.whereRaw("pet.death_date is not null");
+		// 			break;
+		// 		case "Nao":
+		// 			qb.whereRaw("pet.death_date is null");
+		// 			break;
+		// 	}
+		// }
 
 		if (data.vaccineOrigin) {
 			switch (data.vaccineOrigin) {
-				case "Não Vacinado":
-					qb.whereRaw("pp.vaccine_origin = ?", ["NAO_VACINADO"]);
+				case "Vacinado":
+					qb.whereRaw(
+						"coalesce(pt.vaccine_origin,'NAO_VACINADO') in ('FORA_DA_CLINICA','PROPRIA_CLINICA')",
+						[],
+					);
 					break;
-				case "Fora da Clinica":
-					qb.whereRaw("pp.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
+				case "Nao Vacinado":
+					qb.whereRaw(
+						"coalesce(pt.vaccine_origin,'NAO_VACINADO') = 'NAO_VACINADO')",
+						[],
+					);
 					break;
-				case "Propria Clinica":
-					qb.whereRaw("pp.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
-					break;
-				case "Não Informado":
-				default:
-					qb.whereRaw("pp.vaccine_origin is null");
 			}
 		}
 
-		if (data.microchip) {
-			switch (data.microchip) {
-				case "Sim":
-					qb.whereRaw("pet.microchip is not null");
-					break;
-				case "Nao":
-					qb.whereRaw("pet.microchip is null");
-					break;
-			}
+		if (data.community) {
+			qb.whereRaw("pt.community = ?", [data.community === "Sim"]);
 		}
+
+		// if (data.microchip) {
+		// 	switch (data.microchip) {
+		// 		case "Sim":
+		// 			qb.whereRaw("pet.microchip is not null");
+		// 			break;
+		// 		case "Nao":
+		// 			qb.whereRaw("pet.microchip is null");
+		// 			break;
+		// 	}
+		// }
 		//
 		// if (data.fromCreated && data.toCreated) {
 		// 	qb.andWhereRaw("patients.created_at::date between ? and ?", [

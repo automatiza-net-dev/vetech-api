@@ -523,9 +523,9 @@ export default class ScheduleService {
 
 	public async usersWithSchedule(authCtx: AuthContext) {
 		const qb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -533,12 +533,12 @@ export default class ScheduleService {
 				[],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id`,
+				"left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id",
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			);
 
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -1385,7 +1385,11 @@ export default class ScheduleService {
 		const refEnd = data.to ? new Date(data.to) : new Date();
 
 		const usersQb = Database.from("users")
-			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
+			.select(
+				Database.raw(
+					"distinct users.id, users.name, users.on_duty, users.schedule_sequence",
+				),
+			)
 			.joinRaw(
 				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
@@ -1402,7 +1406,8 @@ export default class ScheduleService {
 			.where("users.type", "user")
 			.whereRaw(
 				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
-			);
+			)
+			.orderByRaw("users.schedule_sequence, users.name");
 
 		if (data.user) {
 			usersQb.where("users.id", data.user);

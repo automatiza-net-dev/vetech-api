@@ -291,7 +291,7 @@ export default class BusinessUnitConfig extends BaseModel {
 	public syncCrmSchedules: boolean;
 
 	@column({
-		async consume(rawValue) {
+		consume(rawValue) {
 			const result = ConfigSchema.safeParse(rawValue);
 			if (!result.success) {
 				axiom.ingest(Env.get("AXIOM_DATASET"), [
@@ -301,7 +301,9 @@ export default class BusinessUnitConfig extends BaseModel {
 						errors: result.error.flatten(),
 					},
 				]);
-				await axiom.flush();
+				axiom.flush().catch((err) => {
+					console.error(err);
+				});
 
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",

@@ -57,7 +57,7 @@ export default class System extends BaseModel {
 	@column({
 		columnName: "default_config",
 		serializeAs: null,
-		async consume(rawValue) {
+		consume(rawValue) {
 			const result = ConfigSchema.safeParse(rawValue);
 			if (!result.success) {
 				axiom.ingest(Env.get("AXIOM_DATASET"), [
@@ -67,7 +67,9 @@ export default class System extends BaseModel {
 						errors: result.error.flatten(),
 					},
 				]);
-				await axiom.flush();
+				axiom.flush().catch((err) => {
+					console.error(err);
+				});
 
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",

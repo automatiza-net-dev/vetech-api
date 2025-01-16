@@ -7,14 +7,14 @@ import { DateTime } from "luxon";
 import * as z from "zod";
 
 export const ConfigCrmSchema = z.object({
-	crm_useful_days: z.optional(z.boolean()),
-	default_funnel_meta_id: z.optional(z.union([z.number(), z.null()])),
+	crm_useful_days: z.boolean().optional().nullable(),
+	default_funnel_meta_id: z.number().optional().nullable(),
 });
 
 export const ConfigBillSchema = z.object({
 	sale_exit_account_plan_id: z.string().uuid().optional().nullable(),
 	other_exit_account_plan_id: z.string().uuid().optional().nullable(),
-	requires_bill_patient: z.optional(z.boolean()),
+	requires_bill_patient: z.boolean().optional().nullable(),
 });
 
 export const ConfigReceiptSchema = z.object({
@@ -52,43 +52,48 @@ export const ConfigSchedulesSchema = z.object({
 });
 
 export const ConfigBusinessUnitsSchema = z.object({
-	patient_dependent: z.optional(z.boolean()),
-	locked_daily_movement_date: z.optional(z.boolean()),
-	daily_cashier_type: z.optional(
-		z.union([z.literal("geral"), z.literal("usuario")]),
-	),
-	requires_finance_client: z.optional(z.boolean()),
-	marketing_account_plan_id: z.optional(z.string().uuid()),
-	incoming_deposit_id: z.optional(z.coerce.number()),
-	outgoing_deposit_id: z.optional(z.coerce.number()),
-	balance_control: z.optional(
-		z.union([
+	patient_dependent: z.boolean().optional().nullable(),
+	locked_daily_movement_date: z.boolean().optional().nullable(),
+	daily_cashier_type: z
+		.union([z.literal("geral"), z.literal("usuario")])
+		.optional()
+		.nullable(),
+	requires_finance_client: z.boolean().optional().nullable(),
+	marketing_account_plan_id: z.string().uuid().optional().nullable(),
+	incoming_deposit_id: z.coerce.number().optional().nullable(),
+	outgoing_deposit_id: z.coerce.number().optional().nullable(),
+	balance_control: z
+		.union([
 			z.literal("realizado"),
 			z.literal("usuario"),
 			z.literal("previsto"),
-		]),
-	),
-	controls_deposit: z.optional(z.boolean()),
-	requires_client_document: z.optional(z.boolean()),
-	alter_prices: z.optional(z.boolean()),
-	dashboard_lists_retroactive_schedules: z.optional(z.boolean()),
-	dre_report_file: z.optional(z.string()),
-	useful_days: z.optional(z.boolean()),
-	treatment: z.optional(z.boolean()),
-	overall_resume_type: z.optional(
-		z.union([z.literal("geral"), z.literal("mes")]),
-	),
-	ticket_type: z.optional(
-		z.union([z.literal("venda"), z.literal("cliente"), z.literal("paciente")]),
-	),
-	reviewer: z.optional(
-		z.union([z.literal("S"), z.literal("N"), z.literal("O")]),
-	),
-	internal_code: z.optional(z.boolean()),
+		])
+		.optional()
+		.nullable(),
+	controls_deposit: z.boolean().optional().nullable(),
+	requires_client_document: z.boolean().optional().nullable(),
+	alter_prices: z.boolean().optional().nullable(),
+	dashboard_lists_retroactive_schedules: z.boolean().optional().nullable(),
+	dre_report_file: z.string().optional().nullable(),
+	useful_days: z.boolean().optional().nullable(),
+	treatment: z.boolean().optional().nullable(),
+	overall_resume_type: z
+		.union([z.literal("geral"), z.literal("mes")])
+		.optional()
+		.nullable(),
+	ticket_type: z
+		.union([z.literal("venda"), z.literal("cliente"), z.literal("paciente")])
+		.optional()
+		.nullable(),
+	reviewer: z
+		.union([z.literal("S"), z.literal("N"), z.literal("O")])
+		.optional()
+		.nullable(),
+	internal_code: z.boolean().optional().nullable(),
 });
 
 export const ConfigBudgetSchema = z.object({
-	budgets_payments_required: z.optional(z.boolean()),
+	budgets_payments_required: z.boolean().optional().nullable(),
 });
 
 export const ConfigSchema = z.object({

@@ -130,41 +130,41 @@ export default class BusinessUnitService {
 					},
 				);
 
-				// const products = await economicGroup
-				// 	.related("products")
-				// 	.query()
-				// 	.useTransaction(trx)
-				// 	.preload("variations", (query) => {
-				// 		query.preload("businessUnitProducts");
-				// 	});
+				const products = await economicGroup
+					.related("products")
+					.query()
+					.useTransaction(trx)
+					.preload("variations", (query) => {
+						query.preload("businessUnitProducts");
+					});
 
-				// // eslint-disable-next-line no-restricted-syntax
-				// for await (const product of products) {
-				// 	// eslint-disable-next-line no-restricted-syntax
-				// 	for await (const variation of product.variations) {
-				// 		const [unitPrice] = product.variations[0].businessUnitProducts;
-				//
-				// 		if (unitPrice) {
-				// 			await variation.related("businessUnitProducts").create(
-				// 				{
-				// 					businness_unit_id: unit.id,
-				// 					stock: 0,
-				// 					price: unitPrice.price,
-				// 					costPrice: unitPrice.costPrice,
-				// 					maximumStock: unitPrice.maximumStock,
-				// 					minimumStock: unitPrice.minimumStock,
-				// 					maximumDiscountPercentage:
-				// 						unitPrice.maximumDiscountPercentage,
-				// 					maximumDiscountValue: unitPrice.maximumDiscountValue,
-				// 					profitMargin: unitPrice.profitMargin,
-				// 				},
-				// 				{
-				// 					client: trx,
-				// 				},
-				// 			);
-				// 		}
-				// 	}
-				// }
+				// eslint-disable-next-line no-restricted-syntax
+				for await (const product of products) {
+					// eslint-disable-next-line no-restricted-syntax
+					for await (const variation of product.variations) {
+						const [unitPrice] = product.variations[0].businessUnitProducts;
+
+						if (unitPrice) {
+							await variation.related("businessUnitProducts").create(
+								{
+									businness_unit_id: unit.id,
+									stock: 0,
+									price: unitPrice.price,
+									costPrice: unitPrice.costPrice,
+									maximumStock: unitPrice.maximumStock,
+									minimumStock: unitPrice.minimumStock,
+									maximumDiscountPercentage:
+										unitPrice.maximumDiscountPercentage,
+									maximumDiscountValue: unitPrice.maximumDiscountValue,
+									profitMargin: unitPrice.profitMargin,
+								},
+								{
+									client: trx,
+								},
+							);
+						}
+					}
+				}
 
 				await CheckingAccount.create(
 					{

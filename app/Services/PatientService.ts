@@ -554,7 +554,7 @@ export default class PatientService {
                                  regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
                                  ? end
                          ))
-                and ("patients"."id" = "patient_contacts"."patient_id"))`,
+                and ("tut"."id" = "patient_contacts"."patient_id"))`,
 				[
 					clearPhone,
 					`%${clearPhone}%`,

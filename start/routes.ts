@@ -1074,6 +1074,7 @@ Route.group(() => {
 		"BillsController.requestBillCancellation",
 	);
 	Route.post("/review-cancellation", "BillsController.reviewBillCancellation");
+	Route.post("/finish-cancellation", "BillsController.finishBillCancellation");
 
 	Route.put("/exclude-bill/:id", "BillsController.excludeBill");
 	Route.put("/close-bill/:id", "BillsController.closeBill");

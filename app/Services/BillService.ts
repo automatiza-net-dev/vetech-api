@@ -3870,6 +3870,76 @@ where deposit_id = ?
 		});
 	}
 
+	async finishBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			email: string;
+			password: string;
+			billId: string;
+			cancelled: boolean;
+			note: string;
+		},
+	) {
+		const user = await User.query()
+			.whereILike("email", data.email)
+			.where("system_id", authCtx.system.id)
+			.first();
+
+		if (!user) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!(await Hash.verify(user.password, data.password))) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!authCtx.hasPermission("VEN21")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para finalizar o cancelamento da venda",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			await bill
+				.merge({
+					finish_cancel_user_id: user.id,
+					cancelled: data.cancelled ? "S" : "N",
+					finishCancelDate: DateTime.now(),
+					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}}`,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
 	private async syncBillPendingAndSum(
 		trx: TransactionClientContract,
 		bill: Bill,

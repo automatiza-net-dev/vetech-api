@@ -98,6 +98,12 @@ export default class User extends BaseModel {
 	})
 	public onDuty: boolean;
 
+	@column({
+		columnName: "schedule_sequence",
+		serializeAs: null,
+	})
+	public scheduleSequence: boolean;
+
 	@column()
 	public active?: boolean;
 

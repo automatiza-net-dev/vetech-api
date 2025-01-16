@@ -170,7 +170,9 @@ export default class UserService {
 			const newBusinessUnit = await newGroup.related("businessUnits").create(
 				{
 					id: v4(),
+					identification: `Clínica do(a) ${user.name}`,
 					companyName: `Clínica do(a) ${user.name}`,
+					fantasyName: `Clínica do(a) ${user.name}`,
 					document: data.document,
 					phone: data.phone,
 					email: data.email,

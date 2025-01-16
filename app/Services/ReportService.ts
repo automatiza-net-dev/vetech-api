@@ -2735,6 +2735,7 @@ ON bills.patient_id = Dep."id"`,
 				Database.raw(`
 			  business_units.identification                                            as unidade,
         p."name"                                                                 as paciente,
+        species.description ||' > '|| races.description                          as especie_raca,
         t.name                                                                   as tutor,
         patient_contacts.contact                                                 as contato_tutor,
         case when vaccines."type" = 'vaccine' then 'vacina' else 'vermifugo' end as vacina_vermifugo,
@@ -2762,17 +2763,21 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw(
 				"join vaccine_protocols on vaccine_protocols.id = patient_vaccines.vaccine_protocol_id",
 			)
-			.joinRaw("join patients p on p.id = patient_vaccines.patient_id")
-			.joinRaw("join species on vaccine_protocols.specie_id = species.id")
 			.joinRaw(
-				"join holder_dependents on p.id = holder_dependents.dependent_id",
+				"join (patients p join patient_animals pa join races join species on races.specie_id = species.id on pa.race_id = races.id on p.id = pa.patient_id ) on p.id = patient_vaccines.patient_id",
 			)
-			.joinRaw("join patients t on holder_dependents.holder_id = t.id")
+			.joinRaw(
+				"join holder_dependents on p.id = holder_dependents.dependent_id and holder_dependents.is_main = true",
+			)
+			.joinRaw("join patients t on holder_dependents.holder_id = t.id ")
 			.joinRaw(
 				"left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
+			)
+			.orderByRaw(
+				"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
 			)
 			.where("vaccines.system_id", authCtx.system.id)
 			.where("business_units.economic_group_id", authCtx.group.id)
@@ -2825,19 +2830,19 @@ ON bills.patient_id = Dep."id"`,
 			);
 		}
 
-		if (data.order === "Protocolo") {
-			qb.orderByRaw(
-				"business_units.identification, vaccines.name, vaccine_protocols.name, vaccine_calendars.scheduling_date, p.name",
-			);
-		} else if (data.order === "Data Agendamento") {
-			qb.orderByRaw(
-				"business_units.identification, vaccine_calendars.scheduling_date, vaccine_calendars.application_date, p.name",
-			);
-		} else if (data.order === "Data Aplicacao") {
-			qb.orderByRaw(
-				"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
-			);
-		}
+		// if (data.order === "Protocolo") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
+		// 	);
+		// } else if (data.order === "Data Agendamento") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccine_calendars.scheduling_date, vaccine_calendars.application_date, p.name",
+		// 	);
+		// } else if (data.order === "Data Aplicacao") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
+		// 	);
+		// }
 
 		if (data.debug) {
 			return qb.toQuery();

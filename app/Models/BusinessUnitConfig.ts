@@ -32,7 +32,7 @@ export const ConfigFiscalDocumentSchema = z.object({
 	focus_homologation_token: z.string().optional().nullable(),
 	focus_production_token: z.string().optional().nullable(),
 	xml_download_authorization: z.string().optional().nullable(),
-	group_nfse_documents: z.string().optional().nullable(),
+	group_nfse_documents: z.boolean().optional().nullable(),
 	default_nfse_description: z.string().optional().nullable(),
 });
 
@@ -59,8 +59,8 @@ export const ConfigBusinessUnitsSchema = z.object({
 	),
 	requires_finance_client: z.optional(z.boolean()),
 	marketing_account_plan_id: z.optional(z.string().uuid()),
-	incoming_deposit_id: z.optional(z.number()),
-	outgoing_deposit_id: z.optional(z.number()),
+	incoming_deposit_id: z.optional(z.coerce.number()),
+	outgoing_deposit_id: z.optional(z.coerce.number()),
 	balance_control: z.optional(
 		z.union([
 			z.literal("realizado"),

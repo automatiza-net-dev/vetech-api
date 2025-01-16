@@ -71,7 +71,10 @@ export default class System extends BaseModel {
 					console.error(err);
 				});
 
-				console.error(result.error.flatten());
+				console.error({
+					err: result.error,
+					flat: result.error.flatten(),
+				});
 
 				throw new InternalErrorException(
 					"Erro buscando informações da unidade, contate o desenvolvedor",

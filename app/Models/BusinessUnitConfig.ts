@@ -12,43 +12,43 @@ export const ConfigCrmSchema = z.object({
 });
 
 export const ConfigBillSchema = z.object({
-	sale_exit_account_plan_id: z.optional(z.string().uuid()),
-	other_exit_account_plan_id: z.optional(z.string().uuid()),
+	sale_exit_account_plan_id: z.string().uuid().optional().nullable(),
+	other_exit_account_plan_id: z.string().uuid().optional().nullable(),
 	requires_bill_patient: z.optional(z.boolean()),
 });
 
 export const ConfigReceiptSchema = z.object({
-	order_entry_account_plan_id: z.optional(z.string().uuid()),
-	other_entry_account_plan_id: z.optional(z.string().uuid()),
-	generate_finances_on_receipt_finish: z.optional(z.boolean()),
+	order_entry_account_plan_id: z.string().uuid().optional().nullable(),
+	other_entry_account_plan_id: z.string().uuid().optional().nullable(),
+	generate_finances_on_receipt_finish: z.boolean().optional().nullable(),
 });
 
 export const ConfigProductSchema = z.object({
-	service_variation_group_id: z.optional(z.string().uuid()),
+	service_variation_group_id: z.string().uuid().optional().nullable(),
 });
 
 export const ConfigFiscalDocumentSchema = z.object({
-	fiscal_document_environment: z.optional(z.string()),
-	focus_homologation_token: z.optional(z.string()),
-	focus_production_token: z.optional(z.string()),
-	xml_download_authorization: z.optional(z.string()),
-	group_nfse_documents: z.optional(z.boolean()),
-	default_nfse_description: z.optional(z.string()),
+	fiscal_document_environment: z.string().optional().nullable(),
+	focus_homologation_token: z.string().optional().nullable(),
+	focus_production_token: z.string().optional().nullable(),
+	xml_download_authorization: z.string().optional().nullable(),
+	group_nfse_documents: z.string().optional().nullable(),
+	default_nfse_description: z.string().optional().nullable(),
 });
 
 export const ConfigSchedulesSchema = z.object({
-	allow_change_schedule_duration: z.optional(z.boolean()),
-	interval: z.optional(z.number()),
-	show_treatment_executions_schedule: z.optional(z.boolean()),
-	show_treatment_schedules: z.optional(z.boolean()),
-	treatment_schedule_service_type_id: z.optional(z.string().uuid()),
-	return_interval: z.optional(z.number()),
-	allowed_return_qty: z.optional(z.number()),
-	schedule_late_minutes: z.optional(z.number()),
-	schedule_missed_minutes: z.optional(z.number()),
-	integrates_to_crm_schedules: z.optional(z.boolean()),
-	sync_schedule_movements: z.optional(z.boolean()),
-	sync_schedules_crm: z.optional(z.boolean()),
+	allow_change_schedule_duration: z.boolean().optional().nullable(),
+	interval: z.number().optional().nullable(),
+	show_treatment_executions_schedule: z.boolean().optional().nullable(),
+	show_treatment_schedules: z.boolean().optional().nullable(),
+	treatment_schedule_service_type_id: z.string().uuid().optional().nullable(),
+	return_interval: z.number().optional().nullable(),
+	allowed_return_qty: z.number().optional().nullable(),
+	schedule_late_minutes: z.number().optional().nullable(),
+	schedule_missed_minutes: z.number().optional().nullable(),
+	integrates_to_crm_schedules: z.boolean().optional().nullable(),
+	sync_schedule_movements: z.boolean().optional().nullable(),
+	sync_schedules_crm: z.boolean().optional().nullable(),
 });
 
 export const ConfigBusinessUnitsSchema = z.object({

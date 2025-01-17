@@ -38,6 +38,7 @@ import ReceiptItem, {
 import ReceiptPayment, {
 	TReceiptPaymentStatus,
 } from "App/Models/ReceiptPayment";
+import ReceiptXml from "App/Models/ReceiptXml";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
@@ -807,6 +808,15 @@ export default class ReceiptService {
 		},
 	) {
 		const key = `${authCtx.unit.id}/${data.file.clientName}`;
+		const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.file.clientName}`;
+
+		await data.file.moveToDisk(
+			"xml-imports",
+			{
+				name: s3Key,
+			},
+			"s3",
+		);
 
 		await data.file.moveToDisk(
 			"receipts",
@@ -966,6 +976,19 @@ export default class ReceiptService {
 					status: "PendenteXml",
 				},
 				{ client: trx },
+			);
+
+			await ReceiptXml.create(
+				{
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					user_id: authCtx.user.id,
+					receipt_id: newReceipt.id,
+					xmlFile: s3Key,
+				},
+				{
+					client: trx,
+				},
 			);
 
 			const items = SharedService.ArrayUnion(

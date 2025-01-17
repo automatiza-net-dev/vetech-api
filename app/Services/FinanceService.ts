@@ -44,6 +44,9 @@ interface ISearch {
 	fromIssueDate?: string;
 	toIssueDate?: string;
 
+	fromAcceptDate?: string;
+	toAcceptDate?: string;
+
 	fromExpirationDate?: string;
 	toExpirationDate?: string;
 
@@ -207,6 +210,13 @@ export default class FinanceService {
 			financesQb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
 		}
 
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			financesQb.whereRaw("accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
+		}
+
 		if (data.client) {
 			financesQb.where("client_id", data.client);
 		}
@@ -342,6 +352,13 @@ export default class FinanceService {
 
 		if (data.toPaymentDate) {
 			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			qb.whereRaw("finances.accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
 		}
 
 		if (data.client) {
@@ -628,6 +645,13 @@ export default class FinanceService {
 
 		if (data.toPaymentDate) {
 			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			qb.whereRaw("finances.accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
 		}
 
 		if (data.client) {

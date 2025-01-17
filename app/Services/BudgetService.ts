@@ -2603,9 +2603,10 @@ export default class BudgetService {
 			.joinRaw(
 				"left join users approval_user on approval_user.id = budget_payments.approved_user_id",
 			)
-			.andWhere("budget_payments.economic_group_id", authCtx.group.id)
-			.andWhere("budget_payments.business_unit_id", authCtx.unit.id)
-			.where("budget_payments.budget_id", id);
+			.where("budget_payments.economic_group_id", authCtx.group.id)
+			.where("budget_payments.business_unit_id", authCtx.unit.id)
+			.where("budget_payments.budget_id", id)
+			.whereNull("budget_payments.deleted_at");
 
 		// if (!data.type) {
 		// 	qb.whereNot(

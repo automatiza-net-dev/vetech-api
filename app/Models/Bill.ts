@@ -266,7 +266,7 @@ export default class Bill extends BaseModel {
 		serializeAs: "cancelValueServices",
 		consume: (value) => (value ? new Decimal(value) : null),
 		prepare: (value) => value.toString(),
-		serialize: (value: Decimal) => value.toNumber(),
+		serialize: (value: Decimal) => value?.toNumber(),
 	})
 	public cancelValueServices: Decimal | null;
 
@@ -275,7 +275,7 @@ export default class Bill extends BaseModel {
 		serializeAs: "cancelValueTotal",
 		consume: (value) => (value ? new Decimal(value) : null),
 		prepare: (value) => value.toString(),
-		serialize: (value: Decimal) => value.toNumber(),
+		serialize: (value: Decimal) => value?.toNumber(),
 	})
 	public cancelValueTotal: Decimal | null;
 

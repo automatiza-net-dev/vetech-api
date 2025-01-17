@@ -14,7 +14,7 @@ import System from "App/Models/System";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
 import { DateTime } from "luxon";
-import { validateCPF } from "App/Shared";
+import { validate } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
@@ -114,7 +114,7 @@ export default class SharedService {
 		try {
 			await fn();
 		} catch (e) {
-			console.log("got an error", JSON.stringify(e, null, 2));
+			console.log("got an error", e);
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,
@@ -312,7 +312,7 @@ export default class SharedService {
 	}
 
 	public validDocument(document: string): boolean {
-		return validateCPF(document.replace(/\D/g, ""));
+		return validate(document.replace(/\D/g, ""));
 	}
 
 	public isValidNumber(data: number | undefined) {

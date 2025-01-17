@@ -353,7 +353,7 @@ export default class BillItem extends BaseModel {
 		serializeAs: "originalTotalValue",
 		consume: (value) => (value ? new Decimal(value) : null),
 		prepare: (value) => value.toString(),
-		serialize: (value: Decimal) => value.toNumber(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public originalTotalValue: Decimal | null;
 
@@ -362,7 +362,7 @@ export default class BillItem extends BaseModel {
 		serializeAs: "originalTotalquantity",
 		consume: (value) => (value ? new Decimal(value) : null),
 		prepare: (value) => value.toString(),
-		serialize: (value: Decimal) => value.toNumber(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public originalTotalQuantity: Decimal | null;
 

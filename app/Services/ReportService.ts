@@ -3285,17 +3285,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.gender) {
-			switch (data.gender.toLowerCase()) {
-				case "macho":
-					qb.whereRaw("pp.gender = ?", ["masculino"]);
-					break;
-				case "femea":
-					qb.whereRaw("pp.gender = ?", ["feminino"]);
-					break;
-				case "outros":
-					qb.whereRaw("pp.gender = ?", ["outros"]);
-					break;
-			}
+			qb.whereRaw("pp.gender = ?", [data.gender]);
+			// switch (data.gender.toLowerCase()) {
+			// 	case "macho":
+			// 		qb.whereRaw("pp.gender = ?", [PatientGender.MALE]);
+			// 		break;
+			// 	case "femea":
+			// 		qb.whereRaw("pp.gender = ?", ["feminino"]);
+			// 		break;
+			// 	case "outros":
+			// 		qb.whereRaw("pp.gender = ?", ["outros"]);
+			// 		break;
+			// }
 		}
 
 		if (data.castrated) {

@@ -2688,6 +2688,7 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			type?: string;
 			units?: string[];
+			statuses?: string[];
 			fromScheduling?: string;
 			toScheduling?: string;
 			fromApplication?: string;
@@ -2695,9 +2696,8 @@ ON bills.patient_id = Dep."id"`,
 			specie?: string;
 			vaccine?: string;
 			protocol?: string;
-			status?: string;
+			// status?: string;
 			order?: string;
-			debug?: string;
 		},
 	) {
 		if (!data.type) {
@@ -2785,8 +2785,6 @@ ON bills.patient_id = Dep."id"`,
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);
-		} else {
-			qb.where("patient_vaccines.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.specie) {
@@ -2818,16 +2816,32 @@ ON bills.patient_id = Dep."id"`,
 			]);
 		}
 
-		if (data.status === "Dose aplicada") {
-			qb.whereRaw("vaccine_calendars.application_date is not null");
-		} else if (data.status === "Dose pendente - atrasada") {
-			qb.whereRaw(
-				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
-			);
-		} else if (data.status === "Dose pendente - em dia") {
-			qb.whereRaw(
-				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
-			);
+		// if (data.status === "Dose aplicada") {
+		// 	qb.whereRaw("vaccine_calendars.application_date is not null");
+		// } else if (data.status === "Dose pendente - atrasada") {
+		// 	qb.whereRaw(
+		// 		"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
+		// 	);
+		// } else if (data.status === "Dose pendente - em dia") {
+		// 	qb.whereRaw(
+		// 		"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
+		// 	);
+		// }
+
+		if (data.statuses && Array.isArray(data.statuses)) {
+			for (const status of data.statuses) {
+				if (status === "Dose aplicada") {
+					qb.whereRaw("vaccine_calendars.application_date is not null");
+				} else if (status === "Dose pendente - atrasada") {
+					qb.whereRaw(
+						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
+					);
+				} else if (status === "Dose pendente - em dia") {
+					qb.whereRaw(
+						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
+					);
+				}
+			}
 		}
 
 		// if (data.order === "Protocolo") {
@@ -2843,10 +2857,6 @@ ON bills.patient_id = Dep."id"`,
 		// 		"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
 		// 	);
 		// }
-
-		if (data.debug) {
-			return qb.toQuery();
-		}
 
 		return qb;
 	}

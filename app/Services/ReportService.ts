@@ -3316,13 +3316,13 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 		if (data.vaccineOrigin) {
 			switch (data.vaccineOrigin) {
-				case "Vacinado":
+				case "sim":
 					qb.whereRaw(
 						"coalesce(pt.vaccine_origin,'NAO_VACINADO') in ('FORA_DA_CLINICA','PROPRIA_CLINICA')",
 						[],
 					);
 					break;
-				case "Nao Vacinado":
+				case "nao":
 					qb.whereRaw(
 						"coalesce(pt.vaccine_origin,'NAO_VACINADO') = 'NAO_VACINADO')",
 						[],

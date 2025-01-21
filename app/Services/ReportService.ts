@@ -2688,7 +2688,7 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			type?: string;
 			units?: string[];
-			statuses?: string[];
+			status?: string[];
 			fromScheduling?: string;
 			toScheduling?: string;
 			fromApplication?: string;
@@ -2828,8 +2828,8 @@ ON bills.patient_id = Dep."id"`,
 		// 	);
 		// }
 
-		if (data.statuses && Array.isArray(data.statuses)) {
-			for (const status of data.statuses) {
+		if (data.status && Array.isArray(data.status)) {
+			for (const status of data.status) {
 				if (status === "Dose aplicada") {
 					qb.whereRaw("vaccine_calendars.application_date is not null");
 				} else if (status === "Dose pendente - atrasada") {

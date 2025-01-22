@@ -3517,7 +3517,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			.joinRaw('LEFT JOIN patients Dep ON bills.patient_id = Dep."id"')
 			.whereNull("bills.deleted_at")
 			.whereNull("bill_items.deleted_at")
-			.whereBetween("bills.bill_date", [data.from, data.to])
+			.whereRaw("bills.bill_date::date between ? and ?", [data.from, data.to])
 			.where("bills.economic_group_id", authCtx.group.id)
 			.orderByRaw(
 				`users."name", business_units.identification, bills.tag, products.description`,

@@ -59,6 +59,7 @@ interface ISearchPartial {
 	tag?: string;
 	budget_id?: string;
 	pending?: string;
+	internalCode?: string;
 }
 
 interface ISearchComplete {
@@ -300,11 +301,12 @@ export default class BudgetService {
 							query.preload("productVariation", (query) => {
 								query.preload("product");
 							});
-						})
-						.preload("executions", (query) => {
-							query.preload("executionUser");
-							query.preload("productivityItem");
-							// query.whereNull('deleted_at')
+
+							query.preload("executions", (query) => {
+								query.preload("executionUser");
+								query.preload("productivityItem");
+								// query.whereNull('deleted_at')
+							});
 						});
 
 					Object.assign(jsonObj, {
@@ -316,37 +318,42 @@ export default class BudgetService {
 							cancellation_date: elem.cancellationDate,
 							cancellation_observations: elem.cancellationObservations,
 
-							items: elem.items.map((exec) => ({
-								description: exec.productVariation.product.description,
-								quantity: exec.quantity,
-								quantity_executed: exec.quantityExecuted,
-								scheduled_quantity: exec.scheduledQuantity,
-								observations: exec.observations,
-								status: exec.status,
-							})),
-
-							executions: elem.executions.map((exec) => ({
-								schedule_id: exec.schedule_id,
-								schedule_date: exec.scheduleDate,
-								scheduled_quantity: exec.scheduledQuantity,
-								quantity_executed: exec.quantityExecuted,
-								execution_date: exec.executionDate,
-								observations: exec.observations,
-								status: exec.status,
-								user: this.sharedService.captureGroup(
-									exec.executionUser,
-									(v) => ({
-										id: v.id,
-										name: v.name,
-									}),
-								),
-								productivitItem: this.sharedService.captureGroup(
-									exec.productivityItem,
-									(v) => ({
-										id: v.id,
-										description: v.description,
-									}),
-								),
+							items: elem.items.map((item) => ({
+								description: item.productVariation.product.description,
+								quantity: item.quantity,
+								quantity_executed: item.quantityExecuted,
+								scheduled_quantity: item.scheduledQuantity,
+								observations: item.observations,
+								status: item.status,
+								executions: item.executions
+									.filter(
+										(ex) =>
+											ex.treatment_item_id === item.id &&
+											ex.treatment_id === elem.id,
+									)
+									.map((itemExec) => ({
+										schedule_id: itemExec.schedule_id,
+										schedule_date: itemExec.scheduleDate,
+										scheduled_quantity: itemExec.scheduledQuantity,
+										quantity_executed: itemExec.quantityExecuted,
+										execution_date: itemExec.executionDate,
+										observations: itemExec.observations,
+										status: itemExec.status,
+										user: this.sharedService.captureGroup(
+											itemExec.executionUser,
+											(v) => ({
+												id: v.id,
+												name: v.name,
+											}),
+										),
+										productivitItem: this.sharedService.captureGroup(
+											itemExec.productivityItem,
+											(v) => ({
+												id: v.id,
+												description: v.description,
+											}),
+										),
+									})),
 							})),
 						})),
 					});
@@ -359,7 +366,6 @@ export default class BudgetService {
 
 	public async partialIndex(unitId: string, data: ISearchPartial) {
 		const qb = Budget.query()
-			.where("business_unit_id", unitId)
 			.preload("client", (query) => {
 				query.preload("tutor");
 			})
@@ -376,74 +382,77 @@ export default class BudgetService {
 			.preload("dailyMovement")
 			.preload("conclusionUser")
 			.preload("cancelationReason")
-			.orderBy("created_at", "desc");
-
-		if (data.budget_id) {
-			qb.where("id", data.budget_id);
-		}
-
-		if (data.fromCreation) {
-			qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
-		}
-
-		if (data.toCreation) {
-			qb.whereRaw("budget_date::date <= ?", [data.toCreation]);
-		}
-
-		if (data.fromExpiration) {
-			qb.whereRaw("expiration_date::date >= ?", [data.fromExpiration]);
-		}
-
-		if (data.toExpiration) {
-			qb.whereRaw("expiration_date::date <= ?", [data.toExpiration]);
-		}
-
-		if (data.seller) {
-			qb.where("seller_id", data.seller);
-		}
-
-		if (data.status) {
-			qb.where("status", data.status);
-		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
-		}
-
-		if (data.patientName) {
-			qb.whereHas("patient", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.patientName?.replaceAll(" ", "%")}%`,
-					PatientType.ANIMAL,
-				]);
-			});
-		}
-
-		if (data.client) {
-			qb.where("client_id", data.client);
-		}
-
-		if (data.clientName) {
-			qb.whereHas("client", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.clientName?.replaceAll(" ", "%")}%`,
-					PatientType.TUTOR,
-				]);
-			});
-		}
-
-		if (data.reviewer) {
-			qb.where("reviewer_id", data.reviewer);
-		}
+			.orderBy("created_at", "desc")
+			.where("business_unit_id", unitId);
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
-		}
+		} else if (data.internalCode) {
+			qb.whereILike("internal_code", `%${data.internalCode}%`);
+		} else {
+			if (data.budget_id) {
+				qb.where("id", data.budget_id);
+			}
 
-		if (data.pending === "true") {
-			qb.where("pending", true);
-		} else if (data.pending === "false") {
-			qb.where("pending", false);
+			if (data.fromCreation) {
+				qb.whereRaw("budget_date::date >= ?", [data.fromCreation]);
+			}
+
+			if (data.toCreation) {
+				qb.whereRaw("budget_date::date <= ?", [data.toCreation]);
+			}
+
+			if (data.fromExpiration) {
+				qb.whereRaw("expiration_date::date >= ?", [data.fromExpiration]);
+			}
+
+			if (data.toExpiration) {
+				qb.whereRaw("expiration_date::date <= ?", [data.toExpiration]);
+			}
+
+			if (data.seller) {
+				qb.where("seller_id", data.seller);
+			}
+
+			if (data.status) {
+				qb.where("status", data.status);
+			}
+
+			if (data.patient) {
+				qb.where("patient_id", data.patient);
+			}
+
+			if (data.patientName) {
+				qb.whereHas("patient", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.patientName?.replaceAll(" ", "%")}%`,
+						PatientType.ANIMAL,
+					]);
+				});
+			}
+
+			if (data.client) {
+				qb.where("client_id", data.client);
+			}
+
+			if (data.clientName) {
+				qb.whereHas("client", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.clientName?.replaceAll(" ", "%")}%`,
+						PatientType.TUTOR,
+					]);
+				});
+			}
+
+			if (data.reviewer) {
+				qb.where("reviewer_id", data.reviewer);
+			}
+
+			if (data.pending === "true") {
+				qb.where("pending", true);
+			} else if (data.pending === "false") {
+				qb.where("pending", false);
+			}
 		}
 
 		const result = await qb;
@@ -740,6 +749,29 @@ export default class BudgetService {
 				);
 			}
 
+			if (authCtx.unit.unitConfig.reviewer === "O" && !data.reviewerId) {
+				throw new BadRequestException(
+					"É necessário informar o avaliador",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (data.internalCode) {
+				const existingBudget = await Budget.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("internal_code", data.internalCode)
+					.first();
+				if (existingBudget) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			const items = await ProductVariation.query()
 				.useTransaction(trx)
 				.preload("product")
@@ -949,6 +981,21 @@ export default class BudgetService {
 					400,
 					"E_ERR",
 				);
+			}
+
+			if (data.internalCode && budget.internalCode !== data.internalCode) {
+				const existingBudget = await Budget.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("internal_code", data.internalCode)
+					.first();
+				if (existingBudget) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			const result = await this.sharedService.checkDiscount(
@@ -1595,6 +1642,24 @@ export default class BudgetService {
 			);
 		}
 
+		if (authCtx.unit.unitConfig.budgetsPaymentsRequired) {
+			if (model.totalValue !== model.paidValue) {
+				throw new BadRequestException(
+					"Valor de pagamento precisa ser igual ao valor total do orçamento",
+					400,
+					"E_ERR",
+				);
+			}
+		} else {
+			if (model.paidValue > model.totalValue) {
+				throw new BadRequestException(
+					"Valor pago não pode ser superior ao valor total",
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
 		return Database.transaction(async (trx) => {
 			const client = await Patient.query()
 				.where("id", model.client_id)
@@ -1718,6 +1783,19 @@ export default class BudgetService {
 				.reduce((total, item) => total + item.discountValue, 0);
 			const totalServiceValue = 0;
 
+			const existingBillWithInternalCode = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`%${model.internalCode}`])
+				.first();
+			if (existingBillWithInternalCode) {
+				throw new BadRequestException(
+					`Código '${model.internalCode}' já está sendo usado pela venda '${existingBillWithInternalCode.tag}', e não é possível repetir.`,
+					400,
+					"E_ERR",
+				);
+			}
+
 			const bill = await Bill.create(
 				{
 					economic_group_id: authCtx.group.id,
@@ -1727,6 +1805,7 @@ export default class BudgetService {
 					daily_movement_id: model.daily_movement_id,
 					client_id: model.client_id,
 					patient_id: model.patient_id,
+					financial_responsible_id: data.financialResponsibleId,
 
 					internalCode: model.internalCode,
 					billDate: DateTime.now(),

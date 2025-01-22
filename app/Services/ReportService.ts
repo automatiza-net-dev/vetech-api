@@ -2688,6 +2688,7 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			type?: string;
 			units?: string[];
+			status?: string[];
 			fromScheduling?: string;
 			toScheduling?: string;
 			fromApplication?: string;
@@ -2695,9 +2696,8 @@ ON bills.patient_id = Dep."id"`,
 			specie?: string;
 			vaccine?: string;
 			protocol?: string;
-			status?: string;
+			// status?: string;
 			order?: string;
-			debug?: string;
 		},
 	) {
 		if (!data.type) {
@@ -2735,6 +2735,7 @@ ON bills.patient_id = Dep."id"`,
 				Database.raw(`
 			  business_units.identification                                            as unidade,
         p."name"                                                                 as paciente,
+        species.description ||' > '|| races.description                          as especie_raca,
         t.name                                                                   as tutor,
         patient_contacts.contact                                                 as contato_tutor,
         case when vaccines."type" = 'vaccine' then 'vacina' else 'vermifugo' end as vacina_vermifugo,
@@ -2762,26 +2763,28 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw(
 				"join vaccine_protocols on vaccine_protocols.id = patient_vaccines.vaccine_protocol_id",
 			)
-			.joinRaw("join patients p on p.id = patient_vaccines.patient_id")
-			.joinRaw("join species on vaccine_protocols.specie_id = species.id")
 			.joinRaw(
-				"join holder_dependents on p.id = holder_dependents.dependent_id",
+				"join (patients p join patient_animals pa join races join species on races.specie_id = species.id on pa.race_id = races.id on p.id = pa.patient_id ) on p.id = patient_vaccines.patient_id",
 			)
-			.joinRaw("join patients t on holder_dependents.holder_id = t.id")
+			.joinRaw(
+				"join holder_dependents on p.id = holder_dependents.dependent_id and holder_dependents.is_main = true",
+			)
+			.joinRaw("join patients t on holder_dependents.holder_id = t.id ")
 			.joinRaw(
 				"left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
 			)
+			.orderByRaw(
+				"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
+			)
 			.where("vaccines.system_id", authCtx.system.id)
-			.where("business_units.economic_group_id", authCtx.group.id)
 			.where("vaccines.type", data.type);
+		// .where("business_units.economic_group_id", authCtx.group.id)
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);
-		} else {
-			qb.where("patient_vaccines.business_unit_id", authCtx.unit.id);
 		}
 
 		if (data.specie) {
@@ -2813,35 +2816,47 @@ ON bills.patient_id = Dep."id"`,
 			]);
 		}
 
-		if (data.status === "Dose aplicada") {
-			qb.whereRaw("vaccine_calendars.application_date is not null");
-		} else if (data.status === "Dose pendente - atrasada") {
-			qb.whereRaw(
-				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
-			);
-		} else if (data.status === "Dose pendente - em dia") {
-			qb.whereRaw(
-				"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
-			);
+		// if (data.status === "Dose aplicada") {
+		// 	qb.whereRaw("vaccine_calendars.application_date is not null");
+		// } else if (data.status === "Dose pendente - atrasada") {
+		// 	qb.whereRaw(
+		// 		"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
+		// 	);
+		// } else if (data.status === "Dose pendente - em dia") {
+		// 	qb.whereRaw(
+		// 		"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
+		// 	);
+		// }
+
+		if (data.status && Array.isArray(data.status)) {
+			for (const status of data.status) {
+				if (status === "Dose aplicada") {
+					qb.whereRaw("vaccine_calendars.application_date is not null");
+				} else if (status === "Dose pendente - atrasada") {
+					qb.whereRaw(
+						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
+					);
+				} else if (status === "Dose pendente - em dia") {
+					qb.whereRaw(
+						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
+					);
+				}
+			}
 		}
 
-		if (data.order === "Protocolo") {
-			qb.orderByRaw(
-				"business_units.identification, vaccines.name, vaccine_protocols.name, vaccine_calendars.scheduling_date, p.name",
-			);
-		} else if (data.order === "Data Agendamento") {
-			qb.orderByRaw(
-				"business_units.identification, vaccine_calendars.scheduling_date, vaccine_calendars.application_date, p.name",
-			);
-		} else if (data.order === "Data Aplicacao") {
-			qb.orderByRaw(
-				"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
-			);
-		}
-
-		if (data.debug) {
-			return qb.toQuery();
-		}
+		// if (data.order === "Protocolo") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
+		// 	);
+		// } else if (data.order === "Data Agendamento") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccine_calendars.scheduling_date, vaccine_calendars.application_date, p.name",
+		// 	);
+		// } else if (data.order === "Data Aplicacao") {
+		// 	qb.orderByRaw(
+		// 		"business_units.identification, vaccine_calendars.application_date, vaccine_calendars.scheduling_date, p.name",
+		// 	);
+		// }
 
 		return qb;
 	}
@@ -3150,13 +3165,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)
 											.join(" "),
-										refs: contas.map((c) => c.id),
+										refs: accountPlanChildren
+											.filter((apc) => apc.parent_id === ap.id)
+											.flatMap((c) => c.ref.split(" "))
+											.filter((v) => v !== "-" && v !== "+")
+											.filter((v) => v.length > 0),
 										itens: contas,
 									};
 								});
 
 							return {
 								id: app.id,
+								tag: app.id.toString(),
 								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
@@ -3170,13 +3190,21 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 									)
 									.join(" ")
 									.trim(),
-								refs: parents.map((c) => c.id),
+								refs: parents.flatMap((p) =>
+									p.itens.length === 0
+										? p.tag
+										: p.refCusto
+												.split(" ")
+												.filter((v) => v !== "-" && v !== "+")
+												.filter((v) => v.length > 0),
+								),
 								itens: parents,
 							};
 						});
 
 					return {
 						id: group.id,
+						tag: group.id.toString(),
 						basear: false,
 						description: group.description,
 						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
@@ -3185,7 +3213,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 							.flatMap((c) => c.refCusto)
 							.join(" ")
 							.trim(),
-						refs: accountPlans.map((c) => c.id),
+						refs: accountPlans
+							.flatMap((c) => c.refCusto.split(" "))
+							.filter((v) => v !== "-" && v !== "+")
+							.map((v) => v.trim())
+							.filter((v) => v.length > 0),
 						itens: accountPlans,
 					};
 				}),
@@ -3200,8 +3232,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			races?: string[];
 			gender?: string;
 			castrated?: string;
-			death?: string;
-			microchip?: string;
+			community?: string;
+			// death?: string;
+			// microchip?: string;
 			vaccineOrigin?: string;
 		},
 	) {
@@ -3219,13 +3252,13 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        t.cellphone                                                                           as tutor_celular,
        t.telephone                                                                           as tutor_telefone,
        t.email                                                                               as tutor_email,
-       CASE WHEN pt.gender = 'male' THEN 'MASCULINO' ELSE 'FEMININO' END                     as tutor_genero,
+       pt.gender as tutor_genero,
        prof.description                                                                      as tutor_profissao,
        pt.birth_date                                                                         as tutor_dt_nasc,
        pt.created_at::date                                                                   as tutor_dt_cadastro,
        pp.tag                                                                                as pet_Rg,
        pp.name                                                                               as pet_Nome,
-       CASE WHEN pp.gender = 'male' THEN 'MACHO' ELSE 'FÊMEA' END                            as pet_Genero,
+       pp.gender                            as pet_Genero,
        pp.birth_date                                                                         as pet_Data_Nascimento,
        pp.vaccine_origin                                                                     as pet_Vacinado,
        CASE WHEN pet.death = true THEN 'SIM' ELSE '' END                                     as pet_Obito,
@@ -3262,61 +3295,66 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 		}
 
 		if (data.gender) {
-			switch (data.gender) {
-				case "Macho":
-					qb.whereRaw("pp.gender = ?", ["masculino"]);
-					break;
-				case "Femea":
-					qb.whereRaw("pp.gender = ?", ["feminino"]);
-					break;
-				case "Outros":
-					qb.whereRaw("pp.gender = ?", ["outros"]);
-					break;
-			}
+			qb.whereRaw("pp.gender = ?", [data.gender]);
+			// switch (data.gender.toLowerCase()) {
+			// 	case "macho":
+			// 		qb.whereRaw("pp.gender = ?", [PatientGender.MALE]);
+			// 		break;
+			// 	case "femea":
+			// 		qb.whereRaw("pp.gender = ?", ["feminino"]);
+			// 		break;
+			// 	case "outros":
+			// 		qb.whereRaw("pp.gender = ?", ["outros"]);
+			// 		break;
+			// }
 		}
 
 		if (data.castrated) {
 			qb.whereRaw("pet.castrated = ?", [data.castrated === "true"]);
 		}
 
-		if (data.death) {
-			switch (data.death) {
-				case "Sim":
-					qb.whereRaw("pet.death_date is not null");
-					break;
-				case "Nao":
-					qb.whereRaw("pet.death_date is null");
-					break;
-			}
-		}
+		// if (data.death) {
+		// 	switch (data.death) {
+		// 		case "Sim":
+		// 			qb.whereRaw("pet.death_date is not null");
+		// 			break;
+		// 		case "Nao":
+		// 			qb.whereRaw("pet.death_date is null");
+		// 			break;
+		// 	}
+		// }
 
 		if (data.vaccineOrigin) {
-			switch (data.vaccineOrigin) {
-				case "Não Vacinado":
-					qb.whereRaw("pp.vaccine_origin = ?", ["NAO_VACINADO"]);
+			switch (data.vaccineOrigin.toLowerCase()) {
+				case "sim":
+					qb.whereRaw(
+						"coalesce(pt.vaccine_origin,'NAO_VACINADO') in ('FORA_DA_CLINICA','PROPRIA_CLINICA')",
+						[],
+					);
 					break;
-				case "Fora da Clinica":
-					qb.whereRaw("pp.vaccine_origin = ?", ["FORA_DA_CLINICA"]);
+				case "nao":
+					qb.whereRaw(
+						"coalesce(pt.vaccine_origin,'NAO_VACINADO') = 'NAO_VACINADO')",
+						[],
+					);
 					break;
-				case "Propria Clinica":
-					qb.whereRaw("pp.vaccine_origin = ?", ["PROPRIA_CLINICA"]);
-					break;
-				case "Não Informado":
-				default:
-					qb.whereRaw("pp.vaccine_origin is null");
 			}
 		}
 
-		if (data.microchip) {
-			switch (data.microchip) {
-				case "Sim":
-					qb.whereRaw("pet.microchip is not null");
-					break;
-				case "Nao":
-					qb.whereRaw("pet.microchip is null");
-					break;
-			}
+		if (data.community) {
+			qb.whereRaw("pt.community = ?", [data.community === "Sim"]);
 		}
+
+		// if (data.microchip) {
+		// 	switch (data.microchip) {
+		// 		case "Sim":
+		// 			qb.whereRaw("pet.microchip is not null");
+		// 			break;
+		// 		case "Nao":
+		// 			qb.whereRaw("pet.microchip is null");
+		// 			break;
+		// 	}
+		// }
 		//
 		// if (data.fromCreated && data.toCreated) {
 		// 	qb.andWhereRaw("patients.created_at::date between ? and ?", [
@@ -3354,6 +3392,184 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			},
 			[] as Record<string, unknown>[],
 		);
+	}
+
+	async comissionSellerConsolidated(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+			seller?: string;
+			from?: string;
+			to?: string;
+		},
+	) {
+		if (!data.from || !data.to) {
+			throw new BadRequestException(
+				"É preciso informar a data de início e a data de fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					`users.id,
+       users.name                                                                              as vendedor,
+       cast(sum(bill_items.total_value) as numeric(15, 2))                                     as total_vendas,
+       cast(sum(bill_items.total_value * coalesce(bup.commission, 0) / 100) as numeric(15, 2)) as valor_comissao`,
+				),
+			)
+			.joinRaw(
+				"join bill_items on bills.id = bill_items.bill_id AND bill_items.status <> 'INATIVA'",
+			)
+			.joinRaw("join users on bills.seller_id = users.id")
+			.joinRaw(
+				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_id",
+			)
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.whereRaw("bills.bill_date::date between ? and ?", [data.from, data.to])
+			.where("bills.economic_group_id", authCtx.group.id)
+			.groupBy("users.id")
+			.orderBy("users.name");
+
+		if (data.seller) {
+			qb.where("bills.seller_id", data.seller);
+		}
+
+		if (data.businessUnits && Array.isArray(data.businessUnits)) {
+			qb.whereIn("bills.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		const result: {
+			id: string;
+			vendedor: string;
+			total_vendas: string;
+			valor_comissao: string;
+		}[] = await qb;
+
+		return [
+			{
+				dataInicio: data.from,
+				dataFim: data.to,
+				vendedor: result.map((ve) => ({
+					id: ve.id,
+					nome: ve.vendedor,
+					totalVendas: this.sharedService.formatter.format(
+						Number.parseFloat(ve.total_vendas),
+					),
+					valorComissao: this.sharedService.formatter.format(
+						Number.parseFloat(ve.valor_comissao),
+					),
+				})),
+			},
+		];
+	}
+
+	async comissionSellerConference(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+			seller?: string;
+			from?: string;
+			to?: string;
+		},
+	) {
+		if (!data.from || !data.to) {
+			throw new BadRequestException(
+				"É preciso informar a data de início e a data de fim",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`users.id,
+       users."name"                                                                       as vendedor,
+       business_units.identification                                                      as unidade_negocios,
+       bills.tag                                                                          as codigo_venda,
+       cli.name                                                                           as cliente,
+       dep.name                                                                           as paciente,
+       products.description                                                               as produto_servico,
+       cast(bill_items.total_value as numeric(15, 2))                                     as total_servico_produto,
+       cast(coalesce(bup.commission, 0) as numeric(15, 2))                                as percentual_comissao,
+       cast(bill_items.total_value * coalesce(bup.commission, 0) / 100 as numeric(15, 2)) as valor_comissao`),
+			)
+			.joinRaw(
+				"join bill_items on bills.id = bill_items.bill_id AND bill_items.status <> 'INATIVA'",
+			)
+			.joinRaw("join users on bills.seller_id = users.id")
+			.joinRaw(
+				"join business_unit_products bup on bill_items.product_variation_id = bup.product_variation_id and bill_items.business_unit_id = bup.businness_unit_id",
+			)
+			.joinRaw(
+				'JOIN business_units ON bills.business_unit_id = business_units."id"',
+			)
+			.joinRaw(
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw('JOIN patients Cli ON bills.client_id = Cli."id"')
+			.joinRaw('LEFT JOIN patients Dep ON bills.patient_id = Dep."id"')
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.whereRaw("bills.bill_date::date between ? and ?", [data.from, data.to])
+			.where("bills.economic_group_id", authCtx.group.id)
+			.orderByRaw(
+				`users."name", business_units.identification, bills.tag, products.description`,
+			);
+
+		if (data.seller) {
+			qb.where("bills.seller_id", data.seller);
+		}
+
+		if (data.businessUnits && Array.isArray(data.businessUnits)) {
+			qb.whereIn("bills.business_unit_id", data.businessUnits);
+		} else {
+			qb.where("bills.business_unit_id", authCtx.unit.id);
+		}
+
+		const result: {
+			id: string;
+			vendedor: string;
+			unidade_negocios: string;
+			codigo_venda: string;
+			cliente: string;
+			paciente: string;
+			produto_servico: string;
+			total_servico_produto: string;
+			percentual_comissao: string;
+			valor_comissao: string;
+		}[] = await qb;
+
+		return [
+			{
+				dataInicio: data.from,
+				dataFim: data.to,
+				comissao: result.map((ve) => ({
+					id: ve.id,
+					vendedor: ve.vendedor,
+					unidadeNegocios: ve.unidade_negocios,
+					codigoVenda: ve.codigo_venda,
+					cliente: ve.cliente,
+					paciente: ve.paciente,
+					produtoServico: ve.produto_servico,
+					totalServicoProduto: this.sharedService.formatter.format(
+						Number.parseFloat(ve.total_servico_produto),
+					),
+					percentualComissao: this.sharedService.formatPercentage(
+						ve.percentual_comissao,
+					),
+					valorComissao: this.sharedService.formatter.format(
+						Number.parseFloat(ve.valor_comissao),
+					),
+				})),
+			},
+		];
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

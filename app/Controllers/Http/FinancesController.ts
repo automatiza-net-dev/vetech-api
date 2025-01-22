@@ -10,6 +10,7 @@ import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultip
 import DownBorderoValidator from "App/Validators/Finance/DownBorderoValidator";
 import ExcludeBorderoItemValidator from "App/Validators/Finance/ExcludeBorderoItemValidator";
 import MutateBorderoValidator from "App/Validators/Finance/MutateBorderoValidator";
+import NotAcceptManyFinanceValidator from "App/Validators/Finance/NotAcceptManyFinanceValidator";
 import RevertDownBorderoValidator from "App/Validators/Finance/RevertDownBorderoValidator";
 import UpdateBorderoValidator from "App/Validators/Finance/UpdateBorderoValidator";
 import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDownValidator";
@@ -35,6 +36,9 @@ export default class FinancesController {
 
 			fromExpirationDate: qs.fromExpiration,
 			toExpirationDate: qs.toExpiration,
+
+			fromAcceptDate: qs.fromAccept,
+			toAcceptDate: qs.toAccept,
 
 			fromPaymentDate: qs.fromPayment,
 			toPaymentDate: qs.toPayment,
@@ -67,6 +71,9 @@ export default class FinancesController {
 
 			fromExpirationDate: qs.fromExpiration,
 			toExpirationDate: qs.toExpiration,
+
+			fromAcceptDate: qs.fromAccept,
+			toAcceptDate: qs.toAccept,
 
 			fromPaymentDate: qs.fromPayment,
 			toPaymentDate: qs.toPayment,
@@ -101,6 +108,9 @@ export default class FinancesController {
 
 				fromExpirationDate: qs.fromExpiration,
 				toExpirationDate: qs.toExpiration,
+
+				fromAcceptDate: qs.fromAccept,
+				toAcceptDate: qs.toAccept,
 
 				fromPaymentDate: qs.fromPayment,
 				toPaymentDate: qs.toPayment,
@@ -366,6 +376,21 @@ export default class FinancesController {
 		const payload = await request.validate(AcceptManyFinanceValidator);
 
 		await this.service.acceptMany(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	async notAcceptManyFinances({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(NotAcceptManyFinanceValidator);
+
+		await this.service.notAcceptMany(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

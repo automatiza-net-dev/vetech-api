@@ -20,6 +20,8 @@ import Budget from "App/Models/Budget";
 import EconomicGroup from "App/Models/EconomicGroup";
 import Patient from "App/Models/Patient";
 import User from "App/Models/User";
+import Decimal from "decimal.js";
+import Reason from "./Reason";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -223,6 +225,60 @@ export default class Bill extends BaseModel {
 	})
 	public internalCode: string | null;
 
+	@column({})
+	public cancelled: "P" | "A" | "N" | "S" | null;
+
+	@column.dateTime({
+		columnName: "cancel_date",
+		serializeAs: "cancelDate",
+	})
+	public cancelDate: DateTime | null;
+
+	@column.dateTime({
+		columnName: "finishe_cancel_date",
+		serializeAs: "finishCancelDate",
+	})
+	public finishCancelDate: DateTime | null;
+
+	@column({
+		columnName: "cancel_reason",
+		serializeAs: "cancelReason",
+	})
+	public cancelReason: string | null;
+
+	@column({
+		columnName: "cancel_notes",
+		serializeAs: "cancelNotes",
+	})
+	public cancelNotes: string | null;
+
+	@column({
+		columnName: "cancel_value_products",
+		serializeAs: "cancelValueProducts",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public cancelValueProducts: Decimal | null;
+
+	@column({
+		columnName: "cancel_value_services",
+		serializeAs: "cancelValueServices",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public cancelValueServices: Decimal | null;
+
+	@column({
+		columnName: "cancel_value_total",
+		serializeAs: "cancelValueTotal",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public cancelValueTotal: Decimal | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -350,16 +406,6 @@ export default class Bill extends BaseModel {
 	})
 	public budget: BelongsTo<typeof Budget>;
 
-	@column({
-		serializeAs: null,
-	})
-	public cancellation_user_id: string;
-
-	@column({
-		serializeAs: null,
-	})
-	public cancellation_reason_id: string;
-
 	@hasMany(() => BillItem, {
 		foreignKey: "bill_id",
 	})
@@ -379,4 +425,35 @@ export default class Bill extends BaseModel {
 		foreignKey: "bill_id",
 	})
 	public documents: HasMany<typeof BillDocument>;
+
+	@column({
+		serializeAs: null,
+	})
+	public cancel_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "cancel_user_id",
+	})
+	public cancelUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public finish_cancel_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "finish_cancel_user_id",
+	})
+	public finishCancelUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public cancel_reason_id: string | null;
+
+	@belongsTo(() => Reason, {
+		foreignKey: "cancel_reason_id",
+		serializeAs: "_cancelReason",
+	})
+	public _cancelReason: BelongsTo<typeof Reason>;
 }

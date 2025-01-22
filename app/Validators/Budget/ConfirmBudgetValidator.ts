@@ -16,6 +16,10 @@ export default class ConfirmBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
+		financialResponsibleId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "patients", column: "id" }),
+		]),
 
 		type: schema.enum(["PARCIAL", "TOTAL"] as const),
 		notConfirmedItems: schema

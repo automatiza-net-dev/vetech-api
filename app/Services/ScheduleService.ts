@@ -43,6 +43,7 @@ import Opportunity from "App/Models/Opportunity";
 import { validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
+import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 
 interface ISearch {
 	pid?: string;
@@ -829,44 +830,46 @@ export default class ScheduleService {
 	): Promise<Schedule> {
 		const schedule = await this.show(authCtx.unit.id, id);
 
-		const _user = data.userId
-			? await User.findOrFail(data.userId)
-			: authCtx.user;
-		if (_user.id !== schedule.user_id) {
-			if (!_user.onDuty) {
-				const result = await ScheduleService.checkDisponibility(
-					data.userId ?? authCtx.user.id,
-					authCtx.unit.id,
-					{
-						start: data.startHour.toJSDate(),
-						end: data.endHour.toJSDate(),
-					},
-				);
-
-				if (result.invalidWorkingDay) {
-					throw new BadRequestException(
-						"Pessoa não trabalha neste horário",
-						400,
-						"E_BAD_REQUEST",
+		return Database.transaction(async (trx) => {
+			const _user = data.userId
+				? await User.findOrFail(data.userId, { client: trx })
+				: authCtx.user;
+			if (_user.id !== schedule.user_id) {
+				if (!_user.onDuty) {
+					const result = await ScheduleService.checkDisponibility(
+						data.userId ?? authCtx.user.id,
+						authCtx.unit.id,
+						{
+							start: data.startHour.toJSDate(),
+							end: data.endHour.toJSDate(),
+						},
 					);
+
+					if (result.invalidWorkingDay) {
+						throw new BadRequestException(
+							"Pessoa não trabalha neste horário",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
+
+					// if (result.invalidUnavailableDay && !hasPermission) {
+					if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+						throw new BadRequestException(
+							"Pessoa não está disponível neste horário",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
 				}
 
-				// if (result.invalidUnavailableDay && !hasPermission) {
-				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
-					throw new BadRequestException(
-						"Pessoa não está disponível neste horário",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
-			}
-
-			if (!data.ignoreOverlapping) {
-				const overlapping = await Schedule.query()
-					.where("user_id", data.userId ?? authCtx.user.id)
-					.andWhere("business_unit_id", authCtx.unit.id)
-					.andWhereRaw(
-						`
+				if (!data.ignoreOverlapping) {
+					const overlapping = await Schedule.query()
+						.useTransaction(trx)
+						.where("user_id", data.userId ?? authCtx.user.id)
+						.andWhere("business_unit_id", authCtx.unit.id)
+						.andWhereRaw(
+							`
             (
               (
                 (? BETWEEN start_hour AND end_hour) OR
@@ -880,47 +883,117 @@ export default class ScheduleService {
               )
             )
             `,
-						[
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-						],
-					)
-					.andWhereHas("serviceStatus", (query) => {
-						query.whereNotIn("type", ["CANC"]);
-					})
-					.first();
+							[
+								data.startHour.toJSDate(),
+								data.endHour.minus({ minutes: 1 }).toJSDate(),
+								data.startHour.toJSDate(),
+								data.endHour.minus({ minutes: 1 }).toJSDate(),
+								data.startHour.toJSDate(),
+								data.endHour.minus({ minutes: 1 }).toJSDate(),
+							],
+						)
+						.andWhereHas("serviceStatus", (query) => {
+							query.whereNotIn("type", ["CANC"]);
+						})
+						.first();
 
-				if (overlapping) {
-					throw new BadRequestException(
-						"Horário já está ocupado",
-						400,
-						"E_BAD_REQUEST",
-					);
+					if (overlapping) {
+						throw new BadRequestException(
+							"Horário já está ocupado",
+							400,
+							"E_BAD_REQUEST",
+						);
+					}
 				}
 			}
-		}
 
-		return schedule
-			.merge({
-				patientName: data.patientName,
-				patientPhone: data.patientPhone,
-				holder_id: data.holderId,
-				age: data.age,
-				majorComplaint: data.majorComplaint,
-				business_unit_id: authCtx.unit.id,
-				user_id: _user.id,
-				patient_id: data.patientId,
-				race_id: data.raceId,
-				schedule_service_type_id: data.scheduleServiceTypeId,
-				onDuty: data.onDuty,
-				startHour: data.startHour,
-				endHour: data.endHour.minus({ minutes: 1 }),
-			})
-			.save();
+			if (data.executions) {
+				const tasks = data.executions.map(async (exec) => {
+					if (exec.checked) {
+						return TreatmentExecution.query()
+							.useTransaction(trx)
+							.update({
+								schedule_id: schedule.id,
+								schedule_user_id: authCtx.user.id,
+								schedule_date: schedule.startedAt,
+							})
+							.whereRaw(
+								"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id is null",
+								[
+									exec.treatmentId,
+									exec.treatmentItemId,
+									exec.treatmentExecutionId,
+								],
+							);
+					}
+
+					const relatedExecutions = await TreatmentExecution.query()
+						.useTransaction(trx)
+						.whereRaw(
+							"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?",
+							[
+								exec.treatmentId,
+								exec.treatmentItemId,
+								exec.treatmentExecutionId,
+								schedule.id,
+							],
+						);
+
+					await TreatmentExecutionReschedule.createMany(
+						relatedExecutions.map((re) => ({
+							economic_group_id: re.economic_group_id,
+							business_unit_id: re.business_unit_id,
+							treatment_id: re.treatment_id,
+							treatment_item_id: re.treatment_item_id,
+							id: re.id,
+							schedule_user_id: re.schedule_user_id,
+							reschedule_user_id: re.schedule_user_id,
+							schedule_id: re.schedule_id,
+							schedule_date: re.scheduleDate,
+						})),
+						{ client: trx },
+					);
+
+					return await TreatmentExecution.query()
+						.useTransaction(trx)
+						.update({
+							schedule_id: null,
+							schedule_user_id: null,
+							schedule_date: null,
+						})
+						.whereRaw(
+							"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?",
+							[
+								exec.treatmentId,
+								exec.treatmentItemId,
+								exec.treatmentExecutionId,
+								schedule.id,
+							],
+						);
+				});
+
+				await Promise.all(tasks);
+			}
+
+			return schedule
+				.merge({
+					patientName: data.patientName,
+					patientPhone: data.patientPhone,
+					holder_id: data.holderId,
+					age: data.age,
+					majorComplaint: data.majorComplaint,
+					business_unit_id: authCtx.unit.id,
+					user_id: _user.id,
+					patient_id: data.patientId,
+					race_id: data.raceId,
+					schedule_service_type_id: data.scheduleServiceTypeId,
+					onDuty: data.onDuty,
+					startHour: data.startHour,
+					endHour: data.endHour.minus({ minutes: 1 }),
+				})
+				.useTransaction(trx)
+				.save();
+		});
 	}
 
 	public async reschedule(

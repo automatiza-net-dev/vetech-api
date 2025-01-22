@@ -19,6 +19,7 @@ export default class CreateScheduleValidator {
 				treatmentId: schema.number(),
 				treatmentItemId: schema.number(),
 				treatmentExecutionId: schema.number(),
+				checked: schema.boolean(),
 			}),
 		),
 

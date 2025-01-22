@@ -333,6 +333,39 @@ export default class BillItem extends BaseModel {
 	})
 	public disabledAt: DateTime;
 
+	@column({})
+	public cancelled: "P" | "N" | "S" | null;
+
+	@column.dateTime({
+		columnName: "review_cancel_date",
+		serializeAs: "reviewCancelDate",
+	})
+	public reviewCancelDate: DateTime | null;
+
+	@column({
+		columnName: "review_cancel_notes",
+		serializeAs: "reviewCancelNotes",
+	})
+	public reviewCancelNotes: string | null;
+
+	@column({
+		columnName: "original_total_value",
+		serializeAs: "originalTotalValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalTotalValue: Decimal | null;
+
+	@column({
+		columnName: "original_total_quantity",
+		serializeAs: "originalTotalquantity",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalTotalQuantity: Decimal | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -426,4 +459,15 @@ export default class BillItem extends BaseModel {
 		serializeAs: null,
 	})
 	public kit_id: number;
+
+	@column({
+		serializeAs: null,
+	})
+	public reviewer_cancel_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "reviewer_cancel_user_id",
+		serializeAs: "reviewerCancelUser",
+	})
+	public reviewerCancelUser: BelongsTo<typeof User>;
 }

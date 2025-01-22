@@ -103,6 +103,21 @@ export default class BillPayment extends BaseModel {
 	@column.dateTime({})
 	public printedAt: DateTime | null;
 
+	@column({})
+	public cancelled: "P" | "N" | "S" | null;
+
+	@column.dateTime({
+		columnName: "review_cancel_date",
+		serializeAs: "reviewCancelDate",
+	})
+	public reviewCancelDate: DateTime | null;
+
+	@column({
+		columnName: "review_cancel_notes",
+		serializeAs: "reviewCancelNotes",
+	})
+	public reviewCancelNotes: string | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -198,4 +213,14 @@ export default class BillPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public budget_payment_id: number | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public reviewer_cancel_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "reviewer_cancel_user_id",
+	})
+	public reviewerCancelUser: BelongsTo<typeof User>;
 }

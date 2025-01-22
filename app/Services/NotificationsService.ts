@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import { AuthContext } from "App/Services/SharedService";
@@ -24,6 +25,9 @@ export default class NotificationsService {
 			this.undefinedRoles(authCtx),
 			this.pendingBills(authCtx),
 			this.pendingBudgets(authCtx),
+			this.pendingBillItemEvaluations(authCtx),
+			this.pendingBillPaymentEvaluations(authCtx),
+			this.pendingBillPaymentApprovals(authCtx),
 		]);
 
 		const grouped = grid.reduce((acc, curr) => {
@@ -125,6 +129,115 @@ export default class NotificationsService {
 					createdAtText: null,
 					isRead: false,
 					link: "/dashboard/orcamentos?pending=true",
+				},
+			],
+		};
+	}
+
+	public async pendingBillItemEvaluations(
+		authCtx: AuthContext,
+	): Promise<{ data: Notification[] }> {
+		if (!authCtx.hasPermission("VEN19")) {
+			return { data: [] };
+		}
+
+		const [{ count }]: { count: number }[] = await Database.from("bill_items")
+			.select(Database.raw("count(bill_items.id)::int"))
+			.where("business_unit_id", authCtx.unit.id)
+			.where("cancelled", "P");
+
+		if (count === 0) {
+			return {
+				data: [],
+			};
+		}
+
+		return {
+			data: [
+				{
+					id: 1,
+					title: "Vendas Pendentes Avaliacao Itens",
+					status: "",
+					message:
+						"Existem Solicitações de Cancelamento de Vendas que necessitam de Avaliação",
+					createdAt: null,
+					createdAtText: null,
+					isRead: false,
+					link: "/dashboard?msg=pending-bill-payment-evaluations",
+				},
+			],
+		};
+	}
+
+	public async pendingBillPaymentEvaluations(
+		authCtx: AuthContext,
+	): Promise<{ data: Notification[] }> {
+		if (!authCtx.hasPermission("VEN20")) {
+			return { data: [] };
+		}
+
+		const [{ count }]: { count: number }[] = await Database.from(
+			"bill_payments",
+		)
+			.select(Database.raw("count(bill_payments.id)::int"))
+			.where("business_unit_id", authCtx.unit.id)
+			.where("cancelled", "P");
+
+		if (count === 0) {
+			return {
+				data: [],
+			};
+		}
+
+		return {
+			data: [
+				{
+					id: 1,
+					title: "Vendas Pendentes Avaliacao Pagamentos",
+					status: "",
+					message:
+						"Existem Solicitações de Cancelamento de Vendas que necessitam de Avaliação",
+					createdAt: null,
+					createdAtText: null,
+					isRead: false,
+					link: "/dashboard?msg=pending-bill-payment-evaluations",
+				},
+			],
+		};
+	}
+
+	public async pendingBillPaymentApprovals(
+		authCtx: AuthContext,
+	): Promise<{ data: Notification[] }> {
+		if (!authCtx.hasPermission("VEN21")) {
+			return { data: [] };
+		}
+
+		const [{ count }]: { count: number }[] = await Database.from(
+			"bill_payments",
+		)
+			.select(Database.raw("count(bill_payments.id)::int"))
+			.where("business_unit_id", authCtx.unit.id)
+			.where("cancelled", "A");
+
+		if (count === 0) {
+			return {
+				data: [],
+			};
+		}
+
+		return {
+			data: [
+				{
+					id: 1,
+					title: "Vendas Pendentes Aprovação",
+					status: "",
+					message:
+						"Existem Solicitações de Cancelamento de Vendas que foram Avaliadas e estão pendentes de Finalização",
+					createdAt: null,
+					createdAtText: null,
+					isRead: false,
+					link: "/dashboard?msg=pending-bill-payment-evaluations",
 				},
 			],
 		};

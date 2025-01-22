@@ -154,6 +154,10 @@ Route.group(() => {
 		"BusinessUnitsController.createCollaborator",
 	).middleware("auth");
 
+	Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware(
+		"auth",
+	);
+
 	Route.post("", "BusinessUnitsController.store").middleware("auth");
 
 	Route.put(
@@ -930,6 +934,7 @@ Route.group(() => {
 	Route.post("/create", "FinancesController.storeFinance");
 	Route.post("/create-multiple", "FinancesController.storeMultipleFinances");
 	Route.post("/accept-many", "FinancesController.acceptManyFinances");
+	Route.post("/not-accept-many", "FinancesController.notAcceptManyFinances");
 	Route.put("/update/:id", "FinancesController.updateFinance");
 	Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
 	Route.put("/update-down", "FinancesController.updateFinanceDown");
@@ -1063,6 +1068,13 @@ Route.group(() => {
 		"/financial-responsible",
 		"BillsController.updateBillFinancialResponsible",
 	);
+
+	Route.post(
+		"/request-cancellation",
+		"BillsController.requestBillCancellation",
+	);
+	Route.post("/review-cancellation", "BillsController.reviewBillCancellation");
+	Route.post("/finish-cancellation", "BillsController.finishBillCancellation");
 
 	Route.put("/exclude-bill/:id", "BillsController.excludeBill");
 	Route.put("/close-bill/:id", "BillsController.closeBill");
@@ -1554,6 +1566,14 @@ Route.group(() => {
 	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
 	Route.get("/dre-groups", "ReportsController.dreGroupsReport");
 	Route.get("/patients", "ReportsController.patientsReport");
+	Route.get(
+		"/comission-seller-consolidated",
+		"ReportsController.comissionSellerConsolidated",
+	);
+	Route.get(
+		"/comission-seller-conference",
+		"ReportsController.comissionSellerConference",
+	);
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1865,6 +1885,18 @@ Route.group(() => {
 	Route.get(
 		"/pendingBudgets",
 		"NotificationsController.pendingBudgetsNotifications",
+	);
+	Route.get(
+		"/pendingBillItemEvaluations",
+		"NotificationsController.pendingBillItemEvaluations",
+	);
+	Route.get(
+		"/pendingBillPaymentEvaluations",
+		"NotificationsController.pendingBillPaymentEvaluations",
+	);
+	Route.get(
+		"/pendingBillPaymentApprovals",
+		"NotificationsController.pendingBillPaymentApprovals",
 	);
 })
 	.prefix("Notifications")

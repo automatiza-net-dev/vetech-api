@@ -401,7 +401,7 @@ export default class TreatmentService {
 'executionUserId', users.id, 'executionUserName', users.name, 'executionDate', treatment_executions.execution_date) as executions`),
 			)
 			.joinRaw(
-				"join treatment_items on treatment_executions.treatment_item_id = treatment_items.id",
+				"join treatment_items on treatment_executions.treatment_id = treatment_items.treatment_id and treatment_executions.treatment_item_id = treatment_items.id",
 			)
 			.joinRaw(
 				"join product_variations on treatment_items.product_variation_id = product_variations.id",
@@ -1365,6 +1365,7 @@ export default class TreatmentService {
         treatment_executions.execution_date,
         treatment_executions.schedule_date,
         treatment_executions.productivity_item_id,
+        treatment_executions.schedule_id,
         products.description           as produto,
         productivity_items.description as item_produtividade`),
 			)
@@ -1398,6 +1399,7 @@ export default class TreatmentService {
 			execution_date: string;
 			schedule_date: string;
 			productivity_item_id: string;
+			schedule_id: string;
 			produto: string;
 			item_produtividade: string;
 		}[] = await qb;
@@ -1415,6 +1417,7 @@ export default class TreatmentService {
 			scheduleDate: elem.schedule_date
 				? `agendado dia ${DateTime.fromJSDate(new Date(elem.schedule_date)).toFormat("dd/MM/yyyy")}`
 				: "-",
+			scheduleId: elem.schedule_id,
 		}));
 	}
 }

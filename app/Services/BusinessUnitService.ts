@@ -5,6 +5,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
+import { TConfigSchema } from "App/Models/BusinessUnitConfig";
 import CheckingAccount, {
 	CheckingAccountType,
 } from "App/Models/CheckingAccount";
@@ -61,10 +62,10 @@ export default class BusinessUnitService {
 		return qb;
 	}
 
-	public async store(user: User, data: ICreateBusinessUnit) {
+	public async store(authCtx: AuthContext, data: ICreateBusinessUnit) {
 		try {
 			await Database.transaction(async (trx) => {
-				const economicGroups = await user
+				const economicGroups = await authCtx.user
 					.related("economicGroups")
 					.query()
 					.useTransaction(trx);
@@ -99,14 +100,6 @@ export default class BusinessUnitService {
 					);
 				}
 
-				const products = await economicGroup
-					.related("products")
-					.query()
-					.useTransaction(trx)
-					.preload("variations", (query) => {
-						query.preload("businessUnitProducts");
-					});
-
 				const unit = await economicGroup.related("businessUnits").create(
 					{
 						...data,
@@ -116,7 +109,14 @@ export default class BusinessUnitService {
 					},
 				);
 
-				await unit.related("unitConfig").create({});
+				await unit.related("unitConfig").create(
+					{
+						config: authCtx.system.defaultConfig,
+					},
+					{
+						client: trx,
+					},
+				);
 
 				await unit.related("licences").create(
 					{
@@ -129,6 +129,14 @@ export default class BusinessUnitService {
 						client: trx,
 					},
 				);
+
+				const products = await economicGroup
+					.related("products")
+					.query()
+					.useTransaction(trx)
+					.preload("variations", (query) => {
+						query.preload("businessUnitProducts");
+					});
 
 				// eslint-disable-next-line no-restricted-syntax
 				for await (const product of products) {
@@ -175,6 +183,10 @@ export default class BusinessUnitService {
 						client: trx,
 					},
 				);
+
+				return {
+					id: unit.id,
+				};
 			});
 		} catch (error) {
 			Logger.error(error.message);
@@ -630,6 +642,95 @@ export default class BusinessUnitService {
 			valid: true,
 			exists: Boolean(doc),
 		};
+	}
+
+	public async syncConfig(authCtx: AuthContext) {
+		const data: TConfigSchema = {
+			crm: {
+				crm_useful_days: authCtx.unit.unitConfig.crmUsefulDays,
+				default_funnel_meta_id: authCtx.unit.unitConfig.default_funnel_meta_id,
+			},
+			bills: {
+				sale_exit_account_plan_id:
+					authCtx.unit.unitConfig.sale_exit_account_plan_id,
+				other_exit_account_plan_id:
+					authCtx.unit.unitConfig.other_exit_account_plan_id,
+				requires_bill_patient: authCtx.unit.unitConfig.requiresBillPatient,
+			},
+			receipts: {
+				order_entry_account_plan_id:
+					authCtx.unit.unitConfig.order_entry_account_plan_id,
+				other_entry_account_plan_id:
+					authCtx.unit.unitConfig.other_entry_account_plan_id,
+				generate_finances_on_receipt_finish:
+					authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish,
+			},
+			products: {
+				service_variation_group_id:
+					authCtx.unit.unitConfig.service_variation_group_id,
+			},
+			fiscalDocuments: {
+				fiscal_document_environment:
+					authCtx.unit.unitConfig.fiscalDocumentEnvironment,
+				focus_homologation_token: authCtx.unit.unitConfig.focusProductionToken,
+				focus_production_token: authCtx.unit.unitConfig.focusProductionToken,
+				xml_download_authorization:
+					authCtx.unit.unitConfig.xmlDownloadAuthorization,
+				group_nfse_documents: authCtx.unit.unitConfig.groupNfseDocuments,
+				default_nfse_description:
+					authCtx.unit.unitConfig.defaultNfseDescription ?? undefined,
+			},
+			schedules: {
+				allow_change_schedule_duration:
+					authCtx.unit.unitConfig.allowChangeScheduleDuration,
+				interval: authCtx.unit.unitConfig.interval,
+				show_treatment_executions_schedule:
+					authCtx.unit.unitConfig.showTreatmentExecutionsSchedule,
+				show_treatment_schedules:
+					authCtx.unit.unitConfig.showsTreatmentSchedules,
+				treatment_schedule_service_type_id:
+					authCtx.unit.unitConfig.treatment_schedule_service_type_id,
+				return_interval: authCtx.unit.unitConfig.returnInterval,
+				allowed_return_qty: authCtx.unit.unitConfig.allowedReturnQty,
+				schedule_late_minutes: authCtx.unit.unitConfig.scheduleLateMinutes,
+				schedule_missed_minutes: authCtx.unit.unitConfig.scheduleMissedMinutes,
+				integrates_to_crm_schedules:
+					authCtx.unit.unitConfig.integratesToCrmSchedules,
+				sync_schedule_movements: authCtx.unit.unitConfig.syncScheduleMovements,
+				sync_schedules_crm: authCtx.unit.unitConfig.syncCrmSchedules,
+			},
+			businessUnits: {
+				patient_dependent: authCtx.unit.unitConfig.requiresScheduleTutor,
+				locked_daily_movement_date:
+					authCtx.unit.unitConfig.lockedDailyMovementDate,
+				daily_cashier_type: authCtx.unit.unitConfig.dailyCashierType,
+				requires_finance_client: authCtx.unit.unitConfig.requiresFinanceClient,
+				marketing_account_plan_id:
+					authCtx.unit.unitConfig.marketing_account_plan_id,
+				incoming_deposit_id: authCtx.unit.unitConfig.incoming_deposit_id,
+				outgoing_deposit_id: authCtx.unit.unitConfig.outgoing_deposit_id,
+				balance_control: authCtx.unit.unitConfig.balanceControl,
+				controls_deposit: authCtx.unit.unitConfig.controlsDeposit,
+				requires_client_document:
+					authCtx.unit.unitConfig.requiresClientDocument,
+				alter_prices: authCtx.unit.unitConfig.alterPrices,
+				dashboard_lists_retroactive_schedules:
+					authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules,
+				dre_report_file: authCtx.unit.unitConfig.dreReportFile ?? undefined,
+				useful_days: authCtx.unit.unitConfig.crmUsefulDays,
+				treatment: authCtx.unit.unitConfig.treatment,
+				overall_resume_type: authCtx.unit.unitConfig.overallResumeType,
+				ticket_type: authCtx.unit.unitConfig.ticketType,
+				reviewer: authCtx.unit.unitConfig.reviewer,
+				internal_code: authCtx.unit.unitConfig.internalCode,
+			},
+			budgets: {
+				budgets_payments_required:
+					authCtx.unit.unitConfig.budgetsPaymentsRequired,
+			},
+		};
+
+		await authCtx.unit.unitConfig.merge({ config: data }).save();
 	}
 
 	public async calculateStates(authCtx: AuthContext) {

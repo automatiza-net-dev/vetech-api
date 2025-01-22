@@ -44,6 +44,9 @@ interface ISearch {
 	fromIssueDate?: string;
 	toIssueDate?: string;
 
+	fromAcceptDate?: string;
+	toAcceptDate?: string;
+
 	fromExpirationDate?: string;
 	toExpirationDate?: string;
 
@@ -207,6 +210,13 @@ export default class FinanceService {
 			financesQb.whereRaw("payment_date::date <= ?", [data.toPaymentDate]);
 		}
 
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			financesQb.whereRaw("accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
+		}
+
 		if (data.client) {
 			financesQb.where("client_id", data.client);
 		}
@@ -342,6 +352,13 @@ export default class FinanceService {
 
 		if (data.toPaymentDate) {
 			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			qb.whereRaw("finances.accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
 		}
 
 		if (data.client) {
@@ -628,6 +645,13 @@ export default class FinanceService {
 
 		if (data.toPaymentDate) {
 			qb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			qb.whereRaw("finances.accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
 		}
 
 		if (data.client) {
@@ -1806,6 +1830,44 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.update({
 					accept: FinanceAccept.S,
+				});
+		});
+	}
+
+	async notAcceptMany(
+		authCtx: AuthContext,
+		data: { ids: string[]; type: "Credito" | "Debito" },
+	) {
+		if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
+			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		}
+
+		if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
+			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const finances = await Finance.query()
+				.useTransaction(trx)
+				.whereIn("id", data.ids)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id);
+
+			if (finances.length !== data.ids.length) {
+				throw new BadRequestException(
+					"Não foi possível encontrar todos os lançamentos",
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			await Finance.query()
+				.useTransaction(trx)
+				.whereIn("id", data.ids)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.update({
+					accept: FinanceAccept.N,
 				});
 		});
 	}

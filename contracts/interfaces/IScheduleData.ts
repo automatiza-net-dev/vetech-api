@@ -22,6 +22,7 @@ export default interface IScheduleData {
 		treatmentId: number;
 		treatmentItemId: number;
 		treatmentExecutionId: number;
+		checked: boolean;
 	}[];
 }
 

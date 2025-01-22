@@ -261,6 +261,59 @@ export default class BusinessUnitFiscalDocumentService {
 				throw new BadRequestException("Não existe item para ser emitido");
 			}
 
+			if (items.some((it) => !it.productVariation.product.ncm)) {
+				const itemsWithoutNcm = items.filter(
+					(it) => !it.productVariation.product.ncm,
+				);
+				throw new BadRequestException(
+					`É necessário preencher o "Codigo Ncm" dos seguintes produtos antes de emitir a nota fiscal: ${itemsWithoutNcm.map((it) => it.productVariation.product.description)}`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (items.some((it) => !it.productVariation.product.unit_id)) {
+				const itemsWithoutUnit = items.filter(
+					(it) => !it.productVariation.product.unit_id,
+				);
+				throw new BadRequestException(
+					`É necessário preencher a "Unidade" dos seguintes produtos antes de emitir a nota fiscal: ${itemsWithoutUnit.map((it) => it.productVariation.product.description).join(", ")}`,
+
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (items.some((it) => !it.tax_rule_id)) {
+				const itemsWithoutTaxRule = items.filter(
+					(it) => !it.productVariation.product.unit_id,
+				);
+				throw new BadRequestException(
+					`Os itens abaixo estão sem as informações de impostos preenchidas. Entre em contato com o suporte para fazer esta configuração: ${itemsWithoutTaxRule.map((it) => it.productVariation.product.description).join(", ")}`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (
+				bill.financialResponsible &&
+				!bill.financialResponsible.tutor.document
+			) {
+				throw new BadRequestException(
+					"O cpf/cnpj do Responsavel Financeiro da venda está em branco ou inválido",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (!bill.financialResponsible && !bill.client.tutor.document) {
+				throw new BadRequestException(
+					"O cpf/cnpj do Cliente da venda está em branco ou inválido",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const issuedDocumentAlready = await IssuedFiscalDocument.query({
 				client: trx,
 			})
@@ -277,13 +330,13 @@ export default class BusinessUnitFiscalDocumentService {
 				);
 			}
 
-			if (items.some((i) => !i.tax_rule_id)) {
-				throw new BadRequestException(
-					"Item da Nota não tem imposto definido",
-					400,
-					"E_NO_TAX_RULE",
-				);
-			}
+			// if (items.some((i) => !i.tax_rule_id)) {
+			// 	throw new BadRequestException(
+			// 		"Item da Nota não tem imposto definido",
+			// 		400,
+			// 		"E_NO_TAX_RULE",
+			// 	);
+			// }
 
 			const document = await BusinessUnitFiscalDocument.findOrFail(
 				data.unitFiscalDocumentId,
@@ -693,7 +746,24 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 		}
 
-		const responsible = bill.financialResponsible ?? bill.client;
+		if (
+			bill.financialResponsible &&
+			!bill.financialResponsible.tutor.document
+		) {
+			throw new BadRequestException(
+				"O cpf/cnpj do Responsavel Financeiro da venda está em branco ou inválido",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (!bill.financialResponsible && !bill.client.tutor.document) {
+			throw new BadRequestException(
+				"O cpf/cnpj do Cliente da venda está em branco ou inválido",
+				400,
+				"E_ERR",
+			);
+		}
 
 		const items = await BillItem.query()
 			.useTransaction(trx)
@@ -719,11 +789,13 @@ export default class BusinessUnitFiscalDocumentService {
 		);
 		if (productsWithoutServiceCode.length > 0) {
 			throw new BadRequestException(
-				`Produtos sem código de serviço: ${productsWithoutServiceCode.map((p) => p.productVariation.product.description).join(", ")}`,
+				`É necessário preencher o "Codigo de Serviço" dos seguintes serviços antes de emitir a nota fiscal: ${productsWithoutServiceCode.map((p) => p.productVariation.product.description).join(", ")}`,
 				400,
 				"E_ERR",
 			);
 		}
+
+		const responsible = bill.financialResponsible ?? bill.client;
 
 		if (!authCtx.unit.unitConfig.groupNfseDocuments) {
 			const results = await Promise.all(

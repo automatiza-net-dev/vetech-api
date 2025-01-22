@@ -51,7 +51,7 @@ import type {
 } from "Contracts/interfaces/IBillData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import { validate } from "uuid";
+import { v4, validate } from "uuid";
 import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
@@ -69,6 +69,7 @@ interface ISearch {
 	tag?: string;
 	bill_id?: string;
 	pending?: string;
+	internalCode?: string;
 }
 
 interface ISearchProduct {
@@ -113,80 +114,81 @@ export default class BillService {
 	}
 
 	async index(unitId: string, data: ISearch) {
-		const qb = Bill.query().where("business_unit_id", unitId);
-
-		if (data.fromBill) {
-			qb.whereRaw("bill_date::date >= ?", [data.fromBill]);
-		}
-
-		if (data.toBill) {
-			qb.whereRaw("bill_date::date <= ?", [data.toBill]);
-		}
-
-		if (data.status) {
-			qb.where("status", data.status);
-		}
-
-		if (data.client) {
-			qb.where("client_id", data.client);
-		}
-
-		if (data.patient) {
-			qb.where("patient_id", data.patient);
-		}
-
-		if (data.patientName) {
-			qb.whereHas("patient", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.patientName?.replaceAll(" ", "%")}%`,
-					PatientType.ANIMAL,
-				]);
-			});
-		}
-
-		if (data.clientName) {
-			qb.whereHas("client", (query) => {
-				query.whereRaw("patients.name ilike ? and patients.type = ?", [
-					`%${data.clientName?.replaceAll(" ", "%")}%`,
-					PatientType.TUTOR,
-				]);
-			});
-		}
-
-		if (data.bill_id) {
-			qb.where("id", data.bill_id);
-		}
-
-		if (data.patientTag) {
-			qb.whereHas("patient", (query) => {
-				query.whereHas("patientAnimal", (query) => {
-					query.where("tag", data.patientTag ?? "");
+		const qb = Bill.query()
+			.where("business_unit_id", unitId)
+			.preload("client")
+			.preload("patient")
+			.preload("seller")
+			.preload("user")
+			.preload("items", (query) => {
+				query.preload("productVariation", (query) => {
+					query.preload("variationOptions");
+					query.preload("product");
 				});
-			});
-		}
+			})
+			.orderByRaw("bill_date desc, tag desc");
 
 		if (data.tag) {
 			qb.whereILike("tag", `%${data.tag}%`);
+		} else if (data.internalCode) {
+			qb.whereILike("internal_code", `%${data.internalCode}%`);
+		} else {
+			if (data.fromBill) {
+				qb.whereRaw("bill_date::date >= ?", [data.fromBill]);
+			}
+
+			if (data.toBill) {
+				qb.whereRaw("bill_date::date <= ?", [data.toBill]);
+			}
+
+			if (data.status) {
+				qb.where("status", data.status);
+			}
+
+			if (data.client) {
+				qb.where("client_id", data.client);
+			}
+
+			if (data.patient) {
+				qb.where("patient_id", data.patient);
+			}
+
+			if (data.patientName) {
+				qb.whereHas("patient", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.patientName?.replaceAll(" ", "%")}%`,
+						PatientType.ANIMAL,
+					]);
+				});
+			}
+
+			if (data.clientName) {
+				qb.whereHas("client", (query) => {
+					query.whereRaw("patients.name ilike ? and patients.type = ?", [
+						`%${data.clientName?.replaceAll(" ", "%")}%`,
+						PatientType.TUTOR,
+					]);
+				});
+			}
+
+			if (data.bill_id) {
+				qb.where("id", data.bill_id);
+			}
+
+			if (data.patientTag) {
+				qb.whereHas("patient", (query) => {
+					query.whereHas("patientAnimal", (query) => {
+						query.where("tag", data.patientTag ?? "");
+					});
+				});
+			}
+
+			if (data.pending === "true") {
+				qb.where("pending", true);
+			} else if (data.pending === "false") {
+				qb.where("pending", false);
+			}
 		}
-
-		if (data.pending === "true") {
-			qb.where("pending", true);
-		} else if (data.pending === "false") {
-			qb.where("pending", false);
-		}
-
-		qb.preload("client");
-		qb.preload("patient");
-		qb.preload("seller");
-		qb.preload("user");
-		qb.preload("items", (query) => {
-			query.preload("productVariation", (query) => {
-				query.preload("variationOptions");
-				query.preload("product");
-			});
-		});
-
-		qb.orderByRaw("bill_date desc, tag desc");
 
 		const result = await qb;
 
@@ -251,6 +253,15 @@ export default class BillService {
 			.preload("financialResponsible", (query) => {
 				query.select("id", "name");
 			})
+			.preload("cancelUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("finishCancelUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("_cancelReason", (query) => {
+				query.select("id", "reason");
+			})
 			.preload("patient")
 			.preload("seller")
 			.preload("user")
@@ -275,6 +286,10 @@ export default class BillService {
 				});
 
 				query.preload("paymentMethod");
+
+				query.preload("reviewerCancelUser", (query) => {
+					query.select(["id", "name"]);
+				});
 
 				query.preload("finance", (q) => {
 					q.select(["id", "payment_date", "payment_method_id"]);
@@ -305,6 +320,9 @@ export default class BillService {
 					query.select(["id", "name"]);
 				});
 				query.preload("courtesyApprovedUser", (query) => {
+					query.select(["id", "name"]);
+				});
+				query.preload("reviewerCancelUser", (query) => {
 					query.select(["id", "name"]);
 				});
 			})
@@ -2116,6 +2134,30 @@ where deposit_id = ?
 			);
 		}
 
+		const existingBillWithInternalCode = await Bill.query()
+			.useTransaction(trx)
+			.where("business_unit_id", authCtx.unit.id)
+			.whereRaw("internal_code ilike ?", [`%${data.internalCode ?? v4()}%`])
+			.first();
+
+		let dynamicInternalCode = data.internalCode;
+		if (data.internalCode && existingBillWithInternalCode) {
+			if (!data.originBillId) {
+				throw new BadRequestException(
+					`Código '${data.internalCode}' já está sendo usado pela venda '${existingBillWithInternalCode.tag}', e não é possível repetir.`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			const count = await Bill.query()
+				.useTransaction(trx)
+				.select("id")
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
+			dynamicInternalCode = `${data.internalCode} / ${count.length.toString().padStart(3, "0")}`;
+		}
+
 		// const client = await Patient.query()
 		//   .useTransaction(trx)
 		//   .where('id', data.clientId)
@@ -2241,7 +2283,7 @@ where deposit_id = ?
 				patient_id: data.patientId,
 				origin_bill_id: data.originBillId,
 
-				internalCode: data.internalCode,
+				internalCode: dynamicInternalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
 				productValue: 0,
@@ -3121,6 +3163,7 @@ where deposit_id = ?
 					business_unit_id: authCtx.unit.id,
 					treatment_id: treatment.id,
 					product_variation_id: inner.product_variation_id,
+					bill_item_id: inner.id,
 
 					status: TreatmentItemStatus[0],
 					quantity: new Decimal(inner.quantity).toNumber(),
@@ -3616,6 +3659,284 @@ where deposit_id = ?
 			}
 
 			return null;
+		});
+	}
+
+	async requestBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			reasonId: string;
+			billId: string;
+			billItems: string[];
+			billPayments: string[];
+
+			notes: string;
+		},
+	) {
+		if (!authCtx.hasPermission("VEN18")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão de fazer a operação",
+				400,
+				"E_ERR",
+			);
+		}
+
+		await Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.preload("items", (query) => {
+					query.whereIn("id", data.billItems);
+				})
+				.preload("payments", (query) => {
+					query.whereIn("id", data.billPayments);
+				})
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			await bill
+				.merge({
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: data.reasonId,
+
+					cancelled: "P",
+					cancelledAt: DateTime.now(),
+					cancelNotes: data.notes,
+					cancelValueTotal: new Decimal(bill.totalValue),
+					cancelValueProducts: new Decimal(bill.productValue),
+					cancelValueServices: new Decimal(bill.serviceValue),
+				})
+				.useTransaction(trx)
+				.save();
+
+			const itemTasks = bill.items.map(async (item) => {
+				return item
+					.merge({
+						cancelled: "P",
+						originalTotalValue: new Decimal(item.totalValue),
+						originalTotalQuantity: item.quantity,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(itemTasks);
+
+			const paymentTasks = bill.payments.map(async (payment) => {
+				return payment
+					.merge({
+						cancelled: "P",
+					})
+					.useTransaction(trx)
+					.save();
+			});
+			await Promise.all(paymentTasks);
+		});
+	}
+
+	async reviewBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			email: string;
+			password: string;
+			billId: string;
+			billItems: { id: string; cancelled: boolean; note: string }[];
+			billPayments: { id: string; cancelled: boolean; note: string }[];
+		},
+	) {
+		const user = await User.query()
+			.whereILike("email", data.email)
+			.where("system_id", authCtx.system.id)
+			.first();
+
+		if (!user) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!(await Hash.verify(user.password, data.password))) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (data.billItems.length > 0 && !authCtx.hasPermission("VEN19")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para avaliar o cancelamento de itens",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.billPayments.length > 0 && !authCtx.hasPermission("VEN20")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para avaliar o cancelamento de pagamentos",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.preload("items", (query) => {
+					query.whereIn(
+						"id",
+						data.billItems.map((i) => i.id),
+					);
+				})
+				.preload("payments", (query) => {
+					query.whereIn(
+						"id",
+						data.billPayments.map((i) => i.id),
+					);
+				})
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			const itemTasks = bill.items.map(async (elem) => {
+				return elem.merge({
+					reviewer_cancel_user_id: authCtx.user.id,
+					reviewCancelDate: DateTime.now(),
+					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+						? "S"
+						: "N",
+					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+				});
+			});
+			await Promise.all(itemTasks);
+
+			const paymentTasks = bill.payments.map(async (elem) => {
+				return elem.merge({
+					reviewer_cancel_user_id: authCtx.user.id,
+					reviewCancelDate: DateTime.now(),
+					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+						? "S"
+						: "N",
+					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+				});
+			});
+			await Promise.all(paymentTasks);
+
+			const missingStuff = await Database.from("bill_items")
+				.useTransaction(trx)
+				.select("id")
+				.where("business_unit_id", authCtx.unit.id)
+				.where("bill_id", data.billId)
+				.union((query) => {
+					query
+						.useTransaction(trx)
+						.select("id")
+						.from("bill_payments")
+						.where("business_unit_id", authCtx.unit.id)
+						.where("bill_id", data.billId);
+				});
+
+			await bill
+				.merge({
+					cancelled: missingStuff.length === 0 ? "A" : "P",
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	async finishBillCancellation(
+		authCtx: AuthContext,
+		data: {
+			email: string;
+			password: string;
+			billId: string;
+			cancelled: boolean;
+			note: string;
+		},
+	) {
+		const user = await User.query()
+			.whereILike("email", data.email)
+			.where("system_id", authCtx.system.id)
+			.first();
+
+		if (!user) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!(await Hash.verify(user.password, data.password))) {
+			throw new BadRequestException(
+				"Credenciais inválidas",
+				400,
+				"E_BAD_CREDENTIALS",
+			);
+		}
+
+		if (!authCtx.hasPermission("VEN21")) {
+			throw new UnauthorizedException(
+				"Usuario não possui permissão para finalizar o cancelamento da venda",
+				400,
+				"E_ERR",
+			);
+		}
+
+		return Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.cancelled) {
+				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			}
+
+			await bill
+				.merge({
+					finish_cancel_user_id: user.id,
+					cancelled: data.cancelled ? "S" : "N",
+					finishCancelDate: DateTime.now(),
+					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}}`,
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 

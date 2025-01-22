@@ -582,7 +582,11 @@ export default class PatientService {
 		const tutors =
 			data.tutor || data.document
 				? await Database.from("patients")
-						.select(Database.raw("patients.id, name as tutor"))
+						.select(
+							Database.raw(
+								"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
+							),
+						)
 						.joinRaw(
 							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
 							[authCtx.group.id],
@@ -780,6 +784,14 @@ export default class PatientService {
 			.where("patient_id", patient.id)
 			.whereNull("close_user_id");
 
+		const scheduleData: { id: string; started_at: string } | null =
+			await Database.from("schedules")
+				.select(Database.raw("id, started_at"))
+				.whereRaw("patient_id = ?", [patient.id])
+				.whereRaw("start_hour::date = now()::date")
+				.orderByRaw("created_at desc")
+				.first();
+
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
@@ -829,6 +841,9 @@ export default class PatientService {
 			),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
+
+			scheduleId: scheduleData?.id ?? null,
+			scheduleStartedAt: scheduleData?.started_at ?? null,
 		};
 
 		if (patient.patientAnimal) {

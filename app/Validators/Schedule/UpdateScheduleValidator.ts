@@ -44,6 +44,14 @@ export default class UpdateScheduleValidator {
 		endHour: schema.date({}),
 		ignoreBlocking: schema.boolean.optional([]),
 		ignoreOverlapping: schema.boolean.optional([]),
+		executions: schema.array.optional().members(
+			schema.object().members({
+				treatmentId: schema.number(),
+				treatmentItemId: schema.number(),
+				treatmentExecutionId: schema.number(),
+				checked: schema.boolean(),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {};

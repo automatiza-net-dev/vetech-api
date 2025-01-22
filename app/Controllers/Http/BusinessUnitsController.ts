@@ -27,6 +27,14 @@ export default class BusinessUnitsController {
 		);
 	}
 
+	public async syncConfig({ response, auth }: HttpContextContract) {
+		await this.service.syncConfig(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.noContent();
+	}
+
 	public async index({ request, response }: HttpContextContract) {
 		const qs = request.qs();
 		return response.ok(
@@ -51,11 +59,13 @@ export default class BusinessUnitsController {
 
 	public async store({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(CreateBusinessUnitValidator);
-		const { user } = this.sharedService.extractUser(auth);
 
-		await this.service.store(user, payload);
+		const result = await this.service.store(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
-		return response.created();
+		return response.created(result);
 	}
 
 	public async addCollaborator({

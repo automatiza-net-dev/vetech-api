@@ -170,7 +170,9 @@ export default class UserService {
 			const newBusinessUnit = await newGroup.related("businessUnits").create(
 				{
 					id: v4(),
+					identification: `Clínica do(a) ${user.name}`,
 					companyName: `Clínica do(a) ${user.name}`,
+					fantasyName: `Clínica do(a) ${user.name}`,
 					document: data.document,
 					phone: data.phone,
 					email: data.email,
@@ -233,6 +235,7 @@ export default class UserService {
 				service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
 				incoming_deposit_id: deposit.id,
 				outgoing_deposit_id: deposit.id,
+				config: system.defaultConfig,
 			});
 
 			const systemPaymentMethods = await SystemPaymentMethod.query()

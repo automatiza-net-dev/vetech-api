@@ -296,6 +296,7 @@ export default class DailyCashierService {
 
 	async index(authCtx: AuthContext, data: ISearch) {
 		const query = DailyCashier.query()
+			.orderByRaw("opening_date desc")
 			.where("business_unit_id", authCtx.unit.id)
 			.preload("userWhoOpened")
 			.preload("userWhoClosed")
@@ -305,44 +306,48 @@ export default class DailyCashierService {
 
 		if (data.tag) {
 			query.where("tag", data.tag);
-		}
-
-		if (data.openingUser) {
-			query.where("user_who_opened_id", data.openingUser);
-		}
-		if (data.fromBalance) {
-			query.where("cashier_balance", ">=", Number.parseFloat(data.fromBalance));
-		}
-
-		if (data.toBalance) {
-			query.where("cashier_balance", "<=", Number.parseFloat(data.toBalance));
-		}
-
-		if (!data.tag && data.status) {
-			if (data.status !== "TODOS") {
-				query.where("status", data.status as string);
+		} else {
+			if (data.openingUser) {
+				query.where("user_who_opened_id", data.openingUser);
 			}
-		}
+			if (data.fromBalance) {
+				query.where(
+					"cashier_balance",
+					">=",
+					Number.parseFloat(data.fromBalance),
+				);
+			}
 
-		if (data.fromOpening && data.toOpening) {
-			query.whereRaw("opening_date::date between ? and ?", [
-				data.fromOpening,
-				data.toOpening,
-			]);
-		}
+			if (data.toBalance) {
+				query.where("cashier_balance", "<=", Number.parseFloat(data.toBalance));
+			}
 
-		if (data.fromClosing && data.toClosing) {
-			query.whereRaw("closing_date::date between ? and ?", [
-				data.fromClosing,
-				data.toClosing,
-			]);
-		}
+			if (!data.tag && data.status) {
+				if (data.status !== "TODOS") {
+					query.where("status", data.status as string);
+				}
+			}
 
-		if (data.fromChecking && data.toChecking) {
-			query.whereRaw("checking_date::date between ? and ?", [
-				data.fromChecking,
-				data.toChecking,
-			]);
+			if (data.fromOpening && data.toOpening) {
+				query.whereRaw("opening_date::date between ? and ?", [
+					data.fromOpening,
+					data.toOpening,
+				]);
+			}
+
+			if (data.fromClosing && data.toClosing) {
+				query.whereRaw("closing_date::date between ? and ?", [
+					data.fromClosing,
+					data.toClosing,
+				]);
+			}
+
+			if (data.fromChecking && data.toChecking) {
+				query.whereRaw("checking_date::date between ? and ?", [
+					data.fromChecking,
+					data.toChecking,
+				]);
+			}
 		}
 
 		return query;

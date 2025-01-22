@@ -55,4 +55,35 @@ export default class NotificationsController {
 			),
 		);
 	}
+
+	public async pendingBillItemEvaluations({
+		response,
+		auth,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.pendingBillItemEvaluations(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+	public async pendingBillPaymentEvaluations({
+		response,
+		auth,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.pendingBillItemEvaluations(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+	public async pendingBillPaymentApprovals({
+		response,
+		auth,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.pendingBillPaymentApprovals(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
 }

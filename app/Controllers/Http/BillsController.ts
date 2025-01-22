@@ -18,6 +18,9 @@ import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator
 import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
 import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
 import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import RequestBillCancellationValidator from "App/Validators/Bill/RequestBillCancellationValidator";
+import ReviewBillCancellationValidator from "App/Validators/Bill/ReviewBillCancellationValidator";
+import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
 
 @inject()
 export default class BillsController {
@@ -418,6 +421,45 @@ export default class BillsController {
 		);
 
 		await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
+
+		return response.noContent();
+	}
+
+	public async requestBillCancellation({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(RequestBillCancellationValidator);
+
+		await this.service.requestBillCancellation(authCtx, payload);
+
+		return response.noContent();
+	}
+
+	public async reviewBillCancellation({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(ReviewBillCancellationValidator);
+
+		await this.service.reviewBillCancellation(authCtx, payload);
+
+		return response.noContent();
+	}
+
+	public async finishBillCancellation({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(FinishBillCancellationValidator);
+
+		await this.service.finishBillCancellation(authCtx, payload);
 
 		return response.noContent();
 	}

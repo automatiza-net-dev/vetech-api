@@ -1,6 +1,113 @@
+import Env from "@ioc:Adonis/Core/Env";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import { axiom } from "App/Lib/Axiom";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
+import * as z from "zod";
+
+export const ConfigCrmSchema = z.object({
+	crm_useful_days: z.boolean().optional().nullable(),
+	default_funnel_meta_id: z.number().optional().nullable(),
+});
+
+export const ConfigBillSchema = z.object({
+	sale_exit_account_plan_id: z.string().uuid().optional().nullable(),
+	other_exit_account_plan_id: z.string().uuid().optional().nullable(),
+	requires_bill_patient: z.boolean().optional().nullable(),
+});
+
+export const ConfigReceiptSchema = z.object({
+	order_entry_account_plan_id: z.string().uuid().optional().nullable(),
+	other_entry_account_plan_id: z.string().uuid().optional().nullable(),
+	generate_finances_on_receipt_finish: z.boolean().optional().nullable(),
+});
+
+export const ConfigProductSchema = z.object({
+	service_variation_group_id: z.string().uuid().optional().nullable(),
+});
+
+export const ConfigFiscalDocumentSchema = z.object({
+	fiscal_document_environment: z.string().optional().nullable(),
+	focus_homologation_token: z.string().optional().nullable(),
+	focus_production_token: z.string().optional().nullable(),
+	xml_download_authorization: z.string().optional().nullable(),
+	group_nfse_documents: z.boolean().optional().nullable(),
+	default_nfse_description: z.string().optional().nullable(),
+});
+
+export const ConfigSchedulesSchema = z.object({
+	allow_change_schedule_duration: z.boolean().optional().nullable(),
+	interval: z.number().optional().nullable(),
+	show_treatment_executions_schedule: z.boolean().optional().nullable(),
+	show_treatment_schedules: z.boolean().optional().nullable(),
+	treatment_schedule_service_type_id: z.string().uuid().optional().nullable(),
+	return_interval: z.number().optional().nullable(),
+	allowed_return_qty: z.number().optional().nullable(),
+	schedule_late_minutes: z.number().optional().nullable(),
+	schedule_missed_minutes: z.number().optional().nullable(),
+	integrates_to_crm_schedules: z.boolean().optional().nullable(),
+	sync_schedule_movements: z.boolean().optional().nullable(),
+	sync_schedules_crm: z.boolean().optional().nullable(),
+});
+
+export const ConfigBusinessUnitsSchema = z.object({
+	patient_dependent: z.boolean().optional().nullable(),
+	locked_daily_movement_date: z.boolean().optional().nullable(),
+	daily_cashier_type: z
+		.union([z.literal("geral"), z.literal("usuario")])
+		.optional()
+		.nullable(),
+	requires_finance_client: z.boolean().optional().nullable(),
+	marketing_account_plan_id: z.string().uuid().optional().nullable(),
+	incoming_deposit_id: z.coerce.number().optional().nullable(),
+	outgoing_deposit_id: z.coerce.number().optional().nullable(),
+	balance_control: z
+		.union([
+			z.literal("realizado"),
+			z.literal("usuario"),
+			z.literal("previsto"),
+		])
+		.optional()
+		.nullable(),
+	controls_deposit: z.boolean().optional().nullable(),
+	requires_client_document: z.boolean().optional().nullable(),
+	alter_prices: z.boolean().optional().nullable(),
+	dashboard_lists_retroactive_schedules: z.boolean().optional().nullable(),
+	dre_report_file: z.string().optional().nullable(),
+	useful_days: z.boolean().optional().nullable(),
+	treatment: z.boolean().optional().nullable(),
+	overall_resume_type: z
+		.union([z.literal("geral"), z.literal("mes")])
+		.optional()
+		.nullable(),
+	ticket_type: z
+		.union([z.literal("venda"), z.literal("cliente"), z.literal("paciente")])
+		.optional()
+		.nullable(),
+	reviewer: z
+		.union([z.literal("S"), z.literal("N"), z.literal("O")])
+		.optional()
+		.nullable(),
+	internal_code: z.boolean().optional().nullable(),
+});
+
+export const ConfigBudgetSchema = z.object({
+	budgets_payments_required: z.boolean().optional().nullable(),
+});
+
+export const ConfigSchema = z.object({
+	crm: z.optional(ConfigCrmSchema),
+	bills: z.optional(ConfigBillSchema),
+	receipts: z.optional(ConfigReceiptSchema),
+	products: z.optional(ConfigProductSchema),
+	fiscalDocuments: z.optional(ConfigFiscalDocumentSchema),
+	schedules: z.optional(ConfigSchedulesSchema),
+	businessUnits: z.optional(ConfigBusinessUnitsSchema),
+	budgets: z.optional(ConfigBudgetSchema),
+});
+
+export type TConfigSchema = z.infer<typeof ConfigSchema>;
 
 export default class BusinessUnitConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -87,7 +194,7 @@ export default class BusinessUnitConfig extends BaseModel {
 	@column({
 		columnName: "allow_change_schedule_duration",
 	})
-	public allowChangeScheduleDuration: string;
+	public allowChangeScheduleDuration: boolean;
 
 	@column({
 		columnName: "return_interval",
@@ -187,6 +294,42 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: "syncCrmSchedules",
 	})
 	public syncCrmSchedules: boolean;
+
+	@column({
+		consume(rawValue) {
+			const result = ConfigSchema.safeParse(rawValue);
+			if (!result.success) {
+				axiom.ingest(Env.get("AXIOM_DATASET"), [
+					{
+						_type: "$config-error",
+						origin: "business-unit-config",
+						errors: result.error.flatten(),
+					},
+				]);
+				axiom.flush().catch((err) => {
+					console.error(err);
+				});
+
+				throw new InternalErrorException(
+					"Erro buscando informações da unidade, contate o desenvolvedor",
+					500,
+					"E_ERR",
+				);
+			}
+
+			return result.data;
+		},
+		serialize(zodValue: TConfigSchema) {
+			return JSON.stringify(zodValue);
+		},
+	})
+	public config: TConfigSchema;
+
+	@column({
+		columnName: "budgets_payments_required",
+		serializeAs: "budgetsPaymentsRequired",
+	})
+	public budgetsPaymentsRequired: boolean;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

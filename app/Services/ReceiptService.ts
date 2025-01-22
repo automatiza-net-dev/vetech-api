@@ -818,6 +818,19 @@ export default class ReceiptService {
 			"s3",
 		);
 
+		const receiptXml = await ReceiptXml.create(
+			{
+				economic_group_id: authCtx.group.id,
+				business_unit_id: authCtx.unit.id,
+				user_id: authCtx.user.id,
+				// receipt_id: newReceipt.id,
+				xmlFile: s3Key,
+			},
+			{
+				// client: trx,
+			},
+		);
+
 		await data.file.moveToDisk(
 			"receipts",
 			{
@@ -978,18 +991,10 @@ export default class ReceiptService {
 				{ client: trx },
 			);
 
-			await ReceiptXml.create(
-				{
-					economic_group_id: authCtx.group.id,
-					business_unit_id: authCtx.unit.id,
-					user_id: authCtx.user.id,
-					receipt_id: newReceipt.id,
-					xmlFile: s3Key,
-				},
-				{
-					client: trx,
-				},
-			);
+			await receiptXml
+				.merge({ receipt_id: newReceipt.id })
+				.useTransaction(trx)
+				.save();
 
 			const items = SharedService.ArrayUnion(
 				parsed.data.nfeProc.NFe.infNFe.det,

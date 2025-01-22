@@ -3429,7 +3429,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			)
 			.whereNull("bills.deleted_at")
 			.whereNull("bill_items.deleted_at")
-			.whereBetween("bills.bill_date", [data.from, data.to])
+			.whereRaw("bills.bill_date::date between ? and ?", [data.from, data.to])
 			.where("bills.economic_group_id", authCtx.group.id)
 			.groupBy("users.id")
 			.orderBy("users.name");
@@ -3446,7 +3446,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 		const result: {
 			id: string;
-			name: string;
+			vendedor: string;
 			total_vendas: string;
 			valor_comissao: string;
 		}[] = await qb;
@@ -3457,7 +3457,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				dataFim: data.to,
 				vendedor: result.map((ve) => ({
 					id: ve.id,
-					nome: ve.name,
+					nome: ve.vendedor,
 					totalVendas: this.sharedService.formatter.format(
 						Number.parseFloat(ve.total_vendas),
 					),

@@ -3160,18 +3160,22 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										basear: false,
 										description: ap.description,
 										type: ap.type,
-										custo: contas
-											.reduce(
-												(acc, curr) => acc.plus(curr.custo),
-												new Decimal(0),
-											)
-											.toNumber(),
-										total: contas
-											.reduce(
-												(acc, curr) => acc.plus(curr.total),
-												new Decimal(0),
-											)
-											.toNumber(),
+										custo: contas.length
+											? contas
+													.reduce(
+														(acc, curr) => acc.plus(curr.custo),
+														new Decimal(0),
+													)
+													.toNumber()
+											: ap.custo,
+										total: contas.length
+											? contas
+													.reduce(
+														(acc, curr) => acc.plus(curr.total),
+														new Decimal(0),
+													)
+													.toNumber()
+											: ap.total,
 										refCusto: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)

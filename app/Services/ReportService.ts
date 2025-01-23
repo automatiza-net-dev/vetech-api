@@ -14,6 +14,7 @@ import { TOpportunityActivityStatus } from "App/Models/OpportunityActivity";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
+import Decimal from "decimal.js";
 
 @inject()
 export default class ReportService {
@@ -3053,8 +3054,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			description: string;
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
-			custo: number;
-			total: number;
+			custo: string;
+			total: string;
 			tag: string;
 			ref: string;
 		}[] = await Database.from("account_plans")
@@ -3063,8 +3064,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        description,
        account_plans.type,
        account_plan_group_id,
-       coalesce(dcpi.cost::float, 0) as custo,
-       coalesce(sum(finances.total_value), 0)::float as total,
+       cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
+       cast(coalesce(sum(finances.total_value), 0) as numeric(18, 2)) as total,
        account_plans.tag,
        case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)
@@ -3073,8 +3074,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
-				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
-				[data.period],
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?",
+				[data.period, authCtx.unit.id],
 			)
 			.where("system_id", authCtx.system.id)
 			.whereRaw(
@@ -3093,8 +3094,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			type: "CREDITO" | "DEBITO";
 			account_plan_group_id: number | null;
 			parent_id: string;
-			custo: number;
-			total: number;
+			custo: string;
+			total: string;
 			tag: string;
 			ref: string;
 		}[] = await Database.from("account_plans")
@@ -3104,8 +3105,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        parent_id,
-       coalesce(dcpi.cost, 0)::float as custo,
-       coalesce(sum(finances.total_value), 0)::float as total,
+       cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
+       cast(coalesce(sum(finances.total_value), 0) as numeric(18, 2)) as total,
        account_plans.tag,
        case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)
@@ -3114,8 +3115,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 				[data.period, authCtx.unit.id],
 			)
 			.joinRaw(
-				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ?",
-				[data.period],
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?",
+				[data.period, authCtx.unit.id],
 			)
 			.where("account_plans.system_id", authCtx.system.id)
 			.whereRaw(
@@ -3159,8 +3160,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										basear: false,
 										description: ap.description,
 										type: ap.type,
-										custo: contas.reduce((acc, curr) => acc + curr.custo, 0),
-										total: contas.reduce((acc, curr) => acc + curr.total, 0),
+										custo: contas
+											.reduce(
+												(acc, curr) => acc.plus(curr.custo),
+												new Decimal(0),
+											)
+											.toNumber(),
+										total: contas
+											.reduce(
+												(acc, curr) => acc.plus(curr.total),
+												new Decimal(0),
+											)
+											.toNumber(),
 										refCusto: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)

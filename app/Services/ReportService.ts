@@ -3065,7 +3065,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
-       cast(coalesce(sum(finances.total_value), 0) as numeric(18, 2)) as total,
+       case when (select filho.id from account_plans filho where parent_id = account_plans.id limit 1) is null then
+      cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) else 0 end as total,
        account_plans.tag,
        case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)
@@ -3160,18 +3161,22 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										basear: false,
 										description: ap.description,
 										type: ap.type,
-										custo: contas
-											.reduce(
-												(acc, curr) => acc.plus(curr.custo),
-												new Decimal(0),
-											)
-											.toNumber(),
-										total: contas
-											.reduce(
-												(acc, curr) => acc.plus(curr.total),
-												new Decimal(0),
-											)
-											.toNumber(),
+										custo: contas.length
+											? contas
+													.reduce(
+														(acc, curr) => acc.plus(new Decimal(curr.custo)),
+														new Decimal(0),
+													)
+													.toNumber()
+											: Number.parseFloat(ap.custo),
+										total: contas.length
+											? contas
+													.reduce(
+														(acc, curr) => acc.plus(new Decimal(curr.total)),
+														new Decimal(0),
+													)
+													.toNumber()
+											: Number.parseFloat(ap.total),
 										refCusto: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)
@@ -3191,8 +3196,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
-								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
-								total: parents.reduce((acc, curr) => acc + curr.total, 0),
+								custo: parents
+									.reduce(
+										(acc, curr) => acc.plus(new Decimal(curr.custo)),
+										new Decimal(0),
+									)
+									.toNumber(),
+								total: parents
+									.reduce(
+										(acc, curr) => acc.plus(new Decimal(curr.total)),
+										new Decimal(0),
+									)
+									.toNumber(),
 								refCusto: parents
 									.map((p) =>
 										p.itens.length === 0
@@ -3218,8 +3233,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						tag: group.id.toString(),
 						basear: false,
 						description: group.description,
-						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
-						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
+						custo: accountPlans
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.custo)),
+								new Decimal(0),
+							)
+							.toNumber(),
+						total: accountPlans
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.total)),
+								new Decimal(0),
+							)
+							.toNumber(),
 						refCusto: accountPlans
 							.flatMap((c) => c.refCusto)
 							.join(" ")

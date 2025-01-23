@@ -3164,19 +3164,19 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 										custo: contas.length
 											? contas
 													.reduce(
-														(acc, curr) => acc.plus(curr.custo),
+														(acc, curr) => acc.plus(new Decimal(curr.custo)),
 														new Decimal(0),
 													)
 													.toNumber()
-											: ap.custo,
+											: Number.parseFloat(ap.custo),
 										total: contas.length
 											? contas
 													.reduce(
-														(acc, curr) => acc.plus(curr.total),
+														(acc, curr) => acc.plus(new Decimal(curr.total)),
 														new Decimal(0),
 													)
 													.toNumber()
-											: ap.total,
+											: Number.parseFloat(ap.total),
 										refCusto: accountPlanChildren
 											.filter((apc) => apc.parent_id === ap.id)
 											.map((c) => c.ref)
@@ -3196,8 +3196,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 								basear: app.dre_basis,
 								description: app.description,
 								type: app.type,
-								custo: parents.reduce((acc, curr) => acc + curr.custo, 0),
-								total: parents.reduce((acc, curr) => acc + curr.total, 0),
+								custo: parents
+									.reduce(
+										(acc, curr) => acc.plus(new Decimal(curr.custo)),
+										new Decimal(0),
+									)
+									.toNumber(),
+								total: parents
+									.reduce(
+										(acc, curr) => acc.plus(new Decimal(curr.total)),
+										new Decimal(0),
+									)
+									.toNumber(),
 								refCusto: parents
 									.map((p) =>
 										p.itens.length === 0
@@ -3223,8 +3233,18 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 						tag: group.id.toString(),
 						basear: false,
 						description: group.description,
-						custo: accountPlans.reduce((acc, curr) => acc + curr.custo, 0),
-						total: accountPlans.reduce((acc, curr) => acc + curr.total, 0),
+						custo: accountPlans
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.custo)),
+								new Decimal(0),
+							)
+							.toNumber(),
+						total: accountPlans
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.total)),
+								new Decimal(0),
+							)
+							.toNumber(),
 						refCusto: accountPlans
 							.flatMap((c) => c.refCusto)
 							.join(" ")

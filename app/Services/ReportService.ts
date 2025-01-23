@@ -3065,7 +3065,8 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
        account_plans.type,
        account_plan_group_id,
        cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
-       cast(coalesce(sum(finances.total_value), 0) as numeric(18, 2)) as total,
+       case when (select filho.id from account_plans filho where parent_id = account_plans.id limit 1) is null then
+      cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) else 0 end as total,
        account_plans.tag,
        case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
 			)

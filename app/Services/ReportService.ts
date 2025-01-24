@@ -3026,8 +3026,9 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			id: number;
 			description: string;
 			sequence: number;
+			dre_group_ref_id: number | null;
 		}[] = await Database.from("dre_groups")
-			.select("id", "description", "sequence")
+			.select("id", "description", "sequence", "dre_group_ref_id")
 			.where("system_id", authCtx.system.id)
 			.whereRaw("(economic_group_id = ? OR economic_group_id IS NULL)", [
 				authCtx.group.id,
@@ -3240,15 +3241,23 @@ account_plans.tag, ' + ' || tag as ref`),
 								new Decimal(0),
 							)
 							.toNumber(),
-						refCusto: accountPlans
-							.flatMap((c) => c.refCusto)
-							.join(" ")
-							.trim(),
-						refs: accountPlans
-							.flatMap((c) => c.refCusto.split(" "))
-							.filter((v) => v !== "-" && v !== "+")
-							.map((v) => v.trim())
-							.filter((v) => v.length > 0),
+						refCusto: [
+							group.dre_group_ref_id,
+							accountPlans
+								.flatMap((c) => c.refCusto)
+								.join(" ")
+								.trim(),
+						]
+							.filter(Boolean)
+							.join(" "),
+						refs: [
+							group.dre_group_ref_id?.toString(),
+							...accountPlans
+								.flatMap((c) => c.refCusto.split(" "))
+								.filter((v) => v !== "-" && v !== "+")
+								.map((v) => v.trim())
+								.filter((v) => v.length > 0),
+						].filter(Boolean),
 						itens: accountPlans,
 					};
 				}),

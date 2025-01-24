@@ -3239,12 +3239,13 @@ account_plans.tag, ' + ' || tag as ref`),
 			return {
 				id: group.id,
 				tag: group.id.toString(),
+				__to_remove: group.dre_group_ref_id ?? null,
 				basear: false,
 				description: group.description,
 				custo: custo.toNumber(),
 				total: total.toNumber(),
 				refCusto: [
-					group.dre_group_ref_id,
+					group.dre_group_ref_id ? `$${group.dre_group_ref_id}` : undefined,
 					accountPlans
 						.flatMap((c) => c.refCusto)
 						.join(" ")
@@ -3269,34 +3270,30 @@ account_plans.tag, ' + ' || tag as ref`),
 				id: authCtx.unit.id,
 				identification: authCtx.unit.identification,
 				periodo: data.period,
-				itens: lazyResult.map((lr) => {
-					const originalValue = dreGroups.find((dg) => dg.id === lr.id);
-					if (!originalValue) {
-						throw new InternalErrorException(
-							"Erro fazendo unroll do DRE Group",
-							500,
-							"E_ERR",
+				itens: lazyResult.map((lr, _, mappedDreGroups) => {
+					if (!lr.__to_remove) {
+						return Object.assign(lr, {
+							__to_remove: undefined,
+						});
+					}
+
+					if (lr.refCusto.startsWith("$")) {
+						const tmpl = lr.refCusto.split(" ").shift() as string;
+						const [, ref] = tmpl.split("$");
+						const relatedGroup = mappedDreGroups.find(
+							(dg) => dg.id.toString() === ref,
 						);
-					}
-
-					if (!originalValue.dre_group_ref_id) {
-						return lr;
-					}
-
-					const lazyMapEntry = lazyMap[originalValue.dre_group_ref_id];
-					if (!lazyMapEntry) {
-						return lr;
+						return Object.assign(lr, {
+							__to_remove: undefined,
+							refCusto: lr.refCusto.replace(tmpl, relatedGroup?.refCusto ?? ""),
+							refs: lr.refs.flatMap((lrr) =>
+								lrr === ref ? (relatedGroup?.refs ?? []) : lrr,
+							),
+						});
 					}
 
 					return Object.assign(lr, {
-						custo: new Decimal(0)
-							.add(lazyMapEntry.custo)
-							.add(new Decimal(lr.custo))
-							.toNumber(),
-						total: new Decimal(0)
-							.add(lazyMapEntry.total)
-							.add(new Decimal(lr.total))
-							.toNumber(),
+						__to_remove: undefined,
 					});
 				}),
 			},

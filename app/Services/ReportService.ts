@@ -15,6 +15,7 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 import Decimal from "decimal.js";
+import InternalErrorException from "../Exceptions/InternalErrorException";
 
 @inject()
 export default class ReportService {
@@ -3126,140 +3127,171 @@ account_plans.tag, ' + ' || tag as ref`),
 			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("parent_id, type, description");
 
-		return [
-			{
-				id: authCtx.unit.id,
-				identification: authCtx.unit.identification,
-				periodo: data.period,
-				itens: dreGroups.map((group) => {
-					const accountPlans = accountPlanGroups
-						.filter((a) => a.dre_group_id === group.id)
-						.map((app) => {
-							const parents = accountPlanParents
-								.filter((ap) => ap.account_plan_group_id === app.id)
-								.map((ap) => {
-									const contas = accountPlanChildren
-										.filter((apc) => apc.parent_id === ap.id)
-										.map((apc) => ({
-											id: apc.id,
-											// ref: apc.ref,
-											tag: apc.tag,
-											basear: false,
-											description: apc.description,
-											type: apc.type,
-											custo: apc.custo,
-											total: apc.total,
-										}));
+		const lazyMap: Record<string, { custo: Decimal; total: Decimal }> = {};
 
-									return {
-										id: ap.id,
-										tag: ap.tag,
-										basear: false,
-										description: ap.description,
-										type: ap.type,
-										custo: contas.length
-											? contas
-													.reduce(
-														(acc, curr) => acc.plus(new Decimal(curr.custo)),
-														new Decimal(0),
-													)
-													.toNumber()
-											: Number.parseFloat(ap.custo),
-										total: contas.length
-											? contas
-													.reduce(
-														(acc, curr) => acc.plus(new Decimal(curr.total)),
-														new Decimal(0),
-													)
-													.toNumber()
-											: Number.parseFloat(ap.total),
-										refCusto: accountPlanChildren
-											.filter((apc) => apc.parent_id === ap.id)
-											.map((c) => c.ref)
-											.join(" "),
-										refs: accountPlanChildren
-											.filter((apc) => apc.parent_id === ap.id)
-											.flatMap((c) => c.ref.split(" "))
-											.filter((v) => v !== "-" && v !== "+")
-											.filter((v) => v.length > 0),
-										itens: contas,
-									};
-								});
+		const lazyResult = dreGroups.map((group) => {
+			const accountPlans = accountPlanGroups
+				.filter((a) => a.dre_group_id === group.id)
+				.map((app) => {
+					const parents = accountPlanParents
+						.filter((ap) => ap.account_plan_group_id === app.id)
+						.map((ap) => {
+							const contas = accountPlanChildren
+								.filter((apc) => apc.parent_id === ap.id)
+								.map((apc) => ({
+									id: apc.id,
+									// ref: apc.ref,
+									tag: apc.tag,
+									basear: false,
+									description: apc.description,
+									type: apc.type,
+									custo: new Decimal(apc.custo).toNumber(),
+									total: new Decimal(apc.total).toNumber(),
+								}));
 
 							return {
-								id: app.id,
-								tag: app.id.toString(),
-								basear: app.dre_basis,
-								description: app.description,
-								type: app.type,
-								custo: parents
-									.reduce(
-										(acc, curr) => acc.plus(new Decimal(curr.custo)),
-										new Decimal(0),
-									)
-									.toNumber(),
-								total: parents
-									.reduce(
-										(acc, curr) => acc.plus(new Decimal(curr.total)),
-										new Decimal(0),
-									)
-									.toNumber(),
-								refCusto: parents
-									.map((p) =>
-										p.itens.length === 0
-											? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
-											: p.refCusto,
-									)
-									.join(" ")
-									.trim(),
-								refs: parents.flatMap((p) =>
-									p.itens.length === 0
-										? p.tag
-										: p.refCusto
-												.split(" ")
-												.filter((v) => v !== "-" && v !== "+")
-												.filter((v) => v.length > 0),
-								),
-								itens: parents,
+								id: ap.id,
+								tag: ap.tag,
+								basear: false,
+								description: ap.description,
+								type: ap.type,
+								custo: contas.length
+									? contas
+											.reduce(
+												(acc, curr) => acc.plus(new Decimal(curr.custo)),
+												new Decimal(0),
+											)
+											.toNumber()
+									: Number.parseFloat(ap.custo),
+								total: contas.length
+									? contas
+											.reduce(
+												(acc, curr) => acc.plus(new Decimal(curr.total)),
+												new Decimal(0),
+											)
+											.toNumber()
+									: Number.parseFloat(ap.total),
+								refCusto: accountPlanChildren
+									.filter((apc) => apc.parent_id === ap.id)
+									.map((c) => c.ref)
+									.join(" "),
+								refs: accountPlanChildren
+									.filter((apc) => apc.parent_id === ap.id)
+									.flatMap((c) => c.ref.split(" "))
+									.filter((v) => v !== "-" && v !== "+")
+									.filter((v) => v.length > 0),
+								itens: contas,
 							};
 						});
 
 					return {
-						id: group.id,
-						tag: group.id.toString(),
-						basear: false,
-						description: group.description,
-						custo: accountPlans
+						id: app.id,
+						tag: app.id.toString(),
+						basear: app.dre_basis,
+						description: app.description,
+						type: app.type,
+						custo: parents
 							.reduce(
 								(acc, curr) => acc.plus(new Decimal(curr.custo)),
 								new Decimal(0),
 							)
 							.toNumber(),
-						total: accountPlans
+						total: parents
 							.reduce(
 								(acc, curr) => acc.plus(new Decimal(curr.total)),
 								new Decimal(0),
 							)
 							.toNumber(),
-						refCusto: [
-							group.dre_group_ref_id,
-							accountPlans
-								.flatMap((c) => c.refCusto)
-								.join(" ")
-								.trim(),
-						]
-							.filter(Boolean)
-							.join(" "),
-						refs: [
-							group.dre_group_ref_id?.toString(),
-							...accountPlans
-								.flatMap((c) => c.refCusto.split(" "))
-								.filter((v) => v !== "-" && v !== "+")
-								.map((v) => v.trim())
-								.filter((v) => v.length > 0),
-						].filter(Boolean),
-						itens: accountPlans,
+						refCusto: parents
+							.map((p) =>
+								p.itens.length === 0
+									? `${p.type === "CREDITO" ? "+" : "-"} ${p.tag}`
+									: p.refCusto,
+							)
+							.join(" ")
+							.trim(),
+						refs: parents.flatMap((p) =>
+							p.itens.length === 0
+								? p.tag
+								: p.refCusto
+										.split(" ")
+										.filter((v) => v !== "-" && v !== "+")
+										.filter((v) => v.length > 0),
+						),
+						itens: parents,
 					};
+				});
+
+			const custo = accountPlans.reduce(
+				(acc, curr) => acc.plus(new Decimal(curr.custo)),
+				new Decimal(0),
+			);
+			const total = accountPlans.reduce(
+				(acc, curr) => acc.plus(new Decimal(curr.total)),
+				new Decimal(0),
+			);
+
+			lazyMap[group.id] = {
+				custo,
+				total,
+			};
+
+			return {
+				id: group.id,
+				tag: group.id.toString(),
+				basear: false,
+				description: group.description,
+				custo: custo.toNumber(),
+				total: total.toNumber(),
+				refCusto: [
+					group.dre_group_ref_id,
+					accountPlans
+						.flatMap((c) => c.refCusto)
+						.join(" ")
+						.trim(),
+				]
+					.filter(Boolean)
+					.join(" "),
+				refs: [
+					group.dre_group_ref_id?.toString(),
+					...accountPlans
+						.flatMap((c) => c.refCusto.split(" "))
+						.filter((v) => v !== "-" && v !== "+")
+						.map((v) => v.trim())
+						.filter((v) => v.length > 0),
+				].filter(Boolean),
+				itens: accountPlans,
+			};
+		});
+
+		return [
+			{
+				id: authCtx.unit.id,
+				identification: authCtx.unit.identification,
+				periodo: data.period,
+				itens: lazyResult.map((lr) => {
+					const originalValue = dreGroups.find((dg) => dg.id === lr.id);
+					if (!originalValue) {
+						throw new InternalErrorException(
+							"Erro fazendo unroll do DRE Group",
+							500,
+							"E_ERR",
+						);
+					}
+
+					if (!originalValue.dre_group_ref_id) {
+						return lr;
+					}
+
+					const lazyMapEntry = lazyMap[originalValue.dre_group_ref_id];
+					if (!lazyMapEntry) {
+						return lr;
+					}
+
+					return Object.assign(lr, {
+						custo: lazyMapEntry.custo.add(new Decimal(lr.custo)).toNumber(),
+						total: lazyMapEntry.total.add(new Decimal(lr.total)).toNumber(),
+					});
 				}),
 			},
 		];

@@ -37,8 +37,8 @@ export default class FinancesController {
 			fromExpirationDate: qs.fromExpiration,
 			toExpirationDate: qs.toExpiration,
 
-			fromAcceptDate: qs.fromAccept,
-			toAcceptDate: qs.toAccept,
+			fromAcceptDate: qs.fromAcceptDate,
+			toAcceptDate: qs.toAcceptDate,
 
 			fromPaymentDate: qs.fromPayment,
 			toPaymentDate: qs.toPayment,
@@ -72,8 +72,8 @@ export default class FinancesController {
 			fromExpirationDate: qs.fromExpiration,
 			toExpirationDate: qs.toExpiration,
 
-			fromAcceptDate: qs.fromAccept,
-			toAcceptDate: qs.toAccept,
+			fromAcceptDate: qs.fromAcceptDate,
+			toAcceptDate: qs.toAcceptDate,
 
 			fromPaymentDate: qs.fromPayment,
 			toPaymentDate: qs.toPayment,
@@ -109,8 +109,8 @@ export default class FinancesController {
 				fromExpirationDate: qs.fromExpiration,
 				toExpirationDate: qs.toExpiration,
 
-				fromAcceptDate: qs.fromAccept,
-				toAcceptDate: qs.toAccept,
+				fromAcceptDate: qs.fromAcceptDate,
+				toAcceptDate: qs.toAcceptDate,
 
 				fromPaymentDate: qs.fromPayment,
 				toPaymentDate: qs.toPayment,

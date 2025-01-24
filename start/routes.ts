@@ -1961,3 +1961,9 @@ Route.group(() => {
 })
 	.prefix("focus")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/search", "PatientGendersController.list");
+})
+	.prefix("patient-genders")
+	.middleware("auth");

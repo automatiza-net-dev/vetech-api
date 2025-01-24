@@ -3060,15 +3060,14 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
-				Database.raw(`account_plans.id,
-       description,
-       account_plans.type,
-       account_plan_group_id,
-       cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
-       case when (select filho.id from account_plans filho where parent_id = account_plans.id limit 1) is null then
-      cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) else 0 end as total,
-       account_plans.tag,
-       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
+				Database.raw(`account_plans.id, description, account_plans.type, account_plan_group_id,
+case when account_plans."type" = 'DEBITO' then cast((-1) * coalesce(dcpi.cost::float, 0) as numeric(18,2)) else cast(coalesce(dcpi.cost::float, 0) as numeric(18,2)) end as custo,
+case when (select filho.id from account_plans filho where parent_id = account_plans.id limit 1) is null and account_plans."type" = 'DEBITO' then
+                     cast((-1) * coalesce(sum(finances.total_value), 0)::float as numeric(18,2))
+when (select filho.id from account_plans filho where parent_id = account_plans.id limit 1) is null and account_plans."type" = 'CREDITO' then
+cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2))
+else 0 end as total,
+account_plans.tag, ' + '|| tag as ref`),
 			)
 			.joinRaw(
 				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
@@ -3101,15 +3100,11 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 			ref: string;
 		}[] = await Database.from("account_plans")
 			.select(
-				Database.raw(`account_plans.id,
-       description,
-       account_plans.type,
-       account_plan_group_id,
-       parent_id,
-       cast(coalesce(dcpi.cost::float, 0) as numeric(18, 2)) as custo,
-       cast(coalesce(sum(finances.total_value), 0) as numeric(18, 2)) as total,
-       account_plans.tag,
-       case when account_plans."type" = 'DEBITO' then ' - ' || tag else ' + ' || tag end as ref`),
+				Database.raw(`account_plans.id, description, account_plans.type, account_plan_group_id, parent_id,
+case when account_plans."type" = 'DEBITO' then cast((-1) * coalesce(dcpi.cost::float, 0) as numeric(18,2)) else cast(coalesce(dcpi.cost::float, 0) as numeric(18,2)) end as custo,
+case when account_plans."type" = 'DEBITO' then cast((-1) * coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) else
+cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) end as total,
+account_plans.tag, ' + ' || tag as ref`),
 			)
 			.joinRaw(
 				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",

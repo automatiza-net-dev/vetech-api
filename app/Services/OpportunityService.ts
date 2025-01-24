@@ -145,6 +145,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			description?: string;
 			clientName?: string;
 			unit?: string[];
 			status?: string[];
@@ -192,6 +193,13 @@ export default class OpportunityService {
 					])
 					.where("type", PatientType.ANIMAL);
 			});
+		}
+
+		if (data.description) {
+			qb.whereRaw(
+				"lower(unaccent(opportunities.description)) ~* lower(unaccent(?))",
+				[data.description],
+			);
 		}
 
 		if (data.unit && Array.isArray(data.unit)) {
@@ -582,6 +590,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			description?: string;
 			clientName?: string;
 			technician?: string;
 			status?: string;
@@ -641,6 +650,13 @@ export default class OpportunityService {
 					])
 					.where("type", PatientType.ANIMAL);
 			});
+		}
+
+		if (data.description) {
+			qb.whereRaw(
+				"lower(unaccent(opportunities.description)) ~* lower(unaccent(?))",
+				[data.description],
+			);
 		}
 
 		if (data.technician) {
@@ -873,6 +889,7 @@ export default class OpportunityService {
 			// race?: string;
 			// gender?: string;
 			// castrated?: string;
+			description?: string;
 			clientName?: string;
 			technician?: string;
 			status?: string;
@@ -936,6 +953,13 @@ export default class OpportunityService {
 					])
 					.where("type", PatientType.ANIMAL);
 			});
+		}
+
+		if (data.description) {
+			qb.whereRaw(
+				"lower(unaccent(opportunities.description)) ~* lower(unaccent(?))",
+				[data.description],
+			);
 		}
 
 		if (data.technician) {

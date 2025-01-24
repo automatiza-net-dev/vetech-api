@@ -3017,12 +3017,32 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
 
 	public async dreGroupReport(
 		authCtx: AuthContext,
-		data: { period?: string; v2?: string },
+		data: { period?: string; months?: string },
 	) {
 		if (!data.period) {
 			throw new BadRequestException("Periodo não informado", 400, "E_REQ");
 		}
+		const result = await this.calculateDreGroupData(
+			authCtx,
+			data.period,
+			data.months ? +data.months : 0,
+		);
 
+		return [
+			{
+				id: authCtx.unit.id,
+				identification: authCtx.unit.identification,
+				periodo: data.period,
+				itens: result,
+			},
+		];
+	}
+
+	private async calculateDreGroupData(
+		authCtx: AuthContext,
+		period: string,
+		offset = 0,
+	) {
 		const dreGroups: {
 			id: number;
 			description: string;
@@ -3072,12 +3092,12 @@ else 0 end as total,
 account_plans.tag, ' + '|| tag as ref`),
 			)
 			.joinRaw(
-				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
-				[data.period, authCtx.unit.id],
+				`left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = to_char(to_date(?, 'MM/YYYY') - interval '${offset} months', 'MM/YYYY') and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id`,
+				[period, authCtx.unit.id],
 			)
 			.joinRaw(
-				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?",
-				[data.period, authCtx.unit.id],
+				`left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = to_char(to_date(?, 'MM/YYYY') - interval '${offset} months', 'MM/YYYY') and finances.business_unit_id = ?`,
+				[period, authCtx.unit.id],
 			)
 			.where("system_id", authCtx.system.id)
 			.whereRaw(
@@ -3109,12 +3129,12 @@ cast(coalesce(sum(finances.total_value), 0)::float as numeric(18,2)) end as tota
 account_plans.tag, ' + ' || tag as ref`),
 			)
 			.joinRaw(
-				"left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = ? and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id",
-				[data.period, authCtx.unit.id],
+				`left join (dre_cost_plannings dcp join dre_cost_planning_items dcpi on dcp.id = dcpi.dre_cost_planning_id and dcp.deleted_at is null) on dcp.period = to_char(to_date(?, 'MM/YYYY') - interval '${offset} months', 'MM/YYYY') and dcp.business_unit_id = ? and account_plans.id = dcpi.account_plan_id`,
+				[period, authCtx.unit.id],
 			)
 			.joinRaw(
-				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?",
-				[data.period, authCtx.unit.id],
+				`left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = to_char(to_date(?, 'MM/YYYY') - interval '${offset} months', 'MM/YYYY') and finances.business_unit_id = ?`,
+				[period, authCtx.unit.id],
 			)
 			.where("account_plans.system_id", authCtx.system.id)
 			.whereRaw(
@@ -3126,8 +3146,6 @@ account_plans.tag, ' + ' || tag as ref`),
 			.whereNull("account_plans.deleted_at")
 			.groupByRaw("account_plans.id, dcpi.cost")
 			.orderByRaw("parent_id, type, description");
-
-		const lazyMap: Record<string, { custo: Decimal; total: Decimal }> = {};
 
 		const lazyResult = dreGroups.map((group) => {
 			const accountPlans = accountPlanGroups
@@ -3231,11 +3249,6 @@ account_plans.tag, ' + ' || tag as ref`),
 				new Decimal(0),
 			);
 
-			lazyMap[group.id] = {
-				custo,
-				total,
-			};
-
 			return {
 				id: group.id,
 				tag: group.id.toString(),
@@ -3265,39 +3278,32 @@ account_plans.tag, ' + ' || tag as ref`),
 			};
 		});
 
-		return [
-			{
-				id: authCtx.unit.id,
-				identification: authCtx.unit.identification,
-				periodo: data.period,
-				itens: lazyResult.map((lr, _, mappedDreGroups) => {
-					if (!lr.__to_remove) {
-						return Object.assign(lr, {
-							__to_remove: undefined,
-						});
-					}
+		return lazyResult.map((lr, _, mappedDreGroups) => {
+			if (!lr.__to_remove) {
+				return Object.assign(lr, {
+					__to_remove: undefined,
+				});
+			}
 
-					if (lr.refCusto.startsWith("$")) {
-						const tmpl = lr.refCusto.split(" ").shift() as string;
-						const [, ref] = tmpl.split("$");
-						const relatedGroup = mappedDreGroups.find(
-							(dg) => dg.id.toString() === ref,
-						);
-						return Object.assign(lr, {
-							__to_remove: undefined,
-							refCusto: lr.refCusto.replace(tmpl, relatedGroup?.refCusto ?? ""),
-							refs: lr.refs.flatMap((lrr) =>
-								lrr === ref ? (relatedGroup?.refs ?? []) : lrr,
-							),
-						});
-					}
+			if (lr.refCusto.startsWith("$")) {
+				const tmpl = lr.refCusto.split(" ").shift() as string;
+				const [, ref] = tmpl.split("$");
+				const relatedGroup = mappedDreGroups.find(
+					(dg) => dg.id.toString() === ref,
+				);
+				return Object.assign(lr, {
+					__to_remove: undefined,
+					refCusto: lr.refCusto.replace(tmpl, relatedGroup?.refCusto ?? ""),
+					refs: lr.refs.flatMap((lrr) =>
+						lrr === ref ? (relatedGroup?.refs ?? []) : lrr,
+					),
+				});
+			}
 
-					return Object.assign(lr, {
-						__to_remove: undefined,
-					});
-				}),
-			},
-		];
+			return Object.assign(lr, {
+				__to_remove: undefined,
+			});
+		});
 	}
 
 	public async patientsReport(

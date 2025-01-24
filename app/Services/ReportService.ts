@@ -3289,8 +3289,14 @@ account_plans.tag, ' + ' || tag as ref`),
 					}
 
 					return Object.assign(lr, {
-						custo: lazyMapEntry.custo.add(new Decimal(lr.custo)).toNumber(),
-						total: lazyMapEntry.total.add(new Decimal(lr.total)).toNumber(),
+						custo: new Decimal(0)
+							.add(lazyMapEntry.custo)
+							.add(new Decimal(lr.custo))
+							.toNumber(),
+						total: new Decimal(0)
+							.add(lazyMapEntry.total)
+							.add(new Decimal(lr.total))
+							.toNumber(),
 					});
 				}),
 			},

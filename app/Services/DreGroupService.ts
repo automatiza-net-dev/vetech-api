@@ -275,6 +275,38 @@ export default class DreGroupService {
 	) {
 		try {
 			await Database.transaction(async (trx) => {
+				const existingPlanning = await DreCostPlanning.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("period", data.period)
+					.first();
+				if (existingPlanning) {
+					await existingPlanning
+						.merge({ update_user_id: authCtx.user.id })
+						.useTransaction(trx)
+						.save();
+
+					await DreCostPlanningItem.query()
+						.useTransaction(trx)
+						.where("dre_cost_planning_id", existingPlanning.id)
+						.delete();
+
+					await DreCostPlanningItem.createMany(
+						data.accountPlans.map((item) => ({
+							dre_cost_planning_id: existingPlanning.id,
+							account_plan_id: item.accountPlanId,
+							create_user_id: authCtx.user.id,
+
+							cost: new Decimal(item.cost),
+						})),
+						{
+							client: trx,
+						},
+					);
+
+					return;
+				}
+
 				const planning = await DreCostPlanning.create(
 					{
 						business_unit_id: authCtx.unit.id,

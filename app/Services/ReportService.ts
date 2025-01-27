@@ -3096,7 +3096,7 @@ account_plans.tag, ' + '|| tag as ref`),
 				[period, authCtx.unit.id],
 			)
 			.joinRaw(
-				`left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?`,
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and finances.competence_date = ? and finances.business_unit_id = ?",
 				[period, authCtx.unit.id],
 			)
 			.where("system_id", authCtx.system.id)
@@ -3133,7 +3133,7 @@ account_plans.tag, ' + ' || tag as ref`),
 				[period, authCtx.unit.id],
 			)
 			.joinRaw(
-				`left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and to_char(finances.expiration_date, 'MM/YYYY') = ? and finances.business_unit_id = ?`,
+				"left join finances on account_plans.id = finances.account_plan_id and finances.deleted_at is null and finances.competence_date = ? and finances.business_unit_id = ?",
 				[period, authCtx.unit.id],
 			)
 			.where("account_plans.system_id", authCtx.system.id)

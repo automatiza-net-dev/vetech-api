@@ -1,6 +1,5 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
-import { TutorGender } from "App/Models/Patient";
 import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
@@ -14,7 +13,7 @@ export default class UpdatePatientWithTutorValidator {
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		gender: schema.enum.optional(Object.values(TutorGender), []),
+		gender: schema.string.optional(),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date(),
 		active: schema.boolean([]),

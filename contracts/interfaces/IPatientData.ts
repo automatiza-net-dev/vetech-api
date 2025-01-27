@@ -10,7 +10,7 @@ export default interface IPatientData {
 	raceId?: string;
 	castrated?: boolean;
 	photo?: MultipartFileContract;
-	gender?: PatientGender;
+	gender?: string;
 	tags?: string;
 	birthDate?: DateTime;
 	birthDays?: number;
@@ -34,5 +34,5 @@ export interface IFastStorePatient {
 
 	patientName?: string;
 	patientRaceId?: string;
-	patientGender?: PatientGender;
+	patientGender?: string;
 }

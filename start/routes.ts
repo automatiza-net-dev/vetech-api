@@ -1975,6 +1975,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/billing-ranking", "PortalController.billingRanking");
+	Route.get("/median-ticket", "PortalController.avgTicket");
 })
 	.prefix("portal")
 	.middleware("auth");

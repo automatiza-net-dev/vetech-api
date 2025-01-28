@@ -1950,7 +1950,10 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "OpportunitiesMovementsController.search");
-	Route.get("/search-from-clients", "OpportunitiesMovementsController.searchFromClients");
+	Route.get(
+		"/search-from-clients",
+		"OpportunitiesMovementsController.searchFromClients",
+	);
 	Route.get("/", "OpportunitiesMovementsController.index");
 	Route.post("/store", "OpportunitiesMovementsController.store");
 	Route.post("/cancel", "OpportunitiesMovementsController.cancel");
@@ -1968,4 +1971,10 @@ Route.group(() => {
 	Route.get("/search", "PatientGendersController.list");
 })
 	.prefix("patient-genders")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/billing-ranking", "PortalController.billingRanking");
+})
+	.prefix("portal")
 	.middleware("auth");

@@ -10,6 +10,14 @@ export default class AccountPlanGroupsController {
 		private service: PortalService,
 	) {}
 
+	public async billing({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.billing(authCtx, request.qs());
+
+		return response.ok(data);
+	}
+
 	public async billingRanking({
 		auth,
 		request,

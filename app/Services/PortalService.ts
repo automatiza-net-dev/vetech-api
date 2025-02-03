@@ -89,14 +89,7 @@ export default class PortalService {
 			from?: string;
 			to?: string;
 		},
-	): Promise<
-		{
-			grupo_economico: string;
-			unidade_negocios: string;
-			business_unit_id: string;
-			tkt_medio: number;
-		}[]
-	> {
+	) {
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(`economic_groups.company_name                              as grupo_economico,
@@ -128,6 +121,19 @@ export default class PortalService {
 			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
 		}
 
-		return await qb;
+		const result: {
+			grupo_economico: string;
+			unidade_negocios: string;
+			business_unit_id: string;
+			tkt_medio: number;
+		}[] = await qb;
+
+		return {
+			name: "RankingTicketMedio",
+			description: "Ranking Unidades por Ticket Médio",
+			type: "table",
+			hasData: result.length > 0,
+			data: result,
+		};
 	}
 }

@@ -4,6 +4,26 @@ import { AuthContext } from "./SharedService";
 
 @inject()
 export default class PortalService {
+	public async dashboard(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			from?: string;
+			to?: string;
+		},
+	) {
+		const [billing, billingRanking, avgTicket] = await Promise.all([
+			this.billing(authCtx, data),
+			this.billingRanking(authCtx, data),
+			this.avgTicket(authCtx, data),
+		]);
+
+		return {
+			cards: billing.cards.flat(),
+			tables: [billingRanking, avgTicket],
+		};
+	}
+
 	public async billing(
 		authCtx: AuthContext,
 		data: {

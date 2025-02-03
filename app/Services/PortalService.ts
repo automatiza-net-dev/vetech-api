@@ -11,14 +11,20 @@ export default class PortalService {
 			from?: string;
 			to?: string;
 		},
-	): Promise<
-		{
-			grupo_economico: string;
-			unidade_negocios: string;
-			business_unit_id: string;
-			total_bills: number;
-		}[]
-	> {
+	) {
+		const sumQb = Database.from("bills")
+			.select(Database.raw("sum(total_value)::float as total_bills"))
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.where("economic_groups.system_id", authCtx.user.system_id)
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P")
+			.orderByRaw("total_bills desc");
+
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(`economic_groups.company_name  as grupo_economico,
@@ -43,14 +49,37 @@ export default class PortalService {
 			.orderByRaw("total_bills desc");
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			sumQb.whereIn("business_units.id", data.units);
 			qb.whereIn("business_units.id", data.units);
 		}
 
 		if (data.from && data.to) {
+			sumQb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
 			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
 		}
 
-		return await qb;
+		const [{ total_bills = 0 }] = await sumQb;
+
+		const result: {
+			grupo_economico: string;
+			unidade_negocios: string;
+			business_unit_id: string;
+			total_bills: number;
+		}[] = await qb;
+
+		return {
+			name: "RankingFaturamento",
+			description: "Ranking Unidades por Faturamento",
+			type: "table",
+			hasData: result.length > 0,
+			total: total_bills,
+			data: result.map((row) =>
+				Object.assign(row, {
+					participacao:
+						total_bills > 0 ? (row.total_bills / total_bills) * 100 : 0,
+				}),
+			),
+		};
 	}
 
 	public async avgTicket(

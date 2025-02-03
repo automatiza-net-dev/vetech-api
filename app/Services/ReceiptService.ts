@@ -436,7 +436,7 @@ const schema = z.object({
 				}),
 				transp: z.object({
 					modFrete: z.string(),
-					vol: z.optional(z.object({ qVol: z.string() })),
+					vol: z.optional(z.object({ qVol: z.string().optional() })),
 				}),
 				cobr: z.optional(
 					z.object({

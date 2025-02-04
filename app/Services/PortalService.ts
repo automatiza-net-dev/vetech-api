@@ -13,7 +13,7 @@ export default class PortalService {
 			to?: string;
 		},
 	) {
-		const [billing, billingRanking, avgTicket] = await Promise.all([
+		const [billing, ...rest] = await Promise.all([
 			this.billing(authCtx, data),
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
@@ -22,7 +22,7 @@ export default class PortalService {
 
 		return {
 			cards: billing.cards.flat(),
-			tables: [billingRanking, avgTicket],
+			tables: [...rest],
 		};
 	}
 
@@ -102,8 +102,6 @@ export default class PortalService {
 			tkt_medio: number;
 			projecao: number;
 		}[] = await monthQb;
-
-		console.log(monthResult);
 
 		return {
 			cards: generalResult

@@ -1976,6 +1976,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/dashboard", "PortalController.dashboard");
 	Route.get("/billing", "PortalController.billing");
+	Route.get("/seller-billing-ranking", "PortalController.sellerBillingRanking");
 	Route.get("/billing-ranking", "PortalController.billingRanking");
 	Route.get("/median-ticket", "PortalController.avgTicket");
 })

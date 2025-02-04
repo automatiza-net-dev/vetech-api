@@ -102,7 +102,7 @@ export default class PortalService {
 			projecao: number;
 		}[] = await monthQb;
 
-    console.log(monthResult);
+		console.log(monthResult);
 
 		return {
 			cards: generalResult
@@ -152,7 +152,7 @@ export default class PortalService {
 									items: [
 										{
 											description: "Ticket Medio Mes Corrente",
-											value: row.tkt_medio ?? 0,
+											value: row.tkt_medio ?? 0,
 										},
 									],
 								},
@@ -163,7 +163,7 @@ export default class PortalService {
 									items: [
 										{
 											description: "Projeção Faturamento Mês Corrente",
-											value: row.projecao ?? 0,
+											value: row.projecao ?? 0,
 										},
 									],
 								},
@@ -250,6 +250,69 @@ export default class PortalService {
 						total_bills > 0 ? (row.total_bills / total_bills) * 100 : 0,
 				}),
 			),
+		};
+	}
+	public async sellerBillingRanking(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			from?: string;
+			to?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`economic_groups.company_name                                           as grupo_cconomico,
+       business_units.id                                         as id_unidade_negocios,
+       business_units.identification                             as unidade_negocios,
+       users.id                                                  as id_vendedor,
+       users.name                                                as nome_vendedor,
+       sum(bills.total_value)                                    as total_bills,
+       sum(bills.total_value) / count(distinct bills.patient_id) as tkt_medio`),
+			)
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.joinRaw("join users on users.id = bills.user_id")
+			.where("economic_groups.system_id", authCtx.user.system_id)
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P")
+			.groupByRaw(
+				"economic_groups.company_name, business_units.identification, business_units.id, users.name, users.id",
+			)
+			.orderByRaw("total_bills desc");
+
+		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			qb.whereIn("business_units.id", data.units);
+		}
+
+		if (data.from && data.to) {
+			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		}
+
+		const result: {
+			grupo_economico: string | null;
+			id_unidade_negocios: string;
+			unidade_negocios: string | null;
+			id_vendedor: string;
+			nome_vendedor: string | null;
+			total_bills: number;
+			tkt_medio: number;
+		}[] = await qb;
+
+		return {
+			name: "RankingVendedores",
+			description: "Ranking Vendedores por Faturamento",
+			type: "table",
+			hasData: result.length > 0,
+			data: result,
 		};
 	}
 

@@ -16,6 +16,7 @@ export default class PortalService {
 		const [billing, billingRanking, avgTicket] = await Promise.all([
 			this.billing(authCtx, data),
 			this.billingRanking(authCtx, data),
+			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
 		]);
 

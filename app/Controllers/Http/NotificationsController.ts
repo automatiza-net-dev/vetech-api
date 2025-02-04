@@ -2,6 +2,7 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { inject } from "@adonisjs/fold";
 import SharedService from "App/Services/SharedService";
 import NotificationsService from "App/Services/NotificationsService";
+import CreateNotificationValidator from "App/Validators/Notification/CreateNotificationValidator";
 
 @inject()
 export default class NotificationsController {
@@ -9,6 +10,59 @@ export default class NotificationsController {
 		private sharedService: SharedService,
 		private notificationService: NotificationsService,
 	) {}
+
+	public async listNotifications({ response, auth }: HttpContextContract) {
+		return response.ok(
+			await this.notificationService.listNotifications(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
+	public async createNotification({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const data = await request.validate(CreateNotificationValidator);
+
+		return response.created(
+			await this.notificationService.createNotification(
+				await this.sharedService.getAuthContext(auth),
+				data,
+			),
+		);
+	}
+
+	public async updateNotification({
+		request,
+		response,
+		auth,
+		params,
+	}: HttpContextContract) {
+		const data = await request.validate(CreateNotificationValidator);
+
+		return response.ok(
+			await this.notificationService.updateNotification(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				data,
+			),
+		);
+	}
+
+	public async excludeNotification({
+		response,
+		auth,
+		params,
+	}: HttpContextContract) {
+		await this.notificationService.excludeNotification(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.noContent();
+	}
 
 	public async fullNotifications({ response, auth }: HttpContextContract) {
 		return response.ok(

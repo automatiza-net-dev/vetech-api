@@ -1875,6 +1875,20 @@ Route.group(() => {
 }).prefix("dictionary");
 
 Route.group(() => {
+  Route.get("/list-notifications", "NotificationsController.listNotifications");
+	Route.post(
+		"/create-notification",
+		"NotificationsController.createNotification",
+	);
+	Route.post(
+		"/update-notification/:id",
+		"NotificationsController.updateNotification",
+	);
+	Route.delete(
+		"/exclude-notification/:id",
+		"NotificationsController.excludeNotification",
+	);
+
 	Route.get("/", "NotificationsController.fullNotifications");
 	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");

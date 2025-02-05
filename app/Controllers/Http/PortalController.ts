@@ -26,6 +26,18 @@ export default class AccountPlanGroupsController {
 		return response.ok(data);
 	}
 
+	public async monthlyBilling({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.monthlyBilling(authCtx, request.qs());
+
+		return response.ok(data);
+	}
+
 	public async sellerBillingRanking({
 		auth,
 		request,

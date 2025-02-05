@@ -13,15 +13,17 @@ export default class PortalService {
 			to?: string;
 		},
 	) {
-		const [billing, ...rest] = await Promise.all([
+		const [billing, monthlyBilling, ...rest] = await Promise.all([
 			this.billing(authCtx, data),
+			this.monthlyBilling(authCtx, data),
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
 		]);
 
 		return {
-			cards: billing.cards.flat(),
+			top: billing.top,
+			cards: monthlyBilling.cards,
 			tables: [...rest],
 		};
 	}
@@ -34,7 +36,7 @@ export default class PortalService {
 			to?: string;
 		},
 	) {
-		const generalQb = Database.from("bills")
+		const qb = Database.from("bills")
 			.select(
 				Database.raw(
 					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct patient_id)::float as tkt_medio",
@@ -55,56 +57,21 @@ export default class PortalService {
 			.whereNull("bills.deleted_at")
 			.where("business_units.environment", "P");
 
-		const today = new Date();
-
-		const monthQb = Database.from("bills")
-			.select(
-				Database.raw(
-					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct patient_id)::float as tkt_medio, sum(bills.total_value) / ? * ? as projecao",
-					[today.getDay(), endOfMonth(today).getDay()],
-				),
-			)
-			.joinRaw(
-				"join business_units on business_units.id = bills.business_unit_id",
-			)
-			.joinRaw(
-				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
-				[authCtx.user.id],
-			)
-			.joinRaw(
-				"join economic_groups on business_units.economic_group_id = economic_groups.id",
-			)
-			.where("economic_groups.system_id", authCtx.user.system_id)
-			.whereNull("bills.deleted_at")
-			.where("business_units.environment", "P")
-			.whereRaw("to_char(bill_date, 'MMYYYY') = to_char(now(), 'MMYYYY')");
-
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
-			generalQb.whereIn("business_units.id", data.units);
-			monthQb.whereIn("business_units.id", data.units);
+			qb.whereIn("business_units.id", data.units);
 		}
 
 		if (data.from && data.to) {
-			generalQb.whereRaw("bill_date::date between ? and ?", [
-				data.from,
-				data.to,
-			]);
-			monthQb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
 		}
 
 		const generalResult: {
 			total_bills: number;
 			tkt_medio: number;
-		}[] = await generalQb;
-
-		const monthResult: {
-			total_bills: number;
-			tkt_medio: number;
-			projecao: number;
-		}[] = await monthQb;
+		}[] = await qb;
 
 		return {
-			cards: generalResult
+			top: generalResult
 				.flatMap((row) => {
 					return [
 						[
@@ -131,45 +98,94 @@ export default class PortalService {
 						],
 					];
 				})
-				.concat(
-					...monthResult.map((row) => {
-						return [
-							[
-								{
-									name: "FaturamentoMesCorrente",
-									items: [
-										{
-											description: "Faturamento Realizado do Mes Corrente",
-											value: row.total_bills ?? 0,
-										},
-									],
-								},
-							],
-							[
-								{
-									name: "TicketMedioMesCorrente",
-									items: [
-										{
-											description: "Ticket Medio Mes Corrente",
-											value: row.tkt_medio ?? 0,
-										},
-									],
-								},
-							],
-							[
-								{
-									name: "ProjecaoMesCorrente",
-									items: [
-										{
-											description: "Projeção Faturamento Mês Corrente",
-											value: row.projecao ?? 0,
-										},
-									],
-								},
-							],
-						];
-					}),
-				)
+				.flat(),
+		};
+	}
+
+	public async monthlyBilling(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			from?: string;
+			to?: string;
+		},
+	) {
+		const today = new Date();
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct patient_id)::float as tkt_medio, sum(bills.total_value) / ? * ? as projecao",
+					[today.getDay(), endOfMonth(today).getDay()],
+				),
+			)
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.where("economic_groups.system_id", authCtx.user.system_id)
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P")
+			.whereRaw("to_char(bill_date, 'MMYYYY') = to_char(now(), 'MMYYYY')");
+
+		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			qb.whereIn("business_units.id", data.units);
+		}
+
+		if (data.from && data.to) {
+			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		}
+		const monthResult: {
+			total_bills: number;
+			tkt_medio: number;
+			projecao: number;
+		}[] = await qb;
+
+		return {
+			cards: monthResult
+				.flatMap((row) => {
+					return [
+						[
+							{
+								name: "FaturamentoMesCorrente",
+								items: [
+									{
+										description: "Faturamento Realizado do Mes Corrente",
+										value: row.total_bills ?? 0,
+									},
+								],
+							},
+						],
+						[
+							{
+								name: "TicketMedioMesCorrente",
+								items: [
+									{
+										description: "Ticket Medio Mes Corrente",
+										value: row.tkt_medio ?? 0,
+									},
+								],
+							},
+						],
+						[
+							{
+								name: "ProjecaoMesCorrente",
+								items: [
+									{
+										description: "Projeção Faturamento Mês Corrente",
+										value: row.projecao ?? 0,
+									},
+								],
+							},
+						],
+					];
+				})
 				.flat(),
 		};
 	}

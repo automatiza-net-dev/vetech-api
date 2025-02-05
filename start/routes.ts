@@ -1877,6 +1877,10 @@ Route.group(() => {
 Route.group(() => {
   Route.get("/list-notifications", "NotificationsController.listNotifications");
 	Route.post(
+		"/read-notifications",
+		"NotificationsController.readNotifications",
+	);
+	Route.post(
 		"/create-notification",
 		"NotificationsController.createNotification",
 	);

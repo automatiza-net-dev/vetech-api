@@ -31,7 +31,7 @@ export default class NotificationsService {
 			])
 			.whereNull("deleted_at")
 			.whereRaw(
-				"id not in (select notification_id from notification_users where user_id = ?)",
+				"id in (select notification_id from notification_users where user_id = ? and read_at is null)",
 				[authCtx.user.id],
 			);
 
@@ -39,12 +39,25 @@ export default class NotificationsService {
 			notifications.map((n) => ({
 				notification_id: n.id,
 				user_id: authCtx.user.id,
-				read_at: DateTime.now(),
+				// read_at: DateTime.now(),
 				viewed_at: DateTime.now(),
 			})),
 		);
 
 		return notifications;
+	}
+
+	public async readNotifications(
+		authCtx: AuthContext,
+		data: { notificationIds: number[] },
+	) {
+		await Database.from("notification_users")
+			.where("user_id", authCtx.user.id)
+			.whereIn("notification_id", data.notificationIds)
+			.whereNull("read_at")
+			.update({
+				read_at: DateTime.now(),
+			});
 	}
 
 	public async createNotification(

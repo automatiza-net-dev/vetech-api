@@ -3,6 +3,7 @@ import { inject } from "@adonisjs/fold";
 import SharedService from "App/Services/SharedService";
 import NotificationsService from "App/Services/NotificationsService";
 import CreateNotificationValidator from "App/Validators/Notification/CreateNotificationValidator";
+import ReadNotificationValidator from "App/Validators/Notification/ReadNotificationValidator";
 
 @inject()
 export default class NotificationsController {
@@ -17,6 +18,21 @@ export default class NotificationsController {
 				await this.sharedService.getAuthContext(auth),
 			),
 		);
+	}
+
+	public async readNotifications({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const data = await request.validate(ReadNotificationValidator);
+
+		await this.notificationService.readNotifications(
+			await this.sharedService.getAuthContext(auth),
+			data,
+		);
+
+		return response.noContent();
 	}
 
 	public async createNotification({

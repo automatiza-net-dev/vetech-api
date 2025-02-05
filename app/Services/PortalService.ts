@@ -1,10 +1,13 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { endOfMonth } from "date-fns";
-import { AuthContext } from "./SharedService";
+import Decimal from "decimal.js";
+import SharedService, { AuthContext } from "./SharedService";
 
 @inject()
 export default class PortalService {
+	constructor(private shared: SharedService) {}
+
 	public async dashboard(
 		authCtx: AuthContext,
 		data: {
@@ -19,6 +22,7 @@ export default class PortalService {
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
+			this.salesByPeriod(authCtx, data),
 		]);
 
 		return {
@@ -267,6 +271,7 @@ export default class PortalService {
 			),
 		};
 	}
+
 	public async sellerBillingRanking(
 		authCtx: AuthContext,
 		data: {
@@ -383,6 +388,167 @@ export default class PortalService {
 			type: "table",
 			hasData: result.length > 0,
 			data: result,
+		};
+	}
+
+	public async salesByPeriod(
+		authCtx: AuthContext,
+		data: {
+			units?: string[];
+			from?: string;
+			to?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_total",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_novos",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 0 and 7 then bills.total_value
+               else 0 end) as "madrugada_recorrentes",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_total",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_novos",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 8 and 11 then bills.total_value
+               else 0 end) as "manha_recorrentes",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_total",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_novos",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 12 and 17 then bills.total_value
+               else 0 end) as "tarde_recorrentes",
+       sum(case
+               when cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_total",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') = to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_novos",
+       sum(case
+               when to_char(bills.bill_date, 'MM-AAAA') <> to_char(patients.created_at, 'MM-AAAA') and
+                    cast(to_char(bills.bill_date, 'HH24') as integer) between 18 and 23 then bills.total_value
+               else 0 end) as "noite_recorrentes"`),
+			)
+			.joinRaw("join patients on patients.id = bills.client_id")
+			.joinRaw(
+				"join business_units on bills.business_unit_id = business_units.id",
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.whereRaw("business_units.environment = ?", [authCtx.unit.environment])
+			.whereNull("bills.deleted_at");
+
+		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			qb.whereIn("business_units.id", data.units);
+		}
+
+		if (data.from && data.to) {
+			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		}
+
+		const result: {
+			madrugada_total: string;
+			madrugada_novos: string;
+			madrugada_recorrentes: string;
+			manha_total: string;
+			manha_novos: string;
+			manha_recorrentes: string;
+			tarde_total: string;
+			tarde_novos: string;
+			tarde_recorrentes: string;
+			noite_total: string;
+			noite_novos: string;
+			noite_recorrentes: string;
+		}[] = await qb;
+
+		const sum =
+			result.length > 0
+				? [
+						result[0].madrugada_total,
+						result[0].manha_total,
+						result[0].tarde_total,
+						result[0].noite_total,
+					].reduce((acc, curr) => {
+						return acc.plus(new Decimal(curr));
+					}, new Decimal(0))
+				: 0;
+
+		return {
+			name: "portal-sales-per-period",
+			description: "Vendas por Periodo",
+			type: "table",
+			hasData: result.length > 0,
+			data:
+				result.length === 0
+					? []
+					: [
+							{
+								period: {
+									dawn: {
+										total: result[0].madrugada_total,
+										new: result[0].madrugada_novos,
+										recurrent: result[0].madrugada_recorrentes,
+										percentage: this.shared.formatPercentage(
+											new Decimal(result[0].madrugada_total)
+												.div(sum)
+												.times(100)
+												.toNumber(),
+										),
+									},
+									morning: {
+										total: result[0].manha_total,
+										new: result[0].manha_novos,
+										recurrent: result[0].manha_recorrentes,
+										percentage: this.shared.formatPercentage(
+											new Decimal(result[0].manha_total)
+												.div(sum)
+												.times(100)
+												.toNumber(),
+										),
+									},
+									afternoon: {
+										total: result[0].tarde_total,
+										new: result[0].tarde_novos,
+										recurrent: result[0].tarde_recorrentes,
+										percentage: this.shared.formatPercentage(
+											new Decimal(result[0].tarde_total)
+												.div(sum)
+												.times(100)
+												.toNumber(),
+										),
+									},
+									night: {
+										total: result[0].noite_total,
+										new: result[0].noite_novos,
+										recurrent: result[0].noite_recorrentes,
+										percentage: this.shared.formatPercentage(
+											new Decimal(result[0].noite_total)
+												.div(sum)
+												.times(100)
+												.toNumber(),
+										),
+									},
+								},
+							},
+						],
 		};
 	}
 }

@@ -44,7 +44,7 @@ export default class PortalService {
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(
-					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct patient_id)::float as tkt_medio",
+					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct client_id)::float as tkt_medio",
 					[],
 				),
 			)
@@ -123,7 +123,7 @@ export default class PortalService {
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(
-					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct patient_id)::float as tkt_medio, sum(bills.total_value) / ? * ? as projecao",
+					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct client_id)::float as tkt_medio, sum(bills.total_value) / ? * ? as projecao",
 					[today.getDay(), endOfMonth(today).getDay()],
 				),
 			)
@@ -365,7 +365,7 @@ export default class PortalService {
 				Database.raw(`economic_groups.company_name                              as grupo_economico,
        business_units.identification                             as unidade_negocios,
        business_units.id                                         as business_unit_id,
-       sum(bills.total_value) / count(distinct bills.patient_id) as tkt_medio`),
+       sum(bills.total_value) / count(distinct bills.client_id) as tkt_medio`),
 			)
 			.joinRaw(
 				"join business_units on business_units.id = bills.business_unit_id",

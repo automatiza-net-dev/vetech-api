@@ -1,15 +1,16 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import User from "App/Models/User";
 import { endOfMonth } from "date-fns";
 import Decimal from "decimal.js";
-import SharedService, { AuthContext } from "./SharedService";
+import SharedService from "./SharedService";
 
 @inject()
 export default class PortalService {
 	constructor(private shared: SharedService) {}
 
 	public async dashboard(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -33,7 +34,7 @@ export default class PortalService {
 	}
 
 	public async billing(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -110,7 +111,7 @@ export default class PortalService {
 	}
 
 	public async monthlyBilling(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -201,7 +202,7 @@ export default class PortalService {
 	}
 
 	public async billingRanking(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -285,7 +286,7 @@ export default class PortalService {
 	}
 
 	public async sellerBillingRanking(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -352,7 +353,7 @@ export default class PortalService {
 	}
 
 	public async avgTicket(
-		authCtx: AuthContext,
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -410,7 +411,7 @@ export default class PortalService {
 	}
 
 	public async salesByPeriod(
-		authCtx: AuthContext,
+		_authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -471,7 +472,7 @@ export default class PortalService {
 			.joinRaw(
 				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
-			.whereRaw("business_units.environment = ?", [authCtx.unit.environment])
+			.whereRaw("business_units.environment = ?", ["P"])
 			.whereNull("bills.deleted_at");
 
 		if (data.units && Array.isArray(data.units) && data.units.length > 0) {

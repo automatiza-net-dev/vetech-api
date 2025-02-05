@@ -11,17 +11,21 @@ export default class AccountPlanGroupsController {
 	) {}
 
 	public async dashboard({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.dashboard(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.dashboard(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
 
 	public async billing({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.billing(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.billing(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
@@ -31,17 +35,22 @@ export default class AccountPlanGroupsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+		const user = auth.use("api").user!;
 
-		const data = await this.service.monthlyBilling(authCtx, request.qs());
+		const data = await this.service.monthlyBilling(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
 
 	public async salesByPeriod({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.salesByPeriod(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.salesByPeriod(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
@@ -51,9 +60,11 @@ export default class AccountPlanGroupsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.sellerBillingRanking(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.sellerBillingRanking(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
@@ -63,17 +74,21 @@ export default class AccountPlanGroupsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.billingRanking(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.billingRanking(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}
 
 	public async avgTicket({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-
-		const data = await this.service.avgTicket(authCtx, request.qs());
+		const user = auth.use("api").user!;
+		const data = await this.service.avgTicket(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
 
 		return response.ok(data);
 	}

@@ -647,7 +647,6 @@ export default class AuthService {
 				.whereHas("role", (query) => {
 					query.whereIn("type", ["controller", "both"] as TRoleType[]);
 				})
-				.whereNull("unit_id")
 				.where("active", true);
 			if ($roles.length === 0) {
 				throw new BadRequestException("Usuário sem cargo", 400, "E_INVALID");

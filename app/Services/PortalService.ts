@@ -301,7 +301,7 @@ export default class PortalService {
        users.id                                                  as id_vendedor,
        users.name                                                as nome_vendedor,
        sum(bills.total_value)                                    as total_bills,
-       sum(bills.total_value) / count(distinct bills.patient_id) as tkt_medio`),
+       sum(bills.total_value) / count(distinct bills.client_id) as tkt_medio`),
 			)
 			.joinRaw(
 				"join business_units on business_units.id = bills.business_unit_id",

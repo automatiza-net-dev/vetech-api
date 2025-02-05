@@ -12,8 +12,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const [billing, monthlyBilling, ...rest] = await Promise.all([
@@ -36,8 +36,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const qb = Database.from("bills")
@@ -65,8 +65,11 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const generalResult: {
@@ -110,8 +113,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const today = new Date();
@@ -142,8 +145,11 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 		const monthResult: {
 			total_bills: number;
@@ -198,8 +204,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const sumQb = Database.from("bills")
@@ -243,9 +249,15 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			sumQb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			sumQb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const [{ total_bills = 0 }] = await sumQb;
@@ -276,8 +288,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const qb = Database.from("bills")
@@ -313,8 +325,11 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const result: {
@@ -340,8 +355,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const qb = Database.from("bills")
@@ -371,8 +386,11 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const result: {
@@ -395,8 +413,8 @@ export default class PortalService {
 		authCtx: AuthContext,
 		data: {
 			units?: string[];
-			from?: string;
-			to?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 	) {
 		const qb = Database.from("bills")
@@ -460,8 +478,11 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.from && data.to) {
-			qb.whereRaw("bill_date::date between ? and ?", [data.from, data.to]);
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const result: {

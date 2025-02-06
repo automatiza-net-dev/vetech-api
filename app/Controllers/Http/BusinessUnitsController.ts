@@ -46,11 +46,9 @@ export default class BusinessUnitsController {
 	}
 
 	public async systemUnits({ auth, response }: HttpContextContract) {
-		return response.ok(
-			await this.service.systemUnits(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
+		const user = auth.use("api").user!;
+
+		return response.ok(await this.service.systemUnits(user.system_id));
 	}
 
 	public async show({ params, response }: HttpContextContract) {

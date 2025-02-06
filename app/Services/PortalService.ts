@@ -88,7 +88,7 @@ export default class PortalService {
 								items: [
 									{
 										description: "Faturamento Realizado",
-										value: row.total_bills,
+										value: this.shared.formatter.format(row.total_bills),
 									},
 								],
 							},
@@ -99,7 +99,7 @@ export default class PortalService {
 								items: [
 									{
 										description: "Ticket Medio",
-										value: row.tkt_medio,
+										value: this.shared.formatter.format(row.tkt_medio),
 									},
 								],
 							},
@@ -153,9 +153,9 @@ export default class PortalService {
 			]);
 		}
 		const monthResult: {
-			total_bills: number;
-			tkt_medio: number;
-			projecao: number;
+			total_bills: number | null;
+			tkt_medio: number | null;
+			projecao: number | null;
 		}[] = await qb;
 
 		return {
@@ -168,7 +168,7 @@ export default class PortalService {
 								items: [
 									{
 										description: "Faturamento Realizado do Mes Corrente",
-										value: row.total_bills ?? 0,
+										value: this.shared.formatter.format(row.total_bills ?? 0),
 									},
 								],
 							},
@@ -179,7 +179,7 @@ export default class PortalService {
 								items: [
 									{
 										description: "Ticket Medio Mes Corrente",
-										value: row.tkt_medio ?? 0,
+										value: this.shared.formatter.format(row.tkt_medio ?? 0),
 									},
 								],
 							},
@@ -190,7 +190,7 @@ export default class PortalService {
 								items: [
 									{
 										description: "Projeção Faturamento Mês Corrente",
-										value: row.projecao ?? 0,
+										value: this.shared.formatter.format(row.projecao ?? 0),
 									},
 								],
 							},
@@ -275,11 +275,16 @@ export default class PortalService {
 			description: "Ranking Unidades por Faturamento",
 			type: "table",
 			hasData: result.length > 0,
-			total: total_bills,
+			total: this.shared.formatter.format(total_bills),
 			data: result.map((row) =>
 				Object.assign(row, {
+					total_bills: this.shared.formatter.format(row.total_bills),
 					participacao:
-						total_bills > 0 ? (row.total_bills / total_bills) * 100 : 0,
+						total_bills > 0
+							? this.shared.formatPercentage(
+									(row.total_bills / total_bills) * 100,
+								)
+							: 0,
 				}),
 			),
 		};
@@ -339,8 +344,8 @@ export default class PortalService {
 			unidade_negocios: string | null;
 			id_vendedor: string;
 			nome_vendedor: string | null;
-			total_bills: number;
-			tkt_medio: number;
+			total_bills: string | null;
+			tkt_medio: string | null;
 		}[] = await qb;
 
 		return {
@@ -348,7 +353,16 @@ export default class PortalService {
 			description: "Ranking Vendedores por Faturamento",
 			type: "table",
 			hasData: result.length > 0,
-			data: result,
+			data: result.map((row) =>
+				Object.assign(row, {
+					total_bills: this.shared.formatter.format(
+						row.total_bills ? Number.parseFloat(row.total_bills) : 0,
+					),
+					tkt_medio: this.shared.formatter.format(
+						row.tkt_medio ? Number.parseFloat(row.tkt_medio) : 0,
+					),
+				}),
+			),
 		};
 	}
 
@@ -398,7 +412,7 @@ export default class PortalService {
 			grupo_economico: string;
 			unidade_negocios: string;
 			business_unit_id: string;
-			tkt_medio: number;
+			tkt_medio: string | null;
 		}[] = await qb;
 
 		return {
@@ -406,7 +420,13 @@ export default class PortalService {
 			description: "Ranking Unidades por Ticket Médio",
 			type: "table",
 			hasData: result.length > 0,
-			data: result,
+			data: result.map((row) =>
+				Object.assign(row, {
+					tkt_medio: this.shared.formatter.format(
+						row.tkt_medio ? Number.parseFloat(row.tkt_medio) : 0,
+					),
+				}),
+			),
 		};
 	}
 
@@ -487,18 +507,18 @@ export default class PortalService {
 		}
 
 		const result: {
-			madrugada_total: string;
-			madrugada_novos: string;
-			madrugada_recorrentes: string;
-			manha_total: string;
-			manha_novos: string;
-			manha_recorrentes: string;
-			tarde_total: string;
-			tarde_novos: string;
-			tarde_recorrentes: string;
-			noite_total: string;
-			noite_novos: string;
-			noite_recorrentes: string;
+			madrugada_total: string | null;
+			madrugada_novos: string | null;
+			madrugada_recorrentes: string | null;
+			manha_total: string | null;
+			manha_novos: string | null;
+			manha_recorrentes: string | null;
+			tarde_total: string | null;
+			tarde_novos: string | null;
+			tarde_recorrentes: string | null;
+			noite_total: string | null;
+			noite_novos: string | null;
+			noite_recorrentes: string | null;
 		}[] = await qb;
 
 		const sum =
@@ -509,7 +529,7 @@ export default class PortalService {
 						result[0].tarde_total,
 						result[0].noite_total,
 					].reduce((acc, curr) => {
-						return acc.plus(new Decimal(curr));
+						return curr ? acc.plus(new Decimal(curr)) : acc;
 					}, new Decimal(0))
 				: 0;
 
@@ -525,44 +545,68 @@ export default class PortalService {
 							{
 								period: {
 									dawn: {
-										total: result[0].madrugada_total,
-										new: result[0].madrugada_novos,
-										recurrent: result[0].madrugada_recorrentes,
+										total: this.shared.formatter.format(
+											Number.parseFloat(result[0].madrugada_total ?? "0"),
+										),
+										new: this.shared.formatter.format(
+											Number.parseFloat(result[0].madrugada_novos ?? "0"),
+										),
+										recurrent: this.shared.formatter.format(
+											Number.parseFloat(result[0].madrugada_recorrentes ?? "0"),
+										),
 										percentage: this.shared.formatPercentage(
-											new Decimal(result[0].madrugada_total)
+											new Decimal(result[0].madrugada_total ?? 0)
 												.div(sum)
 												.times(100)
 												.toNumber(),
 										),
 									},
 									morning: {
-										total: result[0].manha_total,
-										new: result[0].manha_novos,
-										recurrent: result[0].manha_recorrentes,
+										total: this.shared.formatter.format(
+											Number.parseFloat(result[0].manha_total ?? "0"),
+										),
+										new: this.shared.formatter.format(
+											Number.parseFloat(result[0].manha_novos ?? "0"),
+										),
+										recurrent: this.shared.formatter.format(
+											Number.parseFloat(result[0].manha_recorrentes ?? "0"),
+										),
 										percentage: this.shared.formatPercentage(
-											new Decimal(result[0].manha_total)
+											new Decimal(result[0].manha_total ?? 0)
 												.div(sum)
 												.times(100)
 												.toNumber(),
 										),
 									},
 									afternoon: {
-										total: result[0].tarde_total,
-										new: result[0].tarde_novos,
-										recurrent: result[0].tarde_recorrentes,
+										total: this.shared.formatter.format(
+											Number.parseFloat(result[0].tarde_total ?? "0"),
+										),
+										new: this.shared.formatter.format(
+											Number.parseFloat(result[0].tarde_novos ?? "0"),
+										),
+										recurrent: this.shared.formatter.format(
+											Number.parseFloat(result[0].tarde_recorrentes ?? "0"),
+										),
 										percentage: this.shared.formatPercentage(
-											new Decimal(result[0].tarde_total)
+											new Decimal(result[0].tarde_total ?? 0)
 												.div(sum)
 												.times(100)
 												.toNumber(),
 										),
 									},
 									night: {
-										total: result[0].noite_total,
-										new: result[0].noite_novos,
-										recurrent: result[0].noite_recorrentes,
+										total: this.shared.formatter.format(
+											Number.parseFloat(result[0].noite_total ?? "0"),
+										),
+										new: this.shared.formatter.format(
+											Number.parseFloat(result[0].noite_novos ?? "0"),
+										),
+										recurrent: this.shared.formatter.format(
+											Number.parseFloat(result[0].noite_recorrentes ?? "0"),
+										),
 										percentage: this.shared.formatPercentage(
-											new Decimal(result[0].noite_total)
+											new Decimal(result[0].noite_total ?? 0)
 												.div(sum)
 												.times(100)
 												.toNumber(),

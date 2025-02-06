@@ -31,7 +31,7 @@ export default class NotificationsService {
 			])
 			.whereNull("deleted_at")
 			.whereRaw(
-				"id not in (select notification_id from notification_users where user_id = ? and read_at is null)",
+				"id in (select notification_id from notification_users where user_id = ? and read_at is null)",
 				[authCtx.user.id],
 			);
 

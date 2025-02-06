@@ -35,7 +35,8 @@ export default class NotificationsService {
 				[authCtx.user.id],
 			);
 
-		await NotificationUser.createMany(
+		await NotificationUser.fetchOrCreateMany(
+			["notification_id", "user_id"],
 			notifications.map((n) => ({
 				notification_id: n.id,
 				user_id: authCtx.user.id,

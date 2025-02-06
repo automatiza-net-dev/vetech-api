@@ -295,7 +295,7 @@ export default class PortalService {
 	) {
 		const qb = Database.from("bills")
 			.select(
-				Database.raw(`economic_groups.company_name                                           as grupo_cconomico,
+				Database.raw(`economic_groups.company_name                                           as grupo_economico,
        business_units.id                                         as id_unidade_negocios,
        business_units.identification                             as unidade_negocios,
        users.id                                                  as id_vendedor,

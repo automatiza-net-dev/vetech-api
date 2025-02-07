@@ -25,6 +25,7 @@ export default class PortalService {
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
+			this.subsgroupRanking(authCtx, data),
 		]);
 
 		return {
@@ -752,6 +753,122 @@ export default class PortalService {
 						.div(new Decimal(recorrentes))
 						.times(100)
 						.toNumber(),
+				),
+			})),
+		};
+	}
+
+	public async subsgroupRanking(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const sumQb = Database.from("bills")
+			.select(Database.raw("sum(bill_items.total_value) as total"))
+			.joinRaw(
+				"join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA' and bill_items.deleted_at is null",
+			)
+			.joinRaw(
+				"inner join product_variations on product_variations.id = bill_items.product_variation_id",
+			)
+			.joinRaw(
+				"inner join products on products.id = product_variations.product_id",
+			)
+			.joinRaw("inner join subgroups on subgroups.id = products.subgroup_id ")
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id ",
+			)
+			.joinRaw(
+				"inner join economic_groups on business_units.economic_group_id = economic_groups.id ",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
+			.whereNull("bills.deleted_at")
+			.where("business_units.environment", "P");
+
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`subgroups.id as s_id, subgroups.description, count(bill_items.id) as count, sum(bill_items.quantity) as quantity,
+sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients`),
+			)
+			.joinRaw(
+				"join bill_items on bill_items.bill_id = bills.id and bill_items.status = 'ATIVA' and bill_items.deleted_at is null",
+			)
+			.joinRaw(
+				"inner join product_variations on product_variations.id = bill_items.product_variation_id",
+			)
+			.joinRaw(
+				"inner join products on products.id = product_variations.product_id",
+			)
+			.joinRaw("inner join subgroups on subgroups.id = products.subgroup_id ")
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id ",
+			)
+			.joinRaw(
+				"inner join economic_groups on business_units.economic_group_id = economic_groups.id ",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("business_units.environment", "P")
+			.groupByRaw("subgroups.id, subgroups.description")
+			.orderByRaw("total desc, description desc");
+
+		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			sumQb.whereIn("business_units.id", data.units);
+			qb.whereIn("business_units.id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			sumQb.whereRaw("attendances.start_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb.whereRaw("attendances.start_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const totalQty: {
+			total: string;
+		}[] = await sumQb;
+
+		const result: {
+			s_id: string;
+			description: string;
+			count: string;
+			quantity: string;
+			total: number;
+			clients: string;
+		}[] = await qb;
+
+		const total =
+			totalQty.length === 0
+				? new Decimal(0)
+				: new Decimal(totalQty[0].total ?? 0);
+
+		return {
+			name: "PortalSubgrupos",
+			description: "Vendas por Subgrupo",
+			type: "table",
+			hasData: result.length > 0,
+			data: result.map((row) => ({
+				id: row.s_id,
+				description: row.description,
+				count: Number.parseInt(row.count),
+				quantity: Number.parseFloat(row.quantity).toFixed(2),
+				total: this.shared.formatter.format(row.total),
+				uniqueClients: Number.parseInt(row.clients),
+				percentage: this.shared.formatPercentage(
+					new Decimal(row.total).div(total).times(new Decimal(100)).toNumber(),
 				),
 			})),
 		};

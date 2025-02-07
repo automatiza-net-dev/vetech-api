@@ -827,11 +827,11 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		}
 
 		if (data.fromDate && data.toDate) {
-			sumQb.whereRaw("attendances.start_date::date between ? and ?", [
+			sumQb.whereRaw("bills.bill_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);
-			qb.whereRaw("attendances.start_date::date between ? and ?", [
+			qb.whereRaw("bills.bill_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);

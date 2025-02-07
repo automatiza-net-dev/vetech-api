@@ -35,7 +35,7 @@ interface ISearchClinic {
 export default class BusinessUnitService {
 	constructor(private readonly sharedService: SharedService) {}
 
-	public async systemUnits(authCtx: AuthContext): Promise<Array<BusinessUnit>> {
+	public async systemUnits(systemID: number): Promise<Array<BusinessUnit>> {
 		return BusinessUnit.query()
 			.where("active", true)
 			.whereNull("deleted_at")
@@ -44,7 +44,7 @@ export default class BusinessUnitService {
 				query.select("id", "companyName");
 			})
 			.whereHas("economicGroup", (query) => {
-				query.where("system_id", authCtx.system.id);
+				query.where("system_id", systemID);
 			});
 	}
 

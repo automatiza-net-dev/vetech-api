@@ -11,7 +11,7 @@ import OpportunityActivity, {
 } from "App/Models/OpportunityActivity";
 import OpportunityActivityLog from "App/Models/OpportunityActivityLog";
 import OpportunityLog from "App/Models/OpportunityLog";
-import Patient, { PatientGender, PatientType } from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import { ScheduleStatusType } from "App/Models/ScheduleStatus";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -1450,7 +1450,7 @@ export default class OpportunityService {
 				await row
 					.merge({
 						weight: data.weight,
-						gender: data.gender as PatientGender,
+						gender: data.gender,
 					})
 					.useTransaction(trx)
 					.save();

@@ -10,10 +10,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill from "App/Models/Bill";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DocumentTemplate from "App/Models/DocumentTemplate";
-import Patient, {
-	PatientGender,
-	PatientVaccineOrigin,
-} from "App/Models/Patient";
+import Patient, { PatientVaccineOrigin } from "App/Models/Patient";
 import Schedule from "App/Models/Schedule";
 import TemplateReplacement, {
 	TemplateReplacementOrigin,
@@ -623,7 +620,7 @@ export default class TemplateReplacementService {
 				return "não informado";
 			}
 
-			return data.gender === PatientGender.MALE ? "macho" : "fêmea";
+			return data.gender;
 		};
 
 		const calculateVaccine = (data: PatientVaccineOrigin) => {

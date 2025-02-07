@@ -1,6 +1,5 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
-import { TutorGender } from "App/Models/Patient";
 import { PatientContactType } from "App/Models/PatientContact";
 import { TutorResidences } from "App/Models/PatientTutor";
 
@@ -36,7 +35,7 @@ export default class CreateLiftOneTutorForRegisterValidator {
 		}),
 		birthDate: schema.date({}),
 		clientOriginItemDescription: schema.string.optional({}, []),
-		gender: schema.enum(Object.values(TutorGender), []),
+		gender: schema.string(),
 		clientOriginId: schema.string([
 			rules.exists({ table: "client_origins", column: "id" }),
 		]),

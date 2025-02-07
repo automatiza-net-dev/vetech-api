@@ -33,11 +33,11 @@ export enum PatientGender {
 	FEMALE = "femea",
 }
 
-export enum TutorGender {
-	MALE = "masculino",
-	FEMALE = "feminino",
-	OTHER = "outro",
-}
+// export enum TutorGender {
+// 	MALE = "masculino",
+// 	FEMALE = "feminino",
+// 	OTHER = "outro",
+// }
 
 export enum PatientVaccineOrigin {
 	C = "PROPRIA_CLINICA",
@@ -72,7 +72,7 @@ export default class Patient extends BaseModel {
 	public vaccineOrigin: PatientVaccineOrigin;
 
 	@column()
-	public gender?: PatientGender | TutorGender;
+	public gender?: string;
 
 	@column()
 	public tags?: string;

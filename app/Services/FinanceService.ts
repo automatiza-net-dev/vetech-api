@@ -67,6 +67,8 @@ interface ISearch {
 	plan?: string;
 	competence?: string;
 
+	order?: string;
+
 	groupBorderos?: string;
 }
 
@@ -405,6 +407,32 @@ export default class FinanceService {
 
 		if (data.competence) {
 			qb.where("finances.competence_date", data.competence);
+		}
+
+		if (!data.order || data.order === "expiration_date") {
+			qb.orderByRaw("expiration_date, document, installment, issue_date");
+		}
+
+		if (data.order === "issue_date") {
+			qb.orderByRaw("issue_date,  document, installment , expiration_date");
+		}
+
+		if (data.order === "payment_date") {
+			qb.orderByRaw(
+				"payment_date, document, installment, issue_date, expiration_date",
+			);
+		}
+
+		if (data.order === "competence_date") {
+			qb.orderByRaw(
+				"competence_date, document, installment, issue_date, expiration_date",
+			);
+		}
+
+		if (data.order === "doc") {
+			qb.orderByRaw(
+				"document, installment, issue_date, expiration_date, client",
+			);
 		}
 
 		if (data?.groupBorderos === "sim") {

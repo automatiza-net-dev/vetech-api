@@ -92,6 +92,8 @@ export default class FinancesController {
 			plan: qs.plan,
 			competence: qs.competence,
 
+      order: qs.order,
+
 			groupBorderos: qs.groupBorderos,
 		});
 

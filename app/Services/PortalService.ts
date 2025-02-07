@@ -873,4 +873,133 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			})),
 		};
 	}
+
+	public async invoicingProductTypeSubgroup(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+			type?: string;
+			subgroup?: string;
+		},
+	) {
+		const sumQb = Database.from("bill_items")
+			.select(Database.raw("sum(bill_items.total_value) as total"))
+			.joinRaw("left join bills on bills.id = bill_items.bill_id")
+			.joinRaw(
+				"left join product_variations on product_variations.id = bill_items.product_variation_id",
+			)
+			.joinRaw(
+				"left join products on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				"left join business_unit_products on business_unit_products.product_variation_id = bill_items.product_variation_id and business_unit_products.businness_unit_id = bill_items.business_unit_id",
+			)
+			.joinRaw(
+				"left join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"left join economic_groups on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw("left join subgroups on subgroups.id = products.subgroup_id ")
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.where("business_units.environment", "P");
+
+		const qb = Database.from("bill_items")
+			.select(
+				Database.raw(
+					"products.id as p_id, products.description, subgroups.description as subgroup, sum(bill_items.quantity) as qty_sales, sum(bill_items.total_value) as total_sales, count(distinct bills.client_id) as qty_clients",
+				),
+			)
+			.joinRaw("left join bills on bills.id = bill_items.bill_id")
+			.joinRaw(
+				"left join product_variations on product_variations.id = bill_items.product_variation_id",
+			)
+			.joinRaw(
+				"left join products on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				"left join business_unit_products on business_unit_products.product_variation_id = bill_items.product_variation_id and business_unit_products.businness_unit_id = bill_items.business_unit_id",
+			)
+			.joinRaw(
+				"left join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"left join economic_groups on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw("left join subgroups on subgroups.id = products.subgroup_id ")
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at")
+			.where("business_units.environment", "P")
+			.groupByRaw("products.id, products.description, subgroups.description")
+			.orderByRaw("total_sales desc, description desc");
+
+		if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+			sumQb.whereIn("business_units.id", data.units);
+			qb.whereIn("business_units.id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			sumQb.whereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb.whereRaw("bills.bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		if (data.type) {
+			sumQb.where("products.type", data.type);
+			qb.where("products.type", data.type);
+		}
+
+		if (data.subgroup) {
+			sumQb.where("products.subgroup_id", data.subgroup);
+			qb.where("products.subgroup_id", data.subgroup);
+		}
+
+		const totalQty: {
+			total: string;
+		}[] = await sumQb;
+
+		const result: {
+			p_id: string;
+			description: string;
+			subgroup: string;
+			qty_sales: string;
+			total_sales: number;
+			qty_clients: number;
+		}[] = await qb;
+
+		const total =
+			totalQty.length === 0
+				? new Decimal(0)
+				: new Decimal(totalQty[0].total ?? 0);
+
+		return result.map((row) => ({
+			id: row.p_id,
+			description: row.description,
+			subgroup: row.subgroup,
+			qtySales: Number.parseFloat(row.qty_sales).toFixed(2),
+			qtyClients: row.qty_clients,
+			totalSales: this.shared.formatter.format(row.total_sales),
+			percentage: this.shared.formatPercentage(
+				new Decimal(row.total_sales).div(total).times(100).toNumber(),
+			),
+		}));
+	}
 }

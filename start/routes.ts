@@ -1875,7 +1875,7 @@ Route.group(() => {
 }).prefix("dictionary");
 
 Route.group(() => {
-  Route.get("/list-notifications", "NotificationsController.listNotifications");
+	Route.get("/list-notifications", "NotificationsController.listNotifications");
 	Route.post(
 		"/read-notifications",
 		"NotificationsController.readNotifications",
@@ -1999,6 +1999,10 @@ Route.group(() => {
 	Route.get("/seller-billing-ranking", "PortalController.sellerBillingRanking");
 	Route.get("/billing-ranking", "PortalController.billingRanking");
 	Route.get("/median-ticket", "PortalController.avgTicket");
+	Route.get(
+		"/invoicing-product-type-subgroup-portal",
+		"PortalController.invoicingProductTypeSubgroup",
+	);
 })
 	.prefix("portal")
 	.middleware("auth");

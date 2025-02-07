@@ -92,4 +92,18 @@ export default class AccountPlanGroupsController {
 
 		return response.ok(data);
 	}
+
+	public async invoicingProductTypeSubgroup({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const user = auth.use("api").user!;
+		const data = await this.service.invoicingProductTypeSubgroup(
+			{ systemID: user.system_id, user },
+			request.qs(),
+		);
+
+		return response.ok(data);
+	}
 }

@@ -409,7 +409,7 @@ export default class FinanceService {
 			qb.where("finances.competence_date", data.competence);
 		}
 
-		if (data.order === "expiration_date") {
+		if (!data.order || data.order === "expiration_date") {
 			qb.orderByRaw("expiration_date, document, installment, issue_date");
 		}
 

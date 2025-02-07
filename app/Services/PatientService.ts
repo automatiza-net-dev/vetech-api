@@ -13,8 +13,6 @@ import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
 import Patient, {
-	PatientGender,
-	TutorGender,
 	PatientType,
 } from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
@@ -43,7 +41,7 @@ import HolderDependentLog from "App/Models/HolderDependentLog";
 interface ISearch {
 	id?: string;
 	name?: string;
-	gender?: PatientGender;
+	gender?: string;
 	type?: PatientType;
 }
 
@@ -800,11 +798,7 @@ export default class PatientService {
 				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo}`
 				: null,
 			gender: patient.gender,
-			genderText: patient.gender
-				? patient.gender === PatientGender.MALE
-					? "Masculino"
-					: "Feminino"
-				: null,
+			genderText: patient.gender,
 			tags: patient.tags,
 			community: patient.community,
 			birth_date: patient.birthDate,
@@ -1001,7 +995,7 @@ export default class PatientService {
 			photo: patient.photo
 				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`
 				: null,
-			gender: patient.gender as TutorGender,
+			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate
 				? DateTime.fromJSDate(patient.birthDate)

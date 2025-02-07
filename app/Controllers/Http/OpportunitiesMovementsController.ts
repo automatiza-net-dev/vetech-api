@@ -11,6 +11,32 @@ export default class OpportunityMovementsController {
 		private service: OpportunityMovementsService,
 	) {}
 
+	public async index({ request, response, auth }: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const result = await this.service.index(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			);
+
+			return response.ok(result);
+		});
+	}
+
+	public async searchFromClients({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			const result = await this.service.searchFromClients(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			);
+
+			return response.ok(result);
+		});
+	}
+
 	public async search({ request, response, auth }: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const result = await this.service.searchOpportunityMovements(

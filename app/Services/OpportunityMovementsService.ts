@@ -2,9 +2,98 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { DateTime } from "luxon";
 import { AuthContext } from "./SharedService";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import { validate } from "uuid";
 
 @inject()
 export default class OpportunityMovementsService {
+	public async index(
+		authCtx: AuthContext,
+		data: {
+			opportunity?: number;
+			movement?: string;
+			type?: string;
+		},
+	) {
+		if (!data.type) {
+			throw new BadRequestException(
+				"É preciso informar um `type`",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.type !== "bill" && data.type !== "budget") {
+			throw new BadRequestException(
+				"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.type === "bill") {
+			return this.searchBillOpportunityMovements(authCtx, data);
+		}
+
+		if (data.type === "budget") {
+			return this.searchBudgetOpportunityMovements(authCtx, data);
+		}
+
+		throw new BadRequestException(
+			"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+			400,
+			"E_ERR",
+		);
+	}
+
+	public async searchFromClients(
+		authCtx: AuthContext,
+		data: {
+			opportunity?: number;
+			movement?: string;
+			type?: string;
+			client?: string;
+			patient?: string;
+		},
+	) {
+		if (!data.client) {
+			throw new BadRequestException(
+				"É preciso informar um `client`",
+				400,
+				"E_ERR",
+			);
+		}
+		if (!validate(data.client)) {
+			throw new BadRequestException("ID de cliente inválido", 400, "E_ERR");
+		}
+
+		if (data.patient && !validate(data.patient)) {
+			throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
+		}
+
+		if (data.type !== "bill" && data.type !== "budget") {
+			throw new BadRequestException(
+				"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.type === "bill") {
+			return this.searchBillOpportunityMovements(authCtx, data);
+		}
+
+		if (data.type === "budget") {
+			return this.searchBudgetOpportunityMovements(authCtx, data);
+		}
+
+		throw new BadRequestException(
+			"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+			400,
+			"E_ERR",
+		);
+	}
+
 	public async searchOpportunityMovements(
 		authCtx: AuthContext,
 		data: {
@@ -92,5 +181,147 @@ export default class OpportunityMovementsService {
 				deletion_user_id: authCtx.user.id,
 				deleted_at: DateTime.now(),
 			});
+	}
+
+	private async searchBillOpportunityMovements(
+		authCtx: AuthContext,
+		data: {
+			opportunity?: number;
+			movement?: string;
+			client?: string;
+			patient?: string;
+		},
+	): Promise<
+		{
+			id: string;
+			type: "bill";
+			tag: string;
+			total_value: number;
+			bill_date: DateTime;
+			itens: {
+				id: string;
+				description: string;
+				total_value: number;
+			}[];
+		}[]
+	> {
+		const qb = Database.from("opportunities_movements")
+			.select(
+				Database.raw(`movement_id,
+       opportunities_movements.type,
+       tag,
+       bills.total_value,
+       bill_date,
+       coalesce(json_agg(json_build_object('id', bill_items.id, 'description', products.description, 'total_value',
+                                           bill_items.total_value)), '[]'::json) as itens`),
+			)
+			.joinRaw("join bills on bills.id = opportunities_movements.movement_id")
+			.joinRaw(
+				"join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'",
+			)
+			.joinRaw(
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.groupByRaw("movement_id, opportunities_movements.type, bills.id")
+			.whereRaw("opportunities_movements.economic_group_id = ?", [
+				authCtx.group.id,
+			])
+			.whereRaw("opportunities_movements.business_unit_id = ?", [
+				authCtx.unit.id,
+			])
+			.where("opportunities_movements.type", "bill")
+			.whereNull("opportunities_movements.deleted_at")
+			.whereNull("bills.deleted_at")
+			.whereNull("bill_items.deleted_at");
+
+		if (data.opportunity) {
+			qb.where("opportunities_movements.opportunity_id", data.opportunity);
+		}
+
+		if (data.movement) {
+			qb.where("movement_id", data.movement);
+		}
+
+		if (data.client) {
+			qb.where("bills.client_id", data.client);
+		}
+
+		if (data.patient) {
+			qb.where("bills.patient_id", data.patient);
+		}
+
+		return qb;
+	}
+
+	private async searchBudgetOpportunityMovements(
+		authCtx: AuthContext,
+		data: {
+			opportunity?: number;
+			movement?: string;
+			client?: string;
+			patient?: string;
+		},
+	): Promise<
+		{
+			id: string;
+			type: "budget";
+			tag: string;
+			total_value: number;
+			budget_date: DateTime;
+			itens: {
+				id: string;
+				description: string;
+				total_value: number;
+			}[];
+		}[]
+	> {
+		const qb = Database.from("opportunities_movements")
+			.select(
+				Database.raw(`movement_id,
+       opportunities_movements.type,
+       tag,
+       budgets.total_value,
+       budget_date,
+       coalesce(json_agg(json_build_object('id', budget_items.id, 'description', products.description, 'total_value',
+                                           budget_items.total_value)), '[]'::json) as itens`),
+			)
+			.joinRaw(
+				"join budgets on budgets.id = opportunities_movements.movement_id",
+			)
+			.joinRaw("join budget_items on budgets.id = budget_items.budget_id")
+			.joinRaw(
+				"join product_variations on budget_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.groupByRaw("movement_id, opportunities_movements.type, budgets.id")
+			.whereRaw("opportunities_movements.economic_group_id = ?", [
+				authCtx.group.id,
+			])
+			.whereRaw("opportunities_movements.business_unit_id = ?", [
+				authCtx.unit.id,
+			])
+			.where("opportunities_movements.type", "budget")
+			.whereNull("opportunities_movements.deleted_at")
+			.whereNull("budgets.deleted_at")
+			.whereNull("budget_items.deleted_at");
+
+		if (data.opportunity) {
+			qb.where("opportunities_movements.opportunity_id", data.opportunity);
+		}
+
+		if (data.movement) {
+			qb.where("movement_id", data.movement);
+		}
+
+		if (data.client) {
+			qb.where("budgets.client_id", data.client);
+		}
+
+		if (data.patient) {
+			qb.where("budgets.patient_id", data.patient);
+		}
+
+		return qb;
 	}
 }

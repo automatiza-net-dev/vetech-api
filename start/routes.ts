@@ -1875,6 +1875,24 @@ Route.group(() => {
 }).prefix("dictionary");
 
 Route.group(() => {
+  Route.get("/list-notifications", "NotificationsController.listNotifications");
+	Route.post(
+		"/read-notifications",
+		"NotificationsController.readNotifications",
+	);
+	Route.post(
+		"/create-notification",
+		"NotificationsController.createNotification",
+	);
+	Route.post(
+		"/update-notification/:id",
+		"NotificationsController.updateNotification",
+	);
+	Route.delete(
+		"/exclude-notification/:id",
+		"NotificationsController.excludeNotification",
+	);
+
 	Route.get("/", "NotificationsController.fullNotifications");
 	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
 	Route.get("/roles", "NotificationsController.rolesNotifications");
@@ -1950,6 +1968,11 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "OpportunitiesMovementsController.search");
+	Route.get(
+		"/search-from-clients",
+		"OpportunitiesMovementsController.searchFromClients",
+	);
+	Route.get("/", "OpportunitiesMovementsController.index");
 	Route.post("/store", "OpportunitiesMovementsController.store");
 	Route.post("/cancel", "OpportunitiesMovementsController.cancel");
 })
@@ -1966,4 +1989,16 @@ Route.group(() => {
 	Route.get("/search", "PatientGendersController.list");
 })
 	.prefix("patient-genders")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/dashboard", "PortalController.dashboard");
+	Route.get("/monthly-billing", "PortalController.monthlyBilling");
+	Route.get("/sales-by-period", "PortalController.salesByPeriod");
+	Route.get("/billing", "PortalController.billing");
+	Route.get("/seller-billing-ranking", "PortalController.sellerBillingRanking");
+	Route.get("/billing-ranking", "PortalController.billingRanking");
+	Route.get("/median-ticket", "PortalController.avgTicket");
+})
+	.prefix("portal")
 	.middleware("auth");

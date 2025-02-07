@@ -1,10 +1,6 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
-import {
-	PatientGender,
-	PatientType,
-	PatientVaccineOrigin,
-} from "App/Models/Patient";
+import { PatientType, PatientVaccineOrigin } from "App/Models/Patient";
 
 export default class UpdatePatientValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -15,7 +11,7 @@ export default class UpdatePatientValidator {
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
-		gender: schema.enum.optional(Object.values(PatientGender), []),
+		gender: schema.string.optional(),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date({}),
 		active: schema.boolean([]),

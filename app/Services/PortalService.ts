@@ -20,6 +20,7 @@ export default class PortalService {
 		const [billing, monthlyBilling, ...rest] = await Promise.all([
 			this.billing(authCtx, data),
 			this.monthlyBilling(authCtx, data),
+			this.attendanceRanking(authCtx, data),
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
@@ -615,6 +616,144 @@ export default class PortalService {
 								},
 							},
 						],
+		};
+	}
+
+	public async attendanceRanking(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const sumQb = Database.from("attendances")
+			.select(
+				Database.raw(`count(attendances.id) as qtd,
+       sum(case
+               when to_char(patients.created_at, 'MMYYYY') = to_char(attendances.start_date, 'MMYYYY') then 1
+               else 0 end)   as qtd_novos,
+       sum(case
+               when to_char(patients.created_at, 'MMYYYY') <> to_char(attendances.start_date, 'MMYYYY') then 1
+               else 0 end)   as qtd_recorrentes`),
+			)
+			.joinRaw("join patients on attendances.patient_id = patients.id")
+			.joinRaw(
+				"join business_units on business_units.id = attendances.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
+			.whereNull("attendances.deleted_at")
+			.where("business_units.environment", "P");
+
+		const qb = Database.from("attendances")
+			.select(
+				Database.raw(`economic_groups.company_name  as grupo_economico,
+       business_units.id             as id_unidade_negocios,
+       business_units.identification as unidade_negocios,
+       count(attendances.id)         as qtd_total,
+       sum(case
+               when to_char(patients.created_at, 'MMYYYY') = to_char(attendances.start_date, 'MMYYYY') then 1
+               else 0 end)           as qtd_novos,
+       sum(case
+               when to_char(patients.created_at, 'MMYYYY') <> to_char(attendances.start_date, 'MMYYYY') then 1
+               else 0 end)           as qtd_recorrentes`),
+			)
+
+			.joinRaw("join patients on attendances.patient_id = patients.id")
+			.joinRaw(
+				"join business_units on business_units.id = attendances.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
+			.whereNull("attendances.deleted_at")
+			.where("business_units.environment", "P")
+			.groupByRaw(
+				"economic_groups.company_name, business_units.identification, business_units.id",
+			)
+			.orderByRaw("qtd_total desc");
+
+		// if (data.units && Array.isArray(data.units) && data.units.length > 0) {
+		// 	sumQb.whereIn("business_units.id", data.units);
+		// 	qb.whereIn("business_units.id", data.units);
+		// }
+
+		if (data.fromDate && data.toDate) {
+			sumQb.whereRaw("attendances.start_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb.whereRaw("attendances.start_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const totalQty: {
+			qtd: string;
+			qtd_novos: string;
+			qtd_recorrentes: string;
+		}[] = await sumQb;
+
+		const result: {
+			grupo_economico: string | null;
+			id_unidade_negocios: string;
+			unidade_negocios: string | null;
+			qtd_total: string;
+			qtd_novos: string;
+			qtd_recorrentes: string;
+		}[] = await qb;
+
+		const total = totalQty.at(0)?.qtd ?? 0;
+		const novos = totalQty.at(0)?.qtd_novos ?? 0;
+		const recorrentes = totalQty.at(0)?.qtd_recorrentes ?? 0;
+
+		return {
+			name: "RankingAtendimentos",
+			description: "Ranking Unidades por Atendimentos",
+			type: "table",
+			hasData: result.length > 0,
+			total,
+			novos,
+			recorrentes,
+			data: result.map((row) => ({
+				grupo_economico: row.grupo_economico,
+				unidade_negocios: row.unidade_negocios,
+				business_unit_id: row.id_unidade_negocios,
+				total: row.qtd_total,
+				participacaoTotal: this.shared.formatPercentage(
+					new Decimal(row.qtd_total)
+						.div(new Decimal(total))
+						.times(100)
+						.toNumber(),
+				),
+				novos: row.qtd_novos,
+				participacaoNovos: this.shared.formatPercentage(
+					new Decimal(row.qtd_novos)
+						.div(new Decimal(novos))
+						.times(100)
+						.toNumber(),
+				),
+				recorrentes: row.qtd_recorrentes,
+				participacaoRecorrentes: this.shared.formatPercentage(
+					new Decimal(row.qtd_recorrentes)
+						.div(new Decimal(recorrentes))
+						.times(100)
+						.toNumber(),
+				),
+			})),
 		};
 	}
 }

@@ -25,7 +25,7 @@ export default class PortalService {
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
-			this.subsgroupRanking(authCtx, data),
+			this.subgroupRanking(authCtx, data),
 		]);
 
 		return {
@@ -758,7 +758,7 @@ export default class PortalService {
 		};
 	}
 
-	public async subsgroupRanking(
+	public async subgroupRanking(
 		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];

@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import System from "App/Models/System";
 import User from "App/Models/User";
 import { endOfMonth } from "date-fns";
 import Decimal from "decimal.js";
@@ -26,6 +27,8 @@ export default class PortalService {
 			this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
 			this.subgroupRanking(authCtx, data),
+			this.medianTicketByOrigin(authCtx, data),
+			this.invoicingByPaymentMethod(authCtx, data),
 		]);
 
 		return {
@@ -1001,5 +1004,353 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				new Decimal(row.total_sales).div(total).times(100).toNumber(),
 			),
 		}));
+	}
+
+	public async medianTicketByOrigin(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            'Recorrentes'          as description,
+            sum(bills.total_value) as total,
+            count(distinct bills.client_id) as qty_clients
+          `,
+				),
+			)
+			.joinRaw(
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id`,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          client_origins.description,
+          sum(bills.total_value) as total,
+          count( distinct bills.client_id ) as qty_clients
+          `,
+				),
+			)
+			.joinRaw(
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id`,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id", "client_origins.description")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P");
+			qb2.where("business_units.environment", "P");
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const [r1, r2] = await Promise.all([qb1, qb2]);
+		const result = r1.concat(r2);
+
+		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
+		const system = await System.findOrFail(authCtx.systemID);
+
+		return {
+			name: "median-ticket-by-origin",
+			type: "pie",
+			hasData: result.length > 0,
+			title: "Faturamento X Origem Clientes",
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: system.colors[idx % system.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.total / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.total.toFixed(2)),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: elem.qty_clients,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: this.shared.formatter.format(
+						elem.total / Number.parseInt(elem.qty_clients),
+					),
+					itemStyle: { color: "" },
+				},
+			]),
+
+			configs: {
+				title: {
+					text: "Faturamento X Origem Clientes",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Origem Clientes",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result.map((elem, idx) => ({
+							value: Number.parseFloat(elem.total.toFixed(2)),
+							name: elem.description,
+							percentage: Number.parseFloat(
+								((elem.total / sum) * 100).toFixed(2),
+							),
+							itemStyle: {
+								color: system.colors[idx % system.colors.length],
+							},
+						})),
+					},
+				],
+			},
+		};
+	}
+	public async invoicingByPaymentMethod(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(Database.raw("sum(bills.total_value) as total_bills"))
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereNull("bills.deleted_at");
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					"payment_methods.description, sum(bill_payments.total_value) as total_payments",
+				),
+			)
+			.joinRaw(
+				"join bill_payments on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"inner join payment_methods on payment_methods.id = bill_payments.payment_method_id",
+				[],
+			)
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+				[],
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", [])
+			.groupByRaw("payment_methods.description");
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P");
+			qb2.where("business_units.environment", "P");
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb2.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result1: { total_bills: string }[] = await qb1;
+		const result2: { description: string; total_payments: string }[] =
+			await qb2;
+
+		const system = await System.findOrFail(authCtx.systemID);
+		const total = new Decimal(result1.at(0)?.total_bills ?? 0);
+
+		return {
+			name: "invoicing-by-payment-method",
+			type: "pie",
+			hasData: result2.length > 0,
+			title: "Faturamento X Forma Pagamento",
+			legend: result2.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: system.colors[idx % system.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage(
+						new Decimal(elem.total_payments).div(total).times(100).toNumber(),
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(
+						new Decimal(elem.total_payments).toNumber(),
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
+			configs: {
+				title: {
+					text: "Faturamento X Forma Pagamento",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Forma Pagamento",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result2.map((elem, idx) => ({
+							value: Number.parseFloat(elem.total_payments),
+							name: elem.description,
+							percentage: this.shared.formatPercentage(
+								new Decimal(elem.total_payments)
+									.div(total)
+									.times(100)
+									.toNumber(),
+							),
+							itemStyle: {
+								color: system.colors[idx % system.colors.length],
+							},
+						})),
+					},
+				],
+			},
+		};
 	}
 }

@@ -124,13 +124,13 @@ export default class AuthController {
 			// TODO flip
 			if (reqIp) {
 				if (reqIp !== ip) {
-					return {
+					return response.unauthorized({
 						errors: [
 							{
 								message: "E_UNAUTHORIZED_ACCESS: Unauthorized access",
 							},
 						],
-					};
+					});
 				}
 			}
 		}

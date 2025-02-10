@@ -1209,7 +1209,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const qb2 = Database.from("bills")
 			.select(
 				Database.raw(
-					"payment_methods.description, sum(bill_payments.total_value) as total_payments",
+					"payment_methods.description as description, sum(bill_payments.total_value) as total_payments",
 				),
 			)
 			.joinRaw(
@@ -1236,14 +1236,31 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			.whereRaw("bills.deleted_at is null", [])
 			.groupByRaw("payment_methods.description");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P");
-			qb2.where("business_units.environment", "P");
-		}
+		const qb3 = Database.from("bills")
+			.select(
+				Database.raw(
+					"'Em aberto' as description, sum(bills.total_value - bills.paid_value) as total_payments",
+				),
+			)
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+				[],
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", []);
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
+			qb3.whereIn("bills.business_unit_id", data.units);
 		}
 
 		if (data.fromDate && data.toDate) {
@@ -1255,21 +1272,29 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				data.fromDate,
 				data.toDate,
 			]);
+			qb3.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
 		const result1: { total_bills: string }[] = await qb1;
 		const result2: { description: string; total_payments: string }[] =
 			await qb2;
+		const result3: { description: string; total_payments: string }[] =
+			await qb3;
 
 		const system = await System.findOrFail(authCtx.systemID);
 		const total = new Decimal(result1.at(0)?.total_bills ?? 0);
+
+		const fullResult = [...result2, ...result3];
 
 		return {
 			name: "invoicing-by-payment-method",
 			type: "pie",
 			hasData: result2.length > 0,
 			title: "Faturamento X Forma Pagamento",
-			legend: result2.map((elem, idx) => [
+			legend: fullResult.map((elem, idx) => [
 				{
 					title: "Descrição",
 					value: elem.description,

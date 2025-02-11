@@ -3,7 +3,7 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import { DateTime } from "luxon";
 import { AuthContext } from "./SharedService";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import { validate } from "uuid";
+import { v4, validate } from "uuid";
 
 @inject()
 export default class OpportunityMovementsService {
@@ -71,27 +71,27 @@ export default class OpportunityMovementsService {
 			throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
 		}
 
-		if (data.type !== "bill" && data.type !== "budget") {
-			throw new BadRequestException(
-				"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
-				400,
-				"E_ERR",
-			);
-		}
+		// if (data.type !== "bill" && data.type !== "budget") {
+		// 	throw new BadRequestException(
+		// 		"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
 
 		if (data.type === "bill") {
 			return this.searchBillOpportunityMovements(authCtx, data);
 		}
 
-		if (data.type === "budget") {
+		if (!data.type || data.type === "budget") {
 			return this.searchBudgetOpportunityMovements(authCtx, data);
 		}
 
-		throw new BadRequestException(
-			"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
-			400,
-			"E_ERR",
-		);
+		// throw new BadRequestException(
+		// 	"Valores inválidos para `type`, é preciso informar entre `bill` e `budget`",
+		// 	400,
+		// 	"E_ERR",
+		// );
 	}
 
 	public async searchOpportunityMovements(
@@ -196,7 +196,7 @@ export default class OpportunityMovementsService {
 			id: string;
 			type: "bill";
 			tag: string;
-			total_value: number;
+			total_value: string;
 			bill_date: DateTime;
 			itens: {
 				id: string;
@@ -205,17 +205,16 @@ export default class OpportunityMovementsService {
 			}[];
 		}[]
 	> {
-		const qb = Database.from("opportunities_movements")
+		const qb = Database.from("bills")
 			.select(
-				Database.raw(`movement_id,
-       opportunities_movements.type,
+				Database.raw(`bills.id,
+       'bill'                                                                    as type,
        tag,
        bills.total_value,
        bill_date,
        coalesce(json_agg(json_build_object('id', bill_items.id, 'description', products.description, 'total_value',
                                            bill_items.total_value)), '[]'::json) as itens`),
 			)
-			.joinRaw("join bills on bills.id = opportunities_movements.movement_id")
 			.joinRaw(
 				"join bill_items on bills.id = bill_items.bill_id and bill_items.status = 'ATIVA'",
 			)
@@ -223,33 +222,17 @@ export default class OpportunityMovementsService {
 				"join product_variations on bill_items.product_variation_id = product_variations.id",
 			)
 			.joinRaw("join products on product_variations.product_id = products.id")
-			.groupByRaw("movement_id, opportunities_movements.type, bills.id")
-			.whereRaw("opportunities_movements.economic_group_id = ?", [
-				authCtx.group.id,
-			])
-			.whereRaw("opportunities_movements.business_unit_id = ?", [
-				authCtx.unit.id,
-			])
-			.where("opportunities_movements.type", "bill")
-			.whereNull("opportunities_movements.deleted_at")
-			.whereNull("bills.deleted_at")
-			.whereNull("bill_items.deleted_at");
-
-		if (data.opportunity) {
-			qb.where("opportunities_movements.opportunity_id", data.opportunity);
-		}
-
-		if (data.movement) {
-			qb.where("movement_id", data.movement);
-		}
-
-		if (data.client) {
-			qb.where("bills.client_id", data.client);
-		}
-
-		if (data.patient) {
-			qb.where("bills.patient_id", data.patient);
-		}
+			.whereRaw("bills.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("bills.business_unit_id", [authCtx.unit.id])
+			.whereRaw("bills.deleted_at is null", [])
+			.whereRaw("bill_items.deleted_at is null", [])
+			.whereRaw("bills.client_id = ?", [data.client ?? v4()])
+			.whereRaw("bills.bill_date::date >= now()::date - interval '30 days'", [])
+			.whereRaw(`bills.id not in (select movement_id
+                       from opportunities_movements om
+                       where om.economic_group_id = bills.economic_group_id
+                         and om.business_unit_id = bills.business_unit_id)`)
+			.groupByRaw("bills.id");
 
 		return qb;
 	}
@@ -276,10 +259,10 @@ export default class OpportunityMovementsService {
 			}[];
 		}[]
 	> {
-		const qb = Database.from("opportunities_movements")
+		const qb = Database.from("budgets")
 			.select(
-				Database.raw(`movement_id,
-       opportunities_movements.type,
+				Database.raw(`budgets.id,
+       'budget'                                                                    as type,
        tag,
        budgets.total_value,
        budget_date,
@@ -287,40 +270,26 @@ export default class OpportunityMovementsService {
                                            budget_items.total_value)), '[]'::json) as itens`),
 			)
 			.joinRaw(
-				"join budgets on budgets.id = opportunities_movements.movement_id",
+				"join budget_items on budgets.id = budget_items.budget_id and budget_items.status = 'ATIVA'",
 			)
-			.joinRaw("join budget_items on budgets.id = budget_items.budget_id")
 			.joinRaw(
 				"join product_variations on budget_items.product_variation_id = product_variations.id",
 			)
 			.joinRaw("join products on product_variations.product_id = products.id")
-			.groupByRaw("movement_id, opportunities_movements.type, budgets.id")
-			.whereRaw("opportunities_movements.economic_group_id = ?", [
-				authCtx.group.id,
-			])
-			.whereRaw("opportunities_movements.business_unit_id = ?", [
-				authCtx.unit.id,
-			])
-			.where("opportunities_movements.type", "budget")
-			.whereNull("opportunities_movements.deleted_at")
-			.whereNull("budgets.deleted_at")
-			.whereNull("budget_items.deleted_at");
-
-		if (data.opportunity) {
-			qb.where("opportunities_movements.opportunity_id", data.opportunity);
-		}
-
-		if (data.movement) {
-			qb.where("movement_id", data.movement);
-		}
-
-		if (data.client) {
-			qb.where("budgets.client_id", data.client);
-		}
-
-		if (data.patient) {
-			qb.where("budgets.patient_id", data.patient);
-		}
+			.whereRaw("budgets.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("budgets.business_unit_id", [authCtx.unit.id])
+			.whereRaw("budgets.deleted_at is null", [])
+			.whereRaw("budget_items.deleted_at is null", [])
+			.whereRaw("budgets.client_id = ?", [data.client ?? v4()])
+			.whereRaw(
+				"budgets.budget_date::date >= now()::date - interval '30 days'",
+				[],
+			)
+			.whereRaw(`budgets.id not in (select movement_id
+                       from opportunities_movements om
+                       where om.economic_group_id = budgets.economic_group_id
+                         and om.business_unit_id = budgets.business_unit_id)`)
+			.groupByRaw("budgets.id");
 
 		return qb;
 	}

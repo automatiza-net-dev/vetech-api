@@ -18,23 +18,26 @@ export default class PortalService {
 			toDate?: string;
 		},
 	) {
-		const [billing, monthlyBilling, ...rest] = await Promise.all([
-			this.billing(authCtx, data),
-			this.monthlyBilling(authCtx, data),
+		const top = await this.billing(authCtx, data);
+		const card = await this.monthlyBilling(authCtx, data);
+		const tables = await Promise.all([
 			this.attendanceRanking(authCtx, data),
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
 			this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
 			this.subgroupRanking(authCtx, data),
+		]);
+		const charts = await Promise.all([
 			this.medianTicketByOrigin(authCtx, data),
 			this.invoicingByPaymentMethod(authCtx, data),
 		]);
 
 		return {
-			top: billing.top,
-			cards: monthlyBilling.cards,
-			tables: [...rest],
+			top: top.top,
+			cards: card.cards,
+			tables,
+			charts,
 		};
 	}
 
@@ -1099,7 +1102,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const system = await System.findOrFail(authCtx.systemID);
 
 		return {
-			name: "median-ticket-by-origin",
+			name: "portal-median-ticket-by-origin",
 			type: "pie",
 			hasData: result.length > 0,
 			title: "Faturamento X Origem Clientes",

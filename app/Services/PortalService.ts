@@ -439,7 +439,7 @@ export default class PortalService {
 	}
 
 	public async salesByPeriod(
-		_authCtx: { systemID: number; user: User },
+		authCtx: { systemID: number; user: User },
 		data: {
 			units?: string[];
 			fromDate?: string;
@@ -500,6 +500,11 @@ export default class PortalService {
 			.joinRaw(
 				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
+			.joinRaw(
+				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("economic_group_id.system_id", authCtx.systemID)
 			.whereRaw("business_units.environment = ?", ["P"])
 			.whereNull("bills.deleted_at");
 
@@ -1186,6 +1191,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			},
 		};
 	}
+
 	public async invoicingByPaymentMethod(
 		authCtx: { systemID: number; user: User },
 		data: {

@@ -21,16 +21,16 @@ export default class PortalService {
 		const top = await this.billing(authCtx, data);
 		const card = await this.monthlyBilling(authCtx, data);
 		const tables = await Promise.all([
-			this.attendanceRanking(authCtx, data),
-			this.billingRanking(authCtx, data),
-			this.sellerBillingRanking(authCtx, data),
-			this.avgTicket(authCtx, data),
+			// this.attendanceRanking(authCtx, data),
+			// this.billingRanking(authCtx, data),
+			// this.sellerBillingRanking(authCtx, data),
+			// this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
-			this.subgroupRanking(authCtx, data),
+			// this.subgroupRanking(authCtx, data),
 		]);
 		const charts = await Promise.all([
-			this.medianTicketByOrigin(authCtx, data),
-			this.invoicingByPaymentMethod(authCtx, data),
+			// this.medianTicketByOrigin(authCtx, data),
+			// this.invoicingByPaymentMethod(authCtx, data),
 		]);
 
 		return {
@@ -1384,6 +1384,138 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 						})),
 					},
 				],
+			},
+		};
+	}
+
+	public async billingOverPeriod(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					"to_char(bills.bill_date::date, 'MM/YYYY') as periodo, sum(bills.total_value) as total_bills, sum(bills.total_value) / count(distinct bills.client_id) as tkt_medio, to_char(bills.bill_date::date, 'YYYYMM') as ordem",
+				),
+			)
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles uur on business_units.id = uur.unit_id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups eg on business_units.economic_group_id = eg.id",
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", [])
+			.whereRaw(
+				"to_char(bill_date::date, 'YYYYMM') between to_char(now() - interval '5 months', 'YYYYMM') and to_char(now()::date, 'YYYYMM')",
+				[],
+			)
+			.groupByRaw(
+				"group by to_char(bills.bill_date::date, 'MM/YYYY'), to_char(bills.bill_date::date, 'YYYYMM')",
+			)
+			.orderByRaw("ordem");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			periodo: string;
+			total_bills: string;
+			tkt_medio: string;
+		}[] = await qb;
+
+		return {
+			name: "faturamentoBarrasPeriodoPortal",
+			type: "bar",
+			hasData: true,
+			title: "Faturamento Ultimos 6 Meses",
+			legend: [
+				{
+					title: "Descrição",
+					value: "09/2024",
+					itemStyle: {
+						color: "#4BC0C0",
+					},
+				},
+				{
+					title: "Partic %",
+					value: "",
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Total R$",
+					value: "R$ 244.419,78",
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "R$ 11.109,99",
+					itemStyle: {
+						color: "",
+					},
+				},
+			],
+			configs: {
+				option: {
+					xAxis: {
+						type: "category",
+						data: [
+							"09/2024",
+							"10/2024",
+							"11/2024",
+							"12/2024",
+							"01/2025",
+							"02/2025",
+						],
+					},
+					tooltip: {
+						trigger: "item",
+						formatter: "R$ {c}",
+					},
+					grid: {
+						show: false,
+						containLabel: false,
+					},
+					yAxis: {
+						type: "value",
+						tooltip: {
+							show: true,
+						},
+					},
+					series: [
+						{
+							data: [62260.2, 60171.32, 50442.92, 68967.83, 60687.48, 19208.95],
+							type: "bar",
+						},
+					],
+				},
 			},
 		};
 	}

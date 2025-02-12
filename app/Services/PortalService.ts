@@ -21,16 +21,16 @@ export default class PortalService {
 		const top = await this.billing(authCtx, data);
 		const card = await this.monthlyBilling(authCtx, data);
 		const tables = await Promise.all([
-			// this.attendanceRanking(authCtx, data),
-			// this.billingRanking(authCtx, data),
-			// this.sellerBillingRanking(authCtx, data),
-			// this.avgTicket(authCtx, data),
+			this.attendanceRanking(authCtx, data),
+			this.billingRanking(authCtx, data),
+			this.sellerBillingRanking(authCtx, data),
+			this.avgTicket(authCtx, data),
 			this.salesByPeriod(authCtx, data),
-			// this.subgroupRanking(authCtx, data),
+			this.subgroupRanking(authCtx, data),
 		]);
 		const charts = await Promise.all([
-			// this.medianTicketByOrigin(authCtx, data),
-			// this.invoicingByPaymentMethod(authCtx, data),
+			this.medianTicketByOrigin(authCtx, data),
+			this.invoicingByPaymentMethod(authCtx, data),
 		]);
 
 		return {

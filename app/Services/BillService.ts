@@ -273,6 +273,8 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
+				query.orderByRaw("block, bill_payments.installments");
+
 				query.preload("approvedUser", (query) => {
 					query.select("id", "name");
 				});

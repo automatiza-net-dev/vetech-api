@@ -3667,7 +3667,8 @@ where deposit_id = ?
 	async requestBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			reasonId: string;
+			reasonId?: string;
+			cancelationReason?: string;
 			billId: string;
 			billItems: string[];
 			billPayments: string[];
@@ -3713,6 +3714,7 @@ where deposit_id = ?
 					cancel_user_id: authCtx.user.id,
 					cancel_reason_id: data.reasonId,
 
+					cancelReason: data.cancelationReason,
 					cancelled: "P",
 					cancelledAt: DateTime.now(),
 					cancelNotes: data.notes,

@@ -23,14 +23,11 @@ export default class RequestBillCancellationValidator {
 	 *     ])
 	 *    ```
 	 */
-	// reasonId: string;
-	// billId: string;
-	// billItems: string[];
-	// billPayments: string[];
-	//
-	// notes: string;
 	public schema = schema.create({
-		reasonId: schema.string([rules.exists({ table: "reasons", column: "id" })]),
+		reasonId: schema.string.optional([
+			rules.exists({ table: "reasons", column: "id" }),
+		]),
+		cancelationReason: schema.string.optional(),
 		billId: schema.string([rules.exists({ table: "bills", column: "id" })]),
 		billItems: schema
 			.array()

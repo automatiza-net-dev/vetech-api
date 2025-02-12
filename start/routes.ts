@@ -939,6 +939,8 @@ Route.group(() => {
 	Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
 	Route.put("/update-down", "FinancesController.updateFinanceDown");
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
+
+  Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
 	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");

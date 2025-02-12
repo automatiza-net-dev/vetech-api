@@ -504,7 +504,7 @@ export default class PortalService {
 				"join user_unit_roles on business_units.id = user_unit_roles.unit_id and user_unit_roles.user_id = ?",
 				[authCtx.user.id],
 			)
-			.where("economic_group_id.system_id", authCtx.systemID)
+			.where("economic_groups.system_id", authCtx.systemID)
 			.whereRaw("business_units.environment = ?", ["P"])
 			.whereNull("bills.deleted_at");
 

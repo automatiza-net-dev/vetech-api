@@ -38,13 +38,13 @@ jobs:
           ssh-keygen -l -f ~/.ssh/id_rsa || echo "Invalid key format"
 
           echo "Checking SSH configuration..."
-          ssh -v -o StrictHostKeyChecking=no ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
+          ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
 
       - name: Deploy Application
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.USER }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
           script: |

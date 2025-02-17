@@ -9,6 +9,26 @@ on:
       - develop
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check SSH Key Format
+        run: |
+          # Create test key file
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/test_key
+          chmod 600 ~/.ssh/test_key
+
+          # Check if key is in correct format (will show key type and length)
+          echo "Checking key format..."
+          ssh-keygen -l -f ~/.ssh/test_key || echo "Invalid key format"
+
+          # Test connection with verbose output
+          echo "Testing connection..."
+          ssh -v -i ~/.ssh/test_key -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit
+
+          # Clean up
+          rm ~/.ssh/test_key
   deploy:
     runs-on: ubuntu-latest
 

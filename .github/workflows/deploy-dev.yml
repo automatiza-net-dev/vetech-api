@@ -30,7 +30,7 @@ jobs:
           ls -la ~/.ssh/id_rsa
 
           echo "Adding host key..."
-          ssh-keyscan -H ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts || echo "ssh-keyscan failed with $?"
+          ssh-keyscan -H -p ${{ secrets.PORT }} ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts || echo "ssh-keyscan failed with $?"
           chmod 644 ~/.ssh/known_hosts
           ls -la ~/.ssh/known_hosts
 
@@ -38,7 +38,7 @@ jobs:
           ssh-keygen -l -f ~/.ssh/id_rsa || echo "Invalid key format"
 
           echo "Checking SSH configuration..."
-          ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
+          ssh -v -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
 
       - name: Deploy Application
         uses: appleboy/ssh-action@v1.0.3

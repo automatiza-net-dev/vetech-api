@@ -16,12 +16,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Add SSH Known Hosts
-        run: ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts
-
-
-      - name: Debug SSH
-        run: ssh -vvv -i <(echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}") -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.DEV_HOST }} whoami
+      - name: Write SSH keys
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
       - name: Deploy Application
         uses: appleboy/ssh-action@v1.0.3
@@ -43,11 +42,11 @@ jobs:
             pm2 restart ${{ secrets.APP }}
             pm2 restart cron
 
-      - name: Notify Discord
-        if: always()
-        run: |
-          STATUS="🔴 Falhou [dev]"
-          if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [dev]"; fi
-          curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
-          ${{ secrets.DEV_DISCORD_WEBHOOK }}
+      # - name: Notify Discord
+      #   if: always()
+      #   run: |
+      #     STATUS="🔴 Falhou [dev]"
+      #     if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [dev]"; fi
+      #     curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
+      #     ${{ secrets.DEV_DISCORD_WEBHOOK }}
 

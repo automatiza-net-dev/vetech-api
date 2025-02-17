@@ -47,6 +47,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
+          debug: true  # Enable debug mode to see more information
+          script_stop: true  # Stop script if any command fails
           script: |
             cd ${{ secrets.FOLDER }}
             git pull origin ${{ github.ref_name }}

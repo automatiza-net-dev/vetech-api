@@ -16,6 +16,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Add SSH Known Hosts
+        run: ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts
+
+
       - name: Debug SSH
         run: ssh -vvv -i <(echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}") -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.DEV_HOST }} whoami
 

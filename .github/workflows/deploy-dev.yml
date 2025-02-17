@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Debug SSH
-        run: ssh -vvv -i <(echo "${{ secrets.SSH_PRIVATE_KEY }}") -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} whoami
+        run: ssh -vvv -i <(echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}") -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.DEV_HOST }} whoami
 
       - name: Deploy Application
         uses: appleboy/ssh-action@v1.0.3

@@ -16,29 +16,29 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Debug SSH Setup
-        run: |
-          set -x  # Enable debug mode to see each command
-          echo "Creating .ssh directory..."
-          mkdir -p ~/.ssh
-          ls -la ~/.ssh
-
-          echo "Installing SSH key..."
-          install -m 600 -D /dev/null ~/.ssh/id_rsa
-          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ls -la ~/.ssh/id_rsa
-
-          echo "Adding host key..."
-          ssh-keyscan -H -p ${{ secrets.PORT }} ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts || echo "ssh-keyscan failed with $?"
-          chmod 644 ~/.ssh/known_hosts
-          ls -la ~/.ssh/known_hosts
-
-          echo "Testing SSH key format..."
-          ssh-keygen -l -f ~/.ssh/id_rsa || echo "Invalid key format"
-
-          echo "Checking SSH configuration..."
-          ssh -v -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
+      # - name: Debug SSH Setup
+      #   run: |
+      #     set -x  # Enable debug mode to see each command
+      #     echo "Creating .ssh directory..."
+      #     mkdir -p ~/.ssh
+      #     ls -la ~/.ssh
+      #
+      #     echo "Installing SSH key..."
+      #     install -m 600 -D /dev/null ~/.ssh/id_rsa
+      #     echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
+      #     ls -la ~/.ssh/id_rsa
+      #
+      #     echo "Adding host key..."
+      #     ssh-keyscan -H -p ${{ secrets.PORT }} ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts || echo "ssh-keyscan failed with $?"
+      #     chmod 644 ~/.ssh/known_hosts
+      #     ls -la ~/.ssh/known_hosts
+      #
+      #     echo "Testing SSH key format..."
+      #     ssh-keygen -l -f ~/.ssh/id_rsa || echo "Invalid key format"
+      #
+      #     echo "Checking SSH configuration..."
+      #     ssh -v -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} exit 2>&1 || echo "SSH test failed with $?"
 
       - name: Deploy Application
         uses: appleboy/ssh-action@v1.0.3

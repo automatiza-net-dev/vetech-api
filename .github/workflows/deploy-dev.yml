@@ -27,7 +27,7 @@ jobs:
 
       - name: Deploy Application
         run: |
-          sshpass -p '${{ secrets.DEV_PSWD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} <<'ENDSSH'
+          sshpass -p '${{ secrets.DEV_PSWD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }}:41239 <<'ENDSSH'
           cd ${{ secrets.FOLDER }}
           git pull origin ${{ github.ref_name }}
           yarn

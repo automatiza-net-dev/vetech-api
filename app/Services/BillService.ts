@@ -366,9 +366,8 @@ export default class BillService {
 
 		return Object.assign(bill, {
 			items: bill.items.map((bi) => {
-				return Object.assign(bi, {
-					treatmentExecutions: rows.filter((ro) => bi.id === ro.id),
-				});
+				bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+				return bi;
 			}),
 		});
 	}

@@ -41,11 +41,11 @@ jobs:
           pm2 restart cron
           ENDSSH
 
-      # - name: Notify Discord
-      #   if: always()
-      #   run: |
-      #     STATUS="🔴 Falhou [dev]"
-      #     if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [dev]"; fi
-      #     curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
-      #     ${{ secrets.DEV_DISCORD_WEBHOOK }}
+      - name: Notify Discord
+        if: always()
+        run: |
+          STATUS="🔴 Falhou [dev]"
+          if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [dev]"; fi
+          curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
+          ${{ secrets.DEV_DISCORD_WEBHOOK }}
 

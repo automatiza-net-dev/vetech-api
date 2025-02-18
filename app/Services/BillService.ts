@@ -364,8 +364,9 @@ export default class BillService {
 			.where("bills.business_unit_id", authCtx.unit.id)
 			.whereRaw("bills.bill_date::date = now()::date", []);
 
-		bill.items = [1, 2, 3];
-		return bill;
+		const jsonBill = bill.toJSON();
+		jsonBill.items = [1, 2, 3];
+		return jsonBill;
 
 		// return Object.assign(bill, {
 		// 	// items: bill.items.map((bi) => {

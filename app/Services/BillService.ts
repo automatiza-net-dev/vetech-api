@@ -365,17 +365,14 @@ export default class BillService {
 			.whereRaw("bills.bill_date::date = now()::date", []);
 
 		const jsonBill = bill.toJSON();
-		jsonBill.items = [1, 2, 3];
-		return jsonBill;
 
-		// return Object.assign(bill, {
-		// 	// items: bill.items.map((bi) => {
-		// 	// 	// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
-		// 	// 	bi.treatmentExecutions = [1, 2, 3];
-		// 	// 	return bi;
-		// 	// }),
-		// 	items: [1, 2, 3],
-		// });
+		return Object.assign(jsonBill, {
+			items: bill.items.map((bi) => {
+				// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+				bi.treatmentExecutions = [1, 2, 3];
+				return bi;
+			}),
+		});
 	}
 
 	async checkItemsDiscount(

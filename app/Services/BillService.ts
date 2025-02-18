@@ -367,8 +367,7 @@ export default class BillService {
 		const jsonBill = bill.toJSON();
 
 		jsonBill.items = jsonBill.items.map((bi) => {
-			// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
-			bi.treatmentExecutions = [1, 2, 3];
+			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
 			return bi;
 		});
 

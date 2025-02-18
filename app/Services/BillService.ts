@@ -364,14 +364,17 @@ export default class BillService {
 			.where("bills.business_unit_id", authCtx.unit.id)
 			.whereRaw("bills.bill_date::date = now()::date", []);
 
-		return Object.assign(bill, {
-			// items: bill.items.map((bi) => {
-			// 	// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
-			// 	bi.treatmentExecutions = [1, 2, 3];
-			// 	return bi;
-			// }),
-			items: [1, 2, 3],
-		});
+		bill.items = [1, 2, 3];
+		return bill;
+
+		// return Object.assign(bill, {
+		// 	// items: bill.items.map((bi) => {
+		// 	// 	// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+		// 	// 	bi.treatmentExecutions = [1, 2, 3];
+		// 	// 	return bi;
+		// 	// }),
+		// 	items: [1, 2, 3],
+		// });
 	}
 
 	async checkItemsDiscount(

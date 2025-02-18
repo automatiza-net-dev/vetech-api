@@ -243,9 +243,9 @@ export default class BillService {
 		}));
 	}
 
-	async show(unitId: string, id: string) {
+	async show(authCtx: AuthContext, id: string) {
 		const bill = await Bill.query()
-			.where("business_unit_id", unitId)
+			.where("business_unit_id", authCtx.unit.id)
 			.where("id", id)
 			.preload("client", (query) => {
 				query.preload("tutor");
@@ -313,7 +313,7 @@ export default class BillService {
 					query.preload("product");
 
 					query.preload("businessUnitProducts", (query) => {
-						query.where("businness_unit_id", unitId);
+						query.where("businness_unit_id", authCtx.unit.id);
 						query.select("id", "maximum_discount_percentage");
 					});
 				});
@@ -334,7 +334,42 @@ export default class BillService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		return bill;
+		const rows = await Database.from("bills")
+			.select(
+				Database.raw(
+					`p.description as produto, pi2.description as produtividade, te.schedule_date , te.execution_date , u."name" as usuario_execucao, bi.id`,
+				),
+			)
+			.joinRaw("join bill_items bi on bills.id = bi.bill_id", [])
+			.joinRaw(
+				"join product_variations pv on bi.product_variation_id = pv.id",
+				[],
+			)
+			.joinRaw("join products p on p.id = pv.product_id", [])
+			.joinRaw("join treatments t on bills.id = t.bill_id", [])
+			.joinRaw(
+				"join treatment_items ti on t.id = ti.treatment_id and bi.id = ti.bill_item_id",
+				[],
+			)
+			.joinRaw(
+				"join treatment_executions te on ti.id = te.treatment_item_id and ti.treatment_id = te.treatment_id",
+				[],
+			)
+			.joinRaw(
+				"join productivity_items pi2 on te.productivity_item_id = pi2.id",
+				[],
+			)
+			.joinRaw("left join users u on u.id = te.execution_user_id", [])
+			.where("bills.economic_group_id", authCtx.group.id)
+			.where("bills.business_unit_id", authCtx.unit.id)
+			.whereRaw("bills.bill_date::date = now()::date", []);
+
+		return Object.assign(bill, {
+			items: bill.items.map((bi) => ({
+				...bi,
+				treatmentExecutions: rows.filter((ro) => bi.id === ro.id),
+			})),
+		});
 	}
 
 	async checkItemsDiscount(

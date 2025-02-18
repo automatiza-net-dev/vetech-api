@@ -366,13 +366,13 @@ export default class BillService {
 
 		const jsonBill = bill.toJSON();
 
-		return Object.assign(jsonBill, {
-			items: bill.items.map((bi) => {
-				// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
-				bi.treatmentExecutions = [1, 2, 3];
-				return bi;
-			}),
+		jsonBill.items = bill.items.map((bi) => {
+			// bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+			bi.treatmentExecutions = [1, 2, 3];
+			return bi;
 		});
+
+		return jsonBill;
 	}
 
 	async checkItemsDiscount(

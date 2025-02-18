@@ -3668,9 +3668,9 @@ where deposit_id = ?
 		authCtx: AuthContext,
 		data: {
 			reasonId?: string;
-			cancelationReason?: string;
+			cancelReason?: string;
 			billId: string;
-			billItems: string[];
+			billItems: { id: string; quantity: number }[];
 			billPayments: string[];
 
 			notes: string;
@@ -3690,7 +3690,10 @@ where deposit_id = ?
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.billId)
 				.preload("items", (query) => {
-					query.whereIn("id", data.billItems);
+					query.whereIn(
+						"id",
+						data.billItems.map((bi) => bi.id),
+					);
 				})
 				.preload("payments", (query) => {
 					query.whereIn("id", data.billPayments);
@@ -3714,7 +3717,7 @@ where deposit_id = ?
 					cancel_user_id: authCtx.user.id,
 					cancel_reason_id: data.reasonId,
 
-					cancelReason: data.cancelationReason,
+					cancelReason: data.cancelReason,
 					cancelled: "P",
 					cancelledAt: DateTime.now(),
 					cancelNotes: data.notes,
@@ -3731,6 +3734,8 @@ where deposit_id = ?
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue),
 						originalTotalQuantity: item.quantity,
+						cancelledQuantity:
+							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
 					})
 					.useTransaction(trx)
 					.save();

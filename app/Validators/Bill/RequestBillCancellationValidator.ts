@@ -27,13 +27,16 @@ export default class RequestBillCancellationValidator {
 		reasonId: schema.string.optional([
 			rules.exists({ table: "reasons", column: "id" }),
 		]),
-		cancelationReason: schema.string.optional(),
+		cancelReason: schema.string.optional(),
 		billId: schema.string([rules.exists({ table: "bills", column: "id" })]),
-		billItems: schema
-			.array()
-			.members(
-				schema.string([rules.exists({ table: "bill_items", column: "id" })]),
-			),
+		billItems: schema.array().members(
+			schema.object().members({
+				id: schema.string([
+					rules.exists({ table: "bill_items", column: "id" }),
+				]),
+				quantity: schema.number([]),
+			}),
+		),
 		billPayments: schema
 			.array()
 			.members(

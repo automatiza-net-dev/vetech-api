@@ -365,10 +365,11 @@ export default class BillService {
 			.whereRaw("bills.bill_date::date = now()::date", []);
 
 		return Object.assign(bill, {
-			items: bill.items.map((bi) => ({
-				...bi,
-				treatmentExecutions: rows.filter((ro) => bi.id === ro.id),
-			})),
+			items: bill.items.map((bi) => {
+				return Object.assign(bi, {
+					treatmentExecutions: rows.filter((ro) => bi.id === ro.id),
+				});
+			}),
 		});
 	}
 

@@ -26,27 +26,20 @@ jobs:
           sudo apt-get install sshpass
 
       - name: Deploy Application
-        with:
-          # host: ${{ secrets.DEV_HOST }}
-          # username: ${{ secrets.SSH_USER }}
-          # key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
-          # port: ${{ secrets.PORT }}
-          # debug: true  # Enable debug mode to see more information
-          # script_stop: true  # Stop script if any command fails
-          script: |
-            sshpass -p '${{ secrets.DEV_PSWD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} <<'ENDSSH'
-            cd ${{ secrets.FOLDER }}
-            git pull origin ${{ github.ref_name }}
-            yarn
-            rm -rf dist
-            yarn build
-            cp .env build/.env
-            cp -r public build/public
-            export NODE_ENV=production
-            node ace migration:run
-            pm2 restart api
-            pm2 restart cron
-            ENDSSH
+        run: |
+          sshpass -p '${{ secrets.DEV_PSWD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} <<'ENDSSH'
+          cd ${{ secrets.FOLDER }}
+          git pull origin ${{ github.ref_name }}
+          yarn
+          rm -rf dist
+          yarn build
+          cp .env build/.env
+          cp -r public build/public
+          export NODE_ENV=production
+          node ace migration:run
+          pm2 restart api
+          pm2 restart cron
+          ENDSSH
 
       # - name: Notify Discord
       #   if: always()

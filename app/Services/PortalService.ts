@@ -31,6 +31,7 @@ export default class PortalService {
 		const charts = await Promise.all([
 			this.medianTicketByOrigin(authCtx, data),
 			this.invoicingByPaymentMethod(authCtx, data),
+			this.billingOverPeriod(authCtx, data),
 		]);
 
 		return {
@@ -1406,14 +1407,14 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			.joinRaw(
 				"join economic_groups eg on business_units.economic_group_id = eg.id",
 			)
-			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("eg.system_id = ?", [authCtx.systemID])
 			.whereRaw("bills.deleted_at is null", [])
 			.whereRaw(
 				"to_char(bill_date::date, 'YYYYMM') between to_char(now() - interval '5 months', 'YYYYMM') and to_char(now()::date, 'YYYYMM')",
 				[],
 			)
 			.groupByRaw(
-				"group by to_char(bills.bill_date::date, 'MM/YYYY'), to_char(bills.bill_date::date, 'YYYYMM')",
+				"to_char(bills.bill_date::date, 'MM/YYYY'), to_char(bills.bill_date::date, 'YYYYMM')",
 			)
 			.orderByRaw("ordem");
 
@@ -1439,10 +1440,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			type: "bar",
 			hasData: true,
 			title: "Faturamento Ultimos 6 Meses",
-			legend: [
+			legend: result.map((r) => [
 				{
 					title: "Descrição",
-					value: "09/2024",
+					value: r.periodo,
 					itemStyle: {
 						color: "#4BC0C0",
 					},
@@ -1456,7 +1457,9 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				},
 				{
 					title: "Total R$",
-					value: "R$ 244.419,78",
+					value: this.shared.formatter.format(
+						new Decimal(r.total_bills).toNumber(),
+					),
 					itemStyle: {
 						color: "",
 					},
@@ -1470,24 +1473,19 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				},
 				{
 					title: "Tkt Medio R$",
-					value: "R$ 11.109,99",
+					value: this.shared.formatter.format(
+						new Decimal(r.tkt_medio).toNumber(),
+					),
 					itemStyle: {
 						color: "",
 					},
 				},
-			],
+			]),
 			configs: {
 				option: {
 					xAxis: {
 						type: "category",
-						data: [
-							"09/2024",
-							"10/2024",
-							"11/2024",
-							"12/2024",
-							"01/2025",
-							"02/2025",
-						],
+						data: result.map((r) => r.periodo),
 					},
 					tooltip: {
 						trigger: "item",
@@ -1505,7 +1503,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 					},
 					series: [
 						{
-							data: [62260.2, 60171.32, 50442.92, 68967.83, 60687.48, 19208.95],
+							data: result.map((r) => r.total_bills),
 							type: "bar",
 						},
 					],

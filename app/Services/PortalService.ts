@@ -148,12 +148,6 @@ export default class PortalService {
 			qb.whereIn("business_units.id", data.units);
 		}
 
-		if (data.fromDate && data.toDate) {
-			qb.whereRaw("bill_date::date between ? and ?", [
-				data.fromDate,
-				data.toDate,
-			]);
-		}
 		const monthResult: {
 			total_bills: number | null;
 			tkt_medio: number | null;

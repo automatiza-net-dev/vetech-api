@@ -114,22 +114,53 @@ export default class BillService {
 	}
 
 	async index(unitId: string, data: ISearch) {
-		const qb = Bill.query()
-			.where("business_unit_id", unitId)
-			.preload("client")
-			.preload("patient")
-			.preload("seller")
-			.preload("user")
-			.preload("items", (query) => {
-				query.preload("productVariation", (query) => {
-					query.preload("variationOptions");
-					query.preload("product");
-				});
-			})
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`false                                                     as has_documents,
+       bills.id,
+       bills.bill_date,
+       bills.total_value,
+       bills.cancelled_at,
+       bills.cancellation_observation,
+       case
+           when
+               (select true
+                from bill_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and bill_items.bill_id = bills.id
+                group by bill_id) = true then 'Nao Aprovada'
+           else bills.status end                                 as status,
+       bills.created_at,
+       bills.updated_at,
+       bills.tag,
+       bills.closing_date,
+       bills.paid_value,
+       bills.documents_status,
+       bills.pending,
+       case
+           when client_id is not null then
+               json_build_object('id', client.id, 'name', client.name, 'type', client.type)
+           end                                                   as client,
+       case
+           when bills.patient_id is not null then
+               json_build_object('id', patient.id, 'name', patient.name, 'type', patient.type)
+           end                                                   as patient,
+       json_build_object('id', seller.id, 'name', seller.name)   as seller,
+       json_build_object('id', creator.id, 'name', creator.name) as creator`),
+			)
+			.joinRaw("left join patients client on bills.client_id = client.id")
+			.joinRaw("left join patients patient on bills.patient_id = patient.id")
+			.joinRaw(
+				"left join patient_animals on bills.patient_id = patient_animals.patient_id",
+			)
+			.joinRaw("join users seller on bills.seller_id = seller.id")
+			.joinRaw("join users creator on bills.seller_id = creator.id")
 			.orderByRaw("bill_date desc, tag desc");
 
 		if (data.tag) {
-			qb.whereILike("tag", `%${data.tag}%`);
+			qb.whereILike("bills.tag", `%${data.tag}%`);
 		} else if (data.internalCode) {
 			qb.whereILike("internal_code", `%${data.internalCode}%`);
 		} else {
@@ -146,29 +177,25 @@ export default class BillService {
 			}
 
 			if (data.client) {
-				qb.where("client_id", data.client);
+				qb.where("bills.client_id", data.client);
 			}
 
 			if (data.patient) {
-				qb.where("patient_id", data.patient);
+				qb.where("bills.patient_id", data.patient);
 			}
 
 			if (data.patientName) {
-				qb.whereHas("patient", (query) => {
-					query.whereRaw("patients.name ilike ? and patients.type = ?", [
-						`%${data.patientName?.replaceAll(" ", "%")}%`,
-						PatientType.ANIMAL,
-					]);
-				});
+				qb.whereRaw("(patient.name ilike ? and patient.type = ?)", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
 			}
 
 			if (data.clientName) {
-				qb.whereHas("client", (query) => {
-					query.whereRaw("patients.name ilike ? and patients.type = ?", [
-						`%${data.clientName?.replaceAll(" ", "%")}%`,
-						PatientType.TUTOR,
-					]);
-				});
+				qb.whereRaw("(client.name ilike ? and client.type = ?)", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
 			}
 
 			if (data.bill_id) {
@@ -176,11 +203,7 @@ export default class BillService {
 			}
 
 			if (data.patientTag) {
-				qb.whereHas("patient", (query) => {
-					query.whereHas("patientAnimal", (query) => {
-						query.where("tag", data.patientTag ?? "");
-					});
-				});
+				qb.whereRaw("patient_animals.tag = ?", [data.patientTag]);
 			}
 
 			if (data.pending === "true") {
@@ -212,34 +235,9 @@ export default class BillService {
 		]);
 		const total = count1.concat(count2);
 
-		const status: { id: string; status: string }[] = await Database.from(
-			"bills",
-		)
-			.select(
-				Database.raw(
-					`id,
-       case
-           when
-               (select true
-                from bill_items
-                where (courtesy = true or max_discount = true)
-                  and (approved = false and courtesy_approved_at is not null)
-                  and deleted_at is null
-                  and bill_items.bill_id = bills.id
-                group by bill_id) = true then 'Nao Aprovada'
-           else bills.status end as status`,
-				),
-			)
-			.whereIn(
-				"id",
-				result.map((b) => b.id),
-			)
-			.orderByRaw("created_at desc");
-
 		return result.map((b) => ({
 			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
-			...b.toJSON(),
-			status: status.find((s) => s.id === b.id)?.status ?? b.status,
+			...b
 		}));
 	}
 

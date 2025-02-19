@@ -43,7 +43,7 @@ export default class RequestBillCancellationValidator {
 				schema.string([rules.exists({ table: "bill_payments", column: "id" })]),
 			),
 
-		notes: schema.string(),
+		notes: schema.string.optional(),
 	});
 
 	/**

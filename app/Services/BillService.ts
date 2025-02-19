@@ -3708,7 +3708,7 @@ where deposit_id = ?
 			billItems: { id: string; quantity: number }[];
 			billPayments: string[];
 
-			notes: string;
+			notes?: string;
 		},
 	) {
 		if (!authCtx.hasPermission("VEN18")) {

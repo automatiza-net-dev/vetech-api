@@ -156,7 +156,8 @@ export default class BillService {
 			)
 			.joinRaw("join users seller on bills.seller_id = seller.id")
 			.joinRaw("join users creator on bills.seller_id = creator.id")
-			.orderByRaw("bill_date desc, tag desc");
+			.orderByRaw("bill_date desc, tag desc")
+			.whereNull("bills.deleted_at");
 
 		if (data.tag) {
 			qb.whereILike("bills.tag", `%${data.tag}%`);
@@ -236,7 +237,7 @@ export default class BillService {
 
 		return result.map((b) => ({
 			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
-			...b
+			...b,
 		}));
 	}
 

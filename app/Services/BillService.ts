@@ -116,8 +116,7 @@ export default class BillService {
 	async index(unitId: string, data: ISearch) {
 		const qb = Database.from("bills")
 			.select(
-				Database.raw(`false                                                     as has_documents,
-       bills.id,
+				Database.raw(`bills.id,
        bills.bill_date,
        bills.total_value,
        bills.cancelled_at,

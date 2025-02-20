@@ -1305,7 +1305,11 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const system = await System.findOrFail(authCtx.systemID);
 		const total = new Decimal(result1.at(0)?.total_bills ?? 0);
 
-		const fullResult = [...result2, ...result3];
+		const fullResult = [...result2, ...result3].sort(
+			(a, b) =>
+				Number.parseFloat(b.total_payments) -
+				Number.parseFloat(a.total_payments),
+		);
 
 		return {
 			name: "invoicing-by-payment-method",

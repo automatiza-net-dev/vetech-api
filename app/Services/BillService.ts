@@ -121,6 +121,7 @@ export default class BillService {
        bills.total_value,
        bills.internal_code,
        bills.cancelled_at,
+       bills.cancelled,
        bills.cancellation_observation,
        case
            when
@@ -201,7 +202,7 @@ export default class BillService {
 			}
 
 			if (data.bill_id) {
-				qb.where("id", data.bill_id);
+				qb.where("bills.id", data.bill_id);
 			}
 
 			if (data.patientTag) {
@@ -3773,7 +3774,7 @@ where deposit_id = ?
 					.merge({
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue),
-						originalTotalQuantity: item.quantity,
+						originalQuantity: item.quantity,
 						cancelledQuantity:
 							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
 					})

@@ -364,13 +364,13 @@ export default class BillItem extends BaseModel {
 	public originalTotalValue: Decimal | null;
 
 	@column({
-		columnName: "original_total_quantity",
-		serializeAs: "originalTotalquantity",
+		columnName: "original_quantity",
+		serializeAs: "originalQuantity",
 		consume: (value) => (value ? new Decimal(value) : null),
 		prepare: (value) => value.toString(),
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public originalTotalQuantity: Decimal | null;
+	public originalQuantity: Decimal | null;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

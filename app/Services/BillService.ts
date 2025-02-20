@@ -119,6 +119,7 @@ export default class BillService {
 				Database.raw(`bills.id,
        bills.bill_date,
        bills.total_value,
+       bills.internal_code,
        bills.cancelled_at,
        bills.cancellation_observation,
        case

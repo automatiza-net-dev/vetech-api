@@ -149,11 +149,8 @@ export default class BillService {
        json_build_object('id', seller.id, 'name', seller.name)   as seller,
        json_build_object('id', creator.id, 'name', creator.name) as creator`),
 			)
-			.joinRaw("left join patients client on bills.client_id = client.id")
+			.joinRaw("join patients client on bills.client_id = client.id")
 			.joinRaw("left join patients patient on bills.patient_id = patient.id")
-			.joinRaw(
-				"left join patient_animals on bills.patient_id = patient_animals.patient_id",
-			)
 			.joinRaw("join users seller on bills.seller_id = seller.id")
 			.joinRaw("join users creator on bills.seller_id = creator.id")
 			.orderByRaw("bill_date desc, tag desc")

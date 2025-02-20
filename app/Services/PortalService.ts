@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import System from "App/Models/System";
 import User from "App/Models/User";
 import { endOfMonth } from "date-fns";
 import Decimal from "decimal.js";
@@ -17,9 +18,9 @@ export default class PortalService {
 			toDate?: string;
 		},
 	) {
-		const [billing, monthlyBilling, ...rest] = await Promise.all([
-			this.billing(authCtx, data),
-			this.monthlyBilling(authCtx, data),
+		const top = await this.billing(authCtx, data);
+		const card = await this.monthlyBilling(authCtx, data);
+		const tables = await Promise.all([
 			this.attendanceRanking(authCtx, data),
 			this.billingRanking(authCtx, data),
 			this.sellerBillingRanking(authCtx, data),
@@ -27,11 +28,17 @@ export default class PortalService {
 			this.salesByPeriod(authCtx, data),
 			this.subgroupRanking(authCtx, data),
 		]);
+		const charts = await Promise.all([
+			this.medianTicketByOrigin(authCtx, data),
+			this.invoicingByPaymentMethod(authCtx, data),
+			this.billingOverPeriod(authCtx, data),
+		]);
 
 		return {
-			top: billing.top,
-			cards: monthlyBilling.cards,
-			tables: [...rest],
+			top: top.top,
+			cards: card.cards,
+			tables,
+			charts,
 		};
 	}
 
@@ -1002,377 +1009,506 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		}));
 	}
 
-	// public async medianTicketByOrigin(
-	// 	authCtx: { systemID: number; user: User },
-	// 	data: {
-	// 		units?: string[];
-	// 		fromDate?: string;
-	// 		toDate?: string;
-	// 	},
-	// ) {
-	// 	const qb1 = Database.from("bills")
-	// 		.select(
-	// 			Database.raw(
-	// 				`
-	//            business_units.id,
-	//            business_units.identification,
-	//            'Recorrentes'          as description,
-	//            sum(bills.total_value) as total,
-	//            count(distinct bills.client_id) as qty_clients
-	//          `,
-	// 			),
-	// 		)
-	// 		.joinRaw(
-	// 			`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
-	//                on patient_tutors.client_origin_id = client_origins.id)
-	//                on bills.client_id = patient_tutors.patient_id`,
-	// 			[],
-	// 		)
-	// 		.join("business_units", (query) => {
-	// 			query.on("business_units.id", "=", "bills.business_unit_id");
-	// 		})
-	// 		.groupBy("business_units.id")
-	// 		.orderBy("total", "desc")
-	// 		.whereNull("bills.deleted_at")
-	// 		.andWhereRaw(
-	// 			`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
-	// 			[],
-	// 		);
-	//
-	// 	const qb2 = Database.from("bills")
-	// 		.select(
-	// 			Database.raw(
-	// 				`
-	//          business_units.id,
-	//          business_units.identification,
-	//          client_origins.description,
-	//          sum(bills.total_value) as total,
-	//          count( distinct bills.client_id ) as qty_clients
-	//          `,
-	// 			),
-	// 		)
-	// 		.joinRaw(
-	// 			`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
-	//                on patient_tutors.client_origin_id = client_origins.id)
-	//                on bills.client_id = patient_tutors.patient_id`,
-	// 			[],
-	// 		)
-	// 		.join("business_units", (query) => {
-	// 			query.on("business_units.id", "=", "bills.business_unit_id");
-	// 		})
-	// 		.groupBy("business_units.id", "client_origins.description")
-	// 		.orderBy("total", "desc")
-	// 		.whereNull("bills.deleted_at")
-	// 		.andWhereRaw(
-	// 			`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
-	// 			[],
-	// 		);
-	//
-	// 	if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-	// 		qb1.where("business_units.environment", "P");
-	// 		qb2.where("business_units.environment", "P");
-	// 	}
-	//
-	// 	if (data.units && Array.isArray(data.units)) {
-	// 		qb1.whereIn("bills.business_unit_id", data.units);
-	// 		qb2.whereIn("bills.business_unit_id", data.units);
-	// 	}
-	//
-	// 	if (data.fromDate) {
-	// 		qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-	// 		qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-	// 	}
-	//
-	// 	if (data.toDate) {
-	// 		qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
-	// 		qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
-	// 	}
-	//
-	// 	const [r1, r2] = await Promise.all([qb1, qb2]);
-	// 	const result = r1.concat(r2);
-	//
-	// 	const sum = result.reduce((acc, curr) => acc + curr.total, 0);
-	// 	const system = await System.findOrFail(authCtx.systemID);
-	//
-	// 	return {
-	// 		name: "portal-median-ticket-by-origin",
-	// 		type: "pie",
-	// 		hasData: result.length > 0,
-	// 		title: "Faturamento X Origem Clientes",
-	// 		legend: result.map((elem, idx) => [
-	// 			{
-	// 				title: "Descrição",
-	// 				value: elem.description,
-	// 				itemStyle: {
-	// 					color: system.colors[idx % system.colors.length],
-	// 				},
-	// 			},
-	// 			{
-	// 				title: "Partic %",
-	// 				value: this.shared.formatPercentage((elem.total / sum) * 100),
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Total R$",
-	// 				value: this.shared.formatter.format(elem.total.toFixed(2)),
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Qtd Cli",
-	// 				value: elem.qty_clients,
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Tkt Medio R$",
-	// 				value: this.shared.formatter.format(
-	// 					elem.total / Number.parseInt(elem.qty_clients),
-	// 				),
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 		]),
-	//
-	// 		configs: {
-	// 			title: {
-	// 				text: "Faturamento X Origem Clientes",
-	// 				subtext: "",
-	// 				left: "center",
-	// 				show: false,
-	// 			},
-	// 			tooltip: {
-	// 				trigger: "item",
-	// 				formatter: "{a} <br/>{b} : {c} ({d}%)",
-	// 			},
-	// 			legend: {
-	// 				bottom: 10,
-	// 				orient: "horizontal",
-	// 				left: "center",
-	// 				show: false,
-	// 			},
-	// 			series: [
-	// 				{
-	// 					name: "Origem Clientes",
-	// 					type: "pie",
-	// 					radius: "80%",
-	// 					label: {
-	// 						formatter: "{b} : {c} ({d}%)",
-	// 						show: false,
-	// 					},
-	// 					emphasis: {
-	// 						itemStyle: {
-	// 							shadowBlur: 10,
-	// 							shadowOffsetX: 0,
-	// 							shadowColor: "rgba(0, 0, 0, 0.5)",
-	// 						},
-	// 					},
-	// 					data: result.map((elem, idx) => ({
-	// 						value: Number.parseFloat(elem.total.toFixed(2)),
-	// 						name: elem.description,
-	// 						percentage: Number.parseFloat(
-	// 							((elem.total / sum) * 100).toFixed(2),
-	// 						),
-	// 						itemStyle: {
-	// 							color: system.colors[idx % system.colors.length],
-	// 						},
-	// 					})),
-	// 				},
-	// 			],
-	// 		},
-	// 	};
-	// }
+	public async medianTicketByOrigin(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+            business_units.id,
+            business_units.identification,
+            'Recorrentes'          as description,
+            sum(bills.total_value) as total,
+            count(distinct bills.client_id) as qty_clients
+          `,
+				),
+			)
+			.joinRaw(
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id`,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
 
-	// public async invoicingByPaymentMethod(
-	// 	authCtx: { systemID: number; user: User },
-	// 	data: {
-	// 		units?: string[];
-	// 		fromDate?: string;
-	// 		toDate?: string;
-	// 	},
-	// ) {
-	// 	const qb1 = Database.from("bills")
-	// 		.select(Database.raw("sum(bills.total_value) as total_bills"))
-	// 		.join("business_units", (query) => {
-	// 			query.on("business_units.id", "=", "bills.business_unit_id");
-	// 		})
-	// 		.joinRaw(
-	// 			"join economic_groups on economic_groups.id = business_units.economic_group_id",
-	// 		)
-	// 		.joinRaw(
-	// 			"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
-	// 			[authCtx.user.id],
-	// 		)
-	// 		.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
-	// 		.whereNull("bills.deleted_at");
-	//
-	// 	const qb2 = Database.from("bills")
-	// 		.select(
-	// 			Database.raw(
-	// 				"payment_methods.description as description, sum(bill_payments.total_value) as total_payments",
-	// 			),
-	// 		)
-	// 		.joinRaw(
-	// 			"join bill_payments on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"inner join payment_methods on payment_methods.id = bill_payments.payment_method_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"inner join business_units on business_units.id = bills.business_unit_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"join economic_groups on economic_groups.id = business_units.economic_group_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
-	// 			[authCtx.user.id],
-	// 		)
-	// 		.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
-	// 		.whereRaw("bills.deleted_at is null", [])
-	// 		.groupByRaw("payment_methods.description");
-	//
-	// 	const qb3 = Database.from("bills")
-	// 		.select(
-	// 			Database.raw(
-	// 				"'Em aberto' as description, sum(bills.total_value - bills.paid_value) as total_payments",
-	// 			),
-	// 		)
-	// 		.joinRaw(
-	// 			"inner join business_units on business_units.id = bills.business_unit_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"join economic_groups on economic_groups.id = business_units.economic_group_id",
-	// 			[],
-	// 		)
-	// 		.joinRaw(
-	// 			"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
-	// 			[authCtx.user.id],
-	// 		)
-	// 		.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
-	// 		.whereRaw("bills.deleted_at is null", []);
-	//
-	// 	if (data.units && Array.isArray(data.units)) {
-	// 		qb1.whereIn("bills.business_unit_id", data.units);
-	// 		qb2.whereIn("bills.business_unit_id", data.units);
-	// 		qb3.whereIn("bills.business_unit_id", data.units);
-	// 	}
-	//
-	// 	if (data.fromDate && data.toDate) {
-	// 		qb1.whereRaw("bill_date::date between ? and ?", [
-	// 			data.fromDate,
-	// 			data.toDate,
-	// 		]);
-	// 		qb2.whereRaw("bill_date::date between ? and ?", [
-	// 			data.fromDate,
-	// 			data.toDate,
-	// 		]);
-	// 		qb3.whereRaw("bill_date::date between ? and ?", [
-	// 			data.fromDate,
-	// 			data.toDate,
-	// 		]);
-	// 	}
-	//
-	// 	const result1: { total_bills: string }[] = await qb1;
-	// 	const result2: { description: string; total_payments: string }[] =
-	// 		await qb2;
-	// 	const result3: { description: string; total_payments: string }[] =
-	// 		await qb3;
-	//
-	// 	const system = await System.findOrFail(authCtx.systemID);
-	// 	const total = new Decimal(result1.at(0)?.total_bills ?? 0);
-	//
-	// 	const fullResult = [...result2, ...result3];
-	//
-	// 	return {
-	// 		name: "invoicing-by-payment-method",
-	// 		type: "pie",
-	// 		hasData: result2.length > 0,
-	// 		title: "Faturamento X Forma Pagamento",
-	// 		legend: fullResult.map((elem, idx) => [
-	// 			{
-	// 				title: "Descrição",
-	// 				value: elem.description,
-	// 				itemStyle: {
-	// 					color: system.colors[idx % system.colors.length],
-	// 				},
-	// 			},
-	// 			{
-	// 				title: "Partic %",
-	// 				value: this.shared.formatPercentage(
-	// 					new Decimal(elem.total_payments).div(total).times(100).toNumber(),
-	// 				),
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Total R$",
-	// 				value: this.shared.formatter.format(
-	// 					new Decimal(elem.total_payments).toNumber(),
-	// 				),
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Qtd Cli",
-	// 				value: "",
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 			{
-	// 				title: "Tkt Medio R$",
-	// 				value: "",
-	// 				itemStyle: { color: "" },
-	// 			},
-	// 		]),
-	// 		configs: {
-	// 			title: {
-	// 				text: "Faturamento X Forma Pagamento",
-	// 				subtext: "",
-	// 				left: "center",
-	// 				show: false,
-	// 			},
-	// 			tooltip: {
-	// 				trigger: "item",
-	// 				formatter: "{a} <br/>{b} : {c} ({d}%)",
-	// 			},
-	// 			legend: {
-	// 				bottom: 10,
-	// 				orient: "horizontal",
-	// 				left: "center",
-	// 				show: false,
-	// 			},
-	// 			series: [
-	// 				{
-	// 					name: "Forma Pagamento",
-	// 					type: "pie",
-	// 					radius: "80%",
-	// 					label: {
-	// 						formatter: "{b} : {c} ({d}%)",
-	// 						show: false,
-	// 					},
-	// 					emphasis: {
-	// 						itemStyle: {
-	// 							shadowBlur: 10,
-	// 							shadowOffsetX: 0,
-	// 							shadowColor: "rgba(0, 0, 0, 0.5)",
-	// 						},
-	// 					},
-	// 					data: result2.map((elem, idx) => ({
-	// 						value: Number.parseFloat(elem.total_payments),
-	// 						name: elem.description,
-	// 						percentage: this.shared.formatPercentage(
-	// 							new Decimal(elem.total_payments)
-	// 								.div(total)
-	// 								.times(100)
-	// 								.toNumber(),
-	// 						),
-	// 						itemStyle: {
-	// 							color: system.colors[idx % system.colors.length],
-	// 						},
-	// 					})),
-	// 				},
-	// 			],
-	// 		},
-	// 	};
-	// }
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					`
+          business_units.id,
+          business_units.identification,
+          client_origins.description,
+          sum(bills.total_value) as total,
+          count( distinct bills.client_id ) as qty_clients
+          `,
+				),
+			)
+			.joinRaw(
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
+                on patient_tutors.client_origin_id = client_origins.id)
+                on bills.client_id = patient_tutors.patient_id`,
+				[],
+			)
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.groupBy("business_units.id", "client_origins.description")
+			.orderBy("total", "desc")
+			.whereNull("bills.deleted_at")
+			.andWhereRaw(
+				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+				[],
+			);
+
+		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
+			qb1.where("business_units.environment", "P");
+			qb2.where("business_units.environment", "P");
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate) {
+			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
+		}
+
+		const [r1, r2] = await Promise.all([qb1, qb2]);
+		const result = r1.concat(r2);
+
+		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
+		const system = await System.findOrFail(authCtx.systemID);
+
+		return {
+			name: "portal-median-ticket-by-origin",
+			type: "pie",
+			hasData: result.length > 0,
+			title: "Faturamento X Origem Clientes",
+			legend: result.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: system.colors[idx % system.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage((elem.total / sum) * 100),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(elem.total.toFixed(2)),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: elem.qty_clients,
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: this.shared.formatter.format(
+						elem.total / Number.parseInt(elem.qty_clients),
+					),
+					itemStyle: { color: "" },
+				},
+			]),
+
+			configs: {
+				title: {
+					text: "Faturamento X Origem Clientes",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Origem Clientes",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result.map((elem, idx) => ({
+							value: Number.parseFloat(elem.total.toFixed(2)),
+							name: elem.description,
+							percentage: Number.parseFloat(
+								((elem.total / sum) * 100).toFixed(2),
+							),
+							itemStyle: {
+								color: system.colors[idx % system.colors.length],
+							},
+						})),
+					},
+				],
+			},
+		};
+	}
+
+	public async invoicingByPaymentMethod(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb1 = Database.from("bills")
+			.select(Database.raw("sum(bills.total_value) as total_bills"))
+			.join("business_units", (query) => {
+				query.on("business_units.id", "=", "bills.business_unit_id");
+			})
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereNull("bills.deleted_at");
+
+		const qb2 = Database.from("bills")
+			.select(
+				Database.raw(
+					"payment_methods.description as description, sum(bill_payments.total_value) as total_payments",
+				),
+			)
+			.joinRaw(
+				"join bill_payments on bills.id = bill_payments.bill_id and bills.business_unit_id = bill_payments.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"inner join payment_methods on payment_methods.id = bill_payments.payment_method_id",
+				[],
+			)
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+				[],
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", [])
+			.groupByRaw("payment_methods.description");
+
+		const qb3 = Database.from("bills")
+			.select(
+				Database.raw(
+					"'Em aberto' as description, sum(bills.total_value - bills.paid_value) as total_payments",
+				),
+			)
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id",
+				[],
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+				[],
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", []);
+
+		if (data.units && Array.isArray(data.units)) {
+			qb1.whereIn("bills.business_unit_id", data.units);
+			qb2.whereIn("bills.business_unit_id", data.units);
+			qb3.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb1.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb2.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+			qb3.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result1: { total_bills: string }[] = await qb1;
+		const result2: { description: string; total_payments: string }[] =
+			await qb2;
+		const result3: { description: string; total_payments: string }[] =
+			await qb3;
+
+		const system = await System.findOrFail(authCtx.systemID);
+		const total = new Decimal(result1.at(0)?.total_bills ?? 0);
+
+		const fullResult = [...result2, ...result3];
+
+		return {
+			name: "invoicing-by-payment-method",
+			type: "pie",
+			hasData: result2.length > 0,
+			title: "Faturamento X Forma Pagamento",
+			legend: fullResult.map((elem, idx) => [
+				{
+					title: "Descrição",
+					value: elem.description,
+					itemStyle: {
+						color: system.colors[idx % system.colors.length],
+					},
+				},
+				{
+					title: "Partic %",
+					value: this.shared.formatPercentage(
+						new Decimal(elem.total_payments).div(total).times(100).toNumber(),
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(
+						new Decimal(elem.total_payments).toNumber(),
+					),
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: { color: "" },
+				},
+				{
+					title: "Tkt Medio R$",
+					value: "",
+					itemStyle: { color: "" },
+				},
+			]),
+			configs: {
+				title: {
+					text: "Faturamento X Forma Pagamento",
+					subtext: "",
+					left: "center",
+					show: false,
+				},
+				tooltip: {
+					trigger: "item",
+					formatter: "{a} <br/>{b} : {c} ({d}%)",
+				},
+				legend: {
+					bottom: 10,
+					orient: "horizontal",
+					left: "center",
+					show: false,
+				},
+				series: [
+					{
+						name: "Forma Pagamento",
+						type: "pie",
+						radius: "80%",
+						label: {
+							formatter: "{b} : {c} ({d}%)",
+							show: false,
+						},
+						emphasis: {
+							itemStyle: {
+								shadowBlur: 10,
+								shadowOffsetX: 0,
+								shadowColor: "rgba(0, 0, 0, 0.5)",
+							},
+						},
+						data: result2.map((elem, idx) => ({
+							value: Number.parseFloat(elem.total_payments),
+							name: elem.description,
+							percentage: this.shared.formatPercentage(
+								new Decimal(elem.total_payments)
+									.div(total)
+									.times(100)
+									.toNumber(),
+							),
+							itemStyle: {
+								color: system.colors[idx % system.colors.length],
+							},
+						})),
+					},
+				],
+			},
+		};
+	}
+
+	public async billingOverPeriod(
+		authCtx: { systemID: number; user: User },
+		data: {
+			units?: string[];
+			fromDate?: string;
+			toDate?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(
+					"to_char(bills.bill_date::date, 'MM/YYYY') as periodo, sum(bills.total_value) as total_bills, sum(bills.total_value) / count(distinct bills.client_id) as tkt_medio, to_char(bills.bill_date::date, 'YYYYMM') as ordem",
+				),
+			)
+			.joinRaw(
+				"join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join user_unit_roles uur on business_units.id = uur.unit_id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.joinRaw(
+				"join economic_groups eg on business_units.economic_group_id = eg.id",
+			)
+			.whereRaw("eg.system_id = ?", [authCtx.systemID])
+			.whereRaw("bills.deleted_at is null", [])
+			.whereRaw(
+				"to_char(bill_date::date, 'YYYYMM') between to_char(now() - interval '5 months', 'YYYYMM') and to_char(now()::date, 'YYYYMM')",
+				[],
+			)
+			.groupByRaw(
+				"to_char(bills.bill_date::date, 'MM/YYYY'), to_char(bills.bill_date::date, 'YYYYMM')",
+			)
+			.orderByRaw("ordem");
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("bills.business_unit_id", data.units);
+		}
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		const result: {
+			periodo: string;
+			total_bills: string;
+			tkt_medio: string;
+		}[] = await qb;
+
+		return {
+			name: "faturamentoBarrasPeriodoPortal",
+			type: "bar",
+			hasData: true,
+			title: "Faturamento Ultimos 6 Meses",
+			legend: result.map((r) => [
+				{
+					title: "Descrição",
+					value: r.periodo,
+					itemStyle: {
+						color: "#4BC0C0",
+					},
+				},
+				{
+					title: "Partic %",
+					value: "",
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Total R$",
+					value: this.shared.formatter.format(
+						new Decimal(r.total_bills).toNumber(),
+					),
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Qtd Cli",
+					value: "",
+					itemStyle: {
+						color: "",
+					},
+				},
+				{
+					title: "Tkt Medio R$",
+					value: this.shared.formatter.format(
+						new Decimal(r.tkt_medio).toNumber(),
+					),
+					itemStyle: {
+						color: "",
+					},
+				},
+			]),
+			configs: {
+				option: {
+					xAxis: {
+						type: "category",
+						data: result.map((r) => r.periodo),
+					},
+					tooltip: {
+						trigger: "item",
+						formatter: "R$ {c}",
+					},
+					grid: {
+						show: false,
+						containLabel: false,
+					},
+					yAxis: {
+						type: "value",
+						tooltip: {
+							show: true,
+						},
+					},
+					series: [
+						{
+							data: result.map((r) => r.total_bills),
+							type: "bar",
+						},
+					],
+				},
+			},
+		};
+	}
 }

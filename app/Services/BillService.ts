@@ -113,23 +113,56 @@ export default class BillService {
 		return data;
 	}
 
-	async index(unitId: string, data: ISearch) {
-		const qb = Bill.query()
-			.where("business_unit_id", unitId)
-			.preload("client")
-			.preload("patient")
-			.preload("seller")
-			.preload("user")
-			.preload("items", (query) => {
-				query.preload("productVariation", (query) => {
-					query.preload("variationOptions");
-					query.preload("product");
-				});
-			})
-			.orderByRaw("bill_date desc, tag desc");
+	async index(authCtx: AuthContext, data: ISearch) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`bills.id,
+       bills.bill_date,
+       bills.total_value,
+       bills.internal_code,
+       bills.cancelled_at,
+       bills.cancellation_observation,
+       case
+           when
+               (select true
+                from bill_items
+                where (courtesy = true or max_discount = true)
+                  and (approved = false and courtesy_approved_at is not null)
+                  and deleted_at is null
+                  and bill_items.bill_id = bills.id
+                group by bill_id) = true then 'Nao Aprovada'
+           else bills.status end                                 as status,
+       bills.created_at,
+       bills.updated_at,
+       bills.tag,
+       bills.closing_date,
+       bills.paid_value,
+       bills.documents_status,
+       bills.pending,
+       case
+           when client_id is not null then
+               json_build_object('id', client.id, 'name', client.name, 'type', client.type)
+           end                                                   as client,
+       case
+           when bills.patient_id is not null then
+               json_build_object('id', patient.id, 'name', patient.name, 'type', patient.type)
+           end                                                   as patient,
+       json_build_object('id', seller.id, 'name', seller.name)   as seller,
+       json_build_object('id', creator.id, 'name', creator.name) as creator`),
+			)
+			.joinRaw("join patients client on bills.client_id = client.id")
+			.joinRaw("left join patients patient on bills.patient_id = patient.id")
+			.joinRaw("join users seller on bills.seller_id = seller.id")
+			.joinRaw("join users creator on bills.seller_id = creator.id")
+			.orderByRaw("bill_date desc, tag desc")
+			.whereRaw("bills.economic_group_id = ? and bills.business_unit_id = ?", [
+				authCtx.group.id,
+				authCtx.unit.id,
+			])
+			.whereNull("bills.deleted_at");
 
 		if (data.tag) {
-			qb.whereILike("tag", `%${data.tag}%`);
+			qb.whereILike("bills.tag", `%${data.tag}%`);
 		} else if (data.internalCode) {
 			qb.whereILike("internal_code", `%${data.internalCode}%`);
 		} else {
@@ -146,29 +179,25 @@ export default class BillService {
 			}
 
 			if (data.client) {
-				qb.where("client_id", data.client);
+				qb.where("bills.client_id", data.client);
 			}
 
 			if (data.patient) {
-				qb.where("patient_id", data.patient);
+				qb.where("bills.patient_id", data.patient);
 			}
 
 			if (data.patientName) {
-				qb.whereHas("patient", (query) => {
-					query.whereRaw("patients.name ilike ? and patients.type = ?", [
-						`%${data.patientName?.replaceAll(" ", "%")}%`,
-						PatientType.ANIMAL,
-					]);
-				});
+				qb.whereRaw("(patient.name ilike ? and patient.type = ?)", [
+					`%${data.patientName?.replaceAll(" ", "%")}%`,
+					PatientType.ANIMAL,
+				]);
 			}
 
 			if (data.clientName) {
-				qb.whereHas("client", (query) => {
-					query.whereRaw("patients.name ilike ? and patients.type = ?", [
-						`%${data.clientName?.replaceAll(" ", "%")}%`,
-						PatientType.TUTOR,
-					]);
-				});
+				qb.whereRaw("(client.name ilike ? and client.type = ?)", [
+					`%${data.clientName?.replaceAll(" ", "%")}%`,
+					PatientType.TUTOR,
+				]);
 			}
 
 			if (data.bill_id) {
@@ -176,11 +205,7 @@ export default class BillService {
 			}
 
 			if (data.patientTag) {
-				qb.whereHas("patient", (query) => {
-					query.whereHas("patientAnimal", (query) => {
-						query.where("tag", data.patientTag ?? "");
-					});
-				});
+				qb.whereRaw("patient_animals.tag = ?", [data.patientTag]);
 			}
 
 			if (data.pending === "true") {
@@ -199,7 +224,7 @@ export default class BillService {
 						"issued_fiscal_documents.bill_id, count(issued_fiscal_documents.bill_id)",
 					),
 				)
-				.where("issued_fiscal_documents.business_unit_id", unitId)
+				.where("issued_fiscal_documents.business_unit_id", authCtx.unit.id)
 				.groupBy("issued_fiscal_documents.bill_id"),
 			Database.from("service_issued_fiscal_documents")
 				.select(
@@ -207,45 +232,23 @@ export default class BillService {
 						"service_issued_fiscal_documents.bill_id, count(service_issued_fiscal_documents.bill_id)",
 					),
 				)
-				.where("service_issued_fiscal_documents.business_unit_id", unitId)
+				.where(
+					"service_issued_fiscal_documents.business_unit_id",
+					authCtx.unit.id,
+				)
 				.groupBy("service_issued_fiscal_documents.bill_id"),
 		]);
 		const total = count1.concat(count2);
 
-		const status: { id: string; status: string }[] = await Database.from(
-			"bills",
-		)
-			.select(
-				Database.raw(
-					`id,
-       case
-           when
-               (select true
-                from bill_items
-                where (courtesy = true or max_discount = true)
-                  and (approved = false and courtesy_approved_at is not null)
-                  and deleted_at is null
-                  and bill_items.bill_id = bills.id
-                group by bill_id) = true then 'Nao Aprovada'
-           else bills.status end as status`,
-				),
-			)
-			.whereIn(
-				"id",
-				result.map((b) => b.id),
-			)
-			.orderByRaw("created_at desc");
-
 		return result.map((b) => ({
 			hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
-			...b.toJSON(),
-			status: status.find((s) => s.id === b.id)?.status ?? b.status,
+			...b,
 		}));
 	}
 
-	async show(unitId: string, id: string) {
+	async show(authCtx: AuthContext, id: string) {
 		const bill = await Bill.query()
-			.where("business_unit_id", unitId)
+			.where("business_unit_id", authCtx.unit.id)
 			.where("id", id)
 			.preload("client", (query) => {
 				query.preload("tutor");
@@ -273,6 +276,8 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
+				query.orderByRaw("block, bill_payments.installments");
+
 				query.preload("approvedUser", (query) => {
 					query.select("id", "name");
 				});
@@ -311,7 +316,7 @@ export default class BillService {
 					query.preload("product");
 
 					query.preload("businessUnitProducts", (query) => {
-						query.where("businness_unit_id", unitId);
+						query.where("businness_unit_id", authCtx.unit.id);
 						query.select("id", "maximum_discount_percentage");
 					});
 				});
@@ -332,7 +337,44 @@ export default class BillService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		return bill;
+		const rows = await Database.from("bills")
+			.select(
+				Database.raw(
+					`p.description as produto, pi2.description as produtividade, te.schedule_date , te.execution_date , u."name" as usuario_execucao, bi.id`,
+				),
+			)
+			.joinRaw("join bill_items bi on bills.id = bi.bill_id", [])
+			.joinRaw(
+				"join product_variations pv on bi.product_variation_id = pv.id",
+				[],
+			)
+			.joinRaw("join products p on p.id = pv.product_id", [])
+			.joinRaw("join treatments t on bills.id = t.bill_id", [])
+			.joinRaw(
+				"join treatment_items ti on t.id = ti.treatment_id and bi.id = ti.bill_item_id",
+				[],
+			)
+			.joinRaw(
+				"join treatment_executions te on ti.id = te.treatment_item_id and ti.treatment_id = te.treatment_id",
+				[],
+			)
+			.joinRaw(
+				"join productivity_items pi2 on te.productivity_item_id = pi2.id",
+				[],
+			)
+			.joinRaw("left join users u on u.id = te.execution_user_id", [])
+			.where("bills.economic_group_id", authCtx.group.id)
+			.where("bills.business_unit_id", authCtx.unit.id)
+			.whereRaw("bills.bill_date::date = now()::date", []);
+
+		const jsonBill = bill.toJSON();
+
+		jsonBill.items = jsonBill.items.map((bi) => {
+			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+			return bi;
+		});
+
+		return jsonBill;
 	}
 
 	async checkItemsDiscount(
@@ -3665,12 +3707,13 @@ where deposit_id = ?
 	async requestBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			reasonId: string;
+			reasonId?: string;
+			cancelReason?: string;
 			billId: string;
-			billItems: string[];
+			billItems: { id: string; quantity: number }[];
 			billPayments: string[];
 
-			notes: string;
+			notes?: string;
 		},
 	) {
 		if (!authCtx.hasPermission("VEN18")) {
@@ -3687,7 +3730,10 @@ where deposit_id = ?
 				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.billId)
 				.preload("items", (query) => {
-					query.whereIn("id", data.billItems);
+					query.whereIn(
+						"id",
+						data.billItems.map((bi) => bi.id),
+					);
 				})
 				.preload("payments", (query) => {
 					query.whereIn("id", data.billPayments);
@@ -3711,6 +3757,7 @@ where deposit_id = ?
 					cancel_user_id: authCtx.user.id,
 					cancel_reason_id: data.reasonId,
 
+					cancelReason: data.cancelReason,
 					cancelled: "P",
 					cancelledAt: DateTime.now(),
 					cancelNotes: data.notes,
@@ -3727,6 +3774,8 @@ where deposit_id = ?
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue),
 						originalTotalQuantity: item.quantity,
+						cancelledQuantity:
+							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
 					})
 					.useTransaction(trx)
 					.save();

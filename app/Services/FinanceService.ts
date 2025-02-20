@@ -1835,6 +1835,92 @@ export default class FinanceService {
 			.save();
 	}
 
+	// 2.3
+	async deleteMultipleFinances(
+		authCtx: AuthContext,
+		data: {
+			idList: string[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const accessResult: { control_id: string; erro: string }[] =
+				await Database.from("role_permissions")
+					.select(
+						Database.raw(
+							"p.control_id, case when p.control_id = 'TRC03' then 'Usuário não possui permissão para excluir titulos de Credito' else 'Usuário não possui permissão para excluir titulos de Debito' end as erro",
+						),
+					)
+					.useTransaction(trx)
+					.joinRaw(
+						"join permissions p on role_permissions.permission_id = p.id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on role_permissions.role_id = uur.role_id and uur.unit_id = ? and user_id = ?",
+						[authCtx.unit.id, authCtx.user.id],
+					)
+					.whereRaw(
+						`( p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
+or
+ ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
+						[data.idList.join(","), data.idList.join(",")],
+					);
+
+			if (accessResult.length > 0) {
+				throw new BadRequestException(
+					`Não foi possível concluir a operação de excluir registros. ${accessResult.map((ar) => ar.erro).join(", ")}`,
+					400,
+					"E_ERR",
+				);
+			}
+
+			const finances = await Finance.query()
+				.useTransaction(trx)
+				.whereIn("id", data.idList)
+				.where("business_unit_id", authCtx.unit.id);
+			if (finances.length !== data.idList.length) {
+				throw new BadRequestException(
+					"Algum registro enviado não foi encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const notActiveFinances = finances.filter(
+				(f) => f.status !== FinanceStatus.A,
+			);
+			if (notActiveFinances.length > 0) {
+				throw new BadRequestException(
+					`Não é possível excluir os lançamentos pois não estão ativos: ${notActiveFinances.map((f) => `${f.document} / ${f.installment}`).join(", ")}`,
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			const badOriginFinances = finances.filter(
+				(f) => f.originFlag !== FinanceOriginFlag.F,
+			);
+			if (badOriginFinances.length > 0) {
+				throw new BadRequestException(
+					`Não é possível excluir os lançamentos que não foram criados pelo financeiro: ${badOriginFinances.map((f) => `${f.document} / ${f.installment}`).join(", ")}`,
+					400,
+					"BAD_REQUEST",
+				);
+			}
+
+			return Finance.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					finances.map((f) => f.id),
+				)
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					status: FinanceStatus.E,
+					deleted_at: DateTime.now(),
+				});
+		});
+	}
+
 	async acceptMany(authCtx: AuthContext, data: { ids: string[] }) {
 		await Database.transaction(async (trx) => {
 			const finances = await Finance.query()

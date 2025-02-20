@@ -1,7 +1,7 @@
 import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
-export default class RequestBillCancellationValidator {
+export default class DeleteMultipleFinanceValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -24,26 +24,15 @@ export default class RequestBillCancellationValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		reasonId: schema.string.optional([
-			rules.exists({ table: "reasons", column: "id" }),
-		]),
-		cancelReason: schema.string.optional(),
-		billId: schema.string([rules.exists({ table: "bills", column: "id" })]),
-		billItems: schema.array().members(
-			schema.object().members({
-				id: schema.string([
-					rules.exists({ table: "bill_items", column: "id" }),
-				]),
-				quantity: schema.number([]),
-			}),
+		idList: schema.array().members(
+			schema.string([
+				rules.uuid(),
+				rules.exists({
+					table: "finances",
+					column: "id",
+				}),
+			]),
 		),
-		billPayments: schema
-			.array()
-			.members(
-				schema.string([rules.exists({ table: "bill_payments", column: "id" })]),
-			),
-
-		notes: schema.string.optional(),
 	});
 
 	/**

@@ -16,25 +16,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 41239 ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts
+          sudo apt-get install sshpass
+
       - name: Deploy Application
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            cd ${{ secrets.FOLDER }}
-            git pull origin ${{ github.ref_name }}
-            yarn
-            rm -rf dist
-            yarn build
-            cp .env build/.env
-            cp -r public build/public
-            export NODE_ENV=production
-            node ace migration:run
-            pm2 restart ${{ secrets.APP }}
-            pm2 restart cron
+        run: |
+          sshpass -p '${{ secrets.DEV_PSWD }}' ssh -v -o StrictHostKeyChecking=no -p 41239 ${{ secrets.SSH_USER }}@${{ secrets.DEV_HOST }} <<'ENDSSH'
+          cd ${{ secrets.FOLDER }}
+          git pull origin develop
+          yarn
+          rm -rf dist
+          yarn build
+          cp .env build/.env
+          cp -r public build/public
+          node ace migration:run
+          pm2 restart api
+          pm2 restart cron
+          ENDSSH
 
       - name: Notify Discord
         if: always()
@@ -42,5 +45,5 @@ jobs:
           STATUS="🔴 Falhou [dev]"
           if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [dev]"; fi
           curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
-          ${{ secrets.DISCORD_WEBHOOK }}
+          ${{ secrets.DEV_DISCORD_WEBHOOK }}
 

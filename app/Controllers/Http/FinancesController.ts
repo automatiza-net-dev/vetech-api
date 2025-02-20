@@ -7,6 +7,7 @@ import CalculateFinanceFeeValidator from "App/Validators/Finance/CalculateFinanc
 import CreateBorderoItemValidator from "App/Validators/Finance/CreateBorderoItemValidator";
 import CreateBorderoValidator from "App/Validators/Finance/CreateBorderoValidator";
 import CreateMultipleFinancesValidator from "App/Validators/Finance/CreateMultipleFinancesValidator";
+import DeleteMultipleFinanceValidator from "App/Validators/Finance/DeleteMultipleFinanceValidator";
 import DownBorderoValidator from "App/Validators/Finance/DownBorderoValidator";
 import ExcludeBorderoItemValidator from "App/Validators/Finance/ExcludeBorderoItemValidator";
 import MutateBorderoValidator from "App/Validators/Finance/MutateBorderoValidator";
@@ -92,7 +93,7 @@ export default class FinancesController {
 			plan: qs.plan,
 			competence: qs.competence,
 
-      order: qs.order,
+			order: qs.order,
 
 			groupBorderos: qs.groupBorderos,
 		});
@@ -369,6 +370,17 @@ export default class FinancesController {
 		await this.service.deleteFinance(
 			await this.sharedService.getAuthContext(auth),
 			params.id,
+		);
+
+		return response.noContent();
+	}
+
+	async deleteManyFinances({ request, auth, response }) {
+		const data = await request.validate(DeleteMultipleFinanceValidator);
+
+		await this.service.deleteMultipleFinances(
+			await this.sharedService.getAuthContext(auth),
+			data,
 		);
 
 		return response.noContent();

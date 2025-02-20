@@ -349,6 +349,12 @@ export default class BillItem extends BaseModel {
 	public reviewCancelNotes: string | null;
 
 	@column({
+		columnName: "cancelled_quantity",
+		serializeAs: "cancelledQuantity",
+	})
+	public cancelledQuantity: number | null;
+
+	@column({
 		columnName: "original_total_value",
 		serializeAs: "originalTotalValue",
 		consume: (value) => (value ? new Decimal(value) : null),

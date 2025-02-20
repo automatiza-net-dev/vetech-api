@@ -6,9 +6,7 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { BillStatus } from "App/Models/Bill";
 import { BudgetStatus } from "App/Models/Budget";
-import BusinessUnit, {
-	TBusinessUnitEnvironment,
-} from "App/Models/BusinessUnit";
+import BusinessUnit, {} from "App/Models/BusinessUnit";
 import { FinanceStatus, FinanceType } from "App/Models/Finance";
 import { ProductType } from "App/Models/Product";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -75,10 +73,6 @@ export default class IndicatorService {
 			})
 			.groupBy("business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.unit) {
 			qb.where("business_unit_id", data.unit);
@@ -181,11 +175,6 @@ export default class IndicatorService {
 				[],
 			);
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.unit) {
 			qb1.where("bills.business_unit_id", data.unit);
 			qb2.where("bills.business_unit_id", data.unit);
@@ -282,11 +271,6 @@ export default class IndicatorService {
 				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
 				[],
 			);
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
@@ -422,10 +406,6 @@ export default class IndicatorService {
 			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		const [{ total_sales = "0" }] = await qb1;
 		const parsedTotal = Number.parseFloat(total_sales);
 
@@ -474,10 +454,6 @@ export default class IndicatorService {
 			})
 			.groupBy("products.id", "products.description", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.unit) {
 			qb.where("bills.business_unit_id", data.unit);
@@ -536,10 +512,6 @@ export default class IndicatorService {
 			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		const [{ total_sales = "0" }] = await qb1;
 		const parsedTotal = Number.parseFloat(total_sales);
 
@@ -588,10 +560,6 @@ export default class IndicatorService {
 			})
 			.groupBy("products.id", "products.description", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.unit) {
 			qb.where("bills.business_unit_id", data.unit);
@@ -753,10 +721,6 @@ export default class IndicatorService {
 			.whereIn("bills.business_unit_id", listOfUnits)
 			.where("products.subgroup_id", data.subgroup ?? v4());
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.fromDate) {
 			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
 		}
@@ -844,11 +808,6 @@ export default class IndicatorService {
 			.orderByRaw("totalPayments desc")
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.unit) {
 			qb1.where("bills.business_unit_id", data.unit);
 			qb2.where("bills.business_unit_id", data.unit);
@@ -935,11 +894,6 @@ export default class IndicatorService {
 			.groupBy("business_units.id", "payment_methods.description")
 			.orderBy("totalpayments", "desc")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
@@ -1087,10 +1041,6 @@ export default class IndicatorService {
 			.groupBy("business_units.id")
 			.where("bills.business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.fromDate) {
 			qb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
@@ -1240,11 +1190,6 @@ export default class IndicatorService {
 				[],
 			);
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
@@ -1306,10 +1251,6 @@ export default class IndicatorService {
 			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		const [{ total_sales = "0" }] = await qb1;
 		const parsedTotal = Number.parseFloat(total_sales);
 
@@ -1358,10 +1299,6 @@ export default class IndicatorService {
 			})
 			.groupBy("products.id", "products.description", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
@@ -1450,11 +1387,6 @@ export default class IndicatorService {
 			.orderBy("totalpayments", "desc")
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			qb2.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
 			qb2.whereIn("bills.business_unit_id", data.units);
@@ -1525,10 +1457,6 @@ export default class IndicatorService {
 			.groupBy("business_units.id")
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
 		} else {
@@ -1597,7 +1525,6 @@ export default class IndicatorService {
 				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
 				[],
 			)
-			.where("business_units.environment", "P")
 			.where("crm_statuses.type", "OP")
 			.where("crm_statuses.tag", "N")
 			.groupBy("business_units.id");
@@ -1620,14 +1547,6 @@ export default class IndicatorService {
 				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			salesQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("schedules.business_unit_id", data.units);
@@ -1706,13 +1625,6 @@ export default class IndicatorService {
 			totalQb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			totalQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
-
 		const [{ total_bill_payments = "0" }] = await totalQb;
 		const parsedTotal = Number.parseFloat(total_bill_payments);
 
@@ -1745,10 +1657,6 @@ export default class IndicatorService {
 			.groupBy("subgroups.id", "subgroups.description", "business_units.id")
 			.orderBy("total", "desc")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
@@ -1811,13 +1719,6 @@ export default class IndicatorService {
 			totalQb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			totalQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
-
 		const [{ total_bill_payments = "0" }] = await totalQb;
 		const parsedTotal = Number.parseFloat(total_bill_payments);
 
@@ -1852,10 +1753,6 @@ export default class IndicatorService {
 			)
 			.orderByRaw("2, 6")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
@@ -1929,13 +1826,6 @@ export default class IndicatorService {
 			.join("business_units", "business_units.id", "bills.business_unit_id")
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			totalQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			totalQb.whereIn("bills.business_unit_id", data.units);
 		} else {
@@ -1983,13 +1873,6 @@ export default class IndicatorService {
 			.groupBy("subgroups.id", "subgroups.description")
 			.orderBy("total", "desc")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			totalQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
@@ -2054,10 +1937,6 @@ export default class IndicatorService {
 			})
 			.groupBy("business_units.id")
 			.where("opportunity_logs.business_unit_id", data.unit);
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.group) {
 			qb.andWhere("opportunity_logs.economic_group_id", data.group);
@@ -2126,10 +2005,6 @@ export default class IndicatorService {
 			.groupBy("business_units.id")
 			.where("opportunities.business_unit_id", data.unit);
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.group) {
 			qb.andWhere("opportunities.economic_group_id", data.group);
 		}
@@ -2185,10 +2060,6 @@ export default class IndicatorService {
 			.whereNotIn("budgets.status", [BudgetStatus.C, BudgetStatus.P])
 			.whereNull("budgets.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.fromDate) {
 			qb.andWhereRaw("budgets.budget_date::date >= ?", [data.fromDate]);
 		}
@@ -2242,13 +2113,6 @@ export default class IndicatorService {
 				[],
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			opportunityQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			opportunityQb.whereIn("business_units.id", data.units);
@@ -2314,13 +2178,6 @@ export default class IndicatorService {
 				[],
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			opportunityQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			opportunityQb.whereIn("business_units.id", data.units);
@@ -2444,10 +2301,6 @@ export default class IndicatorService {
 				"business_units.identification",
 			)
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -2618,10 +2471,6 @@ export default class IndicatorService {
 			)
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -2706,10 +2555,6 @@ export default class IndicatorService {
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -2820,10 +2665,6 @@ export default class IndicatorService {
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -2960,10 +2801,6 @@ export default class IndicatorService {
 			qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -3060,8 +2897,7 @@ export default class IndicatorService {
 			)
 			.groupBy("business_units.id")
 			.where("budgets.status", data.status)
-			.whereNull("budgets.deleted_at")
-			.where("business_units.environment", "P");
+			.whereNull("budgets.deleted_at");
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -3146,17 +2982,6 @@ export default class IndicatorService {
 			.whereNot("finances.status", FinanceStatus.E)
 			.groupByRaw(`business_units.id, economic_groups.id, competence_date`)
 			.orderBy("competence_date", "asc");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			billsQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-			financesQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			billsQb.whereIn("business_units.id", data.units);
@@ -3337,17 +3162,6 @@ export default class IndicatorService {
 			.groupByRaw(`business_units.id, economic_groups.id, competence_date`)
 			.orderBy("competence_date");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			billsQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-			financesQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			billsQb.whereIn("business_units.id", data.units);
 			financesQb.whereIn("business_units.id", data.units);
@@ -3504,10 +3318,6 @@ export default class IndicatorService {
 			)
 			.whereNull("bills.deleted_at");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -3595,10 +3405,6 @@ export default class IndicatorService {
                                                 (to_char(bills.bill_date, 'YYYY/MM') <> to_char(bill_payments.expiration_date, 'YYYY/MM'))
                                                 or (payment_methods.tef <> 'NAO' and payment_methods.type = 'CREDITO')
                                               )`);
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -3693,10 +3499,6 @@ export default class IndicatorService {
 			)
 			.orderBy("period");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -3762,8 +3564,7 @@ export default class IndicatorService {
 			.whereNull("bills.deleted_at")
 			.whereRaw(
 				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
-			)
-			.whereRaw(`business_units.environment = 'P'`);
+			);
 
 		const qb2 = Database.from("bills")
 			.select(
@@ -3793,8 +3594,7 @@ export default class IndicatorService {
 			.whereNull("bills.deleted_at")
 			.whereRaw(
 				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
-			)
-			.whereRaw(`business_units.environment = 'P'`);
+			);
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
@@ -3949,8 +3749,7 @@ export default class IndicatorService {
 			.groupByRaw(
 				"business_units.id, client_origin_categories.description, client_origin_groups.description, client_origins.description",
 			)
-			.whereNull("opportunities.deleted_at")
-			.whereRaw(`business_units.environment = 'P'`);
+			.whereNull("opportunities.deleted_at");
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("opportunities.business_unit_id", data.units);
@@ -4661,10 +4460,6 @@ export default class IndicatorService {
 			qb.where("bills.business_unit_id", authCtx.unit.id);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.fromDate && data.toDate) {
 			qb.whereRaw(
 				`bill_date::date between (?::date - interval '5 months')::date and ?`,
@@ -4780,10 +4575,6 @@ export default class IndicatorService {
 			)
 			.orderByRaw(`to_char(bills.bill_date, 'YYYY/MM')`)
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -5013,8 +4804,7 @@ export default class IndicatorService {
 			)
 			.joinRaw(`join users on bills.user_id = users.id`)
 			.groupByRaw(`economic_groups.id, business_units.id, users.id`)
-			.whereNull("bills.deleted_at")
-			.where("business_units.environment", "P");
+			.whereNull("bills.deleted_at");
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -5143,10 +4933,6 @@ export default class IndicatorService {
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -5310,13 +5096,6 @@ export default class IndicatorService {
 			totalQb.andWhereRaw("bill_date::date <= ?", [data.toDate]);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			totalQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
-
 		const [{ total_bill_payments = "0" }] = await totalQb;
 		const parsedTotal = Number.parseFloat(total_bill_payments);
 
@@ -5349,10 +5128,6 @@ export default class IndicatorService {
 			.groupBy("subgroups.id", "subgroups.description", "business_units.id")
 			.orderByRaw("total desc, description desc")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
@@ -5485,10 +5260,6 @@ export default class IndicatorService {
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
@@ -5667,10 +5438,6 @@ export default class IndicatorService {
 			qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
 		}
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -5814,10 +5581,6 @@ export default class IndicatorService {
 			.whereNull("total.deleted_at")
 			.orderByRaw("total_confirmados desc, name");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);
 		} else {
@@ -5954,14 +5717,6 @@ export default class IndicatorService {
 				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			// salesQb.where(
-			// 	"business_units.environment",
-			// 	"P" as TBusinessUnitEnvironment,
-			// );
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("schedules.business_unit_id", data.units);
@@ -6132,7 +5887,6 @@ export default class IndicatorService {
 				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
 				[],
 			)
-			.where("business_units.environment", "P")
 			.where("crm_statuses.type", "OP")
 			.where("crm_statuses.tag", "N")
 			.groupBy("business_units.id");
@@ -6155,14 +5909,6 @@ export default class IndicatorService {
 				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id and schedule_service_types.type = 'A'`,
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-			salesQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("schedules.business_unit_id", data.units);
@@ -6321,10 +6067,6 @@ export default class IndicatorService {
 			.groupBy("business_units.id");
 		// .where(".business_unit_id", data.unit);
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("opportunity_logs.business_unit_id", data.units);
 		} else {
@@ -6422,7 +6164,6 @@ export default class IndicatorService {
 			})
 			.groupByRaw("economic_groups.id, business_units.id, users.id")
 			.whereNull("bills.deleted_at")
-			.where("business_units.environment", "P")
 			.orderByRaw("total_value desc, name desc");
 
 		if (data.units && Array.isArray(data.units)) {
@@ -6534,10 +6275,6 @@ export default class IndicatorService {
 			qb.whereIn("bills.business_unit_id", data.units);
 		} else {
 			qb.where("bills.business_unit_id", authCtx.unit.id);
-		}
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
 		}
 
 		if (data.fromDate && data.toDate) {
@@ -6963,13 +6700,6 @@ export default class IndicatorService {
 				[],
 			)
 			.groupBy("business_units.id");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			opportunityQb.where(
-				"business_units.environment",
-				"P" as TBusinessUnitEnvironment,
-			);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			opportunityQb.whereIn("business_units.id", data.units);
@@ -7457,10 +7187,6 @@ export default class IndicatorService {
 			.whereNull("bills.deleted_at")
 			.where("bills.economic_group_id", authCtx.group.id);
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
-
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("bills.business_unit_id", data.units);
 		} else {
@@ -7572,10 +7298,6 @@ export default class IndicatorService {
 			)
 			.groupByRaw("business_units.id, client_origins.description")
 			.whereNull("opportunities.deleted_at");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("opportunities.business_unit_id", data.units);
@@ -7875,10 +7597,6 @@ export default class IndicatorService {
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
 			.whereNull("total.deleted_at")
 			.orderByRaw("total_confirmados desc, name");
-
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb.where("business_units.environment", "P" as TBusinessUnitEnvironment);
-		}
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("business_units.id", data.units);

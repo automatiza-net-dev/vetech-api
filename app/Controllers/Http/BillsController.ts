@@ -30,17 +30,19 @@ export default class BillsController {
 	) {}
 
 	public async index({ request, response, auth }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		const result = await this.service.index(unit_id, request.qs());
+		const result = await this.service.index(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
 
 		return response.ok(result);
 	}
 
 	public async show({ params, auth, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-
-		const result = await this.service.show(unit_id, params.id);
+		const result = await this.service.show(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.ok(result);
 	}

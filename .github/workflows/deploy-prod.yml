@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          env
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 41239 ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+          sudo apt-get install sshpass
+
+      - name: Deploy Application
+        run: |
+          sshpass -p '${{ secrets.PROD_PSWD }}' ssh -v -o StrictHostKeyChecking=no -p 41239 ${{ secrets.SSH_USER }}@${{ secrets.PROD_HOST }} <<'ENDSSH'
+          cd ${{ secrets.FOLDER }}
+          git pull origin ${{ github.ref_name }}
+          yarn
+          rm -rf dist
+          yarn build
+          cp .env build/.env
+          cp -r public build/public
+          export NODE_ENV=production
+          node ace migration:run
+          pm2 restart api
+          pm2 restart cron
+          ENDSSH
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          STATUS="🔴 Falhou [prod]"
+          if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [prod]"; fi
+          curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
+          ${{ secrets.PROD_DISCORD_WEBHOOK }}
+
+

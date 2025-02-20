@@ -121,6 +121,7 @@ export default class BillService {
        bills.total_value,
        bills.internal_code,
        bills.cancelled_at,
+       bills.cancelled,
        bills.cancellation_observation,
        case
            when
@@ -3727,7 +3728,7 @@ where deposit_id = ?
 		await Database.transaction(async (trx) => {
 			const bill = await Bill.query()
 				.useTransaction(trx)
-				// .where("business_unit_id", authCtx.unit.id)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("id", data.billId)
 				.preload("items", (query) => {
 					query.whereIn(

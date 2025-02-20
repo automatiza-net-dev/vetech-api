@@ -3773,7 +3773,7 @@ where deposit_id = ?
 					.merge({
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue),
-						originalTotalQuantity: item.quantity,
+						originalQuantity: item.quantity,
 						cancelledQuantity:
 							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
 					})

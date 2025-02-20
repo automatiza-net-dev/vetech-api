@@ -1020,83 +1020,96 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const qb1 = Database.from("bills")
 			.select(
 				Database.raw(
-					`
-            business_units.id,
-            business_units.identification,
-            'Recorrentes'          as description,
+					`'Recorrentes'          as description,
             sum(bills.total_value) as total,
             count(distinct bills.client_id) as qty_clients
           `,
 				),
 			)
 			.joinRaw(
-				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
-                on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id`,
+				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id)
+    join client_origins on patient_tutors.client_origin_id = client_origins.id)
+              on bills.client_id = patient_tutors.patient_id`,
 				[],
 			)
-			.join("business_units", (query) => {
-				query.on("business_units.id", "=", "bills.business_unit_id");
-			})
-			.groupBy("business_units.id")
-			.orderBy("total", "desc")
+			.joinRaw(
+				"inner join business_units on business_units.id = bills.business_unit_id",
+			)
+			.joinRaw(
+				"join economic_groups on economic_groups.id = business_units.economic_group_id",
+			)
+			.joinRaw(
+				"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+				[authCtx.user.id],
+			)
+			.where("economic_groups.system_id", authCtx.systemID)
 			.whereNull("bills.deleted_at")
 			.andWhereRaw(
 				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
 				[],
-			);
-
-		const qb2 = Database.from("bills")
-			.select(
-				Database.raw(
-					`
-          business_units.id,
-          business_units.identification,
-          client_origins.description,
-          sum(bills.total_value) as total,
-          count( distinct bills.client_id ) as qty_clients
-          `,
-				),
 			)
-			.joinRaw(
-				`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id) join client_origins
-                on patient_tutors.client_origin_id = client_origins.id)
-                on bills.client_id = patient_tutors.patient_id`,
-				[],
-			)
-			.join("business_units", (query) => {
-				query.on("business_units.id", "=", "bills.business_unit_id");
-			})
-			.groupBy("business_units.id", "client_origins.description")
-			.orderBy("total", "desc")
-			.whereNull("bills.deleted_at")
-			.andWhereRaw(
-				`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
-				[],
-			);
+			.where("business_units.environment", "P")
+			.orderByRaw("total desc")
+			.union((qb) => {
+				qb.from("bills")
+					.select(
+						Database.raw(
+							`
+			       client_origins.description,
+			       sum(bills.total_value) as total,
+			       count( distinct bills.client_id ) as qty_clients
+			       `,
+						),
+					)
+					.joinRaw(
+						`join ((patients join patient_tutors on patients.id = patient_tutors.patient_id)
+			 join client_origins on patient_tutors.client_origin_id = client_origins.id)
+			           on bills.client_id = patient_tutors.patient_id`,
+						[],
+					)
+					.joinRaw(
+						'inner join "business_units" on "business_units"."id" = "bills"."business_unit_id"',
+						[],
+					)
+					.joinRaw(
+						"join economic_groups on economic_groups.id = business_units.economic_group_id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on uur.unit_id = business_units.id and uur.user_id = ?",
+						[authCtx.user.id],
+					)
+					.where("economic_groups.system_id", authCtx.systemID)
+					.whereNull("bills.deleted_at")
+					.whereRaw(
+						`to_char(bills.bill_date, 'YYYY-MM') = to_char(patients.first_sale, 'YYYY-MM')`,
+					)
+					.whereRaw("business_units.environment = 'P'")
+					.groupByRaw("client_origins.description");
 
-		if (authCtx.user.type === "user" || authCtx.user.type === "controller") {
-			qb1.where("business_units.environment", "P");
-			qb2.where("business_units.environment", "P");
-		}
+				if (data.units && Array.isArray(data.units)) {
+					qb.whereIn("bills.business_unit_id", data.units);
+				}
+
+				if (data.fromDate && data.toDate) {
+					qb.andWhereRaw("bill_date::date between ? and ?", [
+						data.fromDate,
+						data.toDate,
+					]);
+				}
+			});
 
 		if (data.units && Array.isArray(data.units)) {
 			qb1.whereIn("bills.business_unit_id", data.units);
-			qb2.whereIn("bills.business_unit_id", data.units);
 		}
 
-		if (data.fromDate) {
-			qb1.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-			qb2.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
+		if (data.fromDate && data.toDate) {
+			qb1.andWhereRaw("bill_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
 		}
 
-		if (data.toDate) {
-			qb1.andWhereRaw("bill_date::date <= ?", [data.toDate]);
-			qb2.andWhereRaw("bill_date::date <= ?", [data.toDate]);
-		}
-
-		const [r1, r2] = await Promise.all([qb1, qb2]);
-		const result = r1.concat(r2);
+		const result = await qb1;
 
 		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
 		const system = await System.findOrFail(authCtx.systemID);
